@@ -44,6 +44,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import io.kyligence.kap.smart.model.ModelTree;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
+import lombok.val;
 
 public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
@@ -92,16 +94,17 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
 
         // validation after initializing NSmartMaster
-        NSmartContext smartContext = smartMaster.getContext();
+        AbstractContext smartContext = smartMaster.getContext();
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
         smartMaster.analyzeSQLs();
         Assert.assertEquals(1, smartContext.getModelContexts().size());
-        NSmartContext.NModelContext mdCtx = smartContext.getModelContexts().get(0);
+        AbstractContext.NModelContext mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getModelTree());
         ModelTree modelTree = mdCtx.getModelTree();
         Assert.assertEquals(expectedEffectiveOLAPCtxNum, modelTree.getOlapContexts().size());
@@ -148,8 +151,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 .filter(accelerateInfo -> !accelerateInfo.getRelatedLayouts().isEmpty()).count());
 
         // validation after save
-        smartMaster.saveModel();
-        smartMaster.saveIndexPlan();
+        context.saveMetadata();
         Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
         Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
         Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
@@ -172,16 +174,17 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
 
         // validation after initializing NSmartMaster
-        NSmartContext smartContext = smartMaster.getContext();
+        AbstractContext smartContext = smartMaster.getContext();
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
         smartMaster.analyzeSQLs();
         Assert.assertEquals(1, smartContext.getModelContexts().size());
-        NSmartContext.NModelContext mdCtx = smartContext.getModelContexts().get(0);
+        AbstractContext.NModelContext mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getModelTree());
         ModelTree modelTree = mdCtx.getModelTree();
         Assert.assertEquals(expectedEffectiveOLAPCtxNum, modelTree.getOlapContexts().size());
@@ -229,8 +232,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 .filter(accelerateInfo -> !accelerateInfo.getRelatedLayouts().isEmpty()).count());
 
         // validation after save
-        smartMaster.saveModel();
-        smartMaster.saveIndexPlan();
+        context.saveMetadata();
         Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
         Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
         Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
@@ -252,10 +254,11 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 + "GROUP BY t1.leaf_categ_id\n" //
                 + "ORDER BY nums, leaf_categ_id" };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
 
         // validation after initializing NSmartMaster
-        NSmartContext smartContext = smartMaster.getContext();
+        AbstractContext smartContext = smartMaster.getContext();
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
@@ -264,7 +267,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
         // select Model
         smartMaster.selectModel();
-        for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNull(modelContext.getOriginModel());
             Assert.assertNull(modelContext.getTargetModel());
         }
@@ -284,7 +287,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
         // select IndexPlan
         smartMaster.selectIndexPlan();
-        for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNull(modelContext.getOriginIndexPlan());
             Assert.assertNull(modelContext.getTargetIndexPlan());
         }
@@ -308,8 +311,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 .filter(accelerateInfo -> !accelerateInfo.getRelatedLayouts().isEmpty()).count());
 
         // validation after save
-        smartMaster.saveModel();
-        smartMaster.saveIndexPlan();
+        context.saveMetadata();
         Assert.assertEquals(3, dataflowManager.listUnderliningDataModels().size());
         Assert.assertEquals(3, indexPlanManager.listAllIndexPlans().size());
         Assert.assertEquals(3, dataflowManager.listAllDataflows().size());
@@ -359,10 +361,11 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                         + "ORDER BY nums, leaf_categ_id" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
 
         // validation after initializing NSmartMaster
-        NSmartContext smartContext = smartMaster.getContext();
+        AbstractContext smartContext = smartMaster.getContext();
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
@@ -372,7 +375,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
         // select model
         smartMaster.selectModel();
-        for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNotNull(modelContext.getOriginModel());
             Assert.assertNotNull(modelContext.getTargetModel());
         }
@@ -382,7 +385,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
         // select IndexPlan
         smartMaster.selectIndexPlan();
-        for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNotNull(modelContext.getOriginIndexPlan());
         }
 
@@ -405,8 +408,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
                 .filter(accelerateInfo -> !accelerateInfo.getRelatedLayouts().isEmpty()).count());
 
         // validation after save
-        smartMaster.saveModel();
-        smartMaster.saveIndexPlan();
+        context.saveMetadata();
         Assert.assertEquals(3, dataflowManager.listUnderliningDataModels().size());
         Assert.assertEquals(3, indexPlanManager.listAllIndexPlans().size());
         Assert.assertEquals(3, dataflowManager.listAllDataflows().size());

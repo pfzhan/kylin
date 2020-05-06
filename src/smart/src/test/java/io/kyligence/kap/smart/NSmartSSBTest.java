@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.junit.After;
@@ -45,6 +46,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
@@ -70,12 +72,12 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
 
         List<String> sqls = Lists.newArrayList();
 
-        for (final File sqlFile : fileFolder.listFiles()) {
+        for (final File sqlFile : Objects.requireNonNull(fileFolder.listFiles())) {
             sqls.add(new String(Files.readAllBytes(Paths.get(sqlFile.getAbsolutePath())), StandardCharsets.UTF_8));
         }
-
-        NSmartMaster master = new NSmartMaster(getTestConfig(), project, sqls.toArray(new String[0]));
-        master.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls.toArray(new String[0]));
+        NSmartMaster master = new NSmartMaster(context);
+        master.runWithContext();
 
         getTestConfig().clearManagers();
 
@@ -94,12 +96,11 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
         val maxAggId1 = cube.getNextAggregationIndexId();
         val maxTableId1 = cube.getNextTableIndexId();
         val aggSize = cube.getAllIndexes().stream().filter(c -> !c.isTableIndex()).count();
-        val tableSize = cube.getAllIndexes().stream().filter(c -> c.isTableIndex()).count();
-        cube = cubeManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayouts(
-                    copyForWrite.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()),
-                    true, false);
-        });
+        val tableSize = cube.getAllIndexes().stream().filter(IndexEntity::isTableIndex).count();
+        cube = cubeManager.updateIndexPlan(cube.getUuid(),
+                copyForWrite -> copyForWrite.removeLayouts(
+                        copyForWrite.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()),
+                        true, false));
 
         testSSB();
         cube = cubeManager.getIndexPlan(cube.getUuid());

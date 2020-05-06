@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.newten.auto;
+package io.kyligence.kap.newten.semi;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,9 +42,7 @@ public class NSemiAutoTPCHTest extends SemiAutoTestBase {
     public void testTPCH() throws Exception {
         val optManager = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject());
         Assert.assertEquals(0, optManager.listAllOptimizeRecommendations().size());
-        val testScenarios = new TestScenario[] {
-                new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_tpch")
-        };
+        val testScenarios = new TestScenario[] { new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_tpch") };
         prepareModels(getProject(), testScenarios);
         executeTestScenario(
                 /* CompareLevel = SAME */

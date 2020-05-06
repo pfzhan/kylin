@@ -27,9 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.newten.auto.NSuggestTestBase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -57,12 +54,16 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
-public class NQueryLayoutChooserTest extends NSuggestTestBase {
+public class NQueryLayoutChooserTest extends NAutoTestBase {
 
     private static final String PROJECT = "default";
 
@@ -267,59 +268,62 @@ public class NQueryLayoutChooserTest extends NSuggestTestBase {
         OLAPContext context1 = prepareOlapContext(sql1).get(0);
         Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
         context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair1 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context1.getSQLDigest());
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair1 = NQueryLayoutChooser
+                .selectCuboidLayout(dataflow.getLatestReadySegment(), context1.getSQLDigest());
         Assert.assertFalse(pair1.getFirst().getCuboidLayout().getIndex().isTableIndex());
 
         String sql2 = "select max(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context2 = prepareOlapContext(sql2).get(0);
         Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
         context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair2 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context2.getSQLDigest());
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair2 = NQueryLayoutChooser
+                .selectCuboidLayout(dataflow.getLatestReadySegment(), context2.getSQLDigest());
         Assert.assertFalse(pair2.getFirst().getCuboidLayout().getIndex().isTableIndex());
 
         String sql3 = "select min(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context3 = prepareOlapContext(sql3).get(0);
         Map<String, String> sqlAlias2ModelName3 = RealizationChooser.matchJoins(dataflow.getModel(), context3);
         context3.fixModel(dataflow.getModel(), sqlAlias2ModelName3);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair3 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context3.getSQLDigest());
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair3 = NQueryLayoutChooser
+                .selectCuboidLayout(dataflow.getLatestReadySegment(), context3.getSQLDigest());
         Assert.assertFalse(pair3.getFirst().getCuboidLayout().getIndex().isTableIndex());
 
         String sql4 = "select count(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context4 = prepareOlapContext(sql4).get(0);
         Map<String, String> sqlAlias2ModelName4 = RealizationChooser.matchJoins(dataflow.getModel(), context4);
         context4.fixModel(dataflow.getModel(), sqlAlias2ModelName4);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair4 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context4.getSQLDigest());
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair4 = NQueryLayoutChooser
+                .selectCuboidLayout(dataflow.getLatestReadySegment(), context4.getSQLDigest());
         Assert.assertFalse(pair4.getFirst().getCuboidLayout().getIndex().isTableIndex());
 
         String sql5 = "select count(distinct ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context5 = prepareOlapContext(sql5).get(0);
         Map<String, String> sqlAlias2ModelName5 = RealizationChooser.matchJoins(dataflow.getModel(), context5);
         context5.fixModel(dataflow.getModel(), sqlAlias2ModelName5);
-        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair5 = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context5.getSQLDigest());
+        Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> pair5 = NQueryLayoutChooser
+                .selectCuboidLayout(dataflow.getLatestReadySegment(), context5.getSQLDigest());
         Assert.assertFalse(pair5.getFirst().getCuboidLayout().getIndex().isTableIndex());
     }
 
     @Test
     public void testDimensionAsMeasure_CountDistinctDerived_derivePkFromFk() throws Exception {
-        val sql1 = new String[]{"select cal_dt, seller_id, count(*) " +
-                "from test_kylin_fact left join test_account " +
-                "on test_kylin_fact.seller_id = test_account.account_id " +
-                "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id"};
-
-        val smartMaster = new NSmartMaster(getTestConfig(), "newten", sql1);
-        smartMaster.runAll();
+        val sql1 = new String[] { "select cal_dt, seller_id, count(*) " + "from test_kylin_fact left join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id "
+                + "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
+        val smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
-        val model = modelManager.getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        val model = modelManager
+                .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         val joinTables = model.getJoinTables();
         joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
         modelManager.updateDataModelDesc(model);
 
         buildAllCubes(getTestConfig(), "newten");
 
-        val sql2 = "select cal_dt, count(distinct account_id) " +
-                "from test_kylin_fact left join test_account " +
-                "on test_kylin_fact.seller_id = test_account.account_id " +
-                "group by cal_dt";
+        val sql2 = "select cal_dt, count(distinct account_id) " + "from test_kylin_fact left join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_pk_from_fk", sql2));
@@ -330,25 +334,25 @@ public class NQueryLayoutChooserTest extends NSuggestTestBase {
 
     @Test
     public void testDimensionAsMeasure_CountDistinctDerived_deriveFkFromPk() throws Exception {
-        val sql1 = new String[]{"select cal_dt, account_id, count(*) " +
-                "from test_kylin_fact left join test_account " +
-                "on test_kylin_fact.seller_id = test_account.account_id " +
-                "group by test_kylin_fact.cal_dt, test_account.account_id"};
+        val sql1 = new String[] {
+                "select cal_dt, account_id, count(*) " + "from test_kylin_fact left join test_account "
+                        + "on test_kylin_fact.seller_id = test_account.account_id "
+                        + "group by test_kylin_fact.cal_dt, test_account.account_id" };
 
-        val smartMaster = new NSmartMaster(getTestConfig(), "newten", sql1);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
+        val smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
-        val model = modelManager.getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        val model = modelManager
+                .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         val joinTables = model.getJoinTables();
         joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
         modelManager.updateDataModelDesc(model);
 
         buildAllCubes(getTestConfig(), "newten");
 
-        val sql2 = "select cal_dt, count(distinct seller_id) " +
-                "from test_kylin_fact left join test_account " +
-                "on test_kylin_fact.seller_id = test_account.account_id " +
-                "group by cal_dt";
+        val sql2 = "select cal_dt, count(distinct seller_id) " + "from test_kylin_fact left join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
@@ -359,25 +363,23 @@ public class NQueryLayoutChooserTest extends NSuggestTestBase {
 
     @Test
     public void testDimensionAsMeasure_CountDistinctDerived_onLookup() throws Exception {
-        val sql1 = new String[]{"select cal_dt, seller_id, count(*) " +
-                "from test_kylin_fact left join test_account " +
-                "on test_kylin_fact.seller_id = test_account.account_id " +
-                "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id"};
-
-        val smartMaster = new NSmartMaster(getTestConfig(), "newten", sql1);
-        smartMaster.runAll();
+        val sql1 = new String[] { "select cal_dt, seller_id, count(*) " + "from test_kylin_fact left join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id "
+                + "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
+        val smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
-        val model = modelManager.getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        val model = modelManager
+                .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         val joinTables = model.getJoinTables();
         joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
         modelManager.updateDataModelDesc(model);
 
         buildAllCubes(getTestConfig(), "newten");
 
-        val sql2 = "select cal_dt, count(distinct ACCOUNT_COUNTRY) " +
-                "from test_kylin_fact left join test_account " +
-                "on test_kylin_fact.seller_id = test_account.account_id " +
-                "group by cal_dt";
+        val sql2 = "select cal_dt, count(distinct ACCOUNT_COUNTRY) " + "from test_kylin_fact left join test_account "
+                + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
@@ -397,7 +399,8 @@ public class NQueryLayoutChooserTest extends NSuggestTestBase {
     }
 
     private List<OLAPContext> prepareOlapContext(String sql) {
-        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), PROJECT, new String[] { sql });
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), PROJECT, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
         List<OLAPContext> ctxs = Lists.newArrayList();
         smartMaster.getContext().getModelContexts()

@@ -29,6 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
+import lombok.val;
 
 public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
     private KylinConfig kylinConfig;
@@ -47,13 +49,14 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test() {
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqls);
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, DEFAULT_PROJECT, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
 
         // validate select the expected model
         smartMaster.selectModel();
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getTargetModel().getUuid());
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOriginModel().getUuid());
 

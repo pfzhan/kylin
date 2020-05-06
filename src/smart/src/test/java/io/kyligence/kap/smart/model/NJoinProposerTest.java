@@ -35,6 +35,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
 public class NJoinProposerTest extends NLocalWithSparkSessionTest {
@@ -52,9 +53,9 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" + "LEFT JOIN TEST_ORDER as TEST_ORDER\n"
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
-
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), getProject(), new String[] { sql });
-        smartMaster.runAll();
+        NSmartMaster smartMaster = new NSmartMaster(
+                AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql }));
+        smartMaster.runWithContext();
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sql).isNotSucceed());
         Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
         NDataModel originModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
@@ -63,8 +64,9 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
         final String sql1 = "select sum(ITEM_COUNT) as ITEM_CNT\n" + "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n"
                 + "LEFT JOIN TEST_ORDER as ORDERS\n" + "ON TEST_KYLIN_FACT.ORDER_ID = ORDERS.ORDER_ID\n"
                 + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" + "ON ORDERS.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID";
-        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), getProject(), new String[] { sql1 });
-        smartMaster1.runAll();
+        NSmartMaster smartMaster1 = new NSmartMaster(
+                AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql1 }));
+        smartMaster1.runWithContext();
         Assert.assertFalse(smartMaster1.getContext().getAccelerateInfoMap().get(sql1).isNotSucceed());
         Assert.assertEquals(1, smartMaster1.getContext().getModelContexts().size());
         NDataModel modelFromPartialJoin = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
@@ -72,7 +74,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testProposeModel_wontChangeOriginModelJoins_whenExistsSameTable() throws Exception {
+    public void testProposeModel_wontChangeOriginModelJoins_whenExistsSameTable() {
         final String proj = "newten";
         // create new Model for this test.
         String sql = "select item_count, lstg_format_name, sum(price)\n" //
@@ -81,22 +83,24 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
                 + "group by item_count, lstg_format_name\n" //
                 + "order by item_count, lstg_format_name\n" //
                 + "limit 10";
-        NSmartMaster master = new NSmartMaster(getTestConfig(), proj, new String[] { sql });
-        master.runAll();
+        NSmartMaster master = new NSmartMaster(
+                AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql }));
+        master.runWithContext();
         val newModels = NDataModelManager.getInstance(getTestConfig(), proj).listAllModels();
         Assert.assertEquals(1, newModels.size());
         Assert.assertEquals(2, newModels.get(0).getJoinTables().size());
         val originModelGragh = newModels.get(0).getJoinsGraph();
 
         // secondly propose, still work in SMART-Mode
-        NSmartMaster master1 = new NSmartMaster(getTestConfig(), proj, new String[] { sql }, true);
-        master1.runAll();
+        NSmartMaster master1 = new NSmartMaster(
+                AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql }));
+        master1.runWithContext();
         val modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
         val secondModels = modelManager.listAllModels();
         Assert.assertEquals(1, secondModels.size());
         Assert.assertEquals(2, secondModels.get(0).getJoinTables().size());
         val secondModelGragh = newModels.get(0).getJoinsGraph();
-        Assert.assertTrue(originModelGragh.equals(secondModelGragh));
+        Assert.assertEquals(originModelGragh, secondModelGragh);
 
         // set this project to semi-auto-Mode, change the join alias. it will reuse this origin model and will not change this.
         val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(proj);
@@ -106,9 +110,10 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
 
         val originModels = NDataModelManager.getInstance(getTestConfig(), proj).listAllModels();
         val originModel = originModels.get(0);
-
-        NSmartMaster semiAutoMaster = new NSmartMaster(getTestConfig(), proj, new String[] { sql }, true, true);
-        semiAutoMaster.runAll();
+        val context = AccelerationContextUtil.newModelReuseContext(getTestConfig(), getProject(),
+                new String[] { sql });
+        NSmartMaster semiAutoMaster = new NSmartMaster(context);
+        semiAutoMaster.runWithContext();
         val semiAutoModels = modelManager.listAllModels();
         Assert.assertEquals(1, semiAutoModels.size());
         Assert.assertEquals(2, semiAutoModels.get(0).getJoinTables().size());

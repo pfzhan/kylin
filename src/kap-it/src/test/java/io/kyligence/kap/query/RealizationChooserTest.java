@@ -40,6 +40,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
@@ -53,8 +54,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         // 1. create small inner-join model
         String sql = "select CAL_DT, count(*) as GMV from test_kylin_fact \n"
                 + " where CAL_DT='2012-01-10' group by CAL_DT ";
-        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
-        smartMaster.runAll();
+        val proposeContext = new NSmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.runWithContext();
         OLAPContext context = Lists
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);
@@ -67,8 +69,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         String sql1 = "select CAL_DT, count(*) from test_kylin_fact "
                 + "inner join test_order on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID "
                 + "where CAL_DT='2012-01-10' group by CAL_DT ";
-        NSmartMaster smartMaster1 = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, new String[] { sql1 });
-        smartMaster1.runAll();
+        val proposeContext2 = new NSmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql1 });
+        NSmartMaster smartMaster1 = new NSmartMaster(proposeContext2);
+        smartMaster1.runWithContext();
         Assert.assertFalse(smartMaster1.getRecommendedModels().isEmpty());
         NDataModel dataModel1 = smartMaster1.getRecommendedModels().get(0);
         String dataflow1 = dataModel1.getId();
@@ -88,8 +91,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
     public void test_sortByCandidatesId_when_candidatesCostAreTheSame() {
         // can be answered by both [nnmodel_basic] & [nmodel_basic_inner]
         String sql = "select count(*) from TEST_ACCOUNT group by ACCOUNT_ID";
-        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), "default", new String[] { sql });
-        smartMaster.runAll();
+        val proposeContext = new NSmartContext(KylinConfig.getInstanceFromEnv(), "default", new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.runWithContext();
         OLAPContext context = Lists
                 .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
                 .get(0);

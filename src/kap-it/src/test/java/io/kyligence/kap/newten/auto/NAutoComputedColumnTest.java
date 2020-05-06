@@ -47,10 +47,11 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
 public class NAutoComputedColumnTest extends NAutoTestBase {
@@ -64,41 +65,45 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testTableIndexCCReuse() {
         String[] sqlHasCC_AUTO_1 = new String[] {
-                "select seller_id ,sum(ITEM_COUNT * PRICE), count(1) from test_kylin_fact group by LSTG_FORMAT_NAME ,seller_id"
-        };
+                "select seller_id ,sum(ITEM_COUNT * PRICE), count(1) from test_kylin_fact group by LSTG_FORMAT_NAME ,seller_id" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqlHasCC_AUTO_1);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqlHasCC_AUTO_1);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        String[] sqls = new String[] {
-                "select LSTG_FORMAT_NAME,ITEM_COUNT * PRICE * PRICE from test_kylin_fact",
-                "select seller_id ,sum(ITEM_COUNT * PRICE * PRICE) as GMVM from test_kylin_fact group by LSTG_FORMAT_NAME ,seller_id"
-        };
+        String[] sqls = new String[] { "select LSTG_FORMAT_NAME,ITEM_COUNT * PRICE * PRICE from test_kylin_fact",
+                "select seller_id ,sum(ITEM_COUNT * PRICE * PRICE) as GMVM from test_kylin_fact group by LSTG_FORMAT_NAME ,seller_id" };
 
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
 
         NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         IndexPlan targetIndex = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
 
         Assert.assertEquals(2, targetModel.getComputedColumnDescs().size());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(0).getInnerExpression());
+        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE",
+                targetModel.getComputedColumnDescs().get(0).getInnerExpression());
         Assert.assertEquals("CC_AUTO_1", targetModel.getComputedColumnDescs().get(0).getColumnName());
-        Assert.assertEquals("(TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE) * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(1).getInnerExpression());
+        Assert.assertEquals("(TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE) * TEST_KYLIN_FACT.PRICE",
+                targetModel.getComputedColumnDescs().get(1).getInnerExpression());
         Assert.assertEquals("CC_AUTO_2", targetModel.getComputedColumnDescs().get(1).getColumnName());
 
-        IndexEntity tableIndex = targetIndex.getAllIndexes().stream().filter(IndexEntity::isTableIndex).findFirst().orElse(null);
+        IndexEntity tableIndex = targetIndex.getAllIndexes().stream().filter(IndexEntity::isTableIndex).findFirst()
+                .orElse(null);
         Assert.assertNotNull(tableIndex);
         Assert.assertEquals(1, tableIndex.getLayouts().size());
         Assert.assertEquals(2, tableIndex.getLayouts().get(0).getColumns().size());
-        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()).contains("CC_AUTO_2"));
+        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName)
+                .collect(Collectors.toSet()).contains("CC_AUTO_2"));
     }
 
     @Test
     public void testComputedColumnSingle() {
         String query = "SELECT SUM(PRICE * ITEM_COUNT + 1), AVG(PRICE * ITEM_COUNT + 1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -115,8 +120,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testComputedColumnMultiple() {
         String query = "SELECT SUM(PRICE * ITEM_COUNT + 1), AVG(PRICE * ITEM_COUNT * 0.9), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(2, model.getComputedColumnDescs().size());
@@ -152,9 +158,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "from test_kylin_fact group by lstg_format_name"; // left(...) will replaced by substring(...)
         String query6 = "select  {fn CHAR(lstg_format_name)}, sum(price*item_count) "
                 + "from test_kylin_fact group by lstg_format_name";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1, query2, query3, query4, query5, query6 });
-        smartMaster.runAll();
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -199,8 +206,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         String query3 = "select sum(price + item_count) from test_kylin_fact inner join test_account "
                 + "on test_kylin_fact.seller_id = test_account.account_id "
                 + "inner join test_country on test_account.account_country = test_country.country";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1, query2, query3 });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { query1, query2, query3 });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(2, modelContexts.size());
 
@@ -228,8 +237,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "group by account_id";
         String query3 = "select sum(price + item_count) from test_order inner join test_kylin_fact "
                 + "on test_kylin_fact.order_id = test_order.order_id ";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1, query2, query3 });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { query1, query2, query3 });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         // suggestedCC1, suggestedCC2 and suggestedCC3  will be added to different root fact table
         val modelContexts = smartMaster.getContext().getModelContexts();
@@ -252,8 +263,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testReproposeUseExistingModel() {
         // init a model with cc
         String query1 = "select sum(price*item_count), price from test_kylin_fact group by price";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1 });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         val modelContext = modelContexts.get(0);
@@ -265,8 +277,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         // case 1: cannot use existing cc for different cc expression
         String query2 = "select sum(price+item_count) from test_kylin_fact"; // another cc
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query2 });
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query2 });
+        smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
         val modelContextsList1 = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContextsList1.size());
         val modelContext1 = modelContextsList1.get(0);
@@ -285,8 +298,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         // case 2: can use existing cc for the same cc expression
         String query3 = "select sum(price*item_count) from test_kylin_fact";
         String query4 = "select sum(price+item_count), lstg_format_name from test_kylin_fact group by lstg_format_name";
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query3, query4 });
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { query3, query4 });
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
         val modelContextsList2 = smartMaster.getContext().getModelContexts();
         val modelContext2 = modelContextsList2.get(0);
         Assert.assertNotNull(modelContext2.getOriginModel());
@@ -299,8 +314,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testReproposeNewModelWithSameRootFactTable() {
         // init a model with cc
         String query1 = "select sum(price*item_count), price from test_kylin_fact group by price";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1 });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
         val computedCCList = modelContext.getTargetModel().getComputedColumnDescs();
         val suggestedCC = computedCCList.get(0);
@@ -314,8 +330,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "inner join test_country on test_account.account_country = test_country.country";
         String query3 = "select sum(price+item_count) from test_kylin_fact inner join test_order "
                 + "on test_kylin_fact.order_id = test_order.order_id ";
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query2, query3 });
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { query2, query3 });
+        smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
         val modelContext1 = smartMaster.getContext().getModelContexts().get(0);
         Assert.assertNull(modelContext1.getOriginModel());
         val suggestedCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
@@ -340,8 +358,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testReproposeNewModelWithDifferentFactTable() {
         // init a model with cc
         String query1 = "select sum(price*item_count), price from test_kylin_fact group by price";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query1 });
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
+        NSmartMaster smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
         val computedCCList = modelContext.getTargetModel().getComputedColumnDescs();
         val suggestedCC = computedCCList.get(0);
@@ -355,8 +374,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "group by account_id";
         String query5 = "select sum(price+item_count) from test_order left join test_kylin_fact "
                 + "on test_kylin_fact.order_id = test_order.order_id ";
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query4, query5 });
-        smartMaster.runAll();
+        val context3 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { query4, query5 });
+        smartMaster = new NSmartMaster(context3);
+        smartMaster.runWithContext();
         val modelContext3 = smartMaster.getContext().getModelContexts().get(0);
         Assert.assertNull(modelContext3.getOriginModel());
         val suggestedCCList3 = modelContext3.getTargetModel().getComputedColumnDescs();
@@ -381,8 +402,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testComputedColumnNested() {
         {
             String query = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-            smartMaster.runAll();
+            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
 
             NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -398,8 +420,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         {
             String query = "SELECT SUM((PRICE * ITEM_COUNT) + 10), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-            smartMaster.runAll();
+            val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+            NSmartMaster smartMaster = new NSmartMaster(context1);
+            smartMaster.runWithContext();
 
             NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             Assert.assertEquals(2, model.getComputedColumnDescs().size());
@@ -418,8 +441,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testComputedColumnUnnested() {
         String query = "SELECT SUM(PRICE * ITEM_COUNT), AVG((PRICE * ITEM_COUNT) + 10), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(2, model.getComputedColumnDescs().size());
@@ -439,8 +463,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testComputedColumnPassOnSumExpr() {
         String query = "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT PRICE * ITEM_COUNT AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -456,8 +481,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testComputedColumnFailOnSumExpr() {
         String query = "SELECT SUM(PRICE_TOTAL + 1), CAL_DT FROM (SELECT PRICE * ITEM_COUNT AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -470,8 +496,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testComputedColumnFailOnRexOpt() {
         String query = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE PRICE + 10 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -491,8 +518,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testComputedColumnsWontImpactFavoriteQuery() {
         // test all named columns rename
         String query = "SELECT SUM(CASE WHEN PRICE > 100 THEN 100 ELSE PRICE END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -525,8 +553,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testComputedColumnWithLikeClause() {
         String query = "SELECT 100.00 * SUM(CASE WHEN LSTG_FORMAT_NAME LIKE 'VIP%' THEN 100 ELSE 120 END), CAL_DT "
                 + "FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
@@ -565,8 +594,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 "select {fn convert({fn year(cast('2012-01-01' as date))}, varchar)} from test_kylin_fact",
                 "select case when substring(lstg_format_name, 1, 4) like '%ABIN%' then item_count - 10 else item_count end as  item_count_new from test_kylin_fact" //
         };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -601,8 +631,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         String[] sqls = new String[] {
                 "select sum(char_length(substring(lstg_format_name from 1 for 4))) from test_kylin_fact",
                 "select sum(cast(item_count as bigint) * price) from test_kylin_fact" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -629,8 +660,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 "select {fn left(lstg_format_name,2)} as name, sum(price*item_count) from test_kylin_fact group by lstg_format_name ",
                 "select sum({fn convert({fn length(substring(lstg_format_name, 1, 4)) }, double )}) from test_kylin_fact group by lstg_format_name" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelContexts = smartMaster.getContext().getModelContexts();
         val targetModel = modelContexts.get(0).getTargetModel();
         val computedColumns = targetModel.getComputedColumnDescs();
@@ -657,8 +689,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testCCOnInnerCol() {
         String[] sqls = new String[] { "select max(cast(LEAF_CATEG_ID*SITE_ID as VARCHAR)) "
                 + "from TEST_CATEGORY_GROUPINGS group by META_CATEG_NAME" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -682,9 +715,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "  sum(case when price > 1 and item_count < 5 or seller_id > 10 then price else 0 end),\n"
                 + "  sum(case when price + item_count + 1 > 5 then 1 else 0 end)\n"
                 + "from test_kylin_fact group by 1" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
-        List<NSmartContext.NModelContext> modelContextList1 = smartMaster.getContext().getModelContexts();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        List<AbstractContext.NModelContext> modelContextList1 = smartMaster.getContext().getModelContexts();
         val targetModel1 = modelContextList1.get(0).getTargetModel();
         val ccList1 = targetModel1.getComputedColumnDescs();
         ccList1.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
@@ -733,8 +767,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" //
                 + ")\n" //
                 + "group by is_screen_on" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -765,8 +800,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "  )\n" //
                 + ")\n" //
                 + "group by cal_dt" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -800,8 +836,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "  )\n" //
                 + ")\n" //
                 + "group by cal_dt" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -823,8 +860,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "5000");
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -848,8 +886,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "10000");
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -864,8 +903,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Test
     public void testCCWithKeywordColumn() {
         String[] sqls = new String[] { "select id from keyword.test_keyword_column group by id" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "keyword", sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, "keyword", sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -902,8 +942,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "5000");
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -929,8 +970,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "10000");
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -950,8 +992,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 "SELECT sum(length(concat(cast(instr(cast(SELLER_ID as varchar),'0') as varchar),'ll'))) from test_kylin_fact\n"
                         + "where instr(cast(SELLER_ID as varchar),'0') > 1 group by LSTG_FORMAT_NAME" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         val modelContexts = smartMaster.getContext().getModelContexts();
         val targetModel = modelContexts.get(0).getTargetModel();
         val computedColumns = targetModel.getComputedColumnDescs();
@@ -986,17 +1029,20 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
      */
     @Test
     public void testCCContainTypeTransform() {
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
-                new String[] { "SELECT sum(case when ITEM_COUNT > ' ' then 1 else 0 end) FROM TEST_KYLIN_FACT",
-                        "SELECT sum(case when ITEM_COUNT > 5  then 1 else 0 end) FROM TEST_KYLIN_FACT",
-                        "SELECT sum(case when CAL_DT > ' ' then 1 else 0 end) FROM TEST_KYLIN_FACT" });
-        smartMaster.runAll();
-        smartMaster = new NSmartMaster(kylinConfig, getProject(),
-                new String[] { "SELECT sum(case when ITEM_COUNT > ' ' then 1 else 0 end),1 FROM TEST_KYLIN_FACT",
-                        "SELECT sum(case when ITEM_COUNT > 5  then 1 else 0 end),1 FROM TEST_KYLIN_FACT",
-                        "SELECT sum(case when CAL_DT > ' ' then 1 else 0 end),1 FROM TEST_KYLIN_FACT" });
-        smartMaster.runAll();
-        for (AccelerateInfo accelerateInfo : smartMaster.getContext().getAccelerateInfoMap().values()) {
+        String[] sqlArray1 = { "SELECT sum(case when ITEM_COUNT > ' ' then 1 else 0 end) FROM TEST_KYLIN_FACT",
+                "SELECT sum(case when ITEM_COUNT > 5  then 1 else 0 end) FROM TEST_KYLIN_FACT",
+                "SELECT sum(case when CAL_DT > ' ' then 1 else 0 end) FROM TEST_KYLIN_FACT" };
+        val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqlArray1);
+        NSmartMaster smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        String[] sqlArray2 = { "SELECT sum(case when ITEM_COUNT > ' ' then 1 else 0 end),1 FROM TEST_KYLIN_FACT",
+                "SELECT sum(case when ITEM_COUNT > 5  then 1 else 0 end),1 FROM TEST_KYLIN_FACT",
+                "SELECT sum(case when CAL_DT > ' ' then 1 else 0 end),1 FROM TEST_KYLIN_FACT" };
+        val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqlArray2);
+        NSmartMaster smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runWithContext();
+        for (AccelerateInfo accelerateInfo : smartMaster2.getContext().getAccelerateInfoMap().values()) {
             Assert.assertFalse(accelerateInfo.isNotSucceed());
         }
     }

@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.rest.service.FavoriteQueryService;
 import lombok.val;
 
 public class NAutoReproposeValidationTest extends NAutoTestBase {
@@ -49,17 +48,12 @@ public class NAutoReproposeValidationTest extends NAutoTestBase {
             proposeWithSmartMaster(getProject(), new TestScenario(CompareLevel.SAME, folder));
             buildAllCubes(KylinConfig.getInstanceFromEnv(), getProject());
 
-            //2. get accelerate tip
-            List<String> waitingAccelerateSqls = collectQueries(new TestScenario(CompareLevel.SAME, folder));
-            new FavoriteQueryService().getOptimizedModelNumForTest(getProject(),
-                    waitingAccelerateSqls.toArray(new String[] {}));
-
-            //3. ensure metadata
+            // 2. ensure metadata
             List<MeasureDesc> measureDescs = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .listEffectiveRewriteMeasures(getProject(), "EDW.TEST_SITES");
             measureDescs.stream().filter(measureDesc -> measureDesc.getFunction().isSum()).forEach(measureDesc -> {
                 FunctionDesc func = measureDesc.getFunction();
-                Assert.assertTrue(!func.getColRefs().isEmpty());
+                Assert.assertFalse(func.getColRefs().isEmpty());
             });
         } finally {
             FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));

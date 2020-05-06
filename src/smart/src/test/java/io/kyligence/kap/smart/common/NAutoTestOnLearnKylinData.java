@@ -48,7 +48,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import lombok.val;
 
 public abstract class NAutoTestOnLearnKylinData {
@@ -108,10 +108,10 @@ public abstract class NAutoTestOnLearnKylinData {
         return realizations;
     }
 
-    protected Set<OLAPContext> collectAllOlapContexts(NSmartContext smartContext) {
+    protected Set<OLAPContext> collectAllOlapContexts(AbstractContext smartContext) {
         Preconditions.checkArgument(smartContext != null);
         Set<OLAPContext> olapContexts = Sets.newHashSet();
-        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         modelContexts.forEach(modelCtx -> olapContexts.addAll(modelCtx.getModelTree().getOlapContexts()));
 
         return olapContexts;
@@ -126,5 +126,4 @@ public abstract class NAutoTestOnLearnKylinData {
 
         favoriteQueryManager.create(favoriteQueries);
     }
-
 }

@@ -30,18 +30,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -57,13 +55,14 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
+import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
@@ -145,76 +144,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
         Mockito.doReturn(sqls).when(favoriteQueryManager).getAccelerableSqlPattern();
         Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(project);
-    }
-
-    private void stubWaitingAccelerateSqlPatterns(List<String> sqls, String project) {
-        FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.doReturn(sqls).when(favoriteQueryManager).getToBeAcceleratedSqlPattern();
-        Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(project);
-    }
-
-    @Test
-    @Ignore("cause by FavoriteQueryService change , the commit number is 05b353 and will be fixed later")
-    public void testGetAccelerateTips() {
-        stubWaitingAccelerateSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
-
-        // case of not reached threshold
-        Map<String, Object> newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
-        Assert.assertEquals(5, newten_data.get("size"));
-        Assert.assertEquals(false, newten_data.get("reach_threshold"));
-        Assert.assertEquals(0, newten_data.get("optimized_model_num"));
-
-        // case of no model
-        System.setProperty("kylin.favorite.query-accelerate-threshold", "1");
-
-        newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
-        Assert.assertEquals(5, newten_data.get("size"));
-        Assert.assertEquals(true, newten_data.get("reach_threshold"));
-        Assert.assertEquals(2, newten_data.get("optimized_model_num"));
-
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT_NEWTEN, sqls);
-        smartMaster.runAll();
-
-        String[] sqlsForAddCuboidTest = new String[] { "select order_id from test_kylin_fact" };
-
-        // case of adding a new cuboid
-        stubWaitingAccelerateSqlPatterns(Lists.newArrayList(sqlsForAddCuboidTest), PROJECT_NEWTEN);
-        newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
-        Assert.assertEquals(1, newten_data.get("size"));
-        Assert.assertEquals(1, newten_data.get("optimized_model_num"));
-
-        stubWaitingAccelerateSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
-
-        newten_data = favoriteQueryService.getAccelerateTips("newten");
-        Assert.assertEquals(5, newten_data.get("size"));
-        Assert.assertEquals(true, newten_data.get("reach_threshold"));
-        Assert.assertEquals(0, newten_data.get("optimized_model_num"));
-        System.clearProperty("kylin.favorite.query-accelerate-threshold");
-
-        // when unaccelerated sql patterns list is empty
-        stubWaitingAccelerateSqlPatterns(Lists.newArrayList(), PROJECT);
-        Map<String, Object> data = favoriteQueryService.getAccelerateTips(PROJECT);
-        Assert.assertEquals(0, data.get("size"));
-        Assert.assertEquals(false, data.get("reach_threshold"));
-        Assert.assertEquals(0, data.get("optimized_model_num"));
-    }
-
-    @Test
-    @Ignore("cause by FavoriteQueryService change , the commit number is 05b353 and will be fixed later")
-    public void testGetAccelerateTipsInManualTypeProject() {
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        val manualProject = projectManager.copyForWrite(projectManager.getProject(PROJECT_NEWTEN));
-        manualProject.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(manualProject);
-
-        stubWaitingAccelerateSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
-
-        Map<String, Object> manualProjData = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
-        Assert.assertEquals(0, manualProjData.get("optimized_model_num"));
-
-        // change project type back to auto
-        manualProject.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
-        projectManager.updateProject(manualProject);
     }
 
     @Test
@@ -353,8 +282,8 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void testAcceptAccelerateWithConstantAndBlockedPattern() {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
-        List<String> sqlPatterns = Lists.newArrayList(constantSql, blockedSql, tableMissingSql)
-                .stream().map(QueryPatternUtil::normalizeSQLPattern) //
+        List<String> sqlPatterns = Lists.newArrayList(constantSql, blockedSql, tableMissingSql).stream()
+                .map(QueryPatternUtil::normalizeSQLPattern) //
                 .collect(Collectors.toList());
 
         FavoriteRequest request = new FavoriteRequest(PROJECT, sqlPatterns);
@@ -393,23 +322,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqMap.get(sqlPatterns.get(1)).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
-    }
-
-    @Test
-    @Ignore("cause by FavoriteQueryService change , the commit number is 05b353 and will be fixed later")
-    public void testIgnoreAccelerateTips() {
-        var sqlPatterns = Mockito.mock(List.class);
-        FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.doReturn(40).when(sqlPatterns).size();
-        Mockito.doReturn(true).when(sqlPatterns).isEmpty();
-        Mockito.doReturn(sqlPatterns).when(favoriteQueryManager).getToBeAcceleratedSqlPattern();
-        Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(PROJECT);
-
-        Assert.assertTrue((boolean) favoriteQueryService.getAccelerateTips(PROJECT).get("reach_threshold"));
-
-        // ignore tips
-        favoriteQueryService.ignoreAccelerate(PROJECT, 40);
-        Assert.assertFalse((boolean) favoriteQueryService.getAccelerateTips(PROJECT).get("reach_threshold"));
     }
 
     @Test
@@ -547,10 +459,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAutoCheckAccelerationInfo() {
-        KylinConfig config = getTestConfig();
         String sql = "select count(*) from TEST_KYLIN_FACT where CAL_DT = '2012-01-05' and TRANS_ID > 100 limit 10";
 
-        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, PROJECT);
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         FavoriteQuery favoriteQuery = new FavoriteQuery(sql);
         favoriteQuery.setTotalCount(1);
         favoriteQuery.setLastQueryTime(10001);
@@ -558,20 +469,20 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.create(Sets.newHashSet(favoriteQuery));
 
         // no accelerated query by default
-        FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, PROJECT);
+        FavoriteQueryManager manager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
 
         // accelerate
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT, new String[] { sql });
-        smartMaster
-                .runAllAndForContext(ctx -> FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
-                        .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
+        val context = new NSmartContext(getTestConfig(), PROJECT, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext(ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT)
+                .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
 
         // change model version
-        NDataModelManager modelManager = NDataModelManager.getInstance(config, PROJECT);
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", model -> {
             model.setSemanticVersion(2);
         });
@@ -583,10 +494,10 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
 
         // accelerate again
-        NSmartMaster smartMasterAfter = new NSmartMaster(getTestConfig(), PROJECT, new String[] { sql });
-        smartMasterAfter
-                .runAllAndForContext(ctx -> FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
-                        .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
+        val context1 = new NSmartContext(getTestConfig(), PROJECT, new String[] { sql });
+        NSmartMaster smartMasterAfter = new NSmartMaster(context1);
+        smartMasterAfter.runWithContext(ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT)
+                .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());

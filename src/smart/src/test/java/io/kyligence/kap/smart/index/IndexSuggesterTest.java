@@ -22,13 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Sets;
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -38,6 +36,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -46,24 +45,27 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
+import lombok.var;
 
-public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
+public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testAggIndexSuggesetColOrder() {
 
         String[] sqls = new String[] { "select lstg_format_name, buyer_id, seller_id, sum(price) from kylin_sales "
                 + "where part_dt = '2012-01-03' group by part_dt, lstg_format_name, buyer_id, seller_id" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         {
-            NSmartContext ctx = smartMaster.getContext();
-            NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            AbstractContext ctx = smartMaster.getContext();
+            AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
             final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
             final List<LayoutEntity> layouts = allCuboids.get(0).getLayouts();
@@ -79,11 +81,12 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                         + "ops_user_id = '10009998' order by item_count, lstg_site_id",
                 "select ops_user_id, ops_region, price from kylin_sales where "
                         + "part_dt = '2012-01-08' order by item_count, lstg_site_id" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
@@ -107,11 +110,12 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                         + "INNER JOIN KYLIN_ACCOUNT\n" + "ON KYLIN_ACCOUNT.ACCOUNT_ID = FACT.SELLER_ID\n"
                         + "GROUP BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL\n"
                         + "ORDER BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
@@ -122,8 +126,9 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
     @Test
     public void testCountOneMeasureIdInheritCorrectly() {
         String[] sqls = { "select sum(price) from kylin_sales" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
 
@@ -137,8 +142,9 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
 
         // propose again
         String[] sqls2 = { "select count(price) from kylin_sales" };
-        smartMaster = new NSmartMaster(getTestConfig(), proj, sqls2);
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls2);
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
 
         // assert propose success
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls2[0]).isNotSucceed());
@@ -169,17 +175,18 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                 + "\tAND concat(test_category_groupings.categ_lvl3_name, 'H') = 'AAA'\n"
                 + "GROUP BY test_cal_dt.week_beg_dt, test_category_groupings.meta_categ_name, "
                 + "test_category_groupings.categ_lvl2_name, test_category_groupings.categ_lvl3_name" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
 
         val tableManager = NTableMetadataManager.getInstance(kylinConfig, project);
         val tableTestKylinFact = tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         tableTestKylinFact.setIncrementLoading(true);
         tableManager.updateTableDesc(tableTestKylinFact);
 
-        smartMaster.runAll();
+        smartMaster.runWithContext();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final ImmutableBiMap<Integer, TblColRef> effectiveDimensions = mdCtx.getTargetModel().getEffectiveDimensions();
 
         String[] expectedColOrder = new String[] { "DEFAULT.TEST_KYLIN_FACT.LEAF_CATEG_ID",
@@ -214,11 +221,12 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select 1 as ttt from kylin_sales" // no dimension and no measure, but will add an extra dimension
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final NDataModel targetModel = mdCtx.getTargetModel();
         Assert.assertEquals(0, targetModel.getEffectiveDimensions().size());
         Assert.assertEquals(3, targetModel.getEffectiveMeasures().size());
@@ -255,12 +263,12 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select min(part_dt), max(part_dt) from kylin_sales",
                 "select lstg_format_name, min(price), max(price) from kylin_sales group by lstg_format_name",
                 "select min(seller_id), max(seller_id) from kylin_sales" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
-
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final List<NDataModel.Measure> allMeasures = mdCtx.getTargetModel().getAllMeasures();
         Assert.assertEquals(9, allMeasures.size());
         Assert.assertEquals("COUNT_ALL", allMeasures.get(0).getName());
@@ -303,12 +311,12 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         // currently, column part_dt's cardinality < 2000 && tans_id's > 2000
         getTestConfig().setProperty("kylin.smart.conf.rowkey.uhc.min-cardinality", "2000");
 
-        String[] sql1 = new String[] {
-                "select part_dt, lstg_format_name, trans_id from kylin_sales" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sql1);
-        smartMaster.runAll();
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        String[] sql1 = new String[] { "select part_dt, lstg_format_name, trans_id from kylin_sales" };
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sql1);
+        NSmartMaster smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), proj);
         val modelId = mdCtx.getTargetModel().getId();
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
@@ -324,7 +332,8 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, trans_id from kylin_sales where trans_id = 100000",
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
 
-        new NSmartMaster(getTestConfig(), proj, sqls).runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        new NSmartMaster(context2).runWithContext();
 
         indexPlan = indexPlanManager.getIndexPlan(modelId);
         val indexEntities = indexPlan.getIndexes();
@@ -339,8 +348,8 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertTrue(indexEntities.get(1).isTableIndex());
         Assert.assertEquals(1, layouts1.size());
         Assert.assertEquals(1, layouts1.get(0).getShardByColumns().size());
-        Assert.assertEquals("KYLIN_SALES.TRANS_ID", mdCtx
-                .getTargetModel().getEffectiveCols().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
+        Assert.assertEquals("KYLIN_SALES.TRANS_ID", mdCtx.getTargetModel().getEffectiveCols()
+                .get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
 
         // agg index
         val layouts2 = indexEntities.get(2).getLayouts();
@@ -357,7 +366,8 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         sqls = new String[] {
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
 
-        new NSmartMaster(getTestConfig(), proj, sqls).runAll();
+        val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        new NSmartMaster(context3).runWithContext();
 
         indexPlan = indexPlanManager.getIndexPlan(modelId);
         val aggIndexLayouts = indexPlan.getIndexes().get(2).getLayouts();
@@ -381,10 +391,11 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, trans_id from kylin_sales where trans_id = 100000",
                 "select part_dt, lstg_format_name, trans_id from kylin_sales",
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         Assert.assertNotNull(indexPlan);
         Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
@@ -425,8 +436,9 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 // error case
                 "select part_name, lstg_format_name, sum(price) from kylin_sales " };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         // validate sql pattern to layout
         final Map<String, AccelerateInfo> accelerateMap = smartMaster.getContext().getAccelerateInfoMap();
@@ -457,21 +469,21 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testCubiodWithWindow() {
+    public void testCuboidWithWindow() {
 
         String[] sqls = new String[] {
-                "select first_value(price) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"first\",\n" +
-                        "last_value(price) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"current\",\n" +
-                        "lag(price, 1, 0.0) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"prev\",\n" +
-                        "lead(price, 1, 0.0) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"next\",\n" +
-                        "ntile(4) over (partition by lstg_format_name order by part_dt, lstg_format_name) as \"quarter\"\n" +
-                        "from kylin_sales\n" +
-                        "where part_dt < '2012-02-01'\n"};
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.runAll();
+                "select first_value(price) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"first\",\n"
+                        + "last_value(price) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"current\",\n"
+                        + "lag(price, 1, 0.0) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"prev\",\n"
+                        + "lead(price, 1, 0.0) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"next\",\n"
+                        + "ntile(4) over (partition by lstg_format_name order by part_dt, lstg_format_name) as \"quarter\"\n"
+                        + "from kylin_sales\n" + "where part_dt < '2012-02-01'\n" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);

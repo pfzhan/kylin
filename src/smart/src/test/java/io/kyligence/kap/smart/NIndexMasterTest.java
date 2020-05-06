@@ -22,37 +22,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart;
 
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
+
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
+import io.kyligence.kap.smart.index.NIndexMaster;
 
-public class NCubeMasterTest extends NAutoTestOnLearnKylinData {
+public class NIndexMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void test() {
-        NSmartContext.NModelContext mdCtx = getModelContext();
+        AbstractContext.NModelContext mdCtx = getModelContext();
         Assert.assertNotNull(mdCtx);
 
-        NCubeMaster cubeMaster = new NCubeMaster(mdCtx);
+        NIndexMaster indexMaster = new NIndexMaster(mdCtx);
 
         // propose initial cube
-        IndexPlan indexPlan = cubeMaster.proposeInitialCube();
+        IndexPlan indexPlan = indexMaster.proposeInitialIndexPlan();
         {
             Assert.assertNotNull(indexPlan);
             Assert.assertTrue(indexPlan.getAllIndexes().isEmpty());
         }
 
-        indexPlan = cubeMaster.proposeCuboids(indexPlan);
+        indexPlan = indexMaster.proposeCuboids(indexPlan);
         {
             List<IndexEntity> indexEntities = indexPlan.getIndexes();
             Assert.assertEquals(4, indexEntities.size());
@@ -114,11 +115,11 @@ public class NCubeMasterTest extends NAutoTestOnLearnKylinData {
         }
 
         // propose again, should return same result
-        IndexPlan cp2 = cubeMaster.proposeCuboids(indexPlan);
+        IndexPlan cp2 = indexMaster.proposeCuboids(indexPlan);
         Assert.assertEquals(cp2, indexPlan);
     }
 
-    private NSmartContext.NModelContext getModelContext() {
+    private AbstractContext.NModelContext getModelContext() {
         String[] sqls = new String[] { //
                 "select 1", // not effective olap_context
                 "create table a", // not effective olap_context
@@ -131,12 +132,17 @@ public class NCubeMasterTest extends NAutoTestOnLearnKylinData {
                 "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
                 "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
-        smartMaster.analyzeSQLs();
-        smartMaster.optimizeModel();
-        smartMaster.saveModel();
-
-        NSmartContext ctx = smartMaster.getContext();
-        return ctx.getModelContexts().get(0);
+        NSmartContext context = new NSmartContext(getTestConfig(), proj, sqls) {
+            @Override
+            public ChainedProposer createChainedProposer() {
+                ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
+                        new NSQLAnalysisProposer(this), //
+                        new NModelOptProposer(this));
+                return new ChainedProposer(this, proposers);
+            }
+        };
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.executePropose();
+        return context.getModelContexts().get(0);
     }
 }

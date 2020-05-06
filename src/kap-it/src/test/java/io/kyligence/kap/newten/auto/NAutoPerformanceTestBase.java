@@ -23,21 +23,26 @@
  */
 package io.kyligence.kap.newten.auto;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.common.AccelerateInfo;
-import lombok.Getter;
-import lombok.Setter;
-import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Map;
+
+import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.utils.AccelerationContextUtil;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
 
 public class NAutoPerformanceTestBase extends NAutoTestBase {
 
@@ -52,24 +57,24 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
     }
 
     @Override
-    String getFolder(String subFolder) {
+    protected String getFolder(String subFolder) {
         return SOAK_SQL_DIR + File.separator + subFolder;
     }
 
     public ProposeStats testWithBadQueries(int round, int factor) throws Exception {
-        List<String> sqlList = collectQueries(
-                new TestScenario("s_common"),
-                new TestScenario("m_tpch"),
-                new TestScenario("l_sinai"),
+        List<String> sqlList = collectQueries(//
+                new TestScenario("s_common"), //
+                new TestScenario("m_tpch"), //
+                new TestScenario("l_sinai"), //
                 new TestScenario("invalid"));
         return batchPropose(sqlList, factor, round);
     }
 
     public void testWithBadQueriesOneByOne(int round) throws Exception {
-        List<String> sqlList = collectQueries(
-                new TestScenario("s_common"),
-                new TestScenario("m_tpch"),
-                new TestScenario("l_sinai"),
+        List<String> sqlList = collectQueries(//
+                new TestScenario("s_common"), //
+                new TestScenario("m_tpch"), //
+                new TestScenario("l_sinai"), //
                 new TestScenario("invalid"));
         for (int i = 0; i < round; i++) {
             proposeOneByOne(sqlList);
@@ -83,10 +88,10 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
         Runtime runtime = Runtime.getRuntime();
         NumberFormat format = NumberFormat.getInstance();
 
-
         long proposeStartTime = System.currentTimeMillis();
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         long proposeEndTime = System.currentTimeMillis();
 
         double proposeTotalTime = getTotalTime(proposeStartTime, proposeEndTime);
@@ -140,17 +145,17 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
 
         for (int i = 0; i < numOfQueries; i++) {
             long proposeStartTime = System.currentTimeMillis();
-
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[]{sqls[i]});
-            smartMaster.runAll();
+            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[i] });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
 
             long proposeEndTime = System.currentTimeMillis();
             double proposeTime = getTotalTime(proposeStartTime, proposeEndTime);
             totalTime += proposeTime;
 
             // update maxTime and minTime
-            minTime = proposeTime < minTime ? proposeTime : minTime;
-            maxTime = proposeTime > maxTime ? proposeTime : maxTime;
+            minTime = Math.min(proposeTime, minTime);
+            maxTime = Math.max(proposeTime, maxTime);
             logger.info("The QPS of round {} is: {}", i + 1, roundToScale(1 / proposeTime, 2));
         }
 
@@ -169,9 +174,9 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
         }
         List<String> sqlList = Lists.newArrayList();
 
-        for (int i = 0; i < sqls.length; i++) {
+        for (String sql : sqls) {
             // Remove limit n first, then append new "limit n"s for each query
-            String currentSql = sqls[i].replaceAll("limit\\s+\\d+", "");
+            String currentSql = sql.replaceAll("limit\\s+\\d+", "");
             for (int j = 1; j <= factor; j++) {
                 String generatedSql = currentSql + ("\nLIMIT " + j);
                 sqlList.add(generatedSql);

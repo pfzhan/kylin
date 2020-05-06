@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.newten.auto;
+package io.kyligence.kap.newten.semi;
 
 import java.io.File;
 import java.util.Arrays;
@@ -35,8 +35,6 @@ import org.apache.kylin.common.util.Pair;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -49,10 +47,10 @@ import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.tool.garbage.IndexCleaner;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
-
-    private static final Logger logger = LoggerFactory.getLogger(NSemiAutoAndRemoveTest.class);
 
     @Before
     public void setup() throws Exception {
@@ -121,7 +119,7 @@ public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
             val layoutId = p.getSecond();
             val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), getProject()).getIndexPlan(id);
             val layout = indexPlan.getCuboidLayout(layoutId);
-            logger.info("remove index {} layout {} col {} shard by {} sort by {}", id, layoutId, layout.getColOrder(),
+            log.info("remove index {} layout {} col {} shard by {} sort by {}", id, layoutId, layout.getColOrder(),
                     layout.getShardByColumns(), layout.getSortByColumns());
         });
     }
@@ -142,7 +140,7 @@ public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
     private void compare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
             Set<Pair<String, Long>> removeLayouts, TestScenario... testScenarios) {
         Arrays.stream(testScenarios).forEach(testScenario -> {
-            val validQueries = testScenario.queries.stream()
+            val validQueries = testScenario.getQueries().stream()
                     .filter(p -> Sets.intersection(removeLayouts,
                             compareMap.get(p.getValue()).getAccelerateInfo().getRelatedLayouts().stream()
                                     .map(layout -> new Pair<>(layout.getModelId(), layout.getLayoutId()))
@@ -150,7 +148,7 @@ public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
                             .isEmpty())
                     .collect(Collectors.toList());
             val invalidQueries = Lists.newArrayList(
-                    Sets.difference(Sets.newHashSet(testScenario.queries), Sets.newHashSet(validQueries)));
+                    Sets.difference(Sets.newHashSet(testScenario.getQueries()), Sets.newHashSet(validQueries)));
             compare(compareMap, testScenario, validQueries, invalidQueries);
         });
     }

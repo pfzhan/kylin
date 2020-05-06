@@ -45,6 +45,7 @@ import com.google.common.io.Files;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -121,8 +122,10 @@ public class NSmartDemoTest {
         kylinConfig.setProperty("kylin.env", "UT");
         kylinConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqlList.toArray(new String[0]));
-            smartMaster.runAll();
+            AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, projectName,
+                    sqlList.toArray(new String[0]));
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
 
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, projectName);
             Assert.assertFalse(dataflowManager.listUnderliningDataModels().isEmpty());

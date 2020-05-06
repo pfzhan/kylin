@@ -34,6 +34,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
+import lombok.val;
 
 public class NAutoLookupTest extends NAutoTestBase {
 
@@ -61,13 +63,15 @@ public class NAutoLookupTest extends NAutoTestBase {
                     + "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" //
                     + "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" //
                     + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
-
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { modelQuery });
-            smartMaster.runAll();
+            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                    new String[] { modelQuery });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
-            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject())
+                    .listUnderliningDataModels();
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
@@ -78,13 +82,15 @@ public class NAutoLookupTest extends NAutoTestBase {
 
         {
             String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
-
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { lookupQuery });
-            smartMaster.runAll();
+            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                    new String[] { lookupQuery });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
-            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject())
+                    .listUnderliningDataModels();
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
@@ -118,13 +124,15 @@ public class NAutoLookupTest extends NAutoTestBase {
                     + "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" //
                     + "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" //
                     + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
-
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { modelQuery });
-            smartMaster.runAll();
+            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                    new String[] { modelQuery });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
-            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject())
+                    .listUnderliningDataModels();
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
@@ -132,15 +140,17 @@ public class NAutoLookupTest extends NAutoTestBase {
 
         {
             String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
-
-            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { lookupQuery });
-            smartMaster.runAll();
+            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                    new String[] { lookupQuery });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             Assert.assertNotNull(model);
             Assert.assertTrue(model.isFactTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
-            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject())
+                    .listUnderliningDataModels();
             Assert.assertEquals(2, models.size());
         }
     }
@@ -168,10 +178,10 @@ public class NAutoLookupTest extends NAutoTestBase {
                 + "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" //
                 + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
         String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
-
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { modelQuery, lookupQuery });
-        smartMaster.runAll();
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
 
         List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();

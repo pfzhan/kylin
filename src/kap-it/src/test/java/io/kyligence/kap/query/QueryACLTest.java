@@ -24,14 +24,11 @@
 
 package io.kyligence.kap.query;
 
-import io.kyligence.kap.metadata.acl.AclTCR;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.newten.auto.NSuggestTestBase;
-import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.smart.NSmartMaster;
-import lombok.val;
-import lombok.var;
+import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.QueryContext;
 import org.assertj.core.util.Sets;
 import org.junit.Assert;
@@ -40,12 +37,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.newten.auto.NAutoTestBase;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import lombok.val;
+import lombok.var;
 
-public class QueryACLTest extends NSuggestTestBase {
+public class QueryACLTest extends NAutoTestBase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -81,7 +83,7 @@ public class QueryACLTest extends NSuggestTestBase {
         if (columnNames != null) {
             AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
             AclTCR.Column columns = new AclTCR.Column();
-            columnNames.forEach(column -> columns.add(column));
+            columns.addAll(columnNames);
             columnRow.setColumn(columns);
             table.put(tableIdentity, columnRow);
         } else {
@@ -150,8 +152,9 @@ public class QueryACLTest extends NSuggestTestBase {
     }
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
-        val smartMaster = new NSmartMaster(getTestConfig(), PROJECT, sqls);
-        smartMaster.runAll();
+        val smartContext = new NSmartContext(getTestConfig(), PROJECT, sqls);
+        val smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runWithContext();
         buildAllCubes(getTestConfig(), PROJECT);
     }
 

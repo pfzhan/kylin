@@ -959,6 +959,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testMultipleModelContextSelectedTheSameModel() {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kylin.metadata.semi-automatic-mode", "true");
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+
         val sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1",
                 "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
                 "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
@@ -984,27 +995,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, response.getOriginModels().size());
         Assert.assertEquals(0, response.getNewModels().size());
         Assert.assertEquals(3, response.getOriginModels().get(0).getSqls().size());
-        Assert.assertEquals(0,
-                response.getOriginModels().get(0).getRecommendationResponse().getDimensionRecommendations().size());
-        Assert.assertEquals(0,
-                response.getOriginModels().get(0).getRecommendationResponse().getMeasureRecommendations().size());
-        Assert.assertEquals(0,
-                response.getOriginModels().get(0).getRecommendationResponse().getCcRecommendations().size());
-        Assert.assertEquals(1,
-                response.getOriginModels().get(0).getRecommendationResponse().getIndexRecommendations().size());
+        val recommendationResponse = response.getOriginModels().get(0).getRecommendationResponse();
+        Assert.assertEquals(0, recommendationResponse.getDimensionRecommendations().size());
+        Assert.assertEquals(0, recommendationResponse.getMeasureRecommendations().size());
+        Assert.assertEquals(0, recommendationResponse.getCcRecommendations().size());
+        Assert.assertEquals(0, recommendationResponse.getIndexRecommendations().size());
 
         val response2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true);
         Assert.assertEquals(1, response2.getOriginModels().size());
         Assert.assertEquals(0, response2.getNewModels().size());
         Assert.assertEquals(2, response2.getOriginModels().get(0).getSqls().size());
-        Assert.assertEquals(0,
-                response.getOriginModels().get(0).getRecommendationResponse().getDimensionRecommendations().size());
-        Assert.assertEquals(0,
-                response.getOriginModels().get(0).getRecommendationResponse().getMeasureRecommendations().size());
-        Assert.assertEquals(0,
-                response.getOriginModels().get(0).getRecommendationResponse().getCcRecommendations().size());
-        Assert.assertEquals(1,
-                response.getOriginModels().get(0).getRecommendationResponse().getIndexRecommendations().size());
+        val recommendationResponse2 = response2.getOriginModels().get(0).getRecommendationResponse();
+        Assert.assertEquals(0, recommendationResponse2.getDimensionRecommendations().size());
+        Assert.assertEquals(0, recommendationResponse2.getMeasureRecommendations().size());
+        Assert.assertEquals(0, recommendationResponse2.getCcRecommendations().size());
+        Assert.assertEquals(0, recommendationResponse2.getIndexRecommendations().size());
     }
 
     private void prepareTwoOnlineModels() {
@@ -1777,10 +1782,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetCCUsage() {
         ComputedColumnUsageResponse usages = modelService.getComputedColumnUsages("default");
-        Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.DEAL_AMOUNT").getModels().size() == 2);
-        Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.SELLER_COUNTRY_ABBR") == null);
-        Assert.assertTrue(
-                usages.getUsageMap().get("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR").getModels().size() == 1);
+        Assert.assertEquals(2, usages.getUsageMap().get("TEST_KYLIN_FACT.DEAL_AMOUNT").getModels().size());
+        Assert.assertNull(usages.getUsageMap().get("TEST_KYLIN_FACT.SELLER_COUNTRY_ABBR"));
+        Assert.assertEquals(1,
+                usages.getUsageMap().get("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR").getModels().size());
     }
 
     @Rule

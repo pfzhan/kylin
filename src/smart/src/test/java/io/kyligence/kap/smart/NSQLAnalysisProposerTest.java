@@ -26,13 +26,14 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.smart.common.SmartConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
+import io.kyligence.kap.smart.common.SmartConfig;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 
 public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
 
@@ -44,11 +45,12 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
                         + "  SUM(\"TEST_KYLIN_FACT\".\"PRICE\") AS \"sum_price\"\n"
                         + "FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
                         + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls);
-        smartMaster.runAll();
+        NSmartMaster smartMaster = new NSmartMaster(
+                AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls));
+        smartMaster.runWithContext();
 
-        final NSmartContext smartContext = smartMaster.getContext();
-        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        final AbstractContext smartContext = smartMaster.getContext();
+        final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
         Assert.assertTrue(!accelerateInfoMap.get(sqls[0]).isFailed() && !accelerateInfoMap.get(sqls[0]).isPending());
@@ -57,7 +59,7 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
     @Test
     public void testCircledJoinSQL() {
 
-        String[] sqls = new String[]{ //
+        String[] sqls = new String[] { //
 
                 "SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\" AS \"LSTG_FORMAT_NAME\",\n"
                         + "  SUM(\"TEST_KYLIN_FACT\".\"PRICE\") AS \"sum_price\"\n"
@@ -70,17 +72,15 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
                         + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID AND SELLER_ACCOUNT.ACCOUNT_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
                         + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"",
 
-                "SELECT *\n" +
-                        "FROM\n" +
-                        "TEST_KYLIN_FACT INNER JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n" +
-                        "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT=TEST_CAL_DT.CAL_DT\n" +
-                        "INNER JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC\n"
-        };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls);
-        smartMaster.runAll();
+                "SELECT *\n" + "FROM\n" + "TEST_KYLIN_FACT INNER JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                        + "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT=TEST_CAL_DT.CAL_DT\n"
+                        + "INNER JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC\n" };
+        NSmartMaster smartMaster = new NSmartMaster(
+                AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls));
+        smartMaster.runWithContext();
 
-        final NSmartContext smartContext = smartMaster.getContext();
-        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        final AbstractContext smartContext = smartMaster.getContext();
+        final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(4, modelContexts.size());
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
         Assert.assertTrue(!accelerateInfoMap.get(sqls[0]).isFailed() && !accelerateInfoMap.get(sqls[0]).isPending());
@@ -90,26 +90,23 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
     @Test
     public void testCircledNonEquiJoinSQL() {
 
-        String[] sqls = new String[]{ //
-                "SELECT *\n" +
-                        "FROM\n" +
-                        "TEST_KYLIN_FACT INNER JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n" +
-                        "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT=TEST_CAL_DT.CAL_DT\n" +
-                        "LEFT JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND\n" +
-                        "TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC AND\n" +
-                        "TEST_ORDER.BUYER_ID <> 10000000\n"
-        };
+        String[] sqls = new String[] { //
+                "SELECT *\n" + "FROM\n" + "TEST_KYLIN_FACT INNER JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                        + "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT=TEST_CAL_DT.CAL_DT\n"
+                        + "LEFT JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND\n"
+                        + "TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC AND\n" + "TEST_ORDER.BUYER_ID <> 10000000\n" };
         Boolean enableAutoModelingForNonEquiJoin = SmartConfig.wrap(getTestConfig()).enableAutoModelingForNonEquiJoin();
         KylinConfig conf = getTestConfig();
         conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
-        NSmartMaster smartMaster = new NSmartMaster(conf, "newten", sqls);
-        smartMaster.runAll();
+        NSmartMaster smartMaster = new NSmartMaster(AccelerationContextUtil.newSmartContext(conf, "newten", sqls));
+        smartMaster.runWithContext();
 
-        final NSmartContext smartContext = smartMaster.getContext();
-        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        final AbstractContext smartContext = smartMaster.getContext();
+        final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(2, modelContexts.size());
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
         Assert.assertTrue(!accelerateInfoMap.get(sqls[0]).isFailed() && !accelerateInfoMap.get(sqls[0]).isPending());
-        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", enableAutoModelingForNonEquiJoin.toString());
+        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled",
+                enableAutoModelingForNonEquiJoin.toString());
     }
 }

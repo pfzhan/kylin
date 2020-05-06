@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.lang.reflect.Field;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Assert;
@@ -32,19 +34,20 @@ import org.junit.Test;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartMaster;
-
-import java.lang.reflect.Field;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
+import lombok.val;
 
 public class NQueryScopeProposerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testTransferToNamedColumn() throws Exception {
         final String sql = "select order_id from TEST_KYLIN_FACT";
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), getProject(), new String[] { sql });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         NQueryScopeProposer nQueryScopeProposer = new NQueryScopeProposer(
                 smartMaster.getContext().getModelContexts().get(0));
-        NQueryScopeProposer.ScopeBuilder scopeBuilder = nQueryScopeProposer.new ScopeBuilder(
+        NQueryScopeProposer.ScopeBuilder scopeBuilder = new NQueryScopeProposer.ScopeBuilder(
                 smartMaster.getRecommendedModels().get(0));
 
         TblColRef col1 = TblColRef.mockup(TableDesc.mockup("DEFAULT.A_B"), 1, "C", "double");

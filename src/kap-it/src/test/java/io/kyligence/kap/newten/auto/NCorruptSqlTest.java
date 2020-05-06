@@ -102,7 +102,7 @@ public class NCorruptSqlTest extends NAutoTestBase {
     private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/corrupt-query";
 
     @Override
-    String getFolder(String subFolder) {
+    protected String getFolder(String subFolder) {
         return IT_SQL_KAP_DIR + File.separator + subFolder;
     }
 }

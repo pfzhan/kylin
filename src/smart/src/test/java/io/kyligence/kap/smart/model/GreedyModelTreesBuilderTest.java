@@ -26,22 +26,22 @@ package io.kyligence.kap.smart.model;
 
 import java.util.Collections;
 
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
 public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
 
+    @Ignore("Cannot propose in PureExpertMode")
     @Test
     public void testPartialJoinInExpertMode() {
         getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
@@ -52,19 +52,19 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
                 "select test_kylin_fact.trans_id from test_kylin_fact" };
 
         // create model A join B join C
-        val smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sqls[0] });
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { sqls[0] });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
 
         val originalIndexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         Assert.assertEquals(1, originalIndexPlan.getAllIndexes().size());
 
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("newten"));
-        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectUpdate);
+        AccelerationContextUtil.transferProjectToPureExpertMode(getTestConfig(), "newten");
 
-        val smartMaster2 = new NSmartMaster(getTestConfig(), "newten", sqls);
-        smartMaster2.runAll();
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runWithContext();
 
         val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         val layouts = indexPlan.getAllLayouts();
@@ -97,20 +97,21 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
                 "select test_kylin_fact.trans_id from test_kylin_fact" };
 
         // create model A join B join C
-        val smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sqls[0] });
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { sqls[0] });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
 
         val originalIndexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         Assert.assertEquals(1, originalIndexPlan.getAllIndexes().size());
 
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("newten"));
-        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
 
-        val smartMaster2 = new NSmartMaster(getTestConfig(), "newten", sqls);
-        val recommMap = smartMaster2.selectAndGenRecommendation();
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+        val recommMap = context2.getRecommendationMap();
         val model = smartMaster2.getContext().getModelContexts().get(0).getTargetModel();
         val layoutRecomms = recommMap.get(model).getLayoutRecommendations();
         val columns = Lists.<String> newArrayList();
@@ -126,8 +127,8 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
             columns.add(model.getColRef(columnId).getIdentity());
         });
         Collections.sort(columns);
-        Assert.assertArrayEquals(columns.toArray(), new String[] {
-                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.TRANS_ID" });
+        Assert.assertArrayEquals(columns.toArray(),
+                new String[] { "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.TRANS_ID" });
         smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
             Assert.assertFalse(accelerateInfo.isNotSucceed());
         });
@@ -145,14 +146,16 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
                 "select test_kylin_fact.trans_id from test_kylin_fact" };
 
         // create model A join B join C
-        val smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sqls[0] });
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[0] });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
 
         val originalModels = NDataModelManager.getInstance(getTestConfig(), "newten").listAllModels();
         Assert.assertEquals(1, originalModels.size());
 
-        val smartMaster2 = new NSmartMaster(getTestConfig(), "newten", sqls);
-        smartMaster2.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runWithContext();
 
         Assert.assertEquals(3, smartMaster2.getContext().getModelContexts().size());
         Assert.assertEquals(3, NDataModelManager.getInstance(getTestConfig(), "newten").listAllModels().size());

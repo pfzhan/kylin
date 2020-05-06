@@ -28,14 +28,15 @@ import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.auto.NSuggestTestBase;
+import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class DynamicQueryTest extends NSuggestTestBase {
+public class DynamicQueryTest extends NAutoTestBase {
     private static final String PROJECT = "newten";
 
     @Test
@@ -47,7 +48,7 @@ public class DynamicQueryTest extends NSuggestTestBase {
         QueryExec queryExec = new QueryExec(PROJECT, KylinConfig.getInstanceFromEnv());
         queryExec.setPrepareParam(0, 2);
         val resultSet = queryExec.executeQuery(sql);
-        Assert.assertTrue(resultSet.getRows().size()>0);
+        Assert.assertTrue(resultSet.getRows().size() > 0);
         Assert.assertEquals(resultSet.getRows().get(0).get(0), "105");
     }
 
@@ -71,8 +72,9 @@ public class DynamicQueryTest extends NSuggestTestBase {
     }
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
-        val smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), PROJECT, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(KylinConfig.getInstanceFromEnv(), PROJECT, sqls);
+        val smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
         buildAllCubes(KylinConfig.getInstanceFromEnv(), PROJECT);
     }
 

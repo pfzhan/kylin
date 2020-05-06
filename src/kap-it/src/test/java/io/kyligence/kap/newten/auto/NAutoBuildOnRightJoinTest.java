@@ -24,15 +24,17 @@
 
 package io.kyligence.kap.newten.auto;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
+import java.util.List;
+
 import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 
 public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
 
@@ -40,16 +42,16 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
     public void testRightJoin() throws Exception {
         final int TEST_SQL_CNT = 3;
         for (int i = 0; i < TEST_SQL_CNT; i++) {
-            List<Pair<String, String>> queries = fetchQueries("query/sql_join/sql_right_join", i, i+1);
+            List<Pair<String, String>> queries = fetchQueries("query/sql_join/sql_right_join", i, i + 1);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             // ensure only one model is created for right join
             Assert.assertEquals(1, modelContexts.size());
-            NSmartContext.NModelContext modelContext = modelContexts.get(0);
+            AbstractContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
-            Assert.assertTrue(!dataModel.getJoinTables().isEmpty());
+            Assert.assertFalse(dataModel.getJoinTables().isEmpty());
             Assert.assertEquals("LEFT", dataModel.getJoinTables().get(0).getJoin().getType());
             IndexPlan indexPlan = modelContext.getTargetIndexPlan();
             Assert.assertNotNull(indexPlan);
@@ -58,8 +60,9 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
 
     private NSmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {
         String[] sqls = queries.stream().map(Pair::getSecond).toArray(String[]::new);
-        NSmartMaster master = new NSmartMaster(kylinConfig, getProject(), sqls);
-        master.runAll();
+        AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster master = new NSmartMaster(context);
+        master.runWithContext();
         return master;
     }
 }

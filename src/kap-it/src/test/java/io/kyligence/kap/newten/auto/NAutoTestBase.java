@@ -24,13 +24,21 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.newten.NSuggestTestBase;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 import lombok.val;
@@ -50,12 +58,23 @@ public class NAutoTestBase extends NSuggestTestBase {
     }
 
     @Override
-    protected Map<String, CompareEntity> executeTestScenario(boolean recordFQ,
-            NSuggestTestBase.TestScenario... testScenarios) throws Exception {
-        return executeTestScenario(null, false, testScenarios);
+    protected Map<String, CompareEntity> executeTestScenario(NSuggestTestBase.TestScenario... testScenarios)
+            throws Exception {
+        return executeTestScenario(null, testScenarios);
     }
 
-    protected Map<String, CompareEntity> executeTestScenario(Integer expectModelNum, boolean recordFQ,
+    @Override
+    protected NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
+        List<String> sqlList = collectQueries(testScenarios);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
+        String[] sqls = sqlList.toArray(new String[0]);
+        AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        return smartMaster;
+    }
+
+    protected Map<String, CompareEntity> executeTestScenario(Integer expectModelNum,
             NSuggestTestBase.TestScenario... testScenarios) throws Exception {
 
         // 1. execute auto-modeling propose

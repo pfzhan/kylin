@@ -36,11 +36,12 @@ import org.junit.Test;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import io.kyligence.kap.smart.common.SmartConfig;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
 public class NModelMasterTest extends NAutoTestOnLearnKylinData {
@@ -57,11 +58,12 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, sum(item_count), count(*) from kylin_sales left join kylin_cal_dt on cal_dt = part_dt group by part_dt" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx);
 
         NModelMaster modelMaster = new NModelMaster(mdCtx);
@@ -127,12 +129,12 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
                         + " AND kylin_sales.lstg_site_id = kylin_category_groupings.site_id"
                         + " group by kylin_category_groupings.meta_categ_name ,kylin_category_groupings.categ_lvl2_name" //
         };
-
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
 
-        NSmartContext ctx = smartMaster.getContext();
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx);
 
         NModelMaster modelMaster = new NModelMaster(mdCtx);
@@ -181,12 +183,12 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
                         + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"",
 
         };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls);
-        smartMaster.runAll();
-
-        final NSmartContext smartContext = smartMaster.getContext();
-        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        final AbstractContext smartContext = smartMaster.getContext();
+        final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -204,15 +206,15 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
                 + "    ON KYLIN_SALES.LEAF_CATEG_ID = KYLIN_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND KYLIN_SALES.LSTG_SITE_ID = KYLIN_CATEGORY_GROUPINGS.SITE_ID \n"
                 + "INNER JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID \n"
                 + "INNER JOIN KYLIN_COUNTRY as BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY \n" };
-
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
 
-        NSmartContext ctx = smartMaster.getContext();
+        AbstractContext ctx = smartMaster.getContext();
         Assert.assertEquals(1, ctx.getModelContexts().size());
         Assert.assertEquals(0,
                 ctx.getModelContexts().get(0).getModelTree().getOlapContexts().iterator().next().allColumns.size());
-        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx);
 
         NModelMaster modelMaster = new NModelMaster(mdCtx);
@@ -237,19 +239,21 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
 
         conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         {
-            NSmartMaster smartMaster = new NSmartMaster(conf, proj, sqls);
+            val context = AccelerationContextUtil.newSmartContext(conf, proj, sqls);
+            NSmartMaster smartMaster = new NSmartMaster(context);
             smartMaster.analyzeSQLs();
 
-            NSmartContext ctx = smartMaster.getContext();
+            AbstractContext ctx = smartMaster.getContext();
             Assert.assertEquals(1, ctx.getModelContexts().size());
         }
 
         conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "FALSE");
         {
-            NSmartMaster smartMaster = new NSmartMaster(conf, proj, sqls);
+            val context = AccelerationContextUtil.newSmartContext(conf, proj, sqls);
+            NSmartMaster smartMaster = new NSmartMaster(context);
             smartMaster.analyzeSQLs();
 
-            NSmartContext ctx = smartMaster.getContext();
+            AbstractContext ctx = smartMaster.getContext();
             Assert.assertEquals(2, ctx.getModelContexts().size());
         }
 
@@ -270,9 +274,10 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testProposerJoinTypeCapital() {
-        String[] sqls = new String[] { "select part_dt from kylin_sales inner join kylin_cal_dt on cal_dt = part_dt " +
-                "left JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID "};
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        String[] sqls = new String[] { "select part_dt from kylin_sales inner join kylin_cal_dt on cal_dt = part_dt "
+                + "left JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID " };
+        AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
         NModelMaster modelMaster = new NModelMaster(smartMaster.getContext().getModelContexts().get(0));
         NDataModel dataModel = modelMaster.proposeInitialModel();

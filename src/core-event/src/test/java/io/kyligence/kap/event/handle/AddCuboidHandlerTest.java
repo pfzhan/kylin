@@ -23,13 +23,9 @@
  */
 package io.kyligence.kap.event.handle;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -40,20 +36,21 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
@@ -63,7 +60,7 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
     private static final String DEFAULT_PROJECT = "default";
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.createTestMetadata();
     }
 
@@ -73,12 +70,13 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testHandlerIdempotent() throws Exception {
+    public void testHandlerIdempotent() {
         // first add cuboid layouts
         String sqlPattern = "select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT";
-        List<String> sqls = Lists.<String> newArrayList(sqlPattern);
-        NSmartMaster master = new NSmartMaster(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
-        master.runAll();
+        List<String> sqls = Lists.newArrayList(sqlPattern);
+        val context = new NSmartContext(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
+        NSmartMaster master = new NSmartMaster(context);
+        master.runWithContext();
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT)
@@ -98,7 +96,7 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
         List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 0);
+        Assert.assertTrue(events.isEmpty());
 
         String jobId = ((AddCuboidEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
@@ -130,30 +128,10 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
         List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 0);
+        Assert.assertTrue(events.isEmpty());
 
         String jobId = ((AddCuboidEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
     }
-
-    private List<Long> calcAddedCuboidLayoutIds(List<NSmartContext.NModelContext> contexts) {
-        List<Long> originLayoutIds = new ArrayList<>();
-        List<Long> targetLayoutIds = new ArrayList<>();
-
-        NSmartContext.NModelContext context = contexts.get(0);
-        IndexPlan originIndexPlan = context.getOriginIndexPlan();
-        IndexPlan targetIndexPlan = context.getTargetIndexPlan();
-        for (LayoutEntity layout : originIndexPlan.getAllLayouts()) {
-            originLayoutIds.add(layout.getId());
-        }
-        for (LayoutEntity layout : targetIndexPlan.getAllLayouts()) {
-            targetLayoutIds.add(layout.getId());
-        }
-
-        targetLayoutIds.removeAll(originLayoutIds);
-
-        return targetLayoutIds;
-    }
-
 }

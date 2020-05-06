@@ -24,12 +24,10 @@
 package io.kyligence.kap.smart;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,12 +40,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
@@ -64,13 +61,9 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testWithSource() throws IOException, NoSuchFieldException, IllegalAccessException {
+    public void testWithSource() throws Exception {
         val project = "default";
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
-        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
 
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
@@ -112,8 +105,10 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
             return fq;
         }).when(spyFqManager).get(sql2);
 
-        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), project, new String[] { sql1 });
-        smartMaster1.runOptRecommendation(null);
+        val context1 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql1 });
+        NSmartMaster smartMaster1 = new NSmartMaster(context1);
+        smartMaster1.runWithContext(null);
 
         val recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), project);
         var recommendation = recommendationManager.getOptimizeRecommendation(baseModel.getId());
@@ -121,8 +116,10 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(LayoutRecommendationItem.IMPORTED,
                 recommendation.getLayoutRecommendations().get(0).getSource());
 
-        NSmartMaster smartMaster2 = new NSmartMaster(getTestConfig(), project, new String[] { sql2 });
-        smartMaster2.runOptRecommendation(null);
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        NSmartMaster smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runWithContext(null);
         recommendation = recommendationManager.getOptimizeRecommendation(baseModel.getId());
         Assert.assertEquals(2, recommendation.getLayoutRecommendations().size());
         Assert.assertEquals(LayoutRecommendationItem.QUERY_HISTORY,

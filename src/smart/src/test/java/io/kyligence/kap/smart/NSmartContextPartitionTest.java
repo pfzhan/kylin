@@ -26,13 +26,13 @@ package io.kyligence.kap.smart;
 
 import java.util.Map;
 
-import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,7 +41,6 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testAllFullLoadTableJoin() {
-        KylinConfig kylinConfig = getTestConfig();
         /*
          * case 1: both are full load tables, result have two contexts
          * --     join
@@ -55,10 +54,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                         + "JOIN kylin_country buyer_country ON buyer_account.account_country = buyer_country.country\n"
                         + "JOIN kylin_account seller_account ON buyer_account.account_country = seller_account.account_country\n"
                         + "LIMIT 500" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -77,10 +77,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "JOIN kylin_country buyer_country ON buyer_account.account_country = buyer_country.country\n"
                 + "JOIN kylin_country seller_country ON buyer_country.country = seller_country.country\n"
                 + "LIMIT 500" };
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(1, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -122,10 +123,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "\t\t\tON t1.seller_id = t2.buyer_id\n" //
                 + "\t) t5\n" //
                 + "\tON t5.seller_id = kylin_sales.seller_id\n" + "WHERE kylin_sales.part_dt < '2012-09-10'" };
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context3);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(3, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -162,10 +164,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "\t) t5\n" //
                 + "\tON t5.part_dt = kylin_sales.part_dt\n" //
                 + "GROUP BY kylin_cal_dt.cal_dt" };
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context4 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context4);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(1, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -176,7 +179,6 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testIsRightSideIncrementalLoadTable() {
-        KylinConfig kylinConfig = getTestConfig();
 
         /*
          * case 1: incremental table marks with '*', should have three contexts, but only two layouts
@@ -191,16 +193,17 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                         + "JOIN kylin_country buyer_country ON buyer_account.account_country = buyer_country.country\n"
                         + "JOIN kylin_account seller_account ON buyer_account.account_country = seller_account.account_country\n"
                         + "LIMIT 500" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context1);
 
-        val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), proj);
         val kylinCountry = tableManager.getTableDesc("DEFAULT.KYLIN_COUNTRY");
         kylinCountry.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinCountry);
 
-        smartMaster.runAll();
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(3, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -242,15 +245,16 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "\t\t\tON t1.seller_id = t2.buyer_id\n" //
                 + "\t) t5\n" //
                 + "\tON t5.seller_id = kylin_sales.seller_id\n" + "WHERE kylin_sales.part_dt < '2012-09-10'" };
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context2);
 
         val kylinSales = tableManager.getTableDesc("DEFAULT.KYLIN_SALES");
         kylinSales.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinSales);
 
-        smartMaster.runAll();
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(5, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -287,10 +291,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "\t) t5\n" //
                 + "\tON t5.part_dt = kylin_sales.part_dt\n" //
                 + "GROUP BY kylin_cal_dt.cal_dt" };
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context3);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(5, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
@@ -306,7 +311,6 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testCrossJoin() {
-        KylinConfig kylinConfig = getTestConfig();
         /*
          * -- case 1: inner join as cross join
          * --    join
@@ -316,10 +320,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " inner join kylin_cal_dt on part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, smartContext.getModelContexts().size());
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
 
@@ -335,10 +340,11 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
          */
         sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from \n"
                 + " kylin_sales, kylin_cal_dt where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
             Assert.assertEquals(2, smartContext.getModelContexts().size());
 
@@ -350,7 +356,6 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testAllIncrementalLoadTableJoin() {
-        KylinConfig kylinConfig = getTestConfig();
 
         /*
          * -- case 1: self join
@@ -361,16 +366,17 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         String[] sqls = new String[] { "SELECT t1.seller_id, t2.part_dt FROM kylin_sales t1\n"
                 + "JOIN kylin_sales t2 ON t1.seller_id = t2.seller_id LIMIT 500" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context1);
 
-        val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), proj);
         val kylinSalesTable = tableManager.getTableDesc("DEFAULT.KYLIN_SALES");
         kylinSalesTable.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinSalesTable);
 
-        smartMaster.runAll();
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(1, smartContext.getModelContexts().size());
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
 
@@ -387,16 +393,16 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " inner join kylin_cal_dt on cal_dt = part_dt \n"
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
-
-        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        smartMaster = new NSmartMaster(context2);
 
         val kylinCalDtTable = tableManager.getTableDesc("DEFAULT.KYLIN_CAL_DT");
         kylinCalDtTable.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinCalDtTable);
 
-        smartMaster.runAll();
+        smartMaster.runWithContext();
         {
-            final NSmartContext smartContext = smartMaster.getContext();
+            AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();

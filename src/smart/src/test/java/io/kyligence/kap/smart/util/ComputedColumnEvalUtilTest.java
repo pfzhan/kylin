@@ -186,7 +186,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         cc1.setInnerExpression("SUBSTRING(LSTG_FORMAT_NAME, 1, 4)");
         cc1.setDatatype("ANY");
         dataModel.getComputedColumnDescs().add(cc1);
-        Assert.assertTrue(ComputedColumnEvalUtil.resolveCCName(cc1, dataModel, otherModels, config, project));
+        Assert.assertTrue(ComputedColumnEvalUtil.resolveCCName(cc1, dataModel, otherModels));
         Assert.assertEquals("CC_AUTO_1", cc1.getColumnName());
 
         // add a bad computed column
@@ -197,7 +197,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         cc2.setInnerExpression("CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)");
         cc2.setDatatype("ANY");
         dataModel.getComputedColumnDescs().add(cc2);
-        boolean rst = ComputedColumnEvalUtil.resolveCCName(cc2, dataModel, otherModels, config, project);
+        boolean rst = ComputedColumnEvalUtil.resolveCCName(cc2, dataModel, otherModels);
         Assert.assertFalse(rst);
         Assert.assertEquals("CC_AUTO_1", cc2.getColumnName());
         Assert.assertEquals(2, dataModel.getComputedColumnDescs().size());
@@ -212,7 +212,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         cc3.setInnerExpression("YEAR(TEST_KYLIN_FACT.CAL_DT)");
         cc3.setDatatype("ANY");
         dataModel.getComputedColumnDescs().add(cc3);
-        Assert.assertTrue(ComputedColumnEvalUtil.resolveCCName(cc3, dataModel, otherModels, config, project));
+        Assert.assertTrue(ComputedColumnEvalUtil.resolveCCName(cc3, dataModel, otherModels));
         Assert.assertEquals("CC_AUTO_2", cc3.getColumnName());
     }
 
@@ -255,16 +255,14 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         // first CC will named CC_AUTO_1
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
         cc1.setExpression("SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)");
-        List<NDataModel> allModels = Lists.newArrayList(otherModels);
-        allModels.add(dataModel);
-        Assert.assertEquals(0, ComputedColumnEvalUtil.getBiggestCCIndex(allModels));
+        Assert.assertEquals(0, ComputedColumnEvalUtil.getBiggestCCIndex(dataModel, otherModels));
         cc1.setColumnName("CC_AUTO_1");
         dataModel.getComputedColumnDescs().add(cc1);
 
         // second CC will named CC_AUTO_2
         ComputedColumnDesc cc2 = new ComputedColumnDesc();
         cc2.setExpression("concat(LSTG_FORMAT_NAME,1)");
-        Assert.assertEquals(1, ComputedColumnEvalUtil.getBiggestCCIndex(allModels));
+        Assert.assertEquals(1, ComputedColumnEvalUtil.getBiggestCCIndex(dataModel, otherModels));
     }
 
 }

@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.newten.auto;
+package io.kyligence.kap.newten.semi;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,11 +30,10 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
@@ -44,6 +43,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Before;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -60,12 +60,15 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.newten.NSuggestTestBase;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SemiAutoTestBase extends NSuggestTestBase {
@@ -111,33 +114,19 @@ public class SemiAutoTestBase extends NSuggestTestBase {
                 .filter(indexPlan -> originModelIds.contains(indexPlan.getId()))
                 .map(indexPlan -> JsonUtil.deepCopyQuietly(indexPlan, IndexPlan.class))
                 .collect(Collectors.toMap(IndexPlan::getId, i -> i));
-        proposeWithSmartMaster(project, NSmartMaster::runAll, testScenarios);
-        prjManager.updateProject(getProject(), copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-            var properties = copyForWrite.getOverrideKylinProps();
-            if (properties == null) {
-                properties = Maps.newLinkedHashMap();
-            }
-            properties.put("kylin.metadata.semi-automatic-mode", "true");
-            copyForWrite.setOverrideKylinProps(properties);
-        });
+        runWithSmartContext(project, testScenarios);
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
         emptyModelAndIndexPlan(project, originModelIds, originModels, originIndexPlans);
     }
 
-    protected void prepareModels(String project, String modelNameFolder) throws IOException {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
-        var dir = new File(getFolder(modelNameFolder));
-        Lists.newArrayList(Objects.requireNonNull(dir.listFiles())).forEach(file -> {
-            var model = JsonUtil.readValueQuietly(file, NDataModel.class);
-            model = modelManager.createDataModelDesc(model, "ADMIN");
-            val indexPlan = new IndexPlan();
-            indexPlan.setUuid(model.getUuid());
-            indexPlan.setProject(project);
-            indexPlanManager.createIndexPlan(indexPlan);
-            dataflowManager.createDataflow(indexPlan, "ADMIN");
-        });
+    protected NSmartMaster runWithSmartContext(String project, TestScenario... testScenarios) throws IOException {
+        List<String> sqlList = collectQueries(testScenarios);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
+        String[] sqls = sqlList.toArray(new String[0]);
+        AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        return smartMaster;
     }
 
     private void emptyModelAndIndexPlan(String project, Set<String> originModelIds,
@@ -185,8 +174,8 @@ public class SemiAutoTestBase extends NSuggestTestBase {
     }
 
     @Override
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(boolean recordFQ,
-            TestScenario... testScenarios) throws Exception {
+    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(TestScenario... testScenarios)
+            throws Exception {
 
         long startTime = System.currentTimeMillis();
         final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
@@ -219,10 +208,10 @@ public class SemiAutoTestBase extends NSuggestTestBase {
     private void updateAccelerateInfoMap(NSmartMaster smartMaster) {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val targetIndexPlanMap = smartMaster.getContext().getModelContexts().stream()
-                .map(NSmartContext.NModelContext::getTargetIndexPlan)
+                .map(AbstractContext.NModelContext::getTargetIndexPlan)
                 .collect(Collectors.toMap(RootPersistentEntity::getId, i -> i));
         val targetModelMap = smartMaster.getContext().getModelContexts().stream()
-                .map(NSmartContext.NModelContext::getTargetModel)
+                .map(AbstractContext.NModelContext::getTargetModel)
                 .collect(Collectors.toMap(RootPersistentEntity::getId, i -> i));
         smartMaster.getContext().getAccelerateInfoMap().forEach((sql, info) -> {
             info.getRelatedLayouts().forEach(r -> {
@@ -266,7 +255,14 @@ public class SemiAutoTestBase extends NSuggestTestBase {
 
     @Override
     protected NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
-        return proposeWithSmartMaster(project, NSmartMaster::runOptRecommendation, testScenarios);
+        List<String> sqlList = collectQueries(testScenarios);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
+        String[] sqls = sqlList.toArray(new String[0]);
+        AbstractContext context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), project,
+                sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        return smartMaster;
     }
 
     protected void verifyAll() {
@@ -308,8 +304,8 @@ public class SemiAutoTestBase extends NSuggestTestBase {
 
     protected void compare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
             TestScenario... testScenarios) {
-        Arrays.stream(testScenarios)
-                .forEach(testScenario -> compare(compareMap, testScenario, testScenario.queries, Lists.newArrayList()));
+        Arrays.stream(testScenarios).forEach(
+                testScenario -> compare(compareMap, testScenario, testScenario.getQueries(), Lists.newArrayList()));
     }
 
     protected void compare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap, TestScenario testScenario,
@@ -319,11 +315,11 @@ public class SemiAutoTestBase extends NSuggestTestBase {
             NExecAndComp.execLimitAndValidateNew(validQueries, getProject(), JoinType.DEFAULT.name(), compareMap);
         } else if (testScenario.isDynamicSql()) {
             NExecAndComp.execAndCompareDynamic(validQueries, getProject(), testScenario.getCompareLevel(),
-                    testScenario.joinType.name(), compareMap);
+                    testScenario.getJoinType().name(), compareMap);
         } else {
             NExecAndComp.execAndCompareNew(validQueries, getProject(), testScenario.getCompareLevel(),
-                    testScenario.joinType.name(), compareMap);
-            NExecAndComp.execAndFail(invalidQueries, getProject(), testScenario.joinType.name(), compareMap);
+                    testScenario.getJoinType().name(), compareMap);
+            NExecAndComp.execAndFail(invalidQueries, getProject(), testScenario.getJoinType().name(), compareMap);
 
         }
     }

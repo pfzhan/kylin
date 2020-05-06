@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.sql.SparderEnv;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
@@ -44,15 +43,14 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
 public class NAutoBasicTest extends NAutoTestBase {
@@ -67,9 +65,9 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
-            NSmartContext.NModelContext modelContext = modelContexts.get(0);
+            AbstractContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
             targetModelId = dataModel.getUuid();
@@ -84,9 +82,9 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
-            NSmartContext.NModelContext modelContext = modelContexts.get(0);
+            AbstractContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
             Assert.assertEquals(targetModelId, dataModel.getUuid());
@@ -110,7 +108,7 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(0, modelContexts.size());
         }
 
@@ -120,9 +118,9 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartMaster master = proposeWithSmartMaster(queries);
             buildAllCubes(kylinConfig, getProject());
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
-            NSmartContext.NModelContext modelContext = modelContexts.get(0);
+            AbstractContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
             Assert.assertNotEquals(targetModelId, dataModel.getUuid());
@@ -143,11 +141,11 @@ public class NAutoBasicTest extends NAutoTestBase {
 
     @Test
     public void testUsedColumnsIsTomb() {
-        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { "select lstg_format_name from test_kylin_fact group by lstg_format_name",
                 "select sum(price * item_count) from test_kylin_fact" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isFailed());
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[1]).isFailed());
@@ -191,23 +189,12 @@ public class NAutoBasicTest extends NAutoTestBase {
         });
         Assert.assertTrue(updatedModel.getAllMeasures().get(1).isTomb());
 
-        // update model to expert mode
-        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(getProject());
-        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
-        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).getPendingMsg()
-                .contains("but the dimension [TEST_KYLIN_FACT.LSTG_FORMAT_NAME] is missing. "
-                        + "Please add the above dimension before attempting to accelerate this query."));
-        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).getPendingMsg()
-                .contains("Please add the above measure before attempting to accelerate this query."));
-
         // update model to semi-auto-mode
-        kylinConfig.setProperty("kylin.metadata.semi-automatic-mode", "true");
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runOptRecommendation(null);
-        accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        AccelerationContextUtil.transferProjectToSemiAutoMode(kylinConfig, getProject());
+        val context3 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(), sqls);
+        smartMaster = new NSmartMaster(context3);
+        smartMaster.runWithContext(null);
+        val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isNotSucceed());
         Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isNotSucceed());
         NDataModel model = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject())
@@ -236,8 +223,8 @@ public class NAutoBasicTest extends NAutoTestBase {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 2);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
-            for (NSmartContext.NModelContext nModelContext : modelContexts) {
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            for (AbstractContext.NModelContext nModelContext : modelContexts) {
                 IndexPlan indexPlan = nModelContext.getTargetIndexPlan();
                 indexPlanOfParts.put(indexPlan.getId(), indexPlan);
             }
@@ -248,8 +235,8 @@ public class NAutoBasicTest extends NAutoTestBase {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 2, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
-            for (NSmartContext.NModelContext nModelContext : modelContexts) {
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            for (AbstractContext.NModelContext nModelContext : modelContexts) {
                 IndexPlan indexPlan = nModelContext.getTargetIndexPlan();
                 indexPlanOfParts.put(indexPlan.getId(), indexPlan);
             }
@@ -260,8 +247,8 @@ public class NAutoBasicTest extends NAutoTestBase {
             List<Pair<String, String>> queries = fetchQueries("sql_for_automodeling/sql", 0, 4);
             NSmartMaster master = proposeWithSmartMaster(queries);
 
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
-            for (NSmartContext.NModelContext nModelContext : modelContexts) {
+            List<AbstractContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            for (AbstractContext.NModelContext nModelContext : modelContexts) {
                 IndexPlan indexPlan = nModelContext.getTargetIndexPlan();
                 indexPlanOfAll.put(indexPlan.getId(), indexPlan);
             }
@@ -332,7 +319,8 @@ public class NAutoBasicTest extends NAutoTestBase {
                 + "  ) i on l.cal_dt = i.cal_dt\n" //
                 + "group by l.cal_dt";
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, new String[] { sql });
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, project, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();
 
@@ -343,19 +331,15 @@ public class NAutoBasicTest extends NAutoTestBase {
         smartMaster.optimizeModel();
 
         // assert it failed in the step of optimize model
-        final List<NSmartContext.NModelContext> modelContexts = smartMaster.getContext().getModelContexts();
+        final List<AbstractContext.NModelContext> modelContexts = smartMaster.getContext().getModelContexts();
         val accelerateInfoMapAfterOpt = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(2, modelContexts.size());
         Assert.assertFalse(accelerateInfoMapAfterOpt.get(sql).isNotSucceed());
         //        Assert.assertTrue(accelerateInfoMapAfterOpt.get(sql).getRelatedLayouts().isEmpty());
     }
 
-    /**
-     * (manual maintain type) one sql generates many OLAPContexts but it failed to accelerate.
-     * The second OLAPContext failed to reuse an existing model when proposing layouts.
-     */
     @Test
-    public void testPartialFailedWhenProposingWhenOneSqlAcceleratingWithManualMaintainType() {
+    public void testSemiAutoWillCreateNewLayouts() {
         KylinConfig kylinConfig = getTestConfig();
         final String project = "newten";
         String sql = "select test_kylin_fact.cal_dt, sum(price) as left_join_gvm\n" //
@@ -364,20 +348,20 @@ public class NAutoBasicTest extends NAutoTestBase {
                 + "       left JOIN test_category_groupings ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id "
                 + "         AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
                 + "    group by test_kylin_fact.cal_dt";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, new String[] { sql });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, project, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         // confirm auto-modeling is ok
         val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertFalse(accelerateInfoMap.get(sql).isNotSucceed());
         Assert.assertEquals(1, modelContexts.size());
+        IndexPlan targetIndexPlan = modelContexts.get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, targetIndexPlan.getAllLayouts().size());
 
         //set maintain model type to manual
-        final NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
-        final ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
-        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectUpdate);
+        AccelerationContextUtil.transferProjectToSemiAutoMode(kylinConfig, project);
 
         // propose model under the scene of manual maintain type
         sql = "select l.cal_dt, sum(left_join_gvm) as left_join_sum, sum(inner_join_gvm) as inner_join_sum\n"
@@ -397,27 +381,19 @@ public class NAutoBasicTest extends NAutoTestBase {
                 + "    group by test_kylin_fact.cal_dt\n" //
                 + "  ) i on l.cal_dt = i.cal_dt\n" //
                 + "group by l.cal_dt";
-        smartMaster = new NSmartMaster(kylinConfig, project, new String[] { sql });
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
+        val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, project,
+                new String[] { sql });
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
 
         // assert everything is ok after optimize model
-        val accelerationMapAfterOptModel = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerationMapAfterOptModel.get(sql).isNotSucceed());
-        Assert.assertTrue(accelerationMapAfterOptModel.get(sql).getRelatedLayouts().isEmpty());
-
-        // assert everything is ok after select index plan
-        smartMaster.selectIndexPlan();
-        val accelerationMapAfterSelectIndexPlan = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertFalse(accelerationMapAfterSelectIndexPlan.get(sql).isNotSucceed());
-        Assert.assertTrue(accelerationMapAfterSelectIndexPlan.get(sql).getRelatedLayouts().isEmpty());
-
-        // assert it failed at optimize index plan
-        smartMaster.optimizeIndexPlan();
-        val accelerateInfoAfterOptIndexPlan = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerateInfoAfterOptIndexPlan.get(sql).isNotSucceed());
-        Assert.assertTrue(accelerateInfoAfterOptIndexPlan.get(sql).getRelatedLayouts().isEmpty());
+        val modelContextsOfSemi = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContextsOfSemi.size());
+        IndexPlan indexPlanOfSemi = modelContextsOfSemi.get(0).getTargetIndexPlan();
+        Assert.assertEquals(2, indexPlanOfSemi.getAllLayouts().size());
+        val accelerationMapOfSemiMode = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationMapOfSemiMode.get(sql).isNotSucceed());
+        Assert.assertEquals(2, accelerationMapOfSemiMode.get(sql).getRelatedLayouts().size());
     }
 
     @Test
@@ -431,10 +407,11 @@ public class NAutoBasicTest extends NAutoTestBase {
                         + " group by LSTG_FORMAT_NAME ,slr_segment_cd",
                 "select LSTG_FORMAT_NAME,slr_segment_cd ,sum(price) as GMV, min(price) as MMV from test_kylin_fact\n"
                         + " group by LSTG_FORMAT_NAME ,slr_segment_cd" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, sqls);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, project, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        NSmartContext smartContext = smartMaster.getContext();
+        AbstractContext smartContext = smartMaster.getContext();
         Map<String, AccelerateInfo> accelerationInfoMap = smartContext.getAccelerateInfoMap();
         val relatedLayoutsForSql0 = accelerationInfoMap.get(sqls[0]).getRelatedLayouts();
         val relatedLayoutsForSql1 = accelerationInfoMap.get(sqls[1]).getRelatedLayouts();
@@ -443,18 +420,16 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertNotEquals(layoutForSql0, layoutForSql1);
 
         // set to semi-auto to check tailoring layouts
-        overwriteSystemProp("kylin.metadata.semi-automatic-mode", "true");
-        final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        NProjectManager.getInstance(kylinConfig).updateProject(projectInstance);
-        NSmartContext.NModelContext modelContext = smartContext.getModelContexts().get(0);
+        AccelerationContextUtil.transferProjectToSemiAutoMode(kylinConfig, project);
+        AbstractContext.NModelContext modelContext = smartContext.getModelContexts().get(0);
         NDataModel targetModel = modelContext.getTargetModel();
         NIndexPlanManager.getInstance(kylinConfig, project).updateIndexPlan(targetModel.getUuid(), copyForWrite -> {
             copyForWrite.setIndexes(Lists.newArrayList());
         });
 
-        smartMaster = new NSmartMaster(kylinConfig, project, sqls);
-        smartMaster.runOptRecommendation(null);
+        val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, project, sqls);
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext(null);
 
         smartContext = smartMaster.getContext();
         accelerationInfoMap = smartContext.getAccelerateInfoMap();
@@ -467,8 +442,9 @@ public class NAutoBasicTest extends NAutoTestBase {
 
     private NSmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {
         String[] sqls = queries.stream().map(Pair::getSecond).toArray(String[]::new);
-        NSmartMaster master = new NSmartMaster(kylinConfig, getProject(), sqls);
-        master.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
+        NSmartMaster master = new NSmartMaster(context);
+        master.runWithContext();
         return master;
     }
 }

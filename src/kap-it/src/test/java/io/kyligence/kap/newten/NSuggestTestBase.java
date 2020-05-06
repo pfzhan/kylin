@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.newten.auto;
+package io.kyligence.kap.newten;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -69,7 +68,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -80,9 +78,9 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class NSuggestTestBase extends NLocalWithSparkSessionTest {
+public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
 
-    static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
+    protected static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
 
     protected KylinConfig kylinConfig;
     protected static Set<String> excludedSqlPatterns = Sets.newHashSet();
@@ -112,16 +110,12 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         return Sets.newHashSet();
     }
 
-    protected void executeTestScenario(TestScenario... testScenarios) throws Exception {
-        executeTestScenario(false, testScenarios);
-    }
-
     @Override
     public String getProject() {
         return "newten";
     }
 
-    String getFolder(String subFolder) {
+    protected String getFolder(String subFolder) {
         return IT_SQL_KAP_DIR + File.separator + subFolder;
     }
 
@@ -153,7 +147,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         // value when execute
         List<Pair<String, String>> queries;
 
-        TestScenario(String folderName) {
+        public TestScenario(String folderName) {
             this(NExecAndComp.CompareLevel.SAME, folderName);
         }
 
@@ -161,11 +155,11 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
             this(NExecAndComp.CompareLevel.SAME, folderName, fromIndex, toIndex);
         }
 
-        TestScenario(NExecAndComp.CompareLevel compareLevel, String folder) {
+        public TestScenario(NExecAndComp.CompareLevel compareLevel, String folder) {
             this(compareLevel, JoinType.DEFAULT, folder);
         }
 
-        TestScenario(NExecAndComp.CompareLevel compareLevel, JoinType joinType, String folder) {
+        public TestScenario(NExecAndComp.CompareLevel compareLevel, JoinType joinType, String folder) {
             this(compareLevel, joinType, false, folder, 0, 0, null);
         }
 
@@ -177,7 +171,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
             this(compareLevel, JoinType.DEFAULT, false, folder, 0, 0, exclusionList);
         }
 
-        TestScenario(NExecAndComp.CompareLevel compareLevel, boolean isLimit, String folder) {
+        public TestScenario(NExecAndComp.CompareLevel compareLevel, boolean isLimit, String folder) {
             this(compareLevel, JoinType.DEFAULT, isLimit, folder, 0, 0, null);
         }
 
@@ -193,20 +187,14 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
             this.removeLayouts = Sets.newHashSet();
         }
 
-        public Map<String, RecAndQueryCompareUtil.CompareEntity> execute(boolean recordFQ) throws Exception {
-            return executeTestScenario(recordFQ, this);
-        }
-
         public void execute() throws Exception {
             executeTestScenario(this);
         }
 
     } // end TestScenario
 
-    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(boolean recordFQ,
-            TestScenario... testScenarios) throws Exception {
-        return Maps.newHashMap();
-    }
+    protected abstract Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(
+            TestScenario... testScenarios) throws Exception;
 
     public enum JoinType {
 
@@ -295,7 +283,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         return map;
     }
 
-    List<String> collectQueries(TestScenario... tests) throws IOException {
+    protected List<String> collectQueries(TestScenario... tests) throws IOException {
         List<String> allQueries = Lists.newArrayList();
         List<Pair<String, String>> tmpQueryList = Lists.newArrayList();
         for (TestScenario test : tests) {
@@ -322,8 +310,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         return result;
     }
 
-
-    List<Pair<String, String>> fetchQueries(String subFolder, int fromIndex, int toIndex) throws IOException {
+    protected List<Pair<String, String>> fetchQueries(String subFolder, int fromIndex, int toIndex) throws IOException {
         List<Pair<String, String>> queries;
         String folder = getFolder(subFolder);
         if (fromIndex == toIndex) {
@@ -347,7 +334,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         });
     }
 
-    void assertOrPrintCmpResult(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap) {
+    protected void assertOrPrintCmpResult(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap) {
         // print details
         compareMap.forEach((key, value) -> {
             if (value.getLevel().equals(RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY)) {
@@ -367,7 +354,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         });
     }
 
-    Set<String> changeJoinType(String sql) {
+    protected Set<String> changeJoinType(String sql) {
         Set<String> patterns = Sets.newHashSet();
         for (JoinType joinType : JoinType.values()) {
             final String rst = KylinTestBase.changeJoinType(sql, joinType.name());
@@ -377,7 +364,7 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         return patterns;
     }
 
-    byte[] getFileBytes(File whiteListFile) throws IOException {
+    protected byte[] getFileBytes(File whiteListFile) throws IOException {
         final Long fileLength = whiteListFile.length();
         byte[] fileContent = new byte[fileLength.intValue()];
         try (FileInputStream inputStream = new FileInputStream(whiteListFile)) {
@@ -387,22 +374,8 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
         return fileContent;
     }
 
-    protected NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios) throws IOException {
-        return proposeWithSmartMaster(project, NSmartMaster::runAll, testScenarios);
-    }
-
-    protected NSmartMaster proposeWithSmartMaster(String project, Consumer<NSmartMaster> smartRunner,
-            TestScenario... testScenarios) throws IOException {
-
-        List<String> sqlList = collectQueries(testScenarios);
-
-        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
-
-        String[] sqls = sqlList.toArray(new String[0]);
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), project, sqls);
-        smartRunner.accept(smartMaster);
-        return smartMaster;
-    }
+    protected abstract NSmartMaster proposeWithSmartMaster(String project, TestScenario... testScenarios)
+            throws IOException;
 
     protected void buildAndCompare(Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap,
             TestScenario... testScenarios) throws Exception {

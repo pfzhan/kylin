@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.newten.auto;
+package io.kyligence.kap.newten.semi;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -73,7 +73,6 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
     public String getProject() {
         return "default";
     }
-
 
     @Test
     public void testTwoModelLayout() throws Exception {
@@ -292,8 +291,7 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
     public void testOptimize_cc() throws Exception {
         val optManager = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject());
         Assert.assertEquals(0, optManager.listAllOptimizeRecommendations().size());
-        val testScenarios = new TestScenario[] {
-                new TestScenario(NExecAndComp.CompareLevel.SAME, "semi_auto/cc") };
+        val testScenarios = new TestScenario[] { new TestScenario(NExecAndComp.CompareLevel.SAME, "semi_auto/cc") };
         prepareModels(getProject(), testScenarios);
         executeTestScenario(
                 /* CompareLevel = SAME */
@@ -420,13 +418,13 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
         populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
         try {
             NExecAndComp.queryFromCube(getProject(),
-                    KylinTestBase.changeJoinType(testScenarios[1].queries.get(0).getSecond(), "DEFAULT"));
+                    KylinTestBase.changeJoinType(testScenarios[1].getQueries().get(0).getSecond(), "DEFAULT"));
             Assert.fail("query not failed");
         } catch (RuntimeException e) {
             Assert.assertTrue((e.getCause().getCause() instanceof NoRealizationFoundException));
         }
         NExecAndComp.queryFromCube(getProject(),
-                KylinTestBase.changeJoinType(testScenarios[0].queries.get(0).getSecond(), "DEFAULT"));
+                KylinTestBase.changeJoinType(testScenarios[0].getQueries().get(0).getSecond(), "DEFAULT"));
         NExecAndComp.queryFromCube(getProject(),
                 KylinTestBase.changeJoinType("select ACCOUNT_ID from TEST_ACCOUNT", "DEFAULT"));
 

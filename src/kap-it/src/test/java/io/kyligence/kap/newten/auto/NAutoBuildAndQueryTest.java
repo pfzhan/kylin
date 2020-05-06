@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -64,7 +66,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        executeTestScenario(19, false,
+        executeTestScenario(19,
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql"), //
@@ -142,11 +144,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
-        executeTestScenario(
-                new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
                 new TestScenario(CompareLevel.SAME, "query/sql_special_join"),
-                new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition")
-        );
+                new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition"));
     }
 
     @Test
@@ -155,9 +155,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
             overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
             overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
             overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
-            executeTestScenario(
-                    new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join")
-            );
+            executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join"));
         }
     }
 
@@ -167,8 +165,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        executeTestScenario(
-                new TestScenario(CompareLevel.SAME, "query/sql_function"), //
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_function"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_formatUDF"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF"), //
@@ -207,22 +204,27 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         collectQueries(scenario);
         List<Pair<String, String>> queries = scenario.getQueries();
         populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompareNew(queries, getProject(), scenario.getCompareLevel(), scenario.joinType.toString(),
-                null);
+        NExecAndComp.execAndCompareNew(queries, getProject(), scenario.getCompareLevel(),
+                scenario.getJoinType().toString(), null);
     }
 
     @Test
     public void testCCWithSelectStar() throws Exception {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig().exposeComputedColumn();
-        projectManager.updateProject(getProject(), copyForWrite ->
-                copyForWrite.getOverrideKylinProps().put("kylin.query.metadata.expose-computed-column", "TRUE"));
+        boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig()
+                .exposeComputedColumn();
+        projectManager.updateProject(getProject(), copyForWrite -> copyForWrite.getOverrideKylinProps()
+                .put("kylin.query.metadata.expose-computed-column", "TRUE"));
         try {
-            new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1).execute();
-            new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4).execute();
+            new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1)
+                    .execute();
+            new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4)
+                    .execute();
         } finally {
-            projectManager.updateProject(getProject(), copyForWrite ->
-                    copyForWrite.getOverrideKylinProps().put("kylin.query.metadata.expose-computed-column", String.valueOf(exposeComputedColumnConfBefore)));
+            projectManager.updateProject(getProject(),
+                    copyForWrite -> copyForWrite.getOverrideKylinProps().put(
+                            "kylin.query.metadata.expose-computed-column",
+                            String.valueOf(exposeComputedColumnConfBefore)));
 
         }
     }
@@ -259,9 +261,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testCalciteOperatorTablesConfig() throws Exception {
         overwriteSystemProp("kylin.query.calcite.extras-props.FUN", "standard,oracle");
-        executeTestScenario(
-            new TestScenario(CompareLevel.SAME, "query/sql_function/oracle_function"), // NVL
-            new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF") // make sure udfs are executed correctly
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_function/oracle_function"), // NVL
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF") // make sure udfs are executed correctly
         );
     }
 
@@ -311,11 +312,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Override
-    protected void executeTestScenario(TestScenario... tests) throws Exception {
+    protected Map<String, RecAndQueryCompareUtil.CompareEntity> executeTestScenario(TestScenario... tests)
+            throws Exception {
         if ("true".equals(System.getProperty("skipAutoModelingCI"))) { // -DskipAutoModelingCI=true
-            return;
+            return null;
         }
-        super.executeTestScenario(tests);
+        return super.executeTestScenario(tests);
     }
 
     @Override

@@ -41,6 +41,8 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.utils.AccelerationContextUtil;
+import lombok.val;
 import lombok.var;
 
 public class NReuseModelCcTest extends NAutoTestBase {
@@ -82,9 +84,9 @@ public class NReuseModelCcTest extends NAutoTestBase {
                 "select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt", // sql4
                 "select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" // sql5
         };
-
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), statements);
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), statements);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[0]).isNotSucceed());
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[1]).isNotSucceed());
@@ -121,8 +123,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
         };
 
         // first round
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), statements);
-        smartMaster.runAll();
+        val contextFirst = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
+                statements);
+        NSmartMaster smartMaster = new NSmartMaster(contextFirst);
+        smartMaster.runWithContext();
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(statements[0]).isNotSucceed());
@@ -138,9 +142,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
                 accelerateInfoMap.get(statements[4]).getPendingMsg());
 
         // second round
-        smartMaster = new NSmartMaster(kylinConfig, getProject(),
+        val contextSecond = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 new String[] { statements[2], statements[3], statements[4] });
-        smartMaster.runAll();
+        smartMaster = new NSmartMaster(contextSecond);
+        smartMaster.runWithContext();
 
         accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(statements[2]).isNotSucceed());
@@ -150,8 +155,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
                 accelerateInfoMap.get(statements[4]).getPendingMsg());
 
         // third round
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { statements[4] });
-        smartMaster.runAll();
+        val contextThird = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
+                new String[] { statements[4] });
+        smartMaster = new NSmartMaster(contextThird);
+        smartMaster.runWithContext();
 
         accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(statements[4]).isPending());
@@ -172,8 +179,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
         transferProjectToSemiAutoMode();
         String sql = "select count(item_count + price), count(item_count * price) "
                 + "from test_kylin_fact join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sql });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
+                new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sql).isPending());
@@ -205,8 +214,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
         });
 
         String sql = "select * from test_kylin_fact";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sql });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
+                new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sql).isNotSucceed());
@@ -226,8 +237,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
         prepareMoreModels();
         transferProjectToSemiAutoMode();
         String sql = "select * from TPCH.LINEITEM";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sql });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
+                new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sql).isNotSucceed());
@@ -257,11 +270,13 @@ public class NReuseModelCcTest extends NAutoTestBase {
                         + "on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id "
                         + "and test_kylin_fact.lstg_site_id = test_category_groupings.site_id" //
         };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[0] });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[0] });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[1] });
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[1] });
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
     }
 
     private void prepareMoreModels() {
@@ -270,10 +285,12 @@ public class NReuseModelCcTest extends NAutoTestBase {
                         + "inner join tpch.part on lineitem.l_partkey = part.p_partkey",
                 "select sum(l_quantity * l_extendedprice) from tpch.lineitem" //
         };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[0] });
-        smartMaster.runAll();
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[0] });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[1] });
-        smartMaster.runAll();
+        val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[1] });
+        smartMaster = new NSmartMaster(context2);
+        smartMaster.runWithContext();
     }
 }
