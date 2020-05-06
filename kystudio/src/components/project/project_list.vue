@@ -88,10 +88,10 @@
             <i class="el-icon-ksd-setting ksd-mr-10 ksd-fs-14" @click="changeProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i>
           </el-tooltip><span>
           </span> -->
-          <el-tooltip :content="$t('backup')" effect="dark" placement="top">
+          <!-- <el-tooltip :content="$t('backup')" effect="dark" placement="top">
             <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('backUpProject')" @click="backup(scope.row)"></i>
-          </el-tooltip><!--
-          --><el-tooltip :content="$t('author')" effect="dark" placement="top">
+          </el-tooltip> -->
+          <el-tooltip :content="$t('author')" effect="dark" placement="top">
             <router-link :to="{path: '/admin/project/' + scope.row.name, query: {projectId: scope.row.uuid}}">
               <i class="el-icon-ksd-security ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('accessActions')"></i>
             </router-link>
