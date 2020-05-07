@@ -183,36 +183,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
                     }
                 }
 
-                if (executeNode.has("tasks")) {
-                    ArrayNode tasks = (ArrayNode) executeNode.get("tasks");
-                    if (tasks.size() == 2) {
-                        ObjectNode taskNode = tasks.get(0).deepCopy();
-
-                        String uuid = taskNode.get("uuid").textValue().replace("_00", "_02");
-                        taskNode.put("uuid", uuid);
-
-                        taskNode.put("name", "Update Metadata");
-
-                        taskNode.put("type", "io.kyligence.kap.engine.spark.job.NSparkUpdateMetadataStep");
-
-                        if (taskNode.has("params")) {
-                            ObjectNode paramsNode = (ObjectNode) taskNode.get("params");
-                            paramsNode.remove("distMetaUrl");
-
-                            paramsNode.remove("className");
-
-                            paramsNode.remove("outputMetaUrl");
-                        }
-
-                        if (taskNode.has("output")) {
-                            ObjectNode outputNode = (ObjectNode) taskNode.get("output");
-                            if (outputNode.has("status")) {
-                                outputNode.put("status", "READY");
-                            }
-                        }
-                        tasks.add(taskNode);
-                    }
-                }
+                addUpdateMetadataTask(executeNode);
 
                 ByteArrayOutputStream buf = new ByteArrayOutputStream();
                 DataOutputStream dout = new DataOutputStream(buf);
@@ -229,6 +200,43 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
 
             } catch (Exception e) {
                 log.warn("read {} failed", executePath, e);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param executeNode
+     */
+    private void addUpdateMetadataTask(JsonNode executeNode) {
+        if (executeNode.has("tasks")) {
+            ArrayNode tasks = (ArrayNode) executeNode.get("tasks");
+            if (tasks.size() == 2) {
+                ObjectNode taskNode = tasks.get(0).deepCopy();
+
+                String uuid = taskNode.get("uuid").textValue().replace("_00", "_02");
+                taskNode.put("uuid", uuid);
+
+                taskNode.put("name", "Update Metadata");
+
+                taskNode.put("type", "io.kyligence.kap.engine.spark.job.NSparkUpdateMetadataStep");
+
+                if (taskNode.has("params")) {
+                    ObjectNode paramsNode = (ObjectNode) taskNode.get("params");
+                    paramsNode.remove("distMetaUrl");
+
+                    paramsNode.remove("className");
+
+                    paramsNode.remove("outputMetaUrl");
+                }
+
+                if (taskNode.has("output")) {
+                    ObjectNode outputNode = (ObjectNode) taskNode.get("output");
+                    if (outputNode.has("status")) {
+                        outputNode.put("status", "READY");
+                    }
+                }
+                tasks.add(taskNode);
             }
         }
     }
