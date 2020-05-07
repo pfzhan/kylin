@@ -1178,11 +1178,11 @@ public class Message {
     }
 
     public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
-        return "The incremental build failed. The fact table of this model has been set as a dimension table by another model. Please reset the fact table or adjust other models that refer to this table.";
+        return "The build failed. The fact table of this model has been set as a dimension table by another model. Please reset the fact table or adjust other models that refer to this table.";
     }
 
     public String getDIMENSION_TABLE_USED_IN_OTHER_MODEL() {
-        return "The incremental build failed. The dimension table of this model has been set as a fact table by another model. Please reset the fact table or adjust other models that refer to this table.";
+        return "The build failed. The dimension table of this model has been set as a fact table by another model. Please reset the fact table or adjust other models that refer to this table.";
     }
 
     public String getNO_DATA_IN_TABLE() {

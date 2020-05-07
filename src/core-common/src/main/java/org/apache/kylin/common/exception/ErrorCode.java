@@ -42,6 +42,7 @@
 package org.apache.kylin.common.exception;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -53,22 +54,22 @@ import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.common.util.FileUtils;
 
-public class ErrorCode {
+public class ErrorCode implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(ErrorCode.class);
-    private static final String enErrorCodeFile = "kylin_errorcode_conf_en.properties";
-    private static final String zhErrorCodeFile = "kylin_errorcode_conf_zh.properties";
+    private static final String EN_ERROR_CODE_FILE = "kylin_errorcode_conf_en.properties";
+    private static final String ZH_ERROR_CODE_FILE = "kylin_errorcode_conf_zh.properties";
     private static final ImmutableMap<String, String> enMap;
     private static final ImmutableMap<String, String> zhMap;
     private static final ThreadLocal<ImmutableMap<String, String>> frontMap = new ThreadLocal<>();
     static {
         try {
-            URL resource = Thread.currentThread().getContextClassLoader().getResource(enErrorCodeFile);
+            URL resource = Thread.currentThread().getContextClassLoader().getResource(EN_ERROR_CODE_FILE);
             Preconditions.checkNotNull(resource);
             logger.info("loading enMap {}", resource.getPath());
             enMap = ImmutableMap
                     .copyOf(new ConcurrentHashMap<>(FileUtils.readFromPropertiesFile(resource.openStream())));
             logger.info("loading enMap successful");
-            resource = Thread.currentThread().getContextClassLoader().getResource(zhErrorCodeFile);
+            resource = Thread.currentThread().getContextClassLoader().getResource(ZH_ERROR_CODE_FILE);
             Preconditions.checkNotNull(resource);
             logger.info("loading zhMap {}", resource.getPath());
             zhMap = ImmutableMap

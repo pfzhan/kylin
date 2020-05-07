@@ -90,21 +90,58 @@ public class KylinLogTool {
     private KylinLogTool() {
     }
 
+    private static void extractAllIncludeLogs(File[] logFiles, File destDir) throws IOException {
+        String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
+        for (File logFile : logFiles) {
+            for (String includeLog : allIncludeLogs) {
+                if (logFile.getName().startsWith(includeLog)) {
+                    FileUtils.copyFileToDirectory(logFile, destDir);
+                }
+            }
+        }
+    }
+
+    private static void extractPartIncludeLogByDay(File[] logFiles, String startDate, String endDate, File destDir)
+            throws IOException {
+        String[] partIncludeLogByDay = { "access_log." };
+        for (File logFile : logFiles) {
+            for (String includeLog : partIncludeLogByDay) {
+                if (logFile.getName().startsWith(includeLog)) {
+                    String date = logFile.getName().split("\\.")[1];
+                    if (date.compareTo(startDate) >= 0 && date.compareTo(endDate) <= 0) {
+                        FileUtils.copyFileToDirectory(logFile, destDir);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void extractPartIncludeLogByMs(File[] logFiles, long start, long end, File destDir)
+            throws IOException {
+        String[] partIncludeLogByMs = { "jstack.timed.log" };
+        for (File logFile : logFiles) {
+            for (String includeLog : partIncludeLogByMs) {
+                if (logFile.getName().startsWith(includeLog)) {
+                    long time = Long.parseLong(logFile.getName().split("\\.")[3]);
+                    if (time >= start && time <= end) {
+                        FileUtils.copyFileToDirectory(logFile, destDir);
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * extract the specified log from kylin logs dir.
      * @param exportDir
      */
 
     public static void extractOtherLogs(File exportDir, long start, long end) {
-
         File destDir = new File(exportDir, "logs");
         SimpleDateFormat logFormat = new SimpleDateFormat("yyyy-MM-dd");
         String startDate = logFormat.format(new Date(start));
         String endDate = logFormat.format(new Date(end));
         logger.debug("logs startDate : {}, endDate : {}", startDate, endDate);
-        String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
-        String[] partIncludeLogByDay = { "access_log." };
-        String[] partIncludeLogByMs = { "jstack.timed.log" };
         try {
             FileUtils.forceMkdir(destDir);
             File kylinLogDir = new File(ToolUtil.getLogFolder());
@@ -114,30 +151,9 @@ public class KylinLogTool {
                     logger.error("Failed to list kylin logs dir: {}", kylinLogDir);
                     return;
                 }
-
-                for (File logFile : logFiles) {
-                    for (String includeLog : allIncludeLogs) {
-                        if (logFile.getName().startsWith(includeLog)) {
-                            FileUtils.copyFileToDirectory(logFile, destDir);
-                        }
-                    }
-                    for (String includeLog : partIncludeLogByDay) {
-                        if (logFile.getName().startsWith(includeLog)) {
-                            String date = logFile.getName().split("\\.")[1];
-                            if (date.compareTo(startDate) >= 0 && date.compareTo(endDate) <= 0) {
-                                FileUtils.copyFileToDirectory(logFile, destDir);
-                            }
-                        }
-                    }
-                    for (String includeLog : partIncludeLogByMs) {
-                        if (logFile.getName().startsWith(includeLog)) {
-                            long time = Long.parseLong(logFile.getName().split("\\.")[3]);
-                            if (time >= start && time <= end) {
-                                FileUtils.copyFileToDirectory(logFile, destDir);
-                            }
-                        }
-                    }
-                }
+                extractAllIncludeLogs(logFiles, destDir);
+                extractPartIncludeLogByDay(logFiles, startDate, endDate, destDir);
+                extractPartIncludeLogByMs(logFiles, start, end, destDir);
             }
         } catch (Exception e) {
             logger.error("Failed to extract the logs from kylin logs dir, ", e);
@@ -391,7 +407,7 @@ public class KylinLogTool {
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
             Map<String, String> sparderConf, String appId) {
         try {
-            if(StringUtils.isBlank(appId)){
+            if (StringUtils.isBlank(appId)) {
                 logger.warn("Failed to extract sparder eventLog because sparder Appid is empty.");
                 return;
             }
@@ -462,20 +478,21 @@ public class KylinLogTool {
 
     }
 
-    public static void extractJobEventLogs(File exportDir, List<AbstractExecutable> tasks, Map<String, String> sparkConf) {
+    public static void extractJobEventLogs(File exportDir, List<AbstractExecutable> tasks,
+            Map<String, String> sparkConf) {
         try {
             String logDir = sparkConf.get("spark.eventLog.dir").trim();
             boolean eventEnabled = Boolean.parseBoolean(sparkConf.get("spark.eventLog.enabled").trim());
-            if(!eventEnabled || StringUtils.isBlank(logDir)){
+            if (!eventEnabled || StringUtils.isBlank(logDir)) {
                 return;
             }
 
             File jobLogsDir = new File(exportDir, "job_history");
             FileUtils.forceMkdir(jobLogsDir);
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
-            for(AbstractExecutable task : tasks){
+            for (AbstractExecutable task : tasks) {
                 Map<String, String> info = task.getOutput().getExtra();
-                if(info != null){
+                if (info != null) {
                     String appId = info.get(ExecutableConstants.YARN_APP_ID);
                     copyJobEventLog(fs, appId, logDir, jobLogsDir);
                 }
@@ -487,7 +504,7 @@ public class KylinLogTool {
     }
 
     private static void copyJobEventLog(FileSystem fs, String appId, String logDir, File exportDir) throws Exception {
-        if(StringUtils.isBlank(appId)){
+        if (StringUtils.isBlank(appId)) {
             logger.warn("Failed to extract step eventLog due to the appId is empty.");
             return;
         }
@@ -496,7 +513,7 @@ public class KylinLogTool {
         }
         String eventPath = logDir + "/" + appId;
         FileStatus fileStatus = fs.getFileStatus(new Path(eventPath));
-        if(fileStatus != null){
+        if (fileStatus != null) {
             fs.copyToLocalFile(false, fileStatus.getPath(), new Path(exportDir.getAbsolutePath()), true);
         }
     }

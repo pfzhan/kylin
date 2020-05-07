@@ -1157,11 +1157,11 @@ public class CnMessage extends Message {
     }
 
     public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
-        return "增量构建失败，此模型事实表已被其他模型设置为维度表，请重新设置事实表或调整引用此表的其他模型。";
+        return "构建失败，此模型事实表已被其他模型设置为维度表，请重新设置事实表或调整引用此表的其他模型。";
     }
 
     public String getDIMENSION_TABLE_USED_IN_OTHER_MODEL() {
-        return "增量构建失败，此模型维度表已被其他模型设置为事实表，请重新设置事实表或调整引用此表的其他模型。";
+        return "构建失败，此模型维度表已被其他模型设置为事实表，请重新设置事实表或调整引用此表的其他模型。";
     }
 
     public String getNO_DATA_IN_TABLE() {

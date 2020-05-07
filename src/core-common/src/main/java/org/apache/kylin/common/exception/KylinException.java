@@ -51,7 +51,7 @@ import lombok.Getter;
 public class KylinException extends RuntimeException {
     public static final Logger logger = LoggerFactory.getLogger(KylinException.class);
 
-    private ErrorCode errorCode;
+    private final ErrorCode errorCode;
     private final String code; //for example 999
     private boolean throwTrace = true;
 
