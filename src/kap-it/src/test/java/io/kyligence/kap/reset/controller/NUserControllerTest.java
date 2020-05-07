@@ -75,7 +75,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
     String password = "1234567890Q!";
 
     @Override
-    public void setUp() {
+    public void setUp() throws Exception {
         super.setUp();
 
         try {

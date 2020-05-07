@@ -26,32 +26,28 @@ import java.util
 import java.util.UUID
 
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil}
+import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, LogEx, Metrics, QueryExecutionCache}
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.lock.DistributedLock
+import org.apache.kylin.common.lock.curator.CuratorDistributedLock
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
 import org.apache.spark.dict.NGlobalDictionaryV2
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, LogEx, Metrics, QueryExecutionCache}
-import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
-import org.apache.spark.sql.execution.{FileSourceScanExec, FilterExec}
 
 class DFDictionaryBuilder(
   val dataset: Dataset[Row],
   @transient val seg: NDataSegment,
   val ss: SparkSession,
   val colRefSet: util.Set[TblColRef]) extends LogEx with Serializable {
-
-  @transient
-  val lock: DistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory.lockForCurrentThread
 
   @throws[IOException]
   def buildDictSet(): Unit = {
@@ -61,17 +57,17 @@ class DFDictionaryBuilder(
   @throws[IOException]
   private[builder] def safeBuild(ref: TblColRef): Unit = {
     val sourceColumn = ref.getIdentity
-    lock.lock(getLockPath(sourceColumn), Long.MaxValue)
-    try
-      if (lock.lock(getLockPath(sourceColumn))) {
-        val dictColDistinct = dataset.select(wrapCol(ref)).distinct
-        ss.sparkContext.setJobDescription("Calculate bucket size " + ref.getIdentity)
-        val bucketPartitionSize = logTime(s"calculating bucket size for $sourceColumn") {
-            DictionaryBuilderHelper.calculateBucketSize(seg, ref, dictColDistinct)
-          }
-        build(ref, bucketPartitionSize, dictColDistinct)
+    val lock: CuratorDistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory
+      .lockForCurrentThread(getLockPath(sourceColumn))
+    lock.lock()
+    try {
+      val dictColDistinct = dataset.select(wrapCol(ref)).distinct
+      ss.sparkContext.setJobDescription("Calculate bucket size " + ref.getIdentity)
+      val bucketPartitionSize = logTime(s"calculating bucket size for $sourceColumn") {
+        DictionaryBuilderHelper.calculateBucketSize(seg, ref, dictColDistinct)
       }
-    finally lock.unlock(getLockPath(sourceColumn))
+      build(ref, bucketPartitionSize, dictColDistinct)
+    } finally lock.unlock()
   }
                             
   @throws[IOException]

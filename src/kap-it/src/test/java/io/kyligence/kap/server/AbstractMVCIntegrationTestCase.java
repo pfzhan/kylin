@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.server;
 
+import org.apache.curator.test.TestingServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -44,6 +45,8 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
+import java.io.IOException;
+
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = IntegrationConfig.class)
 @WebAppConfiguration
@@ -61,6 +64,7 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
 
     @Autowired
     protected MockMvc mockMvc;
+    private TestingServer zkTestServer;
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -68,13 +72,18 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         createTestMetadata();
-
+        zkTestServer = new TestingServer(true);
+        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         cleanupTestMetadata();
+        if (zkTestServer != null) {
+            zkTestServer.close();
+            System.clearProperty("kylin.env.zookeeper-connect-string");
+        }
     }
 }

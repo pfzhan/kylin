@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -89,6 +90,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
+    private TestingServer zkTestServer;
+
 
     @BeforeClass
     public static void beforeClass() {
@@ -126,11 +129,17 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     public void setUp() throws Exception {
         overwriteSystemProp("calcite.keep-in-clause", "true");
         this.createTestMetadata();
+        zkTestServer = new TestingServer(true);
+        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        if (zkTestServer != null) {
+            zkTestServer.close();
+            System.clearProperty("kylin.env.zookeeper-connect-string");
+        }
         restoreAllSystemProp();
     }
 

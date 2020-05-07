@@ -67,7 +67,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.lock.DistributedLockFactory;
+import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -391,6 +391,25 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.env.zookeeper-base-path", KYLIN_ROOT);
     }
 
+    public String getClusterName() {
+        return this.getOptional("kylin.server.cluster-name", getMetadataUrlPrefix());
+    }
+
+    public int getZKBaseSleepTimeMs() {
+        return Integer.parseInt(getOptional("kap.env.zookeeper-base-sleep-time", "3000"));
+    }
+
+    public int getZKMaxRetries() {
+        return Integer.parseInt(getOptional("kap.env.zookeeper-max-retries", "3"));
+    }
+
+    public int getZKTryLockTimeout() {
+        return Integer.parseInt(getOptional("kylin.env.zookeeper.try-lock-timeout-second", "10"));
+    }
+
+    public int getZKClientInitTimeout() {
+        return Integer.parseInt(getOptional("kylin.env.zookeeper.client-init-timeout-second", "3"));
+    }
     /**
      * A comma separated list of host:port pairs, each corresponding to a ZooKeeper server
      */
@@ -494,10 +513,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.metadata.custom-measure-types.");
     }
 
-    public DistributedLockFactory getDistributedLockFactory() {
+    public CuratorDistributedLockFactory getDistributedLockFactory() {
         String clsName = getOptional("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.ZookeeperDistributedLock$Factory");
-        return (DistributedLockFactory) ClassUtil.newInstance(clsName);
+                "org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory");
+        return (CuratorDistributedLockFactory) ClassUtil.newInstance(clsName);
     }
 
     public boolean isCheckCopyOnWrite() {

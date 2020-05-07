@@ -25,6 +25,7 @@ package io.kyligence.kap.event;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -162,7 +163,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
         System.clearProperty("kylin.job.event.poll-interval-second");
