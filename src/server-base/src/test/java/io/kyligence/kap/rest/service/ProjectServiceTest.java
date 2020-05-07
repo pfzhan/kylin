@@ -55,6 +55,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -435,6 +436,28 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testJobNotificationConfig() {
+        val project = PROJECT;
+        var response = projectService.getProjectConfig(project);
+        val jobNotificationConfigRequest = new JobNotificationConfigRequest();
+        jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(false);
+        jobNotificationConfigRequest.setJobErrorNotificationEnabled(false);
+        jobNotificationConfigRequest.setJobNotificationEmails(
+                Lists.newArrayList("user1@kyligence.io", "user2@kyligence.io", "user2@kyligence.io"));
+        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(2, response.getJobNotificationEmails().size());
+        Assert.assertEquals(false, response.isJobErrorNotificationEnabled());
+        Assert.assertEquals(false, response.isDataLoadEmptyNotificationEnabled());
+
+        jobNotificationConfigRequest
+                .setJobNotificationEmails(Lists.newArrayList("@kyligence.io", "user2@.io", "user2@kyligence.io"));
+        thrown.expect(KylinException.class);
+        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
+        thrown = ExpectedException.none();
+    }
+
+    @Test
     public void testUpdateProjectConfig() throws IOException {
         val project = PROJECT;
 
@@ -460,23 +483,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.updateSegmentConfig(project, segmentConfigRequest);
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(false, response.isAutoMergeEnabled());
-
-        val jobNotificationConfigRequest = new JobNotificationConfigRequest();
-        jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(false);
-        jobNotificationConfigRequest.setJobErrorNotificationEnabled(false);
-        jobNotificationConfigRequest.setJobNotificationEmails(
-                Lists.newArrayList("user1@kyligence.io", "user2@kyligence.io", "user2@kyligence.io"));
-        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
-        response = projectService.getProjectConfig(project);
-        Assert.assertEquals(2, response.getJobNotificationEmails().size());
-        Assert.assertEquals(false, response.isJobErrorNotificationEnabled());
-        Assert.assertEquals(false, response.isDataLoadEmptyNotificationEnabled());
-
-        jobNotificationConfigRequest
-                .setJobNotificationEmails(Lists.newArrayList("@kyligence.io", "user2@.io", "user2@kyligence.io"));
-        thrown.expect(KylinException.class);
-        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
-        thrown = ExpectedException.none();
 
         val pushDownConfigRequest = new PushDownConfigRequest();
         pushDownConfigRequest.setPushDownEnabled(false);
@@ -508,6 +514,26 @@ public class ProjectServiceTest extends ServiceTestBase {
         val projectConfig = projectManager.getProject(project).getConfig();
         Assert.assertTrue(projectConfig.isPushDownEnabled());
         Assert.assertEquals(PushDownRunnerSparkImpl.class.getName(), projectConfig.getPushDownRunnerClassName());
+
+        val pushDownProjectConfigRequest = new PushDownProjectConfigRequest();
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        getTestConfig().setProperty("kylin.query.pushdown.converter-class-name", "");
+        pushDownProjectConfigRequest.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        pushDownProjectConfigRequest.setConverterClassNames(
+                "org.apache.kylin.query.util.PowerBIConverter, io.kyligence.kap.query.util.RestoreFromComputedColumn");
+        projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
+        String[] converterClassNames = new String[] {
+                "org.apache.kylin.query.util.PowerBIConverter", "io.kyligence.kap.query.util.RestoreFromComputedColumn"};
+        // response
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", response.getRunnerClassName());
+        Assert.assertEquals(String.join(",", converterClassNames), response.getConverterClassNames());
+        // project config
+        val projectConfig2 = projectManager.getProject(project).getConfig();
+        Assert.assertEquals(
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", projectConfig2.getPushDownRunnerClassName());
+        Assert.assertArrayEquals(converterClassNames, projectConfig2.getPushDownConverterClassNames());
     }
 
     @Test

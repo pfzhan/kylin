@@ -52,6 +52,7 @@ import io.kyligence.kap.junit.SparkTestRunner;
 @RunWith(SparkTestRunner.class)
 public class ITKapPushDownQueryTest extends KapTestBase {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
+    private static final String PUSHDOWN_ENABLED = "kylin.query.pushdown-enabled";
     private static final Logger logger = LoggerFactory.getLogger(ITKapPushDownQueryTest.class);
 
     @BeforeClass
@@ -67,7 +68,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         logger.info("tearDown in ITKapPushDownQueryTest");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
-        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");
     }
 
     @Test
@@ -78,7 +79,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "false");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -90,6 +91,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "true");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -103,7 +105,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "false");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -114,6 +116,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "true");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -127,7 +130,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "false");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -138,6 +141,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "true");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -151,7 +155,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "false");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -162,6 +166,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "true");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -175,7 +180,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "false");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -195,7 +200,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
             List<File> sqlFiles = getFilesFromFolder(new File("src/test/resources/query/sql_computedcolumn"), ".sql");
             for (File sqlFile : sqlFiles) {
                 int resultCount = runSQL(sqlFile, false, false);
@@ -213,7 +218,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
     public void testResultWithNull() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         String testSql = getTextFromFile(
                 new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query07.sql"));
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql);
@@ -255,6 +260,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         if (sqlFile.exists()) {
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_ENABLED, "true");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -273,7 +279,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
             File sqlFile = new File(queryFileName);
             if (sqlFile.exists()) {
                 //runSQL(sqlFile, true, true);
-                kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+                kylinConfig.setProperty(PUSHDOWN_ENABLED, "false");
                 try {
                     runSQL(sqlFile, true, false);
                 } catch (Exception e) {
@@ -283,6 +289,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
                 kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
                         "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+                kylinConfig.setProperty(PUSHDOWN_ENABLED, "true");
                 int resultCount = 0;
                 try {
                     resultCount = runSQL(sqlFile, true, false);
@@ -299,7 +306,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
     public void testPushDownUDF() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         String testSql = getTextFromFile(
                 new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query08.sql"));
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql);
@@ -336,7 +343,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
     @Test
     public void testCountColCannotReplacedByCountStar() throws Exception {
         File sqlFile = new File("src/test/resources/query/sql_pushdown/query12.sql");
-        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");
         try {
             runSQL(sqlFile, true, false);
         } catch (SQLException e) {

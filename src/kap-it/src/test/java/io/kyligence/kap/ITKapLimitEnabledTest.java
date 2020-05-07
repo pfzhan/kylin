@@ -58,6 +58,7 @@ public class ITKapLimitEnabledTest extends KapTestBase {
         System.setProperty("sparder.enabled", "false");
         setupAll();
         config.setProperty("kylin.query.pushdown.runner-class-name", "");
+        config.setProperty("kylin.query.pushdown-enabled", "false");
     }
 
     @AfterClass

@@ -317,6 +317,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     private void setupPushdownEnv() throws Exception {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
+        getTestConfig().setProperty("kylin.query.pushdown-enabled", "true");
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
@@ -329,7 +330,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     }
 
     private void cleanPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        getTestConfig().setProperty("kylin.query.pushdown-enabled", "false");
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         h2Connection.close();

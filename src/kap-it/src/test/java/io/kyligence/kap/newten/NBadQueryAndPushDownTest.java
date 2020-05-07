@@ -49,6 +49,7 @@ import lombok.val;
 
 public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
+    private static final String PUSHDOWN_ENABLED = "kylin.query.pushdown-enabled";
     private final static String PROJECT_NAME = "bad_query_test";
     private final static String DEFAULT_PROJECT_NAME = "default";
 
@@ -70,6 +71,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         final String sql = "select * from lineitem where l_orderkey = o.o_orderkey and l_commitdate < l_receiptdate";
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         try {
             NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
         } catch (Exception sqlException) {
@@ -85,6 +87,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             final String sql = "select * from lineitem where l_orderkey = o.o_orderkey and l_commitdate < l_receiptdate";
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
             pushDownSql(getProject(), sql, 0, 0,
                     new SQLException(new NoRealizationFoundException("testPushDownToNonExistentDB")));
         } catch (Exception e) {
@@ -114,6 +117,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         final String sql = "select 1 from test_kylin_fact;";
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         pushDownSql(getProject(), sql, 10, 0,
                 new SQLException(new NoRealizationFoundException("test for semicolon query push down")));
         try {
@@ -128,12 +132,13 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     public void testPushDownNonEquiSql() throws Exception {
         File sqlFile = new File("src/test/resources/query/sql_pushdown/query11.sql");
         String sql = new String(Files.readAllBytes(sqlFile.toPath()), StandardCharsets.UTF_8);
-        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");
         try {
             NExecAndComp.queryCubeAndSkipCompute(DEFAULT_PROJECT_NAME, sql);
         } catch (SQLException e) {
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
             pushDownSql(DEFAULT_PROJECT_NAME, sql, 0, 0, e);
         }
     }
@@ -142,6 +147,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     public void testPushDownUdf() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
                 "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
 

@@ -1265,7 +1265,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isPushDownEnabled() {
-        return StringUtils.isNotEmpty(getPushDownRunnerClassName());
+        return Boolean.valueOf(this.getOptional("kylin.query.pushdown-enabled", "true"));
     }
 
     //see jira KE-11625

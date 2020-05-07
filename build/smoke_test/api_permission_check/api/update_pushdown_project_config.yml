@@ -1,0 +1,12 @@
+name: 查询下压配置
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    project: $project_name
+    runner_class_name: 'io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl'
+    converter_class_names: 'org.apache.kylin.query.util.PowerBIConverter'
+  method: PUT
+  url: projects/$project_name/push_down_project_config

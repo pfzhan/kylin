@@ -52,6 +52,7 @@ import java.util.List;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -285,6 +286,21 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nProjectController).updatePushDownConfig("default", request);
+    }
+
+    @Test
+    public void testUpdatePushDownProjectConfig() throws Exception {
+        val request = new PushDownProjectConfigRequest();
+        request.setConverterClassNames("io.kyligence.kap.query.security.HackSelectStarWithColumnACL," +
+                "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        request.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+
+        Mockito.doNothing().when(projectService).updatePushDownProjectConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/push_down_project_config", "default")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updatePushDownProjectConfig("default", request);
     }
 
     @Test

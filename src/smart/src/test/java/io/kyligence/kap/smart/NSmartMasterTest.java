@@ -61,7 +61,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testDoProposeWhenPushDownIsDisabled() {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        getTestConfig().setProperty("kylin.query.pushdown-enabled", "false");
         val modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
         // the project does not contain any realization
         Assert.assertEquals(0, modelManager.listAllModels().size());

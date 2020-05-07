@@ -540,13 +540,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testExposedColumnsWhenPushdownDisabled() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
 
         Pair<Set<String>, Set<String>> schemasAndTables;
         Set<String> tableSchemas, tableNames;
         List<ColumnMeta> factColumns;
 
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        getTestConfig().setProperty("kylin.query.pushdown-enabled", "false");
 
         //we have two projects: testproject2 and testproject1. different projects exposes different views of
         //table, depending on what ready cube it has.

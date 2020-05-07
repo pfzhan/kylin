@@ -55,6 +55,10 @@ public class ProjectConfigResponse {
 
     @JsonProperty("push_down_enabled")
     private boolean pushDownEnabled;
+    @JsonProperty("runner_class_name")
+    private String runnerClassName;
+    @JsonProperty("converter_class_names")
+    private String converterClassNames;
 
     @JsonProperty("auto_merge_enabled")
     private boolean autoMergeEnabled = true;

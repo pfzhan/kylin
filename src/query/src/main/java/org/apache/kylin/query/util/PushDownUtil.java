@@ -130,9 +130,9 @@ public class PushDownUtil {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val prjManager = NProjectManager.getInstance(kylinConfig);
         val prj = prjManager.getProject(project);
-        if (!prj.getConfig().isPushDownEnabled())
+        kylinConfig = prj.getConfig();
+        if (!kylinConfig.isPushDownEnabled())
             return null;
-
         if (isSelect) {
             logger.info("Query:[{}] failed to utilize pre-calculation, routing to other engines",
                     QueryContext.current().getCorrectedSql(), sqlException);

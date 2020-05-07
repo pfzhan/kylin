@@ -115,6 +115,7 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         System.setProperty("spark.local", "true");
 
         // enable push down
+        System.setProperty("kylin.query.pushdown-enabled", "true");
         System.setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         System.setProperty("kylin.query.pushdown.converter-class-names",

@@ -566,7 +566,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testSetPartitionKeyAndSetDataRangeWhenPushdownIsOff() {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        getTestConfig().setProperty("kylin.query.pushdown-enabled", "false");
         try {
             tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
             tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());

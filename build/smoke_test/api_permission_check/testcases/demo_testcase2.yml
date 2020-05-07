@@ -800,6 +800,14 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/update_pushdown_project_config.yml
+    name: (103)查询下压配置
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/create_partation.yml
     name: (create_partation)设置分区列
     validate:

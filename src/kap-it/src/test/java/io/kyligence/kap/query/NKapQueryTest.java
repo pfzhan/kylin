@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
@@ -87,6 +88,7 @@ public class NKapQueryTest extends NKylinTestBase {
         try {
             System.setProperty("kylin.query.engine.sparder-enabled", "true");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", "");
+            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown-enabled", "false");
 
             File tempFile = File.createTempFile("testQuery_cubeNonAggDisabled_throwNoRealization", "sqlfile");
             tempFile.deleteOnExit();
@@ -94,6 +96,11 @@ public class NKapQueryTest extends NKylinTestBase {
             runSQL(tempFile, false, false);
         } finally {
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", x);
+            if (Strings.isEmpty(x)) {
+                KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown-enabled", "false");
+            } else {
+                KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown-enabled", "true");
+            }
         }
     }
 

@@ -44,6 +44,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -80,10 +83,8 @@ import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
@@ -385,6 +386,8 @@ public class ProjectService extends BasicService {
         response.setStorageQuotaSize(config.getStorageQuotaSize());
 
         response.setPushDownEnabled(config.isPushDownEnabled());
+        response.setRunnerClassName(config.getPushDownRunnerClassName());
+        response.setConverterClassNames(String.join(",", config.getPushDownConverterClassNames()));
 
         response.setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
         response.setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
@@ -441,13 +444,25 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            val config = getConfig();
             if (Boolean.TRUE.equals(pushDownConfigRequest.getPushDownEnabled())) {
-                val pushDownRunner = config.getPushDownRunnerClassNameWithDefaultValue();
-                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", pushDownRunner);
+                String runnerClassName = copyForWrite.getConfig().getPushDownRunnerClassName();
+                if (StringUtils.isEmpty(runnerClassName)) {
+                    val defaultPushDownRunner = getConfig().getPushDownRunnerClassNameWithDefaultValue();
+                    copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", defaultPushDownRunner);
+                }
+                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "true");
             } else {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", "");
+                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "false");
             }
+        });
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction(project = 0)
+    public void updatePushDownProjectConfig(String project, PushDownProjectConfigRequest pushDownProjectConfigRequest) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", pushDownProjectConfigRequest.getRunnerClassName());
+            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.converter-class-names", pushDownProjectConfigRequest.getConverterClassNames());
         });
     }
 

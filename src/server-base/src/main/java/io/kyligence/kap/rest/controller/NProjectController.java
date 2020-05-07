@@ -38,6 +38,10 @@ import java.util.Random;
 
 import javax.validation.Valid;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -66,11 +70,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.util.FileUtils;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -281,6 +281,17 @@ public class NProjectController extends NBasicController {
             @RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkRequiredArg("push_down_enabled", pushDownConfigRequest.getPushDownEnabled());
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updatePushDownProjectConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/push_down_project_config")
+    @ResponseBody
+    public EnvelopeResponse<String> updatePushDownProjectConfig(@PathVariable("project") String project,
+            @RequestBody PushDownProjectConfigRequest pushDownProjectConfigRequest) {
+        checkRequiredArg("runner_class_name", pushDownProjectConfigRequest.getRunnerClassName());
+        checkRequiredArg("converter_class_names", pushDownProjectConfigRequest.getConverterClassNames());
+        projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

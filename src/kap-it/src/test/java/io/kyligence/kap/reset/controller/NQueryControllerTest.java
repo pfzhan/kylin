@@ -66,7 +66,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("DEFAULT");
         sqlRequest.setSql("SELECT * FROM TEST_KYLIN_FACT");
-        System.setProperty("kylin.query.pushdown.runner-class-name", "");
+        System.setProperty("kylin.query.pushdown-enabled", "false");
 
         final MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
@@ -81,7 +81,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage")
                 .read(result.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
-        System.clearProperty("kylin.query.pushdown.runner-class-name");
+        System.clearProperty("kylin.query.pushdown-enabled");
     }
 
     @Test
@@ -90,6 +90,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         System.setProperty("kylin.query.pushdown.converter-class-names",
                 "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        System.setProperty("kylin.query.pushdown-enabled", "true");
         System.setProperty("kylin.query.pushdown.cache-enabled", "true");
         System.setProperty("kylin.query.cache-threshold-duration", "0");
 
@@ -139,6 +140,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.runner-class-name");
         System.clearProperty("kylin.query.pushdown.converter-class-names");
+        System.clearProperty("kylin.query.pushdown-enabled");
         System.clearProperty("kylin.query.pushdown.jdbc.url");
         System.clearProperty("kylin.query.pushdown.jdbc.driver");
         System.clearProperty("kylin.query.pushdown.jdbc.username");
