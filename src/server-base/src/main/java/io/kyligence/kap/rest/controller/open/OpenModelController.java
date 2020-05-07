@@ -64,12 +64,14 @@ import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -83,6 +85,7 @@ import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
@@ -408,5 +411,19 @@ public class OpenModelController extends NBasicController {
         checkProjectName(project);
         String modelId = getModel(modelAlias, project).getId();
         return modelController.deleteModel(modelId, project);
+    }
+
+    @ApiOperation(value = "check segment range (check)")
+    @PostMapping(value = "/{model:.+}/segments/check")
+    @ResponseBody
+    public EnvelopeResponse<CheckSegmentResponse> checkSegments(@PathVariable("model") String modelName,
+            @RequestBody CheckSegmentRequest request) {
+        checkProjectName(request.getProject());
+        aclEvaluate.checkProjectOperationPermission(request.getProject());
+        checkRequiredArg("start", request.getStart());
+        checkRequiredArg("end", request.getEnd());
+        validateDataRange(request.getStart(), request.getEnd());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                modelService.checkSegments(request.getProject(), modelName, request.getStart(), request.getEnd()), "");
     }
 }

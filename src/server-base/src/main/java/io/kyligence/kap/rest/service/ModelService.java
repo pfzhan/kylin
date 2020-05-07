@@ -45,6 +45,7 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_BROKEN;
 import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
@@ -176,6 +177,7 @@ import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
@@ -2775,5 +2777,22 @@ public class ModelService extends BasicService {
         }
 
         return actual.equalsIgnoreCase(expected);
+    }
+
+    public CheckSegmentResponse checkSegments(String project, String modelAlias, String start, String end) {
+        NDataModel model = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        if (model == null) {
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+        }
+        if (model.isBroken()) {
+            throw new KylinException(MODEL_BROKEN, "Failed to get segments information because " + modelAlias
+                    + " is broken, please fix it and try again.");
+        }
+        Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, start, end);
+        CheckSegmentResponse checkSegmentResponse = new CheckSegmentResponse();
+        segments.forEach(seg -> checkSegmentResponse.getSegmentsOverlap()
+                .add(new CheckSegmentResponse.SegmentInfo(seg.getId(), seg.getName())));
+        return checkSegmentResponse;
     }
 }

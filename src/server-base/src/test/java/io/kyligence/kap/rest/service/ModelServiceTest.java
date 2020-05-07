@@ -186,6 +186,7 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
@@ -3878,5 +3879,25 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result = modelService.getCubes0(null, getProject());
         Assert.assertEquals(6, result.size());
         Assert.assertTrue(result.get(3).isModelBroken());
+    }
+
+    @Test
+    public void testCheckSegments() {
+        CheckSegmentResponse response = modelService.checkSegments("default", "all_fixed_length", "0",
+                Long.MAX_VALUE + "");
+        Assert.assertEquals(1, response.getSegmentsOverlap().size());
+        Assert.assertEquals("11124840-b3e3-43db-bcab-2b78da666d00",
+                response.getSegmentsOverlap().get(0).getSegmentId());
+        Assert.assertEquals("20171104141833_20171105141833", response.getSegmentsOverlap().get(0).getSegmentName());
+
+        response = modelService.checkSegments("default", "all_fixed_length", "0", "100");
+        Assert.assertEquals(0, response.getSegmentsOverlap().size());
+    }
+
+    @Test
+    public void testCheckSegmentWithBrokenModel() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Failed to get segments information because broken is broken");
+        modelService.checkSegments("gc_test", "broken", "0", "100");
     }
 }

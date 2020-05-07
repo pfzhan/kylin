@@ -31,9 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import lombok.val;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.Segments;
@@ -43,7 +41,6 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Before;
@@ -61,20 +58,25 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
+import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
-import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
+import lombok.val;
 
 public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
@@ -459,6 +461,22 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(openModelController).batchApplyRecommendations(Mockito.any());
+    }
+
+    @Test
+    public void testCheckSegments() throws Exception {
+        Mockito.doAnswer(x -> null).when(modelService).checkSegments(Mockito.any(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString());
+        CheckSegmentRequest request = new CheckSegmentRequest();
+        request.setProject("default");
+        request.setStart("0");
+        request.setEnd("1");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/test/segments/check")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).checkSegments(Mockito.anyString(), Mockito.any());
+
     }
 
 }
