@@ -100,7 +100,10 @@ public class DFBuildJob extends SparkApplication {
         List<String> persistedFlatTable = new ArrayList<>();
         List<String> persistedViewFactTable = new ArrayList<>();
         Path shareDir = config.getJobTmpShareDir(project, jobId);
-        checkDateFormatIfExist(project, dataflowId);
+
+        if (config.isBuildCheckPartitionColEnabled()) {
+            checkDateFormatIfExist(project, dataflowId);
+        }
 
         IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
         Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream().filter(Objects::nonNull)

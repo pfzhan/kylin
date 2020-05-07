@@ -1654,6 +1654,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.engine.persist-flatview", FALSE));
     }
 
+    public boolean isBuildCheckPartitionColEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.check-partition-col-enabled", TRUE));
+    }
+    
+
     public boolean isShardingJoinOptEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.expose-sharding-trait", TRUE));
     }
