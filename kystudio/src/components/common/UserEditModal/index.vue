@@ -7,7 +7,7 @@
     :close-on-click-modal="false"
     :show-close="showCloseBtn"
     @close="isShow && closeHandler(false)">
-    <p class="change-system-password-tip" v-if="currentUser && 'defaultPassword' in currentUser && currentUser.defaultPassword">{{$t('kylinLang.common.useOldPasswordTip')}}</p>
+    <p class="change-system-password-tip" v-if="isAdminRole && editType === 'password' && currentUser && 'defaultPassword' in currentUser && currentUser.defaultPassword">{{$t('kylinLang.common.useOldPasswordTip')}}</p>
     <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow">
        <!-- 避免浏览器自动填充 -->
       <input name="username" type="text" style="display:none"/>

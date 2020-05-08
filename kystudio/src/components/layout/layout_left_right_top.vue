@@ -371,6 +371,7 @@ export default class LayoutLeftRightTop extends Vue {
   showErrorMsg = false
   isNodeLoading = false
   isNodeLoadingSuccess = false
+  showChangePassword = false
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -391,9 +392,12 @@ export default class LayoutLeftRightTop extends Vue {
       this.manualClose = true
     }
     // 新手引导模式不用反复弹提示
-    if (!this.isGuideMode) {
-      this.noProjectTips()
-    }
+    // if (!this.isGuideMode) {
+    //   this.noProjectTips()
+    // }
+    setTimeout(() => {
+      this.changeRouteEvent()
+    }, 500)
   }
   get getNodesNumColor () {
     // all和query节点都有 @normal-color-1，节点数为0 @error-color-1
@@ -553,24 +557,29 @@ export default class LayoutLeftRightTop extends Vue {
   }
   created () {
     // this.reloadRouter()
-    let showChangePassword = false
     this.defaultActive = this.$route.path || '/dashboard'
-    if ('defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
-      showChangePassword = true
-      this.callUserEditModal({ editType: 'password', showCloseBtn: false, showCancelBtn: false, userDetail: this.$store.state.user.currentUser }).then(() => {
-        this.noProjectTips()
-      })
-    }
+
+    this.changeRouteEvent()
     // 获取许可证接口成功之后再弹无项目弹窗
     this.getAboutKap().then(() => {
       // 新手引导模式不用反复弹提示
-      if (!this.isGuideMode && !showChangePassword) {
+      if (!this.isGuideMode && !this.showChangePassword) {
         this.noProjectTips()
       }
     }).catch((res) => {
       handleError(res)
     })
     this.getHANodes()
+  }
+  changeRouteEvent () {
+    if ('defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
+      this.showChangePassword = true
+      this.callUserEditModal({ editType: 'password', showCloseBtn: false, showCancelBtn: false, userDetail: this.$store.state.user.currentUser }).then(() => {
+        this.noProjectTips()
+      })
+    } else {
+      this.noProjectTips()
+    }
   }
   showMenuByRole (menuName) {
     let isSemiAutoModeShowAcce = true
