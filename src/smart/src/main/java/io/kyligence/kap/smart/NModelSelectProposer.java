@@ -26,30 +26,23 @@ package io.kyligence.kap.smart;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinsGraph;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.val;
@@ -112,8 +105,6 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel selectExistedModel(ModelTree modelTree, AbstractContext.NModelContext modelContext) {
-        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(proposeContext.getProject());
         List<NDataModel> originModels = proposeContext.getOriginModels();
         for (NDataModel model : originModels) {
             List<OLAPContext> retainedOLAPContexts = retainCapableOLAPContexts(model,
@@ -122,7 +113,11 @@ public class NModelSelectProposer extends NAbstractProposer {
                 continue;
             }
 
-            if (matchModelTree(model, modelTree, projectInstance.isSmartMode())) {
+            boolean match = proposeContext instanceof NSmartContext //
+                    ? modelTree.hasSameSubGraph(model)
+                    : modelTree.isExactlyMatch(model, proposeContext.isPartialMatch());
+
+            if (match) {
                 List<OLAPContext> disabledList = modelTree.getOlapContexts().stream()
                         .filter(context -> !retainedOLAPContexts.contains(context)).collect(Collectors.toList());
                 disabledList.forEach(context -> {
@@ -136,7 +131,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 return model;
             }
 
-            if (!projectInstance.isSmartMode() && matchSnapshot(model, modelTree)) {
+            if (!(proposeContext instanceof NSmartContext) && matchSnapshot(model, modelTree)) {
                 modelContext.setSnapshotSelected(true);
                 return model;
             }
@@ -164,40 +159,6 @@ public class NModelSelectProposer extends NAbstractProposer {
         return tableColRefSet.stream() //
                 .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()) //
                 .map(TblColRef::getColumnDesc).collect(Collectors.toSet());
-    }
-
-    public static boolean matchModelTree(NDataModel model, ModelTree modelTree, boolean couldModifyExistedModel) {
-        if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
-            List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
-            TableRef factTblRef = null;
-            if (modelTree.getJoins().isEmpty()) {
-                factTblRef = model.getRootFactTable();
-            } else {
-                Map<TableRef, TableRef> joinMap = Maps.newHashMap();
-                modelTree.getJoins().values().forEach(joinTableDesc -> {
-                    modelTreeJoins.add(joinTableDesc.getJoin());
-                    joinMap.put(joinTableDesc.getJoin().getPKSide(), joinTableDesc.getJoin().getFKSide());
-                });
-
-                for (Map.Entry<TableRef, TableRef> joinEntry : joinMap.entrySet()) {
-                    if (!joinMap.containsKey(joinEntry.getValue())) {
-                        factTblRef = joinEntry.getValue();
-                        break;
-                    }
-                }
-            }
-            JoinsGraph joinsGraph = new JoinsGraph(factTblRef, modelTreeJoins);
-
-            if (couldModifyExistedModel) {
-                return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap())
-                        || joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
-            } else {
-                return joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap(),
-                        KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
-            }
-        }
-
-        return false;
     }
 
     public static boolean matchSnapshot(NDataModel model, ModelTree modelTree) {

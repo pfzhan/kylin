@@ -30,7 +30,6 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -45,6 +44,7 @@ import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
 public class NModelMasterTest extends NAutoTestOnLearnKylinData {
+
     @Test
     public void testNormal() {
         preparePartition();
@@ -165,7 +165,6 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         }
     }
 
-    @Ignore
     @Test
     public void testErrorInNQueryScopeProposer() {
         // we expect sqls can be accelerated will not blocked by its counterpart
@@ -184,6 +183,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
 
         };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
+        context.setSkipEvaluateCC(true);
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runWithContext();
 
@@ -192,8 +192,14 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(1, modelContexts.size());
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
-        Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isFailed());
-        Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isFailed());
+        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isFailed());
+        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+                accelerateInfoMap.get(sqls[0]).getFailedCause().getMessage());
+
+        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isFailed());
+        Assert.assertEquals("Table not found by UNKNOWN_ALIAS",
+                accelerateInfoMap.get(sqls[1]).getFailedCause().getMessage());
+
         Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isFailed());
         Assert.assertEquals(1, accelerateInfoMap.get(sqls[2]).getRelatedLayouts().size());
     }

@@ -56,6 +56,11 @@ public class AccelerationContextUtil {
         return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray);
     }
 
+    public static AbstractSemiAutoContext newModelReuseContext(KylinConfig kylinConfig, String project,
+            String[] sqlArray, boolean canCreateNewModel) {
+        return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray, canCreateNewModel);
+    }
+
     public static AbstractSemiAutoContext newModelCreateContext(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
         return new ModelCreateContextOfSemiMode(kylinConfig, project, sqlArray) {

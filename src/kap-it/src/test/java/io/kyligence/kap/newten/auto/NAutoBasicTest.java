@@ -38,6 +38,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -45,9 +46,12 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.NModelOptProposer;
+import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
@@ -392,6 +396,62 @@ public class NAutoBasicTest extends NAutoTestBase {
         val accelerationMapOfSemiMode = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerationMapOfSemiMode.get(sql).isNotSucceed());
         Assert.assertEquals(2, accelerationMapOfSemiMode.get(sql).getRelatedLayouts().size());
+    }
+
+    @Test
+    public void testNoCompatibleModelToReuse() {
+        String[] sqls = { "select cal_dt from test_kylin_fact",
+                "select lstg_format_name from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[0] });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        val modelContexts = context.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        Assert.assertFalse(context.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+
+        val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "newten", sqls);
+        NSmartMaster smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runWithContext();
+        val modelContexts2 = context2.getModelContexts();
+        Assert.assertEquals(2, modelContexts2.size());
+        Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+        AccelerateInfo accelerateInfo = context2.getAccelerateInfoMap().get(sqls[1]);
+        Assert.assertTrue(accelerateInfo.isNotSucceed());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG, accelerateInfo.getPendingMsg());
+        Assert.assertEquals(NModelOptProposer.NO_COMPATIBLE_MODEL_MSG,
+                Throwables.getRootCause(accelerateInfo.getFailedCause()).getMessage());
+    }
+
+    @Test
+    public void testReuseAndCreateNewModel() {
+        String[] sqls = { "select cal_dt from test_kylin_fact",
+                "select cal_dt, lstg_format_name, sum(price * 0.8) from test_kylin_fact group by cal_dt, lstg_format_name",
+                "select lstg_format_name, price from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[0] });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        val modelContexts = context.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        NDataModel targetModel = modelContexts.get(0).getTargetModel();
+        Assert.assertNotNull(targetModel);
+        Assert.assertFalse(context.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+
+        val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "newten", sqls,
+                true);
+        NSmartMaster smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+        val modelContexts2 = context2.getModelContexts();
+        Assert.assertEquals(2, modelContexts2.size());
+        Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+        Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[1]).isNotSucceed());
+        Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[2]).isNotSucceed());
+        Map<NDataModel, OptimizeRecommendation> recommendationMap = context2.getRecommendationMap();
+        Assert.assertEquals(1, recommendationMap.size());
+        OptimizeRecommendation recommendation = recommendationMap.values().iterator().next();
+        Assert.assertEquals(1, recommendation.getLayoutRecommendations().size());
+        Assert.assertEquals(2, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals(1, recommendation.getMeasureRecommendations().size());
+        Assert.assertEquals(1, recommendation.getCcRecommendations().size());
     }
 
     @Test

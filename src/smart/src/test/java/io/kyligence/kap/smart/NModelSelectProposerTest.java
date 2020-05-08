@@ -153,7 +153,8 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testMatchModelTreeWhenDisablePartialMatch() {
+    public void testMatchModelTreeWithInnerJoin() {
+
         // A inner join B inner join C
         String[] sql1 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
@@ -171,21 +172,22 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         smartMaster2.runWithContext();
         ModelTree modelTree = smartMaster2.getContext().getModelContexts().get(0).getModelTree();
 
-        // A <-> B can't match A <-> B <-> C in smartMode, when disable partial match
-        Assert.assertFalse(NModelSelectProposer.matchModelTree(dataModel, modelTree, true));
+        // A <-> B share same subGraph with A <-> B <-> C
+        Assert.assertFalse(modelTree.hasSameSubGraph(dataModel));
+
+        // A <-> B can match A <-> B <-> C in expertMode and semiAutoMode, when enable partial match
+        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, true));
 
         // A <-> B can't match A <-> B <-> C in expertMode and semiAutoMode, when disable partial match
-        Assert.assertFalse(NModelSelectProposer.matchModelTree(dataModel, modelTree, false));
+        Assert.assertFalse(modelTree.isExactlyMatch(dataModel, false));
     }
 
     @Test
-    public void testMatchModelTreeEnablePartialMatch() {
-        overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
-
+    public void testMatchModelTreeWithLeftJoin() {
         // A inner join B inner join C
         String[] sql1 = new String[] { "select * from test_kylin_fact "
-                + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
-                + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
+                + "left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
+                + "left join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
         smartMaster1.runWithContext();
@@ -193,17 +195,18 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         // A inner join B
         String[] sql2 = new String[] { "select * from test_kylin_fact "
-                + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
+                + "left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
         NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
         smartMaster2.runWithContext();
         ModelTree modelTree = smartMaster2.getContext().getModelContexts().get(0).getModelTree();
 
-        // A <-> B can't match A <-> B <-> C in smartMode, when enable partial match
-        Assert.assertFalse(NModelSelectProposer.matchModelTree(dataModel, modelTree, true));
+        // [A -> B] can match with [A -> B && A -> C]
+        Assert.assertTrue(modelTree.hasSameSubGraph(dataModel));
 
-        // A <-> B can match A <-> B <-> C in expertMode and semiAutoMode, when enable partial match
-        Assert.assertTrue(NModelSelectProposer.matchModelTree(dataModel, modelTree, false));
+        // [A -> B] can always exactly match with [A -> B && A -> C]
+        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, false));
+        Assert.assertTrue(modelTree.isExactlyMatch(dataModel, true));
     }
 
     @Test

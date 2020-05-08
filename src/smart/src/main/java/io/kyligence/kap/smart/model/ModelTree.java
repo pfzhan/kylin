@@ -25,15 +25,20 @@
 package io.kyligence.kap.smart.model;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 
 @Getter
@@ -56,5 +61,45 @@ public class ModelTree {
         this.olapContexts = contexts;
         this.joins = joins;
         this.tableRefAliasMap = Maps.newHashMap();
+    }
+
+    private JoinsGraph getJoinGraph(TableRef defaultFactTable) {
+        List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(joins.size());
+        TableRef factTblRef = null;
+        if (joins.isEmpty()) {
+            factTblRef = defaultFactTable;
+        } else {
+            Map<TableRef, TableRef> joinMap = Maps.newHashMap();
+            joins.values().forEach(joinTableDesc -> {
+                modelTreeJoins.add(joinTableDesc.getJoin());
+                joinMap.put(joinTableDesc.getJoin().getPKSide(), joinTableDesc.getJoin().getFKSide());
+            });
+
+            for (Map.Entry<TableRef, TableRef> joinEntry : joinMap.entrySet()) {
+                if (!joinMap.containsKey(joinEntry.getValue())) {
+                    factTblRef = joinEntry.getValue();
+                    break;
+                }
+            }
+        }
+        return new JoinsGraph(factTblRef, modelTreeJoins);
+    }
+
+    private boolean hasSameRootFactTable(TableRef tableRef) {
+        return tableRef.getTableIdentity().equals(rootFactTable.getIdentity());
+    }
+
+    public boolean isExactlyMatch(NDataModel dataModel, boolean partialMatch) {
+        TableRef rootFactTable = dataModel.getRootFactTable();
+        return hasSameRootFactTable(rootFactTable) //
+                && getJoinGraph(rootFactTable).match(dataModel.getJoinsGraph(), Maps.newHashMap(), partialMatch);
+    }
+
+    public boolean hasSameSubGraph(NDataModel dataModel) {
+        final TableRef rootFactTable = dataModel.getRootFactTable();
+        JoinsGraph joinsGraph = getJoinGraph(rootFactTable);
+        return hasSameRootFactTable(rootFactTable) //
+                && (dataModel.getJoinsGraph().match(joinsGraph, Maps.newHashMap())
+                        || joinsGraph.match(dataModel.getJoinsGraph(), Maps.newHashMap()));
     }
 }

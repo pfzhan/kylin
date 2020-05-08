@@ -33,7 +33,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -42,13 +41,12 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
 import io.kyligence.kap.smart.NModelOptProposer;
-import io.kyligence.kap.smart.NModelSelectProposer;
+import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -86,8 +84,11 @@ public class NModelMaster {
 
     public NDataModel proposeJoins(NDataModel dataModel) {
         if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiMode) {
-            Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
-            return dataModel;
+            ModelReuseContextOfSemiMode context = (ModelReuseContextOfSemiMode) modelContext.getProposeContext();
+            if (!context.isCanCreateNewModel()) {
+                Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
+                return dataModel;
+            }
         }
 
         log.info("Start proposing join relations.");
@@ -160,14 +161,15 @@ public class NModelMaster {
                 originQueryList.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
-            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project,
-                    modelContext.getProposeContext()) //
-                            .build(originQueryList, extractor.getAllOLAPContexts(), null);
+            final AbstractContext proposeContext = modelContext.getProposeContext();
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
+                    .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
-            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(project);
             for (ModelTree modelTree : modelTrees) {
-                if (NModelSelectProposer.matchModelTree(dataModel, modelTree, projectInstance.isSmartMode())) {
+                boolean match = proposeContext instanceof NSmartContext //
+                        ? modelTree.hasSameSubGraph(dataModel)
+                        : modelTree.isExactlyMatch(dataModel, proposeContext.isPartialMatch());
+                if (match) {
                     updatedModelTree = modelTree;
                     break;
                 }

@@ -45,14 +45,24 @@ import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
 
+    @Getter
+    private boolean canCreateNewModel;
+
     public ModelReuseContextOfSemiMode(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
         this.partialMatch = kylinConfig.isQueryMatchPartialInnerJoinModel();
+    }
+
+    public ModelReuseContextOfSemiMode(KylinConfig kylinConfig, String project, String[] sqlArray,
+            boolean canCreateNewModel) {
+        this(kylinConfig, project, sqlArray);
+        this.canCreateNewModel = canCreateNewModel;
     }
 
     @Override
@@ -89,6 +99,10 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
 
     @Override
     public void handleExceptionAfterModelSelect() {
+        if (isCanCreateNewModel()) {
+            return;
+        }
+
         getModelContexts().forEach(modelCtx -> {
             if (modelCtx.isTargetModelMissing()) {
                 modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {

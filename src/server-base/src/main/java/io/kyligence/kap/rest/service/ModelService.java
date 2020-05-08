@@ -1233,7 +1233,7 @@ public class ModelService extends BasicService {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         AbstractSemiAutoContext proposeContext = reuseExistedModel
-                ? new ModelReuseContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]))
+                ? new ModelReuseContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]), true)
                 : new ModelCreateContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();

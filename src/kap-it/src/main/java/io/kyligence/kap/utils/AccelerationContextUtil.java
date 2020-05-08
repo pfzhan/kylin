@@ -50,6 +50,11 @@ public class AccelerationContextUtil {
         return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray);
     }
 
+    public static AbstractSemiAutoContext newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
+            String[] sqlArray, boolean canCreateNewModel) {
+        return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray, canCreateNewModel);
+    }
+
     public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         projectManager.updateProject(project, copyForWrite -> {
