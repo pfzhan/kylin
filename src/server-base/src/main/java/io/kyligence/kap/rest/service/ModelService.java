@@ -475,16 +475,8 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
-        List<Pair<NDataflow, NDataModel>> pairs = getDataflowManager(projectName).listAllDataflows(true).stream()
-                .map(df -> Pair.newPair(df,
-                        df.checkBrokenWithRelatedInfo() ? getBrokenModel(projectName, df.getId()) : df.getModel()))
-                .filter(p -> !(Objects.nonNull(lastModifyFrom) && lastModifyFrom > p.getValue().getLastModified())
-                        && !(Objects.nonNull(lastModifyTo) && lastModifyTo <= p.getValue().getLastModified())
-                        && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
-                                || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
-                        && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
-                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()))
-                .collect(Collectors.toList());
+        List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
+                modelAliasOrOwner, lastModifyFrom, lastModifyTo);
         val dfManager = getDataflowManager(projectName);
         val optRecomManager = getOptRecommendationManager(projectName);
         List<NDataModelResponse> filterModels = new ArrayList<>();
@@ -522,6 +514,20 @@ public class ModelService extends BasicService {
             filterModels.sort(comparator);
             return filterModels;
         }
+    }
+
+    private List<Pair<NDataflow, NDataModel>> getFirstMatchModels(final String modelAlias, final String projectName,
+            boolean exactMatch, String owner, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo) {
+        return getDataflowManager(projectName).listAllDataflows(true).stream()
+                .map(df -> Pair.newPair(df,
+                        df.checkBrokenWithRelatedInfo() ? getBrokenModel(projectName, df.getId()) : df.getModel()))
+                .filter(p -> !(Objects.nonNull(lastModifyFrom) && lastModifyFrom > p.getValue().getLastModified())
+                        && !(Objects.nonNull(lastModifyTo) && lastModifyTo <= p.getValue().getLastModified())
+                        && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
+                                || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
+                        && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
+                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()))
+                .collect(Collectors.toList());
     }
 
     private ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName) {
