@@ -73,6 +73,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -85,6 +86,8 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -94,6 +97,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -425,7 +429,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testUnloadTable_RemoveDB() {
         String removeDB = "EDW";
         NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "default");
         ProjectInstance projectInstance = npr.getProject("default");
         projectInstance.setDefaultDatabase(removeDB);
         npr.updateProject(projectInstance);
@@ -1106,14 +1111,14 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(tableRefresh.getFailed().size(), 1);
     }
 
-    private HashMap mockRefreshTable(String... tables){
+    private HashMap mockRefreshTable(String... tables) {
         Mockito.doAnswer(invocation -> {
             String table = invocation.getArgument(0);
             List<String> refreshed = invocation.getArgument(1);
             List<String> failed = invocation.getArgument(2);
-            if(table.equals("DEFAULT.TEST_KYLIN_FACT")){
+            if (table.equals("DEFAULT.TEST_KYLIN_FACT")) {
                 refreshed.add("DEFAULT.TEST_KYLIN_FACT");
-            }else {
+            } else {
                 failed.add(table);
             }
             return null;
@@ -1121,6 +1126,34 @@ public class TableServiceTest extends CSVSourceTestCase {
         HashMap request = new HashMap();
         request.put("tables", Arrays.asList(tables));
         return request;
+    }
+
+    @Test
+    public void testGetHiveTableNameResponses() throws Exception {
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("test", "test", Constant.ROLE_ANALYST));
+        KylinConfig config = getTestConfig();
+        config.setProperty("kylin.source.load-hive-tablename-enabled", "false");
+        config.setProperty("kylin.query.security.acl-tcr-enabled", "true");
+        Assert.assertEquals(6, tableService.getHiveTableNameResponses("default", "SSB", "").size());
+        Assert.assertEquals(9, tableService.getHiveTableNameResponses("default", "DEFAULT", "").size());
+
+        val table = NTableMetadataManager.getInstance(getTestConfig(), "default").getTableDesc("DEFAULT.TEST_ENCODING");
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), "default");
+        AclTCR acl = new AclTCR();
+        AclTCR.Table aclTable = new AclTCR.Table();
+        AclTCR.ColumnRow aclColumnRow = new AclTCR.ColumnRow();
+        AclTCR.Column aclColumns = new AclTCR.Column();
+        Arrays.stream(table.getColumns()).forEach(x -> aclColumns.add(x.getName()));
+        aclColumnRow.setColumn(aclColumns);
+        aclTable.put("DEFAULT.TEST_ENCODING", aclColumnRow);
+        acl.setTable(aclTable);
+        manager.updateAclTCR(acl, "test", true);
+
+        Assert.assertEquals(6, tableService.getHiveTableNameResponses("default", "SSB", "").size());
+        Assert.assertEquals(9, tableService.getHiveTableNameResponses("default", "DEFAULT", "").size());
+        config.setProperty("kylin.source.load-hive-tablename-enabled", "true");
+        config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
 }

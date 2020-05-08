@@ -337,19 +337,7 @@ public class TableService extends BasicService {
                 return s.toLowerCase().contains(table.toLowerCase());
             }
         }).map(String::toUpperCase).collect(Collectors.toList());
-        return filterAuthorizedTableNames(project, database, result);
-    }
-
-    private List<String> filterAuthorizedTableNames(String project, String dbName, List<String> tables) {
-        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
-            return tables;
-        }
-        List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
-                AclPermissionUtil.getCurrentUserGroups());
-        return tables.stream()
-                .filter(tblName -> aclTCRS.stream()
-                        .anyMatch(aclTCR -> aclTCR.isAuthorized(String.format("%s.%s", dbName, tblName))))
-                .collect(Collectors.toList());
+        return result;
     }
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, final String table)
@@ -364,20 +352,7 @@ public class TableService extends BasicService {
             tableNameResponse.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
             tableNameResponses.add(tableNameResponse);
         }
-        return filterAuthorizedTableNameResponses(project, database, tableNameResponses);
-    }
-
-    private List<TableNameResponse> filterAuthorizedTableNameResponses(String project, String dbName,
-            List<TableNameResponse> tables) {
-        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
-            return tables;
-        }
-        List<AclTCR> all = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
-                AclPermissionUtil.getCurrentUserGroups());
-        return tables.stream()
-                .filter(t -> all.stream()
-                        .anyMatch(aclTCR -> aclTCR.isAuthorized(String.format("%s.%s", dbName, t.getTableName()))))
-                .collect(Collectors.toList());
+        return tableNameResponses;
     }
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {
@@ -1527,7 +1502,7 @@ public class TableService extends BasicService {
                 responses.add(response);
             }
         }
-        return filterAuthorizedTableNameResponses(project, database, responses);
+        return responses;
     }
 
     public void loadHiveTableNameToCache() throws Exception {

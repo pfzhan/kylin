@@ -827,8 +827,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(tableRefresh).when(tableService).refreshSingleCatalogCache(Mockito.any());
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -838,10 +837,10 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         HashMap request = new HashMap();
         request.put("tables", "DEFAULT.TEST_KYLIN_FACT");
         String errorMsg = "Illegal parameters in the tables field, or the format of the parameters is incorrect";
-        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
