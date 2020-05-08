@@ -133,30 +133,31 @@ public class NSparkCubingUtil {
 
     public static String getStoragePath(NDataSegment nDataSegment, Long layoutId) {
         String hdfsWorkingDir = KapConfig.wrap(nDataSegment.getConfig()).getReadHdfsWorkingDirectory();
-        return   hdfsWorkingDir +
-                getStoragePathWithoutPrefix(nDataSegment.getProject(), nDataSegment.getDataflow().getId(), nDataSegment.getId(), layoutId);
+        return hdfsWorkingDir + getStoragePathWithoutPrefix(nDataSegment.getProject(),
+                nDataSegment.getDataflow().getId(), nDataSegment.getId(), layoutId);
     }
 
-    public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId, long layoutId) {
-        return     project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
+    public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId,
+            long layoutId) {
+        return project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
     }
 
-    private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\S+)");
+    private static final Pattern DOT_PATTERN = Pattern.compile("\\b([\\w`]+)\\.([\\w`]+)\\b");
 
     private static final Pattern LETTER_PATTERN = Pattern.compile(".*[a-zA-Z]+.*");
 
-    private static final Pattern FLOATING_POINT = Pattern.compile("[0-9]+.[0-9]*E[0-9]+");
+    private static final Pattern FLOATING_POINT = Pattern.compile("\\b[0-9]+.[0-9]*E[0-9]+\\b");
 
     private static final char LITERAL_QUOTE = '\'';
 
     public static String convertFromDot(String withDot) {
         int literalBegin = withDot.indexOf(LITERAL_QUOTE);
         if (literalBegin != -1) {
-            int literalEnd = withDot.indexOf(LITERAL_QUOTE, literalBegin+1);
+            int literalEnd = withDot.indexOf(LITERAL_QUOTE, literalBegin + 1);
             if (literalEnd != -1) {
                 return doConvertFromDot(withDot.substring(0, literalBegin))
-                        + withDot.substring(literalBegin, literalEnd+1)
-                        + convertFromDot(withDot.substring(literalEnd+1));
+                        + withDot.substring(literalBegin, literalEnd + 1)
+                        + convertFromDot(withDot.substring(literalEnd + 1));
             }
         }
         return doConvertFromDot(withDot);
