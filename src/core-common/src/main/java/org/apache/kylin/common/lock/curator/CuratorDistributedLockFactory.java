@@ -44,12 +44,7 @@
 package org.apache.kylin.common.lock.curator;
 
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.state.ConnectionState;
@@ -81,28 +76,6 @@ public class CuratorDistributedLockFactory {
 
     public CuratorDistributedLockFactory(KylinConfig config) {
         client = getZKClient(config);
-    }
-
-    public static CuratorDistributedLock tryInitCuratorDistributedLock(String path) {
-        if (KylinConfig.getInstanceFromEnv().getDeployEnv().equals("DEV"))
-            return null;
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        FutureTask<CuratorDistributedLock> future = new FutureTask<CuratorDistributedLock>(
-                new Callable<CuratorDistributedLock>() {
-                    public CuratorDistributedLock call() {
-                        return KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread(path);
-                    }
-                });
-        executor.execute(future);
-        try {
-            return future.get(KylinConfig.getInstanceFromEnv().getZKClientInitTimeout(), TimeUnit.SECONDS);
-        } catch (Exception e) {
-            logger.info("Failed get curator client.", e);
-            future.cancel(true);
-        } finally {
-            executor.shutdown();
-        }
-        return null;
     }
 
     public CuratorDistributedLock lockForCurrentThread(String path) {

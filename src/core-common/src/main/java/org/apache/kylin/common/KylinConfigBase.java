@@ -396,20 +396,14 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getZKBaseSleepTimeMs() {
-        return Integer.parseInt(getOptional("kap.env.zookeeper-base-sleep-time", "3000"));
+        return Long.valueOf(TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-base-sleep-time", "3s"),
+                TimeUnit.MILLISECONDS)).intValue();
     }
 
     public int getZKMaxRetries() {
-        return Integer.parseInt(getOptional("kap.env.zookeeper-max-retries", "3"));
+        return Integer.parseInt(getOptional("kylin.env.zookeeper-max-retries", "3"));
     }
 
-    public int getZKTryLockTimeout() {
-        return Integer.parseInt(getOptional("kylin.env.zookeeper.try-lock-timeout-second", "10"));
-    }
-
-    public int getZKClientInitTimeout() {
-        return Integer.parseInt(getOptional("kylin.env.zookeeper.client-init-timeout-second", "3"));
-    }
     /**
      * A comma separated list of host:port pairs, each corresponding to a ZooKeeper server
      */

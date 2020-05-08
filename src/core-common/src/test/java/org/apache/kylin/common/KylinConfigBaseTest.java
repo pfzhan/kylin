@@ -682,16 +682,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.server.cluster-name", "kylin_metadata@jdbc", "kylin_metadata@jdbc"));
 
         map.put("getZKBaseSleepTimeMs",
-                new PropertiesEntity("kap.env.zookeeper-base-sleep-time", "3000", 3000));
+                new PropertiesEntity("kylin.env.zookeeper-base-sleep-time", "3s", 3 * 1000));
 
         map.put("getZKMaxRetries",
-                new PropertiesEntity("kap.env.zookeeper-max-retries", "3", 3));
-
-        map.put("getZKTryLockTimeout",
-                new PropertiesEntity("kylin.env.zookeeper.try-lock-timeout-second", "10", 10));
-
-        map.put("getZKClientInitTimeout",
-                new PropertiesEntity("kylin.env.zookeeper.client-init-timeout-second", "3", 3));
+                new PropertiesEntity("kylin.env.zookeeper-max-retries", "3", 3));
 
         map.put("getRandomAdminPasswordEnabled",
                 new PropertiesEntity("kylin.metadata.random-admin-password.enabled", "true", true));
@@ -716,7 +710,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(303, methodsCount);
+        Assert.assertEquals(301, methodsCount);
     }
 
     @Test
