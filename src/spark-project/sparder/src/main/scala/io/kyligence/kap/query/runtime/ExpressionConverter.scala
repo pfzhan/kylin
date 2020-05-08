@@ -74,6 +74,9 @@ object ExpressionConverter {
       case LIKE =>
         assert(children.size == 2)
         k_like(k_lit(children.head), k_lit(children.last))
+      case SIMILAR =>
+        assert(children.size == 2)
+        k_similar(k_lit(children.head), k_lit(children.last))
       case MINUS_PREFIX =>
         assert(children.size == 1)
         negate(k_lit(children.head))

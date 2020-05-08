@@ -27,7 +27,7 @@ import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{DictEncode, Expression, ExpressionInfo, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{DictEncode, Expression, ExpressionInfo, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCountDistinct}
 
 object KapFunctions {
@@ -47,6 +47,8 @@ object KapFunctions {
   def kap_day_of_week(date: Column): Column = Column(KapDayOfWeek(date.expr))
 
   def k_like(left: Column, right: Column): Column = Column(Like(left.expr, right.expr))
+
+  def k_similar(left: Column, right: Column): Column = Column(RLike(left.expr, right.expr))
 
   def sum0(e: Column): Column = withAggregateFunction {
     Sum0(e.expr)
