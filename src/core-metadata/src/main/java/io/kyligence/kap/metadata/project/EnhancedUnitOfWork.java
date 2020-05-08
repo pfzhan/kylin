@@ -56,20 +56,6 @@ public class EnhancedUnitOfWork implements IKeep {
                 return null;
             });
         }
-        val result = UnitOfWork.doInTransactionWithRetry(params);
-        if (config.isUTEnv()) {
-            return result;
-        }
-        if (UnitOfWork.isAlreadyInTransaction()) {
-            return result;
-        }
-        if (config.isMetadataWaitSyncEnabled()) {
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        return result;
+        return UnitOfWork.doInTransactionWithRetry(params);
     }
 }

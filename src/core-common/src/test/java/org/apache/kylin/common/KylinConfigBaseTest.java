@@ -115,15 +115,15 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getHdfsMetaStoreFileSystemSchemas",
                 new PropertiesEntity("kylin.metadata.hdfs-compatible-schemas",
-                        "hdfs,maprfs, s3, s3a, wasb,wasbs,adl,adls,abfs,abfss, gs,oss", new String[] { "hdfs", "maprfs",
-                                "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs", "oss" }));
+                        "hdfs,maprfs, s3, s3a, wasb,wasbs,adl,adls,abfs,abfss, gs,oss", new String[]{"hdfs", "maprfs",
+                        "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs", "oss"}));
 
         map.put("getSecurityProfile", new PropertiesEntity("kylin.security.profile", "testing", "testing"));
 
         map.put("getRealizationProviders",
                 new PropertiesEntity("kylin.metadata.realization-providers",
                         "io.kyligence.kap.metadata.cube.model.NDataflowManager",
-                        new String[] { "io.kyligence.kap.metadata.cube.model.NDataflowManager" }));
+                        new String[]{"io.kyligence.kap.metadata.cube.model.NDataflowManager"}));
 
         map.put("getCubeDimensionCustomEncodingFactories",
                 new PropertiesEntity("kylin.metadata.custom-dimension-encodings", "", new String[0]));
@@ -345,7 +345,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.engine.driver-memory-base", "1024", 1024));
 
         map.put("getSparkEngineDriverMemoryStrategy",
-                new PropertiesEntity("kylin.engine.driver-memory-strategy", "2,20,100", new int[] { 2, 20, 100 }));
+                new PropertiesEntity("kylin.engine.driver-memory-strategy", "2,20,100", new int[]{2, 20, 100}));
 
         map.put("getSparkEngineDriverMemoryMaximum",
                 new PropertiesEntity("kylin.engine.driver-memory-maximum", "4096", 4096));
@@ -436,7 +436,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getPushDownConverterClassNames",
                 new PropertiesEntity("kylin.query.pushdown.converter-class-names",
                         "org.apache.kylin.source.adhocquery.HivePushDownConverter",
-                        new String[] { "org.apache.kylin.source.adhocquery.HivePushDownConverter" }));
+                        new String[]{"org.apache.kylin.source.adhocquery.HivePushDownConverter"}));
 
         map.put("isPushdownQueryCacheEnabled",
                 new PropertiesEntity("kylin.query.pushdown.cache-enabled", "false", false));
@@ -695,7 +695,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getRandomAdminPasswordEnabled",
                 new PropertiesEntity("kylin.metadata.random-admin-password.enabled", "true", true));
-
+        map.put("getCatchUpInterval",
+                new PropertiesEntity("kylin.metadata.audit-log.catchup-interval", "5s", 5L));
     }
 
     @Before
@@ -715,7 +716,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(302, methodsCount);
+        Assert.assertEquals(303, methodsCount);
     }
 
     @Test
@@ -736,12 +737,12 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 Class<?> componentType = invoke.getClass().getComponentType();
                 if (componentType.isPrimitive()) {
                     switch (componentType.getName()) {
-                    case "int":
-                        Assert.assertArrayEquals((int[]) propertiesEntity.getExpectValue(), (int[]) invoke);
-                        break;
-                    default:
-                        /// just implement it
-                        Assert.fail();
+                        case "int":
+                            Assert.assertArrayEquals((int[]) propertiesEntity.getExpectValue(), (int[]) invoke);
+                            break;
+                        default:
+                            /// just implement it
+                            Assert.fail();
                     }
                 } else {
                     Assert.assertArrayEquals((Object[]) propertiesEntity.getExpectValue(), (Object[]) invoke);

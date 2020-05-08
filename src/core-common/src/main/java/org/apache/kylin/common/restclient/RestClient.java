@@ -52,10 +52,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.xml.bind.DatatypeConverter;
-
 import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.CommonErrorCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
@@ -293,6 +293,24 @@ public class RestClient {
         return response;
     }
 
+    public HttpResponse notifyCatchUp() throws IOException {
+        String url = baseUrl + "/audit_log";
+        HttpPost post = newPost(url);
+        post.addHeader("routed", "true");
+        HttpResponse response = null;
+        try {
+            response = client.execute(post);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new KylinException(CommonErrorCode.FAILED_NOTIFY_CATCHUP, "Invalid response " + response.getStatusLine().getStatusCode()
+                        + " with notify catch up url " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(post, response);
+        }
+        return response;
+    }
+
     private HashMap dealResponse(HttpResponse response) throws IOException {
         if (response.getStatusLine().getStatusCode() != 200) {
             throw new IOException("Invalid response " + response.getStatusLine().getStatusCode());
@@ -305,8 +323,6 @@ public class RestClient {
     private void addHttpHeaders(HttpRequestBase method) {
         method.addHeader("Accept", "application/json, text/plain, */*");
         method.addHeader("Content-Type", "application/json");
-        String basicAuth = DatatypeConverter.printBase64Binary((this.userName + ":" + this.password).getBytes());
-        method.addHeader("Authorization", "Basic " + basicAuth);
     }
 
     private HttpPost newPost(String url) {

@@ -63,6 +63,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty("kylin.metadata.audit-log.catchup-interval", "1s");
         createTestMetadata();
         getTestConfig().setMetadataUrl(
                 "test" + System.currentTimeMillis() + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
@@ -81,6 +82,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() throws Exception {
+        System.clearProperty("kylin.metadata.audit-log.catchup-interval");
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();

@@ -1825,4 +1825,8 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean getRandomAdminPasswordEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.random-admin-password.enabled", TRUE));
     }
+
+    public long getCatchUpInterval() {
+        return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-interval", "5s"), TimeUnit.SECONDS);
+    }
 }

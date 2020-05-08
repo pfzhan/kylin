@@ -35,10 +35,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -106,8 +109,12 @@ public class JdbcAuditLogStore implements AuditLogStore {
     private final String instance;
     @Getter
     private final DataSourceTransactionManager transactionManager;
-    private ExecutorService consumeExecutor;
+    private ScheduledExecutorService consumeExecutor;
     private AtomicBoolean stop = new AtomicBoolean(false);
+    private BlockingQueue<Object> blockingQueue = new LinkedBlockingDeque<>(1);
+
+
+    private volatile AtomicLong startId = new AtomicLong();
 
     public JdbcAuditLogStore(KylinConfig config) throws Exception {
         this.config = config;
@@ -214,25 +221,32 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Override
     public void restore(ResourceStore store, long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
-        consumeExecutor = Executors.newSingleThreadExecutor();
+        consumeExecutor = new ScheduledThreadPoolExecutor(1);
+        startId.set(currentId);
+        val interval = config.getCatchUpInterval();
         if (config.isLeaderNode() && !config.isUTEnv()) {
             log.info("current maxId is {}", currentId);
-            consumeExecutor.submit(createFetcher(currentId, store.getChecker()));
+            consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
             return;
         }
         withTransaction(transactionManager, () -> {
             val step = 1000L;
             val maxId = getMaxId();
             log.debug("start restore, current max_id is {}", maxId);
-            var startId = currentId;
-            while (startId < maxId) {
-                val logs = fetch(startId, Math.min(step, maxId - startId));
+            var start = currentId;
+            while (start < maxId) {
+                val logs = fetch(start, Math.min(step, maxId - start));
                 replayLogs(replayer, logs);
-                startId += step;
+                start += step;
             }
-            consumeExecutor.submit(createFetcher(maxId, store.getChecker()));
+            startId.set(maxId);
+            consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
             return null;
         });
+    }
+
+    public void catchupManually(ResourceStore store) {
+        consumeExecutor.submit(createFetcher(store.getChecker()));
     }
 
     @Override
@@ -246,48 +260,50 @@ public class JdbcAuditLogStore implements AuditLogStore {
         });
     }
 
-    private Runnable createFetcher(long id, ResourceStore.Callback<Boolean> checker) {
+    private synchronized Runnable createFetcher(ResourceStore.Callback<Boolean> checker) {
         return () -> {
+            if (!blockingQueue.offer(new Object())) {
+                return;
+            }
+            if (stop.get()) {
+                consumeExecutor.shutdownNow();
+                blockingQueue.clear();
+                return;
+            }
             val replayer = MessageSynchronization.getInstance(config);
             replayer.setChecker(checker);
-            long startId = id;
-            AtomicInteger reconsumeTimes = new AtomicInteger();
-            while (!stop.get()) {
+            try {
+                long finalStartId = startId.get();
+                startId.set(withTransaction(transactionManager, () -> {
+                    val logs = fetch(finalStartId, Integer.MAX_VALUE);
+                    if (CollectionUtils.isEmpty(logs)) {
+                        blockingQueue.clear();
+                        return finalStartId;
+                    }
+                    long currentMaxId = logs.get(logs.size() - 1).getId();
+                    if (logs.size() < currentMaxId - finalStartId) {
+                        blockingQueue.clear();
+                        return finalStartId;
+                    }
+                    replayLogs(replayer, logs);
+                    blockingQueue.clear();
+                    return currentMaxId;
+                }));
+
+            } catch (TransactionException e) {
+                blockingQueue.clear();
+                log.warn("cannot create transaction, ignore it", e);
                 try {
-                    long finalStartId = startId;
-                    startId = withTransaction(transactionManager, () -> {
-                        val logs = fetch(finalStartId, Integer.MAX_VALUE);
-                        if (CollectionUtils.isEmpty(logs)) {
-                            return finalStartId;
-                        }
-                        long currentMaxId = logs.get(logs.size() - 1).getId();
-                        if (logs.size() < currentMaxId - finalStartId && reconsumeTimes.get() < 3) {
-                            reconsumeTimes.getAndIncrement();
-                            return finalStartId;
-                        }
-                        reconsumeTimes.set(0);
-                        replayLogs(replayer, logs);
-                        return currentMaxId;
-                    });
-                    if (startId == finalStartId) {
-                        Thread.sleep(1000);
-                    }
-                } catch (TransactionException e) {
-                    log.warn("cannot create transaction, ignore it", e);
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException ex) {
-                        Thread.currentThread().interrupt();
-                    }
-                } catch (InterruptedException e) {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
-                    log.warn("thread interrupted", e);
-                } catch (Exception e) {
-                    log.error("unknown exception, exit ", e);
-                    stop.set(true);
-                    if (!config.isUTEnv()) {
-                        System.exit(-2);
-                    }
+                }
+            } catch (Exception e) {
+                log.error("unknown exception, exit ", e);
+                stop.set(true);
+                blockingQueue.clear();
+                if (!config.isUTEnv()) {
+                    System.exit(-2);
                 }
             }
         };

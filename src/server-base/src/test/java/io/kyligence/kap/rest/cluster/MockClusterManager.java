@@ -42,6 +42,11 @@ public class MockClusterManager implements ClusterManager {
     }
 
     @Override
+    public List<ServerInfoResponse> getQueryServersFromCache() {
+        return getQueryServers();
+    }
+
+    @Override
     public List<ServerInfoResponse> getJobServers() {
         return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", Constant.SERVER_MODE_ALL));
     }

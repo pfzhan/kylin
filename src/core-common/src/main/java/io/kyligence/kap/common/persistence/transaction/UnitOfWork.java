@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -58,6 +59,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
+
+    private static SchedulerEventBusFactory factory;
+
+    static {
+        factory  = SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv());
+    }
 
     static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
     private static ThreadLocal<UnitOfWorkContext> threadLocals = new ThreadLocal<>();
@@ -271,7 +278,9 @@ public class UnitOfWork {
 
         }
         metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc);
-
+        if (!params.isReadonly() && !config.isUTEnv()) {
+            factory.post(new BroadcastEventReadyNotifier());
+        }
         try {
             // replayInTransaction in leader before release lock
             val replayer = MessageSynchronization.getInstance(originConfig);

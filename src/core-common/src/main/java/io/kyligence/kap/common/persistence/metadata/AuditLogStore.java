@@ -44,4 +44,6 @@ public interface AuditLogStore extends Closeable {
 
     void rotate();
 
+    void catchupManually(ResourceStore store);
+
 }

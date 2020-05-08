@@ -42,6 +42,7 @@
 package org.apache.kylin.common.exception;
 
 public enum CommonErrorCode implements ErrorCodeSupplier {
+
     // 00000XXX general
     UNKNOWN_ERROR_CODE("KE-00000001"), //
 
@@ -56,7 +57,8 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     FAILED_PARSE_SHELL("KE-00025002"), //
 
     // 00027XXX metadata
-    FAILED_UPDATE_METADATA("KE-00027001"); //
+    FAILED_UPDATE_METADATA("KE-00027001"),
+    FAILED_NOTIFY_CATCHUP("KE-00027002"); //
 
     private final ErrorCode errorCode;
 

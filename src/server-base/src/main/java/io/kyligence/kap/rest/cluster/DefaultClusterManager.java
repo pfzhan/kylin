@@ -59,6 +59,11 @@ public class DefaultClusterManager implements ClusterManager {
     }
 
     @Override
+    public List<ServerInfoResponse> getQueryServersFromCache() {
+        return getQueryServers();
+    }
+
+    @Override
     public List<ServerInfoResponse> getJobServers() {
         return getQueryServers();
     }

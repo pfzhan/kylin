@@ -34,7 +34,15 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
+import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.lock.ZookeeperUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
@@ -54,6 +62,26 @@ public class ZookeeperClusterManager implements ClusterManager {
 
     @Autowired
     ZookeeperDiscoveryClient discoveryClient;
+
+    List<ServerInfoResponse> cache;
+
+    public ZookeeperClusterManager(ZookeeperDiscoveryClient discoveryClient) throws Exception {
+        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
+        CuratorFramework client = CuratorFrameworkFactory.newClient(ZookeeperUtil.getZKConnectString(), 120000, 15000, retryPolicy);
+        client.start();
+        String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
+        String nodePath = "/kylin/" + identifier + "/services/all";
+        val pathChildrenCache = new PathChildrenCache(client, nodePath, false);
+        PathChildrenCacheListener childrenCacheListener = new PathChildrenCacheListener() {
+            @Override
+            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
+                cache = getQueryServers();
+            }
+        };
+        pathChildrenCache.getListenable().addListener(childrenCacheListener);
+        pathChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+    }
+
 
     @Override
     public String getLocalServer() {
@@ -89,6 +117,17 @@ public class ZookeeperClusterManager implements ClusterManager {
             }
         }
         return servers;
+    }
+
+    @Override
+    public List<ServerInfoResponse> getQueryServersFromCache() {
+        try {
+            if (CollectionUtils.isNotEmpty(cache))
+                return cache;
+            else return getQueryServers();
+        } catch (Exception e) {
+            return getQueryServers();
+        }
     }
 
     @Override
