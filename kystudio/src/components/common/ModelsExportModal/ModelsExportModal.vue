@@ -174,7 +174,8 @@ export default class ModelsExportModal extends Vue {
         this.isSubmiting = false
         this.handleClose(true)
         let str = res && res.headers.map['content-disposition'][0]
-        let fileName = str.split('filename=')[1]
+        let fileName1 = str.split('filename=')[1]
+        let fileName = fileName1.includes('"') ? JSON.parse(fileName1) : fileName1
         if (res && res.body) {
           let data = res.body
           const blob = new Blob([data], {type: 'application/json;charset=utf-8'})
