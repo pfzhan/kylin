@@ -62,7 +62,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
-import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
@@ -473,10 +472,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
 
         // accelerate
-        val context = new NSmartContext(getTestConfig(), PROJECT, new String[] { sql });
-        NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext(ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT)
-                .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
+        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), PROJECT, new String[] { sql },
+                ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT).updateStatus(sql,
+                        FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());
@@ -494,10 +492,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
 
         // accelerate again
-        val context1 = new NSmartContext(getTestConfig(), PROJECT, new String[] { sql });
-        NSmartMaster smartMasterAfter = new NSmartMaster(context1);
-        smartMasterAfter.runWithContext(ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT)
-                .updateStatus(sql, FavoriteQueryStatusEnum.ACCELERATED, ""));
+        val context1 = NSmartMaster.proposeForAutoMode(getTestConfig(), PROJECT, new String[] { sql },
+                ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT).updateStatus(sql,
+                        FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
         Assert.assertFalse(manager.getAcceleratedSqlPattern().isEmpty());
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, manager.get(sql).getStatus());

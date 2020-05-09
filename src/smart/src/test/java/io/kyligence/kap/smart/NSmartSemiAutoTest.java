@@ -105,10 +105,8 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
             return fq;
         }).when(spyFqManager).get(sql2);
 
-        val context1 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
-                new String[] { sql1 });
-        NSmartMaster smartMaster1 = new NSmartMaster(context1);
-        smartMaster1.runWithContext(null);
+        val context1 = NSmartMaster.genOptRecommendationForSemiMode(getTestConfig(), project, new String[] { sql1 },
+                null);
 
         val recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), project);
         var recommendation = recommendationManager.getOptimizeRecommendation(baseModel.getId());
@@ -116,10 +114,8 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(LayoutRecommendationItem.IMPORTED,
                 recommendation.getLayoutRecommendations().get(0).getSource());
 
-        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
-                new String[] { sql2 });
-        NSmartMaster smartMaster2 = new NSmartMaster(context2);
-        smartMaster2.runWithContext(null);
+        val context2 = NSmartMaster.genOptRecommendationForSemiMode(getTestConfig(), project, new String[] { sql2 },
+                null);
         recommendation = recommendationManager.getOptimizeRecommendation(baseModel.getId());
         Assert.assertEquals(2, recommendation.getLayoutRecommendations().size());
         Assert.assertEquals(LayoutRecommendationItem.QUERY_HISTORY,

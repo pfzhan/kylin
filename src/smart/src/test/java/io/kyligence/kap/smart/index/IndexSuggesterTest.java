@@ -213,7 +213,6 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testSuggestWithoutDimension() {
-        // TODO add acceleration info map changed test case: [layout1, layout2, layout3] => [layout1, layout1, layout3] => [layout1, layout3]
         // TODO add a case to verify redundant layout of aggGroup will not consider in auto-modeling, maybe CI test
         String[] sqls = new String[] { "select count(*) from kylin_sales", // count star
                 "select count(price) from kylin_sales", // measure with column
@@ -234,27 +233,17 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
 
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
-        Assert.assertEquals(4, allCuboids.size());
+        Assert.assertEquals(2, allCuboids.size());
 
         final IndexEntity indexEntity0 = allCuboids.get(0);
         Assert.assertEquals(1, indexEntity0.getLayouts().size());
-        Assert.assertEquals(1L, indexEntity0.getLayouts().get(0).getId());
-        Assert.assertEquals("[100000]", indexEntity0.getLayouts().get(0).getColOrder().toString());
+        Assert.assertEquals(IndexEntity.TABLE_INDEX_START_ID + 1, indexEntity0.getLayouts().get(0).getId());
+        Assert.assertEquals("[0]", indexEntity0.getLayouts().get(0).getColOrder().toString());
 
         final IndexEntity indexEntity1 = allCuboids.get(1);
         Assert.assertEquals(1, indexEntity1.getLayouts().size());
-        Assert.assertEquals(IndexEntity.INDEX_ID_STEP + 1, indexEntity1.getLayouts().get(0).getId());
-        Assert.assertEquals("[100000, 100001]", indexEntity1.getLayouts().get(0).getColOrder().toString());
-
-        final IndexEntity indexEntity2 = allCuboids.get(2);
-        Assert.assertEquals(1, indexEntity2.getLayouts().size());
-        Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 2 + 1, indexEntity2.getLayouts().get(0).getId());
-        Assert.assertEquals("[100000, 100002]", indexEntity2.getLayouts().get(0).getColOrder().toString());
-
-        final IndexEntity indexEntity3 = allCuboids.get(3);
-        Assert.assertEquals(1, indexEntity3.getLayouts().size());
-        Assert.assertEquals(IndexEntity.TABLE_INDEX_START_ID + 1, indexEntity3.getLayouts().get(0).getId());
-        Assert.assertEquals("[0]", indexEntity3.getLayouts().get(0).getColOrder().toString());
+        Assert.assertEquals(30001L, indexEntity1.getLayouts().get(0).getId());
+        Assert.assertEquals("[100001, 100000, 100002]", indexEntity1.getLayouts().get(0).getColOrder().toString());
     }
 
     @Test
@@ -285,24 +274,15 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         List<IndexEntity> allCuboids = indexPlan.getIndexes();
         final IndexEntity indexEntity0 = allCuboids.get(0);
 
-        Assert.assertEquals("{100000, 100001, 100002}", indexEntity0.getMeasureBitset().toString());
+        Assert.assertEquals("{100000, 100005, 100006}", indexEntity0.getMeasureBitset().toString());
         Assert.assertEquals(1, indexEntity0.getLayouts().size());
-        Assert.assertEquals(1L, indexEntity0.getLayouts().get(0).getId());
+        Assert.assertEquals(20001L, indexEntity0.getLayouts().get(0).getId());
 
         final IndexEntity indexEntity1 = allCuboids.get(1);
-        Assert.assertEquals("{100000, 100003, 100004}", indexEntity1.getMeasureBitset().toString());
+        Assert.assertEquals("{100000, 100001, 100002, 100003, 100004, 100007, 100008}",
+                indexEntity1.getMeasureBitset().toString());
         Assert.assertEquals(1, indexEntity1.getLayouts().size());
-        Assert.assertEquals(IndexEntity.INDEX_ID_STEP + 1, indexEntity1.getLayouts().get(0).getId());
-
-        final IndexEntity indexEntity2 = allCuboids.get(2);
-        Assert.assertEquals("{100000, 100005, 100006}", indexEntity2.getMeasureBitset().toString());
-        Assert.assertEquals(1, indexEntity2.getLayouts().size());
-        Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 2 + 1, indexEntity2.getLayouts().get(0).getId());
-
-        final IndexEntity indexEntity3 = allCuboids.get(3);
-        Assert.assertEquals("{100000, 100007, 100008}", indexEntity3.getMeasureBitset().toString());
-        Assert.assertEquals(1, indexEntity3.getLayouts().size());
-        Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 3 + 1, indexEntity3.getLayouts().get(0).getId());
+        Assert.assertEquals(40001L, indexEntity1.getLayouts().get(0).getId());
     }
 
     @Test

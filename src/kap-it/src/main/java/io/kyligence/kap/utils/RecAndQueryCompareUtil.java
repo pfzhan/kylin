@@ -80,7 +80,7 @@ public class RecAndQueryCompareUtil {
     }
 
     public static String writeQueryLayoutRelationAsString(KylinConfig kylinConfig, String project,
-            Set<AccelerateInfo.QueryLayoutRelation> relatedLayouts) {
+            Collection<QueryLayoutRelation> relatedLayouts) {
         if (CollectionUtils.isEmpty(relatedLayouts)) {
             return "[ ]";
         }

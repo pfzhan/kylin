@@ -187,11 +187,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val targetIndexPlan = modelContexts.get(0).getTargetIndexPlan();
         final List<IndexEntity> indexes = targetIndexPlan.getIndexes();
         indexes.sort(Comparator.comparing(IndexEntity::getId));
-        Assert.assertEquals(0L, indexes.get(0).getId());
-        Assert.assertEquals(10000L, indexes.get(1).getId());
-        Assert.assertEquals(20000L, indexes.get(2).getId());
-        Assert.assertEquals(30000L, indexes.get(3).getId());
-        Assert.assertEquals(20000000000L, indexes.get(4).getId());
+        Assert.assertEquals(10000L, indexes.get(0).getId());
+        Assert.assertEquals(30000L, indexes.get(1).getId());
+        Assert.assertEquals(40000L, indexes.get(2).getId());
+        Assert.assertEquals(20000000000L, indexes.get(3).getId());
     }
 
     @Test

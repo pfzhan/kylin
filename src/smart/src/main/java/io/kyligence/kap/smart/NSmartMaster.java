@@ -34,6 +34,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -45,12 +46,42 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NSmartMaster {
 
+    public static AbstractContext proposeForAutoMode(KylinConfig config, String project, String[] sqls,
+            Consumer<AbstractContext> hook) {
+        AbstractContext context = new NSmartContext(config, project, sqls);
+        new NSmartMaster(context).runWithContext(hook);
+        return context;
+    }
+
+    public static AbstractContext proposeNewModelForSemiMode(KylinConfig config, String project, String[] sqls,
+            Consumer<AbstractContext> hook) {
+        AbstractContext context = new ModelCreateContextOfSemiMode(config, project, sqls);
+        new NSmartMaster(context).runWithContext(hook);
+        return context;
+    }
+
+    public static AbstractContext genOptRecommendationForSemiMode(KylinConfig config, String project, String[] sqls,
+            Consumer<AbstractContext> hook) {
+        AbstractContext context = new ModelReuseContextOfSemiMode(config, project, sqls);
+        new NSmartMaster(context).runWithContext(hook);
+        return context;
+    }
+
+    public static AbstractContext selectExistedModel(KylinConfig config, String project, String[] sqls,
+            Consumer<AbstractContext> hook) {
+        AbstractContext context = new ModelSelectContextOfSemiMode(config, project, sqls);
+        new NSmartMaster(context).runWithContext(hook);
+        return context;
+    }
+
+    @Getter
     private AbstractContext context;
     private NProposerProvider proposerProvider;
     private String project;
@@ -61,10 +92,7 @@ public class NSmartMaster {
         this.proposerProvider = NProposerProvider.create(context);
     }
 
-    public AbstractContext getContext() {
-        return context;
-    }
-
+    @VisibleForTesting
     public void analyzeSQLs() {
         long start = System.currentTimeMillis();
         log.info("Start sql analysis.");
@@ -75,6 +103,7 @@ public class NSmartMaster {
                 nums.get(AccStatusType.FAILED));
     }
 
+    @VisibleForTesting
     public void selectModel() {
         long start = System.currentTimeMillis();
         log.info("Start model selection.");
@@ -85,6 +114,7 @@ public class NSmartMaster {
                 nums.get(AccStatusType.FAILED));
     }
 
+    @VisibleForTesting
     public void optimizeModel() {
         long start = System.currentTimeMillis();
         log.info("Start model optimization.");
@@ -105,6 +135,7 @@ public class NSmartMaster {
                 nums.get(AccStatusType.FAILED));
     }
 
+    @VisibleForTesting
     public void selectIndexPlan() {
         long start = System.currentTimeMillis();
         log.info("Start indexPlan selection.");
@@ -115,6 +146,7 @@ public class NSmartMaster {
                 nums.get(AccStatusType.FAILED));
     }
 
+    @VisibleForTesting
     public void optimizeIndexPlan() {
         long start = System.currentTimeMillis();
         log.info("Start indexPlan optimization.");
@@ -179,11 +211,12 @@ public class NSmartMaster {
     /**
      * This method now only used for testing.
      */
+    @VisibleForTesting
     public void runWithContext() {
         runWithContext(null);
     }
 
-    public void runWithContext(Consumer<AbstractContext> hook) {
+    private void runWithContext(Consumer<AbstractContext> hook) {
         long start = System.currentTimeMillis();
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {

@@ -56,7 +56,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
@@ -169,12 +168,11 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         fq2.setRealizations(Lists.newArrayList(fq2r));
         fqManager.create(Sets.newHashSet(fq, fq2));
 
-        val context = new NSmartContext(getTestConfig(), project, new String[] { sqlProposesTwoModels });
-        NSmartMaster master = new NSmartMaster(context);
-        master.runWithContext(smartContext -> {
-            FavoriteQueryManager.getInstance(getTestConfig(), project).updateStatus(sqlProposesTwoModels,
-                    FavoriteQueryStatusEnum.ACCELERATING, null);
-        });
+        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), project, new String[] { sqlProposesTwoModels },
+                smartContext -> {
+                    FavoriteQueryManager.getInstance(getTestConfig(), project).updateStatus(sqlProposesTwoModels,
+                            FavoriteQueryStatusEnum.ACCELERATING, null);
+                });
 
         fqManager.reloadSqlPatternMap();
         fq = fqManager.get(sqlProposesTwoModels);
@@ -229,12 +227,11 @@ public class PostAddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         var fq = new FavoriteQuery(sqlProposesTwoModels);
         fqManager.create(Sets.newHashSet(fq));
 
-        val context = new NSmartContext(getTestConfig(), project, new String[] { sqlProposesTwoModels });
-        NSmartMaster master = new NSmartMaster(context);
-        master.runWithContext(smartContext -> {
-            FavoriteQueryManager.getInstance(getTestConfig(), project).updateStatus(sqlProposesTwoModels,
-                    FavoriteQueryStatusEnum.ACCELERATING, null);
-        });
+        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), project, new String[] { sqlProposesTwoModels },
+                smartContext -> {
+                    FavoriteQueryManager.getInstance(getTestConfig(), project).updateStatus(sqlProposesTwoModels,
+                            FavoriteQueryStatusEnum.ACCELERATING, null);
+                });
 
         fqManager.reloadSqlPatternMap();
         fq = fqManager.get(sqlProposesTwoModels);

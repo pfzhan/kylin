@@ -386,28 +386,27 @@ public class FavoriteQueryService extends BasicService {
         logger.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, sqlList.size());
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Set<String> sqlSet = Sets.newHashSet(sqlList);
-        AbstractContext context = new ModelReuseContextOfSemiMode(kylinConfig, project, sqlList.toArray(new String[0]));
-        NSmartMaster master = new NSmartMaster(context);
-        master.runWithContext(smartContext -> {
-            Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
-            if (!notAccelerated.isEmpty()) {
-                sqlSet.removeAll(notAccelerated.keySet());
-                updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
-            } // case of sqls with constants
-            if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
-                updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-                return;
-            }
-            for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
-                val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
-                sqlSet.removeAll(sqls);
-                if (CollectionUtils.isEmpty(sqls)) {
-                    continue;
-                }
-                updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
-            }
-            updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-        });
+        NSmartMaster.genOptRecommendationForSemiMode(kylinConfig, project, sqlList.toArray(new String[0]),
+                smartContext -> {
+                    Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(smartContext);
+                    if (!notAccelerated.isEmpty()) {
+                        sqlSet.removeAll(notAccelerated.keySet());
+                        updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
+                    } // case of sqls with constants
+                    if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                        updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                        return;
+                    }
+                    for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
+                        val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
+                        sqlSet.removeAll(sqls);
+                        if (CollectionUtils.isEmpty(sqls)) {
+                            continue;
+                        }
+                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
+                    }
+                    updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                });
         logger.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
                 System.currentTimeMillis() - startTime);
     }
@@ -421,37 +420,36 @@ public class FavoriteQueryService extends BasicService {
         Set<String> sqlSet = Sets.newHashSet(sqlList);
 
         // do auto-modeling
-        AbstractContext context = new NSmartContext(kylinConfig, project, sqlList.toArray(new String[0]));
-        NSmartMaster master = new NSmartMaster(context);
-        master.runWithContext(smartContext -> {
-            // handle blocked sql patterns
-            Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
-            if (!notAccelerated.isEmpty()) {
-                sqlSet.removeAll(notAccelerated.keySet());
-                updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
-            } // case of sqls with constants
-            if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
-                updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-                return;
-            }
+        NSmartMaster.proposeForAutoMode(kylinConfig, project, sqlList.toArray(new String[0]),
+                smartContext -> {
+                    // handle blocked sql patterns
+                    Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(smartContext);
+                    if (!notAccelerated.isEmpty()) {
+                        sqlSet.removeAll(notAccelerated.keySet());
+                        updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
+                    } // case of sqls with constants
+                    if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                        updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                        return;
+                    }
 
-            EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
+                    EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
-                val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
-                sqlSet.removeAll(sqls);
-                IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
+                        val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
+                        sqlSet.removeAll(sqls);
+                        IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
 
-                if (CollectionUtils.isEmpty(sqls)) {
-                    continue;
-                }
+                        if (CollectionUtils.isEmpty(sqls)) {
+                            continue;
+                        }
 
-                jobList.add(eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user));
+                        jobList.add(eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user));
 
-                updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
-            }
-            updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-        });
+                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
+                    }
+                    updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                });
         return jobList;
     }
 
@@ -610,7 +608,6 @@ public class FavoriteQueryService extends BasicService {
         if (instance.isExpertMode()) {
             return;
         }
-
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
             AbstractContext context = instance.isSemiAutoMode() //

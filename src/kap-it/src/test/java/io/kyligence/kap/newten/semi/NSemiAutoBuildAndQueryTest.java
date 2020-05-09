@@ -174,7 +174,7 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
                 /* CompareLevel = SAME */
                 testScenarios);//
         Assert.assertEquals(1, optManager.listAllOptimizeRecommendations().size());
-        Assert.assertEquals(2, indexPlanManager.listAllIndexPlans().get(0).getAllLayouts().size());
+        Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().get(0).getAllLayouts().size());
     }
 
     @Test
@@ -189,7 +189,7 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
                 /* CompareLevel = SAME */
                 testScenarios);//
         Assert.assertEquals(1, optManager.listAllOptimizeRecommendations().size());
-        Assert.assertEquals(2, indexPlanManager.listAllIndexPlans().get(0).getWhitelistLayouts().size());
+        Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().get(0).getWhitelistLayouts().size());
     }
 
     @Test

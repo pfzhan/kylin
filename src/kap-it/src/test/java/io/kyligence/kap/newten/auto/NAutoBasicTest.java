@@ -191,14 +191,12 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // update model to semi-auto-mode
         AccelerationContextUtil.transferProjectToSemiAutoMode(kylinConfig, getProject());
-        val context3 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(), sqls);
-        smartMaster = new NSmartMaster(context3);
-        smartMaster.runWithContext(null);
-        val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        val context3 = NSmartMaster.genOptRecommendationForSemiMode(kylinConfig, getProject(), sqls, null);
+        val accelerateInfoMap = context3.getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isNotSucceed());
         Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isNotSucceed());
         NDataModel model = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject())
-                .applyModel(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+                .applyModel(context3.getModelContexts().get(0).getTargetModel().getId());
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
         NDataModel.Measure newMeasure = model.getAllMeasures().stream().filter(measure -> measure.getId() == 10100001L)
                 .findFirst().orElse(null);
@@ -417,7 +415,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         val relatedLayoutsForSql1 = accelerationInfoMap.get(sqls[1]).getRelatedLayouts();
         long layoutForSql0 = relatedLayoutsForSql0.iterator().next().getLayoutId();
         long layoutForSql1 = relatedLayoutsForSql1.iterator().next().getLayoutId();
-        Assert.assertNotEquals(layoutForSql0, layoutForSql1);
+        Assert.assertEquals(layoutForSql0, layoutForSql1);
 
         // set to semi-auto to check tailoring layouts
         AccelerationContextUtil.transferProjectToSemiAutoMode(kylinConfig, project);
@@ -427,12 +425,8 @@ public class NAutoBasicTest extends NAutoTestBase {
             copyForWrite.setIndexes(Lists.newArrayList());
         });
 
-        val context2 = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, project, sqls);
-        smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext(null);
-
-        smartContext = smartMaster.getContext();
-        accelerationInfoMap = smartContext.getAccelerateInfoMap();
+        val context2 = NSmartMaster.genOptRecommendationForSemiMode(kylinConfig, project, sqls, null);
+        accelerationInfoMap = context2.getAccelerateInfoMap();
         val relatedLayoutsSemiForSql0 = accelerationInfoMap.get(sqls[0]).getRelatedLayouts();
         val relatedLayoutsSemiForSql1 = accelerationInfoMap.get(sqls[1]).getRelatedLayouts();
         long layoutSemiForSql0 = relatedLayoutsSemiForSql0.iterator().next().getLayoutId();

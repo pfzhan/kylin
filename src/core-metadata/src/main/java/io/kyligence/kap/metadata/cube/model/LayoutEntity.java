@@ -129,6 +129,24 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         // Only used by Jackson
     }
 
+    public ImmutableList<Integer> getDimsIds() {
+        ImmutableList.Builder<Integer> dimsBuilder = ImmutableList.<Integer> builder();
+        for (int colId : colOrder) {
+            if (colId < NDataModel.MEASURE_ID_BASE)
+                dimsBuilder.add(colId);
+        }
+        return dimsBuilder.build();
+    }
+
+    public ImmutableList<Integer> getMeasureIds() {
+        ImmutableList.Builder<Integer> measureIdBuilder = ImmutableList.<Integer> builder();
+        for (int colId : colOrder) {
+            if (colId >= NDataModel.MEASURE_ID_BASE)
+                measureIdBuilder.add(colId);
+        }
+        return measureIdBuilder.build();
+    }
+
     public ImmutableBiMap<Integer, TblColRef> getOrderedDimensions() { // dimension order abides by rowkey_col_desc
         if (orderedDimensions != null)
             return orderedDimensions;
@@ -203,6 +221,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         });
         return countDistinct;
     }
+
     public NDataModel getModel() {
         return index.getIndexPlan().getModel();
     }
@@ -333,6 +352,5 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public boolean matchDraftVersion(String draftVersion) {
         return isDraft() && this.draftVersion.equals(draftVersion);
     }
-
 
 }

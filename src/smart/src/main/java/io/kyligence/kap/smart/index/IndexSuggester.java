@@ -66,6 +66,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.exception.PendingException;
 import io.kyligence.kap.smart.model.ModelTree;
+import io.kyligence.kap.smart.util.EntityBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -182,13 +183,8 @@ class IndexSuggester {
             collector.put(cuboidIdentifier, indexEntity);
         }
 
-        LayoutEntity layout = new LayoutEntity();
-        layout.setColOrder(suggestColOrder(dimIds, measureIds, layout.getShardByColumns()));
-        layout.setId(suggestLayoutId(indexEntity));
-        layout.setIndex(indexEntity);
-        layout.setAuto(true);
-        layout.setUpdateTime(System.currentTimeMillis());
-        // layout.setDraftVersion(smartContext.getDraftVersion());
+        LayoutEntity layout = new EntityBuilder.LayoutEntityBuilder(suggestLayoutId(indexEntity), indexEntity).colOrderIds(suggestColOrder(dimIds, measureIds, Lists.newArrayList()))
+                        .isAuto(true).build();
         layout.setInProposing(true);
         if (model.getStorageType() == 2 && dimIds.containsAll(indexPlan.getExtendPartitionColumns())) {
             layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
@@ -199,6 +195,7 @@ class IndexSuggester {
         } else if (isQualifiedSuggestShardBy(ctx)) {
             layout.setShardByColumns(suggestShardBy(dimIds));
         }
+
         String modelId = model.getUuid();
         int semanticVersion = model.getSemanticVersion();
         for (LayoutEntity l : indexEntity.getLayouts()) {
@@ -356,27 +353,7 @@ class IndexSuggester {
     }
 
     private long suggestDescId(boolean isTableIndex) {
-        return findAvailableIndexEntityId(isTableIndex);
-    }
-
-    private long findAvailableIndexEntityId(boolean isTableIndex) {
-        final Collection<IndexEntity> indexEntities = collector.values();
-        long result = isTableIndex ? IndexEntity.TABLE_INDEX_START_ID : 0;
-        List<Long> cuboidIds = Lists.newArrayList();
-        for (IndexEntity indexEntity : indexEntities) {
-            long indexEntityId = indexEntity.getId();
-            if ((isTableIndex && IndexEntity.isTableIndex(indexEntityId))
-                    || (!isTableIndex && indexEntityId < IndexEntity.TABLE_INDEX_START_ID)) {
-                cuboidIds.add(indexEntityId);
-            }
-        }
-
-        if (!cuboidIds.isEmpty()) {
-            // use the largest cuboid id + step
-            cuboidIds.sort(Long::compareTo);
-            result = cuboidIds.get(cuboidIds.size() - 1) + IndexEntity.INDEX_ID_STEP;
-        }
-        return Math.max(result, isTableIndex ? indexPlan.getNextTableIndexId() : indexPlan.getNextAggregationIndexId());
+        return EntityBuilder.IndexEntityBuilder.findAvailableIndexEntityId(indexPlan, collector.values(), isTableIndex);
     }
 
     private long suggestLayoutId(IndexEntity indexEntity) {

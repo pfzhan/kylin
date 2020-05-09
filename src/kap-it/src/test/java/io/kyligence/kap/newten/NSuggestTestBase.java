@@ -386,7 +386,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             log.debug("build cube cost {} s", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging
-            // dumpMetadata();
+            dumpMetadata();
 
             // 3. validate results between SparkSQL and cube
             populateSSWithCSVData(kylinConfig, getProject(), SparderEnv.getSparkSession());

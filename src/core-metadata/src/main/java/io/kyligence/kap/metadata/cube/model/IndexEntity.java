@@ -28,6 +28,7 @@ import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 import java.io.Serializable;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -293,6 +294,21 @@ public class IndexEntity implements Serializable, IKeep {
             }
         }
         getLayouts().removeAll(toRemoveLayouts);
+    }
+
+    public long searchNextAvailableLayoutId() {
+        return searchNextAvailableLayoutId(getLayouts(), getId(), ((int) (getNextLayoutOffset())));
+    }
+
+    public long searchNextAvailableLayoutId(List<LayoutEntity> existedLayouts, long baseId, int defaultOffset) {
+        HashSet<Long> existedId = new HashSet<>();
+        existedLayouts.forEach(l -> existedId.add(l.getId()));
+
+        long candidateId = baseId + defaultOffset;
+        while (existedId.contains(candidateId)) {
+            candidateId++;
+        }
+        return candidateId;
     }
 
     // ============================================================================
