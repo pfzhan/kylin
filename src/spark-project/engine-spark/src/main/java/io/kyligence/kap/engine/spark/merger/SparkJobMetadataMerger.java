@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -54,6 +53,7 @@ import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.Getter;
 import lombok.val;
 
@@ -101,6 +101,9 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             Map<String, String> snapshots = segment.getSnapshots();
             NTableMetadataManager manager = NTableMetadataManager.getInstance(getConfig(), segment.getProject());
             KylinConfig segmentConf = segment.getConfig();
+            val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
+            long survivalTimeThreshold = timeMachineEnabled ? segmentConf.getStorageResourceSurvivalTimeThreshold()
+                    : segmentConf.getSnapshotVersionTTL();
             String workingDirectory = KapConfig.wrap(segmentConf).getReadHdfsWorkingDirectory();
             for (Map.Entry<String, String> entry : snapshots.entrySet()) {
                 log.info("Update snapshot table {}", entry.getKey());
@@ -121,9 +124,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 if (tableDesc.getLastSnapshotPath() != null) {
                     currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
                 }
-
                 if (lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
-
                     log.info("Update snapshot table {} : from {} to {}", entry.getKey(),
                             currentFile == null ? 0L : currentFile.getModificationTime(),
                             lastFile.getModificationTime());
@@ -132,10 +133,6 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                     TableDesc copyDesc = manager.copyForWrite(tableDesc);
                     copyDesc.setLastSnapshotPath(entry.getValue());
                     needUpdateTableDescs.add(copyDesc);
-                    val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
-                    long survivalTimeThreshold = timeMachineEnabled
-                            ? segmentConf.getStorageResourceSurvivalTimeThreshold()
-                            : segmentConf.getSnapshotVersionTTL();
                     snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
                             survivalTimeThreshold, segmentFile.getModificationTime()));
                 } else {
