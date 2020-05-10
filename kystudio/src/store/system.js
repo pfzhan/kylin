@@ -22,7 +22,7 @@ export default {
     engine: 2,
     allowAdminExport: 'true',
     allowNotAdminExport: 'true',
-    enableStackTrace: 'true',
+    enableStackTrace: 'false',
     filterUserName: '', // group页面 选择用户组件使用
     canaryReloadTimer: 15,
     sourceDefault: 0,
