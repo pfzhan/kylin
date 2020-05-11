@@ -25,31 +25,45 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 
 public class BuildLayoutWithUpdate {
     protected static final Logger logger = LoggerFactory.getLogger(BuildLayoutWithUpdate.class);
     private ExecutorService pool = Executors.newCachedThreadPool();
     private CompletionService<JobResult> completionService = new ExecutorCompletionService<>(pool);
     private int currentLayoutsNum = 0;
+
+    private final ScheduledExecutorService checkPointer;
+    private static final int CHECK_POINT_DELAY_SEC = 5;
+    private final LinkedBlockingQueue<LayoutPoint> layoutPoints;
+
+    public BuildLayoutWithUpdate() {
+        layoutPoints = new LinkedBlockingQueue<>();
+        checkPointer = Executors.newSingleThreadScheduledExecutor();
+        startCheckPoint();
+    }
 
     public void submit(JobEntity job, KylinConfig config) {
         completionService.submit(new Callable<JobResult>() {
@@ -78,35 +92,125 @@ public class BuildLayoutWithUpdate {
                 JobResult result = completionService.take().get();
                 logger.info("Take job result successful.");
                 if (result.isFailed()) {
-                    shutDownPool();
+                    shutDown();
                     throw new RuntimeException(result.getThrowable());
                 }
                 for (NDataLayout layout : result.getLayouts()) {
                     logger.info("Update layout {} in dataflow {}, segment {}", layout.getLayoutId(),
                             seg.getDataflow().getUuid(), seg.getId());
-                    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
-                        update.setToAddOrUpdateLayouts(layout);
-                        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);
-                        return 0;
-                    }, project);
+                    if (!layoutPoints.offer(new LayoutPoint(project, config, seg.getDataflow().getId(), layout))) {
+                        throw new IllegalStateException(
+                                "[UNLIKELY_THINGS_HAPPENED] Make sure that layoutPoints can offer.");
+                    }
                 }
-
             } catch (InterruptedException | ExecutionException e) {
-                shutDownPool();
+                shutDown();
                 throw new RuntimeException(e);
             }
         }
+        // flush 
+        doCheckPoint();
         currentLayoutsNum = 0;
     }
 
-    private void shutDownPool() {
+    private void startCheckPoint() {
+        checkPointer.scheduleWithFixedDelay(this::doCheckPoint, CHECK_POINT_DELAY_SEC, CHECK_POINT_DELAY_SEC,
+                TimeUnit.SECONDS);
+    }
+
+    private synchronized void doCheckPoint() {
+        LayoutPoint lp = layoutPoints.poll();
+        if (Objects.isNull(lp)) {
+            return;
+        }
+
+        if (Objects.isNull(lp.getLayout())) {
+            logger.warn("[LESS_LIKELY_THINGS_HAPPENED] layout shouldn't be empty.");
+            return;
+        }
+
+        final String project = lp.getProject();
+        final KylinConfig config = lp.getConfig();
+        final String dataFlowId = lp.getDataFlowId();
+        final List<NDataLayout> layouts = new ArrayList<>();
+        layouts.add(lp.getLayout());
+        StringBuilder sb = new StringBuilder("Checkpoint layouts: ").append(lp.getLayout().getLayoutId());
+
+        while (Objects.nonNull(lp = layoutPoints.peek()) && Objects.equals(project, lp.getProject())
+                && Objects.equals(dataFlowId, lp.getDataFlowId()) && Objects.nonNull(lp.getLayout())) {
+            layouts.add(lp.getLayout());
+            sb.append(',').append(lp.getLayout().getLayoutId());
+            LayoutPoint temp = layoutPoints.remove();
+            if (!Objects.equals(lp, temp)) {
+                throw new IllegalStateException(
+                        "[UNLIKELY_THINGS_HAPPENED] Make sure that only one thread can execute layoutPoints poll.");
+            }
+        }
+
+        // add log
+        final String layoutsLog = sb.toString();
+        logger.info(layoutsLog);
+
+        // persist to storage
+        KylinConfig.setAndUnsetThreadLocalConfig(config);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataflowUpdate update = new NDataflowUpdate(dataFlowId);
+            update.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+            NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);
+            return 0;
+        }, project);
+
+        if (Objects.nonNull(layoutPoints.peek())) {
+            // schedule immediately
+            doCheckPoint();
+        }
+    }
+
+    private void shutDown() {
         pool.shutdown();
         try {
             pool.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.warn("Error occurred when shutdown thread pool.", e);
             pool.shutdownNow();
+        }
+
+        checkPointer.shutdown();
+        try {
+            checkPointer.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            logger.warn("Error occurred when shutdown checkPointer.", e);
+            checkPointer.shutdownNow();
+        }
+    }
+
+    private static class LayoutPoint {
+        private final String project;
+        private final KylinConfig config;
+        private final String dataFlowId;
+        private final NDataLayout layout;
+
+        public LayoutPoint(String project, KylinConfig config, String dataFlowId, NDataLayout layout) {
+            this.project = project;
+            this.config = config;
+            this.dataFlowId = dataFlowId;
+            this.layout = layout;
+        }
+
+        public String getProject() {
+            return project;
+        }
+
+        public KylinConfig getConfig() {
+            return config;
+        }
+
+        public String getDataFlowId() {
+            return dataFlowId;
+        }
+
+        public NDataLayout getLayout() {
+            return layout;
         }
     }
 
