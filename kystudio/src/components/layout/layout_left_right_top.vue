@@ -1176,6 +1176,23 @@ export default class LayoutLeftRightTop extends Vue {
       }
     }
   }
+  .cloud-frame-page {
+    .data-source-bar {
+     .el-tree > .el-tree-node > .el-tree-node__content {
+       display: none;
+     }
+      .el-tree > .el-tree-node > .el-tree-node__children > .el-tree-node {
+        border-top: none;
+      }
+    }
+    .aggregate-modal {
+      top: 0px;
+      width: 100%;
+      .dialog-footer {
+        width: calc(~'100% - 40px');
+      }
+    }
+  }
   .limit-user-name {
     height: 20px;
     display: inline-block;

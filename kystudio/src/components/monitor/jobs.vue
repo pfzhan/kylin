@@ -271,7 +271,7 @@
                   
                   <!-- <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i> -->
                   <common-tip :content="$t('sparkJobTip')">
-                    <a :href="step.info.yarn_application_tracking_url" target="_blank">
+                    <a :href="step.info.yarn_application_tracking_url" target="_blank" v-if="!$store.state.config.platform || ($store.state.config.platform === 'iframe' && step.step_status === 'RUNNING')">
                         <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
                     </a>
                   </common-tip>
