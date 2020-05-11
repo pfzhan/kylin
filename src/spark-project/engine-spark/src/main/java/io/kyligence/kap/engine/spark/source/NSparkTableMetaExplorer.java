@@ -82,7 +82,7 @@ public class NSparkTableMetaExplorer implements Serializable {
         TableIdentifier tableIdentifier = TableIdentifier.apply(tableName,
                 Option.apply(database.isEmpty() ? null : database));
         CatalogTable tableMetadata = catalog.getTempViewOrPermanentTableMetadata(tableIdentifier);
-        checkTableIsValid(tableMetadata, tableIdentifier, database, tableName);
+        checkTableIsValid(tableMetadata, tableIdentifier, tableName);
         return getSparkTableMeta(tableName, tableMetadata);
     }
 
@@ -122,12 +122,15 @@ public class NSparkTableMetaExplorer implements Serializable {
                 .newArrayListWithCapacity(tableMetadata.schema().size());
         for (org.apache.spark.sql.types.StructField field : tableMetadata.schema().fields()) {
             String type = field.dataType().simpleString();
-
             // fetch provider specified type
             PROVIDER provider = PROVIDER.fromString(tableMetadata.provider());
             if (provider != PROVIDER.UNSPECIFIED
                     && field.metadata().contains(PROVIDER_METADATA_TYPE_STRING.get(provider))) {
                 type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
+            }
+            String finalType = type;
+            if (UNSUPOORT_TYPE.stream().anyMatch(finalType::contains)) {
+                continue;
             }
             allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(field.name(), type,
                     field.getComment().isDefined() ? field.getComment().get() : null));
@@ -136,16 +139,7 @@ public class NSparkTableMetaExplorer implements Serializable {
         return allColumns;
     }
 
-    private void checkTableIsValid(CatalogTable tableMetadata, TableIdentifier tableIdentifier, String database,
-            String tableName) {
-        for (NSparkTableMeta.SparkTableColumnMeta colMeta : getAllColumns(tableMetadata)) {
-            String type = colMeta.dataType;
-            if (UNSUPOORT_TYPE.stream().filter(t -> type.contains(t)).findAny().isPresent()) {
-                throw new RuntimeException("Error for parser table: " + tableName + ", filed: " + colMeta.name
-                        + " ,unsupoort type: " + type);
-            }
-        }
-
+    private void checkTableIsValid(CatalogTable tableMetadata, TableIdentifier tableIdentifier, String tableName) {
         if (CatalogTableType.VIEW().equals(tableMetadata.tableType())) {
             try {
                 SparderEnv.getSparkSession().table(tableIdentifier).queryExecution().analyzed();

@@ -86,9 +86,9 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
 
     withTable("hive_table_types") {
-      val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")).getMessage
-      assert(message.contains("Error for parser table:"))
-      assert(message.contains("unsupoort type: array"))
+      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
+      assert(res.allColumns.size() == 1)
+      assert(res.allColumns.get(0).name.equals("c"))
     }
   }
 
@@ -102,9 +102,9 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
 
     withTable("hive_table_types") {
-      val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")).getMessage
-      assert(message.contains("Error for parser table:"))
-      assert(message.contains("unsupoort type: map"))
+      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
+      assert(res.allColumns.size() == 1)
+      assert(res.allColumns.get(0).name.equals("c"))
     }
   }
 
@@ -118,9 +118,9 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false)
 
     withTable("hive_table_types") {
-      val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")).getMessage
-      assert(message.contains("Error for parser table:"))
-      assert(message.contains("unsupoort type: struct"))
+      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
+      assert(res.allColumns.size() == 1)
+      assert(res.allColumns.get(0).name.equals("c"))
     }
   }
 
