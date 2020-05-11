@@ -549,6 +549,7 @@
       })
     }
     async setbuildModel () {
+      this.btnLoading = true
       try {
         if (this.buildType === 'incremental' && this.buildOrComplete === 'build') {
           this.$refs.buildForm.validate(async (valid) => {
