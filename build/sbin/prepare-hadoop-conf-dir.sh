@@ -115,11 +115,14 @@ function checkAndCopyFIHiveSite() {
 }
 
 function formartXML() {
-	set -e
     file=$1
     if [[ -f ${file} ]]; then
         xmllint --format "$file" > "$file.xmlbak"
-        mv "$file.xmlbak" "$file"
+        if [[ $? == 0 ]]; then
+            mv "$file.xmlbak" "$file"
+        else
+            echo "ERROR:  $file format error.Please check it."
+        fi
     fi
 }
 
