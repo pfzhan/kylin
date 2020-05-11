@@ -36,39 +36,28 @@ module.exports = {
   bail: true,
   collectCoverage: true,
   collectCoverageFrom: [
+    'src/canvas/*.{js,vue}',
     'src/filter/*.{js,vue}',
-    'src/util/business.js',
-    'src/util/index.js',
-    'src/util/validate.js',
-    'src/util/object.js',
-    'src/components/common/(change_lang|pager|pager_filter_select).vue',
-    'src/components/common/EmptyData/EmptyData.vue',
-    'src/components/user/login.vue',
+    'src/directive/*.{js,vue}',
+    'src/util/*.{js,vue}',
+    'src/components/**',
     '!**/node_modules/**',
-    '!src/**/router/**',
-    '!src/config/**'
+    '!src/router/**',
+    '!src/locale/**',
+    '!src/config/**',
+    '!src/assets/**',
+    '!src/service/**',
+    '!src/store/**'
   ],
   // coverageReporters: ['json', 'lcovonly', 'text', 'clover'],
   coverageDirectory: './test/coverage',
   // 自定义覆盖率标准
   coverageThreshold: {
-    'src/util/*.js': {
-      branches: 5,
-      functions: 5,
-      lines: 5,
-      statements: 5
-    },
-    'src/filter/*.js': {
-      branches: 90,
-      functions: 90,
-      lines: 90,
-      statements: 90
-    },
-    'src/components/**/*.vue': {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
+    'global': {
+      'branches': 3,
+      'functions': 3,
+      'lines': 3,
+      'statements': 3
     }
   },
   forceCoverageMatch: ['src/**/__test__/*.spec.js']
