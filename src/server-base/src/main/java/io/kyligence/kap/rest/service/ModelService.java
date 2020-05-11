@@ -2786,8 +2786,8 @@ public class ModelService extends BasicService {
                     String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         if (model.isBroken()) {
-            throw new KylinException(MODEL_BROKEN, "Failed to get segments information because " + modelAlias
-                    + " is broken, please fix it and try again.");
+            throw new KylinException(MODEL_BROKEN,
+                    "Failed to get segment information as " + modelAlias + " is broken. Please fix it and try again.");
         }
         Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, start, end);
         CheckSegmentResponse checkSegmentResponse = new CheckSegmentResponse();

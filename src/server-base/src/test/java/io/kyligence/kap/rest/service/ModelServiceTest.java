@@ -3897,7 +3897,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testCheckSegmentWithBrokenModel() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Failed to get segments information because broken is broken");
+        thrown.expectMessage("Failed to get segment information as broken is broken");
         modelService.checkSegments("gc_test", "broken", "0", "100");
     }
 }
