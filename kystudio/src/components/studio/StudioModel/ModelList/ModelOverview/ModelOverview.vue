@@ -1,7 +1,7 @@
 <template>
-  <el-tabs class="model-overview" type="border-card" v-model="activeTab">
+  <el-tabs class="model-overview" type="border-card" v-model="activeTab" v-if="model">
     <el-tab-pane :label="$t('erDiagram')" name="erDiagram">
-      <ModelERDiagram is-show-full-screen :model="model" />
+      <ModelERDiagram ref="$er-diagram" is-show-full-screen :model="model" />
     </el-tab-pane>
     <el-tab-pane :label="$t('dimension')" name="dimension">
       <ModelDimensionList :model="model" />
@@ -14,7 +14,7 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { dataGenerator } from '../../../../../util'
@@ -33,9 +33,20 @@ import ModelMeasureList from '../../../../common/ModelMeasureList/ModelMeasureLi
 })
 export default class ModelOverview extends Vue {
   activeTab = 'erDiagram'
+  modelData = null
+
+  // 此处有待调查：为何删除模型的瞬间，会造成模型object变化？
+  // 这会导致computed model被重算，重算后，前端给table加的uuid被全部刷新了。
+  // 临时解决方案：放一个modelData的缓存变量，判断模型的uuid不发生变化，则不更新modelData
+  @Watch('data', { immediate: true })
+  onDataChange (newVal, oldVal) {
+    if (!oldVal || newVal.uuid !== oldVal.uuid) {
+      this.modelData = newVal
+    }
+  }
 
   get model () {
-    return dataGenerator.generateModel(this.data)
+    return this.modelData ? dataGenerator.generateModel(this.modelData) : null
   }
 }
 </script>

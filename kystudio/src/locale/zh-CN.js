@@ -193,7 +193,10 @@ exports.default = {
     dataDirectory: '数据源',
     useOldPasswordTip: '您正在使用系统自动生成的密码登录，请修改密码。',
     searchDimensionName: '搜索维度名称',
-    searchMeasureName: '搜索度量名称'
+    searchMeasureName: '搜索度量名称',
+    noDimensionInModel: '该模型未包含维度，',
+    noMeasureInModel: '该模型未包含度量，',
+    pleaseClickEditModel: '请在模型编辑界面添加。'
   },
   model: {
     generateModel: 'SQL 建模',

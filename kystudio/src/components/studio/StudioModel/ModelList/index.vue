@@ -111,9 +111,9 @@
               <div :class="renderFullExpandClass(props.row)">
                 <!-- <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div> -->
                 <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
-                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes" @tab-click="component => handleTabClick(component, props.row)">
                   <el-tab-pane :label="$t('overview')" name="overview">
-                    <ModelOverview :data="props.row" />
+                    <ModelOverview :ref="`$model-overview-${props.row.uuid}`" :data="props.row" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
@@ -991,6 +991,14 @@ export default class ModelList extends Vue {
   async handleExportMetadatas () {
     const project = this.currentSelectedProject
     await this.callModelsExportModal({ project })
+  }
+  async handleTabClick (tabComponent, model) {
+    if (tabComponent.name === 'overview') {
+      const $modelOverview = this.$refs[`$model-overview-${model.uuid}`]
+      const $erDiagram = $modelOverview.$refs['$er-diagram']
+      await this.$nextTick()
+      $erDiagram.handleReset()
+    }
   }
   @Watch('modelsPagerRenderData')
   onModelChange (modelsPagerRenderData) {

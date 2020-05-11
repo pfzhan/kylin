@@ -4,7 +4,6 @@
       ref="$canvas"
       draggable
       is-drag-layer
-      :key="!isResetStage"
       :stage-x="canvas.stage.x"
       :stage-y="canvas.stage.y"
       :zoom="canvas.stage.zoom"
@@ -98,7 +97,6 @@ export default class ModelERDiagram extends Vue {
     tables: [],
     joints: []
   }
-  isResetStage = false
 
   mounted () {
     this.handleAutoLayout()
@@ -194,6 +192,8 @@ export default class ModelERDiagram extends Vue {
   }
 
   handleReset () {
+    this.$refs.$canvas.handleResize()
+
     this.canvas.stage.x = 0
     this.canvas.stage.y = 0
     this.setZoom(1)
