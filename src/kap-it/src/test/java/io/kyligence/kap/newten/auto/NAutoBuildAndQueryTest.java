@@ -91,7 +91,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_join/sql_right_join"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_kap"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_like"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_similar"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_lookup"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_magine"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_magine_inner"), //
@@ -101,6 +100,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_probe"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_raw"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_rawtable"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_similar"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_snowflake"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_subquery"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_tableau"), //

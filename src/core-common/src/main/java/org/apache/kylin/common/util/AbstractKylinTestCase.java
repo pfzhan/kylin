@@ -82,6 +82,17 @@ public abstract class AbstractKylinTestCase {
         systemProp.clear();
     }
 
+    protected void restoreSystemProp(String prop) {
+        if (!systemProp.containsKey(prop) || systemProp.get(prop) == null) {
+            log.info("Clear {}", prop);
+            System.clearProperty(prop);
+        } else {
+            log.info("restore {}", prop);
+            System.setProperty(prop, systemProp.get(prop));
+        }
+        systemProp.remove(prop);
+    }
+
     public abstract void createTestMetadata(String... overlayMetadataDirs) throws Exception;
 
     public abstract void cleanupTestMetadata() throws Exception;

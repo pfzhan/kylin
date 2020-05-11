@@ -310,7 +310,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(110, methodsCount);
+        Assert.assertEquals(111, methodsCount);
     }
 
     @Test

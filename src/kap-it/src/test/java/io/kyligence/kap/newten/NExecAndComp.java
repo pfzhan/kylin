@@ -233,8 +233,8 @@ public class NExecAndComp {
         return rowList;
     }
 
-    private static void addQueryPath(Map<String, CompareEntity> recAndQueryResult, Pair<String, String> query,
-            String modifiedSql) {
+    public static void addQueryPath(Map<String, CompareEntity> recAndQueryResult, Pair<String, String> query,
+                                    String modifiedSql) {
         if (recAndQueryResult == null) {
             return;
         }
@@ -249,7 +249,7 @@ public class NExecAndComp {
                 "The method has deprecated, please call io.kyligence.kap.newten.NExecAndComp.execAndCompareNew");
     }
 
-    private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> pair,
+    public static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> pair,
             Map<String, CompareEntity> compareEntityMap) {
 
         compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
@@ -265,7 +265,7 @@ public class NExecAndComp {
         return queryFromCube(prj, KylinTestBase.changeJoinType(sql.getSecond(), joinType));
     }
 
-    private static Dataset<Row> queryWithSpark(String prj, String originSql, String sqlPath) {
+    public static Dataset<Row> queryWithSpark(String prj, String originSql, String sqlPath) {
         String compareSql = getCompareSql(sqlPath);
         if (StringUtils.isEmpty(compareSql))
             compareSql = originSql;

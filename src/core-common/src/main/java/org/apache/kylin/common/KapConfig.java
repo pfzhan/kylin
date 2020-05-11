@@ -615,4 +615,8 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kylin.storage.monitor-spark-period-seconds", "30"));
     }
 
+    public boolean isQueryEscapedLiteral() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.parser.escaped-string-literals", "false"));
+    }
+
 }

@@ -222,6 +222,10 @@ object KylinSession extends Logging {
         sparkConf.set("spark.scheduler.allocation.file", fairScheduler)
       }
 
+      if (kapConfig.isQueryEscapedLiteral) {
+        sparkConf.set("spark.sql.parser.escapedStringLiterals", "true")
+      }
+
       if (!"true".equalsIgnoreCase(System.getProperty("spark.local"))) {
         if (sparkConf.get("spark.master").startsWith("yarn")) {
           sparkConf.set("spark.yarn.dist.jars",

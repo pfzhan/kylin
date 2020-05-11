@@ -35,11 +35,13 @@ import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.calcite.util.NlsString
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Cast
+import org.apache.spark.sql.catalyst.parser.ParserUtils
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
@@ -166,10 +168,23 @@ object SparderTypeUtil extends Logging {
     }
   }
 
+  def getValueFromNlsString(s: NlsString): String = {
+    val ret = new StringBuilder
+    ret.append("'")
+    ret.append(s.getValue)
+    ret.append("'")
+    val res = ret.toString
+    if (!KylinConfig.getInstanceFromEnv.isQueryEscapedLiteral) {
+      ParserUtils.unescapeSQLString(res)
+    } else {
+      s.getValue
+    }
+  }
+
   def getValueFromRexLit(literal: RexLiteral) = {
     val ret = literal.getValue match {
       case s: NlsString =>
-        s.getValue
+        getValueFromNlsString(s)
       case g: GregorianCalendar =>
         if (literal.getTypeName.getName.equals("DATE")) {
           new Date(DateTimeUtils.stringToTimestamp(UTF8String.fromString(literal.toString)).get / 1000)
