@@ -43,5 +43,5 @@
 package org.apache.kylin.metadata.filter;
 
 public enum CompareResultType {
-    AlwaysTrue, AlwaysFalse, Unknown
+    ALWAYS_TRUE, ALWAYS_FALSE, UNKNOWN
 }

@@ -245,9 +245,9 @@ public class RexToTblColRefTranslator {
                 if (children.get(i) instanceof RexCall) {
                     RexCall whenCall = (RexCall) children.get(i);
                     CompareResultType compareResultType = getCompareResultType(whenCall);
-                    if (compareResultType == CompareResultType.AlwaysTrue) {
+                    if (compareResultType == CompareResultType.ALWAYS_TRUE) {
                         return Lists.newArrayList(children.get(i), children.get(i + 1));
-                    } else if (compareResultType == CompareResultType.Unknown) {
+                    } else if (compareResultType == CompareResultType.UNKNOWN) {
                         unknownWhenCalls++;
                     }
                 }
@@ -265,14 +265,14 @@ public class RexToTblColRefTranslator {
         List<RexNode> operands = whenCall.getOperands();
         if (SqlKind.EQUALS == whenCall.getKind() && operands != null && operands.size() == 2) {
             if (operands.get(0).equals(operands.get(1))) {
-                return CompareResultType.AlwaysTrue;
+                return CompareResultType.ALWAYS_TRUE;
             }
 
             if (isConstant(operands.get(0)) && isConstant(operands.get(1))) {
-                return CompareResultType.AlwaysFalse;
+                return CompareResultType.ALWAYS_FALSE;
             }
         }
-        return CompareResultType.Unknown;
+        return CompareResultType.UNKNOWN;
     }
 
     boolean isConstant(RexNode rexNode) {
