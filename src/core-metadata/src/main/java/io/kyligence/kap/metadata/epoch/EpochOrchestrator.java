@@ -67,14 +67,14 @@ public class EpochOrchestrator implements IKeep {
 
     private ScheduledExecutorService checkerPool;
 
-    private static final String ownerIdentity;
+    private static final String OWNER_IDENTITY;
 
     static {
-        ownerIdentity = AddressUtil.getLocalInstance() + "|" + System.currentTimeMillis();
+        OWNER_IDENTITY = AddressUtil.getLocalInstance() + "|" + System.currentTimeMillis();
     }
 
     public static String getOwnerIdentity() {
-        return ownerIdentity;
+        return OWNER_IDENTITY;
     }
 
     public EpochOrchestrator(KylinConfig kylinConfig) {

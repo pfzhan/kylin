@@ -72,7 +72,7 @@ public class EpochManager implements IKeep {
 
     public static final String GLOBAL = "_global";
 
-    public static ExecutorService pool;
+    private static final ExecutorService pool;
 
     private Set<String> currentEpochs = Sets.newCopyOnWriteArraySet();
 
@@ -235,8 +235,7 @@ public class EpochManager implements IKeep {
     public boolean checkEpochOwner(String project) {
         Epoch epoch;
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        if (StringUtils.isEmpty(project))
-            throw new IllegalStateException("Project should not be empty");
+        checkPrj(project);
         if (project.equals(GLOBAL)) {
             epoch = getGlobalEpoch();
         } else {
@@ -257,7 +256,7 @@ public class EpochManager implements IKeep {
             tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet());
         ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
         if (prj == null) {
-            throw new IllegalStateException("Project " + project + " does not exist");
+            throw new IllegalStateException(String.format("Project %s does not exist", project));
         }
         if (updateProjectEpoch(prj)) {
             schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
@@ -282,8 +281,7 @@ public class EpochManager implements IKeep {
     }
 
     public String getEpochOwner(String project) {
-        if (StringUtils.isEmpty(project))
-            throw new IllegalArgumentException("Project should not be empty");
+        checkPrj(project);
         Epoch epoch;
         if (project.equals(GLOBAL)) {
             epoch = getGlobalEpoch();
@@ -291,7 +289,7 @@ public class EpochManager implements IKeep {
             NProjectManager projectManager = NProjectManager.getInstance(config);
             ProjectInstance prj = projectManager.getProject(project);
             if (prj == null)
-                throw new IllegalArgumentException("Project " + project + " does not exist");
+                throw new IllegalArgumentException(String.format("Project %s does not exist", project));
             epoch = prj.getEpoch();
         }
         if (isEpochLegal(epoch)) {
@@ -311,16 +309,14 @@ public class EpochManager implements IKeep {
     }
 
     public long getEpochId(String project) {
-        if (StringUtils.isEmpty(project)) {
-            throw new IllegalStateException("Project should not be empty");
-        }
+        checkPrj(project);
         Epoch epoch = null;
         if (GLOBAL.equals(project))
             epoch = getGlobalEpoch();
         else
             epoch = NProjectManager.getInstance(config).getProject(project).getEpoch();
         if (epoch == null) {
-            throw new IllegalStateException("Epoch of project " + project + " does not exist");
+            throw new IllegalStateException(String.format("Epoch of project %s does not exist", project));
         }
         return epoch.getEpochId();
     }
@@ -330,6 +326,12 @@ public class EpochManager implements IKeep {
         Preconditions.checkNotNull(prj);
         if (updateProjectEpoch(prj, true)) {
             schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+        }
+    }
+
+    private void checkPrj(String project) {
+        if (StringUtils.isEmpty(project)) {
+            throw new IllegalStateException("Project should not be empty");
         }
     }
 }

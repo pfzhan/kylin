@@ -122,13 +122,7 @@ public class JdbcMetadataStore extends MetadataStore {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
             public Object handle() throws Exception {
-                if (StringUtils.isNotEmpty(unitPath)) {
-                    val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, unitPath, oriMvcc),
-                            RAW_RESOURCE_ROW_MAPPER);
-                    if (CollectionUtils.isEmpty(result)) {
-                        throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
-                    }
-                }
+                checkEpochModified(unitPath, oriMvcc);
                 int affectedRow = 0;
                 if (bs != null) {
                     val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
@@ -161,6 +155,16 @@ public class JdbcMetadataStore extends MetadataStore {
                 }
             }
         });
+    }
+
+    public void checkEpochModified(String unitPath, long oriMvcc) {
+        if (StringUtils.isNotEmpty(unitPath)) {
+            val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, unitPath, oriMvcc),
+                    RAW_RESOURCE_ROW_MAPPER);
+            if (CollectionUtils.isEmpty(result)) {
+                throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
+            }
+        }
     }
 
     @Override
