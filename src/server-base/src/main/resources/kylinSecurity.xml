@@ -636,7 +636,7 @@
         <!-- user auth -->
         <bean id="customAuthProvider" class="${kylin.security.custom.authentication-provider-class-name}"></bean>
 
-        <scr:authentication-manager alias="customAuthManager">
+        <scr:authentication-manager alias="customAuthManager" erase-credentials="false">
             <scr:authentication-provider ref="customAuthProvider"/>
         </scr:authentication-manager>
     </beans>

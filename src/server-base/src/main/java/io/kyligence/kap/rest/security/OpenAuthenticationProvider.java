@@ -74,7 +74,7 @@ public abstract class OpenAuthenticationProvider implements AuthenticationProvid
             String password = (String) authentication.getCredentials();
             user = new ManagedUser(userName, password, true, Constant.GROUP_ALL_USERS);
         }
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(user, user.getPassword(),
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(user, authentication.getCredentials(),
                 user.getAuthorities());
         return token;
     }
