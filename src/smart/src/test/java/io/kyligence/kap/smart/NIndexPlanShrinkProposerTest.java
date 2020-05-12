@@ -66,6 +66,7 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, indexplan.getAllLayouts().size());
         Assert.assertEquals(2, indexplan.getAllLayouts().get(0).getDimsIds().size());
         Assert.assertEquals(3, indexplan.getAllLayouts().get(0).getMeasureIds().size());
+        Assert.assertEquals("[100000, 100001, 100002]", indexplan.getAllLayouts().get(0).getMeasureIds().toString());
     }
 
     @Test

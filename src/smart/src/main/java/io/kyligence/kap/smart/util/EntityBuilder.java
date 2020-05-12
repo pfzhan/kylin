@@ -40,6 +40,7 @@ public class EntityBuilder {
         private long layoutId;
         private List<Integer> colOrderIds = Lists.newArrayList();
         private List<Integer> partitionCols = Lists.newArrayList();
+        private List<Integer> shardByCols = Lists.newArrayList();
         private IndexEntity index;
         private boolean isAuto;
 
@@ -58,6 +59,11 @@ public class EntityBuilder {
             return this;
         }
 
+        public LayoutEntityBuilder shardByCol(List<Integer> shardByCols) {
+            this.shardByCols = shardByCols;
+            return this;
+        }
+
         public LayoutEntityBuilder isAuto(boolean isAuto) {
             this.isAuto = isAuto;
             return this;
@@ -71,6 +77,7 @@ public class EntityBuilder {
             layout.setAuto(isAuto);
             layout.setUpdateTime(System.currentTimeMillis());
             layout.setPartitionByColumns(partitionCols);
+            layout.setShardByColumns(shardByCols);
             return layout;
         }
 

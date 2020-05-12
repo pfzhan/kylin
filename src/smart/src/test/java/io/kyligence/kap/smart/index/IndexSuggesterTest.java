@@ -243,7 +243,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         final IndexEntity indexEntity1 = allCuboids.get(1);
         Assert.assertEquals(1, indexEntity1.getLayouts().size());
         Assert.assertEquals(30001L, indexEntity1.getLayouts().get(0).getId());
-        Assert.assertEquals("[100001, 100000, 100002]", indexEntity1.getLayouts().get(0).getColOrder().toString());
+        Assert.assertEquals("[100000, 100001, 100002]", indexEntity1.getLayouts().get(0).getColOrder().toString());
     }
 
     @Test
@@ -402,6 +402,44 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("unmatched shard by columns size", 1, layouts2.get(0).getShardByColumns().size());
         Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.TRANS_ID", mdCtx
                 .getTargetModel().getEffectiveCols().get(layouts2.get(0).getShardByColumns().get(0)).getIdentity());
+    }
+
+    @Test
+    public void testIndexShouldNotMerge_WhenSameDimButDifferentShardBy() {
+
+        // set 'kylin.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
+        // currently, column part_dt's cardinality < 2000 && tans_id's > 2000
+        try {
+            getTestConfig().setProperty("kylin.smart.conf.rowkey.uhc.min-cardinality", "2000");
+
+            String[] sqls = new String[] {
+                    "select part_dt, max(lstg_format_name), trans_id from kylin_sales where part_dt = '2012-01-01' group by part_dt, trans_id",
+                    "select part_dt, count(lstg_format_name), trans_id from kylin_sales where trans_id = 100000 group by part_dt, trans_id",
+                    "select part_dt, max(lstg_format_name), trans_id from kylin_sales where trans_id = 100000 group by part_dt, trans_id",
+                    "select part_dt, count(lstg_format_name), trans_id from kylin_sales group by part_dt, trans_id" };
+            val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runWithContext();
+            AbstractContext ctx = smartMaster.getContext();
+            AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan);
+            List<IndexEntity> indexEntities = indexPlan.getIndexes();
+            Assert.assertEquals("unmatched cuboids size", 1, indexEntities.size());
+
+            // AggIndex with eq-filter and high cardinality
+            final List<LayoutEntity> layouts2 = indexEntities.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 2, layouts2.size());
+            Assert.assertEquals("unmatched shard by columns size", 1, layouts2.get(0).getShardByColumns().size());
+            Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.TRANS_ID", mdCtx
+                    .getTargetModel().getEffectiveCols().get(layouts2.get(0).getShardByColumns().get(0)).getIdentity());
+            Assert.assertEquals("[11, 7, 100000, 100001, 100002]", layouts2.get(0).getColOrder().toString());
+
+            Assert.assertEquals(0, layouts2.get(1).getShardByColumns().size());
+            Assert.assertEquals("[7, 11, 100000, 100001, 100002]", layouts2.get(1).getColOrder().toString());
+        } finally {
+            System.clearProperty("kylin.smart.conf.rowkey.uhc.min-cardinality");
+        }
     }
 
     @Test

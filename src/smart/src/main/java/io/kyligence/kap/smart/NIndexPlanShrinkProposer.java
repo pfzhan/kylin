@@ -158,7 +158,7 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         }
 
         // merge Layout
-        Set<Integer> newMeasures = Sets.newHashSet(originIndex.getMeasures());
+        Set<Integer> newMeasures = Sets.newTreeSet(originIndex.getMeasures());
         newMeasures.addAll(toBeMergedIndex.getMeasures());
         IndexEntity mergedIndex = new EntityBuilder.IndexEntityBuilder(availableNextIndexId, originIndex.getIndexPlan())
                 .dimIds(originIndex.getDimensions()).measure(Lists.newArrayList(newMeasures)).build();
@@ -171,16 +171,16 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
             List<Integer> newLayoutColOrder = new ArrayList<>(layoutEntity.getDimsIds());
             newLayoutColOrder.addAll(mergedIndex.getMeasures());
             List<LayoutEntity> existedLayout = Lists.newArrayList(mergedIndex.getLayouts());
-            LayoutEntity newLayout = new EntityBuilder.LayoutEntityBuilder(
-                    mergedIndex.searchNextAvailableLayoutId(existedLayout, mergedIndex.getId(),
-                            ((int) (mergedIndex.getNextLayoutOffset()))),
-                    mergedIndex).isAuto(layoutEntity.isAuto())
-                            .colOrderIds(newLayoutColOrder).partitionCol(layoutEntity.getPartitionByColumns()).build();
+            LayoutEntity newLayout = new EntityBuilder.LayoutEntityBuilder(mergedIndex.searchNextAvailableLayoutId(
+                    existedLayout, mergedIndex.getId(), ((int) (mergedIndex.getNextLayoutOffset()))), mergedIndex)
+                            .isAuto(layoutEntity.isAuto()).colOrderIds(newLayoutColOrder)
+                            .partitionCol(layoutEntity.getPartitionByColumns())
+                            .shardByCol(layoutEntity.getShardByColumns()).build();
             newLayout.setInProposing(true);
             mergedIndex.getLayouts().add(newLayout);
 
-            updateAccelerationInfo(proposeContext.getAccelerateInfoMap(), layoutEntity.getIndex().getIndexPlan().getId(),
-                    layoutEntity, newLayout);
+            updateAccelerationInfo(proposeContext.getAccelerateInfoMap(),
+                    layoutEntity.getIndex().getIndexPlan().getId(), layoutEntity, newLayout);
         }
 
         return mergedIndex;
@@ -239,7 +239,7 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
     private Map<String, LayoutEntity> mergeLayoutsOfSameColOrder(List<LayoutEntity> layouts) {
         Map<String, LayoutEntity> dims2LayoutMap = new HashMap<>();
         layouts.forEach(layoutEntity -> {
-            String dimStr = getDimsStr(layoutEntity.getDimsIds());
+            String dimStr = getDimsStr(layoutEntity.getDimsIds(), layoutEntity.getShardByColumns());
             if (dims2LayoutMap.get(dimStr) == null) {
                 dims2LayoutMap.put(dimStr, layoutEntity);
             } else {
@@ -250,12 +250,18 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         return dims2LayoutMap;
     }
 
-    private String getDimsStr(ImmutableList<Integer> dimIds) {
-        StringBuilder builder = new StringBuilder("[");
+    private String getDimsStr(ImmutableList<Integer> dimIds, List<Integer> shardByIds) {
+        StringBuilder builder = new StringBuilder("dim:[");
         for (int i = 0; i < dimIds.size(); i++) {
             builder.append(dimIds.get(i));
-            builder.append(i == dimIds.size() - 1 ? "]" : ",");
+            builder.append(i == dimIds.size() - 1 ? "" : ",");
         }
+        builder.append("] shardBy:[");
+        for (int i = 0; i < shardByIds.size(); i++) {
+            builder.append(shardByIds.get(i));
+            builder.append(i == dimIds.size() - 1 ? "" : ",");
+        }
+        builder.append("]");
         return builder.toString();
     }
 
