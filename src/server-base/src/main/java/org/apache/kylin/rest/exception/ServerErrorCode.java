@@ -46,7 +46,7 @@ import org.apache.kylin.common.exception.ErrorCodeSupplier;
 
 public enum ServerErrorCode implements ErrorCodeSupplier {
     // 10000XXX general
-    EMPTY_ID("KKE-10000001"), //
+    EMPTY_ID("KE-10000001"), //
     INVALID_RANGE("KE-10000002"), //
     INVALID_PARAMETER("KE-10000003"), //
     INVALID_NAME("KE-10000004"), //
