@@ -26,13 +26,20 @@ package io.kyligence.kap.rest.service;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 
 @Component("auditLogService")
 public class AuditLogService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuditLogService.class);
+
     public void notifyCatchUp() {
         ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        logger.info("Start to catchup manually");
         store.getAuditLogStore().catchupManually(store);
+        logger.info("End to catchup manually");
     }
 }

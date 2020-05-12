@@ -112,6 +112,7 @@ public class Broadcaster implements Closeable {
                     @Override
                     public void run() {
                         try {
+                            logger.info("Broadcast to notify catch up.");
                             finalClient.notifyCatchUp();
                         } catch (IOException e) {
                             logger.warn("Failed to notify catch up.");

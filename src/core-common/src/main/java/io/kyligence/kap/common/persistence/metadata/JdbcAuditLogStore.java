@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -243,6 +244,12 @@ public class JdbcAuditLogStore implements AuditLogStore {
             consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
             return null;
         });
+    }
+
+    public void catchupManuallyWithTimeOut(ResourceStore store) throws Exception {
+        FutureTask<Void> futureTask = new FutureTask<Void>(createFetcher(store.getChecker()), null);
+        consumeExecutor.submit(futureTask);
+        futureTask.get(2, TimeUnit.SECONDS);
     }
 
     public void catchupManually(ResourceStore store) {

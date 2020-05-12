@@ -49,6 +49,7 @@ import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -201,6 +202,12 @@ public class QueryNodeFilter implements Filter {
                 val exchange = restTemplate.exchange(
                         "http://all" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),
                         HttpMethod.valueOf(servletRequest.getMethod()), new HttpEntity<>(body, headers), byte[].class);
+                try {
+                    ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+                } catch (Exception e) {
+                    log.error("Failed to catchup manually.", e);
+                }
                 responseHeaders = exchange.getHeaders();
                 responseBody = exchange.getBody();
                 responseStatus = exchange.getStatusCodeValue();

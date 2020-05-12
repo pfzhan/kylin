@@ -63,6 +63,11 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public void catchupManuallyWithTimeOut(ResourceStore store) throws Exception {
+        //do nothing
+    }
+
+    @Override
     public void catchupManually(ResourceStore store) {
         //do nothing
     }
