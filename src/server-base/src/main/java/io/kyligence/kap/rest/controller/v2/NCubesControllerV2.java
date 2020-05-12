@@ -164,7 +164,7 @@ public class NCubesControllerV2 extends NBasicController {
             }
             if (idList.size() > 1) {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
-                        "You should choose at least one segment to refresh!");
+                        "You should choose at most one segment to refresh!");
             }
             val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));

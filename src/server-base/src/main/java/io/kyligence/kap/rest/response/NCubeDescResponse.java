@@ -89,13 +89,13 @@ public class NCubeDescResponse implements Serializable, IKeep {
         public Dimension3X(NDataModel.NamedColumn namedColumn, boolean isDerived) {
             this.name = namedColumn.getName();
             this.table = namedColumn.getAliasDotColumn().split("\\.")[0].toUpperCase().trim();
-            String column = namedColumn.getAliasDotColumn().split("\\.")[1].toUpperCase().trim();
+            String columnName = namedColumn.getAliasDotColumn().split("\\.")[1].toUpperCase().trim();
             if (!isDerived) {
-                this.column = column;
+                this.column = columnName;
                 this.derived = null;
             } else {
                 this.column = null;
-                this.derived = Arrays.asList(column);
+                this.derived = Arrays.asList(columnName);
             }
 
         }
@@ -134,9 +134,6 @@ public class NCubeDescResponse implements Serializable, IKeep {
         @JsonProperty("next_parameter")
         @JsonInclude(JsonInclude.Include.NON_NULL)
         private ParameterDesc3X nextParameter;
-
-        public ParameterDesc3X() {
-        }
 
         public static ParameterDesc3X convert(ParameterDesc parameterDesc) {
             ParameterDesc3X parameterDesc3X = new ParameterDesc3X();
