@@ -272,16 +272,13 @@ export default {
     },
     async loadAvailableProjectOwners (filterName) {
       this.ownerFilter.name = filterName || ''
-      clearTimeout(this.timer)
-      this.timer = setTimeout(async () => {
-        try {
-          const res = await this.getAvailableProjectOwners(this.ownerFilter)
-          const data = await handleSuccessAsync(res)
-          this.userOptions = data.value
-        } catch (e) {
-          this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
-        }
-      }, 500)
+      try {
+        const res = await this.getAvailableProjectOwners(this.ownerFilter)
+        const data = await handleSuccessAsync(res)
+        this.userOptions = data.value
+      } catch (e) {
+        this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
+      }
     },
     async openChangeProjectOwner (projectName) {
       this.projectOwner.project = projectName
@@ -349,8 +346,7 @@ export default {
         page_offset: 0,
         project: '',
         name: ''
-      },
-      timer: null
+      }
     }
   },
   components: {

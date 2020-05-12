@@ -572,19 +572,15 @@ export default class ModelList extends Vue {
     model: '',
     name: ''
   }
-  timer = null
   async loadAvailableModelOwners (filterName) {
     this.ownerFilter.name = filterName || ''
-    clearTimeout(this.timer)
-    this.timer = setTimeout(async () => {
-      try {
-        const res = await this.getAvailableModelOwners(this.ownerFilter)
-        const data = await handleSuccessAsync(res)
-        this.userOptions = data.value
-      } catch (e) {
-        this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
-      }
-    }, 500)
+    try {
+      const res = await this.getAvailableModelOwners(this.ownerFilter)
+      const data = await handleSuccessAsync(res)
+      this.userOptions = data.value
+    } catch (e) {
+      this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
+    }
   }
   async openChangeModelOwner (modelName, modelId) {
     this.modelOwner.modelName = modelName
