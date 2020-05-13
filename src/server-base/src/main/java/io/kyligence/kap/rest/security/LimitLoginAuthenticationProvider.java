@@ -29,10 +29,13 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +62,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     @Autowired
     @Qualifier("userService")
     UserService userService;
+
+    private ConcurrentHashMap<String, RestClient> clientMap = new ConcurrentHashMap<>();
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -117,8 +122,33 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     private void authenticateFail(ManagedUser managedUser, String userName) {
         if (userName != null && managedUser != null) {
             managedUser.authenticateFail();
-            userService.updateUser(managedUser);
+            updateUser(managedUser);
         }
+    }
+
+    private void updateUser(ManagedUser managedUser) {
+            boolean isOwner = false;
+            EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+            try {
+                isOwner = manager.checkEpochOwner(EpochManager.GLOBAL);
+            } catch (Exception e) {
+                logger.error("Get global epoch owner failed, update locally.", e);
+                return;
+            }
+            if (isOwner) {
+                userService.updateUser(managedUser);
+            } else {
+                try {
+                    String owner = manager.getEpochOwner(EpochManager.GLOBAL).split("\\|")[0];
+                    if (clientMap.get(owner) == null) {
+                        clientMap.clear();
+                        clientMap.put(owner, new RestClient(owner));
+                    }
+                    clientMap.get(owner).updateUser(managedUser);
+                } catch (Exception e) {
+                    logger.error("Failed to update user throw restclient", e);
+                }
+            }
     }
 
     private void updateUserLockStatus(ManagedUser managedUser, String userName) {
@@ -128,7 +158,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
             if (timeDiff > 30000) {
                 managedUser.setLocked(false);
-                userService.updateUser(managedUser);
+                updateUser(managedUser);
             } else {
                 int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
                 String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(), userName, leftSeconds);

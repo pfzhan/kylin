@@ -45,6 +45,7 @@ import java.util.Arrays;
 
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -91,4 +92,18 @@ public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
         String username = "ADMI N";
         kylinUserService.loadUserByUsername(username);
     }
+
+    @Test
+    public void testUpdateUser() {
+        String username = "ADMIN";
+        ManagedUser user = (ManagedUser) kylinUserService.loadUserByUsername(username);
+        Assert.assertFalse(user.isLocked());
+        user.setLocked(true);
+        kylinUserService.updateUser(user);
+        user = (ManagedUser) kylinUserService.loadUserByUsername(username);
+        Assert.assertTrue(user.isLocked());
+        user.setLocked(false);
+        kylinUserService.updateUser(user);
+    }
+
 }

@@ -26,11 +26,12 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.Closeable;
 import java.util.List;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import org.apache.kylin.common.persistence.ResourceStore;
 
-public interface AuditLogStore extends Closeable {
+public interface AuditLogStore extends Closeable, IKeep {
 
     void save(UnitMessages unitMessages);
 

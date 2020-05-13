@@ -281,6 +281,26 @@ public class RestClient {
         return response;
     }
 
+    public HttpResponse updateUser(Object object) throws IOException {
+        String url = baseUrl + "/user/update_user";
+        HttpPost post = newPost(url);
+        post.addHeader("routed", "true");
+        String jsonMsg = JsonUtil.writeValueAsIndentString(object);
+        post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
+        HttpResponse response = null;
+        try {
+            response = client.execute(post);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                logger.error("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " with update user " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(post, response);
+        }
+        return response;
+    }
+
     public HttpResponse updatePrjEpoch(String project) throws IOException {
         String url = baseUrl + "/epoch";
         HttpPost post = newPost(url);

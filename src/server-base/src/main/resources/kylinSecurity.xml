@@ -222,6 +222,7 @@
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="nUnauthorisedEntryPoint"/>
             <scr:intercept-url pattern="/api/health" access="permitAll"/>
+            <scr:intercept-url pattern="/api/user/update_user" access="permitAll"/>
             <scr:intercept-url pattern="/api/epoch" access="permitAll"/>
             <scr:intercept-url pattern="/api/audit_log"  access="permitAll"/>
             <scr:intercept-url pattern="/api/config/is_cloud" access="permitAll"/>

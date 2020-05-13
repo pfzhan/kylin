@@ -61,6 +61,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
@@ -88,7 +89,7 @@ import lombok.val;
  * In additional to raw bytes save and load, the store takes special care for concurrent modifications
  * by using a timestamp based test-and-set mechanism to detect (and refuse) dirty writes.
  */
-public abstract class ResourceStore implements AutoCloseable {
+public abstract class ResourceStore implements AutoCloseable, IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 

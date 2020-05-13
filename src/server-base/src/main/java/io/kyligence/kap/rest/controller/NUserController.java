@@ -318,6 +318,14 @@ public class NUserController extends NBasicController {
         return response;
     }
 
+
+    @PostMapping(value = "/update_user")
+    @ResponseBody
+    public EnvelopeResponse<UserDetails> updateUserWithoutAuth(@RequestBody ManagedUser user) {
+        userService.updateUser(user);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
     private void checkLicense() {
         if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
             val info = licenseInfoService.extractLicenseInfo();
