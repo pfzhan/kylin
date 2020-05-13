@@ -155,6 +155,23 @@ public class EscapeTransformerSparkSqlTest {
     }
 
     @Test
+    public void ceilFloorTest() {
+        String originSQL = "select ceil('2012-02-02 00:23:23' to year), ceil(  floor( col   to   hour) to day) from t";
+        String expectedSQL = "select CEIL_DATETIME('2012-02-02 00:23:23', 'YEAR'), CEIL_DATETIME(FLOOR_DATETIME(col, 'HOUR'), 'DAY') from t";
+
+        String transformedSQL = transformer.transform(originSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testCeilFloorQuery() {
+        String originSql = "SELECT {FN WEEK(CEIL( FLOOR(\t  TIME2 TO HOUR  ) TO DAY    )) }, FLOOR(SELLER_ID), CEIL(SELLER_ID) FROM TEST_MEASURE";
+        String expectedSql = "SELECT WEEKOFYEAR(CEIL_DATETIME(FLOOR_DATETIME(TIME2, 'HOUR'), 'DAY')), FLOOR(SELLER_ID), CEIL(SELLER_ID) FROM TEST_MEASURE";
+        String transformedSQL = transformer.transform(originSql);
+        Assert.assertEquals(expectedSql, transformedSQL);
+    }
+
+    @Test
     public void escapeTSTest() {
 
         String originalSQL = "select {ts '2013-01-01 00:00:00'}, {d '2013-01-01'}, {t '00:00:00'}";

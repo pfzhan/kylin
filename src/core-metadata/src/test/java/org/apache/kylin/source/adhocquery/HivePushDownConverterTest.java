@@ -120,54 +120,6 @@ public class HivePushDownConverterTest {
     }
 
     @Test
-    public void testFloorReplace() {
-        String originString = "select floor(ts TO year) from tableA";
-        String replacedString = HivePushDownConverter.floorReplace(originString);
-        Assert.assertEquals("select date_trunc('year',ts) from tableA", replacedString);
-
-        originString = "select floor ( ts to MONTH )  from tableA";
-        replacedString = HivePushDownConverter.floorReplace(originString);
-        Assert.assertEquals("select date_trunc('MONTH',ts)  from tableA", replacedString);
-
-        originString = "select floor(floor(ts TO day) TO year) from tableA";
-        replacedString = HivePushDownConverter.floorReplace(originString);
-        Assert.assertEquals("select date_trunc('year',date_trunc('day',ts)) from tableA", replacedString);
-    }
-
-    @Test
-    public void testCeilReplace() {
-        String originString = "select ceil(ts TO year) from tableA";
-        String replacedString = HivePushDownConverter.ceilReplace(originString);
-        Assert.assertEquals("select if(TIMESTAMPDIFF('year',ts,date_trunc('year',ts))==0,ts," +
-                "timestampAdd('year',1,date_trunc('year',ts))) from tableA", replacedString);
-
-        originString = "select ceil ( ts to MONTH )  from tableA";
-        replacedString = HivePushDownConverter.ceilReplace(originString);
-        Assert.assertEquals("select if(TIMESTAMPDIFF('MONTH',ts,date_trunc('MONTH',ts))==0,ts," +
-                        "timestampAdd('MONTH',1,date_trunc('MONTH',ts)))  from tableA",
-                replacedString);
-
-        originString = "select ceil(ceil(ts TO day) TO year) from tableA";
-        replacedString = HivePushDownConverter.ceilReplace(originString);
-        Assert.assertEquals(
-                "select if(TIMESTAMPDIFF('year',if(TIMESTAMPDIFF('day',ts,date_trunc('day',ts))==0,ts," +
-                        "timestampAdd('day',1,date_trunc('day',ts))),date_trunc('year',if(TIMESTAMPDIFF('day',ts,date_trunc('day',ts))==0,ts," +
-                        "timestampAdd('day',1,date_trunc('day',ts)))))==0,if(TIMESTAMPDIFF('day',ts,date_trunc('day',ts))==0,ts," +
-                        "timestampAdd('day',1,date_trunc('day',ts))),timestampAdd('year',1,date_trunc('year',if(TIMESTAMPDIFF('day',ts,date_trunc('day',ts))==0,ts," +
-                        "timestampAdd('day',1,date_trunc('day',ts)))))) from tableA",
-                replacedString);
-
-        originString = "select floor(ts TO year),ceil(ts TO year) from tableA";
-        replacedString = HivePushDownConverter.ceilReplace(originString);
-        replacedString = HivePushDownConverter.floorReplace(replacedString);
-        Assert.assertEquals(
-                "select date_trunc('year',ts),if(TIMESTAMPDIFF('year',ts,date_trunc('year',ts))==0,ts," +
-                        "timestampAdd('year',1,date_trunc('year',ts))) from tableA",
-                replacedString);
-
-    }
-
-    @Test
     public void testOverlayReplace() {
         String originString = "select overlay(myStr1 PLACING myStr2 FROM myInteger) from tableA";
         String replacedString = HivePushDownConverter.overlayReplace(originString);
@@ -190,13 +142,6 @@ public class HivePushDownConverterTest {
         String replacedString = hivePushDownConverter.convert(originString, "default", "default", false);
         Assert.assertEquals(
                 "select concat(substring(myStr1,0,myInteger-1),myStr2,substring(myStr1,myInteger+char_length(myStr2))) from tableA",
-                replacedString);
-
-        originString = "select floor(ts TO year),ceil(ts TO year) from tableA";
-        replacedString = hivePushDownConverter.convert(originString, "default", "default", false);
-        Assert.assertEquals(
-                "select date_trunc('year',ts),if(TIMESTAMPDIFF('year',ts,date_trunc('year',ts))==0,ts," +
-                        "timestampAdd('year',1,date_trunc('year',ts))) from tableA",
                 replacedString);
     }
 

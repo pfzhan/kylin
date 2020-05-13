@@ -42,7 +42,7 @@ object ExpressionConverter {
 
   val unaryParameterFunc = mutable.HashSet("ucase", "lcase", "base64",
     "sentences", "unbase64", "crc32", "md5", "sha", "sha1",
-    //time
+    // time
     "weekofyear",
     // math
     "cbrt", "cosh", "expm1", "factorial", "log1p", "log2", "rint", "sinh", "tanh"
@@ -136,11 +136,11 @@ object ExpressionConverter {
         if (children.length == 3) {
           children.head match {
             case "TRAILING" =>
-              rtrim(k_lit(children.apply(2)),children.apply(1).asInstanceOf[String])
+              rtrim(k_lit(children.apply(2)), children.apply(1).asInstanceOf[String])
             case "LEADING" =>
-              ltrim(k_lit(children.apply(2)),children.apply(1).asInstanceOf[String])
+              ltrim(k_lit(children.apply(2)), children.apply(1).asInstanceOf[String])
             case "BOTH" =>
-              trim(k_lit(children.apply(2)),children.apply(1).asInstanceOf[String])
+              trim(k_lit(children.apply(2)), children.apply(1).asInstanceOf[String])
           }
         } else {
           trim(k_lit(children.head))
@@ -238,7 +238,7 @@ object ExpressionConverter {
                 s"to_timestamp must provide one or two parameters under sparder")
             }
           case "unix_timestamp" =>
-            if (children.length == 0) {
+            if (children.isEmpty) {
               unix_timestamp
             } else if (children.length == 1) {
               unix_timestamp(k_lit(children.head))
@@ -319,7 +319,7 @@ object ExpressionConverter {
           case func if (varArgsFunc.contains(func)) => {
             callUDF(func, children.map(k_lit(_)): _*)
           }
-          case "date_part"  =>
+          case "date_part" =>
             var part = k_lit(children.head).toString().toUpperCase match {
               case "YEAR" =>
                 "y"
@@ -355,11 +355,11 @@ object ExpressionConverter {
             new Column(new If(k_lit(children.head).expr, k_lit(children.apply(1)).expr, k_lit(children.apply(2)).expr))
           case "overlay" =>
             if (children.length == 3) {
-              concat(substring(k_lit(children.head),0, children.apply(2).asInstanceOf[Int]-1), k_lit(children.apply(1)),
+              concat(substring(k_lit(children.head), 0, children.apply(2).asInstanceOf[Int] - 1), k_lit(children.apply(1)),
                 substring(k_lit(children.head), children.apply(2).asInstanceOf[Int] + children.apply(1).toString.length, Integer.MAX_VALUE))
             } else if (children.length == 4) {
-              concat(substring(k_lit(children.head),0, children.apply(2).asInstanceOf[Int]-1), k_lit(children.apply(1)),
-                substring(k_lit(children.head), (children.apply(2).asInstanceOf[Int] + children.apply(3).asInstanceOf[Int]) , Integer.MAX_VALUE))
+              concat(substring(k_lit(children.head), 0, children.apply(2).asInstanceOf[Int] - 1), k_lit(children.apply(1)),
+                substring(k_lit(children.head), (children.apply(2).asInstanceOf[Int] + children.apply(3).asInstanceOf[Int]), Integer.MAX_VALUE))
             } else {
               throw new UnsupportedOperationException(
                 s"overlay must provide three or four parameters under sparder")
@@ -372,8 +372,7 @@ object ExpressionConverter {
         if (children.length == 1) {
           ceil(k_lit(children.head))
         } else if (children.length == 2) {
-          new Column(new If(callUDF("TIMESTAMPDIFF", k_lit(children.apply(1)), k_lit(children.head), date_trunc(children.apply(1).toString, k_lit(children.head))).equalTo(k_lit(0)).expr,
-            k_lit(children.head).expr, callUDF("TIMESTAMPADD", k_lit(children.apply(1)), k_lit(1), date_trunc(children.apply(1).toString, k_lit(children.head))).expr))
+          callUDF("ceil_datetime", children.map(k_lit): _*)
         } else {
           throw new UnsupportedOperationException(
             s"ceil must provide one or two parameters under sparder")
@@ -382,7 +381,7 @@ object ExpressionConverter {
         if (children.length == 1) {
           floor(k_lit(children.head))
         } else if (children.length == 2) {
-          date_trunc(children.apply(1).toString , k_lit(children.head))
+          date_trunc(children.apply(1).toString, k_lit(children.head))
         } else {
           throw new UnsupportedOperationException(
             s"floor must provide one or two parameters under sparder")

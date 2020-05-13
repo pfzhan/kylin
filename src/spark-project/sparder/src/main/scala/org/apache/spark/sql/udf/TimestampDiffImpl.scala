@@ -24,6 +24,7 @@
 
 package org.apache.spark.sql.udf
 
+import org.apache.spark.sql.catalyst.util.DateTimeUtils._
 import org.apache.spark.sql.catalyst.util.KapDateTimeUtils._
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 

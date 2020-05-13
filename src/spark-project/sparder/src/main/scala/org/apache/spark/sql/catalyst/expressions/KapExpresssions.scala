@@ -26,12 +26,10 @@ package org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.util.KapDateTimeUtils
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
+import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.udf.{DictEncodeImpl, SplitPartImpl, TimestampAddImpl, TimestampDiffImpl, TruncateImpl}
-import org.apache.spark.unsafe.types.UTF8String
-import org.apache.spark.util.random.XORShiftRandom
+import org.apache.spark.sql.udf._
 
 // Returns the date that is num_months after start_date.
 // scalastyle:off line.size.limit
@@ -367,4 +365,79 @@ case class SplitPart(left: Expression, mid: Expression, right: Expression) exten
   }
 
   override def children: Seq[Expression] = Seq(left, mid, right)
+}
+
+case class FloorDateTime(timestamp: Expression,
+                         format: Expression,
+                         timeZoneId: Option[String] = None)
+  extends TruncInstant with TimeZoneAwareExpression {
+
+  override def left: Expression = timestamp
+
+  override def right: Expression = format
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(TimestampType, StringType)
+
+  override def dataType: TimestampType = TimestampType
+
+  override def prettyName: String = "floor_datetime"
+
+  override val instant = timestamp
+
+  override def withTimeZone(timeZoneId: String): TimeZoneAwareExpression =
+    copy(timeZoneId = Option(timeZoneId))
+
+  def this(timestamp: Expression, format: Expression) = this(timestamp, format, None)
+
+  override def eval(input: InternalRow): Any = {
+    evalHelper(input, maxLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
+      DateTimeUtils.truncTimestamp(t.asInstanceOf[Long], level, timeZone)
+    }
+  }
+
+  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val tz = ctx.addReferenceObj("timeZone", timeZone)
+    codeGenHelper(ctx, ev, maxLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
+      (date: String, fmt: String) =>
+        s"truncTimestamp($date, $fmt, $tz);"
+    }
+  }
+}
+
+case class CeilDateTime(timestamp: Expression,
+                        format: Expression,
+                        timeZoneId: Option[String] = None)
+  extends TruncInstant with TimeZoneAwareExpression {
+
+  override def left: Expression = timestamp
+
+  override def right: Expression = format
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(TimestampType, StringType)
+
+  override def dataType: TimestampType = TimestampType
+
+  override def prettyName: String = "ceil_datetime"
+
+  override val instant = timestamp
+
+  override def withTimeZone(timeZoneId: String): TimeZoneAwareExpression =
+    copy(timeZoneId = Option(timeZoneId))
+
+  def this(timestamp: Expression, format: Expression) = this(timestamp, format, None)
+
+  override def eval(input: InternalRow): Any = {
+    evalHelper(input, maxLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
+      KapDateTimeUtils.ceilTimestamp(t.asInstanceOf[Long], level, timeZone)
+    }
+  }
+
+  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val ta = KapDateTimeUtils.getClass.getName.stripSuffix("$")
+    val tz = ctx.addReferenceObj("timeZone", timeZone)
+    codeGenHelper(ctx, ev, maxLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
+      (date: String, fmt: String) =>
+        s"$ta.ceilTimestamp($date, $fmt, $tz);"
+    }
+  }
 }

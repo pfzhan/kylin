@@ -33,8 +33,10 @@ import io.kyligence.kap.query.util.EscapeFunction.FnConversion;
 public abstract class EscapeDialect {
 
     private static final String FN_LENGTH_ALIAS = "CHAR_LENGTH";
+    private static final String FN_CEIL = "CEIL";
+    private static final String FN_FLOOR = "FLOOR";
 
-    /** Define SQL dialect for different data source **/
+    /* Define SQL dialect for different data source */
 
     /**
      * CALCITE (CUBE)
@@ -43,16 +45,18 @@ public abstract class EscapeDialect {
 
         @Override
         public void init() {
-            registerAll(FnConversion.LEFT
-                    , FnConversion.RIGHT
-                    , FnConversion.CURRENT_DATE
-                    , FnConversion.CURRENT_TIME
-                    , FnConversion.CURRENT_TIMESTAMP
-                    , FnConversion.CONVERT
-                    , FnConversion.TRIM
-                    , FnConversion.PI);
+            registerAll(FnConversion.LEFT, //
+                    FnConversion.RIGHT, //
+                    FnConversion.CURRENT_DATE, //
+                    FnConversion.CURRENT_TIME, //
+                    FnConversion.CURRENT_TIMESTAMP, //
+                    FnConversion.CONVERT, //
+                    FnConversion.TRIM, //
+                    FnConversion.PI);
 
             register(FN_LENGTH_ALIAS, FnConversion.FN_LENGTH);
+            register(FN_CEIL, FnConversion.CEIL);
+            register(FN_FLOOR, FnConversion.FLOOR);
         }
 
         @Override
@@ -68,17 +72,19 @@ public abstract class EscapeDialect {
 
         @Override
         public void init() {
-            registerAll(FnConversion.LEFT
-                    , FnConversion.RIGHT
-                    , FnConversion.CONVERT
-                    , FnConversion.LOG
-                    , FnConversion.CURRENT_DATE
-                    , FnConversion.CURRENT_TIME
-                    , FnConversion.CURRENT_TIMESTAMP
-                    , FnConversion.WEEK
-                    , FnConversion.TRIM);
+            registerAll(FnConversion.LEFT, //
+                    FnConversion.RIGHT, //
+                    FnConversion.CONVERT, //
+                    FnConversion.LOG, //
+                    FnConversion.CURRENT_DATE, //
+                    FnConversion.CURRENT_TIME, //
+                    FnConversion.CURRENT_TIMESTAMP, //
+                    FnConversion.WEEK, //
+                    FnConversion.TRIM);
 
             register(FN_LENGTH_ALIAS, FnConversion.LENGTH);
+            register(FN_CEIL, FnConversion.CEIL2);
+            register(FN_FLOOR, FnConversion.FLOOR2);
         }
 
         @Override
@@ -91,19 +97,22 @@ public abstract class EscapeDialect {
 
         @Override
         public void init() {
-            registerAll(FnConversion.LEFT
-                    , FnConversion.RIGHT
-                    , FnConversion.CONVERT
-                    , FnConversion.LOG
-                    , FnConversion.CURRENT_DATE
-                    , FnConversion.CURRENT_TIME
-                    , FnConversion.CURRENT_TIMESTAMP
-                    , FnConversion.WEEK
-                    , FnConversion.TIMESTAMPADD
-                    , FnConversion.TIMESTAMPDIFF);
+            registerAll(FnConversion.LEFT, //
+                    FnConversion.RIGHT, //
+                    FnConversion.CONVERT, //
+                    FnConversion.LOG, //
+                    FnConversion.CURRENT_DATE, //
+                    FnConversion.CURRENT_TIME, //
+                    FnConversion.CURRENT_TIMESTAMP, //
+                    FnConversion.WEEK, //
+                    FnConversion.TIMESTAMPADD, //
+                    FnConversion.TIMESTAMPDIFF//
+            );
 
             register(FN_LENGTH_ALIAS, FnConversion.LENGTH);
             register("TRUNCATE", FnConversion.TRUNCATE_NUM);
+            register(FN_CEIL, FnConversion.CEIL2);
+            register(FN_FLOOR, FnConversion.FLOOR2);
         }
 
         @Override

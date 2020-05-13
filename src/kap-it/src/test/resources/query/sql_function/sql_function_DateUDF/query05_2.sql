@@ -1,0 +1,1 @@
+select  FLOOR(mod(35.2, 11)), ceil(timestamp '2012-01-01 00:12:23.9' to year ) from TEST_KYLIN_FACT limit 1

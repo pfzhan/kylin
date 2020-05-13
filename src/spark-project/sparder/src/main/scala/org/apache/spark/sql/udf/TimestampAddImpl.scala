@@ -26,8 +26,9 @@ package org.apache.spark.sql.udf
 
 import java.util.Calendar
 
+import org.apache.spark.sql.catalyst.util.DateTimeUtils.MICROS_PER_MILLIS
+import org.apache.spark.sql.catalyst.util.KapDateTimeUtils.MONTHS_PER_QUARTER
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
-import org.apache.spark.sql.catalyst.util.KapDateTimeUtils.{MICROS_PER_MILLIS, MONTHS_PER_QUARTER}
 
 object TimestampAddImpl {
   private val localCalendar = new ThreadLocal[Calendar] {
@@ -80,9 +81,9 @@ object TimestampAddImpl {
       case "WEEK" | "SQL_TSI_WEEK" =>
         cal.add(Calendar.WEEK_OF_YEAR, increment)
       case "MONTH" | "SQL_TSI_MONTH" =>
-        cal.setTimeInMillis(KapDateTimeUtils.addMonths(cal.getTimeInMillis*1000, increment)/1000)
+        cal.setTimeInMillis(KapDateTimeUtils.addMonths(cal.getTimeInMillis * 1000, increment) / 1000)
       case "QUARTER" | "SQL_TSI_QUARTER" =>
-        cal.setTimeInMillis(KapDateTimeUtils.addMonths(cal.getTimeInMillis*1000, increment * MONTHS_PER_QUARTER.intValue())/1000)
+        cal.setTimeInMillis(KapDateTimeUtils.addMonths(cal.getTimeInMillis * 1000, increment * MONTHS_PER_QUARTER.intValue()) / 1000)
       case "YEAR" | "SQL_TSI_YEAR" =>
         cal.add(Calendar.YEAR, increment)
       case _ =>

@@ -41,7 +41,7 @@ public class EscapeTransformerTest {
     @BeforeClass
     public static void prepare() {
 
-        /**
+        /*
          * Use all existing function conversions
          */
         EscapeDialect ALL_FUNC = new EscapeDialect() {
@@ -76,10 +76,12 @@ public class EscapeTransformerTest {
 
         String originalSQL = "select 'do not escape {fn CURRENT_TIME()}' name from table_2 "
                 + "where address='qwerty(1123)' or address='qwerty(1123' or address='qwerty1123)'";
-        String expectedSQL = originalSQL;
-
         String transformedSQL = transformer.transform(originalSQL);
-        Assert.assertEquals(expectedSQL, transformedSQL);
+        Assert.assertEquals(originalSQL, transformedSQL);
+
+        String originSQL2 = "SELECT ' FLOOR(ABC TO HOUR)' FROM T";
+        String transformedSQL2 = transformer.transform(originSQL2);
+        Assert.assertEquals(originSQL2, transformedSQL2);
     }
 
     @Test
@@ -311,4 +313,10 @@ public class EscapeTransformerTest {
         Assert.assertEquals(expectedSql, transformedSQL);
     }
 
+    @Test
+    public void testCeilFloorQueryNotConvert() {
+        String originSQL = "SELECT FLOOR(ABC   TO   OTHER) FROM T";
+        String transformedSQL = transformer.transform(originSQL);
+        Assert.assertEquals(originSQL, transformedSQL);
+    }
 }

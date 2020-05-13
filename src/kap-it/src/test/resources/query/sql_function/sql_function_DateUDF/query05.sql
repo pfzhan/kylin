@@ -10,8 +10,7 @@ select
        floor(floor(time2 to HOUR) to HOUR),
        ceil(ceil(time2 to HOUR) to HOUR),
        floor(ceil(time2 to HOUR) to HOUR),
-       -- TODO KE-14058
-       -- ceil(floor(time2 to HOUR) to HOUR),
+       ceil(floor(time2 to HOUR) to HOUR),
        floor(floor(time2 to day) to HOUR),
        ceil(ceil(time2 to day) to HOUR),
        floor(ceil(time2 to day) to HOUR),

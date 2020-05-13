@@ -27,7 +27,7 @@ import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{DictEncode, Expression, ExpressionInfo, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCountDistinct}
 
 object KapFunctions {
@@ -96,7 +96,9 @@ object KapFunctions {
     FunctionEntity(expression[TimestampDiff]("TIMESTAMPDIFF")),
     FunctionEntity(expression[Truncate]("TRUNCATE")),
     FunctionEntity(expression[DictEncode]("DICTENCODE")),
-    FunctionEntity(expression[SplitPart]("split_part")))
+    FunctionEntity(expression[SplitPart]("split_part")),
+    FunctionEntity(expression[FloorDateTime]("floor_datetime")),
+    FunctionEntity(expression[CeilDateTime]("ceil_datetime")))
 }
 
 case class FunctionEntity(name: FunctionIdentifier,

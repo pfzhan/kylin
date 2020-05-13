@@ -47,7 +47,7 @@ PARSER_END(EscapeParser)
 //| "\r"
 //}
 
-<ESCAPE, FUNCTION, TIMESTAMP >
+<ESCAPE, FUNCTION, TIMEUNIT >
 SKIP :
 {
   < SKIP_SPACE : <SPACE> >
@@ -64,7 +64,23 @@ TOKEN :
 | < SPACE : [" ", "\t","\n", "\r"] >
 | < QUOTE: "'" >
 | < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+| < CEIL : "CEIL" >
+| < FLOOR : "FLOOR" >
+| < TO : "TO" > : TIMEUNIT
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "'", "\t", "\n", "\r" ])+ >
+}
+
+< TIMEUNIT >
+TOKEN :
+{
+  < YEAR: "YEAR" > : DEFAULT
+| < MONTH: "MONTH" >   : DEFAULT
+| < QUARTER: "QUARTER" > : DEFAULT
+| < WEEK : "WEEK" > : DEFAULT
+| < DAY: "DAY" > : DEFAULT
+| < HOUR: "HOUR" > : DEFAULT
+| < MINUTE: "MINUTE" > : DEFAULT
+| < SECOND: "SECOND" > : DEFAULT
 }
 
 < ESCAPE >
@@ -117,6 +133,7 @@ String Expression() :
     }
     (
         innerString = EscapeExpress()
+    | innerString = CeilFloorExpress()
     | innerString = ParenExpress()
     | innerString = QuotedString()
     | innerString = Comma()
@@ -209,6 +226,48 @@ String EscapeExpress() :
     }
 }
 
+String CeilFloorExpress() :
+{    String functionName;
+     String timeUnit = null;
+     List <String> parameters = new ArrayList();
+}
+{
+    ( < CEIL > | < FLOOR > )
+    {
+        functionName = getToken(0).image;
+    }
+    (< SPACE >)* <LPAREN> (< SPACE >)*
+    {
+       parameters.add(ParameterExpression().trim());
+    }
+        (< SPACE >)*
+        (
+           timeUnit = toFormat()
+        |  <RPAREN>
+        )
+    {
+        if (timeUnit != null) {
+            parameters.add(timeUnit);
+        }
+        return dialect.transformFN(functionName, parameters.toArray(new String [ 0 ]));
+    }
+}
+
+String toFormat() :
+{
+    String timeUnit;
+}
+{
+    <TO> (< YEAR > | < QUARTER > | < MONTH > | < WEEK > | < DAY > | < HOUR > | < MINUTE > | < SECOND > )
+        {
+            timeUnit = getToken(0).image;
+        }
+    (< SPACE >)* <RPAREN>
+    {
+       return timeUnit;
+    }
+}
+
 String EscapeFunction() :
 {
     String functionName;
@@ -255,6 +314,7 @@ String ParameterExpression() :
 {
     (
         innerString = EscapeExpress()
+    | innerString = CeilFloorExpress()
     | innerString = ParenExpress()
     | innerString = QuotedString()
     | innerString = Space()

@@ -24,17 +24,18 @@
 
 package org.apache.spark.sql.catalyst.util
 
+import java.util.TimeZone
+
 import org.apache.calcite.avatica.util.TimeUnitRange
+import org.apache.spark.sql.catalyst.util.DateTimeUtils._
 
 object KapDateTimeUtils {
-  val MICROS_PER_MILLIS: Long = 1000L
-  val MILLIS_PER_SECOND: Long = 1000L
-  val MILLIS_PER_MINUTE: Long = MILLIS_PER_SECOND * 60L
-  val MILLIS_PER_HOUR: Long = MILLIS_PER_MINUTE * 60L
-  val MILLIS_PER_DAY: Long = MILLIS_PER_HOUR * 24L
-  val DAYS_PER_WEEK: Long = 7L
-  val MONTHS_PER_QUARTER: Long = 3L
-  val QUARTERS_PER_YEAR: Long = 4L
+
+  final val MILLIS_PER_MINUTE: Long = DateTimeUtils.MILLIS_PER_SECOND * 60L
+  final val MILLIS_PER_HOUR: Long = MILLIS_PER_MINUTE * 60L
+  final val DAYS_PER_WEEK: Long = 7L
+  final val MONTHS_PER_QUARTER: Long = 3L
+  final val QUARTERS_PER_YEAR: Long = 4L
 
   def addMonths(timestamp: Long, m: Int): Long = {
     // spark ts unit is microsecond
@@ -46,7 +47,8 @@ object KapDateTimeUtils {
   }
 
   /** Finds the number of months between two dates, each represented as the
-    * number of days since the epoch. */
+   * number of days since the epoch.
+   */
   def dateSubtractMonths(date0: Int, date1: Int): Int = {
     if (date0 < date1) return -dateSubtractMonths(date1, date0)
     // Start with an estimate.
@@ -82,11 +84,10 @@ object KapDateTimeUtils {
     (date + 4) % 7 + 1
   }
 
-
   /**
-    * Add date and year-month interval.
-    * Returns a date value, expressed in days since 1.1.1970.
-    */
+   * Add date and year-month interval.
+   * Returns a date value, expressed in days since 1.1.1970.
+   */
   def dateAddMonths(date: Int, m: Int): Int = {
     var y0 = org.apache.calcite.avatica.util.DateTimeUtils
       .unixDateExtract(TimeUnitRange.YEAR, date)
@@ -130,5 +131,32 @@ object KapDateTimeUtils {
     case 9 => 30
     case 11 => 30
     case _ => 31
+  }
+
+  /**
+   * Returns the ceil date time from original date time and trunc level.
+   * Trunc level should be generated using `parseTruncLevel()`, should be between 1 and 8
+   */
+  def ceilTimestamp(t: SQLTimestamp, level: Int, timeZone: TimeZone): SQLTimestamp = {
+    val floorValue = DateTimeUtils.truncTimestamp(t.asInstanceOf[Long], level, timeZone)
+    if (floorValue == t) {
+      floorValue
+    } else {
+      // trunc, then add a increment, trunc again === ceil
+      val increment = level match {
+        case TRUNC_TO_YEAR => 366 * DateTimeUtils.MICROS_PER_DAY
+        case TRUNC_TO_QUARTER => 93 * DateTimeUtils.MICROS_PER_DAY
+        case TRUNC_TO_MONTH => 31 * DateTimeUtils.MICROS_PER_DAY
+        case TRUNC_TO_WEEK => 7 * DateTimeUtils.MICROS_PER_DAY
+        case TRUNC_TO_DAY => DateTimeUtils.MICROS_PER_DAY
+        case TRUNC_TO_HOUR => 3600 * DateTimeUtils.MICROS_PER_SECOND
+        case TRUNC_TO_MINUTE => 60 * DateTimeUtils.MICROS_PER_SECOND
+        case TRUNC_TO_SECOND => DateTimeUtils.MICROS_PER_SECOND
+        case _ =>
+          // caller make sure that this should never be reached
+          sys.error(s"Invalid trunc level: $level")
+      }
+      DateTimeUtils.truncTimestamp(floorValue + increment, level, timeZone)
+    }
   }
 }

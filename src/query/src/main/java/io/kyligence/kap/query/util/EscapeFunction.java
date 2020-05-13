@@ -26,7 +26,12 @@ package io.kyligence.kap.query.util;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.common.base.Preconditions;
+
 public class EscapeFunction {
+
+    private static final String CEIL_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
+    private static final String FLOOR_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
 
     /* Function conversion implementations */
     /*
@@ -38,6 +43,7 @@ public class EscapeFunction {
             String[] newArgs = new String[] { args[0], "1", args[1] };
             return normalFN("SUBSTRING", newArgs);
         }),
+
         RIGHT(args -> {
             checkArgs(args, 2);
             String origStrRef = args[0];
@@ -46,30 +52,35 @@ public class EscapeFunction {
                     "" + rightOffset };
             return normalFN("SUBSTRING", newArgs);
         }),
+
         TRIM(args -> {
             checkArgs(args, 1);
             String[] newArgs = new String[] { "both " + args[0] };
             return normalFN("TRIM", newArgs);
-        }
-        ),
+        }),
+
         LTRIM(args -> {
             checkArgs(args, 1);
             String[] newArgs = new String[] { "leading " + args[0] };
             return normalFN("TRIM", newArgs);
         }),
+
         RTRIM(args -> {
             checkArgs(args, 1);
             String[] newArgs = new String[] { "trailing " + args[0] };
             return normalFN("TRIM", newArgs);
         }),
+
         FN_LENGTH(args -> {
             checkArgs(args, 1);
             return scalarFN("LENGTH", args);
         }),
+
         LENGTH(args -> {
             checkArgs(args, 1);
             return normalFN("LENGTH", args);
         }),
+
         CONVERT(args -> {
             checkArgs(args, 2);
             String value = args[0];
@@ -79,68 +90,111 @@ public class EscapeFunction {
                 sqlType = sqlType.substring(sqlPrefix.length());
             }
             switch (sqlType) {
-                case "WVARCHAR":
-                case "CHAR":
-                case "WCHAR":
-                    sqlType = "VARCHAR";
-                    break;
-                default:
-                    break;
+            case "WVARCHAR":
+            case "CHAR":
+            case "WCHAR":
+                sqlType = "VARCHAR";
+                break;
+            default:
+                break;
             }
             String[] newArgs = new String[] { value + " AS " + sqlType };
             return normalFN("CAST", newArgs);
         }),
+
         LCASE(args -> {
             checkArgs(args, 1);
             return normalFN("LOWER", args);
         }),
+
         UCASE(args -> {
             checkArgs(args, 1);
             return normalFN("UPPER", args);
         }),
+
         LOG(args -> {
             checkArgs(args, 1);
             return normalFN("LN", args);
         }),
+
         PI(args -> {
             checkArgs(args, 0);
             return "PI";
         }),
+
         CURRENT_DATE(args -> {
             checkArgs(args, 0);
             return "CURRENT_DATE";
         }),
+
         CURRENT_TIME(args -> {
             checkArgs(args, 0);
             return "CURRENT_TIME";
         }),
+
         CURRENT_TIMESTAMP(args -> {
             if (args == null || args.length > 1) {
                 throw new IllegalArgumentException("Bad arguments");
             }
             return "CURRENT_TIMESTAMP";
         }),
+
         WEEK(args -> {
             checkArgs(args, 1);
             return normalFN("WEEKOFYEAR", args);
         }),
+
         TRUNCATE_NUM(args -> {
             checkArgs(args, 2);
             return normalFN("TRUNCATE_NUM", args);
         }),
+
         TIMESTAMPADD(args -> {
             checkArgs(args, 3);
-            String[] newArgs = {"'" + args[0] + "'", args[1], args[2]};
+            String[] newArgs = { "'" + args[0] + "'", args[1], args[2] };
             return normalFN("TIMESTAMPADD", newArgs);
         }),
+
         TIMESTAMPDIFF(args -> {
             checkArgs(args, 3);
-            String[] newArgs = {"'" + args[0] + "'", args[1], args[2]};
+            String[] newArgs = { "'" + args[0] + "'", args[1], args[2] };
             return normalFN("TIMESTAMPDIFF", newArgs);
+        }),
+
+        CEIL2(args -> {
+            Preconditions.checkArgument(args.length == 1 || args.length == 2, EscapeFunction.CEIL_EXCEPTION_MSG);
+            if (args.length == 1) {
+                return normalFN("CEIL", args);
+            } else {
+                String[] newArgs = new String[] { args[0], "'" + args[1].toUpperCase() + "'" };
+                return normalFN("CEIL_DATETIME", newArgs);
+            }
+        }),
+
+        CEIL(args -> {
+            Preconditions.checkArgument(args.length == 1 || args.length == 2, EscapeFunction.CEIL_EXCEPTION_MSG);
+            String[] newArgs = args.length == 1 ? args : new String[] { args[0] + " to " + args[1] };
+            return normalFN("CEIL", newArgs);
+        }),
+
+        FLOOR2(args -> {
+            Preconditions.checkArgument(args.length == 1 || args.length == 2, EscapeFunction.FLOOR_EXCEPTION_MSG);
+            if (args.length == 1) {
+                return normalFN("FLOOR", args);
+            } else {
+                String[] newArgs = new String[] { args[0].trim(), "'" + args[1].toUpperCase() + "'" };
+                return normalFN("FLOOR_DATETIME", newArgs);
+            }
+        }),
+
+        FLOOR(args -> {
+            Preconditions.checkArgument(args.length == 1 || args.length == 2, EscapeFunction.FLOOR_EXCEPTION_MSG);
+            String[] newArgs = args.length == 1 ? args : new String[] { args[0] + " to " + args[1] };
+            return normalFN("FLOOR", newArgs);
         });
 
         private interface IConvert {
-            public String convert(String[] args);
+            String convert(String[] args);
         }
 
         private IConvert innerCvt;
