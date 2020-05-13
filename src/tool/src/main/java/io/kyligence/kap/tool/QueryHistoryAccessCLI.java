@@ -42,6 +42,11 @@ public class QueryHistoryAccessCLI {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccessCLI.class);
     private static final String PROJECT = "test_project";
+    private JdbcTemplate jdbcTemplate;
+
+    public QueryHistoryAccessCLI(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public boolean testAccessQueryHistory() {
         try {
@@ -75,19 +80,19 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setRealizationMetrics(realizationMetricsList);
             rdbmsWriter.write(null, queryMetrics, 0L);
 
-            // clean 
-            getJdbcTemplate()
-                    .update("delete from " + RDBMSWriter.getQueryHistoryTableName() + " where project_name = '" + PROJECT + "'");
-            getJdbcTemplate().update(
-                    "delete from " + RDBMSWriter.getQueryHistoryRealizationTableName() + " where project_name = '" + PROJECT + "'");
         } catch (Exception e) {
             logger.error("query history access test failed." + e.getMessage());
             return false;
+        } finally {
+            // clean
+            jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryTableName() + " where project_name = '" + PROJECT + "'");
+            jdbcTemplate.update(
+                    "delete from " + RDBMSWriter.getQueryHistoryRealizationTableName() + " where project_name = '" + PROJECT + "'");
         }
         return true;
     }
 
-    JdbcTemplate getJdbcTemplate() throws Exception {
+    static JdbcTemplate getJdbcTemplate() throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val props = datasourceParameters(kylinConfig.getMetadataUrl());
         val dataSource = BasicDataSourceFactory.createDataSource(props);
@@ -95,7 +100,13 @@ public class QueryHistoryAccessCLI {
     }
 
     public static void main(String[] args) {
-        QueryHistoryAccessCLI cli = new QueryHistoryAccessCLI();
+        QueryHistoryAccessCLI cli = null;
+        try {
+            cli = new QueryHistoryAccessCLI(getJdbcTemplate());
+        } catch (Exception e) {
+            logger.error("Test failed.");
+            System.exit(1);
+        }
 
         if (args.length != 1) {
             System.exit(1);
