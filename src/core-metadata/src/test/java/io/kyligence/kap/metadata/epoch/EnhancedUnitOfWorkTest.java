@@ -100,7 +100,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
 
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet());
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
         TimeUnit.SECONDS.sleep(2);
         try {
             thrown.expect(TransactionException.class);
@@ -117,7 +117,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testEpochModified() throws Exception {
         KylinConfig config = getTestConfig();
         EpochManager epochManager = EpochManager.getInstance(config);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet());
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
         val epoch = epochManager.getGlobalEpoch();
         epoch.setLastEpochRenewTime(System.currentTimeMillis());
         val table = config.getMetadataUrl().getIdentifier();

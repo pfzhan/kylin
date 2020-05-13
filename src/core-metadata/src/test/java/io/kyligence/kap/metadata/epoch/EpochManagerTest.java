@@ -58,11 +58,11 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet());
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
         val globalEpoch = epochManager.getGlobalEpoch();
         val time1 = globalEpoch.getLastEpochRenewTime();
         Assert.assertNotNull(globalEpoch);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet());
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
         Assert.assertNotEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
     }
 

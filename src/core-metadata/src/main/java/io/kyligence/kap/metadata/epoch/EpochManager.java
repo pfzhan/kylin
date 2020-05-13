@@ -105,9 +105,9 @@ public class EpochManager implements IKeep {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(GLOBAL_EPOCH, EPOCH_SERIALIZER);
     }
 
-    private boolean updateGlobalEpoch() {
+    private boolean updateGlobalEpoch(boolean force) {
         return UnitOfWork.doInTransactionWithRetry(() -> {
-            Epoch epoch = getNewEpoch(getGlobalEpoch());
+            Epoch epoch = getNewEpoch(getGlobalEpoch(), force);
             if (epoch == null) {
                 return false;
             }
@@ -137,11 +137,14 @@ public class EpochManager implements IKeep {
         }
         for (val entry : fts.entrySet()) {
             try {
-                if (entry.getValue().get(10, TimeUnit.SECONDS)) {
+                if (entry.getValue().get(KylinConfig.getInstanceFromEnv().getUpdateEpochTimeout(), TimeUnit.SECONDS)) {
                     newEpochs.add(entry.getKey());
                 }
             } catch (Exception e) {
                 logger.error("failed to update {}", entry.getKey(), e);
+                if (checkEpochOwner(entry.getKey())) {
+                    newEpochs.add(entry.getKey());
+                }
             }
         }
     }
@@ -172,19 +175,21 @@ public class EpochManager implements IKeep {
         }
     }
 
-    public void tryUpdateGlobalEpoch(Set<String> newEpochs) throws Exception {
+    public boolean tryUpdateGlobalEpoch(Set<String> newEpochs, boolean force) throws Exception {
         val ft = new FutureTask<Boolean>(new Callable<Boolean>() {
             @Override
             public Boolean call() {
-                return updateGlobalEpoch();
+                return updateGlobalEpoch(force);
             }
         });
         pool.submit(ft);
         try {
-            if (ft.get(10, TimeUnit.SECONDS))
+            if (ft.get(KylinConfig.getInstanceFromEnv().getUpdateEpochTimeout(), TimeUnit.SECONDS))
                 newEpochs.add(GLOBAL);
+            return true;
         } catch (Exception e) {
             logger.error("failed to update epoch {}", GLOBAL, e);
+            return false;
         }
     }
 
@@ -210,7 +215,7 @@ public class EpochManager implements IKeep {
         logger.info("start updateAllEpochs.........");
         val oriEpochs = Sets.newHashSet(currentEpochs);
         Set<String> newEpochs = Sets.newCopyOnWriteArraySet();
-        tryUpdateGlobalEpoch(newEpochs);
+        tryUpdateGlobalEpoch(newEpochs, false);
         tryUpdatePrjEpochs(newEpochs);
         logger.info("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
         Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
@@ -253,7 +258,7 @@ public class EpochManager implements IKeep {
         if (StringUtils.isEmpty(project))
             updateAllEpochs();
         if (project.equals(GLOBAL))
-            tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet());
+            tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet(), false);
         ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
         if (prj == null) {
             throw new IllegalStateException(String.format("Project %s does not exist", project));
@@ -322,10 +327,20 @@ public class EpochManager implements IKeep {
     }
 
     public synchronized void forceUpdateEpoch(String project) {
-        ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
-        Preconditions.checkNotNull(prj);
-        if (updateProjectEpoch(prj, true)) {
-            schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+        if (project.equals(EpochManager.GLOBAL)) {
+            try {
+                if (tryUpdateGlobalEpoch(Sets.newHashSet(), true)) {
+                    schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                }
+            } catch (Exception e) {
+                logger.error("failed to update global epoch forcelly", e);
+            }
+        } else {
+            ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
+            Preconditions.checkNotNull(prj);
+            if (updateProjectEpoch(prj, true)) {
+                schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+            }
         }
     }
 

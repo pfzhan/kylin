@@ -58,6 +58,78 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.1.1 release note
+
+**Product behavior changes**
+
+- Accelerating notification will be offline for the time being
+
+  > When there are too many queries to be accelerated, the interface of the acceleration notification is prone to time out, resulting in process buildup and affecting system stability.
+
+- The project-level metadata backup function on the web UI will be offline for the time being
+
+  > When the project-level metadata is backed up through the web UI, the backup path is the same as the system-leve automatic backup metadata path, which may cause the system metadata to be overwritten, making the query service unavailable
+
+**Enhancement**
+
+- Support to load Hive tables created by skipping the first row, which will support Kyligence Cloud to realize the function of reading the first row as column name
+- Support to start Spark query service asynchronously when starting Kyligence
+- Provide segment verification API (v4 version) to help users check whether the corresponding interval already exists in the current model before building
+- Optimize index recommendation mechanism to reduce some possible over-fitting problems
+- Support to modify storage quota through API and web UI
+- Optimize error codes and replace manual configuration with system enumeration to ensure uniqueness
+- Optimize the delay time of metadata synchronization between Query node and All node to reduce the inconsistency of product views between nodes
+- Provide the management user with the authority of data source management, which will support Kyligence Cloud to realize self-service analysis scenarios
+- Improve product security
+  - Support to control whether details will show in pop-up windows when error occurs through configuration items in `kylin.properties`, to prevent possible security vulnerabilities
+  - Increase the complexity of ADMIN user initialization random password
+- Improve log and diagnostic package
+  - When generating a diagnostic package through the command line, support for removing metadata to control the size of the diagnostic package
+  - Add Spark event log which records Sparder building events to the diagnostic package, guaranteeing sufficient log information for problem diagnosis
+- Improve product usability
+  - Provide ER diagram, dimension information and measurement information in the model overview, so that users can view the model definition in the non-edited state
+  - Support to modify the owner of the project and model on the web UI
+  - Support to delete index in batches on the web UI
+- Improve user experience
+  - Optimize the pop-up window height of project permissions setting and table row and column level permissions setting
+  - Optimize the loading style of the content under the model, and use the loading state instead of the empty state
+
+**Bugfix**
+
+- In a single All node deployment mode, a large number of build failures may occur
+- When the data source table is a view, it takes a long time to detect the partition column format, which may cause out of memory
+- Fix user enumeration security holes
+  - Unify error text when the password is incorrect and the user name does not exist, preventing enumerating accounts that already exist in the system
+- Fix some v2 API interface compatibility issues, including inconsistent time zones, inconsistent return results, etc.
+- When the source table is a view and the data size is quite large, the resource detection step may not work properly and the sampling fails
+- When the computed column contains double quotes, reloading the related fact table may fail
+- An unknown error text will show when the wrong password is entered on the login page
+- *Degree* function and *Sign* function are available in query pushdown, but the corresponding index cannot be recommended when accelerating
+- Fix configuration error in Grafana page
+- In AWS environment, when the build task fails, the restart task may report an error FileNotFoundException
+- Index building may be slow when it contains *TopN* measure
+- In the cluster deployment mode, after creating an administrator user on the Query node, delete the user and create a common user with the same name. When using this user to log in, it still shows as administrator authority
+- Fix problems of failed queries
+  - When the query contains an *offset* clause, the query may fail
+  - After JDBC uses *setTimestamp* to pass parameters, when the query precision is milliseconds, no data is returned
+  - When performing complex filtering on derived dimensions, the query may fail
+  - Queries with *similar to* clauses may fail
+  - Queries containing conditions like *where xx is false* will fail
+- Fix problems of inaccurate query results
+  - The result precision of the *Floor* function and *Ceil* function when they hit the model is inconsistent with the results when the query is push down
+  - In some models synchronized by the metadata mirror tool, the build range of the segment in metadata and that on HDFS may be inconsistent, resulting in incorrect query results
+  - When double quotes are used for the alias of a column in a subquery, the return result of the corresponding column is not case sensitive
+- Fix English error text in Chinese interface
+  - When the format of the selected time partition column is temporarily not supported, an English error text appears in the Chinese interface
+  - When merging discontinuous segments, an English error text appears in the Chinese interface
+  - After failing to obtain the time partition column format automatically or failing to build incrementally, an English error text appears in the Chinese interface
+  - After the number of models, projects, etc. reaches the upper limit, an English error text appears in the Chinese interface
+  - After setting the time partition column in the table without data, an English error text appears in the Chinese interface
+- Fix problems of web UI
+  - The case of the word JOIN is inconsistent between the model created by SQL and the model created manually
+  - Precision display is inaccurate when the measure return type is Decimal
+  - When deleting jobs in batches, the number of jobs displayed in the second confirmation popup is wrong
+
 #### Kyligence Enterprise 4.1.0 release note
 
 **Product behavior changes**

@@ -1824,7 +1824,12 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-interval", "5s"), TimeUnit.SECONDS);
     }
 
+    public long getUpdateEpochTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.server.leader-race.update-heart-beat-timeout", "30s"), TimeUnit.SECONDS);
+    }
+
     public boolean isQueryEscapedLiteral() {
         return Boolean.parseBoolean(getOptional("kylin.query.parser.escaped-string-literals", "false"));
     }
+
 }
