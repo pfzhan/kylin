@@ -299,13 +299,13 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
-        if (storageQuotaSize < 0) {
+        if (storageQuotaSize < FileUtils.ONE_TB) {
             throw new KylinException(INVALID_PARAMETER,
-                    "No valid storage quota size, Please set an integer greater than or equal to 0 "
+                    "No valid storage quota size, Please set an integer greater than or equal to 1TB "
                             + "to 'storage_quota_size', unit byte.");
         }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        double storageQuotaSizeGB = 1.0 * storageQuotaSize / (1024 * 1024 * 1024);
+        double storageQuotaSizeGB = 1.0 * storageQuotaSize / (FileUtils.ONE_GB);
         overrideKylinProps.put("kylin.storage.quota-in-giga-bytes", Double.toString(storageQuotaSizeGB));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }

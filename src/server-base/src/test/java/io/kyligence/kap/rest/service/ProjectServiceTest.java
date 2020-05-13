@@ -273,9 +273,15 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Test
     public void testUpdateStorageQuotaConfig() throws Exception {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("No valid storage quota size, Please set an integer greater than or equal to 1TB "
+                        + "to 'storage_quota_size', unit byte.");
         projectService.updateStorageQuotaConfig(PROJECT, 2147483648L);
-        Assert.assertEquals(2147483648L,
+
+        projectService.updateStorageQuotaConfig(PROJECT, 1024L * 1024 * 1024 * 1024);
+        Assert.assertEquals(1024L * 1024 * 1024 * 1024,
                 NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).getConfig().getStorageQuotaSize());
+
     }
 
     @Test
