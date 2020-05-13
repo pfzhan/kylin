@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -61,7 +62,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
-public class NKylinUserManager {
+public class NKylinUserManager implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(NKylinUserManager.class);
 
