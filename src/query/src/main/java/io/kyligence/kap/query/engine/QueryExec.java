@@ -96,7 +96,7 @@ public class QueryExec {
         try {
             beforeQuery();         
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-            RelNode node = parseAndOptimize(sql);
+            RelNode node = queryOptimizer.optimize(relRoot).rel;
             return new QueryResult(executeQueryPlan(postOptimize(node)),
                     RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType));
         } catch (SqlParseException e) {
