@@ -59,17 +59,19 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
         return dataset;
     }
 
-
+    /**
+     *  <p>See also {@link io.kyligence.kap.query.engine.QueryExecTest#testSumCaseWhenHasNull()}
+     * @throws SQLException
+     */
     @Test
-    public void test_15261() throws SQLException {
-
+    public void testWorkWithoutKapAggregateReduceFunctionsRule() throws SQLException {
         // Can not reproduce https://github.com/Kyligence/KAP/issues/15261 at 4.x
         // we needn't introduce KapAggregateReduceFunctionsRule as we did in 3.x
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "TRUE");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
         String SQL =
                 "select sum(t.a1 * 2)  from (" +
-                        "select sum(price/2) as a1, sum(ITEM_COUNT) as a2 from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME" +
-                        ") t";
+                   "select sum(price/2) as a1, sum(ITEM_COUNT) as a2 from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME" +
+                ") t";
         Assert.assertNotNull(check(SQL));
     }
 
@@ -80,13 +82,12 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
      * <p>This rule doesn't consider situation where x is null, and still convert it to
      * <code>case COUNT(null) when 0 then null else SUM0(null) end</code>, which is incompatible with model section
      *
-     * <p>See also {@link io.kyligence.kap.query.engine.QueryExecTest#test_15261()}
+     * <p>See also {@link io.kyligence.kap.query.engine.QueryExecTest#testWorkWithoutKapAggregateReduceFunctionsRule()}
      * @throws SqlParseException
      */
     @Test
-    public void test_sum_case_when_has_null() throws SQLException {
-
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "TRUE");
+    public void testSumCaseWhenHasNull() throws SQLException {
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
         String SQLWithZero =
                 "select CAL_DT,\n" +
                         "       sum(case when LSTG_FORMAT_NAME in ('ABIN', 'XYZ') then 2 else 0 end)\n" +

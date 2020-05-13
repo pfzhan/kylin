@@ -65,7 +65,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "TRUE");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
 
         executeTestScenario(
                 new TestScenario(CompareLevel.SAME, "query/sql_sum_expr")

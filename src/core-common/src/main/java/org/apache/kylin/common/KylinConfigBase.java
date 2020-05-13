@@ -1112,7 +1112,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isConvertSumExpressionEnabled() {
-        return Boolean.parseBoolean(getOptional("kap.query.enable-convert-sum-expression", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.query.convert-sum-expression-enabled", FALSE));
     }
 
     /**

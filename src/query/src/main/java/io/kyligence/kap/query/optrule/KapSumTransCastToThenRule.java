@@ -154,35 +154,28 @@ public class KapSumTransCastToThenRule extends RelOptRule {
 
         // step 1. build bottom project
         List<CastInfo> castInfos = Lists.newArrayList();
-        RexNode curProExp;
-        RexNode newRexNode;
-        RelDataType columnType;
-        Set<RelDataType> allColumnType;
         for (int i = 0; i < projectExps.size(); i++) {
-            curProExp = projectExps.get(i);
+            RexNode curProExp = projectExps.get(i);
+            RexNode newRexNode = curProExp;
             if (isCastCase(curProExp)) {
                 List<RexNode> operands = getOperandsFromCaseWhen(curProExp);
-                allColumnType = getAllColumnType(operands);
-                columnType = allColumnType.size() == 1 ? allColumnType.iterator().next() : null;
+                Set<RelDataType> allColumnType = getAllColumnType(operands);
+                RelDataType columnType = allColumnType.size() == 1 ? allColumnType.iterator().next() : null;
                 castInfos.add(new CastInfo(i, columnType, curProExp.getType(), columnType == null));
                 List<RexNode> castedOperands = getCastedOperands(operands, getCurCastType(operands), curProExp.getType(), rexBuilder);
                 newRexNode = rexBuilder.makeCall(columnType == null ? curProExp.getType() : columnType, SqlCaseOperator.INSTANCE, castedOperands);
-            } else {
-                newRexNode = curProExp;
             }
             projectRexNodes.add(newRexNode);
         }
         relBuilder.project(projectRexNodes);
 
         // step 2. build agg
-        RelBuilder.GroupKey groupKey = relBuilder.groupKey(logicalAggregate.getGroupSet(), logicalAggregate.getGroupSets());
         List<AggregateCall> aggCalls = logicalAggregate.getAggCallList();
         List<AggregateCall> newAggs = Lists.newArrayList();
-        AggregateCall curAgg;
-        CastInfo curCastInfo;
         List<Integer> needCastSumIndex = Lists.newArrayList();
         for (int i = 0; i < aggCalls.size(); i++) {
-            curAgg = aggCalls.get(i);
+            CastInfo curCastInfo;
+            AggregateCall curAgg = aggCalls.get(i);
             if ((curCastInfo = getCastInfoForSum(curAgg, castInfos)) != null && !curCastInfo.isAllConstants()) {
                 needCastSumIndex.add(i);
                 newAggs.add(createAggCall(curAgg, curCastInfo));
@@ -190,6 +183,8 @@ public class KapSumTransCastToThenRule extends RelOptRule {
                 newAggs.add(curAgg);
             }
         }
+        RelBuilder.GroupKey groupKey =
+                relBuilder.groupKey(logicalAggregate.getGroupSet(), logicalAggregate.getGroupSets());
         relBuilder.aggregate(groupKey, newAggs);
 
         // step 3. if needed, build top project
@@ -376,7 +371,7 @@ public class KapSumTransCastToThenRule extends RelOptRule {
         }
     }
 
-    public class CastInfo {
+    public static class CastInfo {
         private int index;
         private RelDataType columnType;
         private RelDataType castType;

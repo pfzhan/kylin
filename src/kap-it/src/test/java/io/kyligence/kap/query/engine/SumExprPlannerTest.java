@@ -104,12 +104,12 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
     private void openSumCaseWhen() {
         // we must make sure kap.query.enable-convert-sum-expression is TRUE to
         // avoid adding SumConstantConvertRule in PlannerFactory
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "true");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
     }
 
     private void closeSumCaseWhen() {
         // some sql failed in new SumConstantConvertRule
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "false");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "false");
     }
 
     @Before
@@ -133,7 +133,7 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
                         return e.getFirst().contains(file);})
                 .map(e-> {
                     String sql = QueryUtil
-                            .massageSql(e.getSecond(), project, 0, 0, "DEFAULT", true)
+                            .massageSql(e.getSecond(), project, 0, 0, "DEFAULT", false)
                             .replaceAll(emptyLinePattern, ""); // remove empty line
                      return  new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);})
                 .collect(Collectors.toList());

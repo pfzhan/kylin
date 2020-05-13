@@ -24,24 +24,12 @@
 
 package io.kyligence.kap.query.exception;
 
-public class SumExprUnSupportException extends RuntimeException {
-    public SumExprUnSupportException() {
-    }
+import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.query.exception.QueryErrorCode.UNSUPPORTED_SUM_CASE_WHEN;
+
+public class SumExprUnSupportException extends KylinException {
 
     public SumExprUnSupportException(String message) {
-        super(message);
-    }
-
-    public SumExprUnSupportException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public SumExprUnSupportException(Throwable cause) {
-        super(cause);
-    }
-
-    public SumExprUnSupportException(String message, Throwable cause, boolean enableSuppression,
-            boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
+        super(UNSUPPORTED_SUM_CASE_WHEN, message);
     }
 }
