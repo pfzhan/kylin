@@ -315,7 +315,7 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
       not_accelerated: 'Failed ({num})',
       accelerated: 'Accelerated ({num})',
       accelerationDesc: 'Acceleration will convert queries to recommendations for corresponding models. Once accept recommendations and build indexes, acceleration will be effective.',
-      canBeAcceTips: 'Queries which can be accelerated refer to those in waiting and failure list',
+      canBeAcceTips: 'Queries in waiting or pending list could be accelerated',
       applySuccessMsg: 'Request has been submitted successfully. Recommendations can be reviewed and accepted under the corresponding models in the model list.'
     },
     'zh-cn': {
@@ -352,7 +352,7 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
       not_accelerated: '加速失败 ({num})',
       accelerated: '加速完毕 ({num})',
       accelerationDesc: '加速引擎可对查询进行加速，并在对应模型下生成优化建议。接受优化建议并构建索引后即可生效。',
-      canBeAcceTips: '可加速的查询包括未加速和加速失败的查询',
+      canBeAcceTips: '包括未加速和缺失对象的查询',
       applySuccessMsg: '请求提交成功。加速完毕后可在对应模型下查看优化建议。'
     }
   }
