@@ -197,7 +197,8 @@ exports.default = {
     searchMeasureName: 'Search Measure Name',
     noDimensionInModel: 'No dimensions added to this model.',
     noMeasureInModel: 'No measures added to this model.',
-    pleaseClickEditModel: 'Click "Edit Model" to add some.'
+    pleaseClickEditModel: 'Click "Edit Model" to add some.',
+    storageQuotaLimit: 'Please input a value no less than 1.00'
   },
   model: {
     generateModel: 'Custom SQL',

@@ -43,10 +43,12 @@
       @cancel="(scb, ecb) => handleResetForm('storage-quota', scb, ecb)">
       <el-form ref="setting-storage-quota" :model="form" :rules="storageQuota">
         <div class="setting-item">
-          <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
-          <el-form-item class="setting-input" :show-message="false" prop="storage_quota_tb_size">
-            <el-input size="small" style="width: 100px;" v-number3="form.storage_quota_tb_size" v-model="form.storage_quota_tb_size"></el-input> TB
-          </el-form-item>
+          <div class="form-item">
+            <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
+            <el-form-item class="setting-input" prop="storage_quota_tb_size">
+              <el-input size="small" style="width: 100px;" v-number3="form.storage_quota_tb_size" v-model="form.storage_quota_tb_size"></el-input> TB
+            </el-form-item>
+          </div>
           <!-- <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span> -->
           <div class="setting-desc">{{$t('storageQuotaDesc')}}</div>
         </div>
@@ -446,6 +448,12 @@ export default class SettingBasic extends Vue {
   .el-icon-ksd-expert_mode_small,
   .el-icon-ksd-smart_mode_small {
     margin-right: 5px;
+  }
+  .form-item {
+    display: flex;
+    .setting-label {
+      padding-top: 6px;
+    }
   }
 }
 

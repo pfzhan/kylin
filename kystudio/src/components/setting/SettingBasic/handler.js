@@ -59,8 +59,8 @@ export const validate = {
     }
   },
   'storageQuotaSize' (rule, value, callback) {
-    if (value === '' || value === undefined || value < 0 || isNaN(value)) {
-      callback(new Error(null))
+    if (value === '' || value === undefined || value < 1 || isNaN(value)) {
+      callback(new Error(window.kapVm.$t('kylinLang.common.storageQuotaLimit')))
     } else {
       callback()
     }

@@ -196,7 +196,8 @@ exports.default = {
     searchMeasureName: '搜索度量名称',
     noDimensionInModel: '该模型未包含维度，',
     noMeasureInModel: '该模型未包含度量，',
-    pleaseClickEditModel: '请在模型编辑界面添加。'
+    pleaseClickEditModel: '请在模型编辑界面添加。',
+    storageQuotaLimit: '请输入不小于 1.00 的数值'
   },
   model: {
     generateModel: 'SQL 建模',
