@@ -34,11 +34,11 @@
                 <el-form-item label="" prop="password" class="password">
                   <el-input  type="password" v-model="user.password" name="password" :placeholder="$t('password')"></el-input>
                 </el-form-item>
-                <p class="forget-pwd ksd-mt-5" v-show="user.username==='ADMIN'">
+                <!-- <p class="forget-pwd ksd-mt-5" v-show="user.username==='ADMIN'">
                   <common-tip :content="$t('adminTip')" >
                     {{$t('forgetPassword')}}
                   </common-tip>
-                </p>
+                </p> -->
               </div>
               <el-form-item class="ksd-pt-40">
                 <kap-icon-button type="primary" class="login-btn ksd-mt-10"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
