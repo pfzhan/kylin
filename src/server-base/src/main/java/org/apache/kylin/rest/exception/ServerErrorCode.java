@@ -115,6 +115,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10010XXX dimension
     DUPLICATE_DIMENSION_NAME("KE-10010001"), //
+    EFFECTIVE_DIMENSION_NOT_FIND("KE-10010002"),
 
     // 10011XXX cc
     DUPLICATE_COMPUTER_COLUMN_NAME("KE-10011001"), //

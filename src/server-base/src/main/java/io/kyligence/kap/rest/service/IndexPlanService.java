@@ -54,6 +54,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.rest.exception.ServerErrorCode;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -372,7 +373,24 @@ public class IndexPlanService extends BasicService {
 
         boolean invalid = false;
         try {
-            indexPlan.setRuleBasedIndex(request.convertToRuleBasedIndex());
+            NRuleBasedIndex ruleBasedIndex = request.convertToRuleBasedIndex();
+            NDataModel model = NDataModelManager.getInstance(getConfig(), request.getProject())
+                    .getDataModelDesc(indexPlan.getUuid());
+
+            if (CollectionUtils.isNotEmpty(ruleBasedIndex.getDimensions())) {
+                List<Integer> notExistCols = ruleBasedIndex.getDimensions().stream()
+                        .filter(col -> null == model.getEffectiveDimensions()
+                                || null == model.getEffectiveDimensions().get(col))
+                        .collect(Collectors.toList());
+
+                if (CollectionUtils.isNotEmpty(notExistCols)) {
+                    throw new KylinException(ServerErrorCode.EFFECTIVE_DIMENSION_NOT_FIND,
+                            String.format(MsgPicker.getMsg().getEFFECTIVE_DIMENSION_NOT_FIND(),
+                                    StringUtils.join(notExistCols.iterator(), ",")));
+                }
+            }
+
+            indexPlan.setRuleBasedIndex(ruleBasedIndex);
         } catch (OutOfMaxCombinationException oe) {
             invalid = true;
             log.error("The number of cuboid for the cube exceeds the limit, ", oe);

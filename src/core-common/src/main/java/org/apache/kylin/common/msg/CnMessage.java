@@ -1167,4 +1167,8 @@ public class CnMessage extends Message {
     public String getNO_DATA_IN_TABLE() {
         return "表[%s]中无数据。";
     }
+
+    public String getEFFECTIVE_DIMENSION_NOT_FIND(){
+        return "模型中未定义对应列为维度[%s]";
+    }
 }

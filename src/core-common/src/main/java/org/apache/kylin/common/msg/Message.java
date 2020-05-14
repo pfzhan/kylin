@@ -1188,4 +1188,8 @@ public class Message {
     public String getNO_DATA_IN_TABLE() {
         return "There are no data in table %s.";
     }
+
+    public String getEFFECTIVE_DIMENSION_NOT_FIND(){
+        return "Columns [%s] are not defined as dimensions in model";
+    }
 }
