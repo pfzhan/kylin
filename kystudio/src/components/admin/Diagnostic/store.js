@@ -1,6 +1,6 @@
 import api from '../../../service/api'
 import { apiUrl } from '../../../config/index'
-import { handleError } from '../../../util/business'
+import { handleError, downloadFileByXMLHttp } from '../../../util/business'
 
 const pollingTime = 1000
 let timer = {}
@@ -113,14 +113,14 @@ export default {
   },
   actions: {
     // 生成诊断包
-    [types.GET_DUMP_REMOTE] ({ state, commit, dispatch }, { host = '', start = '', end = '', job_id = '', tm }) {
+    [types.GET_DUMP_REMOTE] ({ state, commit, dispatch }, { host = '', start = '', end = '', job_id = '', tm, isIframe = false }) {
       if (!host) return
       return new Promise((resolve, reject) => {
         api.system.getDumpRemote({ host, start, end, job_id }).then(async (res) => {
           if (state.isReset) return
           const { data } = res.data
           await commit(types.UPDATE_DUMP_IDS, { host, start, end, id: data, tm })
-          dispatch(types.POLLING_STATUS_MSG, { host, id: data })
+          dispatch(types.POLLING_STATUS_MSG, { host, id: data, isIframe })
           resolve(data)
         }).catch((err) => {
           handleError(err)
@@ -156,16 +156,16 @@ export default {
       })
     },
     // 轮询接口获取信息
-    [types.POLLING_STATUS_MSG] ({ state, commit, dispatch }, { host, id }) {
+    [types.POLLING_STATUS_MSG] ({ state, commit, dispatch }, { host, id, isIframe = false }) {
       if (state.isReset) return
       dispatch(types.GET_STATUS_REMOTE, { host, id }).then((res) => {
         timer[id] = setTimeout(() => {
-          dispatch(types.POLLING_STATUS_MSG, { host, id })
+          dispatch(types.POLLING_STATUS_MSG, { host, id, isIframe })
         }, pollingTime)
         const { data } = res.data
         if (data.status === '000' && data.stage === 'DONE') {
           clearTimeout(timer[id])
-          dispatch(types.DOWNLOAD_DUMP_DIAG, {host, id})
+          dispatch(types.DOWNLOAD_DUMP_DIAG, {host, id, isIframe})
         } else if (['001', '002', '999'].includes(data.status)) {
           clearTimeout(timer[id])
         }
@@ -176,14 +176,19 @@ export default {
       })
     },
     // 下载诊断包
-    [types.DOWNLOAD_DUMP_DIAG] (_, { host, id }) {
-      let dom = document.createElement('a')
-      dom.download = true
-      // 兼容IE 10以下 无origin属性问题，此处用protocol和host拼接
-      dom.href = `${location.protocol}//${location.host}${apiUrl}system/diag?host=${host}&id=${id}`
-      document.body.appendChild(dom)
-      dom.click()
-      document.body.removeChild(dom)
+    [types.DOWNLOAD_DUMP_DIAG] (_, { host, id, isIframe = false }) {
+      if (isIframe) {
+        let url = `${location.protocol}//${location.host}${apiUrl}system/diag?host=${host}&id=${id}`
+        downloadFileByXMLHttp(url, null, 'GET', 'application/vnd.apache.kylin-v4-public+json')
+      } else {
+        let dom = document.createElement('a')
+        dom.download = true
+        // 兼容IE 10以下 无origin属性问题，此处用protocol和host拼接
+        dom.href = `${location.protocol}//${location.host}${apiUrl}system/diag?host=${host}&id=${id}`
+        document.body.appendChild(dom)
+        dom.click()
+        document.body.removeChild(dom)
+      }
     },
     // 关闭弹窗后通知后端终止正在进行的任务
     [types.REMOVE_DIAGNOSTIC_TASK] ({ state }) {

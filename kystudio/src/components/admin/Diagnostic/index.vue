@@ -316,7 +316,8 @@ export default class Diagnostic extends Vue {
       await this.getDumpRemote({
         host: `http://${host.trim()}`,
         ...data,
-        tm: this.getTimes()
+        tm: this.getTimes(),
+        isIframe: this.$store.state.config.platform === 'iframe'
       }).then(() => {
         // apiErrorNum += 1
       }).catch(() => {
@@ -332,7 +333,7 @@ export default class Diagnostic extends Vue {
   retryJob (item) {
     const { host, start, end, id } = item
     this.delDumpid(id)
-    this.getDumpRemote({ host, start, end, job_id: this.jobId || '', tm: this.getTimes() })
+    this.getDumpRemote({ host, start, end, job_id: this.jobId || '', tm: this.getTimes(), isIframe: this.$store.state.config.platform === 'iframe' })
   }
   changeCheckAllType (val) {
     this.indeterminate = false
@@ -361,7 +362,7 @@ export default class Diagnostic extends Vue {
     let dumps = Object.keys(this.diagDumpIds).filter(it => this.diagDumpIds[it].isCheck)
     dumps.forEach(item => {
       const { host, id } = this.diagDumpIds[item]
-      this.downloadDumps({host, id})
+      this.downloadDumps({host, id, isIframe: this.$store.state.config.platform === 'iframe'})
     })
   }
   mounted () {

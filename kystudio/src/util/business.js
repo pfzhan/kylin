@@ -428,3 +428,61 @@ export function postCloudUrlMessage (fromRoute, toRoute) {
   }
 }
 
+export function downloadFileByXMLHttp (url, para, type, contetType) {
+  return new Promise(function (resolve, reject) {
+    const ajax = new XMLHttpRequest()
+    ajax.responseType = 'blob'
+    ajax.open(type, url, true)
+    let token = getQueryString('token')
+    ajax.setRequestHeader('Authorization', token)
+    // ajax.setRequestHeader('Authorization', 'Basic QURNSU46S1lMSU4=')
+    ajax.setRequestHeader('Accept-Language', localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn')
+    ajax.setRequestHeader('Cache-Control', 'no-cache')
+    ajax.setRequestHeader('If-Modified-Since', '0')
+    ajax.setRequestHeader('Accept', 'application/vnd.apache.kylin-v4+json')
+    ajax.setRequestHeader('Content-Type', contetType)
+    ajax.onreadystatechange = function () {
+      if (this.readyState === 4) {
+        if (this.status === 200) {
+          let headers = ajax.getResponseHeader('content-disposition')
+          let arr = headers ? headers.split(';') : []
+          let filenameStr = ''
+          for (let i = 0; i < arr.length; i++) {
+            if (arr[i].indexOf('filename=') > -1) {
+              filenameStr = arr[i]
+              break
+            }
+          }
+          filenameStr = filenameStr ? filenameStr.split('=')[1] : ''
+          filenameStr = filenameStr.replace(/"/g, '').trim()
+          if (this.response.type === 'application/octet-stream' || this.response.type === 'application/x-www-form-urlencoded') {
+            const blob = new Blob([this.response], {type: 'application/octet-stream'})
+            if (window.navigator.msSaveOrOpenBlob) {
+              navigator.msSaveBlob(this.response, filenameStr)
+            } else {
+              let link = document.createElement('a')
+              link.href = window.URL.createObjectURL(blob)
+              link.download = filenameStr
+              link.click()
+              window.URL.revokeObjectURL(link.href)
+            }
+          }
+        }
+        resolve()
+      } else {
+        reject()
+      }
+    }
+    if (para && para.form) {
+      let paramData = []
+      for (let prop in para.form) {
+        paramData.push(prop + '=' + para.form[prop])
+      }
+      ajax.send(paramData.join('&'))
+    } else {
+      ajax.send(null)
+    }
+  }).catch((e) => {
+    console.log(e)
+  })
+}

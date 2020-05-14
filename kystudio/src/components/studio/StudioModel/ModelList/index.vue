@@ -848,7 +848,11 @@ export default class ModelList extends Vue {
       const project = this.currentSelectedProject
       const form = { ids: [modelDesc.uuid] }
       if (this.$store.state.config.platform === 'iframe') {
-        this.downloadResouceData(project, form)
+        // this.downloadResouceData(project, form)
+        let apiUrlStr = apiUrl + `metastore/backup/models?project=${project}`
+        downloadFileByXMLHttp(apiUrlStr, {form}, 'POST', 'application/x-www-form-urlencoded').then(() => {
+          this.$message.success(this.$t('exportMetadataSuccess'))
+        })
       } else {
         try {
           await this.downloadModelsMetadata({ project, form })
