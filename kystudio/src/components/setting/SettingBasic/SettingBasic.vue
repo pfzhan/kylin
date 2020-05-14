@@ -16,7 +16,7 @@
         <div class="setting-label font-medium">{{$t('projectType')}}</div>
         <div class="setting-value fixed"><i :class="projectIcon"></i>{{$t(project.maintain_model_type)}}</div>
       </div>
-      <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN'">
+      <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN' && this.$store.state.config.platform !== 'iframe'">
         <span class="setting-label font-medium">{{$t('enableSemiAutomatic')}}</span>
         <span class="setting-value fixed">
           <el-switch

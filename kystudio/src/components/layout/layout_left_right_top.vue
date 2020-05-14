@@ -259,7 +259,7 @@ let MessageBox = ElementUI.MessageBox
       return this.$store.state.model.reachThreshold
     },
     reachThresholdVisible () {
-      return this.$store.state.model.reachThreshold && this.$store.state.project.projectAutoApplyConfig && this.manualClose
+      return this.$store.state.model.reachThreshold && this.$store.state.project.projectAutoApplyConfig && this.manualClose && this.$store.state.config.platform !== 'iframe'
     },
     modelSpeedModelsCount () {
       return this.$store.state.model.modelSpeedModelsCount
