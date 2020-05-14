@@ -691,6 +691,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.metadata.random-admin-password.enabled", "true", true));
         map.put("getCatchUpInterval",
                 new PropertiesEntity("kylin.metadata.audit-log.catchup-interval", "5s", 5L));
+        map.put("getUpdateEpochTimeout",
+                new PropertiesEntity("kylin.server.leader-race.update-heart-beat-timeout", "30s", 30L));
     }
 
     @Before
@@ -710,7 +712,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(302, methodsCount);
+        Assert.assertEquals(303, methodsCount);
     }
 
     @Test
