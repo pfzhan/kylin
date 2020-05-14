@@ -1829,7 +1829,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isQueryEscapedLiteral() {
-        return Boolean.parseBoolean(getOptional("kylin.query.parser.escaped-string-literals", "false"));
+        return Boolean.parseBoolean(getOptional("kylin.query.parser.escaped-string-literals", FALSE));
     }
 
 }

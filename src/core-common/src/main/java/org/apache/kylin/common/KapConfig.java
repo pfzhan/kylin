@@ -616,7 +616,7 @@ public class KapConfig {
     }
 
     public boolean isQueryEscapedLiteral() {
-        return Boolean.parseBoolean(config.getOptional("kylin.query.parser.escaped-string-literals", "false"));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.parser.escaped-string-literals", FALSE));
     }
 
 }
