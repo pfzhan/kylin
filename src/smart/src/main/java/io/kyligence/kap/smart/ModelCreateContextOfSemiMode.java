@@ -56,9 +56,8 @@ public class ModelCreateContextOfSemiMode extends AbstractSemiAutoContext {
     }
 
     @Override
-    public ChainedProposer createChainedProposer() {
+    public ChainedProposer createTransactionProposers() {
         ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
-                new NSQLAnalysisProposer(this), //
                 new NModelOptProposer(this), //
                 new NModelInfoAdjustProposer(this), //
                 new NModelRenameProposer(this), //
@@ -71,5 +70,6 @@ public class ModelCreateContextOfSemiMode extends AbstractSemiAutoContext {
 
     @Override
     public void saveMetadata() {
+        // no need to save
     }
 }

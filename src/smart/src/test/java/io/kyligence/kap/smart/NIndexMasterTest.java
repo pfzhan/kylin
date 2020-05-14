@@ -134,7 +134,7 @@ public class NIndexMasterTest extends NAutoTestOnLearnKylinData {
 
         NSmartContext context = new NSmartContext(getTestConfig(), proj, sqls) {
             @Override
-            public ChainedProposer createChainedProposer() {
+            public ChainedProposer createTransactionProposers() {
                 ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
                         new NSQLAnalysisProposer(this), //
                         new NModelOptProposer(this));

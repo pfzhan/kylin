@@ -49,7 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NSQLAnalysisProposer extends NAbstractProposer {
 
-    private static final int DEFAULT_THREAD_NUM = 1;
+    private static final int DEFAULT_THREAD_NUM = 6;
 
     private final String[] sqls;
 

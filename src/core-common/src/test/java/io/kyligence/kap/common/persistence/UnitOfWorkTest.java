@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
@@ -32,6 +33,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -86,6 +89,55 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
 
         // test can be used again after exception
         testTransaction();
+    }
+
+    @Test
+    public void testUnitOfWorkPreprocess() {
+        class A implements UnitOfWork.Callback<Object> {
+            private List<String> list = Lists.newArrayList();
+
+            @Override
+            public String toString() {
+                return list.size() + "";
+            }
+
+            @Override
+            public void preProcess() {
+                try {
+                    throw new Throwable("no args");
+                } catch (Throwable e) {
+                    list.add(e.getMessage());
+                }
+            }
+
+            @Override
+            public Object process() {
+                list.add(this.toString());
+                throw new IllegalStateException("conflict");
+            }
+
+            @Override
+            public void onProcessError(Throwable throwable) {
+                list.add("conflict");
+            }
+        }
+        A callback = new A();
+        Assert.assertTrue(callback.list.isEmpty());
+        try {
+            val ret = UnitOfWork.doInTransactionWithRetry(callback, UnitOfWork.GLOBAL_UNIT);
+            Assert.fail();
+        } catch (Throwable e) {
+            Assert.assertTrue(e instanceof TransactionException);
+            Assert.assertEquals("conflict", Throwables.getRootCause(e).getMessage());
+        }
+        Assert.assertEquals(7, callback.list.size());
+        Assert.assertEquals("no args", callback.list.get(0));
+        Assert.assertEquals("1", callback.list.get(1));
+        Assert.assertEquals("no args", callback.list.get(2));
+        Assert.assertEquals("3", callback.list.get(3));
+        Assert.assertEquals("no args", callback.list.get(4));
+        Assert.assertEquals("5", callback.list.get(5));
+        Assert.assertEquals("conflict", callback.list.get(6));
     }
 
     @Test

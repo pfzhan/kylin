@@ -44,9 +44,8 @@ public class ModelSelectContextOfSemiMode extends AbstractSemiAutoContext {
     }
 
     @Override
-    public ChainedProposer createChainedProposer() {
+    public ChainedProposer createTransactionProposers() {
         ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
-                new NSQLAnalysisProposer(this), //
                 new NModelSelectProposer(this) //
         );
         return new ChainedProposer(this, proposers);

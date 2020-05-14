@@ -174,7 +174,7 @@ public class NSmartContext extends AbstractContext {
     }
 
     @Override
-    public ChainedProposer createChainedProposer() {
+    public ChainedProposer createTransactionProposers() {
         ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
                 new NSQLAnalysisProposer(this), //
                 new NModelSelectProposer(this), //
@@ -186,5 +186,10 @@ public class NSmartContext extends AbstractContext {
                 new NIndexPlanShrinkProposer(this) //
         );
         return new ChainedProposer(this, proposers);
+    }
+
+    @Override
+    public ChainedProposer createPreProcessProposers() {
+        return new ChainedProposer(this, ImmutableList.of());
     }
 }

@@ -28,7 +28,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -50,6 +49,7 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -87,6 +87,7 @@ public class UnitOfWork {
             unitOfWork.checkReentrant(params);
             try {
                 checkEpoch(params);
+                f.preProcess();
                 return f.process();
             } catch (Throwable throwable) {
                 f.onProcessError(throwable);
@@ -130,6 +131,7 @@ public class UnitOfWork {
 
             long startTime = System.currentTimeMillis();
             TransactionListenerRegistry.onStart(params.getUnitName());
+            params.getProcessor().preProcess();
             context = UnitOfWork.startTransaction(params);
             ret = params.getProcessor().process();
             UnitOfWork.endTransaction(traceId, params);
@@ -319,6 +321,12 @@ public class UnitOfWork {
     }
 
     public interface Callback<T> {
+        /**
+         * Pre-process stage (before transaction)
+         */
+        default void preProcess() {
+        }
+
         /**
          * Process stage (within transaction)
          */

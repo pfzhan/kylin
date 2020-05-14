@@ -48,7 +48,8 @@ public abstract class AbstractContext {
     private final SmartConfig smartConfig;
     private final String project;
     private final String[] sqlArray;
-    private ChainedProposer chainedProposer;
+    private ChainedProposer preProcessProposers;
+    private ChainedProposer processProposers;
 
     @Setter
     private List<AbstractContext.NModelContext> modelContexts;
@@ -62,7 +63,8 @@ public abstract class AbstractContext {
         this.smartConfig = SmartConfig.wrap(kylinConfig);
         this.project = project;
         this.sqlArray = sqlArray;
-        this.chainedProposer = createChainedProposer();
+        this.preProcessProposers = createPreProcessProposers();
+        this.processProposers = createTransactionProposers();
         this.partialMatch = false;
     }
 
@@ -80,7 +82,9 @@ public abstract class AbstractContext {
 
     public abstract void changeModelMainType(NDataModel model);
 
-    public abstract ChainedProposer createChainedProposer();
+    public abstract ChainedProposer createTransactionProposers();
+
+    public abstract ChainedProposer createPreProcessProposers();
 
     public abstract void saveMetadata();
 

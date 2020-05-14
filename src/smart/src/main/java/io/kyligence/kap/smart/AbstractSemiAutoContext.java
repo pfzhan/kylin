@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -44,6 +45,11 @@ public abstract class AbstractSemiAutoContext extends AbstractContext {
 
     protected AbstractSemiAutoContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
+    }
+
+    @Override
+    public ChainedProposer createPreProcessProposers() {
+        return new ChainedProposer(this, ImmutableList.of(new NSQLAnalysisProposer(this)));
     }
 
     @Override

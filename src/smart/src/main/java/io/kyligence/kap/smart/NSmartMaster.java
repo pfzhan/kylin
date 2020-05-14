@@ -60,16 +60,16 @@ public class NSmartMaster {
         return context;
     }
 
-    public static AbstractContext proposeNewModelForSemiMode(KylinConfig config, String project, String[] sqls,
+    public static AbstractSemiAutoContext proposeNewModelForSemiMode(KylinConfig config, String project, String[] sqls,
             Consumer<AbstractContext> hook) {
-        AbstractContext context = new ModelCreateContextOfSemiMode(config, project, sqls);
+        AbstractSemiAutoContext context = new ModelCreateContextOfSemiMode(config, project, sqls);
         new NSmartMaster(context).runWithContext(hook);
         return context;
     }
 
-    public static AbstractContext genOptRecommendationForSemiMode(KylinConfig config, String project, String[] sqls,
-            Consumer<AbstractContext> hook) {
-        AbstractContext context = new ModelReuseContextOfSemiMode(config, project, sqls);
+    public static AbstractSemiAutoContext genOptRecommendationForSemiMode(KylinConfig config, String project,
+            String[] sqls, Consumer<AbstractContext> hook) {
+        AbstractSemiAutoContext context = new ModelReuseContextOfSemiMode(config, project, sqls);
         new NSmartMaster(context).runWithContext(hook);
         return context;
     }
@@ -176,7 +176,16 @@ public class NSmartMaster {
      * This method will invoke when there is no need transaction.
      */
     public void executePropose() {
-        getContext().getChainedProposer().execute();
+        preProcessWithoutTransaction();
+        processWithTransaction();
+    }
+
+    private void preProcessWithoutTransaction() {
+        getContext().getPreProcessProposers().execute();
+    }
+
+    private void processWithTransaction() {
+        getContext().getProcessProposers().execute();
     }
 
     public void runSuggestModel() {
@@ -221,8 +230,13 @@ public class NSmartMaster {
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
                 @Override
+                public void preProcess() {
+                    preProcessWithoutTransaction();
+                }
+
+                @Override
                 public Object process() {
-                    executePropose();
+                    processWithTransaction();
                     getContext().saveMetadata();
                     if (hook != null) {
                         hook.accept(getContext());
