@@ -213,7 +213,7 @@ let MessageBox = ElementUI.MessageBox
       applySpeedInfo: 'APPLY_SPEED_INFO',
       ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
       getSpeedInfo: 'GET_SPEED_INFO',
-      loadOnlineNodes: 'LOAD_ONLINE_QUERY_NODES'
+      loadOnlineNodes: 'GET_NODES_LIST'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -418,7 +418,7 @@ export default class LayoutLeftRightTop extends Vue {
   // 获取多活节点列表
   getHANodes () {
     this.isNodeLoading = true
-    this.loadOnlineNodes({ext: true}).then((res) => {
+    this.loadOnlineNodes().then((res) => {
       handleSuccess(res, (data) => {
         this.isNodeLoadingSuccess = true
         this.nodeList = data
@@ -426,7 +426,7 @@ export default class LayoutLeftRightTop extends Vue {
         clearTimeout(this.nodesTimer)
         this.nodesTimer = setTimeout(() => {
           this.getHANodes()
-        }, 300000)
+        }, 1000 * 60)
       })
     }).catch(e => {
       this.isNodeLoadingSuccess = false
@@ -434,7 +434,7 @@ export default class LayoutLeftRightTop extends Vue {
       clearTimeout(this.nodesTimer)
       this.nodesTimer = setTimeout(() => {
         this.getHANodes()
-      }, 300000)
+      }, 1000 * 60)
     })
   }
   setGlobalMask (notifyContect) {

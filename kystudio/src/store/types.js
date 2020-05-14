@@ -418,3 +418,9 @@ export const SET_MODAL = 'SET_MODAL'
 export const SET_MODAL_FORM = 'SET_MODAL_FORM'
 export const CALL_MODAL = 'CALL_MODAL'
 export const INIT_MODAL = 'INIT_MODAL'
+
+// capacity actions
+export const GET_NODES_LIST = 'GET_NODES_LIST'
+
+// capacity mutations
+export const SET_NODES_LIST = 'SET_NODES_LIST'
