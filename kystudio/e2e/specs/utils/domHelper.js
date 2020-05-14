@@ -47,6 +47,7 @@ async function waitingForStable(driver) {
 }
 
 /**
+ * Author: jie.luo
  * 等待容器的loading消失
  * @param {WebDriver} driver WebDriver对象
  * @param {String} loadingParentClass loading容器类字符串
@@ -61,6 +62,7 @@ async function waitingForLoading(driver, loadingParentClass) {
 }
 
 /**
+ * Author: jie.luo
  * JS辅助：清除表单输入框的值
  * @param {WebDriver} driver WebDriver对象
  * @param {String} selector 输入框的选择器字符串
@@ -231,20 +233,21 @@ async function dragAndDrop(driver, dragSelector, dropSelector) {
   `);
 }
 
-async function changeFormSelect(driver, selector, optionIdx) {
+async function changeFormSelect(driver, selector, popoverSelector, optionIdx) {
   try {
-    await driver.wait(until.elementLocated(By.css(`${selector} .el-input`)), 1000);
+    await driver.wait(until.elementLocated(By.css(`${selector} .el-input`)), 10000);
   } catch (e) {}
   await driver.findElement(By.css(`${selector} .el-input`)).click();
+  await driver.sleep(1000)
   if (optionIdx instanceof Array) {
     for (const idx of optionIdx) {
-      await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${selector} .el-select-dropdown__item:nth-child(${idx})`))), 1000);
-      await driver.findElement(By.css(`${selector} .el-select-dropdown__item:nth-child(${idx})`)).click();
+      await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${idx})`))), 1000);
+      await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${idx})`)).click();
     }
-    await driver.findElement(By.css(`${selector} .el-kylin-more`)).click();
+    await driver.findElement(By.css(`${popoverSelector} .el-kylin-more`)).click();
   } else {
-    await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${selector} .el-select-dropdown__item:nth-child(${optionIdx})`))), 1000);
-    await driver.findElement(By.css(`${selector} .el-select-dropdown__item:nth-child(${optionIdx})`)).click();
+    await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${optionIdx})`))), 1000);
+    await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${optionIdx})`)).click();
   }
 }
 

@@ -38,6 +38,7 @@
     </EditableBlock> -->
     <!-- 默认数据库设置 -->
     <EditableBlock
+      class="js_defautDB_block"
       :header-content="$t('defaultDBTitle')"
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'defaultDB-settings')"
@@ -47,7 +48,7 @@
         <div class="setting-item">
           <div class="setting-label font-medium">{{$t('defaultDB')}}</div>
           <el-form-item prop="default_database">
-            <el-select v-model="form.default_database">
+            <el-select v-model="form.default_database" class="js_select" popper-class="js_defautDB_select">
               <el-option
                 v-for="item in dbList"
                 :key="item"

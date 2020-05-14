@@ -13,7 +13,7 @@
       <input name="username" type="text" style="display:none"/>
       <input name="password" type="password" style="width:1px;height:0;border:none;position:absolute"/>
       <!-- 表单：用户名 -->
-      <el-form-item :label="$t('username')" prop="username" v-if="isFieldShow('username')">
+      <el-form-item :label="$t('username')" prop="username" v-if="isFieldShow('username')" class="js_username">
         <el-input
           size="medium"
           :value="form.username"
@@ -22,7 +22,7 @@
           </el-input>
       </el-form-item>
       <!-- 表单：密码 -->
-      <el-form-item :label="$t('password')" prop="password" v-if="isFieldShow('password')">
+      <el-form-item :label="$t('password')" prop="password" v-if="isFieldShow('password')" class="js_password">
         <el-input
           size="medium"
           type="password"
@@ -31,7 +31,7 @@
           </el-input>
       </el-form-item>
       <!-- 表单：旧密码（ 面向非管理员 -->
-      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="isFieldShow('oldPassword')">
+      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="isFieldShow('oldPassword')" class="js_oldPassword">
         <el-input
           size="medium"
           type="password"
@@ -40,7 +40,7 @@
           </el-input>
       </el-form-item>
       <!-- 表单：新密码 -->
-      <el-form-item :label="$t('newPassword')" prop="newPassword" v-if="isFieldShow('newPassword')">
+      <el-form-item :label="$t('newPassword')" prop="newPassword" v-if="isFieldShow('newPassword')" class="js_newPassword">
         <el-input
           size="medium"
           type="password"
@@ -49,7 +49,7 @@
           </el-input>
       </el-form-item>
       <!-- 表单：确认密码 -->
-      <el-form-item :label="$t('confirmNewPassword')" prop="confirmPassword" v-if="isFieldShow('confirmPassword')">
+      <el-form-item :label="$t('confirmNewPassword')" prop="confirmPassword" v-if="isFieldShow('confirmPassword')" class="js_confirmPwd">
         <el-input
           size="medium"
           type="password"
