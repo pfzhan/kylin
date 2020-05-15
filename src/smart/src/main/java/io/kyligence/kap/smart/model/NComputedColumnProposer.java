@@ -129,7 +129,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             } else {
                 ccDesc.setColumnName(ComputedColumnEvalUtil.CC_NAME_PREFIX + (++maxUsedComputedColumnIndex));
             }
-            ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(dataModel, project, ccDesc));
+            ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(dataModel, project, ccDesc, null));
             dataModel.getComputedColumnDescs().add(ccDesc);
 
             if (ComputedColumnEvalUtil.resolveCCName(ccDesc, dataModel, otherModels)) {

@@ -75,7 +75,7 @@ public class SQLResponse implements Serializable {
     // if not select query, only return affected row count
     protected int affectedRowCount;
 
-    // flag indicating whether an exception occurred
+    // queryTagInfo indicating whether an exception occurred
     @JsonProperty("isException")
     protected boolean isException;
 
@@ -182,13 +182,13 @@ public class SQLResponse implements Serializable {
     public SQLResponse wrapResultOfQueryContext(QueryContext queryContext) {
         Preconditions.checkNotNull(queryContext, "queryContext is null");
         this.setQueryId(queryContext.getQueryId());
-        this.setScanRows(queryContext.getScanRows());
-        this.setScanBytes(queryContext.getScanBytes());
+        this.setScanRows(queryContext.getMetrics().getScanRows());
+        this.setScanBytes(queryContext.getMetrics().getScanBytes());
 
         //QueryContext.scannedRows and scannedBytes must be calculated
         //directly set value avoid repeated calculation
-        this.setTotalScanRows(queryContext.getScannedRows());
-        this.setTotalScanBytes(queryContext.getScannedBytes());
+        this.setTotalScanRows(queryContext.getMetrics().getScannedRows());
+        this.setTotalScanBytes(queryContext.getMetrics().getScannedBytes());
 
         this.setShufflePartitions(queryContext.getShufflePartitions());
 

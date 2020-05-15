@@ -34,11 +34,13 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.Sets;
@@ -53,7 +55,7 @@ public class KapQueryUtil {
     private KapQueryUtil() {
     }
 
-    public static String massageExpression(NDataModel model, String project, String expression) {
+    public static String massageExpression(NDataModel model, String project, String expression, QueryContext.AclInfo aclInfo) {
         String tempConst = "'" + UUID.randomUUID().toString() + "'";
         StringBuilder forCC = new StringBuilder();
         forCC.append("select ");
@@ -69,8 +71,12 @@ public class KapQueryUtil {
             modelMap.put(model.getUuid(), model);
             ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT", modelMap);
             KylinConfig config = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv().exportToProperties());
-            config.setProperty("kylin.query.pushdown.converter-class-names", removeTableViewPrependerConverter(config.getPushDownConverterClassNames()));
-            ccSql = QueryUtil.massagePushDownSql(config, ccSql, project, "DEFAULT", false);
+            config.setProperty("kylin.query.pushdown.converter-class-names",
+                    removeTableViewPrependerConverter(config.getPushDownConverterClassNames()));
+            QueryParams queryParams = new QueryParams(project, ccSql, "DEFAULT", false);
+            queryParams.setKylinConfig(QueryUtil.getKylinConfig(project));
+            queryParams.setAclInfo(aclInfo);
+            ccSql = QueryUtil.massagePushDownSql(queryParams);
         } catch (Exception e) {
             log.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
@@ -95,8 +101,8 @@ public class KapQueryUtil {
         return sb.toString();
     }
 
-    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc) {
-        return massageExpression(model, project, cc.getExpression());
+    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc, QueryContext.AclInfo aclInfo) {
+        return massageExpression(model, project, cc.getExpression(), aclInfo);
     }
 
     public static void appendJoinStatement(NDataModel model, StringBuilder sql, boolean singleLine) {

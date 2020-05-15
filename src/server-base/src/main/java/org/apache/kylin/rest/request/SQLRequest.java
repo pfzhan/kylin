@@ -79,6 +79,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private Integer limit = 0;
     private boolean acceptPartial = false;
     private boolean forcedToPushDown = false;
+    private long queryStartTime;
 
     private Map<String, String> backdoorToggles;
 

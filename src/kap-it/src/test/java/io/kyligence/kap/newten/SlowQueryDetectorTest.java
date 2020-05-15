@@ -54,6 +54,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.query.SlowQueryDetector;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.InfoHelper;
 import org.apache.spark.sql.SparderEnv;
@@ -131,7 +132,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             logger.error(error);
             Assert.fail(error);
         } catch (Exception e) {
-            Assert.assertTrue(QueryContext.current().isTimeout());
+            Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
             Throwable cause = e.getCause();
             Assert.assertTrue(cause instanceof KylinTimeoutException);
             Assert.assertTrue(cause.getMessage().contains("Query timeout after:"));
@@ -163,7 +164,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
                 SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
                 Assert.fail();
             } catch (Exception e) {
-                Assert.assertTrue(QueryContext.current().isTimeout());
+                Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
                 Assert.assertTrue(e instanceof KylinTimeoutException);
                 Assert.assertTrue(e.getMessage().contains("Query timeout after:"));
 
@@ -189,13 +190,15 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             long t = System.currentTimeMillis();
             String sql = FileUtils
                     .readFileToString(new File("src/test/resources/query/sql_timeout/query03.sql"), "UTF-8").trim();
-            QueryUtil.massageSql(sql, getProject(), 0, 0, "DEFAULT", true);
+            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(getProject()), sql, getProject(), 0, 0,
+                    "DEFAULT", true);
+            QueryUtil.massageSql(queryParams);
             String error = "TestSQLMassageTimeoutCancelJob fail, query cost:" + (System.currentTimeMillis() - t)
                     + " ms, need compute:" + SparderEnv.needCompute();
             logger.error(error);
             Assert.fail(error);
         } catch (Exception e) {
-            Assert.assertTrue(QueryContext.current().isTimeout());
+            Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
             Assert.assertTrue(e instanceof KylinTimeoutException);
             Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("QueryUtil"));
             // reset query thread's interrupt state.

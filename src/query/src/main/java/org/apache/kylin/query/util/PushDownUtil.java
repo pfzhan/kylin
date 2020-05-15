@@ -112,37 +112,42 @@ public class PushDownUtil {
     private PushDownUtil() {
     }
 
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
-            int limit, int offset, String defaultSchema, SQLException sqlException, boolean isPrepare, boolean isForced)
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams)
             throws Exception {
-        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sql, limit, offset);
-        return tryPushDownQuery(project, massagedSql, defaultSchema, sqlException, true, isPrepare, isForced);
+        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), queryParams.getSql(),
+                queryParams.getLimit(), queryParams.getOffset());
+        queryParams.setSql(massagedSql);
+        queryParams.setSelect(true);
+        return tryPushDownQuery(queryParams);
     }
 
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String project,
-            String sql, String defaultSchema, boolean isPrepare) throws Exception {
-        return tryPushDownQuery(project, sql, defaultSchema, null, false, isPrepare, false);
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(QueryParams queryParams)
+            throws Exception {
+        queryParams.setSelect(false);
+        queryParams.setForced(false);
+        return tryPushDownQuery(queryParams);
     }
 
-    private static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(String project, String sql,
-            String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare, boolean isForced)
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams)
             throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val prjManager = NProjectManager.getInstance(kylinConfig);
-        val prj = prjManager.getProject(project);
+        val prj = prjManager.getProject(queryParams.getProject());
+        String sql = queryParams.getSql();
+        String project = queryParams.getProject();
         kylinConfig = prj.getConfig();
         if (!kylinConfig.isPushDownEnabled())
             return null;
-        if (isSelect) {
+        if (queryParams.isSelect()) {
             logger.info("Query:[{}] failed to utilize pre-calculation, routing to other engines",
-                    QueryContext.current().getCorrectedSql(), sqlException);
-            if (!isForced && !isExpectedCause(sqlException)) {
+                    QueryContext.current().getMetrics().getCorrectedSql(), queryParams.getSqlException());
+            if (!queryParams.isForced() && !isExpectedCause(queryParams.getSqlException())) {
                 logger.info("quit doPushDownQuery because prior exception thrown is unexpected");
                 return null;
             }
         } else {
-            Preconditions.checkState(sqlException == null);
+            Preconditions.checkState(queryParams.getSqlException() == null);
             logger.info("Kylin cannot support non-select queries, routing to other engines");
         }
 
@@ -153,7 +158,7 @@ public class PushDownUtil {
         // set pushdown engine in query context
         String pushdownEngine;
         // for file source
-        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class).getProject(project)
+        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class).getProject(queryParams.getProject())
                 .getSourceType();
         if (sourceType == ISourceAware.ID_FILE) {
             pushdownEngine = QueryContext.PUSHDOWN_FILE;
@@ -164,10 +169,10 @@ public class PushDownUtil {
 
         // default schema in calcite does not apply to other engines.
         // since this is a universql requirement, it's not implemented as a converter
-        if (defaultSchema != null && !defaultSchema.equals("DEFAULT")) {
-            String completed = sql;
+        if (queryParams.getDefaultSchema() != null && !queryParams.getDefaultSchema().equals("DEFAULT")) {
+            String completed = queryParams.getSql();
             try {
-                completed = schemaCompletion(sql, defaultSchema);
+                completed = schemaCompletion(sql, queryParams.getDefaultSchema());
             } catch (SqlParseException e) {
                 // fail to parse the pushdown sql, ignore
                 logger.debug("fail to do schema completion on the pushdown sql, ignore it. {}", e.getMessage());
@@ -181,15 +186,17 @@ public class PushDownUtil {
         //ref:KE-11848,only quote on push down query
         sql = DoubleQuotePushDownConverter.convertDoubleQuote(sql);
 
-        sql = QueryUtil.massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
+        queryParams.setKylinConfig(kylinConfig);
+        queryParams.setSql(sql);
+        sql = QueryUtil.massagePushDownSql(queryParams);
 
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 
-        if (isSelect) {
+        if (queryParams.isSelect()) {
             runner.executeQuery(sql, returnRows, returnColumnMeta, project);
         }
-        if (!isSelect && !isPrepare && kylinConfig.isPushDownUpdateEnabled()) {
+        if (!queryParams.isSelect() && !queryParams.isPrepare() && kylinConfig.isPushDownUpdateEnabled()) {
             runner.executeUpdate(sql, project);
         }
         return Pair.newPair(returnRows, returnColumnMeta);
@@ -302,9 +309,9 @@ public class PushDownUtil {
                 return true;
             }
 
-            if (QueryContext.current().isWithoutSyntaxError()) {
+            if (QueryContext.current().getQueryTagInfo().isWithoutSyntaxError()) {
                 logger.warn("route to push down for met error when running the query: {}",
-                        QueryContext.current().getCorrectedSql(), sqlException);
+                        QueryContext.current().getMetrics().getCorrectedSql(), sqlException);
                 return true;
             }
         }

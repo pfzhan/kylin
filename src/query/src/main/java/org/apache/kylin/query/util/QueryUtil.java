@@ -49,14 +49,12 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.security.AccessDeniedException;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -66,6 +64,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.security.HackSelectStarWithColumnACL;
+import io.kyligence.kap.query.security.RowFilter;
+import io.kyligence.kap.query.security.TableViewPrepender;
 import io.kyligence.kap.query.util.CommentParser;
 
 /**
@@ -81,43 +82,37 @@ public class QueryUtil {
         String transform(String sql, String project, String defaultSchema);
     }
 
-    public static String massageSql(String sql, String project, int limit, int offset, String defaultSchema,
-            boolean isCCNeeded) {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        ProjectInstance projectInstance = projectManager.getProject(project);
-        KylinConfig kylinConfig = projectInstance.getConfig();
-        return massageSql(kylinConfig, sql, project, limit, offset, defaultSchema, isCCNeeded);
-    }
-
-    static String massageSql(KylinConfig kylinConfig, String sql, String project, int limit, int offset,
-            String defaultSchema, boolean isCCNeeded) {
-        String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
-        massagedSql = transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
+    public static String massageSql(QueryParams queryParams) {
+        String massagedSql = normalMassageSql(queryParams.getKylinConfig(), queryParams.getSql(),
+                queryParams.getLimit(), queryParams.getOffset());
+        queryParams.setSql(massagedSql);
+        massagedSql = transformSql(queryParams);
         QueryContext.current().record("massage");
         return massagedSql;
     }
 
-    private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema,
-            boolean isCCNeeded) {
+    private static String transformSql(QueryParams queryParams) {
         // customizable SQL transformation
-        initQueryTransformersIfNeeded(kylinConfig, isCCNeeded);
+        initQueryTransformersIfNeeded(queryParams.getKylinConfig(), queryParams.isCCNeeded());
+        String sql = queryParams.getSql();
         for (IQueryTransformer t : queryTransformers) {
             if (Thread.currentThread().isInterrupted()) {
                 logger.error("SQL transformation is timeout and interrupted before {}", t.getClass());
-                QueryContext.current().setTimeout(true);
+                QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("SQL transformation is timeout");
             }
-            sql = t.transform(sql, project, defaultSchema);
+            if (t instanceof HackSelectStarWithColumnACL) {
+                ((HackSelectStarWithColumnACL) t).setAclInfo(queryParams.getAclInfo());
+            }
+            if (t instanceof RowFilter) {
+                ((RowFilter) t).setAclInfo(queryParams.getAclInfo());
+            }
+            if (t instanceof TableViewPrepender) {
+                ((TableViewPrepender) t).setAclInfo(queryParams.getAclInfo());
+            }
+            sql = t.transform(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
         return sql;
-    }
-
-    private static boolean hasAdminPermission() {
-        val context = QueryContext.current();
-        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
-            return false;
-        }
-        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
     }
 
     public static String normalMassageSql(KylinConfig kylinConfig, String sql, int limit, int offset) {
@@ -172,26 +167,27 @@ public class QueryUtil {
         logger.debug("SQL transformer: {}", queryTransformers);
     }
 
-    public static String massagePushDownSql(String sql, String project, String defaultSchema, boolean isPrepare) {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        ProjectInstance projectInstance = projectManager.getProject(project);
-        KylinConfig kylinConfig = projectInstance.getConfig();
-        return massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
-    }
-
-    public static String massagePushDownSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema,
-            boolean isPrepare) {
+    public static String massagePushDownSql(QueryParams queryParams) {
+        String sql = queryParams.getSql();
         while (sql.endsWith(";"))
             sql = sql.substring(0, sql.length() - 1);
-
-        initPushDownConvertersIfNeeded(kylinConfig);
+        initPushDownConvertersIfNeeded(queryParams.getKylinConfig());
         for (IPushDownConverter converter : pushDownConverters) {
             if (Thread.currentThread().isInterrupted()) {
                 logger.error("Push-down SQL conver transformation is timeout and interrupted before {}", converter.getClass());
-                QueryContext.current().setTimeout(true);
+                QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("Push-down SQL convert is timeout");
             }
-            sql = converter.convert(sql, project, defaultSchema, isPrepare);
+            if (converter instanceof HackSelectStarWithColumnACL) {
+                ((HackSelectStarWithColumnACL) converter).setAclInfo(queryParams.getAclInfo());
+            }
+            if (converter instanceof RowFilter) {
+                ((RowFilter) converter).setAclInfo(queryParams.getAclInfo());
+            }
+            if (converter instanceof TableViewPrepender) {
+                ((TableViewPrepender) converter).setAclInfo(queryParams.getAclInfo());
+            }
+            sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema(), queryParams.isPrepare());
         }
         return sql;
     }
@@ -276,5 +272,11 @@ public class QueryUtil {
             logger.error("Something unexpected while removing comments in the query, return original query", ex);
             return sql;
         }
+    }
+
+    public static KylinConfig getKylinConfig(String project) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = projectManager.getProject(project);
+        return projectInstance.getConfig();
     }
 }

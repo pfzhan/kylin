@@ -44,6 +44,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -270,7 +271,9 @@ public class NExecAndComp {
         if (StringUtils.isEmpty(compareSql))
             compareSql = originSql;
 
-        String afterConvert = QueryUtil.massagePushDownSql(compareSql, prj, "default", false);
+        QueryParams queryParams = new QueryParams(prj, compareSql, "default", false);
+        queryParams.setKylinConfig(QueryUtil.getKylinConfig(prj));
+        String afterConvert = QueryUtil.massagePushDownSql(queryParams);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = removeDataBaseInSql(afterConvert);
         return querySparkSql(sqlForSpark);
@@ -496,12 +499,14 @@ public class NExecAndComp {
     }
 
     public static Dataset<Row> queryFromCube(String prj, String sqlText, List<String> parameters) {
-        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT", true);
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(prj), sqlText, prj, 0, 0, "DEFAULT", true);
+        sqlText = QueryUtil.massageSql(queryParams);
         return sql(prj, sqlText, parameters);
     }
 
     public static Dataset<Row> queryFromCube(String prj, String sqlText) {
-        sqlText = QueryUtil.massageSql(sqlText, prj, 0, 0, "DEFAULT", true);
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(prj), sqlText, prj, 0, 0, "DEFAULT", true);
+        sqlText = QueryUtil.massageSql(queryParams);
         return sql(prj, sqlText, null);
     }
 

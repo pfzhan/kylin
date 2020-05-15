@@ -272,7 +272,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     @Override
     public void implementRewrite(RewriteImplementor implementor) {
         if (context == null) {
-            QueryContext.current().setHasRuntimeAgg(true);
+            QueryContext.current().getQueryTagInfo().setHasRuntimeAgg(true);
         } else if (needRewrite()) {
             translateAggregation();
             buildRewriteFieldsAndMetricsColumns();

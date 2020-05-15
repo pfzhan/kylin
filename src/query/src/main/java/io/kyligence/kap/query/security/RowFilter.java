@@ -59,9 +59,15 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import lombok.Getter;
+import lombok.Setter;
 
 public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
+
+    @Getter
+    @Setter
+    QueryContext.AclInfo aclInfo;
 
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
@@ -70,11 +76,11 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(QueryContext.current())) {
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(aclInfo)) {
             return sql;
         }
 
-        Map<String, String> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
+        Map<String, String> allWhereCondWithTbls = getAllWhereCondWithTbls(project, aclInfo);
         if (needEscape(sql, defaultSchema, allWhereCondWithTbls)) {
             return sql;
         }
@@ -260,11 +266,11 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
         return tblsWithAlias;
     }
 
-    private static boolean hasAdminPermission(QueryContext context) {
-        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
+    private static boolean hasAdminPermission(QueryContext.AclInfo aclInfo) {
+        if (Objects.isNull(aclInfo) || Objects.isNull(aclInfo.getGroups())) {
             return false;
         }
-        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
+        return aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || aclInfo.isHasAdminPermission();
     }
 
     /*visitor classes.Get all select nodes, include select clause in subquery*/
@@ -409,8 +415,10 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
     }
 
     //get all user/groups's row ACL
-    private Map<String, String> getAllWhereCondWithTbls(String project) {
-        return AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getTableColumnConcatWhereCondition(
-                QueryContext.current().getUsername(), QueryContext.current().getGroups());
+    private Map<String, String> getAllWhereCondWithTbls(String project, QueryContext.AclInfo aclInfo) {
+        String user = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
+        Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
+        return AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getTableColumnConcatWhereCondition(user, groups);
     }
 }

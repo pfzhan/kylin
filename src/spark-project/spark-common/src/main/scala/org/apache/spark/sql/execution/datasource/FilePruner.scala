@@ -229,7 +229,7 @@ class FilePruner(val session: SparkSession,
     setShufflePartitions(totalFileSize, session)
     setBroadcastThreshold(totalFileSize, session)
     val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
-    QueryContext.current().addAndGetSourceScanRows(sourceRows)
+    QueryContext.current().getMetrics.addAndGetSourceScanRows(sourceRows)
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]
       cached.put((partitionFilters, dataFilters), value)

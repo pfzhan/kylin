@@ -77,11 +77,13 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
             config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
 
             String sql = "SELECT * FROM TABLE";
-            String newSql = QueryUtil.massageSql(config, sql, "", 100, 20, "", true);
+            QueryParams queryParams1 = new QueryParams(config, sql, "", 100, 20, "", true);
+            String newSql = QueryUtil.massageSql(queryParams1);
             Assert.assertEquals("SELECT * FROM TABLE\nLIMIT 100\nOFFSET 20", newSql);
 
             String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
-            String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "", true);
+            QueryParams queryParams2 = new QueryParams(config, sql2, "", 0, 0, "", true);
+            String newSql2 = QueryUtil.massageSql(queryParams2);
             Assert.assertEquals("SELECT SUM({fn convert(0, INT)}) from TABLE", newSql2);
         }
     }
@@ -93,20 +95,24 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
             // enable ConvertToComputedColumn
             config.setProperty("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
-            String newSql1 = QueryUtil.massageSql(config, "SELECT price * item_count FROM test_kylin_fact", "default",
-                    0, 0, "DEFAULT", true);
-            Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT FROM test_kylin_fact", newSql1);
-            newSql1 = QueryUtil.massageSql(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
+            QueryParams queryParams1 = new QueryParams(config, "SELECT price * item_count FROM test_kylin_fact",
                     "default", 0, 0, "DEFAULT", true);
+            String newSql1 = QueryUtil.massageSql(queryParams1);
+            Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT FROM test_kylin_fact", newSql1);
+            QueryParams queryParams2 = new QueryParams(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
+                    "default", 0, 0, "DEFAULT", true);
+            newSql1 = QueryUtil.massageSql(queryParams2);
             Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT,DEAL_AMOUNT FROM test_kylin_fact", newSql1);
 
             // disable ConvertToComputedColumn
             config.setProperty("kylin.query.transformers", "");
-            String newSql2 = QueryUtil.massageSql(config, "SELECT price * item_count FROM test_kylin_fact", "default",
+            QueryParams queryParams3 = new QueryParams(config, "SELECT price * item_count FROM test_kylin_fact", "default",
                     0, 0, "DEFAULT", true);
+            String newSql2 = QueryUtil.massageSql(queryParams3);
             Assert.assertEquals("SELECT price * item_count FROM test_kylin_fact", newSql2);
-            newSql2 = QueryUtil.massageSql(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
+            QueryParams queryParams4 = new QueryParams(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
                     "default", 0, 0, "DEFAULT", false);
+            newSql2 = QueryUtil.massageSql(queryParams4);
             Assert.assertEquals("SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", newSql2);
         }
     }
@@ -120,7 +126,10 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
             String sql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
                     + "SUM({fn CONVERT(0, SQL_BIGINT)}) AS \"sum_Calculation_336925569152049156_ok\"\n"
                     + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
-            String massagedSql = QueryUtil.massagePushDownSql(config, sql, "", "default", false);
+
+            QueryParams queryParams = new QueryParams("", sql, "default", false);
+            queryParams.setKylinConfig(config);
+            String massagedSql = QueryUtil.massagePushDownSql(queryParams);
             String expectedSql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
                     + "SUM(CAST(0 AS BIGINT)) AS \"sum_Calculation_336925569152049156_ok\"\n"
                     + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";

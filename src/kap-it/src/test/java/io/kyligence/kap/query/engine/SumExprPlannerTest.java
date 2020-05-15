@@ -35,6 +35,7 @@ import org.apache.calcite.test.DiffRepository;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 
 import org.junit.After;
@@ -132,10 +133,10 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
                     else
                         return e.getFirst().contains(file);})
                 .map(e-> {
-                    String sql = QueryUtil
-                            .massageSql(e.getSecond(), project, 0, 0, "DEFAULT", false)
-                            .replaceAll(emptyLinePattern, ""); // remove empty line
-                     return  new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);})
+                    QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), e.getSecond(), project,
+                            0, 0, "DEFAULT", false);
+                    String sql = QueryUtil.massageSql(queryParams).replaceAll(emptyLinePattern, ""); // remove empty line
+                    return new Pair<>(FilenameUtils.getBaseName(e.getFirst()), sql);})
                 .collect(Collectors.toList());
     }
     private static RelNode toCalcitePlan(String project, String SQL) {

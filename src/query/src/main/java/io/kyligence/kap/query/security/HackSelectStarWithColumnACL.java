@@ -28,8 +28,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
@@ -50,15 +50,22 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.Getter;
+import lombok.Setter;
 
 public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
 
     private static final String SELECT_STAR = "*";
+
+    @Getter
+    @Setter
+    QueryContext.AclInfo aclInfo;
 
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
@@ -67,7 +74,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(QueryContext.current())) {
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(aclInfo)) {
             return sql;
         }
 
@@ -82,16 +89,16 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             return sql;
         }
 
-        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema);
+        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema, aclInfo);
         int selectStarPos = getSelectStarPos(sql, sqlNode);
         StringBuilder result = new StringBuilder(sql);
         result.replace(selectStarPos, selectStarPos + 1, newSelectClause);
         return result.toString();
     }
 
-    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema) {
+    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema, QueryContext.AclInfo aclInfo) {
         StringBuilder newSelectClause = new StringBuilder();
-        List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema);
+        List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema, aclInfo);
         if (CollectionUtils.isEmpty(allCols)) {
             return SELECT_STAR;
         }
@@ -105,12 +112,12 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return newSelectClause.toString();
     }
 
-    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema) {
+    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema, QueryContext.AclInfo aclInfo) {
         List<String> cols = new ArrayList<>();
-
-        QueryContext context = QueryContext.current();
+        String user = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
+        Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
         final List<AclTCR> aclTCRs = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getAclTCRs(context.getUsername(), context.getGroups());
+                .getAclTCRs(user, groups);
         List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sqlNode));
         for (RowFilter.Table table : tblWithAlias) {
             TableDesc tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
@@ -162,11 +169,11 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         }
     }
 
-    private static boolean hasAdminPermission(QueryContext context) {
-        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
+    private static boolean hasAdminPermission(QueryContext.AclInfo aclInfo) {
+        if (Objects.isNull(aclInfo) || Objects.isNull(aclInfo.getGroups())) {
             return false;
         }
-        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
+        return aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || aclInfo.isHasAdminPermission();
     }
 
     static class SelectNumVisitor extends SqlBasicVisitor<SqlNode> {

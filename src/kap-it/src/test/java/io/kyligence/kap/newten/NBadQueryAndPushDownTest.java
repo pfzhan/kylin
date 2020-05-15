@@ -38,6 +38,7 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.After;
@@ -218,9 +219,12 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         String pushdownSql = NExecAndComp.removeDataBaseInSql(sql);
-        Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(prjName,
-                pushdownSql,
-                limit, offset, "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly(), isForced);
+        QueryParams queryParams = new QueryParams(prjName, pushdownSql, "DEFAULT", BackdoorToggles.getPrepareOnly());
+        queryParams.setLimit(limit);
+        queryParams.setOffset(offset);
+        queryParams.setSqlException(sqlException);
+        queryParams.setForced(isForced);
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(queryParams);
         if (result == null) {
             throw sqlException;
         }

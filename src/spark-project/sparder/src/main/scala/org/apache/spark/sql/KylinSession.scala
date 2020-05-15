@@ -33,7 +33,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.query.util.QueryUtil
+import org.apache.kylin.query.util.{QueryParams, QueryUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
@@ -67,8 +67,9 @@ class KylinSession(
     try {
       val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig;
       val queryExec = new QueryExec(project, projectKylinConfig)
-      val convertedSql =
-        QueryUtil.massageSql(sql, project, 0, 0, queryExec.getSchema, true)
+      val queryParams = new QueryParams(QueryUtil.getKylinConfig(project),
+        sql, project, 0, 0, queryExec.getSchema, true)
+      val convertedSql = QueryUtil.massageSql(queryParams)
       queryExec.executeQuery(convertedSql)
     } finally {
       if (prevRunLocalConf == null) {

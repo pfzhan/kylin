@@ -66,6 +66,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
     public void testTransform() {
         prepareBasic();
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
+        transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String sql = transformer.convert(
                 "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA,
                 false);
@@ -100,6 +101,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         tableDesc.setColumns(columnDescs.toArray(new ColumnDesc[0]));
         tableMetadataManager.updateTableDesc(tableDesc);
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
+        transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA, false);
         String expected = "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", " //
                 + "\"TEST_KYLIN_FACT\".\"PRICE\", " //
@@ -135,6 +137,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         tableDesc.setColumns(columnDescs.toArray(new ColumnDesc[0]));
         tableMetadataManager.updateTableDesc(tableDesc);
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
+        transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA, false);
         String expected = "select `TEST_KYLIN_FACT`.`ORDER_ID`, " //
                 + "`TEST_KYLIN_FACT`.`PRICE`, " //
@@ -157,7 +160,8 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         prepareBasic();
         final String sql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID ";
         final SqlNode sqlNode = getSqlNode(sql);
-        String newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA);
+        QueryContext.AclInfo aclInfo = new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false);
+        String newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA, aclInfo);
         String expect = "\"T1\".\"PRICE\", \"T1\".\"ITEM_COUNT\", \"T1\".\"ORDER_ID\", "
                 + "\"T2\".\"ORDER_ID\", \"T2\".\"BUYER_ID\", \"T2\".\"TEST_DATE_ENC\"";
         assertRoughlyEquals(expect, newSelectClause);
@@ -168,7 +172,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         manager.updateAclTCR(empty, "u1", true);
         manager.updateAclTCR(empty, "g1", false);
 
-        newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA);
+        newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA, aclInfo);
         assertRoughlyEquals("*", newSelectClause);
     }
 
@@ -177,11 +181,12 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
 
         final String sql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
         final SqlNode sqlNode = getSqlNode(sql);
-        List<String> colsCanAccess = HackSelectStarWithColumnACL.getColsCanAccess(sqlNode, PROJECT, SCHEMA);
+        QueryContext.AclInfo aclInfo = new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false);
+        List<String> colsCanAccess = HackSelectStarWithColumnACL.getColsCanAccess(sqlNode, PROJECT, SCHEMA, aclInfo);
         Assert.assertEquals(0, colsCanAccess.size());
 
         prepareBasic();
-        colsCanAccess = HackSelectStarWithColumnACL.getColsCanAccess(sqlNode, PROJECT, SCHEMA);
+        colsCanAccess = HackSelectStarWithColumnACL.getColsCanAccess(sqlNode, PROJECT, SCHEMA, aclInfo);
         Assert.assertEquals(6, colsCanAccess.size());
     }
 
@@ -245,8 +250,5 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         g1t1.put("DEFAULT.TEST_KYLIN_FACT", g1cr1);
         g1a1.setTable(g1t1);
         manager.updateAclTCR(g1a1, "g1", false);
-
-        QueryContext.current().setUsername("u1");
-        QueryContext.current().setGroups(Sets.newHashSet("g1"));
     }
 }

@@ -55,16 +55,16 @@ object ResultPlan extends LogEx {
       if (kapConfig.getSparkSqlShufflePartitions != -1) {
         kapConfig.getSparkSqlShufflePartitions
       } else {
-        Math.min(QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
+        Math.min(QueryContext.current().getMetrics.getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
           SparderEnv.getTotalCore).toInt
       }
     QueryContext.current().setShufflePartitions(partitionsNum)
     logInfo(s"partitions num are : $partitionsNum," +
-      s" total scan bytes are ${QueryContext.current().getSourceScanBytes}" +
+      s" total scan bytes are ${QueryContext.current().getMetrics.getSourceScanBytes}" +
       s" total cores are ${SparderEnv.getTotalCore}")
-    if (QueryContext.current().isHighPriorityQuery) {
+    if (QueryContext.current().getQueryTagInfo.isHighPriorityQuery) {
       pool = "vip_tasks"
-    } else if (QueryContext.current().isTableIndex) {
+    } else if (QueryContext.current().getQueryTagInfo.isTableIndex) {
       pool = "extreme_heavy_tasks"
     } else if (partitionsNum <= SparderEnv.getTotalCore) {
       pool = "lightweight_tasks"
@@ -77,22 +77,22 @@ object ResultPlan extends LogEx {
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
     sparkContext.setJobGroup(jobGroup,
-      QueryContext.current().getCorrectedSql,
+      QueryContext.current().getMetrics.getCorrectedSql,
       interruptOnCancel = true)
     try {
       val autoBroadcastJoinThreshold = SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold
       df.queryExecution.executedPlan
       logDebug(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
         s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
-      sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getSourceScanRows.toString)
-      logInfo(s"source_scan_rows is ${QueryContext.current().getSourceScanRows.toString}")
+      sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
+      logInfo(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
       val rows = df.collect()
       QueryContext.current.record("collect_result")
 
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-      QueryContext.current().updateAndCalScanRows(scanRows)
-      QueryContext.current().updateAndCalScanBytes(scanBytes)
+      QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
+      QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
 
       val dt = rows.map { row =>
         row.toSeq.zip(resultTypes).map{
@@ -103,7 +103,7 @@ object ResultPlan extends LogEx {
       dt
     } catch {
       case e: InterruptedException =>
-        QueryContext.current().setTimeout(true)
+        QueryContext.current().getQueryTagInfo.setTimeout(true)
         sparkContext.cancelJobGroup(jobGroup)
         logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
         throw new KylinTimeoutException(

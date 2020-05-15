@@ -108,7 +108,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     public void implementOLAP(OLAPImplementor olapContextImplementor) {
         olapContextImplementor.visitChild(getInput(), this);
         if (RexUtils.countOperatorCall(condition, SqlLikeOperator.class) > 0) {
-            QueryContext.current().setHasLike(true);
+            QueryContext.current().getQueryTagInfo().setHasLike(true);
         }
         this.columnRowType = buildColumnRowType();
         if (context != null) {

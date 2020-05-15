@@ -253,10 +253,7 @@ public class AclPermissionUtil {
         }
     }
 
-    public static void prepareQueryContextACLInfo(String project) {
-        QueryContext context = QueryContext.current();
-        context.setUsername(getCurrentUsername());
-        context.setGroups(getCurrentUserGroups());
-        context.setHasAdminPermission(isAdminInProject(project));
+    public static QueryContext.AclInfo prepareQueryContextACLInfo(String project) {
+        return new QueryContext.AclInfo(getCurrentUsername(), getCurrentUserGroups(), isAdminInProject(project));
     }
 }

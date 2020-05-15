@@ -105,6 +105,7 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
@@ -1119,7 +1120,10 @@ public class ModelService extends BasicService {
         try {
             SparkSession ss = SparderEnv.getSparkSession();
             String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-            String pushdownSql = QueryUtil.massagePushDownSql(flatTableSql, dataModel.getProject(), "default", false);
+            QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
+            queryParams.setKylinConfig(QueryUtil.getKylinConfig(dataModel.getProject()));
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject()));
+            String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
             ss.sql(pushdownSql);
         } catch (Exception e) {
             Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
@@ -1848,7 +1852,8 @@ public class ModelService extends BasicService {
 
             //replace computed columns with basic columns
             ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
-            String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc);
+            String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc,
+                    AclPermissionUtil.prepareQueryContextACLInfo(project));
             cc.setInnerExpression(innerExpression);
 
             //check by data source, this could be slow
@@ -1910,7 +1915,8 @@ public class ModelService extends BasicService {
 
         String originFilterCondition = model.getFilterCondition();
         if (StringUtils.isNotEmpty(originFilterCondition)) {
-            String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition);
+            String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition,
+                    AclPermissionUtil.prepareQueryContextACLInfo(project));
             String filterConditionAddTableName = addTableNameIfNotExist(newFilterCondition, model);
             model.setFilterCondition(filterConditionAddTableName);
         }
@@ -1919,7 +1925,8 @@ public class ModelService extends BasicService {
 
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
-            String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc);
+            String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc,
+                    AclPermissionUtil.prepareQueryContextACLInfo(project));
             ccDesc.setInnerExpression(ccExpression);
             TblColRef tblColRef = model.findColumn(ccDesc.getTableAlias(), ccDesc.getColumnName());
             tblColRef.getColumnDesc().setComputedColumn(ccExpression);

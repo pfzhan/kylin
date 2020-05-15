@@ -33,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -63,8 +64,9 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     private String massageSql(final SQLRequest request) {
 
         String defaultSchema = new QueryExec(request.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
-        return QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(),
-                defaultSchema, false);
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(request.getProject()), request.getSql(),
+                request.getProject(), request.getLimit(), request.getOffset(), defaultSchema, false);
+        return QueryUtil.massageSql(queryParams);
     }
 
     @Rule
@@ -103,11 +105,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     public void assertCollectOtherError() {
         final String sql = "select * from test_with_otherError";
         final QueryContext queryContext = QueryContext.current();
-        queryContext.setCorrectedSql(sql);
+        queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        queryContext.setFinalCause(new RuntimeException(new RuntimeException("other error")));
+        queryContext.getMetrics().setFinalCause(new RuntimeException(new RuntimeException("other error")));
 
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
@@ -133,13 +135,13 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     public void assertCollectNoRealizationFoundError() {
         final String sql = "select * from test_with_otherError";
         final QueryContext queryContext = QueryContext.current();
-        queryContext.setCorrectedSql(sql);
+        queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        queryContext.setOlapCause(new NoRealizationFoundException("no realization found"));
-        queryContext.setWithoutSyntaxError(true);
-        queryContext.setFinalCause(new RuntimeException(new RuntimeException("other error")));
+        queryContext.getMetrics().setOlapCause(new NoRealizationFoundException("no realization found"));
+        queryContext.getQueryTagInfo().setWithoutSyntaxError(true);
+        queryContext.getMetrics().setFinalCause(new RuntimeException(new RuntimeException("other error")));
 
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
@@ -162,8 +164,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         String sql = "select * from test_with_otherError";
         final QueryContext queryContext = QueryContext.current();
         // 2018-01-01
-        queryContext.setQueryStartMillis(1514764800000L);
-        queryContext.setCorrectedSql(sql);
+        queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
@@ -171,6 +172,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setSql(sql);
         request.setUsername("ADMIN");
+        long startTime = 1514764800000L;
+        request.setQueryStartTime(startTime);
 
         final SQLResponse response = new SQLResponse();
         response.setHitExceptionCache(true);
@@ -189,11 +192,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     public void assertCollectWithPushDown() {
         final String sql = "select * from test_with_pushdown";
         final QueryContext queryContext = QueryContext.current();
-        queryContext.setCorrectedSql(sql);
+        queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        queryContext.setFinalCause(new SqlValidatorException("Syntax error", new RuntimeException()));
+        queryContext.getMetrics().setFinalCause(new SqlValidatorException("Syntax error", new RuntimeException()));
 
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
@@ -238,7 +241,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     public void assertCollectWithConstantQuery() {
         final String sql = "select * from test_table where 1 <> 1";
         final QueryContext queryContext = QueryContext.current();
-        queryContext.setCorrectedSql(sql);
+        queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
@@ -274,11 +277,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     public void assertCollectWithRealization() {
         final String sql = "select * from test_with_realization";
         final QueryContext queryContext = QueryContext.current();
-        queryContext.setCorrectedSql(sql);
+        queryContext.getMetrics().setCorrectedSql(sql);
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
-        queryContext.setFinalCause(new RuntimeException("realization not found", new RuntimeException()));
+        queryContext.getMetrics().setFinalCause(new RuntimeException("realization not found", new RuntimeException()));
 
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
@@ -342,7 +345,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setSuite("suite_1");
         response.setEngineType("HIVE");
 
-        queryContext.setCorrectedSql(massageSql(request));
+        queryContext.getMetrics().setCorrectedSql(massageSql(request));
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
@@ -442,5 +445,29 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
         Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
+    }
+
+    @Test
+    public void testCollectQueryTime() {
+        String sql = "select * from test_kylin_fact";
+        final QueryContext queryContext = QueryContext.current();
+
+        queryContext.getMetrics().setCorrectedSql(sql);
+        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql(sql);
+        request.setUsername("ADMIN");
+        long startTime = System.currentTimeMillis();
+        request.setQueryStartTime(startTime);
+
+        final SQLResponse response = new SQLResponse();
+        response.setHitExceptionCache(true);
+        response.setEngineType("HIVE");
+
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        Assert.assertEquals(startTime, metricsContext.getQueryTime());
     }
 }

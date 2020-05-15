@@ -28,17 +28,17 @@ import org.apache.spark.sql.SparkSession
 trait ResetShufflePartition extends Logging{
 
    def setShufflePartitions(bytes: Long, sparkSession: SparkSession): Unit = {
-    QueryContext.current().addAndGetSourceScanBytes(bytes)
+    QueryContext.current().getMetrics.addAndGetSourceScanBytes(bytes)
     val defaultParallelism = sparkSession.sparkContext.defaultParallelism
     val kapConfig = KapConfig.getInstanceFromEnv
     val partitionsNum = if (kapConfig.getSparkSqlShufflePartitions != -1) {
       kapConfig.getSparkSqlShufflePartitions
     } else {
-      Math.min(QueryContext.current().getSourceScanBytes / (
+      Math.min(QueryContext.current().getMetrics.getSourceScanBytes / (
         KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 * 2) + 1,
         defaultParallelism).toInt
     }
      sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
-    logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getSourceScanBytes}")
+    logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getMetrics.getSourceScanBytes}")
   }
 }

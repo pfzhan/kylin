@@ -28,7 +28,6 @@ package io.kyligence.kap.query.engine;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
@@ -62,11 +61,12 @@ public class ProjectSchemaFactory {
         this.projectName = projectName;
         this.kylinConfig = kylinConfig;
 
-
         NProjectManager npr = NProjectManager.getInstance(kylinConfig);
-        String user = QueryContext.current().getUsername();
-        Set<String> groups = QueryContext.current().getGroups();
-        schemasMap = AclTCRManager.getInstance(kylinConfig, projectName).getAuthorizedTablesAndColumns(user, groups, aclDisabledOrIsAdmin());
+        QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
+        String user = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
+        Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
+        schemasMap = AclTCRManager.getInstance(kylinConfig, projectName).getAuthorizedTablesAndColumns(user, groups,
+                aclDisabledOrIsAdmin(aclInfo));
         modelsMap = NDataflowManager.getInstance(kylinConfig, projectName).getModelsGroupbyTable();
 
         // "database" in TableDesc correspond to our schema
@@ -81,11 +81,11 @@ public class ProjectSchemaFactory {
         defaultSchemaName = majoritySchemaName;
     }
 
-    private boolean aclDisabledOrIsAdmin() {
-        val groups = QueryContext.current().getGroups();
+    private boolean aclDisabledOrIsAdmin(QueryContext.AclInfo aclInfo) {
         return !kylinConfig.isAclTCREnabled()
-                || (CollectionUtils.isNotEmpty(groups) && groups.stream().anyMatch(Constant.ROLE_ADMIN::equals))
-                || QueryContext.current().isHasAdminPermission();
+                || Objects.nonNull(aclInfo) && (CollectionUtils.isNotEmpty(aclInfo.getGroups())
+                        && aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals))
+                || Objects.nonNull(aclInfo) && aclInfo.isHasAdminPermission();
     }
 
     public CalciteSchema createProjectRootSchema() {

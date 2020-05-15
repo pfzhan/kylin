@@ -60,7 +60,7 @@ public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
         newCC.setTableAlias("TEST_KYLIN_FACT");
         newCC.setColumnName("NEW_CC");
         newCC.setExpression("TEST_KYLIN_FACT.NEST4 - 1");
-        newCC.setInnerExpression(KapQueryUtil.massageComputedColumn(model, project, newCC));
+        newCC.setInnerExpression(KapQueryUtil.massageComputedColumn(model, project, newCC, null));
         newCC.setDatatype("ANY");
         
         ComputedColumnEvalUtil.evaluateExprAndTypeBatch(model, Lists.newArrayList(newCC));

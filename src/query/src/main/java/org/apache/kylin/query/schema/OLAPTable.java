@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -332,10 +333,11 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     }
 
     private boolean isACLDisabledOrAdmin() {
-        val groups = QueryContext.current().getGroups();
+        QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
         if (!olapSchema.getConfig().isAclTCREnabled()
-                || (CollectionUtils.isNotEmpty(groups) && groups.stream().anyMatch(Constant.ROLE_ADMIN::equals))
-                || QueryContext.current().isHasAdminPermission()) {
+                || Objects.nonNull(aclInfo) && (CollectionUtils.isNotEmpty(aclInfo.getGroups())
+                        && aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals))
+                || Objects.nonNull(aclInfo) && aclInfo.isHasAdminPermission()) {
             return true;
         }
 
@@ -343,8 +345,11 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     }
 
     private boolean isColumnAuthorized(Set<String> ccSourceCols) {
+        QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
+        String userName = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
+        Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
         val aclManager = AclTCRManager.getInstance(olapSchema.getConfig(), olapSchema.getProjectName());
-        return aclManager.isColumnsAuthorized(QueryContext.current().getUsername(), QueryContext.current().getGroups(), ccSourceCols);
+        return aclManager.isColumnsAuthorized(userName, groups, ccSourceCols);
     }
 
     @Override

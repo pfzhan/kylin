@@ -32,6 +32,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
@@ -66,7 +67,9 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getProject(projectName).getConfig();
             QueryExec queryExec = new QueryExec(projectName, projectKylinConfig);
-            queryExec.executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, queryExec.getSchema(), true));
+            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(projectName), sql, projectName, 0, 0,
+                    queryExec.getSchema(), true);
+            queryExec.executeQuery(QueryUtil.massageSql(queryParams));
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error

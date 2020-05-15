@@ -91,6 +91,7 @@ import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -281,8 +282,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlRequest.setProject(project);
         sqlRequest.setForcedToPushDown(true);
 
-        String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(),
-                sqlRequest.getOffset(), queryExec.getSchema(), true);
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+                sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                queryExec.getSchema(), true);
+        String correctedSql = QueryUtil.massageSql(queryParams);
 
         Mockito.when(queryExec.executeQuery(correctedSql))
                 .thenThrow(new RuntimeException("shouldnt execute queryexec"));
@@ -1120,11 +1123,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(sqlResponseEmpty.getTotalScanBytes() == 0);
 
         QueryContext queryContext = QueryContext.current();
-        queryContext.updateAndCalScanRows(Arrays.asList(1L, 2L));
-        queryContext.updateAndCalScanBytes(Arrays.asList(2L, 3L));
+        queryContext.getMetrics().updateAndCalScanRows(Arrays.asList(1L, 2L));
+        queryContext.getMetrics().updateAndCalScanBytes(Arrays.asList(2L, 3L));
 
-        Assert.assertTrue(queryContext.getScannedRows() == 3L);
-        Assert.assertTrue(queryContext.getScannedBytes() == 5L);
+        Assert.assertTrue(queryContext.getMetrics().getScannedRows() == 3L);
+        Assert.assertTrue(queryContext.getMetrics().getScannedBytes() == 5L);
 
     }
 

@@ -46,6 +46,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.junit.After;
@@ -355,7 +356,9 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
 
     private void normalizeSql(List<Pair<String, String>> queries, String project) {
         queries.forEach(pair -> {
-            String transformedQuery = QueryUtil.massageSql(pair.getSecond(), project, 0, 0, "DEFAULT", true);
+            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), pair.getSecond(), project, 0,
+                    0, "DEFAULT", true);
+            String transformedQuery = QueryUtil.massageSql(queryParams);
             transformedQuery = QueryUtil.removeCommentInSql(transformedQuery);
             pair.setSecond(transformedQuery);
         });

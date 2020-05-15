@@ -32,6 +32,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -56,6 +57,7 @@ public class RepeatableRequestBodyFilter implements Filter {
             NProjectLoader.updateCache(project);
             chain.doFilter(request, response);
         } finally {
+            QueryContext.current().close();
             NProjectLoader.removeCache();
         }
     }

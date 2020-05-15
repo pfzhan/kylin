@@ -107,6 +107,7 @@ import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -225,7 +226,7 @@ public class QueryService extends BasicService {
                 .getAuthentication() //
                 .getAuthorities() //
                 .contains(new SimpleGrantedAuthority(vipRoleName))) { //
-            QueryContext.current().markHighPriorityQuery();
+            QueryContext.current().getQueryTagInfo().setHighPriorityQuery(true);
         }
     }
 
@@ -235,9 +236,10 @@ public class QueryService extends BasicService {
         Connection conn = null;
         try {
             QueryExec queryExec = newQueryExec(sqlRequest.getProject());
-            Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownNonSelectQuery(
-                    sqlRequest.getProject(), sqlRequest.getSql(), queryExec.getSchema(),
-                    BackdoorToggles.getPrepareOnly());
+            QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlRequest.getSql(),
+                    queryExec.getSchema(), BackdoorToggles.getPrepareOnly());
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
+            Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownNonSelectQuery(queryParams);
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
@@ -344,6 +346,7 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+        sqlRequest.setQueryStartTime(System.currentTimeMillis());
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         final QueryContext queryContext = QueryContext.current();
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
@@ -356,7 +359,7 @@ public class QueryService extends BasicService {
             sqlRequest.setUsername(getUsername());
             return queryWithCache(sqlRequest, isQueryInspect);
         } finally {
-            QueryContext.reset();
+            QueryContext.current().close();
         }
     }
 
@@ -511,15 +514,15 @@ public class QueryService extends BasicService {
 
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
-            queryContext.setFinalCause(e);
+            queryContext.getMetrics().setFinalCause(e);
 
             if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {
-                queryContext.setTimeout(true);
+                queryContext.getQueryTagInfo().setTimeout(true);
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);
 
-            sqlResponse.setTimeout(queryContext.isTimeout());
+            sqlResponse.setTimeout(queryContext.getQueryTagInfo().isTimeout());
 
             setAppMaterURL(sqlResponse);
 
@@ -580,11 +583,14 @@ public class QueryService extends BasicService {
                     return fakeResponse;
                 }
 
-                String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
-                        sqlRequest.getLimit(), sqlRequest.getOffset(), queryExec.getSchema(), true);
+                QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
+                        sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
+                        queryExec.getSchema(), true);
+                queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
+                String correctedSql = QueryUtil.massageSql(queryParams);
 
                 //CAUTION: should not change sqlRequest content!
-                QueryContext.current().setCorrectedSql(correctedSql);
+                QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
                 boolean hasChangedSQL = !correctedSql.equals(sqlRequest.getSql());
                 logger.info("The corrected query: {}", hasChangedSQL ? correctedSql : "same as original SQL");
 
@@ -611,7 +617,7 @@ public class QueryService extends BasicService {
 
     private SQLResponse pushDownQuery(SQLException sqlException, SQLRequest sqlRequest, String defaultSchema)
             throws SQLException {
-        QueryContext.current().setOlapCause(sqlException);
+        QueryContext.current().getMetrics().setOlapCause(sqlException);
         Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
         try {
             r = tryPushDownSelectQuery(sqlRequest, defaultSchema, sqlException, BackdoorToggles.getPrepareOnly());
@@ -633,7 +639,6 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
-        AclPermissionUtil.prepareQueryContextACLInfo(project);
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);
@@ -646,8 +651,13 @@ public class QueryService extends BasicService {
                 && isPrepareStatementWithParams(sqlRequest)) {
             sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
         }
-        return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlString, sqlRequest.getLimit(),
-                sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare, sqlRequest.isForcedToPushDown());
+        QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlString, defaultSchema, isPrepare);
+        queryParams.setLimit(sqlRequest.getLimit());
+        queryParams.setOffset(sqlRequest.getOffset());
+        queryParams.setSqlException(sqlException);
+        queryParams.setForced(sqlRequest.isForcedToPushDown());
+        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
+        return PushDownUtil.tryPushDownSelectQuery(queryParams);
     }
 
     public List<TableMeta> getMetadata(String project) {
@@ -656,7 +666,7 @@ public class QueryService extends BasicService {
             return Collections.emptyList();
         }
 
-        AclPermissionUtil.prepareQueryContextACLInfo(project);
+        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
@@ -697,7 +707,7 @@ public class QueryService extends BasicService {
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
-        AclPermissionUtil.prepareQueryContextACLInfo(project);
+        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
         Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData);
         Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project);

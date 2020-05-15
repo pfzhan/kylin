@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common;
 
+import java.io.Closeable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -58,7 +59,7 @@ import lombok.Setter;
 /**
  * Holds per query information and statistics.
  */
-public class QueryContext {
+public class QueryContext implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryContext.class);
 
@@ -76,90 +77,34 @@ public class QueryContext {
         }
     };
 
-    // ============================================================================
-
+    @Setter
     private String queryId;
-    private String username;
-    private Set<String> groups;
-    private AtomicLong sourceScanBytes = new AtomicLong();
-    private AtomicLong sourceScanRows = new AtomicLong();
-    private String userSQL;
-    private boolean isTimeout;
-    private String project;
-    private Object calcitePlan;
-    private boolean hasRuntimeAgg;
-    private boolean hasLike;
-
-    private long queryStartMillis;
     private long recordMillis;
-
-    private boolean isSparderUsed;
-    private boolean isTableIndex;
-
-    private boolean isHighPriorityQuery = false;
-
-    private ThreadLocal<Boolean> isAsyncQuery = new ThreadLocal<Boolean>() {
-        @Override
-        protected Boolean initialValue() {
-            return false;
-        }
-    };
-
-    private Throwable finalCause;
-    private Throwable olapCause;
+    @Getter
+    @Setter
+    private Object calcitePlan;
+    @Getter
+    @Setter
     private String pushdownEngine;
     @Getter
     @Setter
-    private boolean withoutSyntaxError;
-
-    private String correctedSql;
-
-    @Getter
-    @Setter
     private int shufflePartitions;
-
     @Getter
     @Setter
     // Spark execution ID
     private String executionID = "";
-
     @Getter
     @Setter
-    private List<Long> scanRows;
-
-    @Getter
-    @Setter
-    private List<Long> scanBytes;
-
-    @Getter
-    @Setter
-    private long scannedRows = DEFAULT_NULL_SCANNED_DATA;
-
-    @Getter
-    @Setter
-    private long scannedBytes = DEFAULT_NULL_SCANNED_DATA;
-
-    @Getter
-    @Setter
-    private boolean hasAdminPermission;
+    private String userSQL;
 
     private QueryContext() {
         // use QueryContext.current() instead
-        queryStartMillis = System.currentTimeMillis();
         queryId = UUID.randomUUID().toString();
-        recordMillis = queryStartMillis;
+        recordMillis = System.currentTimeMillis();
     }
 
     public static QueryContext current() {
         return contexts.get();
-    }
-
-    public long getQueryStartMillis() {
-        return queryStartMillis;
-    }
-
-    public void setQueryStartMillis(long queryStartMillis) {
-        this.queryStartMillis = queryStartMillis;
     }
 
     public static void reset() {
@@ -168,129 +113,6 @@ public class QueryContext {
 
     public String getQueryId() {
         return queryId == null ? "" : queryId;
-    }
-
-    public void setQueryId(String queryId) {
-        this.queryId = queryId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public Set<String> getGroups() {
-        return groups;
-    }
-
-    public void setGroups(Set<String> groups) {
-        this.groups = groups;
-    }
-
-    public void setHasLike(boolean hasLike) {
-        this.hasLike = hasLike;
-    }
-
-    public long getSourceScanBytes() {
-        return sourceScanBytes.get();
-    }
-
-    public long addAndGetSourceScanBytes(long bytes) {
-        return sourceScanBytes.addAndGet(bytes);
-    }
-    public long getSourceScanRows() {
-        return sourceScanRows.get();
-    }
-
-    public long addAndGetSourceScanRows(long rows) {
-        return sourceScanRows.addAndGet(rows);
-    }
-
-    public String getUserSQL() {
-        return userSQL;
-    }
-
-    public void setUserSQL(String sql) {
-        this.userSQL = sql;
-    }
-
-    public boolean isTimeout() {
-        return isTimeout;
-    }
-
-    public void setTimeout(boolean timeout) {
-        isTimeout = timeout;
-    }
-
-    public void setIsSparderUsed(boolean isSparderUsed) {
-        this.isSparderUsed = isSparderUsed;
-    }
-
-    public boolean isTableIndex() {
-        return isTableIndex;
-    }
-
-    public void setTableIndex(boolean tableIndex) {
-        isTableIndex = tableIndex;
-    }
-
-    public void setIsAsyncQuery() {
-        isAsyncQuery.set(true);
-    }
-
-    public Boolean isAsyncQuery() {
-        return isAsyncQuery.get();
-    }
-
-    public Object getCalcitePlan() {
-        return calcitePlan;
-    }
-
-    public void setCalcitePlan(Object calcitePlan) {
-        this.calcitePlan = calcitePlan;
-    }
-
-    public String getPushdownEngine() {
-        return pushdownEngine;
-    }
-
-    public void setPushdownEngine(String pushdownEngine) {
-        this.pushdownEngine = pushdownEngine;
-    }
-
-    public Throwable getFinalCause() {
-        return finalCause;
-    }
-
-    public void setFinalCause(Throwable finalCause) {
-        this.finalCause = finalCause;
-    }
-
-    public Throwable getOlapCause() {
-        return olapCause;
-    }
-
-    public void setOlapCause(Throwable olapCause) {
-        this.olapCause = olapCause;
-    }
-
-    public boolean hasRuntimeAgg() {
-        return hasRuntimeAgg;
-    }
-
-    public void setHasRuntimeAgg(Boolean hasRuntimeAgg) {
-        this.hasRuntimeAgg = hasRuntimeAgg;
-    }
-
-    public boolean isHighPriorityQuery() {
-        return isHighPriorityQuery;
-    }
-
-    public void markHighPriorityQuery() {
-        isHighPriorityQuery = true;
     }
 
     LinkedHashMap<String, String> queryRecord = new LinkedHashMap<>();
@@ -309,118 +131,95 @@ public class QueryContext {
         queryRecord.put(message, takeTime + "");
         recordMillis = current;
     }
-    /*
-    
-    public Set<Future> getAllRunningTasks() {
-        return allRunningTasks;
+
+    @Override
+    public void close() {
+        reset();
     }
-    
-    public void addRunningTasks(Future task) {
-        this.allRunningTasks.add(task);
-    }
-    
-    public void removeRunningTask(Future task) {
-        this.allRunningTasks.remove(task);
-    }
-    
-    
-    
-    public long getQueryStartMillis() {
-        return queryStartMillis;
-    }
-    
-    public void checkMillisBeforeDeadline() {
-        if (Thread.interrupted()) {
-            throw new KylinTimeoutException("Query timeout");
+
+    // ============================================================================
+    @Getter
+    @Setter
+    private AclInfo aclInfo;
+
+    @Getter
+    @Setter
+    public static class AclInfo {
+
+        private String username;
+        private Set<String> groups;
+        private boolean hasAdminPermission;
+
+        public AclInfo(String username, Set<String> groups, boolean hasAdminPermission) {
+            this.username = username;
+            this.groups = groups;
+            this.hasAdminPermission = hasAdminPermission;
         }
     }
 
-    public int getScannedShards() {
-        return scannedShards.get();
-    }
-
-    public void addScannedShards(int deltaFiles) {
-        scannedShards.addAndGet(deltaFiles);
-    }
-
-    public long addAndGetScannedRows(long deltaRows) {
-        return scannedRows.addAndGet(deltaRows);
-    }
-
-    public long addAndGetScannedBytes(long deltaBytes) {
-        return scannedBytes.addAndGet(deltaBytes);
-    }
-
-    public Object getCalcitePlan() {
-        return calcitePlan;
-    }
-
-    public void setCalcitePlan(Object calcitePlan) {
-        this.calcitePlan = calcitePlan;
-    }
-
-
-    public boolean isSparderAppliable() {
-        return isSparderAppliable;
-    }
-
-    public void setSparderAppliable(boolean isSparderAppliable) {
-        this.isSparderAppliable = isSparderAppliable;
-    }
-
-    public boolean isSparderUsed() {
-        return isSparderUsed;
-    }
-
-    public boolean isLateDecodeEnabled() {
-        return isLateDecodeEnabled;
-    }
-
-    public void setLateDecodeEnabled(boolean lateDecodeEnabled) {
-        isLateDecodeEnabled = lateDecodeEnabled;
-    }
-
-    public boolean isHasLike() {
-        return hasLike;
-    }
-
-    public void setHasLike(boolean hasLike) {
-        this.hasLike = hasLike;
-    }
-
-    public boolean isHasAdvance() {
-        return hasAdvance;
-    }
-
-    public void setHasAdvance(boolean hasAdvance) {
-        this.hasAdvance = hasAdvance;
-    }
-    */
-
-    public String getCorrectedSql() {
-        return correctedSql;
-    }
-
-    public void setCorrectedSql(String correctedSql) {
-        this.correctedSql = correctedSql;
-    }
-
+    // ============================================================================
     /**
-     * update scanRows and calculate scannedRows
-     * @param scanRows
+     * query metrics
      */
-    public void updateAndCalScanRows(List<Long> scanRows) {
-        setScanRows(scanRows);
-        setScannedRows(calScannedValueWithDefault(scanRows));
-    }
+    @Getter
+    @Setter
+    private Metrics metrics = new Metrics();
 
-    /**
-     * update scanBytes and calculate scannedBytes
-     * @param scanBytes
-     */
-    public void updateAndCalScanBytes(List<Long> scanBytes) {
-        setScanBytes(scanBytes);
-        setScannedBytes(calScannedValueWithDefault(scanBytes));
+    @Getter
+    @Setter
+    public class Metrics {
+        private String correctedSql;
+        private Throwable finalCause;
+        private Throwable olapCause;
+
+        private AtomicLong sourceScanBytes = new AtomicLong();
+        private AtomicLong sourceScanRows = new AtomicLong();
+        @Getter
+        @Setter
+        private List<Long> scanRows;
+        @Getter
+        @Setter
+        private List<Long> scanBytes;
+        @Getter
+        @Setter
+        private long scannedRows = DEFAULT_NULL_SCANNED_DATA;
+        @Getter
+        @Setter
+        private long scannedBytes = DEFAULT_NULL_SCANNED_DATA;
+
+        public long getSourceScanBytes() {
+            return sourceScanBytes.get();
+        }
+
+        public long addAndGetSourceScanBytes(long bytes) {
+            return sourceScanBytes.addAndGet(bytes);
+        }
+
+        public long getSourceScanRows() {
+            return sourceScanRows.get();
+        }
+
+        public long addAndGetSourceScanRows(long rows) {
+            return sourceScanRows.addAndGet(rows);
+        }
+
+        /**
+         * update scanRows and calculate scannedRows
+         * @param scanRows
+         */
+        public void updateAndCalScanRows(List<Long> scanRows) {
+            setScanRows(scanRows);
+            setScannedRows(calScannedValueWithDefault(scanRows));
+        }
+
+        /**
+         * update scanBytes and calculate scannedBytes
+         * @param scanBytes
+         */
+        public void updateAndCalScanBytes(List<Long> scanBytes) {
+            setScanBytes(scanBytes);
+            setScannedBytes(calScannedValueWithDefault(scanBytes));
+        }
     }
 
     /**
@@ -433,6 +232,27 @@ public class QueryContext {
         } else {
             return scanList.stream().mapToLong(Long::longValue).sum();
         }
+    }
+
+    // ============================================================================
+    /**
+     * queryTagInfo
+     */
+    @Getter
+    @Setter
+    private QueryTagInfo queryTagInfo = new QueryTagInfo();
+
+    @Getter
+    @Setter
+    public class QueryTagInfo {
+
+        private boolean isTimeout;
+        private boolean hasRuntimeAgg;
+        private boolean hasLike;
+        private boolean isSparderUsed;
+        private boolean isTableIndex;
+        private boolean isHighPriorityQuery = false;
+        private boolean withoutSyntaxError;
     }
 
 }

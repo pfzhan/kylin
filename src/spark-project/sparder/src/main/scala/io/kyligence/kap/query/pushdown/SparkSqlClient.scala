@@ -94,14 +94,14 @@ object SparkSqlClient {
       }.asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-      QueryContext.current().updateAndCalScanRows(scanRows)
-      QueryContext.current().updateAndCalScanBytes(scanBytes)
+      QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
+      QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
       Pair.newPair(rowList, fieldList)
     } catch {
       case e: Throwable =>
         if (e.isInstanceOf[InterruptedException]) {
           ss.sparkContext.cancelJobGroup(jobGroup)
-          QueryContext.current.setTimeout(true)
+          QueryContext.current.getQueryTagInfo.setTimeout(true)
           logger.info("Query timeout ", e)
           Thread.currentThread.interrupt()
           throw new KylinTimeoutException("Query timeout after: " + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s")

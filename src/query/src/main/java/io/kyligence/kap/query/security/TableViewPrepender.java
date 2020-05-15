@@ -31,6 +31,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
@@ -64,6 +66,10 @@ import java.util.stream.Collectors;
 public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
     private static final int WITH_CLAUSE_LENGTH = 4;
 
+    @Getter
+    @Setter
+    QueryContext.AclInfo aclInfo;
+
     @Override
     public String transform(String sql, String project, String defaultSchema) {
         if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission())
@@ -86,20 +92,26 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
         return prependTableViews(originSql, defaultSchema, filters, authorizedColumns);
     }
 
-    private static String getUserName() {
-        return QueryContext.current().getUsername();
+    private String getUserName() {
+        if (Objects.isNull(aclInfo)) {
+            return null;
+        }
+        return aclInfo.getUsername();
     }
 
-    private static Set<String> getGroups() {
-        return QueryContext.current().getGroups();
+    private Set<String> getGroups() {
+        if (Objects.isNull(aclInfo)) {
+            return null;
+        }
+        return aclInfo.getGroups();
     }
 
-    private static boolean hasAdminPermission() {
-        val context = QueryContext.current();
-        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
+    private boolean hasAdminPermission() {
+        if (Objects.isNull(aclInfo) || Objects.isNull(aclInfo.getGroups())) {
             return false;
         }
-        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
+        return aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals)
+                || aclInfo.isHasAdminPermission();
     }
 
     private AclTCRManager getAclTCRManager(String project) {

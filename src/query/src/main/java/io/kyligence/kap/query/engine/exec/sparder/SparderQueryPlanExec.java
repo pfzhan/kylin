@@ -79,7 +79,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", rel, log);
         QueryContext.current().record("end_plan");
 
-        QueryContext.current().setWithoutSyntaxError(true);
+        QueryContext.current().getQueryTagInfo().setWithoutSyntaxError(true);
         QueryContextCutter.selectRealization(rel, BackdoorToggles.getIsQueryFromAutoModeling());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", rel, log);
 
@@ -89,7 +89,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         QueryContext.current().setCalcitePlan(rel.copy(rel.getTraitSet(), rel.getInputs()));
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", rel, log);
 
-        QueryContext.current().setIsSparderUsed(true);
+        QueryContext.current().getQueryTagInfo().setSparderUsed(true);
         KapContext.setKapRel((KapRel) rel.getInput(0));
         KapContext.setRowType(rel.getRowType());
 

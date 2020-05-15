@@ -41,9 +41,11 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +106,7 @@ public class QueryMetricsContext extends QueryMetrics {
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
         // set sql
-        this.sql = context.getCorrectedSql();
+        this.sql = context.getMetrics().getCorrectedSql();
 
         if(StringUtils.isEmpty(this.sql) && response.isStorageCacheUsed()) {
             String defaultSchema = "DEFAULT";
@@ -113,14 +115,16 @@ public class QueryMetricsContext extends QueryMetrics {
             } catch (Exception e) {
                 logger.warn("Failed to get connection, project: {}", request.getProject(), e);
             }
-            this.sql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(),
-                    defaultSchema, false);
+            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(request.getProject()), request.getSql(),
+                    request.getProject(), request.getLimit(), request.getOffset(), defaultSchema, false);
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(request.getProject()));
+            this.sql = QueryUtil.massageSql(queryParams);
         }
         if(StringUtils.isEmpty(this.sql))
             this.sql = request.getSql();
 
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
-        this.queryTime = QueryContext.current().getQueryStartMillis();
+        this.queryTime = request.getQueryStartTime();
 
         // for query stats
         TimeZone timeZone = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone());
@@ -163,7 +167,7 @@ public class QueryMetricsContext extends QueryMetrics {
     }
 
     private void collectErrorType(final QueryContext context) {
-        Throwable olapErrorCause = context.getOlapCause();
+        Throwable olapErrorCause = context.getMetrics().getOlapCause();
         while (olapErrorCause != null) {
             if (olapErrorCause instanceof NoRealizationFoundException) {
                 this.errorType = QueryHistory.NO_REALIZATION_FOUND_ERROR;
@@ -178,7 +182,7 @@ public class QueryMetricsContext extends QueryMetrics {
             olapErrorCause = olapErrorCause.getCause();
         }
 
-        Throwable cause = context.getFinalCause();
+        Throwable cause = context.getMetrics().getFinalCause();
         while (cause != null) {
             if (cause instanceof SqlValidatorException || cause instanceof SqlParseException
                     || cause.getClass().getName().contains("ParseException")) {
@@ -189,7 +193,7 @@ public class QueryMetricsContext extends QueryMetrics {
             cause = cause.getCause();
         }
 
-        if (context.getFinalCause() != null) {
+        if (context.getMetrics().getFinalCause() != null) {
             this.errorType = QueryHistory.OTHER_ERROR;
         }
     }

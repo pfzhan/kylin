@@ -75,7 +75,7 @@ object TableScanPlan extends LogEx {
       val context = olapContext.storageContext
       val cuboidLayout = context.getCandidate.getCuboidLayout
       if (cuboidLayout.getIndex.isTableIndex) {
-        QueryContext.current().setTableIndex(true)
+        QueryContext.current().getQueryTagInfo.setTableIndex(true)
       }
       val tableName = olapContext.firstTableScan.getBackupAlias
       val mapping = new NCuboidToGridTableMapping(cuboidLayout)

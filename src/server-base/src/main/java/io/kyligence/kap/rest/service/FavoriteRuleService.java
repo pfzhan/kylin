@@ -38,6 +38,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
@@ -260,9 +261,7 @@ public class FavoriteRuleService extends BasicService {
 
         // add user info before invoking row-filter and hack-select-star
         QueryContext context = QueryContext.current();
-        context.setUsername(AclPermissionUtil.getCurrentUsername());
-        context.setGroups(AclPermissionUtil.getCurrentUserGroups());
-        context.setHasAdminPermission(AclPermissionUtil.isAdminInProject(project));
+        context.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
         // parse file to sqls
         for (MultipartFile file : files) {
             try {
@@ -338,7 +337,10 @@ public class FavoriteRuleService extends BasicService {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
             }
-            String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA, false);
+            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0,
+                    DEFAULT_SCHEMA, false);
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+            String correctedSql = QueryUtil.massageSql(queryParams);
             sqls.add(correctedSql);
         }
 
@@ -347,7 +349,10 @@ public class FavoriteRuleService extends BasicService {
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
         aclEvaluate.checkProjectWritePermission(project);
-        String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA, false);
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0, DEFAULT_SCHEMA,
+                false);
+        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+        String correctedSql = QueryUtil.massageSql(queryParams);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
         SQLValidateResult result = map.get(correctedSql);
