@@ -46,8 +46,9 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions } from 'vuex'
-
+import { downloadFileByXMLHttp } from '../../../util/business'
 import vuex, { actionTypes } from '../../../store'
+import { apiUrl } from '../../../config'
 import locales from './locales'
 import store from './store'
 import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
