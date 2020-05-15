@@ -143,7 +143,7 @@ def getProp(prop_file):
     if not os.path.exists(prop_file):
         return dict()
 
-    output = cmd.getoutput("sed -nE 's/^([#\\\\t ]*)(kylin\\..*|kap\\..*)/\\\\2/p' %s" % prop_file)
+    output = cmd.getoutput("sed -nE 's/^([#\\\\t ]*)(kylin\\..*=.*|kap\\..*=.*)/\\\\2/p' %s" % prop_file)
     prop = dict()
     for x in output.split('\n'):
         prop[x[0: x.index('=')]] = x[x.index('=') + 1:]
