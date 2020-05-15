@@ -130,7 +130,8 @@ import AggAdvancedModal from './AggAdvancedModal/index.vue'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'allNodeNumber'
     ])
   },
   methods: {
@@ -185,16 +186,34 @@ export default class AggregateView extends Vue {
     return this[name].length
   }
   async handleAggregateGroup () {
-    const { projectName, model } = this
-    const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
-    isSubmit && this.loadAggregateGroups()
-    isSubmit && this.$emit('loadModels')
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+        const { projectName, model } = this
+        const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+        isSubmit && this.loadAggregateGroups()
+        isSubmit && this.$emit('loadModels')
+      })
+    } else {
+      const { projectName, model } = this
+      const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+      isSubmit && this.loadAggregateGroups()
+      isSubmit && this.$emit('loadModels')
+    }
   }
   async editAggGroup (aggregateIdx) {
-    const { projectName, model } = this
-    const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '' })
-    isSubmit && this.loadAggregateGroups()
-    isSubmit && this.$emit('loadModels')
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+        const { projectName, model } = this
+        const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '' })
+        isSubmit && this.loadAggregateGroups()
+        isSubmit && this.$emit('loadModels')
+      })
+    } else {
+      const { projectName, model } = this
+      const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '' })
+      isSubmit && this.loadAggregateGroups()
+      isSubmit && this.$emit('loadModels')
+    }
   }
   async deleteAggGroup (aggregateIdx) {
     try {

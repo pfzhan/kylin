@@ -198,7 +198,10 @@ exports.default = {
     noDimensionInModel: 'No dimensions added to this model.',
     noMeasureInModel: 'No measures added to this model.',
     pleaseClickEditModel: 'Click "Edit Model" to add some.',
-    storageQuotaLimit: 'Please input a value no less than 1.00'
+    storageQuotaLimit: 'Please input a value no less than 1.00',
+    noAllNodeTips: 'There’s no active All node now. Service might be unstable. Do you want to continue?',
+    continueOperate: 'Continue',
+    tryLater: 'Try It Later'
   },
   model: {
     generateModel: 'Custom SQL',

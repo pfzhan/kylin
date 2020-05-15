@@ -97,7 +97,7 @@ import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
 import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder, getDatabaseTablesObj } from './handler'
-import { handleSuccessAsync, handleError } from '../../../util'
+import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
 // import { types } from '../../studio/StudioModel/TableIndexEdit/store'
 
 @Component({
@@ -185,7 +185,8 @@ import { handleSuccessAsync, handleError } from '../../../util'
     ...mapGetters([
       'isAdminRole',
       'isProjectAdmin',
-      'currentProjectData'
+      'currentProjectData',
+      'allNodeNumber'
     ])
   },
   methods: {
@@ -536,10 +537,7 @@ export default class DataSourceBar extends Vue {
     this.allWords = [...datasourceWords, ...databaseWords, ...tableWords, ...columnWords]
     this.$emit('autoComplete', [...databaseWords, ...tableWords, ...databaseTableWords, ...columnWords])
   }
-  async importDataSource (editType, project, event) {
-    event && event.stopPropagation()
-    event && event.preventDefault()
-
+  async toImportDataSource (editType, project) {
     const result = await this.callDataSourceModal({ editType, project })
     if (result) {
       const { loaded, failed } = result
@@ -582,6 +580,18 @@ export default class DataSourceBar extends Vue {
         await new Promise((resolve) => setTimeout(() => resolve(), 1000))
         this.handleResultModalClosed()
       }
+    }
+  }
+  importDataSource (editType, project, event) {
+    event && event.stopPropagation()
+    event && event.preventDefault()
+
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
+        this.toImportDataSource(editType, project)
+      })
+    } else {
+      this.toImportDataSource(editType, project)
     }
   }
   async handleResultModalClosed () {

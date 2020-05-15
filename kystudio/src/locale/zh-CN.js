@@ -197,7 +197,10 @@ exports.default = {
     noDimensionInModel: '该模型未包含维度，',
     noMeasureInModel: '该模型未包含度量，',
     pleaseClickEditModel: '请在模型编辑界面添加。',
-    storageQuotaLimit: '请输入不小于 1.00 的数值'
+    storageQuotaLimit: '请输入不小于 1.00 的数值',
+    noAllNodeTips: '系统中暂无活跃的任务节点，编辑可能无法提交或者保存。确定继续吗？',
+    continueOperate: '继续操作',
+    tryLater: '稍后再试'
   },
   model: {
     generateModel: 'SQL 建模',

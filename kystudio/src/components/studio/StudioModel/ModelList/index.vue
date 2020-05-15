@@ -465,7 +465,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       'isAutoProject',
       'datasourceActions',
       'modelActions',
-      'metadataActions'
+      'metadataActions',
+      'allNodeNumber'
     ])
   },
   methods: {
@@ -979,7 +980,13 @@ export default class ModelList extends Vue {
   }
   // 编辑model
   handleEditModel (modelName) {
-    this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning'}, this.$t('kylinLang.common.tip')).then().catch(() => {
+        this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
+      })
+    } else {
+      this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
+    }
   }
   async handleImportModels () {
     const project = this.currentSelectedProject

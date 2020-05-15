@@ -226,7 +226,8 @@ import NModel from '../../ModelEdit/model.js'
     ...mapGetters([
       'currentProjectData',
       'isAutoProject',
-      'datasourceActions'
+      'datasourceActions',
+      'allNodeNumber'
     ]),
     modelInstance () {
       this.model.project = this.currentProjectData.name
@@ -608,10 +609,19 @@ export default class ModelAggregate extends Vue {
     this.isLoading = false
   }
   async handleAggregateGroup () {
-    const { projectName, model } = this
-    const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
-    isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
-    isSubmit && await this.$emit('loadModels')
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+        const { projectName, model } = this
+        const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+        isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
+        isSubmit && await this.$emit('loadModels')
+      })
+    } else {
+      const { projectName, model } = this
+      const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+      isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
+      isSubmit && await this.$emit('loadModels')
+    }
   }
   // 查询状态过滤回调函数
   filterContent (val, type) {
