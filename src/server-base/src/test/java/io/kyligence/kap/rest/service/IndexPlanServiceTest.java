@@ -1089,7 +1089,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .build();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not find the model effective dimension by column id: 10,11,12");
+        thrown.expectMessage("The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\n" +
+                "10,11,12");
         indexPlanService.calculateAggIndexCount(request);
     }
 }

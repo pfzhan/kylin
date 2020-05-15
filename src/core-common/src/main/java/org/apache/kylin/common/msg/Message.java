@@ -1190,6 +1190,6 @@ public class Message {
     }
 
     public String getEFFECTIVE_DIMENSION_NOT_FIND(){
-        return "Columns [%s] are not defined as dimensions in model";
+        return "The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\n%s";
     }
 }

@@ -1169,6 +1169,6 @@ public class CnMessage extends Message {
     }
 
     public String getEFFECTIVE_DIMENSION_NOT_FIND(){
-        return "模型中未定义对应列为维度[%s]";
+        return "以下列未作为维度添加到模型中，请删除后再保存或添加到模型中。\n%s";
     }
 }
