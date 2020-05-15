@@ -86,6 +86,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testPushDownQuery() throws Exception {
+        Class.forName("org.h2.Driver");
         System.setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         System.setProperty("kylin.query.pushdown.converter-class-names",
