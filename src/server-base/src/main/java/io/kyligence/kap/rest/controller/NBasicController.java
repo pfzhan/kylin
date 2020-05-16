@@ -108,6 +108,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -121,6 +122,7 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
@@ -199,6 +201,17 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(ACCESS_DENIED, ex);
+        logger.error("", e);
+        return new ErrorResponse(req.getRequestURL().toString(), e);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class,
+            IllegalArgumentException.class})
+    @ResponseBody
+    ErrorResponse handleInvalidRequestParam(HttpServletRequest req, Throwable ex) {
+        KylinException e = new KylinException(INVALID_PARAMETER, ex);
         logger.error("", e);
         return new ErrorResponse(req.getRequestURL().toString(), e);
     }
@@ -325,7 +338,7 @@ public class NBasicController {
 
     public void checkJobStatus(String jobStatus) {
         Message msg = MsgPicker.getMsg();
-        if (!StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
+        if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
             throw new KylinException(ILLEGAL_JOB_STATUS, String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
     }

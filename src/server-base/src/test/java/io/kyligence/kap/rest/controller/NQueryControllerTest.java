@@ -344,12 +344,12 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .param("project", PROJECT).param("start_time_from", "0").param("latency_from", "0")
                 .param("latency_to", "10").param("query_status", "FAILED").param("offset", "2").param("limit", "3")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is(500));
+                .andExpect(MockMvcResultMatchers.status().is(400));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
                 .param("latency_from", "0").param("offset", "2").param("limit", "3")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is(500));
+                .andExpect(MockMvcResultMatchers.status().is(400));
     }
 }
