@@ -1,4 +1,4 @@
-import { shallow, createLocalVue, mount } from 'vue-test-utils'
+import { shallow, createLocalVue } from 'vue-test-utils'
 import Vuex from 'vuex'
 import Login from '../login.vue'
 import VueResource from 'vue-resource'
@@ -168,8 +168,8 @@ describe('Component Login', () => {
     expect(guideList.at(0).find('a').attributes().href).toEqual('http://kyligence.io/enterprise/#analytics')
     expect(guideList.at(1).find('a').attributes().href).toEqual('http://docs.kyligence.io/?lang=undefined')
     expect(guideList.at(2).find('a').attributes().href).toEqual('mailto:info@Kyligence.io')
-    expect(wrapper.find('.forget-pwd').attributes().style).toBe('')
-    expect(wrapper.find('.forget-pwd').text()).toBe('Forget Password')
+    // expect(wrapper.find('.forget-pwd').attributes().style).toBe('')
+    // expect(wrapper.find('.forget-pwd').text()).toBe('Forget Password')
     const form = wrapper.find('.input_group').findAll('input')
     expect(form.length).toBe(2)
     expect(form.at(0).attributes().placeholder).toBe('Username')
@@ -257,6 +257,7 @@ describe('Component Login', () => {
     expect(wrapper.vm.$data.hasLicense).toBeFalsy()
     expect(wrapper.vm.$data.loadCheck).toBeFalsy()
     await wrapper.update()
+    // console.log(wrapper.find('.updateKAPLicense').attributes().style)
     expect(wrapper.find('.updateKAPLicense').attributes().style).toBe('display: none;')
     expect(wrapper.find('.license-msg').findAll('button').at(1).text()).toBe('I Know')
     wrapper.find('.license-msg').findAll('button').at(1).trigger('click')

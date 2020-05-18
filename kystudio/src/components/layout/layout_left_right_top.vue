@@ -300,7 +300,7 @@ let MessageBox = ElementUI.MessageBox
       diagnosis: 'Diagnosis',
       activeNodes: 'Active Instances：',
       noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. ',
-      getNodesFailed: 'Failed to get, please wait 5 minutes.',
+      getNodesFailed: 'Failed to get, please wait 1 minutes.',
       loadingNodes: 'loading...',
       disableAddProject: 'Can not create project in edit mode'
     },
@@ -327,7 +327,7 @@ let MessageBox = ElementUI.MessageBox
       diagnosis: '诊断',
       activeNodes: '活跃节点数：',
       noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交',
-      getNodesFailed: '获取失败，请等待 5 分钟',
+      getNodesFailed: '获取失败，请等待 1 分钟',
       loadingNodes: '加载中...',
       disableAddProject: '编辑模式下不可新建项目'
     }
