@@ -538,6 +538,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kylin.query.engine.run-constant-query-locally", TRUE));
     }
 
+    public boolean isRecordSourceUsage() {
+        return Boolean.parseBoolean(config.getOptional("kylin.source.record-source-usage", "true"));
+    }
+
     /**
      * Kerberos
      */

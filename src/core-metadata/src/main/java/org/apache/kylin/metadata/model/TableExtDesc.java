@@ -139,6 +139,11 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     @JsonProperty("col_stats_path")
     private String colStatsPath;
 
+    @Getter
+    @Setter
+    @JsonProperty("row_count_status")
+    private TableExtDesc.RowCountStatus rowCountStatus;
+
     public TableExtDesc() {
     }
 
@@ -205,6 +210,20 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
             }
         } else {
             throw new IllegalArgumentException("The given cardinality columns don't match tables " + identity);
+        }
+    }
+
+    public enum RowCountStatus {
+        OK("ok"), TENTATIVE("tentative");
+
+        private String status;
+
+        RowCountStatus(String status) {
+            this.status = status;
+        }
+
+        public String getStatus() {
+            return status;
         }
     }
 

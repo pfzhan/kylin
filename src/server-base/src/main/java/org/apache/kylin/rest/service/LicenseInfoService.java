@@ -24,6 +24,36 @@
 
 package org.apache.kylin.rest.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinVersion;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.rest.model.LicenseInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,37 +78,6 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinVersion;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.rest.model.LicenseInfo;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.client.RestTemplate;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_LICENSE;
 
 @Slf4j
@@ -91,21 +90,6 @@ public class LicenseInfoService extends BasicService {
 
     public static final String LICENSE_FILENAME = "LICENSE";
     public static final String HOSTNAME = "hostname";
-    public static final String KE_COMMIT = "ke.commit";
-    public static final String KE_VERSION = "ke.version";
-    public static final String KE_METASTORE = "ke.metastore";
-    public static final String KE_DATES = "ke.dates";
-    public static final String KE_LICENSE = "ke.license";
-    public static final String KE_LICENSE_LEVEL = "ke.license.level";
-    public static final String KE_LICENSE_CATEGORY = "ke.license.category";
-    public static final String KE_LICENSE_STATEMENT = "ke.license.statement";
-    public static final String KE_LICENSE_ISEVALUATION = "ke.license.isEvaluation";
-    public static final String KE_LICENSE_SERVICEEND = "ke.license.serviceEnd";
-    public static final String KE_LICENSE_NODES = "ke.license.nodes";
-    public static final String KE_LICENSE_ISCLOUD = "ke.license.isCloud";
-    public static final String KE_LICENSE_INFO = "ke.license.info";
-    public static final String KE_LICENSE_VERSION = "ke.license.version";
-    public static final String KE_LICENSE_VOLUME = "ke.license.volume";
 
     public static File getDefaultLicenseFile() {
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
@@ -153,29 +137,29 @@ public class LicenseInfoService extends BasicService {
 
     public LicenseInfo extractLicenseInfo() {
         val result = new LicenseInfo();
-        result.setStatement(System.getProperty(KE_LICENSE_STATEMENT));
-        result.setVersion(System.getProperty(KE_VERSION));
-        result.setDates(System.getProperty(KE_DATES));
-        result.setCommit(System.getProperty(KE_COMMIT));
+        result.setStatement(System.getProperty(Constants.KE_LICENSE_STATEMENT));
+        result.setVersion(System.getProperty(Constants.KE_VERSION));
+        result.setDates(System.getProperty(Constants.KE_DATES));
+        result.setCommit(System.getProperty(Constants.KE_COMMIT));
 
-        if ("true".equals(System.getProperty(KE_LICENSE_ISEVALUATION))) {
+        if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISEVALUATION))) {
             result.setEvaluation(true);
         }
-        if ("true".equals(System.getProperty(KE_LICENSE_ISCLOUD))) {
+        if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISCLOUD))) {
             result.setEvaluation(true);
         }
 
-        if (!StringUtils.isEmpty(System.getProperty(KE_LICENSE_SERVICEEND))) {
-            result.setServiceEnd(System.getProperty(KE_LICENSE_SERVICEEND));
-        } else if (System.getProperty(KE_DATES) != null && System.getProperty(KE_DATES).contains(",")) {
-            result.setServiceEnd(System.getProperty(KE_DATES).split(",")[1]);
+        if (!StringUtils.isEmpty(System.getProperty(Constants.KE_LICENSE_SERVICEEND))) {
+            result.setServiceEnd(System.getProperty(Constants.KE_LICENSE_SERVICEEND));
+        } else if (System.getProperty(Constants.KE_DATES) != null && System.getProperty(Constants.KE_DATES).contains(",")) {
+            result.setServiceEnd(System.getProperty(Constants.KE_DATES).split(",")[1]);
         }
 
-        result.setNodes(System.getProperty(KE_LICENSE_NODES));
-        result.setVolume(System.getProperty(KE_LICENSE_VOLUME));
-        result.setInfo(System.getProperty(KE_LICENSE_INFO));
-        result.setLevel(System.getProperty(KE_LICENSE_LEVEL));
-        result.setCategory(System.getProperty(KE_LICENSE_CATEGORY));
+        result.setNodes(System.getProperty(Constants.KE_LICENSE_NODES));
+        result.setVolume(System.getProperty(Constants.KE_LICENSE_VOLUME));
+        result.setInfo(System.getProperty(Constants.KE_LICENSE_INFO));
+        result.setLevel(System.getProperty(Constants.KE_LICENSE_LEVEL));
+        result.setCategory(System.getProperty(Constants.KE_LICENSE_CATEGORY));
 
         return result;
     }
@@ -197,7 +181,7 @@ public class LicenseInfoService extends BasicService {
         try {
             ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             String metaStoreId = store.getMetaStoreUUID();
-            setProperty(KE_METASTORE, prefix, metaStoreId);
+            setProperty(Constants.KE_METASTORE, prefix, metaStoreId);
         } catch (Exception e) {
             log.error("Cannot get metastore uuid", e);
         }
@@ -255,7 +239,7 @@ public class LicenseInfoService extends BasicService {
                     new InputStreamReader(new FileInputStream(vfile), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = in.readLine()) != null) {
-                    setProperty(KE_VERSION, prefix, line);
+                    setProperty(Constants.KE_VERSION, prefix, line);
                     log.info("Kyligence Enterprise Version: " + line + "\n");
                     break;
                 }
@@ -291,16 +275,16 @@ public class LicenseInfoService extends BasicService {
             String l;
             while ((l = in.readLine()) != null) {
                 if ("====".equals(l)) {
-                    setProperty(KE_LICENSE_STATEMENT, prefix, statement.toString());
+                    setProperty(Constants.KE_LICENSE_STATEMENT, prefix, statement.toString());
 
                     String version = in.readLine();
-                    setProperty(KE_LICENSE_VERSION, prefix, version);
+                    setProperty(Constants.KE_LICENSE_VERSION, prefix, version);
 
                     String dates = in.readLine();
-                    setProperty(KE_DATES, prefix, dates);
+                    setProperty(Constants.KE_DATES, prefix, dates);
 
                     String license = in.readLine();
-                    setProperty(KE_LICENSE, prefix, license);
+                    setProperty(Constants.KE_LICENSE, prefix, license);
 
                     log.info("Kyligence Enterprise License:\n" + statement + "====\n" + version + "\n" + dates + "\n"
                             + license);
@@ -322,8 +306,8 @@ public class LicenseInfoService extends BasicService {
             while ((line = in.readLine()) != null) {
                 if (line.endsWith("@KAP")) {
                     String commit = line.substring(0, line.length() - 4);
-                    log.info("{}={}", KE_COMMIT, commit);
-                    setProperty(KE_COMMIT, prefix, commit);
+                    log.info("{}={}", Constants.KE_COMMIT, commit);
+                    setProperty(Constants.KE_COMMIT, prefix, commit);
                 }
             }
         } catch (IOException ex) {
@@ -332,12 +316,12 @@ public class LicenseInfoService extends BasicService {
     }
 
     private void gatherStatementInfo(UUID prefix) {
-        String statement = System.getProperty(KE_LICENSE_STATEMENT);
+        String statement = System.getProperty(Constants.KE_LICENSE_STATEMENT);
 
         // set defaults
-        setProperty(KE_LICENSE_ISEVALUATION, prefix, "false");
-        setProperty(KE_LICENSE_CATEGORY, prefix, "4.x");
-        setProperty(KE_LICENSE_LEVEL, prefix, "professional");
+        setProperty(Constants.KE_LICENSE_ISEVALUATION, prefix, "false");
+        setProperty(Constants.KE_LICENSE_CATEGORY, prefix, "4.x");
+        setProperty(Constants.KE_LICENSE_LEVEL, prefix, "professional");
 
         if (statement == null) {
             return;
@@ -356,17 +340,17 @@ public class LicenseInfoService extends BasicService {
 
             while ((line = reader.readLine()) != null) {
                 if (lineNum == 0 && line.toLowerCase().contains("license")) {
-                    setProperty(KE_LICENSE_INFO, prefix, line);
+                    setProperty(Constants.KE_LICENSE_INFO, prefix, line);
                 }
                 if (line.toLowerCase().contains("evaluation")) {
-                    setProperty(KE_LICENSE_ISEVALUATION, prefix, "true");
+                    setProperty(Constants.KE_LICENSE_ISEVALUATION, prefix, "true");
                 }
                 if (line.toLowerCase().contains("for cloud")) {
-                    setProperty(KE_LICENSE_ISCLOUD, prefix, "true");
+                    setProperty(Constants.KE_LICENSE_ISCLOUD, prefix, "true");
                 }
-                extractValue.apply(line, "Service End:").ifPresent(v -> setProperty(KE_LICENSE_SERVICEEND, prefix, v));
-                extractValue.apply(line, "Category:").ifPresent(v -> setProperty(KE_LICENSE_CATEGORY, prefix, v));
-                extractValue.apply(line, "Level:").ifPresent(v -> setProperty(KE_LICENSE_LEVEL, prefix, v));
+                extractValue.apply(line, "Service End:").ifPresent(v -> setProperty(Constants.KE_LICENSE_SERVICEEND, prefix, v));
+                extractValue.apply(line, "Category:").ifPresent(v -> setProperty(Constants.KE_LICENSE_CATEGORY, prefix, v));
+                extractValue.apply(line, "Level:").ifPresent(v -> setProperty(Constants.KE_LICENSE_LEVEL, prefix, v));
                 extractValue.apply(line, "Volume:").ifPresent(volume::set);
                 extractValue.apply(line, "Service Nodes:").ifPresent(node::set);
                 lineNum++;
@@ -383,8 +367,8 @@ public class LicenseInfoService extends BasicService {
         String realVolume = getRealNode(volume, Double::parseDouble);
         String realNode = getRealNode(node, Long::parseLong);
 
-        setProperty(KE_LICENSE_VOLUME, prefix, realVolume);
-        setProperty(KE_LICENSE_NODES, prefix, realNode);
+        setProperty(Constants.KE_LICENSE_VOLUME, prefix, realVolume);
+        setProperty(Constants.KE_LICENSE_NODES, prefix, realNode);
     }
 
     private String getRealNode(String node, Consumer<String> checker) throws IOException {
@@ -467,17 +451,17 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void clearSystemLicense() {
-        System.setProperty(KE_DATES, "");
-        System.setProperty(KE_LICENSE_LEVEL, "");
-        System.setProperty(KE_LICENSE_CATEGORY, "");
-        System.setProperty(KE_LICENSE_STATEMENT, "");
-        System.setProperty(KE_LICENSE_ISEVALUATION, "");
-        System.setProperty(KE_LICENSE_SERVICEEND, "");
-        System.setProperty(KE_LICENSE_NODES, "");
-        System.setProperty(KE_LICENSE_ISCLOUD, "");
-        System.setProperty(KE_LICENSE_INFO, "");
-        System.setProperty(KE_LICENSE_VERSION, "");
-        System.setProperty(KE_LICENSE_VOLUME, "");
+        System.setProperty(Constants.KE_DATES, "");
+        System.setProperty(Constants.KE_LICENSE_LEVEL, "");
+        System.setProperty(Constants.KE_LICENSE_CATEGORY, "");
+        System.setProperty(Constants.KE_LICENSE_STATEMENT, "");
+        System.setProperty(Constants.KE_LICENSE_ISEVALUATION, "");
+        System.setProperty(Constants.KE_LICENSE_SERVICEEND, "");
+        System.setProperty(Constants.KE_LICENSE_NODES, "");
+        System.setProperty(Constants.KE_LICENSE_ISCLOUD, "");
+        System.setProperty(Constants.KE_LICENSE_INFO, "");
+        System.setProperty(Constants.KE_LICENSE_VERSION, "");
+        System.setProperty(Constants.KE_LICENSE_VOLUME, "");
     }
 
     public boolean filterEmail(String email) {

@@ -86,6 +86,9 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("source_bytes_size")
     private long sourceBytesSize = -1;
 
+    @JsonProperty("column_source_bytes")
+    private Map<String, Long> columnSourceBytes;
+
     private Long storageSize = null;
 
     private Long storageFileCount = null;
@@ -399,6 +402,15 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public void setSourceBytesSize(long sourceBytesSize) {
         checkIsNotCachedAndShared();
         this.sourceBytesSize = sourceBytesSize;
+    }
+
+    public Map<String, Long> getColumnSourceBytes() {
+        return columnSourceBytes;
+    }
+
+    public void setColumnSourceBytes(Map<String, Long> columnSourceBytes) {
+        checkIsNotCachedAndShared();
+        this.columnSourceBytes = columnSourceBytes;
     }
 
     public boolean isEncodingDataSkew() {

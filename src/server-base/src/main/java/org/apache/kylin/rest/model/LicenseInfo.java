@@ -24,49 +24,47 @@
 package org.apache.kylin.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.apache.kylin.rest.service.LicenseInfoService;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import io.kyligence.kap.common.license.Constants;
 import lombok.Data;
 
 @Data
 public class LicenseInfo {
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_STATEMENT)
+    @JsonProperty(Constants.KE_LICENSE_STATEMENT)
     private String statement;
 
-    @JsonProperty(LicenseInfoService.KE_VERSION)
+    @JsonProperty(Constants.KE_VERSION)
     private String version;
 
-    @JsonProperty(LicenseInfoService.KE_DATES)
+    @JsonProperty(Constants.KE_DATES)
     private String dates;
 
-    @JsonProperty(LicenseInfoService.KE_COMMIT)
+    @JsonProperty(Constants.KE_COMMIT)
     private String commit;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_ISEVALUATION)
+    @JsonProperty(Constants.KE_LICENSE_ISEVALUATION)
     private boolean isEvaluation = false;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_ISCLOUD)
+    @JsonProperty(Constants.KE_LICENSE_ISCLOUD)
     private boolean isCloud = false;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_SERVICEEND)
+    @JsonProperty(Constants.KE_LICENSE_SERVICEEND)
     private String serviceEnd;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_NODES)
+    @JsonProperty(Constants.KE_LICENSE_NODES)
     private String nodes;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_VOLUME)
+    @JsonProperty(Constants.KE_LICENSE_VOLUME)
     private String volume;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_LEVEL)
+    @JsonProperty(Constants.KE_LICENSE_LEVEL)
     private String level;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_INFO)
+    @JsonProperty(Constants.KE_LICENSE_INFO)
     private String info;
 
-    @JsonProperty(LicenseInfoService.KE_LICENSE_CATEGORY)
+    @JsonProperty(Constants.KE_LICENSE_CATEGORY)
     private String category;
 
     @JsonIgnore
