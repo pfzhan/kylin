@@ -200,6 +200,9 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<String> setPartitionKey(@RequestBody PartitionKeyRequest partitionKeyRequest) {
 
         checkProjectName(partitionKeyRequest.getProject());
+        if (partitionKeyRequest.getPartitionColumnFormat() != null) {
+            validateDateTimeFormatPattern(partitionKeyRequest.getPartitionColumnFormat());
+        }
         tableService.setPartitionKey(partitionKeyRequest.getTable(), partitionKeyRequest.getProject(),
                 partitionKeyRequest.getColumn(), partitionKeyRequest.getPartitionColumnFormat());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

@@ -69,6 +69,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
@@ -345,7 +346,8 @@ public class QueryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         final QueryContext queryContext = QueryContext.current();
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
-            queryContext.setQueryId(sqlRequest.getQueryId());
+            // validate queryId with UUID.fromString
+            queryContext.setQueryId(UUID.fromString(sqlRequest.getQueryId()).toString());
         }
         try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
             long t = System.currentTimeMillis();

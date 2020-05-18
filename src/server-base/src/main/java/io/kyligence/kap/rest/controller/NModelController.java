@@ -805,8 +805,13 @@ public class NModelController extends NBasicController {
     }
 
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
-        if (partitionDesc != null && StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
-            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
+        if (partitionDesc != null) {
+            if (StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
+                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
+            }
+            if (partitionDesc.getPartitionDateFormat() != null) {
+                validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());
+            }
         }
     }
 

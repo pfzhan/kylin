@@ -61,6 +61,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -392,6 +393,19 @@ public class NBasicController {
 
         } else {
             throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
+        }
+    }
+
+    public void validateDateTimeFormatPattern(String pattern) {
+        if (pattern.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    "Invalid empty datetime format ");
+        }
+        try {
+            new SimpleDateFormat(pattern);
+        } catch (IllegalArgumentException e) {
+            throw new KylinException(INVALID_PARAMETER,
+                    "Invalid datetime format " + pattern + ". " + e.getLocalizedMessage());
         }
     }
 

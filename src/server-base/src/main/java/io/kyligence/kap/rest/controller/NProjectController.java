@@ -138,6 +138,7 @@ public class NProjectController extends NBasicController {
     @PostMapping(value = "/{project:.+}/backup")
     @ResponseBody
     public EnvelopeResponse<String> backupProject(@PathVariable("project") String project) throws Exception {
+        checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
     }
 
