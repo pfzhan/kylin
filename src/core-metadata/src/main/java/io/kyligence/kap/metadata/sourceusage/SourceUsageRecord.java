@@ -199,8 +199,6 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
             ColumnCapacityDetail existing = getColumnByName(column.name);
             if (existing == null) {
                 appendColumn(column);
-            } else {
-                existing = column;
             }
         }
 
@@ -232,12 +230,12 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
             this.name = name;
         }
 
-        public long getCubeSourceBytes(String cube) {
-            return this.sourceBytesMap.get(cube);
+        public long getDataflowSourceBytes(String dataflow) {
+            return this.sourceBytesMap.get(dataflow);
         }
 
-        public void setCubeSourceBytes(String cube, long sourceBytes) {
-            this.sourceBytesMap.put(cube, sourceBytes);
+        public void setDataflowSourceBytes(String dataflow, long sourceBytes) {
+            this.sourceBytesMap.put(dataflow, sourceBytes);
             this.maxSourceBytes = Long.max(maxSourceBytes, sourceBytes);
         }
 
