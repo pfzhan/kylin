@@ -1089,8 +1089,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .build();
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\n" +
-                "10,11,12");
+        thrown.expectMessage(
+                "The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\nColumn ID: 10,11,12");
         indexPlanService.calculateAggIndexCount(request);
     }
 }

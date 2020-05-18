@@ -1190,6 +1190,6 @@ public class Message {
     }
 
     public String getEFFECTIVE_DIMENSION_NOT_FIND(){
-        return "The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\n%s";
+        return "The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\nColumn ID: %s";
     }
 }
