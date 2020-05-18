@@ -38,7 +38,7 @@
                 <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
-                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="editTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
+                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
               <div class="right fix">
@@ -91,7 +91,7 @@
                       <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
                     </common-tip>
                     <common-tip :content="$t('editIndex')" v-if="datasourceActions.includes('editAggGroup')">
-                      <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="editTableIndex(scope.row)"></i>
+                      <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
                     </common-tip>
                     <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
                       <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
@@ -361,6 +361,15 @@ export default class ModelAggregate extends Vue {
       tipMsg += this.$t('kylinLang.model.buildIndexFail1', {modelName: this.model.name})
     }
     this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
+  }
+  confrimEditTableIndex (indexDesc) {
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+        this.editTableIndex(indexDesc)
+      })
+    } else {
+      this.editTableIndex(indexDesc)
+    }
   }
   editTableIndex (indexDesc) {
     this.showTableIndexEditModal({

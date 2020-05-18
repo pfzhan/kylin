@@ -12,7 +12,7 @@
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowTableIndexActions&&!isHideEdit">
           <common-tip :content="$t('addTableIndex')">
-            <i class="el-icon-ksd-project_add" @click="editTableIndex()"></i>
+            <i class="el-icon-ksd-project_add" @click="confrimEditTableIndex()"></i>
           </common-tip>
         </div>
       </div>
@@ -36,7 +36,7 @@
           </span>
           <span class="ksd-fright icon-group">
             <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit" @click="editTableIndex(index)"></i>
+              <i class="el-icon-ksd-table_edit" @click="confrimEditTableIndex(index)"></i>
             </common-tip><common-tip :content="$t('kylinLang.common.delete')">
               <i class="el-icon-ksd-table_delete ksd-ml-10" @click="removeIndex(index)"></i>
             </common-tip>
@@ -82,7 +82,7 @@
     <div class="table-index-detail-block" v-else>
       <div class="empty-block">
         <div>{{$t('aggTableIndexTips')}}</div>
-        <el-button type="primary" text icon="el-icon-ksd-table_add" @click="editTableIndex()" v-if="isShowTableIndexActions&&!isHideEdit">{{$t('tableIndex')}}</el-button>
+        <el-button type="primary" text icon="el-icon-ksd-table_add" @click="confrimEditTableIndex()" v-if="isShowTableIndexActions&&!isHideEdit">{{$t('tableIndex')}}</el-button>
       </div>
     </div>
   </div>
@@ -115,7 +115,8 @@ import NModel from '../../ModelEdit/model.js'
   computed: {
     ...mapGetters([
       'currentProjectData',
-      'isAutoProject'
+      'isAutoProject',
+      'allNodeNumber'
     ]),
     modelInstance () {
       this.model.project = this.currentProjectData.name
@@ -147,6 +148,15 @@ export default class TableIndexView extends Vue {
   }
   indexDatas = []
   isLoading = false
+  confrimEditTableIndex (indexDesc) {
+    if (!this.allNodeNumber) {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+        this.editTableIndex(indexDesc)
+      })
+    } else {
+      this.editTableIndex(indexDesc)
+    }
+  }
   async editTableIndex (indexDesc) {
     const isSubmit = await this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
