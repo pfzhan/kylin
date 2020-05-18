@@ -90,6 +90,7 @@ class DFChooser(toBuildTree: NSpanningTree,
   def persistFlatTableIfNecessary(): String = {
     var path = ""
     if (shouldPersistFlatTable()) {
+    if (shouldPersistFlatTable()) {
       val df = flatTableSource.getFlattableDS
       val columns = new mutable.ListBuffer[String]
       val columnIndex = df.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
@@ -115,13 +116,19 @@ class DFChooser(toBuildTree: NSpanningTree,
           ss.sparkContext.setJobDescription("Persist flat table.")
           df.write.mode(SaveMode.Overwrite).parquet(path)
           // checkpoint
-          val oldSelectedColumns = seg.getSelectedColumns.asScala
+          val selectedColumns = columns.distinct
+          val oldSelectedColumns = if (seg.getSelectedColumns == null) Seq.empty[String] else seg.getSelectedColumns.asScala
+          val combinedColumns = new mutable.ListBuffer[String]
+          combinedColumns.appendAll(oldSelectedColumns)
+          combinedColumns.appendAll(selectedColumns)
+          val allSelectedColumns = combinedColumns.distinct
           logInfo(s"Persist flat table into: $path. " +
             s"Selected columns in table are [${selectedColumns.mkString(",")}]. " +
-            s"Old Selected columns in table are [${oldSelectedColumns.mkString(",")}].")
+            s"Old Selected columns in table are [${oldSelectedColumns.mkString(",")}]. " +
+            s"All selected columns in table are [${allSelectedColumns.mkString(",")}].")
           DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
             copied.setFlatTableReady(true)
-            copied.setSelectedColumns(selectedColumns.toList.asJava)
+            copied.setSelectedColumns(allSelectedColumns.asJava)
           })
         }
         flatTableSource.setParentStorageDF(ss.read.parquet(path))
