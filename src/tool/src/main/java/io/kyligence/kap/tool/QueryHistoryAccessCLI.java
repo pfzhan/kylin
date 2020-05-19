@@ -32,6 +32,7 @@ import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class QueryHistoryAccessCLI {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccessCLI.class);
     private static final String PROJECT = "test_project";
+    private static final String FAIL_LOG = "query history access test failed.";
     private JdbcTemplate jdbcTemplate;
 
     public QueryHistoryAccessCLI(JdbcTemplate jdbcTemplate) {
@@ -65,14 +67,14 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setCacheHit(true);
             queryMetrics.setIndexHit(true);
             queryMetrics.setQueryTime(1584888338274L);
-            queryMetrics.setProjectName("default");
+            queryMetrics.setProjectName(PROJECT);
 
             QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                     "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");
             realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
             realizationMetrics.setDuration(4591L);
             realizationMetrics.setQueryTime(1586405449387L);
-            realizationMetrics.setProjectName("default");
+            realizationMetrics.setProjectName(PROJECT);
 
             List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
             realizationMetricsList.add(realizationMetrics);
@@ -80,14 +82,19 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setRealizationMetrics(realizationMetricsList);
             rdbmsWriter.write(null, queryMetrics, 0L);
 
-        } catch (Exception e) {
-            logger.error("query history access test failed." + e.getMessage());
+            // clean test data
+            jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryTableName() + " where project_name = '"
+                    + PROJECT + "'");
+            jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryRealizationTableName()
+                    + " where project_name = '" + PROJECT + "'");
+        } catch (BadSqlGrammarException e) {
+            jdbcTemplate.update("drop table " + RDBMSWriter.getQueryHistoryTableName());
+            jdbcTemplate.update("drop table " + RDBMSWriter.getQueryHistoryRealizationTableName());
+            logger.error(FAIL_LOG, e.getMessage());
             return false;
-        } finally {
-            // clean
-            jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryTableName() + " where project_name = '" + PROJECT + "'");
-            jdbcTemplate.update(
-                    "delete from " + RDBMSWriter.getQueryHistoryRealizationTableName() + " where project_name = '" + PROJECT + "'");
+        } catch (Exception e) {
+            logger.error(FAIL_LOG, e.getMessage());
+            return false;
         }
         return true;
     }
