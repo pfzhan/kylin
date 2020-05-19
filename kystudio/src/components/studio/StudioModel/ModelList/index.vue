@@ -981,7 +981,7 @@ export default class ModelList extends Vue {
   // 编辑model
   handleEditModel (modelName) {
     if (!this.allNodeNumber) {
-      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning'}, this.$t('kylinLang.common.tip')).then().catch(() => {
+      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
         this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
       })
     } else {
