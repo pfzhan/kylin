@@ -132,6 +132,8 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testPushDownNonEquiSql() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
         File sqlFile = new File("src/test/resources/query/sql_pushdown/query11.sql");
         String sql = new String(Files.readAllBytes(sqlFile.toPath()), StandardCharsets.UTF_8);
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");

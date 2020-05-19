@@ -28,10 +28,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.collect.Maps;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -39,7 +41,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.apache.kylin.query.util.QueryUtil;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -67,12 +68,31 @@ public class KapQueryUtil {
             Map<String, NDataModel> modelMap = Maps.newHashMap();
             modelMap.put(model.getUuid(), model);
             ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT", modelMap);
-            ccSql = QueryUtil.massagePushDownSql(ccSql, project, "DEFAULT", false);
+            KylinConfig config = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv().exportToProperties());
+            config.setProperty("kylin.query.pushdown.converter-class-names", removeTableViewPrependerConverter(config.getPushDownConverterClassNames()));
+            ccSql = QueryUtil.massagePushDownSql(config, ccSql, project, "DEFAULT", false);
         } catch (Exception e) {
             log.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
+    }
+
+    private static String removeTableViewPrependerConverter(String[] pushdownConverters) {
+        StringBuilder sb = new StringBuilder();
+        for (String converterName : pushdownConverters) {
+            if (converterName.equalsIgnoreCase("io.kyligence.kap.query.security.TableViewPrepender"))
+                continue;
+
+            sb.append(converterName);
+            sb.append(",");
+        }
+
+        if (sb.length() > 1) {
+            sb.setLength(sb.length() - 1);
+        }
+
+        return sb.toString();
     }
 
     public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc) {

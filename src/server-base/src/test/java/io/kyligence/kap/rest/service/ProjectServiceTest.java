@@ -526,10 +526,10 @@ public class ProjectServiceTest extends ServiceTestBase {
         getTestConfig().setProperty("kylin.query.pushdown.converter-class-name", "");
         pushDownProjectConfigRequest.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         pushDownProjectConfigRequest.setConverterClassNames(
-                "org.apache.kylin.query.util.PowerBIConverter, io.kyligence.kap.query.util.RestoreFromComputedColumn");
+                "org.apache.kylin.query.util.PowerBIConverter");
         projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
         String[] converterClassNames = new String[] {
-                "org.apache.kylin.query.util.PowerBIConverter", "io.kyligence.kap.query.util.RestoreFromComputedColumn"};
+                "org.apache.kylin.query.util.PowerBIConverter"};
         // response
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(

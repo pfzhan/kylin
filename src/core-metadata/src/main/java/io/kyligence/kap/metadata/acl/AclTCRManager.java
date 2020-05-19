@@ -35,6 +35,8 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -200,6 +202,24 @@ public class AclTCRManager {
                     .map(columnDesc -> getDbTblCols(tableDesc, columnDesc)).flatMap(Set::stream)
                     .collect(Collectors.toSet());
         }).flatMap(Set::stream).collect(Collectors.toSet())).flatMap(Set::stream).collect(Collectors.toSet());
+    }
+
+    public Multimap<String, String> getAuthorizedColumnsGroupByTable(String userName, Set<String> groups) {
+        val allAclTCRs = getAclTCRs(userName, groups);
+        if (isTablesAuthorized(allAclTCRs)) {
+            return ArrayListMultimap.<String, String>create();
+        }
+
+        val authorizedColsMap = ArrayListMultimap.<String, String>create();
+        allAclTCRs.stream().forEach(aclTCR -> aclTCR.getTable().entrySet().stream().forEach(entry -> {
+            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(entry.getKey());
+            if (Objects.isNull(tableDesc) || Objects.isNull(entry.getValue()) || Objects.isNull(entry.getValue().getColumn())) {
+                return;
+            }
+            authorizedColsMap.putAll(tableDesc.getIdentity(), entry.getValue().getColumn());
+        }));
+
+        return authorizedColsMap;
     }
 
     public Map<String, List<TableDesc>> getAuthorizedTablesAndColumns(String userName, Set<String> groups, boolean fullyAuthorized) {

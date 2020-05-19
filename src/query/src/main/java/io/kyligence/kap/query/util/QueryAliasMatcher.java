@@ -202,7 +202,7 @@ public class QueryAliasMatcher {
         }
 
         private ColumnRowType buildColumnRowType(String alias, String schemaName, String tableName) {
-            OLAPTable olapTable = getTable(schemaName, tableName);
+            OLAPTable olapTable = getTable(schemaName.toUpperCase(), tableName);
 
             List<TblColRef> columns = new ArrayList<>();
             if (olapTable != null) {

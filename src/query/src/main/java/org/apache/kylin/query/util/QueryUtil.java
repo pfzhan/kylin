@@ -49,12 +49,14 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.security.AccessDeniedException;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -108,6 +110,14 @@ public class QueryUtil {
             sql = t.transform(sql, project, defaultSchema);
         }
         return sql;
+    }
+
+    private static boolean hasAdminPermission() {
+        val context = QueryContext.current();
+        if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
+            return false;
+        }
+        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
     }
 
     public static String normalMassageSql(KylinConfig kylinConfig, String sql, int limit, int offset) {
@@ -166,14 +176,14 @@ public class QueryUtil {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(project);
         KylinConfig kylinConfig = projectInstance.getConfig();
-        while (sql.endsWith(";"))
-            sql = sql.substring(0, sql.length() - 1);
-
         return massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
     }
 
-    static String massagePushDownSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema,
+    public static String massagePushDownSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema,
             boolean isPrepare) {
+        while (sql.endsWith(";"))
+            sql = sql.substring(0, sql.length() - 1);
+
         initPushDownConvertersIfNeeded(kylinConfig);
         for (IPushDownConverter converter : pushDownConverters) {
             if (Thread.currentThread().isInterrupted()) {
