@@ -34,7 +34,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
-import org.apache.kylin.metadata.model.TblColRef
+import org.apache.kylin.metadata.model.{IJoinedFlatTableDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.functions.col
@@ -138,13 +138,15 @@ class DFChooser(toBuildTree: NSpanningTree,
 
       logInfo(s"Fact table ${fact.getAlias} isView ${fact.getTableDesc.isView} and fact table exists dict col ${existsFactDictCol}")
       if (fact.getTableDesc.isView && existsFactDictCol) {
-        val viewDS = ss.table(fact.getTableDesc).alias(fact.getAlias)
+        var viewDS = ss.table(fact.getTableDesc).alias(fact.getAlias)
         path = s"${config.getJobTmpViewFactTableDir(seg.getProject, jobId)}"
 
         if (seg.isFactViewReady && HadoopUtil.getWorkingFileSystem.exists(new Path(path))) {
           logInfo(s"Skip already persisted fact view, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
         } else {
           ss.sparkContext.setJobDescription("Persist view fact table.")
+          viewDS = FlatTableHelper.applyPartitionDesc(flatTableDesc, viewDS, false)
+          viewDS = FlatTableHelper.applyFilterCondition(flatTableDesc, viewDS, false)
           viewDS.write.mode(SaveMode.Overwrite).parquet(path)
           logInfo(s"Persist view fact table into:$path.")
 
@@ -191,7 +193,7 @@ class DFChooser(toBuildTree: NSpanningTree,
   }
 }
 
-object DFChooser {
+object DFChooser extends Logging {
   def apply(toBuildTree: NSpanningTree,
             seg: NDataSegment,
             jobId: String,

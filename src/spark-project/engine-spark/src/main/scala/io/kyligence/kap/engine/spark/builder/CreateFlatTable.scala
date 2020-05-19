@@ -29,7 +29,7 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
-import io.kyligence.kap.engine.spark.job.TableMetaManager
+import io.kyligence.kap.engine.spark.job.{FlatTableHelper, TableMetaManager}
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
@@ -124,9 +124,9 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
     val (dictCols, encodeCols): GlobalDictType = assemblyGlobalDictTuple(seg, toBuildTree)
     val encodedDataset = encodeWithCols(batchDataset, ccCols, dictCols, encodeCols)
-    val filterEncodedDataset = applyFilterCondition(flatTable, encodedDataset)
+    val filterEncodedDataset = FlatTableHelper.applyFilterCondition(flatTable, encodedDataset, true)
 
-    flatTable match {
+      flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
         changeSchemeToColumnIndice(filterEncodedDataset, joined)
       case unsupported =>
@@ -149,7 +149,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     )
     logInfo(s"Create a flat table: ${LogUtils.jsonMap(flatTableInfo)}")
 
-    rootFactDataset = applyPartitionDesc(flatTable, rootFactDataset)
+    rootFactDataset = FlatTableHelper.applyPartitionDesc(flatTable, rootFactDataset, true)
 
     (needJoin, needEncode) match {
       case (true, true) =>
@@ -183,9 +183,9 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
       DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => copied.setDictReady(true))
     }
 
-    rootFactDataset = applyFilterCondition(flatTable, rootFactDataset)
+    rootFactDataset = FlatTableHelper.applyFilterCondition(flatTable, rootFactDataset, true)
 
-    flatTable match {
+      flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>
         changeSchemeToColumnIndice(rootFactDataset, joined)
       case unsupported =>
@@ -289,40 +289,6 @@ object CreateFlatTable extends LogEx {
       }
     )
     lookupTables
-  }
-
-  private def applyPartitionDesc(flatTable: IJoinedFlatTableDesc, ds: Dataset[Row]): Dataset[Row] = {
-    var afterFilter = ds
-    val model = flatTable.getDataModel
-
-    val partDesc = model.getPartitionDesc
-    if (partDesc != null && partDesc.getPartitionDateColumn != null) {
-      val segRange = flatTable.getSegRange
-      if (segRange != null && !segRange.isInfinite) {
-        var afterConvertPartition = partDesc.getPartitionConditionBuilder
-          .buildDateRangeCondition(partDesc, null, segRange)
-        afterConvertPartition = replaceDot(afterConvertPartition, model)
-        logInfo(s"Partition filter $afterConvertPartition")
-        afterFilter = afterFilter.where(afterConvertPartition) // TODO: mp not supported right now
-      }
-    }
-
-    afterFilter
-  }
-
-
-  private def applyFilterCondition(flatTable: IJoinedFlatTableDesc, ds: Dataset[Row]): Dataset[Row] = {
-    var afterFilter = ds
-    val model = flatTable.getDataModel
-
-    if (StringUtils.isNotBlank(model.getFilterCondition)) {
-      var afterConvertCondition = model.getFilterCondition
-      afterConvertCondition = s" (1=1) AND (" + replaceDot(model.getFilterCondition, model) + s")"
-      logInfo(s"Filter condition is $afterConvertCondition")
-      afterFilter = afterFilter.where(afterConvertCondition)
-    }
-
-    afterFilter
   }
 
   def joinFactTableWithLookupTables(rootFactDataset: Dataset[Row],
