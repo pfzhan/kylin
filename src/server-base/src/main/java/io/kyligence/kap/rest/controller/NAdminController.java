@@ -69,6 +69,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.source.load-hive-tablename-enabled");
         propertyKeys.add("kylin.kerberos.project-level-enabled");
         propertyKeys.add("kylin.web.stack-trace.enabled");
+        propertyKeys.add("kylin.metadata.random-admin-password.enabled");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 
