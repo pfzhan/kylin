@@ -335,7 +335,8 @@ public class QueryService extends BasicService {
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
                 .put(LogReport.ERROR_MSG, response.getExceptionMessage())
-                .put(LogReport.USER_TAG, request.getUser_defined_tag());
+                .put(LogReport.USER_TAG, request.getUser_defined_tag())
+                .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown());
         String log = report.oldStyleLog();
         logger.info(log);
         logger.info(report.jsonStyleLog());
@@ -565,6 +566,11 @@ public class QueryService extends BasicService {
 
     private SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
         QueryExec queryExec = newQueryExec(sqlRequest.getProject());
+
+        if (sqlRequest.isForcedToPushDown()) {
+            return pushDownQuery(null, sqlRequest, queryExec.getSchema());
+        }
+
         try {
             return doTransactionEnabled(() -> {
 
@@ -641,7 +647,7 @@ public class QueryService extends BasicService {
             sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
         }
         return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlString, sqlRequest.getLimit(),
-                sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare);
+                sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare, sqlRequest.isForcedToPushDown());
     }
 
     public List<TableMeta> getMetadata(String project) {
@@ -1173,6 +1179,7 @@ public class QueryService extends BasicService {
         static final String TIMELINE = "timeline";
         static final String ERROR_MSG = "error_msg";
         static final String USER_TAG = "user_defined_tag";
+        static final String PUSH_DOWN_FORCED = "push_down_forced";
 
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
@@ -1185,7 +1192,7 @@ public class QueryService extends BasicService {
                 .put(STORAGE_CACHE_USED, "Storage Cache Used: ").put(PUSH_DOWN, "Is Query Push-Down: ")
                 .put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ").put(TRACE_URL, "Trace URL: ")
                 .put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ").put(ERROR_MSG, "Message: ")
-                .put(USER_TAG, "User Defined Tag: ").build();
+                .put(USER_TAG, "User Defined Tag: ").put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
@@ -1227,7 +1234,7 @@ public class QueryService extends BasicService {
                     + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine + O2N.get(TIMEOUT) + get(TIMEOUT) + newLine
                     + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA)
                     + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG) + get(ERROR_MSG)
-                    + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine
+                    + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED) + get(PUSH_DOWN_FORCED) + newLine
                     + "==========================[QUERY]===============================" + newLine;
         }
 

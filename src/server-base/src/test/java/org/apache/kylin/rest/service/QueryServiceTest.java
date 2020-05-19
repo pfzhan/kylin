@@ -42,72 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.KylinTimeoutException;
-import org.apache.kylin.common.exception.ResourceLimitExceededException;
-import org.apache.kylin.common.persistence.InMemResourceStore;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.querymeta.ColumnMeta;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.metadata.querymeta.TableMeta;
-import org.apache.kylin.metadata.querymeta.TableMetaWithType;
-import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.model.Query;
-import org.apache.kylin.rest.request.SQLRequest;
-import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import io.kyligence.kap.common.hystrix.CircuitBreakerException;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -132,6 +68,69 @@ import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import lombok.val;
 import net.sf.ehcache.CacheManager;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.exception.ResourceLimitExceededException;
+import org.apache.kylin.common.persistence.InMemResourceStore;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.querymeta.ColumnMeta;
+import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.metadata.querymeta.TableMeta;
+import org.apache.kylin.metadata.querymeta.TableMetaWithType;
+import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.model.Query;
+import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author xduo
@@ -269,6 +268,33 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(queryService).recordMetric(request, response);
         Assert.assertEquals(1, pushdownCount);
+
+    }
+
+    @Test
+    public void testQueryPushDownForced() throws Throwable {
+        final String sql = "select * from abc";
+        final String project = "default";
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setSql(sql);
+        sqlRequest.setProject(project);
+        sqlRequest.setForcedToPushDown(true);
+
+        String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(),
+                sqlRequest.getOffset(), queryExec.getSchema(), true);
+
+        Mockito.when(queryExec.executeQuery(correctedSql))
+                .thenThrow(new RuntimeException("shouldnt execute queryexec"));
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+
+        Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST)).when(queryService).tryPushDownSelectQuery(sqlRequest, null, null,
+                false);
+
+        final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
+
+        Assert.assertEquals(true, response.isQueryPushDown());
 
     }
 
@@ -945,6 +971,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final String sql = "-- This is comment" + '\n' + "select * from test";
         final String project = "default";
         final String tag = "tagss";
+        final String pushDownForced = "false";
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
@@ -956,7 +983,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryContext.current().setUserSQL(sql);
         String log = queryService.logQuery(request, response);
         //
-        final int groupCnt = 27;
+        final int groupCnt = 28;
         String matchNewLine = "\\n";
         String s = "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine + "SQL:\\s(.*?)" + matchNewLine
                 + "User:\\s(.*?)" + matchNewLine + "Success:\\s(.*?)" + matchNewLine + "Duration:\\s(.*?)"
@@ -970,7 +997,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "Is Query Push-Down:\\s(.*?)" + matchNewLine + "Is Prepare:\\s(.*?)" + matchNewLine
                 + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)" + matchNewLine
                 + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
-                + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "[=]+\\[QUERY\\][=]+.*";
+                + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "Is forced to Push-Down:\\s(.*?)" + matchNewLine
+                + "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);
 
@@ -985,6 +1013,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(Boolean.parseBoolean(matcher.group(4)));
         Assert.assertEquals("null", matcher.group(23)); //Trace URL
         Assert.assertEquals(tag, matcher.group(27));
+        Assert.assertEquals(pushDownForced, matcher.group(28));
     }
 
     @Test

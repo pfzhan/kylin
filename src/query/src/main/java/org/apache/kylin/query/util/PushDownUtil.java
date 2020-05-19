@@ -113,19 +113,20 @@ public class PushDownUtil {
     }
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
-            int limit, int offset, String defaultSchema, SQLException sqlException, boolean isPrepare)
+            int limit, int offset, String defaultSchema, SQLException sqlException, boolean isPrepare, boolean isForced)
             throws Exception {
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sql, limit, offset);
-        return tryPushDownQuery(project, massagedSql, defaultSchema, sqlException, true, isPrepare);
+        return tryPushDownQuery(project, massagedSql, defaultSchema, sqlException, true, isPrepare, isForced);
     }
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String project,
             String sql, String defaultSchema, boolean isPrepare) throws Exception {
-        return tryPushDownQuery(project, sql, defaultSchema, null, false, isPrepare);
+        return tryPushDownQuery(project, sql, defaultSchema, null, false, isPrepare, false);
     }
 
     private static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(String project, String sql,
-            String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare) throws Exception {
+            String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare, boolean isForced)
+            throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val prjManager = NProjectManager.getInstance(kylinConfig);
@@ -136,7 +137,7 @@ public class PushDownUtil {
         if (isSelect) {
             logger.info("Query:[{}] failed to utilize pre-calculation, routing to other engines",
                     QueryContext.current().getCorrectedSql(), sqlException);
-            if (!isExpectedCause(sqlException)) {
+            if (!isForced && !isExpectedCause(sqlException)) {
                 logger.info("quit doPushDownQuery because prior exception thrown is unexpected");
                 return null;
             }

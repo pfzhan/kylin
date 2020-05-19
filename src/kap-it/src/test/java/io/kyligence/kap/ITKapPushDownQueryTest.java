@@ -221,7 +221,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         String testSql = getTextFromFile(
                 new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query07.sql"));
-        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql);
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql, false);
         Assert.assertNotNull(result.getFirst());
         Assert.assertTrue(result.getFirst().size() == 1);
         Assert.assertTrue(result.getFirst().get(0).get(0) == null);
@@ -309,7 +309,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         String testSql = getTextFromFile(
                 new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query08.sql"));
-        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql);
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql, false);
         Assert.assertNotNull(result.getFirst());
         Assert.assertTrue(result.getFirst().size() == 1);
         Assert.assertTrue("0".equals(result.getFirst().get(0).get(0)));

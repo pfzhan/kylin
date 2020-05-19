@@ -44,6 +44,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import lombok.val;
 
@@ -176,14 +178,47 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         Assert.assertNotNull(result2);
     }
 
+    @Test
+    public void testPushDownForced() throws Exception {
+        //test for KE-14218
+
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+
+        String prjName = "tdvt";
+        // timstampDiff
+        String sql = "SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,{d '1900-01-01'},\"CALCS\".\"DATE0\")} AS \"TEMP_Test__2048215813__0_\"\n"
+                + "FROM \"CALCS\" \"CALCS\"\n"
+                + "GROUP BY {fn TIMESTAMPDIFF(SQL_TSI_DAY,{d '1900-01-01'},\"CALCS\".\"DATE0\")}";
+        val resultForced = pushDownSql(prjName, sql, 0, 0, null, true);
+        Assert.assertNotNull(resultForced);
+
+        //test for error when  execption is null and is not forced
+        try {
+            pushDownSql(prjName, sql, 0, 0, null, false);
+        } catch (Exception e) {
+            Throwable rootCause = Throwables.getRootCause(e);
+            Assert.assertTrue(rootCause instanceof IllegalArgumentException);
+        }
+
+    }
+
     private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownSql(String prjName, String sql, int limit,
-            int offset, SQLException sqlException)
+            int offset, SQLException sqlException) throws Exception {
+        return pushDownSql(prjName, sql, limit, offset, sqlException, false);
+    }
+
+    private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownSql(String prjName, String sql, int limit,
+            int offset, SQLException sqlException, boolean isForced)
             throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         String pushdownSql = NExecAndComp.removeDataBaseInSql(sql);
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = PushDownUtil.tryPushDownSelectQuery(prjName,
                 pushdownSql,
-                limit, offset, "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly());
+                limit, offset, "DEFAULT", sqlException, BackdoorToggles.getPrepareOnly(), isForced);
         if (result == null) {
             throw sqlException;
         }

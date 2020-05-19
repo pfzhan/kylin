@@ -78,6 +78,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private Integer offset = 0;
     private Integer limit = 0;
     private boolean acceptPartial = false;
+    private boolean forcedToPushDown = false;
 
     private Map<String, String> backdoorToggles;
 
