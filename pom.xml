@@ -172,7 +172,9 @@
             **/org/apache/spark/dict/NHashPartitioner.java,
             **/org/apache/kylin/rest/model/LicenseInfo.java,
             **/io/kyligence/kap/rest/security/KerberosLoginManager.java,
-            **/io/kyligence/kap/engine/spark/source/NSparkMetadataExplorer.java
+            **/io/kyligence/kap/engine/spark/source/NSparkMetadataExplorer.java,
+            **/io/kyligence/kap/rest/security/SecurityLogAspect.java,
+            **/io/kyligence/kap/rest/util/SecurityLoggerUtils.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 

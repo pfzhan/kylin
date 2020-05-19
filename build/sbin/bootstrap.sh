@@ -192,6 +192,10 @@ function startKE(){
         fi
     fi
 
+    START_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+
+    recordKylinStartOrStop "start" "${START_TIME}"
+
     killChildProcess
 
     prepareEnv
@@ -240,9 +244,11 @@ function startKE(){
     echo $CUR_DATE" new KE process pid is "$PID >> ${KYLIN_HOME}/logs/kylin.log
 
     echo "Kylin is starting, PID:`cat ${KYLIN_HOME}/pid`. Please checkout http://`hostname`:$port/kylin/index.html"
+    recordKylinStartOrStop "start success" "${START_TIME}"
 }
 
 function stopKE(){
+    STOP_TIME=$(date "+%Y-%m-%d %H:%M:%S")
     if [ -f "${KYLIN_HOME}/pid" ]; then
         PID=`cat ${KYLIN_HOME}/pid`
         if ps -p $PID > /dev/null; then
@@ -265,7 +271,7 @@ function stopKE(){
            rm ${KYLIN_HOME}/pid
 
            killChildProcess
-
+           recordKylinStartOrStop "stop" "${STOP_TIME}"
            return 0
         else
            return 1
@@ -276,6 +282,11 @@ function stopKE(){
     fi
 }
 
+function recordKylinStartOrStop() {
+    currentIp=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -n 1)
+    serverPort=`$KYLIN_HOME/bin/get-properties.sh server.port`
+    echo `date '+%Y-%m-%d %H:%M:%S '`"INFO : [Operation: $1] user:`whoami`, start time:$2, ip and port:${currentIp}:${serverPort}" >> ${KYLIN_HOME}/logs/security.log
+}
 
 if [[ "$1" == io.kyligence.* ]]; then
     runTool "$@"

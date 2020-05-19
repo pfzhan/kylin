@@ -37,6 +37,7 @@ function logging() {
 function fail() {
     error "...................................................[FAIL]"
     error "Upgrade Kyligence Enterprise failed."
+    recordKylinUpgradeResult "${START_TIME}" "false" "${NEW_KYLIN_HOME}"
     exit 1
 }
 
@@ -56,26 +57,26 @@ function prompt() {
 function upgrade() {
 
     # needed by km
-    if [[ -f ${old_kylin_home}/pid ]]; then
-        PID=`cat ${old_kylin_home}/pid`
+    if [[ -f ${OLD_KYLIN_HOME}/pid ]]; then
+        PID=`cat ${OLD_KYLIN_HOME}/pid`
         if ps -p $PID > /dev/null; then
           error "Please stop the Kyligence Enterprise during the upgrade process."
           exit 1
         fi
     fi
-
-    origin_version=$(awk '{print $NF}' ${old_kylin_home}/VERSION)
-    target_version=$(awk '{print $NF}' ${new_kylin_home}/VERSION)
+    echo `date '+%Y-%m-%d %H:%M:%S '`"INFO : [Operation: upgrade] user:`whoami`, upgrade time:${START_TIME}" >> ${NEW_KYLIN_HOME}/logs/security.log
+    origin_version=$(awk '{print $NF}' ${OLD_KYLIN_HOME}/VERSION)
+    target_version=$(awk '{print $NF}' ${NEW_KYLIN_HOME}/VERSION)
     echo
     logging "warn" "Upgrade Kyligence Enterprise from ${origin_version} to ${target_version}"
-    warn "Old KYLIN_HOME is ${old_kylin_home}, log is at ${upgrade_log}"
+    warn "Old KYLIN_HOME is ${OLD_KYLIN_HOME}, log is at ${upgrade_log}"
     echo
 
     # copy LICENSE
     logging "Copy LICENSE"
-    if [[ -f ${old_kylin_home}/LICENSE ]]; then
-        if prompt "'${old_kylin_home}/LICENSE' -> '${new_kylin_home}/'"; then
-            \cp -vf ${old_kylin_home}/LICENSE ${new_kylin_home}/ >> $upgrade_log || fail
+    if [[ -f ${OLD_KYLIN_HOME}/LICENSE ]]; then
+        if prompt "'${OLD_KYLIN_HOME}/LICENSE' -> '${NEW_KYLIN_HOME}/'"; then
+            \cp -vf ${OLD_KYLIN_HOME}/LICENSE ${NEW_KYLIN_HOME}/ >> $upgrade_log || fail
         fi
     fi
     info "...................................................[DONE]"
@@ -83,14 +84,14 @@ function upgrade() {
     # copy kylin conf
     # exclude 'profile*' directory
     logging "Copy Kylin Conf"
-    for conf_file in $(ls $old_kylin_home/conf); do
-        if prompt "'${old_kylin_home}/conf/${conf_file}' -> '${new_kylin_home}/conf/'"; then
-            if [[ -d ${old_kylin_home}/conf/${conf_file} ]]; then
+    for conf_file in $(ls $OLD_KYLIN_HOME/conf); do
+        if prompt "'${OLD_KYLIN_HOME}/conf/${conf_file}' -> '${NEW_KYLIN_HOME}/conf/'"; then
+            if [[ -d ${OLD_KYLIN_HOME}/conf/${conf_file} ]]; then
                 # silent copy directory
-                \cp -rfv ${old_kylin_home}/conf/${conf_file} ${new_kylin_home}/conf/ >> $upgrade_log || fail
+                \cp -rfv ${OLD_KYLIN_HOME}/conf/${conf_file} ${NEW_KYLIN_HOME}/conf/ >> $upgrade_log || fail
             else
                 # need to delete the symbolic link first
-                \cp -vf --remove-destination ${old_kylin_home}/conf/${conf_file} ${new_kylin_home}/conf/ >> $upgrade_log || fail
+                \cp -vf --remove-destination ${OLD_KYLIN_HOME}/conf/${conf_file} ${NEW_KYLIN_HOME}/conf/ >> $upgrade_log || fail
             fi
 
         fi
@@ -99,9 +100,9 @@ function upgrade() {
 
     # copy ext jars
     logging "Copy Ext Jars"
-    for jar_file in $(ls $old_kylin_home/lib/ext); do
-        if prompt "'${old_kylin_home}/lib/ext/${jar_file}' -> '${new_kylin_home}/lib/ext/'"; then
-            \cp -vf ${old_kylin_home}/lib/ext/${jar_file} ${new_kylin_home}/lib/ext/ >> $upgrade_log || fail
+    for jar_file in $(ls $OLD_KYLIN_HOME/lib/ext); do
+        if prompt "'${OLD_KYLIN_HOME}/lib/ext/${jar_file}' -> '${NEW_KYLIN_HOME}/lib/ext/'"; then
+            \cp -vf ${OLD_KYLIN_HOME}/lib/ext/${jar_file} ${NEW_KYLIN_HOME}/lib/ext/ >> $upgrade_log || fail
         fi
     done
     info "...................................................[DONE]"
@@ -111,14 +112,14 @@ function upgrade() {
     logging "Copy Customize Directory"
     OLDIFS=$IFS
     IFS=$'\n'
-    for diff_log in $(diff -qr $old_kylin_home $new_kylin_home); do
-        if [[ $diff_log =~ (^Only in ${old_kylin_home}: )(.*) ]]; then
+    for diff_log in $(diff -qr $OLD_KYLIN_HOME $NEW_KYLIN_HOME); do
+        if [[ $diff_log =~ (^Only in ${OLD_KYLIN_HOME}: )(.*) ]]; then
             diff_file=${BASH_REMATCH[2]}
             if [[ $diff_file == "meta_backups" || $diff_file == "appid" || $diff_file == "work" ]]; then
                 continue
             fi
-            if prompt "'${old_kylin_home}/${diff_file}' -> '${new_kylin_home}/'"; then
-                cp -rfv ${old_kylin_home}/${diff_file} ${new_kylin_home}/ >> $upgrade_log || fail
+            if prompt "'${OLD_KYLIN_HOME}/${diff_file}' -> '${NEW_KYLIN_HOME}/'"; then
+                cp -rfv ${OLD_KYLIN_HOME}/${diff_file} ${NEW_KYLIN_HOME}/ >> $upgrade_log || fail
             fi
         fi
     done
@@ -150,8 +151,8 @@ def getProp(prop_file):
     return prop
 
 with open('${upgrade_log}', 'a+') as upgrade_log:
-    origin_prop = getProp('${new_kylin_home}/conf/kylin.properties')
-    prod_prop = dict(getProp('${new_kylin_home}/conf/kylin.properties'), **getProp('${new_kylin_home}/conf/kylin.properties.override'))
+    origin_prop = getProp('${NEW_KYLIN_HOME}/conf/kylin.properties')
+    prod_prop = dict(getProp('${NEW_KYLIN_HOME}/conf/kylin.properties'), **getProp('${NEW_KYLIN_HOME}/conf/kylin.properties.override'))
     diffs = set(prod_prop.items()) - set(origin_prop.items())
 
     def logging(msg):
@@ -163,9 +164,9 @@ PY
     info "...................................................[DONE]"
 
     logging "Install"
-    if prompt "'${new_kylin_home}' -> '${old_kylin_home}'"; then
-        install_dir=$(dirname $old_kylin_home)
-        home_name=$(basename $old_kylin_home)
+    if prompt "'${NEW_KYLIN_HOME}' -> '${OLD_KYLIN_HOME}'"; then
+        install_dir=$(dirname $OLD_KYLIN_HOME)
+        home_name=$(basename $OLD_KYLIN_HOME)
 
         # backup
         now=`date '+%Y%m%d%H%M'`
@@ -173,44 +174,50 @@ PY
         cd $install_dir && tar -zcvf ${backup_file} ${home_name} >> $upgrade_log || fail
 
         # install
-        rm -rfv ${old_kylin_home} >> $upgrade_log || fail
-        mv -vf ${new_kylin_home} ${old_kylin_home} >> $upgrade_log || fail
+        rm -rfv ${OLD_KYLIN_HOME} >> $upgrade_log || fail
+        mv -vf ${NEW_KYLIN_HOME} ${OLD_KYLIN_HOME} >> $upgrade_log || fail
         info "...................................................[DONE]"
+        recordKylinUpgradeResult "${START_TIME}" "true" "${OLD_KYLIN_HOME}"
     else
         warn "...................................................[SKIP]"
+        recordKylinUpgradeResult "${START_TIME}" "true" "${NEW_KYLIN_HOME}"
     fi
-
     info "Upgrade finished!"
     # needed by km
     info "Backup location:${install_dir}/${backup_file}"
 
 }
 
+function recordKylinUpgradeResult() {
+    logLevel=`[ "$2" == "true" ] && echo INFO || echo ERROR`
+    echo `date '+%Y-%m-%d %H:%M:%S '`"${logLevel} : [Operation: upgrade result] user:`whoami`, upgrade time:$1, success:$2" >> $3/logs/security.log
+}
 
-new_kylin_home=$(cd `dirname -- $0` && cd ../ && pwd -P)
+NEW_KYLIN_HOME=$(cd `dirname -- $0` && cd ../ && pwd -P)
 silent=1
 while [[ $# != 0 ]]; do
     if [[ $1 == "--silent" ]]; then
         silent=0
     else
-        old_kylin_home=$(cd $1 && pwd)
+        OLD_KYLIN_HOME=$(cd $1 && pwd)
     fi
     shift
 done
 
-if [[ -z $old_kylin_home ]] || [[ ! -d $old_kylin_home ]]; then
+if [[ -z $OLD_KYLIN_HOME ]] || [[ ! -d $OLD_KYLIN_HOME ]]; then
     help
 fi
 
-if [[ $old_kylin_home == $new_kylin_home ]]; then
+if [[ $OLD_KYLIN_HOME == $NEW_KYLIN_HOME ]]; then
     error "Please specify the old version of the Kyligence Enterprise installation directory."
     help
 fi
 
-mkdir -p ${new_kylin_home}/logs
-upgrade_log=${new_kylin_home}/logs/upgrade-$(date '+%Y_%m_%d_%H_%M_%S').log
+mkdir -p ${NEW_KYLIN_HOME}/logs
+upgrade_log=${NEW_KYLIN_HOME}/logs/upgrade-$(date '+%Y_%m_%d_%H_%M_%S').log
 
 set -o errexit
 set -o pipefail
+START_TIME=$(date "+%Y-%m-%d %H:%M:%S")
 upgrade
 
