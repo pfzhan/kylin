@@ -51,6 +51,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.common.license.Constants;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
@@ -166,7 +167,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.env", "PROD");
         licenseInfoService.gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(),
                 null);
-        System.setProperty(LicenseInfoService.KE_DATES, "2018-12-17,2019-01-17");
+        System.setProperty(Constants.KE_DATES, "2018-12-17,2019-01-17");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 String.format(Message.getInstance().getLICENSE_OVERDUE_TRIAL(), "2018-12-17", "2019-01-17"));

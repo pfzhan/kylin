@@ -24,16 +24,10 @@
 
 package io.kyligence.kap.metadata.model;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -49,11 +43,15 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 
@@ -289,6 +287,11 @@ public class NTableMetadataManager {
             return;
 
         srcExtCrud.delete(t);
+    }
+
+    public boolean existsSnapshotTableByName(String tableName) {
+        String snapshotDir = getTableDesc(tableName).getLastSnapshotPath();
+        return !StringUtils.isEmpty(snapshotDir);
     }
 
     private TableExtDesc convertOldTableExtToNewer(String resourceName) {

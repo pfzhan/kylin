@@ -45,6 +45,7 @@ package org.apache.kylin.rest.service;
 import java.io.File;
 import java.io.IOException;
 
+import io.kyligence.kap.common.license.Constants;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
 import org.junit.After;
@@ -102,11 +103,11 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
     public void testBasics() throws IOException {
         getTestConfig().setProperty("kylin.env", "PROD");
         licenseInfoService.init();
-        Assert.assertEquals("2019-06-01,2019-07-30", System.getProperty(LicenseInfoService.KE_DATES));
-        Assert.assertEquals("professional", System.getProperty(LicenseInfoService.KE_LICENSE_LEVEL));
+        Assert.assertEquals("2019-06-01,2019-07-30", System.getProperty(Constants.KE_DATES));
+        Assert.assertEquals("professional", System.getProperty(Constants.KE_LICENSE_LEVEL));
         Assert.assertEquals(
                 "19d4801b6dardchr83bp3i7wadbdvycs8ay7ibicu2msfogl6kiwz7z3dmdizepmicl3bgqznn34794jt5g51sutofcfpn9jeiw5k3cvt2750faxw7ip1fp08mt3og6xijt4x02euf1zkrn5m7huwal8lqms3gmn0d5i8y2dqlvkvpqtwz3m9tqcnq6n4lznthbdtfncdqsly7a8v9pndh1cav2tdcczzs17ns6e0d4izeatwybr25lir5f5s6qe4ry10x2fkqco7unb4h4ivx8jo6vdb5sp3r4738zhlvrbdwfa38s3wh82lrnugrhxq8eap3rebq9dz8xka713aui4v2acquulicdadt63cv0biz7y7eccfh1tri60526b2bmon71k29n6p29tsbhyl2wdx5hsjuxg2wd993hcndot1fc5oz8kebopqrudyf4o7tjc5ca0bvtysnw3gn64c1sd2iw2rlhlxk7c5szp6kde8dvitteoqo1oufum5eyjbk1q2fegf9vpyng3bs6c6qfoibc2wvxgjn4hnismbsr4ovwe5gvam74ikdromn8dxv91e5wuvcqml92jgfoj4g0xzrns05hsqs55a5a9ao44f6m2eccscq4crfm5dxwdl7xbmmmj1yfgpygco4mvh9ksitsxoy30v6dgse76wmyemjymyaa2f6my83vu55z9vhywv6a4har3tep32dg3mvol1arsia8bllis4awfqjpw57lpv1fmt5n8ns8vqvle09cpehrlkt5kjcaucwb64c25q8zvikgtm2p0ywfnsapm97fxloymcqp0vgwmqzt3feaq8o6mzjaqmgap7r7gtn1k1awwxjs1sd91g4y1emab14hs",
-                System.getProperty(LicenseInfoService.KE_LICENSE));
+                System.getProperty(Constants.KE_LICENSE));
         getTestConfig().setProperty("kylin.env", "UT");
 
     }

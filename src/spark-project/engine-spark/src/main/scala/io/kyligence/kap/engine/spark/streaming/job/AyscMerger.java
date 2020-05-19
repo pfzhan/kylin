@@ -1,20 +1,19 @@
 package io.kyligence.kap.engine.spark.streaming.job;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.streaming.common.MergeJobEntry;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import java.util.List;
-
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 class AsyncMerger extends Thread {
 

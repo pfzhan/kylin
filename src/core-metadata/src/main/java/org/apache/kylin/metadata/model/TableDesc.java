@@ -128,6 +128,9 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonProperty("last_snapshot_path")
     private String lastSnapshotPath;
 
+    @JsonProperty("original_size")
+    private long originalSize;
+
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
@@ -452,4 +455,14 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     public String getLastSnapshotPath() {
         return lastSnapshotPath;
     }
+
+
+    public long getOriginalSize() {
+        return originalSize;
+    }
+
+    public void setOriginalSize(long originalSize) {
+        this.originalSize = originalSize;
+    }
+
 }
