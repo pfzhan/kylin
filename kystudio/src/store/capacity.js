@@ -7,7 +7,6 @@ export default {
   },
   mutations: {
     [types.SET_NODES_LIST] (state, list) {
-      console.log(list)
       state.nodeList = list
     }
   },

@@ -240,7 +240,8 @@ let MessageBox = ElementUI.MessageBox
       cachedHistory: state => state.config.cachedHistory,
       isSemiAutomatic: state => state.project.isSemiAutomatic,
       licenseDates: state => state.system.serverAboutKap,
-      currentUser: state => state.user.currentUser
+      currentUser: state => state.user.currentUser,
+      showRevertPasswordDialog: state => state.system.showRevertPasswordDialog
     }),
     ...mapGetters([
       'currentPathNameGet',
@@ -582,7 +583,7 @@ export default class LayoutLeftRightTop extends Vue {
     this.getHANodes()
   }
   changeRouteEvent () {
-    if ('defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
+    if (this.showRevertPasswordDialog === 'true' && 'defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
       this.showChangePassword = true
       this.callUserEditModal({ editType: 'password', showCloseBtn: false, showCancelBtn: false, userDetail: this.$store.state.user.currentUser }).then(() => {
         this.noProjectTips()

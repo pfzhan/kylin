@@ -45,7 +45,8 @@ export default {
     smartModeEnabled: 'false',
     loadHiveTableNameEnabled: 'true',
     kerberosEnabled: 'false',
-    jobLogs: ''
+    jobLogs: '',
+    showRevertPasswordDialog: 'true'
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -140,6 +141,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.env.smart-mode-enabled', key: 'smartModeEnabled'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.source.load-hive-tablename-enabled', key: 'loadHiveTableNameEnabled', defaultValue: 'true'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.kerberos.project-level-enabled', key: 'kerberosEnabled'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.metadata.random-admin-password.enabled', key: 'showRevertPasswordDialog', defaultValue: 'true'})
           resolve(response)
         }, () => {
           reject()
