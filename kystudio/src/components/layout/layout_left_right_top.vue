@@ -417,9 +417,19 @@ export default class LayoutLeftRightTop extends Vue {
   }
   // 获取多活节点列表
   getHANodes () {
+    if (this._isDestroyed) {
+      return
+    }
     this.isNodeLoading = true
-    this.loadOnlineNodes().then((res) => {
+    const data = {ext: true}
+    if (this.nodesTimer) {
+      data.isAuto = true
+    }
+    this.loadOnlineNodes(data).then((res) => {
       handleSuccess(res, (data) => {
+        if (this._isDestroyed) {
+          return
+        }
         this.isNodeLoadingSuccess = true
         this.nodeList = data
         this.isNodeLoading = false

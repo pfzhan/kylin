@@ -562,7 +562,12 @@ export default class JobsList extends Vue {
     sort_by: 'create_time',
     reverse: true,
     status: [],
-    key: ''
+    key: '',
+    isAuto: false
+  }
+  waitingFilter = {
+    isAuto: false,
+    project: ''
   }
   waittingJobsFilter = {
     offset: 0,
@@ -707,6 +712,10 @@ export default class JobsList extends Vue {
     this.manualRefreshJobs()
   }
   autoFilter () {
+    if (this.stCycle) {
+      this.filter.isAuto = true
+      this.waitingFilter.isAuto = true
+    }
     clearTimeout(this.stCycle)
     this.stCycle = setTimeout(() => {
       this.refreshJobs().then((res) => {
@@ -802,7 +811,8 @@ export default class JobsList extends Vue {
   getWaittingJobModels () {
     return new Promise((resolve, reject) => {
       if (!this.currentSelectedProject) return reject()
-      this.losdWaittingJobModels({project: this.filter.project}).then((res) => {
+      this.waitingFilter.project = this.filter.project
+      this.losdWaittingJobModels(this.waitingFilter).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.waittingJobModels = data
@@ -1089,6 +1099,9 @@ export default class JobsList extends Vue {
     }
   }
   manualRefreshJobs () {
+    // 手动刷新部分，接口skip session 设为false
+    this.filter.isAuto = false
+    this.waitingFilter.isAuto = false
     this.resetSelection()
     this.loadList()
   }

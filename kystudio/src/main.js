@@ -103,6 +103,13 @@ Vue.use(VueClipboard)
 Vue.use(VueKonva)
 Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn'
 Vue.http.options.xhr = { withCredentials: true }
+const skipUpdateApiList = [
+  'kylin/api/query/servers',
+  'kylin/api/jobs',
+  'kylin/api/jobs/waiting_jobs',
+  'kylin/api/query/favorite_queries',
+  'kylin/api/query/favorite_queries/size'
+]
 Vue.http.interceptors.push(function (request, next) {
   const isProgressVisiable = !request.headers.get('X-Progress-Invisiable')
   request.headers['Cache-Control'] = 'no-cache'
@@ -112,6 +119,11 @@ Vue.http.interceptors.push(function (request, next) {
   } else {
     request.headers.set('Accept', 'application/vnd.apache.kylin-v4+json')
   }
+  skipUpdateApiList.forEach((url) => {
+    if (request.url.indexOf(url)) {
+      request.headers.set('Auto', request.params.isAuto ? 'true' : 'false')
+    }
+  })
   if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') { // 嵌套ifrme的平台
     nprogress.done()
     window.parent.postMessage('requestStart', '*')

@@ -13,9 +13,9 @@ export default {
   },
   actions: {
     // 获取节点信息
-    [types.GET_NODES_LIST] ({ commit, dispatch }) {
+    [types.GET_NODES_LIST] ({ commit, dispatch }, paras) {
       return new Promise((resolve, reject) => {
-        api.datasource.loadOnlineQueryNodes({ext: true}).then(res => {
+        api.datasource.loadOnlineQueryNodes(paras).then(res => {
           const { data, code } = res.data
           if (code === '000') {
             commit(types.SET_NODES_LIST, data)

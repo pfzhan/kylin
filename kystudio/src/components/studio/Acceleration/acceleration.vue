@@ -390,7 +390,12 @@ export default class FavoriteQuery extends Vue {
     sortBy: 'last_query_time',
     reverse: true,
     pageSize: 10,
-    offset: 0
+    offset: 0,
+    isAuto: false
+  }
+  fqSizeFilterData = {
+    isAuto: false,
+    project: ''
   }
   blackFilter = {
     offset: 0,
@@ -440,7 +445,8 @@ export default class FavoriteQuery extends Vue {
       sortBy: 'last_query_time',
       reverse: true,
       pageSize: 10,
-      offset: 0
+      offset: 0,
+      isAuto: false
     }
     this.favQueList = {
       value: [],
@@ -622,7 +628,8 @@ export default class FavoriteQuery extends Vue {
         offset: this.filterData.offset,
         status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
         sort_by: this.filterData.sortBy,
-        reverse: this.filterData.reverse
+        reverse: this.filterData.reverse,
+        isAuto: this.filterData.isAuto
       })
       const data = await handleSuccessAsync(res)
       this.favQueList = data
@@ -638,7 +645,8 @@ export default class FavoriteQuery extends Vue {
   async getSQLSizes () {
     return new Promise(async resolve => {
       if (this.currentSelectedProject) {
-        const res = await this.getWaitingAcceSize({project: this.currentSelectedProject})
+        this.fqSizeFilterData.project = this.currentSelectedProject
+        const res = await this.getWaitingAcceSize(this.fqSizeFilterData)
         const data = await handleSuccessAsync(res)
         this.listSizes = data
         this.waitingSQLSize = data.can_be_accelerated
@@ -659,6 +667,9 @@ export default class FavoriteQuery extends Vue {
     this.isPausePolling = true
   }
   reloadListAndSize () {
+    // 操作后手动刷新接口，不是自动轮询接口
+    this.filterData.isAuto = false
+    this.fqSizeFilterData.isAuto = false
     this.loadFavoriteList()
     this.getSQLSizes()
   }
@@ -666,6 +677,10 @@ export default class FavoriteQuery extends Vue {
     this.isPausePolling = false
   }
   async init () {
+    if (this.stCycle) {
+      this.filterData.isAuto = true
+      this.fqSizeFilterData.isAuto = true
+    }
     clearTimeout(this.stCycle)
     this.stCycle = setTimeout(() => {
       this.refreshLists().then((res) => {
