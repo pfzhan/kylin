@@ -96,6 +96,7 @@ sed -i "\$a kylin.storage.columnar.spark-conf.spark.driver.memory=1024m" kylin.p
 sed -i "\$a kylin.storage.columnar.spark-conf.spark.executor.memory=1024m" kylin.properties
 sed -i "\$a kylin.storage.columnar.spark-conf.spark.executor.instances=1" kylin.properties
 sed -i "\$a kylin.storage.columnar.spark-conf.spark.yarn.executor.memoryOverhead=512" kylin.properties
+sed -i "\$a kylin.metadata.random-admin-password.enabled=false" kylin.properties
 if [[ $hadoop_distribution == "fi" ]]; then
     cp -f /root/user.keytab $KYLIN_HOME/conf
     cp -f /root/krb5.conf $KYLIN_HOME/conf
