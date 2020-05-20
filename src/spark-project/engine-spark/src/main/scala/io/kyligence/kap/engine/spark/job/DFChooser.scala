@@ -90,7 +90,6 @@ class DFChooser(toBuildTree: NSpanningTree,
   def persistFlatTableIfNecessary(): String = {
     var path = ""
     if (shouldPersistFlatTable()) {
-    if (shouldPersistFlatTable()) {
       val df = flatTableSource.getFlattableDS
       val columns = new mutable.ListBuffer[String]
       val columnIndex = df.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
