@@ -53,9 +53,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -69,6 +71,10 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
         if (exception instanceof LockedException) {
             setErrorResponse(request, response, HttpServletResponse.SC_BAD_REQUEST,
                     new KylinException(USER_LOCKED, exception.getMessage()));
+            return;
+        } else if (exception instanceof InsufficientAuthenticationException) {
+            setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                    new KylinException(USER_UNAUTHORIZED, MsgPicker.getMsg().getINSUFFICIENT_AUTHENTICATION()));
             return;
         }
         setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,

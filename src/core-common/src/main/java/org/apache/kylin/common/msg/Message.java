@@ -1257,4 +1257,7 @@ public class Message {
     public String getFAILED_INIT_PASSWORD_ENCODER() {
         return "PASSWORD ENCODER init failed, please check configuration item kylin.security.user-password-encoder";
     }
+    public String getINSUFFICIENT_AUTHENTICATION() {
+        return "Unable to authenticate. Please login again.";
+    }
 }

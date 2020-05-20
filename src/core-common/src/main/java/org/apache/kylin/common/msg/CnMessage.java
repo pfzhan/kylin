@@ -1228,4 +1228,7 @@ public class CnMessage extends Message {
         return "PASSWORD ENCODER 初始化失败，请检查配置项kylin.security.user-password-encoder";
 
     }
+    public String getINSUFFICIENT_AUTHENTICATION() {
+        return "无法认证用户信息，请重新登录。";
+    }
 }
