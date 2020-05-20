@@ -146,6 +146,16 @@ public class DateFormatTest {
                 DateFormat.getFormattedDate("2010-01-01 02:02:02.333",
                         DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS));
 
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2020-05-01 01:01:01.333"));
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2020/05/01 01:01:01.333"));
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2020.05.01 01:01:01.333"));
+
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2020-05-01 01:01:01:333"));
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2020/05/01 01:01:01:333"));
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2020.05.01 01:01:01:333"));
+
+        Assert.assertFalse(DateFormat.isSupportedDateFormat("2020 05 01 01:01:01:333"));
+
         try {
             Assert.assertEquals(String.valueOf(date.getTime()),
                     DateFormat.getFormattedDate("18:18",
@@ -171,7 +181,7 @@ public class DateFormatTest {
         try {
             Assert.assertEquals(String.valueOf(date.getTime()),
                     DateFormat.getFormattedDate("18:18:18:888",
-                            DateFormat.DEFAULT_TIME_PATTERN_WITH_MILLISECONDS));
+                            DateFormat.DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P2));
             Assert.fail();
         } catch (DateTimeException e) {
 
@@ -208,5 +218,6 @@ public class DateFormatTest {
                 Assert.fail();
             }
         }
+
     }
 }
