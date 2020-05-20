@@ -334,7 +334,7 @@ public class SourceUsageManager {
      * Read external data source to refresh lookup table row count for a table.
      */
     public void refreshLookupTableRowCount(final TableDesc tableDesc, String project) {
-        // TODO no this case currently
+        // TODO no this case currently, because no need to calculate fact table and lookup table without snapshot
     }
 
     public SourceUsageRecord getLatestRecord() {
