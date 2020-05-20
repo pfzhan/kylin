@@ -77,51 +77,19 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
   }
 
   test("Test load hive type with unsupported type array") {
-    SparderEnv.setSparkSession(spark)
-
-    val st = new StructType()
-      .add("c", "int")
-      .add("array", ArrayType(LongType))
-    val view = createTmpCatalog(st)
-    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
-
-    withTable("hive_table_types") {
-      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
-      assert(res.allColumns.size() == 1)
-      assert(res.allColumns.get(0).name.equals("c"))
-    }
+    importUnsupportedCol(ArrayType(LongType))
   }
 
   test("Test load hive type with unsupported type map") {
-    SparderEnv.setSparkSession(spark)
-
-    val st = new StructType()
-      .add("c", "int")
-      .add("d", MapType(StringType, StringType))
-    val view = createTmpCatalog(st)
-    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
-
-    withTable("hive_table_types") {
-      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
-      assert(res.allColumns.size() == 1)
-      assert(res.allColumns.get(0).name.equals("c"))
-    }
+    importUnsupportedCol(MapType(StringType, StringType))
   }
 
   test("Test load hive type with unsupported type struct") {
-    SparderEnv.setSparkSession(spark)
+    importUnsupportedCol(new StructType().add("map", MapType(StringType, StringType)))
+  }
 
-    val st = new StructType()
-      .add("c", "int")
-      .add("d", new StructType().add("map", MapType(StringType, StringType)))
-    val catalogTable = createTmpCatalog(st)
-    spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false)
-
-    withTable("hive_table_types") {
-      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
-      assert(res.allColumns.size() == 1)
-      assert(res.allColumns.get(0).name.equals("c"))
-    }
+  test("Test load hive type with unsupported type binary") {
+    importUnsupportedCol(BinaryType)
   }
 
   def createTmpCatalog(st: StructType): CatalogTable = {
@@ -132,5 +100,21 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       st,
       properties = Map()
     )
+  }
+
+  def importUnsupportedCol(unsupported: DataType): Unit = {
+    SparderEnv.setSparkSession(spark)
+
+    val st = new StructType()
+      .add("c", "int")
+      .add("d", unsupported)
+    val catalogTable = createTmpCatalog(st)
+    spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false)
+
+    withTable("hive_table_types") {
+      val res = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
+      assert(res.allColumns.size() == 1)
+      assert(res.allColumns.get(0).name.equals("c"))
+    }
   }
 }

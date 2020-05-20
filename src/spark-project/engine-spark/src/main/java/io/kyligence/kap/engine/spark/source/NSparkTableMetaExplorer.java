@@ -69,7 +69,7 @@ public class NSparkTableMetaExplorer implements Serializable {
         }
     }
 
-    private static final List<String> UNSUPOORT_TYPE = Lists.newArrayList("array", "map", "struct");
+    private static final List<String> UNSUPOORT_TYPE = Lists.newArrayList("array", "map", "struct", "binary");
 
     private static final Map<PROVIDER, String> PROVIDER_METADATA_TYPE_STRING = new EnumMap<>(PROVIDER.class);
 
@@ -130,6 +130,8 @@ public class NSparkTableMetaExplorer implements Serializable {
             }
             String finalType = type;
             if (UNSUPOORT_TYPE.stream().anyMatch(finalType::contains)) {
+                logger.info("Load table {} ignore column {}:{}", tableMetadata.identifier().identifier(), field.name(),
+                        finalType);
                 continue;
             }
             allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(field.name(), type,
