@@ -12,7 +12,7 @@
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowTableIndexActions&&!isHideEdit">
           <common-tip :content="$t('addTableIndex')">
-            <i class="el-icon-ksd-project_add" @click="confrimEditTableIndex()"></i>
+            <i class="el-icon-ksd-project_add" @click="(e) => confrimEditTableIndex(undefined, e)"></i>
           </common-tip>
         </div>
       </div>
@@ -36,7 +36,7 @@
           </span>
           <span class="ksd-fright icon-group">
             <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-icon-ksd-table_edit" @click="confrimEditTableIndex(index)"></i>
+              <i class="el-icon-ksd-table_edit" @click="(e) => confrimEditTableIndex(index, e)"></i>
             </common-tip><common-tip :content="$t('kylinLang.common.delete')">
               <i class="el-icon-ksd-table_delete ksd-ml-10" @click="removeIndex(index)"></i>
             </common-tip>
@@ -148,7 +148,9 @@ export default class TableIndexView extends Vue {
   }
   indexDatas = []
   isLoading = false
-  confrimEditTableIndex (indexDesc) {
+  confrimEditTableIndex (indexDesc, event) {
+    event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
+
     if (!this.allNodeNumber) {
       kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         this.editTableIndex(indexDesc)

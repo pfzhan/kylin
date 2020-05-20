@@ -12,7 +12,7 @@
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowEditAgg">
           <common-tip :content="$t('addAggGroup')">
-            <i class="el-icon-ksd-project_add" @click="handleAggregateGroup()"></i>
+            <i class="el-icon-ksd-project_add" @click="(e) => handleAggregateGroup(e)"></i>
           </common-tip><common-tip :content="$t('aggAdvanced')">
             <i class="el-icon-ksd-setting ksd-ml-10" @click="openAggAdvancedModal()"></i>
           </common-tip>
@@ -101,7 +101,7 @@
     <div class="agg-detail-block" v-else>
       <div class="empty-block">
         <div>{{$t('aggGroupTips')}}</div>
-        <el-button type="primary" text icon="el-icon-ksd-table_add" @click="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggGroup')}}</el-button>
+        <el-button type="primary" text icon="el-icon-ksd-table_add" @click="(e) => handleAggregateGroup(e)" v-if="isShowEditAgg">{{$t('aggGroup')}}</el-button>
       </div>
     </div>
     <AggAdvancedModal/>
@@ -185,7 +185,9 @@ export default class AggregateView extends Vue {
   totalSize (name) {
     return this[name].length
   }
-  async handleAggregateGroup () {
+  async handleAggregateGroup (event) {
+    event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
+
     if (!this.allNodeNumber) {
       kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this

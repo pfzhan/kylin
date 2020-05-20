@@ -278,10 +278,10 @@
             </template>
             <template v-else>
               <common-tip :content="$t('kylinLang.common.edit')" v-if="scope.row.status !== 'BROKEN' && datasourceActions.includes('modelActions')">
-                <i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i>
+                <i class="el-icon-ksd-table_edit ksd-fs-14" @click="(e) => handleEditModel(scope.row.alias, e)"></i>
               </common-tip>
               <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
-                <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i>
+                <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="(e) => handleEditModel(scope.row.alias, e)"></i>
               </common-tip>
               <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('bulidIndex')">
                 <el-popover
@@ -979,7 +979,9 @@ export default class ModelList extends Vue {
     return this.handleModel('purgeModel', modelDesc, this.$t('purgeModelSuccessTip'))
   }
   // 编辑model
-  handleEditModel (modelName) {
+  handleEditModel (modelName, event) {
+    event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
+
     if (!this.allNodeNumber) {
       kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
         this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})

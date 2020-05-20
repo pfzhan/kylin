@@ -585,6 +585,7 @@ export default class DataSourceBar extends Vue {
   importDataSource (editType, project, event) {
     event && event.stopPropagation()
     event && event.preventDefault()
+    event && event.target.blur()
 
     if (!this.allNodeNumber) {
       kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
