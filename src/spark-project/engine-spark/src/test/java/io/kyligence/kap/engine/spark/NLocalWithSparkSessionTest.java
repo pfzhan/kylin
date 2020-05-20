@@ -92,7 +92,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     protected static SparkSession ss;
     private TestingServer zkTestServer;
 
-
     @BeforeClass
     public static void beforeClass() {
 
@@ -140,7 +139,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             zkTestServer.close();
             System.clearProperty("kylin.env.zookeeper-connect-string");
         }
-        restoreAllSystemProp();
     }
 
     public String getProject() {
@@ -213,7 +211,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
                         return DataTypes.createDecimalType(type.getPrecision(), type.getScale());
                     }
             }
-        
+
         if (type.isStringFamily())
             return DataTypes.StringType;
 

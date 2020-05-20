@@ -31,6 +31,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractKylinTestCase;
+import org.junit.After;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,11 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     @Override
     public void cleanupTestMetadata() {
         staticCleanupTestMetadata();
+    }
+
+    @After
+    public void restoreSystemProps() {
+        restoreAllSystemProp();
     }
 
     public static void staticCreateTestMetadata(String... overlay) {

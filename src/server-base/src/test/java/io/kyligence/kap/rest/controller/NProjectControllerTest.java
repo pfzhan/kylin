@@ -52,7 +52,6 @@ import java.util.List;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
-import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -91,6 +90,7 @@ import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
@@ -133,7 +133,6 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
-        restoreAllSystemProp();
     }
 
     private ProjectRequest mockProjectRequest() {

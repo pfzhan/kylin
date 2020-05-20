@@ -55,7 +55,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -113,6 +112,7 @@ import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
@@ -159,7 +159,6 @@ public class ProjectServiceTest extends ServiceTestBase {
     @After
     public void tearDown() {
         staticCleanupTestMetadata();
-        restoreAllSystemProp();
     }
 
     @Test

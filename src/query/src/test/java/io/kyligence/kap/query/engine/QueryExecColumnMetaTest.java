@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.query.engine;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.query.StructField;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.SQLException;
-import java.util.List;
-import java.util.stream.Collectors;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.StructField;
 
 public class QueryExecColumnMetaTest extends NLocalFileMetadataTestCase {
 
@@ -46,7 +47,6 @@ public class QueryExecColumnMetaTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
-        restoreAllSystemProp();
     }
 
     public static String[] sqls = {

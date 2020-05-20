@@ -103,7 +103,6 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
 
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
-        restoreAllSystemProp();
     }
 
     protected Set<String> loadWhiteListSqlPatterns() throws IOException {

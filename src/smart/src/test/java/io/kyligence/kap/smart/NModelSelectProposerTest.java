@@ -28,7 +28,6 @@ import java.util.List;
 
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -67,11 +66,6 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                     + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
                     + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
                     + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt" };
-
-    @After
-    public void tearDown() {
-        restoreAllSystemProp();
-    }
 
     @Test
     public void testInnerJoinProposerInAutoMode() {

@@ -125,7 +125,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
-        restoreAllSystemProp();
     }
 
     private List<NDataModel> mockModels() {
