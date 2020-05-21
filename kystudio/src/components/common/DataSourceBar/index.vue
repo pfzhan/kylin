@@ -97,7 +97,7 @@ import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
 import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder, getDatabaseTablesObj } from './handler'
-import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
+import { handleSuccessAsync, handleError } from '../../../util'
 // import { types } from '../../studio/StudioModel/TableIndexEdit/store'
 
 @Component({
@@ -585,15 +585,15 @@ export default class DataSourceBar extends Vue {
   importDataSource (editType, project, event) {
     event && event.stopPropagation()
     event && event.preventDefault()
-    event && event.target.blur()
-
-    if (!this.allNodeNumber) {
-      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
-        this.toImportDataSource(editType, project)
-      })
-    } else {
-      this.toImportDataSource(editType, project)
-    }
+    // event && event.target.blur()
+    this.toImportDataSource(editType, project)
+    // if (!this.allNodeNumber) {
+    //   kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
+    //     this.toImportDataSource(editType, project)
+    //   })
+    // } else {
+    //   this.toImportDataSource(editType, project)
+    // }
   }
   async handleResultModalClosed () {
     try {
