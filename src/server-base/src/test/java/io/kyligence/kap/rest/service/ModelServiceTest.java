@@ -122,7 +122,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Function;
@@ -169,6 +169,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
@@ -3746,7 +3747,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         aclTable.put("DEFAULT.TEST_ENCODING", aclColumnRow);
         acl.setTable(aclTable);
         manager.updateAclTCR(acl, "user", true);
-        BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+        PasswordEncoder pwdEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
         val user = new ManagedUser("user", pwdEncoder.encode("pw"), false);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken(user, "ANALYST", Constant.ROLE_ANALYST));

@@ -204,10 +204,9 @@
             <constructor-arg ref="analystAuthorities"/>
         </bean>
         <!-- user auth -->
-        <bean id="passwordEncoder"
-              class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
         <bean id="userService" class="org.apache.kylin.rest.service.KylinUserService"/>
         <bean id="userGroupService" class="io.kyligence.kap.rest.service.NUserGroupService"/>
+        <bean id="passwordEncoder" class="${kylin.security.user-password-encoder}"/>
         <bean id="authProvider" class="io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider">
             <property name="userDetailsService" ref="userService"/>
             <property name="passwordEncoder" ref="passwordEncoder"/>
@@ -224,7 +223,7 @@
             <scr:intercept-url pattern="/api/health" access="permitAll"/>
             <scr:intercept-url pattern="/api/user/update_user" access="permitAll"/>
             <scr:intercept-url pattern="/api/epoch" access="permitAll"/>
-            <scr:intercept-url pattern="/api/audit_log"  access="permitAll"/>
+            <scr:intercept-url pattern="/api/audit_log" access="permitAll"/>
             <scr:intercept-url pattern="/api/config/is_cloud" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/file" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/content" access="permitAll"/>

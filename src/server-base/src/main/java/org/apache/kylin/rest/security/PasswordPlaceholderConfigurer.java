@@ -49,6 +49,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -58,6 +59,8 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.util.EncryptUtil;
 
 /**
@@ -65,6 +68,8 @@ import io.kyligence.kap.common.util.EncryptUtil;
  * 
  */
 public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer {
+    private final static Set<String> passwordWhiteList = Sets
+            .newHashSet("kylin.security.user-password-encoder");
 
     /**
      * The PasswordPlaceholderConfigurer will read Kylin properties as the Spring resource
@@ -97,7 +102,7 @@ public class PasswordPlaceholderConfigurer extends PropertyPlaceholderConfigurer
     }
 
     protected String resolvePlaceholder(String placeholder, Properties props) {
-        if (placeholder.toLowerCase().contains("password")) {
+        if (placeholder.toLowerCase().contains("password") && !passwordWhiteList.contains(placeholder)) {
             return EncryptUtil.decrypt(props.getProperty(placeholder));
         } else {
             return props.getProperty(placeholder);

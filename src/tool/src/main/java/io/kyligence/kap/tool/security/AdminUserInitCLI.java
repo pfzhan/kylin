@@ -29,7 +29,6 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -39,11 +38,12 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.metadata.PersistException;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
@@ -58,8 +58,8 @@ public class AdminUserInitCLI {
     public static final Pattern PASSWORD_PATTERN = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
 
-    public static final String PASSWORD_VALID_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" +
-            "~!@#$%^&*(){}|:\"<>?[];',./`";
+    public static final String PASSWORD_VALID_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+            + "~!@#$%^&*(){}|:\"<>?[];',./`";
 
     public static final int DEFAULT_PASSWORD_LENGTH = 8;
 
@@ -87,21 +87,22 @@ public class AdminUserInitCLI {
 
         String password = generateRandomPassword();
 
-        ManagedUser managedUser = new ManagedUser(ADMIN_USER_NAME, new BCryptPasswordEncoder().encode(password), true,
-                ROLE_ADMIN, Constant.GROUP_ALL_USERS);
+        ManagedUser managedUser = new ManagedUser(ADMIN_USER_NAME,
+                PasswordEncodeFactory.newUserPasswordEncoder().encode(password), true, ROLE_ADMIN,
+                Constant.GROUP_ALL_USERS);
         managedUser.setUuid(UUID.randomUUID().toString());
 
         val metaStore = ResourceStore.getKylinMetaStore(config).getMetadataStore();
         try {
             logger.info("Start init default user.");
-            RawResource rawResource = new RawResource(ADMIN_USER_RES_PATH, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(managedUser)),
-                    System.currentTimeMillis(), 0L);
+            RawResource rawResource = new RawResource(ADMIN_USER_RES_PATH,
+                    ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(managedUser)), System.currentTimeMillis(), 0L);
             metaStore.putResource(rawResource, null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
 
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + ADMIN_USER_NAME + StorageCleaner.ANSI_RED;
             String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;
-            String info = String.format("The username of initialized user is [%s], which password is [%s].\n" +
-                            "Please keep the password properly. And if you forget the password, you can reset it according to user manual.",
+            String info = String.format("The username of initialized user is [%s], which password is [%s].\n"
+                    + "Please keep the password properly. And if you forget the password, you can reset it according to user manual.",
                     blackColorUsernameForPrint, blackColorPasswordForPrint);
             System.out.println(StorageCleaner.ANSI_RED + info + StorageCleaner.ANSI_RESET);
         } catch (PersistException e) {

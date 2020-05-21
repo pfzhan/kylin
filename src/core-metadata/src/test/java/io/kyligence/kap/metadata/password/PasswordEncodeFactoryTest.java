@@ -39,30 +39,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.metadata.exception;
+package io.kyligence.kap.metadata.password;
 
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 
-public enum SystemErrorCode implements ErrorCodeSupplier {
-    // 40005XXX password
-    INVALID_PASSWORD_ENCODER("KE-40005001"), //
-    FAILED_INIT_PASSWORD_ENCODER("KE-40005002"), //
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-    // 40021XXX server
-    EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE("KE-40021001"), //
-
-    // 40022XXX segment
-    FAILED_MERGE_SEGMENT("KE-40022001"); //
-
-    private final ErrorCode errorCode;
-
-    SystemErrorCode(String code) {
-        errorCode = new ErrorCode(code);
+public class PasswordEncodeFactoryTest extends NLocalFileMetadataTestCase {
+    @Before
+    public void setup() throws Exception {
+        createTestMetadata();
     }
 
-    @Override
-    public ErrorCode toErrorCode() {
-        return errorCode;
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
     }
+
+    @Test
+    public void testNewUserPasswordEncoder() {
+        getTestConfig().setProperty("kylin.security.user-password-encoder",
+                "org.springframework.security.crypto.password.Pbkdf2PasswordEncoder");
+        Assert.assertTrue(PasswordEncodeFactory.newUserPasswordEncoder() instanceof Pbkdf2PasswordEncoder);
+        getTestConfig().setProperty("kylin.security.user-password-encoder",
+                "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder");
+        Assert.assertTrue(PasswordEncodeFactory.newUserPasswordEncoder() instanceof BCryptPasswordEncoder);
+    }
+
 }

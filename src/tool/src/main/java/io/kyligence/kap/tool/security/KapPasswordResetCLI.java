@@ -24,20 +24,21 @@
 
 package io.kyligence.kap.tool.security;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.tool.MetadataTool;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.CuratorOperator;
+import io.kyligence.kap.tool.MetadataTool;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
 
@@ -59,7 +60,7 @@ public class KapPasswordResetCLI {
     }
 
     public static void reset() throws Exception {
-        BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+        PasswordEncoder pwdEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
         String id = "/_global/user/ADMIN";
         val config = KylinConfig.getInstanceFromEnv();
 
@@ -84,8 +85,10 @@ public class KapPasswordResetCLI {
             System.exit(1);
         }
 
-        metaStore.putResource(new RawResource(id, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)),
-                aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1), null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
+        metaStore.putResource(
+                new RawResource(id, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)),
+                        aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1),
+                null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
 
         logger.trace("update user : {}", user.getUsername());
         logger.info("User {}'s password is set to default password.", user.getUsername());
@@ -93,13 +96,16 @@ public class KapPasswordResetCLI {
         MetadataTool.backup(config);
 
         if (randomPasswordEnabled) {
-            String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + AdminUserInitCLI.ADMIN_USER_NAME + StorageCleaner.ANSI_RED;
+            String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + AdminUserInitCLI.ADMIN_USER_NAME
+                    + StorageCleaner.ANSI_RED;
             String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;
-            String info = String.format("Reset password of [%s] succeed. The password is [%s].\n" +
-                    "Please keep the password properly.", blackColorUsernameForPrint, blackColorPasswordForPrint);
+            String info = String.format(
+                    "Reset password of [%s] succeed. The password is [%s].\n" + "Please keep the password properly.",
+                    blackColorUsernameForPrint, blackColorPasswordForPrint);
             System.out.println(StorageCleaner.ANSI_RED + info + StorageCleaner.ANSI_RESET);
         } else {
-            System.out.println(StorageCleaner.ANSI_YELLOW + "Reset the ADMIN password successfully." + StorageCleaner.ANSI_RESET);
+            System.out.println(
+                    StorageCleaner.ANSI_YELLOW + "Reset the ADMIN password successfully." + StorageCleaner.ANSI_RESET);
         }
     }
 }

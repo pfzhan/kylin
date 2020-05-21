@@ -40,19 +40,19 @@ import org.apache.kylin.rest.service.UserService;
 import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CreateAdminUserUtils {
-
-    private static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+    private static PasswordEncoder passwordEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
@@ -78,8 +78,7 @@ public class CreateAdminUserUtils {
     public static String pwdEncode(String pwd) {
         if (bcryptPattern.matcher(pwd).matches())
             return pwd;
-
-        return pwdEncoder.encode(pwd);
+        return passwordEncoder.encode(pwd);
     }
 
     public static void checkProfile(Environment env) {

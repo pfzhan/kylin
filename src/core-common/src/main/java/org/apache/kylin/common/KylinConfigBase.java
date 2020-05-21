@@ -1846,4 +1846,9 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("spring.session.store-type", "");
     }
 
+    public String getUserPasswordEncoder() {
+        return getOptional("kylin.security.user-password-encoder",
+                "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder");
+    }
+
 }

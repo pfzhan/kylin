@@ -695,6 +695,11 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isSessionJdbcEncodeEnabled",
                 new PropertiesEntity("kylin.web.session.jdbc-encode-enabled", "false", false));
         map.put("getSpringStoreType", new PropertiesEntity("spring.session.store-type", "jdbc", "jdbc"));
+        map.put("getUserPasswordEncoder",
+                new PropertiesEntity("kylin.security.user-password-encoder",
+                        "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder",
+                        "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"));
+
     }
 
     @Before
@@ -714,7 +719,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(307, methodsCount);
+        Assert.assertEquals(308, methodsCount);
     }
 
     @Test

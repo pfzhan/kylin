@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Properties;
 
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
@@ -33,6 +32,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,7 +64,6 @@ public class KylinPropertySourceConfiguration implements EnvironmentPostProcesso
             }
         };
         propertySources.addAfter("systemProperties", source);
-
     }
 
     @Override

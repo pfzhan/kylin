@@ -68,7 +68,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -82,6 +82,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -127,7 +128,7 @@ public class NUserController extends NBasicController {
     private static final Pattern base64Pattern = Pattern
             .compile("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$");
 
-    private static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+    private static PasswordEncoder pwdEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
@@ -318,7 +319,6 @@ public class NUserController extends NBasicController {
         return response;
     }
 
-
     @PostMapping(value = "/update_user")
     @ResponseBody
     public EnvelopeResponse<UserDetails> updateUserWithoutAuth(@RequestBody ManagedUser user) {
@@ -433,7 +433,6 @@ public class NUserController extends NBasicController {
     private String pwdEncode(String pwd) {
         if (bcryptPattern.matcher(pwd).matches())
             return pwd;
-
         return pwdEncoder.encode(pwd);
     }
 

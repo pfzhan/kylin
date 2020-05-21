@@ -1189,7 +1189,15 @@ public class Message {
         return "There are no data in table %s.";
     }
 
-    public String getEFFECTIVE_DIMENSION_NOT_FIND(){
+    public String getEFFECTIVE_DIMENSION_NOT_FIND() {
         return "The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\nColumn ID: %s";
+    }
+
+    public String getINVALID_PASSWORD_ENCODER() {
+        return "Illegal PASSWORD ENCODER, please check configuration item kylin.security.user-password-encoder";
+    }
+
+    public String getFAILED_INIT_PASSWORD_ENCODER() {
+        return "PASSWORD ENCODER init failed, please check configuration item kylin.security.user-password-encoder";
     }
 }

@@ -1168,7 +1168,16 @@ public class CnMessage extends Message {
         return "表[%s]中无数据。";
     }
 
-    public String getEFFECTIVE_DIMENSION_NOT_FIND(){
+    public String getEFFECTIVE_DIMENSION_NOT_FIND() {
         return "以下列未作为维度添加到模型中，请删除后再保存或添加到模型中。\nColumn ID: %s";
+    }
+
+    public String getINVALID_PASSWORD_ENCODER() {
+        return "非法的PASSWORD ENCODER，请检查配置项kylin.security.user-password-encoder";
+    }
+
+    public String getFAILED_INIT_PASSWORD_ENCODER() {
+        return "PASSWORD ENCODER 初始化失败，请检查配置项kylin.security.user-password-encoder";
+
     }
 }

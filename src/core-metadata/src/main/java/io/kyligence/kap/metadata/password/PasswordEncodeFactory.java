@@ -39,30 +39,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.metadata.exception;
+package io.kyligence.kap.metadata.password;
 
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
+import static org.apache.kylin.metadata.exception.SystemErrorCode.FAILED_INIT_PASSWORD_ENCODER;
+import static org.apache.kylin.metadata.exception.SystemErrorCode.INVALID_PASSWORD_ENCODER;
 
-public enum SystemErrorCode implements ErrorCodeSupplier {
-    // 40005XXX password
-    INVALID_PASSWORD_ENCODER("KE-40005001"), //
-    FAILED_INIT_PASSWORD_ENCODER("KE-40005002"), //
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-    // 40021XXX server
-    EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE("KE-40021001"), //
+import lombok.extern.log4j.Log4j;
 
-    // 40022XXX segment
-    FAILED_MERGE_SEGMENT("KE-40022001"); //
-
-    private final ErrorCode errorCode;
-
-    SystemErrorCode(String code) {
-        errorCode = new ErrorCode(code);
+@Log4j
+public class PasswordEncodeFactory {
+    public static PasswordEncoder newUserPasswordEncoder() {
+        String userPasswordEncode = KylinConfig.getInstanceFromEnv().getUserPasswordEncoder();
+        log.debug("using '" + userPasswordEncode + "' for user password encode");
+        PasswordEncoder passwordEncoder = null;
+        try {
+            passwordEncoder = (PasswordEncoder) Class.forName(userPasswordEncode).newInstance();
+        } catch (ClassNotFoundException e) {
+            log.error("class " + userPasswordEncode + " is not found, password init failed", e);
+            throw new KylinException(INVALID_PASSWORD_ENCODER, MsgPicker.getMsg().getINVALID_PASSWORD_ENCODER());
+        } catch (Exception e) {
+            log.error("password encoder init failed", e);
+            throw new KylinException(FAILED_INIT_PASSWORD_ENCODER,
+                    MsgPicker.getMsg().getFAILED_INIT_PASSWORD_ENCODER());
+        }
+        return passwordEncoder;
     }
 
-    @Override
-    public ErrorCode toErrorCode() {
-        return errorCode;
-    }
 }
