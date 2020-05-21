@@ -440,12 +440,17 @@ export default class LayoutLeftRightTop extends Vue {
         }, 1000 * 60)
       })
     }).catch(e => {
-      this.isNodeLoadingSuccess = false
-      this.isNodeLoading = false
-      clearTimeout(this.nodesTimer)
-      this.nodesTimer = setTimeout(() => {
-        this.getHANodes()
-      }, 1000 * 60)
+      // 超时登出，弹窗出未登陆提示
+      if (e.status === 401) {
+        handleError(e)
+      } else {
+        this.isNodeLoadingSuccess = false
+        this.isNodeLoading = false
+        clearTimeout(this.nodesTimer)
+        this.nodesTimer = setTimeout(() => {
+          this.getHANodes()
+        }, 1000 * 60)
+      }
     })
   }
   setGlobalMask (notifyContect) {

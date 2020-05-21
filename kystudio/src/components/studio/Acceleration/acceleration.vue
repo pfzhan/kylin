@@ -622,19 +622,23 @@ export default class FavoriteQuery extends Vue {
   }
   async loadFavoriteList () {
     return new Promise(async resolve => {
-      const res = await this.getFavoriteList({
-        project: this.currentSelectedProject || null,
-        limit: this.filterData.pageSize,
-        offset: this.filterData.offset,
-        status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
-        sort_by: this.filterData.sortBy,
-        reverse: this.filterData.reverse,
-        isAuto: this.filterData.isAuto
-      })
-      const data = await handleSuccessAsync(res)
-      this.favQueList = data
-      this.listLoading = false
-      resolve()
+      try {
+        const res = await this.getFavoriteList({
+          project: this.currentSelectedProject || null,
+          limit: this.filterData.pageSize,
+          offset: this.filterData.offset,
+          status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
+          sort_by: this.filterData.sortBy,
+          reverse: this.filterData.reverse,
+          isAuto: this.filterData.isAuto
+        })
+        const data = await handleSuccessAsync(res)
+        this.favQueList = data
+        this.listLoading = false
+        resolve()
+      } catch (e) {
+        handleError(e)
+      }
     })
   }
 
@@ -644,14 +648,18 @@ export default class FavoriteQuery extends Vue {
 
   async getSQLSizes () {
     return new Promise(async resolve => {
-      if (this.currentSelectedProject) {
-        this.fqSizeFilterData.project = this.currentSelectedProject
-        const res = await this.getWaitingAcceSize(this.fqSizeFilterData)
-        const data = await handleSuccessAsync(res)
-        this.listSizes = data
-        this.waitingSQLSize = data.can_be_accelerated
+      try {
+        if (this.currentSelectedProject) {
+          this.fqSizeFilterData.project = this.currentSelectedProject
+          const res = await this.getWaitingAcceSize(this.fqSizeFilterData)
+          const data = await handleSuccessAsync(res)
+          this.listSizes = data
+          this.waitingSQLSize = data.can_be_accelerated
+        }
+        resolve()
+      } catch (e) {
+        handleError(e)
       }
-      resolve()
     })
   }
   refreshLists () {
