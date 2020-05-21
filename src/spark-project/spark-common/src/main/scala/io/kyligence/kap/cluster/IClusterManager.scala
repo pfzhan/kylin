@@ -24,7 +24,7 @@ package io.kyligence.kap.cluster
 
 import java.util
 
-import org.apache.hadoop.yarn.api.records.Resource
+import org.apache.hadoop.yarn.api.records.{QueueStatistics, Resource}
 
 trait IClusterManager {
   def fetchMaximumResourceAllocation: ResourceInfo
@@ -36,6 +36,8 @@ trait IClusterManager {
   def killApplication(jobStepId: String): Unit
 
   def getRunningJobs(queues: util.Set[String]): util.List[String]
+
+  def fetchQueueStatistics(queueName: String): QueueStatistics
 }
 
 // memory unit is MB

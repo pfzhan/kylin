@@ -27,8 +27,8 @@
         <!-- Keep same order with dependencyManagement -->
 
         <!-- Hadoop versions -->
-        <hadoop2.version>2.7.1</hadoop2.version>
-        <yarn.version>2.7.1</yarn.version>
+        <hadoop2.version>2.7.1.100</hadoop2.version>
+        <yarn.version>2.7.1.100</yarn.version>
 
         <!-- Hive versions -->
         <hive.version>1.2.1</hive.version>
@@ -186,7 +186,7 @@
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <parquet.version>1.12.0-kylin-r5</parquet.version>
         <jackson.version>2.6.5</jackson.version>
-        <hadoop2.version>2.7.1</hadoop2.version>
+        <hadoop2.version>2.7.1.100</hadoop2.version>
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
         <janino.version>3.0.9</janino.version>

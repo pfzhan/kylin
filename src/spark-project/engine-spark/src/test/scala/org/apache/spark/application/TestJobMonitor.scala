@@ -30,6 +30,7 @@ import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInf
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
+import org.apache.hadoop.yarn.api.records.QueueStatistics
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.scheduler.KylinJobEventLoop
@@ -334,4 +335,22 @@ class MockClusterManager extends IClusterManager {
   override def killApplication(jobStepId: String): Unit = {}
 
   override def getRunningJobs(queues: util.Set[String]): util.List[String] = null
+
+  override def fetchQueueStatistics(queueName: String): QueueStatistics = QueueStatistics.newInstance(
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    10,
+    0,
+    0,
+    0,
+    20,
+    0,
+    0,
+    0)
+
 }

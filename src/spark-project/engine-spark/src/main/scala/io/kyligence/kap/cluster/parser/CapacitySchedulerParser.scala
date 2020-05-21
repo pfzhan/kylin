@@ -25,7 +25,10 @@ package io.kyligence.kap.cluster.parser
 import java.util.{List => JList}
 
 import com.fasterxml.jackson.databind.JsonNode
-import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo}
+import io.kyligence.kap.cluster.{AvailableResource, ClusterManagerFactory, IClusterManager, ResourceInfo, YarnClusterManager}
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
+import org.apache.hadoop.yarn.api.records.QueueStatistics
+import org.apache.kylin.common.KylinConfig
 
 import scala.collection.JavaConverters._
 
@@ -35,12 +38,15 @@ class CapacitySchedulerParser extends SchedulerParser {
     val queues: JList[JsonNode] = root.findParents("queueName")
     val nodes = queues.asScala.filter(queue => parseValue(queue.get("queueName")).equals(queueName))
     require(nodes.size == 1)
-    val (queueAvailable, queueMax) = queueCapacity(nodes.head)
+    val queueMax = queueCapacity(nodes.head)
     val totalResource = calTotalResource(nodes.head)
-    val clusterNode = root.findValue("schedulerInfo")
-    val cluster = clusterAvailableCapacity(clusterNode)
-    val min = Math.min(queueAvailable, cluster)
-    val resource = AvailableResource(totalResource.percentage(min), totalResource.percentage(queueMax))
+
+    val queueStatistics = KylinBuildEnv.get.clusterManager.fetchQueueStatistics(queueName)
+    val queueAvailableMem = queueStatistics.getAvailableMemoryMB
+    val queueAvailableCores = queueStatistics.getAvailableVCores
+    val queueAvailableRes = ResourceInfo(queueAvailableMem.toInt, queueAvailableCores.toInt)
+    val resource = AvailableResource(queueAvailableRes, totalResource.percentage(queueMax))
+
     logInfo(s"Capacity actual available resource: $resource.")
     resource
   }
@@ -53,12 +59,9 @@ class CapacitySchedulerParser extends SchedulerParser {
     capacity
   }
 
-  private def queueCapacity(node: JsonNode): (Double, Double) = {
+  private def queueCapacity(node: JsonNode): Double = {
     val max = parseValue(node.get("absoluteMaxCapacity")).toDouble
-    val used = parseValue(node.get("absoluteUsedCapacity")).toDouble
-    val available = (max - used) / 100
-    logInfo(s"Queue available capacity: $available.")
-    (available, max / 100)
+    max / 100
   }
 
   private def calTotalResource(node: JsonNode): ResourceInfo = {

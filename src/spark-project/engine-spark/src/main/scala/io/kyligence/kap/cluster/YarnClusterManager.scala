@@ -29,7 +29,7 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
 import io.kyligence.kap.engine.spark.utils.StorageUtils
 import org.apache.commons.collections.CollectionUtils
-import org.apache.hadoop.yarn.api.records.{ApplicationId, ApplicationReport, YarnApplicationState}
+import org.apache.hadoop.yarn.api.records.{ApplicationId, ApplicationReport, QueueStatistics, YarnApplicationState}
 import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
@@ -38,12 +38,13 @@ import org.apache.spark.internal.Logging
 import scala.collection.JavaConverters._
 
 class YarnClusterManager extends IClusterManager with Logging {
+
+  import io.kyligence.kap.cluster.YarnClusterManager._
+
   private lazy val maximumResourceAllocation = {
-    val yarnClient = YarnClient.createYarnClient
+    val yarnClient = instance()
     var resourceInfo: ResourceInfo = null
     try {
-      yarnClient.init(getSpecifiedConf)
-      yarnClient.start()
       val response = yarnClient.createApplication().getNewApplicationResponse
       resourceInfo = new ResourceInfo(response.getMaximumResourceCapability)
       logInfo(s"Cluster maximum resource allocation $resourceInfo")
@@ -67,10 +68,8 @@ class YarnClusterManager extends IClusterManager with Logging {
   }
 
   override def getTrackingUrl(applicationId: String): String = {
-    val yarnClient = YarnClient.createYarnClient
+    val yarnClient = instance()
     try {
-      yarnClient.init(getSpecifiedConf)
-      yarnClient.start()
       val array = applicationId.split("_")
       if (array.length < 3) return null
       val appId = ApplicationId.newInstance(array(1).toLong, array(2).toInt)
@@ -84,10 +83,8 @@ class YarnClusterManager extends IClusterManager with Logging {
 
   override def killApplication(jobStepId: String): Unit = {
     var orphanApplicationId: String = null
-    val yarnClient = YarnClient.createYarnClient
+    val yarnClient = instance()
     try {
-      yarnClient.init(getSpecifiedConf)
-      yarnClient.start()
       val types: util.Set[String] = Sets.newHashSet("SPARK")
       val states: util.EnumSet[YarnApplicationState] = util.EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
         YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
@@ -109,18 +106,9 @@ class YarnClusterManager extends IClusterManager with Logging {
     }
   }
 
-  private def getSpecifiedConf: YarnConfiguration = {
-    val yarnConf = StorageUtils.getCurrentYarnConfiguration
-    // https://issues.apache.org/jira/browse/SPARK-15343
-    yarnConf.set("yarn.timeline-service.enabled", "false")
-    yarnConf
-  }
-
   def getRunningJobs(queues: util.Set[String]): util.List[String] = {
-    val yarnClient = YarnClient.createYarnClient
+    val yarnClient = instance()
     try {
-      yarnClient.init(getSpecifiedConf)
-      yarnClient.start()
       if (queues.isEmpty) {
         val applications = yarnClient.getApplications(util.EnumSet.of(YarnApplicationState.RUNNING))
         if (null == applications) List().asJava
@@ -138,5 +126,30 @@ class YarnClusterManager extends IClusterManager with Logging {
     } finally {
       yarnClient.close()
     }
+  }
+
+  override def fetchQueueStatistics(queueName: String): QueueStatistics = {
+    val yarnClient = instance()
+    yarnClient.getQueueInfo(queueName).getQueueStatistics
+  }
+}
+
+object YarnClusterManager {
+  private var yarnClient: YarnClient = null
+
+  def instance(): YarnClient = {
+    if (yarnClient == null) {
+      yarnClient = YarnClient.createYarnClient
+      yarnClient.init(getSpecifiedConf)
+      yarnClient.start()
+    }
+    yarnClient
+  }
+
+  private def getSpecifiedConf: YarnConfiguration = {
+    val yarnConf = StorageUtils.getCurrentYarnConfiguration
+    // https://issues.apache.org/jira/browse/SPARK-15343
+    yarnConf.set("yarn.timeline-service.enabled", "false")
+    yarnConf
   }
 }

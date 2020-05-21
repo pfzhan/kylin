@@ -22,25 +22,35 @@
 
 package io.kyligence.kap.cluster.parser
 
-import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, TestUtils}
+import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo, TestUtils, YarnClusterManager}
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
+import org.apache.hadoop.yarn.api.records.QueueStatistics
+import org.apache.kylin.common.KylinConfig
+import org.apache.spark.application.MockClusterManager
 import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.mockito.Mockito
 
 class TestCapacitySchedulerParser extends SparderBaseFunSuite {
 
+  private val config = Mockito.mock(classOf[KylinConfig])
+  Mockito.when(config.getClusterManagerClassName).thenReturn("org.apache.spark.application.MockClusterManager")
+
   /**
-    * value store in json:
-    * cluster, max: 100%, used: 13.541667%
-    * default, max: 20%, used: 0%, resourceUsed(0, 0)
-    * dev_test, max: 50.0%, used: 13.541667%, resourceUsed(19968, 5)
-    */
+   * value store in json:
+   * cluster, max: 100%, used: 13.541667%
+   * default, max: 20%, used: 0%, resourceUsed(0, 0)
+   * dev_test, max: 50.0%, used: 13.541667%, resourceUsed(19968, 5)
+   */
 
   test("availableResource return correct available resource in target queue") {
+    val env = KylinBuildEnv.getOrCreate(config)
+
     val content = TestUtils.getContent("schedulerInfo/capacitySchedulerInfo.json")
     val parser = new CapacitySchedulerParser
     parser.parse(content)
     val defaultResource = parser.availableResource("default")
-    assert(defaultResource == AvailableResource(ResourceInfo(429496729, 429496729), ResourceInfo(429496729, 429496729)))
+    assert(defaultResource == AvailableResource(ResourceInfo(10, 20), ResourceInfo(429496729, 429496729)))
     val devResource = parser.availableResource("dev_test")
-    assert(devResource == AvailableResource(ResourceInfo(53759, 782936739), ResourceInfo(73727, 1073741823)))
+    assert(devResource == AvailableResource(ResourceInfo(10, 20), ResourceInfo(73727, 1073741823)))
   }
 }
