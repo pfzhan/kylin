@@ -29,7 +29,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.DaemonThreadFactory;
@@ -97,7 +96,7 @@ public class Broadcaster implements Closeable {
             String identity = AddressUtil.getLocalInstance();
             Set<String> curNodes = getCurNodes();
             CountDownLatch latch = new CountDownLatch(curNodes.size());
-            for (val node : curNodes) {
+            for (String node : curNodes) {
                 if (identity.equals(node)) {
                     latch.countDown();
                     continue;
@@ -122,7 +121,9 @@ public class Broadcaster implements Closeable {
                     }
                 });
             }
-            latch.await(5, TimeUnit.SECONDS);
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                logger.warn("Failed to broadcast due to timeout.");
+            }
         } catch (Exception e) {
             logger.warn("failed to broadcast", e);
         } finally {
@@ -133,7 +134,7 @@ public class Broadcaster implements Closeable {
 
     @Override
     public void close() throws IOException {
-
+        //do nothing
     }
 
 

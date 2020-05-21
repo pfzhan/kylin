@@ -81,6 +81,6 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
 
     @Override
     public void initWithNiwsConfig(IClientConfig iClientConfig) {
-
+        //do nothing
     }
 }

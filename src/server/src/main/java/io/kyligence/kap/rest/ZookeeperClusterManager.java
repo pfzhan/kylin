@@ -71,15 +71,16 @@ public class ZookeeperClusterManager implements ClusterManager {
         client.start();
         String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
         String nodePath = "/kylin/" + identifier + "/services/all";
-        val pathChildrenCache = new PathChildrenCache(client, nodePath, false);
-        PathChildrenCacheListener childrenCacheListener = new PathChildrenCacheListener() {
-            @Override
-            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
-                cache = getQueryServers();
-            }
-        };
-        pathChildrenCache.getListenable().addListener(childrenCacheListener);
-        pathChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+        try (val pathChildrenCache = new PathChildrenCache(client, nodePath, false)) {
+            PathChildrenCacheListener childrenCacheListener = new PathChildrenCacheListener() {
+                @Override
+                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
+                    cache = getQueryServers();
+                }
+            };
+            pathChildrenCache.getListenable().addListener(childrenCacheListener);
+            pathChildrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+        }
     }
 
 

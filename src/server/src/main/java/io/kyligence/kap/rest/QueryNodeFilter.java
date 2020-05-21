@@ -162,28 +162,20 @@ public class QueryNodeFilter implements Filter {
             String contentType = request.getContentType();
             Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
             String project = projectInfo.getFirst();
-            if (!UnitOfWork.GLOBAL_UNIT.equals(project)) {
-                val prj = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
-                if (prj == null) {
-                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
-                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
-                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
-                    return;
-                }
-            }
-            request = projectInfo.getSecond();
-            if (!Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)) {
-                // process local
-                if (((HttpServletRequest) request).getRequestURI().contains("epoch")
-                        || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
-                    if (StringUtils.isEmpty(contentType) || !contentType.contains("multipart/form-data")) {
-                        log.info("process local caused by project owner");
-                        chain.doFilter(request, response);
-                        return;
-                    }
-                }
+            if (!checkProjectExist(project)) {
+                servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
+                        String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                return;
             }
 
+            request = projectInfo.getSecond();
+
+            if(checkProcessLocal(serverMode, project, contentType, request)){
+                log.info("process local caused by project owner");
+                chain.doFilter(request, response);
+                return;
+            }
 
             ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);
             RequestContextHolder.setRequestAttributes(attributes);
@@ -264,5 +256,28 @@ public class QueryNodeFilter implements Filter {
                 (method.equals("DELETE") && notRouteDeleteApiSet.contains(uri)) ||
                 "true".equalsIgnoreCase(servletRequest.getHeader(ROUTED)) ||
                 KylinConfig.getInstanceFromEnv().isUTEnv();
+    }
+
+    private boolean checkProcessLocal(String serverMode, String project, String contentType, ServletRequest request) {
+        if (!Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)) {
+            // process local
+            if (((HttpServletRequest) request).getRequestURI().contains("epoch")
+                    || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
+                if (StringUtils.isEmpty(contentType) || !contentType.contains("multipart/form-data")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean checkProjectExist(String project) {
+        if (!UnitOfWork.GLOBAL_UNIT.equals(project)) {
+            val prj = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+            if (prj == null) {
+                return false;
+            }
+        }
+        return true;
     }
 }
