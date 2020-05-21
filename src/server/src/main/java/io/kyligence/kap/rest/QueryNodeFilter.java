@@ -122,6 +122,7 @@ public class QueryNodeFilter implements Filter {
         //refresh catalog
         notRoutePutApiSet.add("/kylin/api/tables/catalog_cache");
         notRoutePutApiSet.add("/kylin/api/tables/single_catalog_cache");
+        notRoutePutApiSet.add("/kylin/api/index_plans/agg_index_count");
     }
 
     @Autowired
