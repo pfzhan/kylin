@@ -639,6 +639,7 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
+        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);
