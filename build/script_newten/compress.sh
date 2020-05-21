@@ -8,14 +8,8 @@ exportProjectVersions
 
 # get package name
 current_branch=${branch}
-if [ "${current_branch}" = "" ]; then
+if [[ "${current_branch}" = "" ]]; then
     current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-fi
-
-package_name="Kyligence-Enterprise-${release_version}"
-if [ "${PACKAGE_TIMESTAMP}" = "1" ]; then
-    timestamp=`date '+%Y%m%d%H%M%S'`
-    package_name=${package_name}.${timestamp}
 fi
 
 # package as *.tar.gz
@@ -29,7 +23,7 @@ cp -rf CHANGELOG.md VERSION commit_SHA1 lib tool LICENSE ${package_name}/
 
 mkdir ${package_name}/lib/ext
 
-if [ "${PACKAGE_SPARK}" = "1" ]; then
+if [[ "${PACKAGE_SPARK}" = "1" ]]; then
     cp -rf spark ${package_name}/
 fi
 
@@ -111,7 +105,7 @@ rm -rf ${package_name}
 cd ../dist
 
 # package obf tar
-if [ "$SKIP_OBF" != "1" ]; then
+if [[ "$SKIP_OBF" != "1" ]]; then
     tar -xzf ${package_name}.tar.gz
 
     mv ../tmp/kap-assembly-${release_version}-job-obf.jar ${package_name}/lib/newten-job.jar

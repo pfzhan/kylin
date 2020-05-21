@@ -5,39 +5,7 @@ cd ${dir}/../..
 
 source build/script_newten/functions.sh
 
-echo "Packing for Newten..."
-
-export PACKAGE_TIMESTAMP=1
-export PACKAGE_SPARK=1
-export SKIP_FRONT=0
-export SKIP_OBF=0
-for PARAM in $@; do
-    if [ "$PARAM" == "-noTimestamp" ]; then
-        echo "Package without timestamp..."
-        export PACKAGE_TIMESTAMP=0
-        shift
-    fi
-
-    if [ "$PARAM" == "-noSpark" ]; then
-        echo "Skip packaging Spark..."
-        export PACKAGE_SPARK=0
-        shift
-    fi
-
-    if [[ "$PARAM" == "-skipObf" ]]; then
-        echo "Skip Obfuscation..."
-        export SKIP_OBF=1
-        shift
-    fi
-
-    if [[ "$PARAM" == "-skipFront" ]]; then
-        echo 'Skip install front-end dependencies...'
-        export SKIP_FRONT=1
-        shift
-    fi
-done
-
-
+echo "Packing for KE..."
 
 # Make share commands exist in environment
 echo "BUILD STAGE 1 - Checking environment..."
@@ -785,7 +753,6 @@ cat > build/CHANGELOG.md <<EOL
   - Audit log for metadata changes
 
 EOL
-
 
 KAP_VERSION_NAME="Kyligence Enterprise ${release_version}"
 
