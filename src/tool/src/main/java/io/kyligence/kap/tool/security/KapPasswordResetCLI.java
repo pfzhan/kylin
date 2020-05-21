@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.tool.security;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.tool.MetadataTool;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -84,7 +85,7 @@ public class KapPasswordResetCLI {
         }
 
         metaStore.putResource(new RawResource(id, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)),
-                aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1), null, 0L);
+                aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1), null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
 
         logger.trace("update user : {}", user.getUsername());
         logger.info("User {}'s password is set to default password.", user.getUsername());

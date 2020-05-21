@@ -120,7 +120,7 @@ public class HDFSMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String resPath, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc)
+    protected void save(String resPath, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId)
             throws Exception {
         log.trace("res path : {}", resPath);
         Path p = getRealHDFSPath(resPath);

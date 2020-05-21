@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -137,7 +138,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
                         String clazz = eventNode.get("@class").textValue();
                         if (REMOVE_EVENTS.contains(clazz)) {
                             System.out.println("delete event " + eventPath);
-                            resourceStore.getMetadataStore().deleteResource(eventPath, null, 0);
+                            resourceStore.getMetadataStore().deleteResource(eventPath, null, 0, UnitOfWork.DEFAULT_EPOCH_ID);
                         }
                     }
                 } catch (Exception e) {
@@ -196,7 +197,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
                 rs = new RawResource(executePath, byteSource, System.currentTimeMillis(), rs.getMvcc() + 1);
 
                 System.out.println("update execute " + executePath);
-                resourceStore.getMetadataStore().putResource(rs, null, 0);
+                resourceStore.getMetadataStore().putResource(rs, null, 0, UnitOfWork.DEFAULT_EPOCH_ID);
 
             } catch (Exception e) {
                 log.warn("read {} failed", executePath, e);

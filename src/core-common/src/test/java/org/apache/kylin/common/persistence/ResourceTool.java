@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,7 +179,7 @@ public class ResourceTool {
                 try {
                     RawResource res = src.getResource(path);
                     if (res != null) {
-                        dst.getMetadataStore().putResource(res, null, 0L);
+                        dst.getMetadataStore().putResource(res, null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
                     } else {
                         System.out.println("Resource not exist for " + path);
                     }

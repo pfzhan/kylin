@@ -107,7 +107,7 @@ public class EpochManager implements IKeep {
 
     private boolean updateGlobalEpoch(boolean force) {
         return UnitOfWork.doInTransactionWithRetry(() -> {
-            Epoch epoch = getNewEpoch(getGlobalEpoch(), force);
+            Epoch epoch = getNewEpoch(getGlobalEpoch(), force, GLOBAL);
             if (epoch == null) {
                 return false;
             }
@@ -161,7 +161,7 @@ public class EpochManager implements IKeep {
                 if (project == null) {
                     return false;
                 }
-                Epoch finalEpoch = getNewEpoch(project.getEpoch(), force);
+                Epoch finalEpoch = getNewEpoch(project.getEpoch(), force, prj.getName());
                 if (finalEpoch == null) {
                     return false;
                 }
@@ -193,17 +193,21 @@ public class EpochManager implements IKeep {
         }
     }
 
-    private Epoch getNewEpoch(Epoch epoch) {
-        return getNewEpoch(epoch, false);
+    private Epoch getNewEpoch(Epoch epoch, String project) {
+        return getNewEpoch(epoch, false, project);
     }
 
-    private Epoch getNewEpoch(Epoch epoch, boolean force) {
+    private Epoch getNewEpoch(Epoch epoch, boolean force, String project) {
         if (epoch == null) {
             epoch = new Epoch(1L, identity, System.currentTimeMillis());
         } else {
             if (!epoch.getCurrentEpochOwner().equals(identity)) {
                 if (isEpochLegal(epoch) && !force) return null;
                 epoch.setEpochId(epoch.getEpochId() + 1);
+            } else {
+                if (!currentEpochs.contains(project)) {
+                    epoch.setEpochId(epoch.getEpochId() + 1);
+                }
             }
             epoch.setLastEpochRenewTime(System.currentTimeMillis());
             epoch.setCurrentEpochOwner(identity);

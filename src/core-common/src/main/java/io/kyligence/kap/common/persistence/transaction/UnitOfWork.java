@@ -60,6 +60,8 @@ import lombok.extern.slf4j.Slf4j;
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
 
+    public static final long DEFAULT_EPOCH_ID = -1L;
+
     private static SchedulerEventBusFactory factory;
 
     static {
@@ -279,7 +281,7 @@ public class UnitOfWork {
                 oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json").getMvcc();
 
         }
-        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc);
+        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc, params.getEpochId());
         if (!params.isReadonly() && !config.isUTEnv()) {
             factory.post(new BroadcastEventReadyNotifier());
         }

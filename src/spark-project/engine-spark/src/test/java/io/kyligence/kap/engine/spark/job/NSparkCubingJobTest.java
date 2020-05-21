@@ -452,7 +452,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testSparkExecutable_WrapConfig() {
         val project = "default";
         ExecutableContext context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(),
-                getTestConfig());
+                getTestConfig(), -1);
         NSparkExecutable executable = new NSparkExecutable();
         executable.setProject(project);
 

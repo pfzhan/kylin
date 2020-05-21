@@ -220,7 +220,7 @@ public class NSparkExecutable extends AbstractExecutable {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
                 return 0;
-            }, project);
+            }, context.getEpochId(), project);
         }
 
         String filePath = dumpArgs();

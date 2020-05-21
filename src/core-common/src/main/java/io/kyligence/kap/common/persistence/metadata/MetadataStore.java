@@ -30,6 +30,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -77,7 +78,7 @@ public abstract class MetadataStore {
         auditLogStore = new NoopAuditLogStore();
     }
 
-    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc)
+    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId)
             throws Exception;
 
     public abstract void move(String srcPath, String destPath) throws Exception;
@@ -86,14 +87,14 @@ public abstract class MetadataStore {
 
     public abstract RawResource load(String path) throws IOException;
 
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc)
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc, long epochId)
             throws Exception {
         for (Event event : unitMessages.getMessages()) {
             if (event instanceof ResourceCreateOrUpdateEvent) {
                 val rawResource = ((ResourceCreateOrUpdateEvent) event).getCreatedOrUpdated();
-                putResource(rawResource, unitPath, oriMvcc);
+                putResource(rawResource, unitPath, oriMvcc, epochId);
             } else if (event instanceof ResourceDeleteEvent) {
-                deleteResource(((ResourceDeleteEvent) event).getResPath(), unitPath, oriMvcc);
+                deleteResource(((ResourceDeleteEvent) event).getResPath(), unitPath, oriMvcc, epochId);
             }
         }
         if (!skipAuditLog) {
@@ -109,12 +110,12 @@ public abstract class MetadataStore {
         }
     }
 
-    public void putResource(RawResource res, String unitPath, long oriMvcc) throws Exception {
-        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), unitPath, oriMvcc);
+    public void putResource(RawResource res, String unitPath, long oriMvcc, long epochId) throws Exception {
+        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), unitPath, oriMvcc, epochId);
     }
 
-    public void deleteResource(String resPath, String unitName, long oriMvcc) throws Exception {
-        save(resPath, null, 0, 0, unitName, oriMvcc);
+    public void deleteResource(String resPath, String unitName, long oriMvcc, long epochId) throws Exception {
+        save(resPath, null, 0, 0, unitName, oriMvcc, epochId);
     }
 
     public void dump(ResourceStore store) throws Exception {
@@ -129,7 +130,7 @@ public abstract class MetadataStore {
         }
         for (String resPath : resources) {
             val raw = store.getResource(resPath);
-            putResource(raw, null, 0L);
+            putResource(raw, null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
         }
     }
 
@@ -143,7 +144,7 @@ public abstract class MetadataStore {
                 if (IMMUTABLE_PREFIX.contains(res.getResPath())) {
                     return;
                 }
-                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null, 0L);
+                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
             } catch (Exception e) {
                 throw new IllegalArgumentException("put resource " + res.getResPath() + " failed", e);
             }

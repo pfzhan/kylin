@@ -209,7 +209,7 @@ public abstract class AbstractExecutable implements Executable {
                     checkNeedQuit(false);
                     f.process();
                     return null;
-                }, project);
+                }, context.getEpochId(), project);
             } catch (Exception e) {
                 if (Throwables.getCausalChain(e).stream().anyMatch(x -> x instanceof JobStoppedException)) {
                     // "in this short period user might changed job state" happens
@@ -257,7 +257,8 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
-            String output, String logPath, Consumer<String> hook) {
+                                String output, String logPath, Consumer<String> hook) {
+        long epochId = context == null ? -1 : context.getEpochId();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -271,7 +272,7 @@ public abstract class AbstractExecutable implements Executable {
                 hook.accept(jobId);
             }
             return null;
-        }, project);
+        }, epochId, project);
 
         //write output to HDFS
         updateJobOutputToHDFS(project, jobId, output, logPath);

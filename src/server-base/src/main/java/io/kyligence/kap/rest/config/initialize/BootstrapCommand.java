@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -79,7 +80,7 @@ public class BootstrapCommand implements Runnable {
             }
 
             return 0;
-        }, project.getName(), 1);
+        }, project.getName(), 1, UnitOfWork.DEFAULT_EPOCH_ID);
 
         log.info("init project {} finished", project.getName());
     }

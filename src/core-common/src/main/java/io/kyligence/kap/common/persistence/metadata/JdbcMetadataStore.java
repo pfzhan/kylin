@@ -37,6 +37,7 @@ import java.util.Properties;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
@@ -44,6 +45,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -71,6 +73,8 @@ public class JdbcMetadataStore extends MetadataStore {
     static final String META_TABLE_CONTENT = "META_TABLE_CONTENT";
     static final String META_TABLE_TS = "META_TABLE_TS";
     static final String META_TABLE_MVCC = "META_TABLE_MVCC";
+    static final String EPOCH_ID = "epoch_id";
+
 
     private static final String SELECT_TERM = "select ";
 
@@ -117,12 +121,12 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc)
+    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId)
             throws Exception {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
             public Object handle() throws Exception {
-                checkEpochModified(unitPath, oriMvcc);
+                checkEpochModified(unitPath, oriMvcc, epochId);
                 int affectedRow = 0;
                 if (bs != null) {
                     val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
@@ -157,13 +161,28 @@ public class JdbcMetadataStore extends MetadataStore {
         });
     }
 
-    public void checkEpochModified(String unitPath, long oriMvcc) {
+    public void checkEpochModified(String unitPath, long oriMvcc, long oriEpochId) {
         if (StringUtils.isNotEmpty(unitPath)) {
             val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, unitPath, oriMvcc),
                     RAW_RESOURCE_ROW_MAPPER);
             if (CollectionUtils.isEmpty(result)) {
                 throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
             }
+            if (oriEpochId < 0) return;
+            long epochId;
+            try {
+                JsonNode nodes = JsonUtil.readValueAsTree(new String(result.get(0).getByteSource().read()));
+                if (unitPath.contains(ResourceStore.GLOBAL_EPOCH)) {
+                    epochId = nodes.get(EPOCH_ID).asLong();
+                } else {
+                    epochId = nodes.get("epoch").get(EPOCH_ID).asLong();
+                }
+            } catch (Exception e) {
+                log.error("Can not get epochId from resource store for path {}.", unitPath, e);
+                throw new IllegalStateException("Can not get epochId from resource store.");
+            }
+            if (oriEpochId != epochId)
+                throw new IllegalStateException(String.format("EpochId for path %s dose not match, origin epoch id is %s, but epoch id in db is %s.", unitPath, oriEpochId, epochId));
         }
     }
 
@@ -227,13 +246,13 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc)
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc, long epochId)
             throws Exception {
         if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
             return;
         }
         withTransaction(transactionManager, () -> {
-            super.batchUpdate(unitMessages, skipAuditLog, unitPath, oriMvcc);
+            super.batchUpdate(unitMessages, skipAuditLog, unitPath, oriMvcc, epochId);
             return null;
         });
     }

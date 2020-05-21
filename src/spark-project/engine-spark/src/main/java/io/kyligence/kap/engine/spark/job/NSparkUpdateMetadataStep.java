@@ -55,7 +55,7 @@ public class NSparkUpdateMetadataStep extends AbstractExecutable {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 handler.handleFinished();
                 return null;
-            }, handler.getProject());
+            }, context.getEpochId(), handler.getProject());
             return ExecuteResult.createSucceed();
         } catch (Throwable throwable) {
             logger.warn("");

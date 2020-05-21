@@ -88,7 +88,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     private JobEngineConfig jobEngineConfig;
     private ProjectStorageInfoCollector collector;
     private static volatile Semaphore memoryRemaining = new Semaphore(Integer.MAX_VALUE);
-    private long epochId;
+    private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
     private int currentPrjUsingMemory;
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -146,7 +146,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
                         return true;
                     }
                     return false;
-                }, project);
+                }, epochId, project);
             }
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
@@ -165,7 +165,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
                         return true;
                     }
                     return false;
-                }, project);
+                }, epochId, project);
             }
         } catch (Exception e) {
             logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
@@ -454,7 +454,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         }
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
-        context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), jobEngineConfig.getConfig());
+        context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), jobEngineConfig.getConfig(), epochId);
 
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager.resumeAllRunningJobs();

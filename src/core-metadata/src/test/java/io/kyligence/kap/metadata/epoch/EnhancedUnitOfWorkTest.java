@@ -131,6 +131,23 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testEpochIdNotMatch() throws Exception {
+        KylinConfig config = getTestConfig();
+        EpochManager epochManager = EpochManager.getInstance(config);
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        val epoch = epochManager.getGlobalEpoch();
+        epoch.setLastEpochRenewTime(System.currentTimeMillis());
+        val table = config.getMetadataUrl().getIdentifier();
+        thrown.expect(TransactionException.class);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
+            return 0;
+        }, 0, UnitOfWork.GLOBAL_UNIT);
+
+    }
+
     JdbcTemplate getJdbcTemplate() throws Exception {
         val url = getTestConfig().getMetadataUrl();
         val props = datasourceParameters(url);

@@ -28,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -127,8 +128,8 @@ class RenameEntity {
         RawResource rawResource = this.getRs();
         if (rawResource != null) {
             metadataStore.move(this.getOriginName(), this.getDestName());
-            metadataStore.deleteResource(this.getOriginName(), null, 0);
-            metadataStore.putResource(rawResource, null, rawResource.getMvcc() + 1);
+            metadataStore.deleteResource(this.getOriginName(), null, 0, UnitOfWork.DEFAULT_EPOCH_ID);
+            metadataStore.putResource(rawResource, null, rawResource.getMvcc() + 1, UnitOfWork.DEFAULT_EPOCH_ID);
         }
     }
 

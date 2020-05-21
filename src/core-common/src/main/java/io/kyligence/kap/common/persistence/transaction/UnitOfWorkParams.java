@@ -42,6 +42,9 @@ public class UnitOfWorkParams<T> {
     private String unitName = UnitOfWork.GLOBAL_UNIT;
 
     @Builder.Default
+    private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
+
+    @Builder.Default
     private int maxRetry = 10;
 
     @Builder.Default

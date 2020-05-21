@@ -38,11 +38,19 @@ import lombok.val;
 public class EnhancedUnitOfWork implements IKeep {
 
     public static <T> T doInTransactionWithCheckAndRetry(UnitOfWork.Callback<T> f, String unitName) {
-        return doInTransactionWithCheckAndRetry(f, unitName, 3);
+        return doInTransactionWithCheckAndRetry(f, UnitOfWork.DEFAULT_EPOCH_ID, unitName);
+    }
+
+    public static <T> T doInTransactionWithCheckAndRetry(UnitOfWork.Callback<T> f, long epochId, String unitName) {
+        return doInTransactionWithCheckAndRetry(f, unitName, 3, epochId);
     }
 
     public static <T> T doInTransactionWithCheckAndRetry(UnitOfWork.Callback<T> f, String unitName, int retryTimes) {
-        return doInTransactionWithCheckAndRetry(UnitOfWorkParams.<T>builder().processor(f).unitName(unitName).maxRetry(retryTimes).build());
+        return doInTransactionWithCheckAndRetry(f, unitName, retryTimes, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
+
+    public static <T> T doInTransactionWithCheckAndRetry(UnitOfWork.Callback<T> f, String unitName, int retryTimes, long epochId) {
+        return doInTransactionWithCheckAndRetry(UnitOfWorkParams.<T>builder().processor(f).unitName(unitName).epochId(epochId).maxRetry(retryTimes).build());
     }
 
     public static <T> T doInTransactionWithCheckAndRetry(UnitOfWorkParams<T> params) {

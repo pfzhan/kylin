@@ -78,7 +78,8 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
+public abstract class
+NSuggestTestBase extends NLocalWithSparkSessionTest {
 
     protected static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
 
