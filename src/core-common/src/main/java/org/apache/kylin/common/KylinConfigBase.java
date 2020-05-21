@@ -62,7 +62,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -76,6 +75,7 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -396,8 +396,9 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getZKBaseSleepTimeMs() {
-        return Long.valueOf(TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-base-sleep-time", "3s"),
-                TimeUnit.MILLISECONDS)).intValue();
+        return Long.valueOf(
+                TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-base-sleep-time", "3s"), TimeUnit.MILLISECONDS))
+                .intValue();
     }
 
     public int getZKMaxRetries() {
@@ -713,7 +714,6 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.job.remote-cli-password");
     }
 
-
     public int getRemoteSSHPort() {
         return Integer.parseInt(getOptional("kylin.job.remote-ssh-port", "22"));
     }
@@ -725,8 +725,6 @@ public abstract class KylinConfigBase implements Serializable {
     public String getRemoteSSHPassword() {
         return getOptional("kylin.job.ssh-password");
     }
-
-
 
     public String getCliWorkingDir() {
         return getOptional("kylin.job.remote-cli-working-dir");
@@ -1828,11 +1826,24 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getUpdateEpochTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.server.leader-race.update-heart-beat-timeout", "30s"), TimeUnit.SECONDS);
+        return TimeUtil.timeStringAs(getOptional("kylin.server.leader-race.update-heart-beat-timeout", "30s"),
+                TimeUnit.SECONDS);
     }
 
     public boolean isQueryEscapedLiteral() {
         return Boolean.parseBoolean(getOptional("kylin.query.parser.escaped-string-literals", FALSE));
+    }
+
+    public boolean isSessionSecureRandomCreateEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.web.session.secure-random-create-enabled", "false"));
+    }
+
+    public boolean isSessionJdbcEncodeEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.web.session.jdbc-encode-enabled", "false"));
+    }
+
+    public String getSpringStoreType() {
+        return getOptional("spring.session.store-type", "");
     }
 
 }

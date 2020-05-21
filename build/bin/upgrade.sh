@@ -182,6 +182,9 @@ PY
         warn "...................................................[SKIP]"
         recordKylinUpgradeResult "${START_TIME}" "true" "${NEW_KYLIN_HOME}"
     fi
+
+    ${OLD_KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.upgrade.UpdateSessionTableCLI
+
     info "Upgrade finished!"
     # needed by km
     info "Backup location:${install_dir}/${backup_file}"
