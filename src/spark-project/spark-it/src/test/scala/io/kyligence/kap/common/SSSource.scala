@@ -79,6 +79,7 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
       .replaceAll("DEFAULT\\.", "")
       .replaceAll("\"DEFAULT\"\\.", "")
     val queryParams = new QueryParams("default", sqlForSpark, "DEFAULT", false)
+    queryParams.setKylinConfig(QueryUtil.getKylinConfig("default"))
     QueryUtil.massagePushDownSql(queryParams)
   }
 }
