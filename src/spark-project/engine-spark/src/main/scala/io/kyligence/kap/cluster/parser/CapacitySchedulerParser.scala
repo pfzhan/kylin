@@ -41,6 +41,8 @@ class CapacitySchedulerParser extends SchedulerParser {
     val queueMax = queueCapacity(nodes.head)
     val totalResource = calTotalResource(nodes.head)
 
+    logInfo("KylinBuildEnv.get.clusterManager ->" + KylinBuildEnv.get.clusterManager.getClass)
+
     val queueStatistics = KylinBuildEnv.get.clusterManager.fetchQueueStatistics(queueName)
     val queueAvailableMem = queueStatistics.getAvailableMemoryMB
     val queueAvailableCores = queueStatistics.getAvailableVCores

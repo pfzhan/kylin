@@ -22,14 +22,14 @@
 
 package io.kyligence.kap.cluster.parser
 
-import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo, TestUtils, YarnClusterManager}
+import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, TestUtils}
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
-import org.apache.hadoop.yarn.api.records.QueueStatistics
 import org.apache.kylin.common.KylinConfig
-import org.apache.spark.application.MockClusterManager
 import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.mockito.Mockito
+import org.scalatest.Ignore
 
+@Ignore
 class TestCapacitySchedulerParser extends SparderBaseFunSuite {
 
   private val config = Mockito.mock(classOf[KylinConfig])
