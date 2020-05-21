@@ -84,6 +84,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.apache.parquet.Strings;
 import org.dbunit.DatabaseUnitException;
@@ -328,16 +329,17 @@ public class KylinTestBase {
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
             String defaultSchema, SQLException sqlException, boolean isPrepare, boolean isForced) throws Exception {
-        QueryParams queryParams = new QueryParams(project, sql, defaultSchema, isPrepare);
-        queryParams.setSqlException(sqlException);
-        queryParams.setForced(isForced);
-        return PushDownUtil.tryPushDownSelectQuery(queryParams);
+        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sql, 0, 0);
+        QueryParams queryParams = new QueryParams(project, massagedSql, defaultSchema, isPrepare, sqlException,
+                isForced, true, 0, 0);
+        return PushDownUtil.tryPushDownQuery(queryParams);
     }
 
     protected Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String sql,
             boolean isPrepare) throws Exception {
-        QueryParams queryParams = new QueryParams(ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", isPrepare);
-        return PushDownUtil.tryPushDownNonSelectQuery(queryParams);
+        QueryParams queryParams = new QueryParams(ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", isPrepare,
+                false, false);
+        return PushDownUtil.tryPushDownQuery(queryParams);
     }
 
     protected ITable executeDynamicQuery(IDatabaseConnection dbConn, String queryName, String sql,

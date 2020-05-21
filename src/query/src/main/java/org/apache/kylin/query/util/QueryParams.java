@@ -74,6 +74,29 @@ public class QueryParams {
         this.isPrepare = isPrepare;
     }
 
+    public QueryParams(String project, String sql, String defaultSchema, boolean isPrepare, boolean isSelect,
+            boolean isForced) {
+        this.project = project;
+        this.sql = sql;
+        this.defaultSchema = defaultSchema;
+        this.isPrepare = isPrepare;
+        this.isSelect = isSelect;
+        this.isForced = isForced;
+    }
+
+    public QueryParams(String project, String sql, String defaultSchema, boolean isPrepare, SQLException sqlException,
+            boolean isForced, boolean isSelect, int limit, int offset) {
+        this.project = project;
+        this.sql = sql;
+        this.defaultSchema = defaultSchema;
+        this.isPrepare = isPrepare;
+        this.sqlException = sqlException;
+        this.isForced = isForced;
+        this.isSelect = isSelect;
+        this.limit = limit;
+        this.offset = offset;
+    }
+
     public QueryParams(KylinConfig kylinConfig, String sql, String project, int limit, int offset, String defaultSchema,
             boolean isCCNeeded) {
         this.kylinConfig = kylinConfig;

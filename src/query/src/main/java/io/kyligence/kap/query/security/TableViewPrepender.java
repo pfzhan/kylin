@@ -31,8 +31,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
@@ -49,12 +47,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import java.util.Collection;
 import java.util.List;
@@ -64,12 +59,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+public class TableViewPrepender extends TransformWithAcl implements IKeep {
     private static final int WITH_CLAUSE_LENGTH = 4;
-
-    @Getter
-    @Setter
-    QueryContext.AclInfo aclInfo;
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {

@@ -113,22 +113,6 @@ public class PushDownUtil {
     private PushDownUtil() {
     }
 
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams)
-            throws Exception {
-        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), queryParams.getSql(),
-                queryParams.getLimit(), queryParams.getOffset());
-        queryParams.setSql(massagedSql);
-        queryParams.setSelect(true);
-        return tryPushDownQuery(queryParams);
-    }
-
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(QueryParams queryParams)
-            throws Exception {
-        queryParams.setSelect(false);
-        queryParams.setForced(false);
-        return tryPushDownQuery(queryParams);
-    }
-
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams)
             throws Exception {
 

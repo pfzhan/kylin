@@ -49,9 +49,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,15 +57,9 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
-import lombok.Getter;
-import lombok.Setter;
 
-public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+public class RowFilter extends TransformWithAcl implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
-
-    @Getter
-    @Setter
-    QueryContext.AclInfo aclInfo;
 
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {

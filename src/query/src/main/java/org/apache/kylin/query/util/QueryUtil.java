@@ -64,9 +64,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.security.HackSelectStarWithColumnACL;
-import io.kyligence.kap.query.security.RowFilter;
-import io.kyligence.kap.query.security.TableViewPrepender;
+import io.kyligence.kap.query.security.TransformWithAcl;
 import io.kyligence.kap.query.util.CommentParser;
 
 /**
@@ -101,14 +99,8 @@ public class QueryUtil {
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("SQL transformation is timeout");
             }
-            if (t instanceof HackSelectStarWithColumnACL) {
-                ((HackSelectStarWithColumnACL) t).setAclInfo(queryParams.getAclInfo());
-            }
-            if (t instanceof RowFilter) {
-                ((RowFilter) t).setAclInfo(queryParams.getAclInfo());
-            }
-            if (t instanceof TableViewPrepender) {
-                ((TableViewPrepender) t).setAclInfo(queryParams.getAclInfo());
+            if (t instanceof TransformWithAcl) {
+                ((TransformWithAcl) t).setAclInfo(queryParams.getAclInfo());
             }
             sql = t.transform(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
@@ -178,14 +170,8 @@ public class QueryUtil {
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("Push-down SQL convert is timeout");
             }
-            if (converter instanceof HackSelectStarWithColumnACL) {
-                ((HackSelectStarWithColumnACL) converter).setAclInfo(queryParams.getAclInfo());
-            }
-            if (converter instanceof RowFilter) {
-                ((RowFilter) converter).setAclInfo(queryParams.getAclInfo());
-            }
-            if (converter instanceof TableViewPrepender) {
-                ((TableViewPrepender) converter).setAclInfo(queryParams.getAclInfo());
+            if (converter instanceof TransformWithAcl) {
+                ((TransformWithAcl) converter).setAclInfo(queryParams.getAclInfo());
             }
             sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema(), queryParams.isPrepare());
         }

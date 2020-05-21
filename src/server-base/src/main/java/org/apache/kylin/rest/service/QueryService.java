@@ -239,9 +239,9 @@ public class QueryService extends BasicService {
         try {
             QueryExec queryExec = newQueryExec(sqlRequest.getProject());
             QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlRequest.getSql(),
-                    queryExec.getSchema(), BackdoorToggles.getPrepareOnly());
+                    queryExec.getSchema(), BackdoorToggles.getPrepareOnly(), false, false);
             queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
-            Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownNonSelectQuery(queryParams);
+            Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownQuery(queryParams);
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
@@ -667,13 +667,13 @@ public class QueryService extends BasicService {
                 && isPrepareStatementWithParams(sqlRequest)) {
             sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
         }
-        QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlString, defaultSchema, isPrepare);
-        queryParams.setLimit(sqlRequest.getLimit());
-        queryParams.setOffset(sqlRequest.getOffset());
-        queryParams.setSqlException(sqlException);
-        queryParams.setForced(sqlRequest.isForcedToPushDown());
+        String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), sqlString,
+                sqlRequest.getLimit(), sqlRequest.getOffset());
+        QueryParams queryParams = new QueryParams(sqlRequest.getProject(), massagedSql, defaultSchema, isPrepare,
+                sqlException, sqlRequest.isForcedToPushDown(), true, sqlRequest.getLimit(), sqlRequest.getOffset());
         queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
-        return PushDownUtil.tryPushDownSelectQuery(queryParams);
+
+        return PushDownUtil.tryPushDownQuery(queryParams);
     }
 
     public List<TableMeta> getMetadata(String project) {

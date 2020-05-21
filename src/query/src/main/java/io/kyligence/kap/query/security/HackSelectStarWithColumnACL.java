@@ -45,9 +45,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -56,16 +54,10 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.Getter;
-import lombok.Setter;
 
-public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
+public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKeep {
 
     private static final String SELECT_STAR = "*";
-
-    @Getter
-    @Setter
-    QueryContext.AclInfo aclInfo;
 
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
