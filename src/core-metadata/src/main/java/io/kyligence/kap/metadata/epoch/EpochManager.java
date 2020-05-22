@@ -261,13 +261,18 @@ public class EpochManager implements IKeep {
     public synchronized void updateEpoch(String project) throws Exception {
         if (StringUtils.isEmpty(project))
             updateAllEpochs();
-        if (project.equals(GLOBAL))
-            tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet(), false);
+        if (project.equals(GLOBAL)) {
+            if (tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet(), false)) {
+                currentEpochs.add(project);
+                schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+            }
+        }
         ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
         if (prj == null) {
             throw new IllegalStateException(String.format("Project %s does not exist", project));
         }
         if (updateProjectEpoch(prj)) {
+            currentEpochs.add(project);
             schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
         }
     }
@@ -334,6 +339,7 @@ public class EpochManager implements IKeep {
         if (project.equals(EpochManager.GLOBAL)) {
             try {
                 if (tryUpdateGlobalEpoch(Sets.newHashSet(), true)) {
+                    currentEpochs.add(project);
                     schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
                 }
             } catch (Exception e) {
@@ -343,6 +349,7 @@ public class EpochManager implements IKeep {
             ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
             Preconditions.checkNotNull(prj);
             if (updateProjectEpoch(prj, true)) {
+                currentEpochs.add(project);
                 schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
             }
         }
