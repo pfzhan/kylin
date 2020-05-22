@@ -106,7 +106,6 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
     //now we no longer support such way, however legacy metadata may still contain it
     private static final String DISABLED_ROLE = "--disabled--";
     private static final SimpleGrantedAuthority DEFAULT_GROUP = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
-    private static final int CHECK_TIME = 900000; //15 minutes
 
     public ManagedUser() {
     }
@@ -202,20 +201,16 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
 
     public void increaseWrongTime() {
         int wrongTime = this.getWrongTime();
-        if (wrongTime == 2) {
+        if (wrongTime >= 2) {
             this.setLocked(true);
             this.lockedTime = System.currentTimeMillis();
-            this.wrongTime = 0;
-        } else {
-            this.wrongTime = wrongTime + 1;
         }
+        this.wrongTime = wrongTime + 1;
     }
 
     public void authenticateFail() {
         long currentTime = System.currentTimeMillis();
-        if (currentTime - this.firstLoginFailedTime > CHECK_TIME) {
-            clearAuthenticateFailedRecord();
-        }
+
         if (this.firstLoginFailedTime == 0) {
             this.firstLoginFailedTime = currentTime;
         }

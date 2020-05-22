@@ -297,6 +297,8 @@ public class NUserController extends NBasicController {
 
         logger.info("update password for user {}", user);
 
+        existingUser.clearAuthenticateFailedRecord();
+
         completeAuthorities(existingUser);
         userService.updateUser(existingUser);
 

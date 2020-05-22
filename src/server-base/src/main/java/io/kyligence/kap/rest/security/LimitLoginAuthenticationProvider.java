@@ -97,8 +97,10 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             updateUserLockStatus(managedUser, userName);
             Authentication auth = super.authenticate(authentication);
 
-            if (managedUser != null)
+            if (managedUser != null) {
                 managedUser.clearAuthenticateFailedRecord();
+                updateUser(managedUser);
+            }
 
             SecurityContextHolder.getContext().setAuthentication(auth);
 
@@ -106,9 +108,14 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         } catch (BadCredentialsException e) {
             authenticateFail(managedUser, userName);
             if (managedUser != null && managedUser.isLocked()) {
-                limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), new KylinException(USER_LOCKED, e));
-                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(),
-                        new KylinException(USER_LOCKED, e));
+                if (UserLockRuleUtil.isLockedPermanently(managedUser)) {
+                    String msg = String.format(MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(), userName);
+                    limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
+                    throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
+                }
+                String msg = MsgPicker.getMsg().getUSER_BE_LOCKED(UserLockRuleUtil.getLockDurationSeconds(managedUser));
+                limitLoginLogger.error(msg, new KylinException(USER_LOCKED, e));
+                throw new BadCredentialsException(msg, new KylinException(USER_LOCKED, e));
             } else {
                 limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED());
                 throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
@@ -153,15 +160,23 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
     private void updateUserLockStatus(ManagedUser managedUser, String userName) {
         if (managedUser != null && managedUser.isLocked()) {
+
+            if (UserLockRuleUtil.isLockedPermanently(managedUser)) {
+                throw new LockedException(
+                        String.format(MsgPicker.getMsg().getUSER_IN_PERMANENTLY_LOCKED_STATUS(), userName));
+            }
+
             long lockedTime = managedUser.getLockedTime();
             long timeDiff = System.currentTimeMillis() - lockedTime;
 
-            if (timeDiff > 30000) {
+            if (UserLockRuleUtil.isLockDurationEnded(managedUser, timeDiff)) {
                 managedUser.setLocked(false);
                 updateUser(managedUser);
             } else {
-                int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
-                String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(), userName, leftSeconds);
+                long leftSeconds = UserLockRuleUtil.getLockLeftSeconds(managedUser, timeDiff);
+                long nextLockSeconds = UserLockRuleUtil.getLockDurationSeconds(managedUser.getWrongTime() + 1);
+                String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(leftSeconds, nextLockSeconds),
+                        userName);
                 throw new LockedException(msg);
             }
         }

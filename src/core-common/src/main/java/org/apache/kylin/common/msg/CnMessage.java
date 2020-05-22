@@ -561,12 +561,40 @@ public class CnMessage extends Message {
         return "找不到用户 '%s'";
     }
 
-    public String getUSER_BE_LOCKED() {
-        return "用户名或密码错误，请在30秒后再次重试";
+    public String getUSER_BE_LOCKED(long seconds) {
+        return "用户名或密码错误，请在 " + formatSeconds(seconds) + " 后再次重试。";
     }
 
-    public String getUSER_IN_LOCKED_STATUS() {
-        return "用户 %s 已被锁定, 请在 %s 秒后重试";
+    public String getUSER_IN_LOCKED_STATUS(long leftSeconds, long nextLockSeconds) {
+        return "用户 %s 已被锁定，请在 " + formatSeconds(leftSeconds) + " 后重试。" + formatNextLockDuration(nextLockSeconds);
+    }
+
+    protected String formatNextLockDuration(long nextLockSeconds) {
+        if (Long.MAX_VALUE == nextLockSeconds) {
+            return "如登录再次错误，将被永久锁定。";
+        }
+        return "如登录再次错误将会被继续锁定 " + formatSeconds(nextLockSeconds) + "。";
+    }
+
+    protected String formatTime(long day, long hour, long min, long second) {
+        StringBuilder stringBuilder = new StringBuilder();
+        if (day > 0) {
+            stringBuilder.append(day).append(" 天 ");
+        }
+        if (hour > 0) {
+            stringBuilder.append(hour).append(" 小时 ");
+        }
+        if (min > 0) {
+            stringBuilder.append(min).append(" 分 ");
+        }
+        if (second > 0) {
+            stringBuilder.append(second).append(" 秒 ");
+        }
+        return stringBuilder.toString();
+    }
+
+    public String getUSER_IN_PERMANENTLY_LOCKED_STATUS() {
+        return "用户 %s 已被永久锁定，请联系您的系统管理员进行重置。";
     }
 
     public String getUSER_AUTH_FAILED() {

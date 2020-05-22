@@ -28,6 +28,7 @@ import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -130,12 +131,19 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
     public void testAuthenticate_Locked_Exception() {
         userAdmin.setLocked(true);
         userAdmin.setLockedTime(System.currentTimeMillis());
+        userAdmin.setWrongTime(3);
         kylinUserService.updateUser(userAdmin);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("ADMIN", "KYLIN",
                 userAdmin.getAuthorities());
-        thrown.expect(LockedException.class);
-        thrown.expectMessage("User ADMIN is locked, please try again after 30 seconds.");
-        limitLoginAuthenticationProvider.authenticate(token);
+        try {
+            limitLoginAuthenticationProvider.authenticate(token);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof LockedException);
+            String msg = e.getMessage();
+            Assert.assertTrue(msg.matches(
+                    "User ADMIN is locked, please try again after \\d+ seconds . Login failure again will be locked for 1 minutes ."));
+        }
     }
 
     @Test

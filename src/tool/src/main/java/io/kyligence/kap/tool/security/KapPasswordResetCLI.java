@@ -85,6 +85,7 @@ public class KapPasswordResetCLI {
             System.exit(1);
         }
 
+        user.clearAuthenticateFailedRecord();
         metaStore.putResource(
                 new RawResource(id, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)),
                         aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1),

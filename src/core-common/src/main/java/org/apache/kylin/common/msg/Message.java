@@ -399,12 +399,49 @@ public class Message {
         return "Invalid username or password.";
     }
 
-    public String getUSER_BE_LOCKED() {
-        return "Invalid username or password. Please try again after 30 seconds.";
+    public String getUSER_BE_LOCKED(long seconds) {
+        return "Invalid username or password. Please try again after " + formatSeconds(seconds) + ".";
     }
 
-    public String getUSER_IN_LOCKED_STATUS() {
-        return "User %s is locked, please try again after %s seconds.";
+    public String getUSER_IN_LOCKED_STATUS(long leftSeconds, long nextLockSeconds) {
+        return "User %s is locked, please try again after " + formatSeconds(leftSeconds) + ". "
+                + formatNextLockDuration(nextLockSeconds);
+    }
+
+    protected String formatNextLockDuration(long nextLockSeconds) {
+        if (Long.MAX_VALUE == nextLockSeconds) {
+            return "Login failure again will be locked permanently.";
+        }
+        return "Login failure again will be locked for " + formatSeconds(nextLockSeconds) + ".";
+    }
+
+    protected String formatSeconds(long seconds) {
+        long remainingSeconds = seconds % 60;
+        long remainingMinutes = ((seconds - remainingSeconds) / 60) % 60;
+        long remainingHour = ((seconds - remainingSeconds - remainingMinutes * 60) / 3600) % 24;
+        long remainingDay = (seconds - remainingSeconds - remainingMinutes * 60 - remainingHour * 3600) / (3600 * 24);
+        return formatTime(remainingDay, remainingHour, remainingMinutes, remainingSeconds);
+    }
+
+    protected String formatTime(long day, long hour, long min, long second) {
+        StringBuilder stringBuilder = new StringBuilder();
+        if (day > 0) {
+            stringBuilder.append(day).append(" days ");
+        }
+        if (hour > 0) {
+            stringBuilder.append(hour).append(" hours ");
+        }
+        if (min > 0) {
+            stringBuilder.append(min).append(" minutes ");
+        }
+        if (second > 0) {
+            stringBuilder.append(second).append(" seconds ");
+        }
+        return stringBuilder.toString();
+    }
+
+    public String getUSER_IN_PERMANENTLY_LOCKED_STATUS() {
+        return "User %s is locked permanently. Please contact to your administrator to reset.";
     }
 
     public String getUSER_LOGIN_AS_USER_NOT_ADMIN() {
