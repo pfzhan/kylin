@@ -29,7 +29,6 @@ import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.mockito.Mockito
 import org.scalatest.Ignore
 
-@Ignore
 class TestCapacitySchedulerParser extends SparderBaseFunSuite {
 
   private val config = Mockito.mock(classOf[KylinConfig])
@@ -43,6 +42,7 @@ class TestCapacitySchedulerParser extends SparderBaseFunSuite {
    */
 
   test("availableResource return correct available resource in target queue") {
+    KylinBuildEnv.clean()
     val env = KylinBuildEnv.getOrCreate(config)
 
     val content = TestUtils.getContent("schedulerInfo/capacitySchedulerInfo.json")
