@@ -641,7 +641,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).untilAsserted(() -> {
                 KylinConfig tempConf = KylinConfig.createKylinConfig(metaConf);
                 try {
-                    NDataflow tempDf = NDataflowManager.getInstance(tempConf, project).getDataflow(dfId);
+                    NDataflowManager tempDfMgr =  NDataflowManager.getInstance(tempConf, project);
+                    Assert.assertNotNull(tempDfMgr);
+                    NDataflow tempDf = tempDfMgr.getDataflow(dfId);
                     Assert.assertNotNull(tempDf);
                     Assert.assertEquals(1, tempDf.getSegments().size());
                     NDataSegment tempSegment = tempDf.getSegments().getFirstSegment();
