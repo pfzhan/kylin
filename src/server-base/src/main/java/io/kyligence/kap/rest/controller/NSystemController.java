@@ -29,11 +29,13 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_EMAIL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -80,6 +82,8 @@ public class NSystemController extends NBasicController {
     @Autowired
     @Qualifier("systemService")
     private SystemService systemService;
+
+    private static final Pattern trialPattern = Pattern.compile("\\S[a-zA-Z\\s\\d\\u4e00-\\u9fa5]+\\S");
 
     @GetMapping(value = "/license")
     @ResponseBody
@@ -153,12 +157,17 @@ public class NSystemController extends NBasicController {
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
             throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY());
         }
-        if (licenseRequest.getEmail().length() > 50 || licenseRequest.getUsername().length() > 50
-                || licenseRequest.getCompany().length() > 50) {
+        if (licenseRequest.getEmail().length() > MAX_NAME_LENGTH
+                || licenseRequest.getUsername().length() > MAX_NAME_LENGTH
+                || licenseRequest.getCompany().length() > MAX_NAME_LENGTH) {
             throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_IS_ILLEGAL());
         }
         if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
             throw new KylinException(INVALID_EMAIL, MsgPicker.getMsg().getINLEGAL_EMAIL());
+        }
+        if (!trialPattern.matcher(licenseRequest.getCompany()).matches()
+                || !trialPattern.matcher(licenseRequest.getUsername()).matches()) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getUSERNAME_COMPANY_IS_ILLEGAL());
         }
 
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);

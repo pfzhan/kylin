@@ -127,6 +127,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
+    protected static final int MAX_NAME_LENGTH = 50;
 
     @Autowired
     @Qualifier("normalRestTemplate")
@@ -207,9 +208,8 @@ public class NBasicController {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler({MethodArgumentTypeMismatchException.class,
-            MissingServletRequestParameterException.class,
-            IllegalArgumentException.class})
+    @ExceptionHandler({ MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class,
+            IllegalArgumentException.class })
     @ResponseBody
     ErrorResponse handleInvalidRequestParam(HttpServletRequest req, Throwable ex) {
         KylinException e = new KylinException(INVALID_PARAMETER, ex);
@@ -398,8 +398,7 @@ public class NBasicController {
 
     public void validateDateTimeFormatPattern(String pattern) {
         if (pattern.isEmpty()) {
-            throw new KylinException(INVALID_PARAMETER,
-                    "Invalid empty datetime format ");
+            throw new KylinException(INVALID_PARAMETER, "Invalid empty datetime format ");
         }
         try {
             new SimpleDateFormat(pattern);

@@ -334,6 +334,10 @@ public class CnMessage extends Message {
         return "项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。";
     }
 
+    public String getPROJECT_NAME_IS_ILLEGAL() {
+        return "项目名称不得超过50个字符，请重新输入";
+    }
+
     public String getPROJECT_ALREADY_EXIST() {
         return "项目 '%s' 已存在";
     }
@@ -678,6 +682,14 @@ public class CnMessage extends Message {
         return "加速查询 '%s' 不存在";
     }
 
+    public String getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY() {
+        return "查询频率阈值不能为空";
+    }
+
+    public String getDELAY_THRESHOLD_CAN_NOT_EMPTY() {
+        return "查询延迟阈值不能为空";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB() {
@@ -976,6 +988,10 @@ public class CnMessage extends Message {
         return "邮箱, 用户名, 公司的长度要小于等于50";
     }
 
+    public String getUSERNAME_COMPANY_IS_ILLEGAL() {
+        return "用户名, 公司只支持中英文、数字、空格";
+    }
+
     public String getINVALID_COMPUTER_COLUMN_NAME() {
         return "计算列[%s]的名称是 SQL 关键字，请使用其他名称。";
     }
@@ -1026,6 +1042,10 @@ public class CnMessage extends Message {
 
     public String getTABLE_NAME_CANNOT_EMPTY() {
         return "必须指定表名！";
+    }
+
+    public String getTABLE_SAMPLE_MAX_ROWS() {
+        return "表级数据抽样取值范围在 10000 ~ 20000000 之间";
     }
 
     public String getTABLE_NOT_FOUND() {

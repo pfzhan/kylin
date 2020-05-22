@@ -28,6 +28,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -192,11 +194,15 @@ public class FavoriteQueryController extends NBasicController {
     private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
         // either disabled or arguments not empty
         if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue()))
-            throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE, "Frequency rule value is empty");
+            throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE,
+                    MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
 
         if (request.isDurationEnable()
                 && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration())))
-            throw new KylinException(EMPTY_DURATION_RULE_VALUE, "Duration rule values are empty");
+            throw new KylinException(EMPTY_DURATION_RULE_VALUE, MsgPicker.getMsg().getDELAY_THRESHOLD_CAN_NOT_EMPTY());
+
+        if (request.isCountEnable() && StringUtils.isEmpty(request.getCountValue()))
+            throw new KylinException(EMPTY_COUNT_RULE_VALUE, MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
     }
 
     @ApiOperation(value = "getBlacklist (update)", notes = "Update Response: total_size")

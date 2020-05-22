@@ -457,6 +457,10 @@ public class Message {
         return "Please use number, letter, and underline to name your project, and start with a number or a letter.";
     }
 
+    public String getPROJECT_NAME_IS_ILLEGAL() {
+        return "The project name cannot exceed 50 characters, please re-enter";
+    }
+
     public String getPROJECT_ALREADY_EXIST() {
         return "The project named '%s' already exists.";
     }
@@ -732,6 +736,14 @@ public class Message {
 
     public String getFAVORITE_QUERY_NOT_EXIST() {
         return "Favorite query '%s' does not exist";
+    }
+
+    public String getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY() {
+        return "The query frequency threshold cannot be empty";
+    }
+
+    public String getDELAY_THRESHOLD_CAN_NOT_EMPTY() {
+        return "The query delay threshold cannot be empty";
     }
 
     // Query statistics
@@ -1011,6 +1023,10 @@ public class Message {
         return "Email, username, company length should be less or equal than 50";
     }
 
+    public String getUSERNAME_COMPANY_IS_ILLEGAL() {
+        return "Username, company only supports Chinese, English, numbers, spaces";
+    }
+
     public String getINVALID_COMPUTER_COLUMN_NAME() {
         return "The computed column's name:[%s] is a sql keyword, please choose another name.";
     }
@@ -1061,6 +1077,10 @@ public class Message {
 
     public String getTABLE_NAME_CANNOT_EMPTY() {
         return "Table name must be specified!";
+    }
+
+    public String getTABLE_SAMPLE_MAX_ROWS() {
+        return "Table-level data sampling ranging from 10000 to 20000000";
     }
 
     public String getFILE_NOT_EXIST() {

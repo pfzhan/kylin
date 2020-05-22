@@ -181,6 +181,7 @@ public class NUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> addOrDelUsers(@RequestBody UpdateGroupRequest updateGroupRequest)
             throws IOException {
+        checkGroupName(updateGroupRequest.getGroup());
         userGroupService.modifyGroupUsers(updateGroupRequest.getGroup(), updateGroupRequest.getUsers());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "modify users in user group");
     }

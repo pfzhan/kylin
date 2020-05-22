@@ -57,6 +57,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     EMPTY_PROJECT_NAME("KE-10001002"), //
     INVALID_PROJECT_NAME("KE-10001003"), //
     DUPLICATE_PROJECT_NAME("KE-10001004"), //
+    PROJECT_NAME_ILLEGAL("KE-10001005"),
 
     // 10002XXX model
     MODEL_NOT_EXIST("KE-10002001"), //
@@ -103,6 +104,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     INVALID_TABLE_NAME("KE-10007003"), //
     RELOAD_TABLE_FAILED("KE-10007004"), //
     INVALID_TABLE_REFRESH_PARAMETER("KE-10007005"), //
+    INVALID_TABLE_SAMPLE_RANGE("KE-10007006"),
 
     // 10008XXX database
     DATABASE_NOT_EXIST("KE-10008001"), //
@@ -192,6 +194,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     // 10027XXX frequency query
     EMPTY_FREQUENCY_RULE_VALUE("KE-10027001"), //
     EMPTY_DURATION_RULE_VALUE("KE-10027002"), //
+    EMPTY_COUNT_RULE_VALUE("KE-10027003"), //
 
     // 10028XXX json
     FAILED_PARSE_JSON("KE-10028001");//

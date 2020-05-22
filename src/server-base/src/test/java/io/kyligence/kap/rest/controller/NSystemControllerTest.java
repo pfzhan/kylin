@@ -86,9 +86,9 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     public void testTrialLicense() throws Exception {
         final String email = "b@kylin.com";
         LicenseRequest licenseRequest = new LicenseRequest();
-        licenseRequest.setUsername("a");
+        licenseRequest.setUsername("aaa");
         licenseRequest.setEmail(email);
-        licenseRequest.setCompany("c");
+        licenseRequest.setCompany("ccc");
         RemoteLicenseResponse response = new RemoteLicenseResponse();
         response.setSuccess(true);
         response.setData("");

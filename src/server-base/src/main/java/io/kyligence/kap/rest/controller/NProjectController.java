@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PROJECT_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
@@ -154,6 +155,9 @@ public class NProjectController extends NBasicController {
         if (StringUtils.isEmpty(projectRequest.getName())
                 || !StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
             throw new KylinException(INVALID_PROJECT_NAME, MsgPicker.getMsg().getINVALID_PROJECT_NAME());
+        }
+        if (projectRequest.getName().length() > MAX_NAME_LENGTH) {
+            throw new KylinException(PROJECT_NAME_ILLEGAL, MsgPicker.getMsg().getPROJECT_NAME_IS_ILLEGAL());
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);

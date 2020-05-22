@@ -30,6 +30,7 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.rest.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 
@@ -552,6 +553,9 @@ public class NTableController extends NBasicController {
             checkProjectName(request.getProject());
             if (StringUtils.isEmpty(request.getTable())) {
                 throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+            }
+            if (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS) {
+                throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
                     request.getMaxRows(), request.isNeedBuild());
