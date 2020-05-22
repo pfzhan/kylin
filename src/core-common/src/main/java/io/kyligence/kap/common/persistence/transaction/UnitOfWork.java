@@ -135,6 +135,10 @@ public class UnitOfWork {
             TransactionListenerRegistry.onStart(params.getUnitName());
             params.getProcessor().preProcess();
             context = UnitOfWork.startTransaction(params);
+            val waitForLockTime = System.currentTimeMillis() - startTime;
+            if (waitForLockTime > 3000) {
+                log.warn("UnitOfWork {} takes too long time {}ms to start", traceId, waitForLockTime);
+            }
             ret = params.getProcessor().process();
             UnitOfWork.endTransaction(traceId, params);
             long duration = System.currentTimeMillis() - startTime;
