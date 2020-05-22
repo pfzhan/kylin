@@ -42,6 +42,8 @@
 
 package org.apache.kylin.common;
 
+import static java.lang.Math.toIntExact;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -396,9 +398,9 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getZKBaseSleepTimeMs() {
-        return Long.valueOf(
-                TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-base-sleep-time", "3s"), TimeUnit.MILLISECONDS))
-                .intValue();
+        long sleepTimeMs = TimeUtil.timeStringAs(getOptional("kylin.env.zookeeper-base-sleep-time", "3s"),
+                TimeUnit.MILLISECONDS);
+        return toIntExact(sleepTimeMs);
     }
 
     public int getZKMaxRetries() {
