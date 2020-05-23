@@ -46,8 +46,13 @@ import org.apache.kylin.common.exception.ErrorCodeSupplier;
 
 public enum QueryErrorCode implements ErrorCodeSupplier {
     // 20007XXX table
-    EMPTY_TABLE("KE-20007001"),
-    UNSUPPORTED_SUM_CASE_WHEN("KE-20029001");
+    EMPTY_TABLE("KE-20007001"), //
+
+    // 20029XXX optimization rule
+    UNSUPPORTED_SUM_CASE_WHEN("KE-20029001"), //
+
+    // 20030XXX push down
+    INVALID_PARAMETER_PUSH_DOWN("KE-20030001"); //
 
     private final ErrorCode errorCode;
 

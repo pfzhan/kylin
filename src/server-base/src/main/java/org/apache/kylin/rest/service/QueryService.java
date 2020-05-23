@@ -621,6 +621,9 @@ public class QueryService extends BasicService {
         Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
         try {
             r = tryPushDownSelectQuery(sqlRequest, defaultSchema, sqlException, BackdoorToggles.getPrepareOnly());
+        } catch (KylinException e) {
+            logger.error("pushdown failed with kylin exception ", e);
+            throw e;
         } catch (Exception e2) {
             logger.error("pushdown engine failed current query too", e2);
             //exception in pushdown, throw it instead of exception in calcite

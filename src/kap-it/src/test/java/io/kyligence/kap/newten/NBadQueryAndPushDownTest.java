@@ -33,10 +33,12 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.spark.sql.SparderEnv;
@@ -202,11 +204,25 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         //test for error when  execption is null and is not forced
         try {
             pushDownSql(prjName, sql, 0, 0, null, false);
+            Assert.fail();
         } catch (Exception e) {
             Throwable rootCause = Throwables.getRootCause(e);
             Assert.assertTrue(rootCause instanceof IllegalArgumentException);
         }
 
+        //test for error when  pushdown turn off, and force to push down
+        try {
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");
+            Assert.assertFalse(KylinConfig.getInstanceFromEnv().isPushDownEnabled());
+            pushDownSql(prjName, sql, 0, 0, null, true);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals(((KylinException) e).getErrorCode(), QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN.toErrorCode());
+            Assert.assertEquals(Throwables.getRootCause(e).getMessage(), "you should turn on pushdown when you want to force to pushdown");
+        } finally {
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
+        }
     }
 
     private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownSql(String prjName, String sql, int limit,

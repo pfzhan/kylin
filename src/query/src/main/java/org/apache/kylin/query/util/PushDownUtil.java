@@ -90,6 +90,7 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.query.udf.CalciteNotSupportException;
 import org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter;
@@ -137,8 +138,12 @@ public class PushDownUtil {
         String sql = queryParams.getSql();
         String project = queryParams.getProject();
         kylinConfig = prj.getConfig();
-        if (!kylinConfig.isPushDownEnabled())
+        if (!kylinConfig.isPushDownEnabled()) {
+            if (queryParams.isForced) {
+                throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN, "you should turn on pushdown when you want to force to pushdown");
+            }
             return null;
+        }
         if (queryParams.isSelect()) {
             logger.info("Query:[{}] failed to utilize pre-calculation, routing to other engines",
                     QueryContext.current().getMetrics().getCorrectedSql(), queryParams.getSqlException());
