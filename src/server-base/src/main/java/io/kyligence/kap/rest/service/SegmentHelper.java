@@ -37,8 +37,10 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.LicenseInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -63,6 +65,9 @@ import lombok.extern.slf4j.Slf4j;
 public class SegmentHelper extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(SegmentHelper.class);
+
+    @Autowired
+    private LicenseInfoService licenseInfoService;
 
     public void refreshRelatedModelSegments(String project, String tableName, SegmentRange toBeRefreshSegmentRange)
             throws IOException {
@@ -100,11 +105,11 @@ public class SegmentHelper extends BasicService {
                     } else {
                         //normal model to refresh must has ready segment
                         Preconditions.checkState(CollectionUtils.isNotEmpty(segments));
-                        refreshSegments(segments, dfMgr, df, modelId, eventManager);
+                        refreshSegments(segments, dfMgr, df, modelId, eventManager, project);
                         ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
                     }
                 } else {
-                    refreshSegments(segments.getSegments(SegmentStatusEnum.READY), dfMgr, df, modelId, eventManager);
+                    refreshSegments(segments.getSegments(SegmentStatusEnum.READY), dfMgr, df, modelId, eventManager, project);
                     ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
                     //remove new segment in lag behind models and then rebuild it
                     handleRefreshLagBehindModel(project, df, segments.getSegments(SegmentStatusEnum.NEW), modelId,
@@ -123,7 +128,7 @@ public class SegmentHelper extends BasicService {
     }
 
     private void refreshSegments(Segments<NDataSegment> segments, NDataflowManager dfMgr, NDataflow df, String modelId,
-            EventManager eventManager) {
+            EventManager eventManager, String project) {
         for (NDataSegment seg : segments) {
             NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
 
@@ -132,7 +137,10 @@ public class SegmentHelper extends BasicService {
             refreshSegmentEvent.setSegmentId(newSeg.getId());
             refreshSegmentEvent.setJobId(UUID.randomUUID().toString());
             refreshSegmentEvent.setOwner(getUsername());
-            eventManager.post(refreshSegmentEvent);
+            getSourceUsageManager().licenseCheckWrap(project, () -> {
+                eventManager.post(refreshSegmentEvent);
+                return null;
+            });
         }
     }
 
@@ -145,7 +153,7 @@ public class SegmentHelper extends BasicService {
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        eventManager.postAddSegmentEvents(newSegment, model, getUsername());
+        getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddSegmentEvents(newSegment, model, getUsername()));
     }
 
     private void handleRefreshLagBehindModel(String project, NDataflow df, Segments<NDataSegment> newSegments,
@@ -156,7 +164,7 @@ public class SegmentHelper extends BasicService {
             df = dfMgr.getDataflow(modelId);
             val newSeg = dfMgr.appendSegment(df, seg.getSegRange());
 
-            eventManager.postAddSegmentEvents(newSeg, modelId, getUsername());
+            getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddSegmentEvents(newSeg, modelId, getUsername()));
         }
     }
 

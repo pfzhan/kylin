@@ -48,6 +48,7 @@ import java.util.Comparator;
 import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -149,6 +150,10 @@ public abstract class BasicService {
 
     public FavoriteRuleManager getFavoriteRuleManager(String project) {
         return FavoriteRuleManager.getInstance(getConfig(), project);
+    }
+
+    public SourceUsageManager getSourceUsageManager() {
+        return SourceUsageManager.getInstance(getConfig());
     }
 
     protected static String getUsername() {

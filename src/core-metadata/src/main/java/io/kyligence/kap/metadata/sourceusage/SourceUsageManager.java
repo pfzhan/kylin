@@ -23,7 +23,39 @@
  */
 package io.kyligence.kap.metadata.sourceusage;
 
+import static io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus.OVERCAPACITY;
+import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAPACITY;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.JsonSerializer;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.RealizationEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -37,31 +69,6 @@ import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.RealizationEntry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class SourceUsageManager {
 
@@ -211,6 +218,7 @@ public class SourceUsageManager {
                 status = table.getStatus();
             }
         }
+
         project.setStatus(status);
         project.setCapacity(sum);
     }
@@ -303,7 +311,7 @@ public class SourceUsageManager {
                 double licenseCapacity = tbToByte(Double.parseDouble(capacity));
                 usage.setLicenseCapacity(licenseCapacity);
                 if (licenseCapacity < usage.getCurrentCapacity()) {
-                    usage.setCapacityStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
+                    usage.setCapacityStatus(OVERCAPACITY);
                 }
             } catch (NumberFormatException e) {
                 logger.error("ke.license.volume occurred java.lang.NumberFormatException: For input string:" + capacity,
@@ -369,7 +377,7 @@ public class SourceUsageManager {
 
     public List<SourceUsageRecord> getLatestRecordByMs(long msAgo) {
         long from = System.currentTimeMillis() - msAgo;
-        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, from, Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
+        return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, from, Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
     }
 
     public List<SourceUsageRecord> getLatestRecordByHours(int hoursAgo) {
@@ -390,5 +398,134 @@ public class SourceUsageManager {
     // return all records in last one month
     public List<SourceUsageRecord> getLastMonthRecords() {
         return getLatestRecordByHours(24 * 30);
+    }
+
+    private boolean isNotOk(SourceUsageRecord.CapacityStatus status) {
+        return SourceUsageRecord.CapacityStatus.TENTATIVE.equals(status)
+                || SourceUsageRecord.CapacityStatus.ERROR.equals(status);
+    }
+
+    private LicenseInfo getLicenseInfo(String project) {
+        LicenseInfo info = new LicenseInfo();
+
+        //node part
+        List<String> servers = config.getAllServers();
+        int currentNodes = servers.size();
+        info.setCurrentNode(currentNodes);
+
+        String licenseNodes = System.getProperty(Constants.KE_LICENSE_NODES);
+        if (!StringUtils.isEmpty(licenseNodes) && !Constants.UNLIMITED.equals(licenseNodes)) {
+            try {
+                int maximumNodeNums = Integer.parseInt(licenseNodes);
+                info.setNode(maximumNodeNums);
+
+                if (maximumNodeNums < currentNodes) {
+                    info.setNodeStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
+                }
+            } catch (NumberFormatException e) {
+                logger.error("Illegal value of config ke.license.nodes", e);
+            }
+        }
+
+        //capacity part
+        SourceUsageRecord latestHistory = getLatestRecord();
+
+        if (latestHistory != null) {
+            info.setTime(latestHistory.getCheckTime());
+            info.setCurrentCapacity(latestHistory.getCurrentCapacity());
+            info.setCapacityStatus(latestHistory.getCapacityStatus());
+            info.setCapacity(latestHistory.getLicenseCapacity());
+
+            if (project != null) {
+                KylinConfig kylinConfig = NProjectManager.getInstance(config).getProject(project).getConfig();
+
+                // have project usage capacity config
+                if (kylinConfig.getSourceUsageQuota() != -1) {
+                    info.setProject(project);
+                    ProjectCapacityDetail projectCapacity = latestHistory.getProjectCapacity(project);
+
+                    if (projectCapacity != null) {
+                        info.setProjectCapacity(projectCapacity.getLicenseCapacity());
+                        info.setProjectCurrentCapacity(projectCapacity.getCapacity());
+                        info.setProjectCapacityStatus(projectCapacity.getStatus());
+                    }
+                }
+            }
+
+            if (isNotOk(latestHistory.getCapacityStatus())) {
+                List<SourceUsageRecord> recentHistories = SourceUsageManager
+                        .getInstance(config).getLastMonthRecords();
+
+                info.setFirstErrorTime(latestHistory.getCheckTime());
+                for (int i = recentHistories.size() - 1; i >= 0; i--) {
+                    SourceUsageRecord historyRecord = recentHistories.get(i);
+                    if (isNotOk(historyRecord.getCapacityStatus())) {
+                        info.setFirstErrorTime(historyRecord.getCheckTime());
+                    } else {
+                        break;
+                    }
+                }
+            }
+        } else {
+            info.setCapacityStatus(OVERCAPACITY);
+        }
+
+        long firstErrorTime = info.getFirstErrorTime();
+        if (firstErrorTime != 0L) {
+            long dayThreshold = (System.currentTimeMillis() - firstErrorTime) / (1000 * 60 * 60 * 24);
+            if (dayThreshold >= 30) {
+                info.setCapacityStatus(OVERCAPACITY);
+            }
+        }
+
+        return info;
+    }
+
+    public void checkIsOverCapacity(String project) {
+        LicenseInfo info = getLicenseInfo(project);
+
+        if (info.getProject() != null) {
+            if (info.getProjectCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
+                throw new KylinException(LICENSE_OVER_CAPACITY,
+                        String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY(),
+                                info.getProjectCurrentCapacity(), info.getProjectCapacity(), info.getCurrentNode(), info.getNode()));
+            } else if (info.getProjectCapacityStatus() == OVERCAPACITY) {
+                throw new KylinException(LICENSE_OVER_CAPACITY,
+                        String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(),
+                                info.getProjectCurrentCapacity(), info.getProjectCapacity()));
+            } else if (info.getNodeStatus() == OVERCAPACITY) {
+                throw new KylinException(LICENSE_OVER_CAPACITY,
+                        String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
+                                info.getCurrentNode(), info.getNode()));
+            }
+
+            logger.info("Current capacity status of project: {} is ok", info.getProject());
+        } else {
+            if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
+                throw new KylinException(LICENSE_OVER_CAPACITY,
+                        String.format(MsgPicker.getMsg().getLICENSE_SOURCE_NODES_OVER_CAPACITY(),
+                                info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
+            } else if (info.getCapacityStatus() == OVERCAPACITY) {
+                throw new KylinException(LICENSE_OVER_CAPACITY,
+                        String.format(MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(),
+                                info.getCurrentCapacity(), info.getCapacity()));
+            } else if (info.getNodeStatus() == OVERCAPACITY) {
+                throw new KylinException(LICENSE_OVER_CAPACITY,
+                        String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
+                                info.getCurrentNode(), info.getNode()));
+            }
+
+            logger.info("Current capacity status is ok");
+        }
+    }
+
+    public <T> T licenseCheckWrap(String project, Callback<T> f) {
+        checkIsOverCapacity(project);
+
+        return f.process();
+    }
+
+    public interface Callback<T> {
+        T process();
     }
 }

@@ -109,6 +109,7 @@ import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -240,6 +241,9 @@ public class ModelService extends BasicService {
 
     @Autowired
     private AccessService accessService;
+
+    @Autowired
+    private LicenseInfoService licenseInfoService;
 
     private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
@@ -1612,6 +1616,7 @@ public class ModelService extends BasicService {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         checkModelAndIndexManually(project, modelId);
         String format = probeDateFormatIfNotExist(project, modelDesc);
+
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             List<JobInfoResponse.JobInfo> jobInfos = Lists.newArrayList();
             for (SegmentTimeRequest hole : segmentHoles) {
@@ -1640,6 +1645,7 @@ public class ModelService extends BasicService {
 
     public JobInfoResponse fullBuildSegmentsManually(String project, String modelId) {
         aclEvaluate.checkProjectOperationPermission(project);
+
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
                 .doInTransactionWithCheckAndRetry(() -> constructFullBuild(project, modelId), project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
@@ -1663,14 +1669,14 @@ public class ModelService extends BasicService {
             NDataSegment newSegment = dataflowManager.appendSegment(df,
                     SegmentRange.TimePartitionedSegmentRange.createInfinite());
             return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                    getEventManager(project).postAddSegmentEvents(newSegment, modelId, getUsername())));
+                    getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddSegmentEvents(newSegment, modelId, getUsername()))));
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
         res.addAll(refreshSegmentById(modelId, project,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
                         .toArray(new String[0])));
         res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                getEventManager(project).postAddCuboidEvents(modelId, getUsername())));
+                getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
         return res;
     }
 
@@ -1690,7 +1696,7 @@ public class ModelService extends BasicService {
         saveDateFormatIfNotExist(project, modelId, partionColFormat);
         NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
         return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                eventManager.postAddSegmentEvents(newSegment, modelId, getUsername()));
+                getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())));
     }
 
     public JobInfoResponse incrementBuildSegmentsManually(String project, String modelId, String start, String end,
@@ -1710,6 +1716,7 @@ public class ModelService extends BasicService {
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
         String format = probeDateFormatIfNotExist(project, copyModel);
+
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
                 .doInTransactionWithCheckAndRetry(() -> innerIncrementBuild(project, modelId, startFormat, endFormat,
                         partitionDesc, format, segmentHoles), project);
@@ -1741,7 +1748,7 @@ public class ModelService extends BasicService {
         }
         res.add(constructIncrementBuild(project, modelId, start, end, format));
         res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                getEventManager(project).postAddCuboidEvents(modelId, getUsername())));
+                getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
         return res;
     }
 
@@ -2140,7 +2147,10 @@ public class ModelService extends BasicService {
         mergeEvent.setSegmentId(mergeSeg.getId());
         mergeEvent.setJobId(UUID.randomUUID().toString());
         mergeEvent.setOwner(getUsername());
-        eventManager.post(mergeEvent);
+        getSourceUsageManager().licenseCheckWrap(project, () -> {
+            eventManager.post(mergeEvent);
+            return null;
+        });
 
         return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), mergeEvent.getJobId());
     }
@@ -2173,7 +2183,10 @@ public class ModelService extends BasicService {
             event.setModelId(modelId);
             event.setOwner(getUsername());
             event.setJobId(UUID.randomUUID().toString());
-            eventManager.post(event);
+            getSourceUsageManager().licenseCheckWrap(project, () -> {
+                eventManager.post(event);
+                return null;
+            });
 
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), event.getJobId()));
         }
@@ -2521,7 +2534,7 @@ public class ModelService extends BasicService {
         }
 
         val eventManager = getEventManager(project);
-        String jobId = eventManager.postAddCuboidEvents(modelId, getUsername());
+        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
 
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }

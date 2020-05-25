@@ -790,6 +790,33 @@ public class Message {
         return "This license has expired and the validity period is [%s - %s]. Please contact the Kyligence sales staff.";
     }
 
+    public String getLICENSE_SOURCE_OVER_CAPACITY() {
+        return "The amount of data volume used（%s/%s) exceeds the license’s limit. Build index and load data is unavailable.\n" +
+                "Please contact Kyligence, or try deleting some segments.";
+    }
+
+    public String getLICENSE_PROJECT_SOURCE_OVER_CAPACITY() {
+        return "The amount of data volume used（%s/%s) exceeds the project’s limit. Build index and load data is unavailable.\n" +
+                "Please contact Kyligence, or try deleting some segments.";
+    }
+
+    public String getLICENSE_NODES_OVER_CAPACITY() {
+        return "The amount of nodes used (%s/%s) exceeds the license’s limit. Build index and load data is unavailable.\n" +
+                "Please contact Kyligence, or try stopping some nodes.";
+    }
+
+    public String getLICENSE_SOURCE_NODES_OVER_CAPACITY() {
+        return "The amount of data volume used (%s/%s)  and nodes used (%s/%s) exceeds license’s limit.\n" +
+                "Build index and load data is unavailable.\n" +
+                "Please contact Kyligence, or try stopping some nodes and deleting some segments and stopping some nodes.";
+    }
+
+    public String getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY() {
+        return "The amount of data volume used (%s/%s)  and nodes used (%s/%s) exceeds project’s limit.\n" +
+                "Build index and load data is unavailable.\n" +
+                "Please contact Kyligence, or try stopping some nodes and deleting some segments and stopping some nodes.";
+    }
+
     public String getINVALID_CREDENTIAL() {
         return "Invalid credential.Please check your credential";
     }

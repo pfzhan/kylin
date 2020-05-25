@@ -50,6 +50,7 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -230,6 +231,15 @@ public abstract class KylinConfigBase implements Serializable {
 
     final protected String[] getOptionalStringArray(String prop, String[] dft) {
         final String property = getOptional(prop);
+        if (!StringUtils.isBlank(property)) {
+            return property.split("\\s*,\\s*");
+        } else {
+            return dft;
+        }
+    }
+
+    final protected String[] getSystemStringArray(String prop, String[] dft) {
+        final String property = System.getProperty(prop);
         if (!StringUtils.isBlank(property)) {
             return property.split("\\s*,\\s*");
         } else {
@@ -1392,6 +1402,30 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isAllNode() {
         return ClusterConstant.ALL.equals(getServerMode());
+    public String[] getAllModeServers() {
+        return this.getSystemStringArray("kylin.server.cluster-mode-all", new String[0]);
+    }
+
+    public String[] getQueryModeServers() {
+        return this.getSystemStringArray("kylin.server.cluster-mode-query", new String[0]);
+    }
+
+    public String[] getJobModeServers() {
+        return this.getSystemStringArray("kylin.server.cluster-mode-job", new String[0]);
+    }
+
+    public List<String> getAllServers() {
+        List<String> allServers = Lists.newArrayList();
+
+        allServers.addAll(Arrays.asList(getAllModeServers()));
+        allServers.addAll(Arrays.asList(getQueryModeServers()));
+        allServers.addAll(Arrays.asList(getJobModeServers()));
+
+        return allServers;
+    }
+
+    public boolean isLeaderNode() {
+        return !QUERY_NODE.equals(getServerMode());
     }
 
     public Boolean getStreamingChangeMeta() {
@@ -1628,6 +1662,12 @@ public abstract class KylinConfigBase implements Serializable {
     public long getStorageQuotaSize() {
         return ((Double) (Double.parseDouble(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024
                 * 1024)).longValue();
+    }
+
+    public long getSourceUsageQuota() {
+        Double d = Double.parseDouble(getOptional("kylin.storage.source-usage-in-giga-bytes", "-1"));
+
+        return d >= 0 ? ((Double) (d * 1024 * 1024 * 1024)).longValue() : -1;
     }
 
     public long getCuboidLayoutSurvivalTimeThreshold() {

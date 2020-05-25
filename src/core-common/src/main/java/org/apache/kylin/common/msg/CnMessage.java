@@ -734,6 +734,31 @@ public class CnMessage extends Message {
         return "许可证已过期，当前有效期为 [%s - %s]。请联系 Kyligence 销售人员。";
     }
 
+    public String getLICENSE_SOURCE_OVER_CAPACITY() {
+        return "当前已使用数据量（%s/%s）超过许可证上限。系统无法进行构建或数据加载任务。\n" +
+                "请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。";
+    }
+
+    public String getLICENSE_PROJECT_SOURCE_OVER_CAPACITY() {
+        return "当前项目已使用数据量（%s/%s）超过配置上限。系统无法进行构建或数据加载任务。\n" +
+                "请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。";
+    }
+
+    public String getLICENSE_NODES_OVER_CAPACITY() {
+        return "当前已使用节点数（%s/%s）超过许可证上限。系统无法进行构建或数据加载任务。\n" +
+                "请联系 Kyligence 销售人员，或尝试停止部分节点以解除限制。";
+    }
+
+    public String getLICENSE_SOURCE_NODES_OVER_CAPACITY() {
+        return "当前已使用数据量（%s/%s）和节点数（%s/%s）均超过许可证上限。系统无法进行构建或数据加载任务。\n" +
+                "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
+    }
+
+    public String getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY() {
+        return "当前项目已使用数据量（%s/%s）和节点数（%s/%s）均超过配置上限。系统无法进行构建或数据加载任务。\n" +
+                "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
+    }
+
     // ICredential
 
     public String getINVALID_CREDENTIAL() {

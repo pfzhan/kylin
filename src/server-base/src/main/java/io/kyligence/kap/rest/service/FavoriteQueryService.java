@@ -441,7 +441,7 @@ public class FavoriteQueryService extends BasicService {
                             continue;
                         }
 
-                        jobList.add(eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user));
+                        jobList.add(getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user)));
 
                         updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
                     }

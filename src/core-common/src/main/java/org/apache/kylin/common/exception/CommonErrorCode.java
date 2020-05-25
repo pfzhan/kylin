@@ -57,8 +57,11 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     FAILED_PARSE_SHELL("KE-00025002"), //
 
     // 00027XXX metadata
-    FAILED_UPDATE_METADATA("KE-00027001"),
-    FAILED_NOTIFY_CATCHUP("KE-00027002"); //
+    FAILED_UPDATE_METADATA("KE-00027001"), //
+    FAILED_NOTIFY_CATCHUP("KE-00027002"), //
+
+    // 00028XXX source usage
+    LICENSE_OVER_CAPACITY("KE-00027001");
 
     private final ErrorCode errorCode;
 

@@ -24,24 +24,32 @@
 
 package org.apache.kylin.rest.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.license.Constants;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.response.CapacityDetailsResponse;
-import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
-import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
-import io.kyligence.kap.rest.response.ProjectCapacityResponse;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_LICENSE;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -68,31 +76,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.net.InetAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_LICENSE;
+import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.CapacityDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
+import io.kyligence.kap.rest.response.ProjectCapacityResponse;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service("licenseInfoService")

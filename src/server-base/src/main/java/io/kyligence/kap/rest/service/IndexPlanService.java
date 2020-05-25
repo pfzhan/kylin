@@ -262,7 +262,7 @@ public class IndexPlanService extends BasicService {
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                eventManager.postAddCuboidEvents(indexPlan.getUuid(), getUsername());
+                getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(indexPlan.getUuid(), getUsername()));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -479,7 +479,7 @@ public class IndexPlanService extends BasicService {
         });
         if (request.isLoadData()) {
             val eventManager = getEventManager(project);
-            eventManager.postAddCuboidEvents(modelId, getUsername());
+            getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
         }
     }
 

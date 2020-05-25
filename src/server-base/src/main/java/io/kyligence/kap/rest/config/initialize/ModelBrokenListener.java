@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -50,8 +49,10 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 
 public class ModelBrokenListener {
@@ -167,7 +168,9 @@ public class ModelBrokenListener {
                     dataflowManager.fillDf(dataflow);
                 }
                 val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                eventManager.postAddCuboidEvents(model.getId(), "ADMIN");
+                val sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+
+                sourceUsageManager.licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(model.getId(), "ADMIN"));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

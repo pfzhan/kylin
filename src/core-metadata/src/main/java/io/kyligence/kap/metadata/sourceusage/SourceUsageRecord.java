@@ -23,19 +23,21 @@
  */
 package io.kyligence.kap.metadata.sourceusage;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeepNames;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.obf.IKeepNames;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
@@ -90,6 +92,9 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
         @JsonProperty("capacity")
         private long capacity;
 
+        @JsonProperty("license_capacity")
+        private double licenseCapacity;
+
         @JsonProperty("status")
         private CapacityStatus status = CapacityStatus.OK;
 
@@ -136,6 +141,10 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
             if (existing == null) {
                 appendTable(table);
             }
+        }
+
+        public boolean isOverCapacity() {
+            return status == CapacityStatus.OVERCAPACITY;
         }
 
     }
