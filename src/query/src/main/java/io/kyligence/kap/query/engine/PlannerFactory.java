@@ -29,6 +29,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import io.kyligence.kap.query.optrule.SumConstantConvertRule;
+import io.kyligence.kap.query.relnode.KapAggregateReduceFunctionsRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -43,7 +44,6 @@ import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
-import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
@@ -135,7 +135,7 @@ public class PlannerFactory {
                     FilterJoinRule.FILTER_ON_JOIN,
                     JoinPushExpressionsRule.INSTANCE,
                     AggregateExpandDistinctAggregatesRule.INSTANCE,
-                    AggregateReduceFunctionsRule.INSTANCE,
+                    KapAggregateReduceFunctionsRule.INSTANCE,
                     FilterAggregateTransposeRule.INSTANCE,
                     ProjectWindowTransposeRule.INSTANCE,
                     JoinCommuteRule.INSTANCE,

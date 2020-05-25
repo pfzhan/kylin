@@ -199,6 +199,20 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
          checkSQL(defaultProject, SQL, null, null);
     }
 
+    /**
+     * see https://olapio.atlassian.net/browse/KE-14512
+     */
+    @Test
+    public void testWithAVG() {
+        openSumCaseWhen();
+        String SQL =
+                "SELECT " +
+                        "AVG(PRICE) as price1 " +
+                        ",SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 0 END) as total_price " +
+                 "from TEST_KYLIN_FACT";
+        checkSQL(defaultProject, SQL, null, null);
+    }
+
     @Test
     public void testKE13524() throws IOException {
         // see https://olapio.atlassian.net/browse/KE-13524 for details

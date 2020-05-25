@@ -321,7 +321,7 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             AggregateCall aggCall = aggExpression.getAggCall();
             String aggName = "AGG$" + aggIndex;
             SqlAggFunction aggFunction = SqlKind.COUNT.equals(aggCall.getAggregation().getKind()) ?
-                    SqlStdOperatorTable.SUM : aggCall.getAggregation();
+                    SqlStdOperatorTable.SUM0 : aggCall.getAggregation();
             topAggregates.add(AggregateCall.create(aggFunction, false, false,
                     Lists.newArrayList(groupOffset + aggIndex), -1, aggCall.getType(), aggName));
         }
