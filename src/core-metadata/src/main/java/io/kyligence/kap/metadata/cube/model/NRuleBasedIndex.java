@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -227,7 +226,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         return result;
     }
 
-
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
@@ -299,8 +297,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 Collectors.groupingBy(IndexEntity::createIndexIdentifier, Collectors.reducing(null, (l, r) -> r)));
         val needAllocationId = layoutIdMapping.isEmpty();
         long proposalId = indexStartId + 1;
-        BitSet dimBitSet = new BitSet(1024);
-        BitSet meaBitSet = new BitSet(1024);
         //convert all legacy cuboids generated from rules to LayoutEntity
         for (int i = 0; i < allCuboidIds.size(); i++) {
             BigInteger cuboidId = allCuboidIds.get(i);
@@ -323,11 +319,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             }
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
-            dimensionsInLayout.forEach(dim -> dimBitSet.set(dim));
-            measuresInLayout.forEach(mea -> meaBitSet.set(mea));
-
             // if a cuboid is same as the layout's one, then reuse it
-            val indexIdentifier = new IndexEntity.IndexIdentifier(dimBitSet, meaBitSet, false);
+            val indexIdentifier = new IndexEntity.IndexIdentifier(dimensionsInLayout, measuresInLayout, false);
             var maybeIndex = identifierIndexMap.get(indexIdentifier);
             // if two layout is equal, the id should be same
             Long prevId = layoutIdMap.get(layout);
@@ -363,15 +356,14 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             layout.setIndex(maybeIndex);
 
             result.add(layout);
-            dimBitSet.clear();
-            meaBitSet.clear();
         }
 
         // remove layout in blacklist
         result.removeIf(layout -> layoutBlackList.contains(layout.getId()));
     }
 
-    private Pair<List<Integer>, List<Integer>> extractDimAndMeaFromCuboidId(List<Integer> allDims, List<Integer> allMeas, BigInteger cuboidId) {
+    private Pair<List<Integer>, List<Integer>> extractDimAndMeaFromCuboidId(List<Integer> allDims,
+            List<Integer> allMeas, BigInteger cuboidId) {
         val dims = Lists.<Integer> newArrayList();
         val meas = Lists.<Integer> newArrayList();
 

@@ -27,7 +27,7 @@ package io.kyligence.kap.metadata.cube.model;
 import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 import java.io.Serializable;
-import java.util.BitSet;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -116,17 +116,12 @@ public class IndexEntity implements Serializable, IKeep {
         return measuresBuilder.build();
     }
 
-    @Getter(lazy = true)
-    private final ImmutableBitSet dimensionBitset = initDimensionBitset();
-
-    private ImmutableBitSet initDimensionBitset() {
+    // BitSet is heavily memory cost, MUST NOT save its value for it easily causes OOM
+    public ImmutableBitSet getDimensionBitset() {
         return ImmutableBitSet.valueOf(dimensions);
     }
 
-    @Getter(lazy = true)
-    private final ImmutableBitSet measureBitset = initMeasureBitset();
-
-    private ImmutableBitSet initMeasureBitset() {
+    public ImmutableBitSet getMeasureBitset() {
         return ImmutableBitSet.valueOf(measures);
     }
 
@@ -322,24 +317,24 @@ public class IndexEntity implements Serializable, IKeep {
     }
 
     public static class IndexIdentifier {
-        BitSet dimBitSet;
-        BitSet measureBitSet;
+        int[] dims;
+        int[] measures;
         boolean isTableIndex;
 
-        public IndexIdentifier(BitSet dimBitSet, BitSet measureBitSet, boolean isTableIndex) {
+        public IndexIdentifier(List<Integer> dimBitSet, List<Integer> measureBitSet, boolean isTableIndex) {
             this(dimBitSet, measureBitSet);
             this.isTableIndex = isTableIndex;
         }
 
-        IndexIdentifier(BitSet dimBitSet, BitSet measureBitSet) {
-            this.dimBitSet = dimBitSet;
-            this.measureBitSet = measureBitSet;
+        IndexIdentifier(List<Integer> dimBitSet, List<Integer> measureBitSet) {
+            this.dims = dimBitSet.stream().mapToInt(d -> d).toArray();
+            this.measures = measureBitSet.stream().mapToInt(d -> d).toArray();
         }
 
         @Override
         public String toString() {
-            return "IndexEntity{" + "dimBitSet=" + dimBitSet + ", measureBitSet=" + measureBitSet + ", isTableIndex="
-                    + isTableIndex + '}';
+            return "IndexEntity{" + "dim=" + Arrays.toString(dims) + ", measure=" + Arrays.toString(measures)
+                    + ", isTableIndex=" + isTableIndex + '}';
         }
 
         @Override
@@ -349,20 +344,21 @@ public class IndexEntity implements Serializable, IKeep {
             if (o == null || getClass() != o.getClass())
                 return false;
             IndexIdentifier that = (IndexIdentifier) o;
-            return isTableIndex == that.isTableIndex && Objects.equals(dimBitSet, that.dimBitSet)
-                    && Objects.equals(measureBitSet, that.measureBitSet);
+            return isTableIndex == that.isTableIndex
+                    && Objects.equals(BitSets.valueOf(dims), BitSets.valueOf(that.dims))
+                    && Objects.equals(BitSets.valueOf(measures), BitSets.valueOf(that.measures));
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(dimBitSet, measureBitSet, isTableIndex);
+            return Objects.hash(dims, measures, isTableIndex);
         }
     }
 
     public IndexIdentifier createIndexIdentifier() {
         return new IndexIdentifier(//
-                BitSets.valueOf(getDimensions()), //
-                BitSets.valueOf(getMeasures()), //
+                getDimensions(), //
+                getMeasures(), //
                 isTableIndex()//
         );
     }

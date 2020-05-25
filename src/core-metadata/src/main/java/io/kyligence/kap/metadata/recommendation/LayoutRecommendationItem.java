@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.util.BitSets;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -325,8 +324,8 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
 
     public IndexEntity.IndexIdentifier createIndexIdentifier() {
         return new IndexEntity.IndexIdentifier(//
-                BitSets.valueOf(getDimensions()), //
-                BitSets.valueOf(getMeasures()), //
+                getDimensions(), //
+                getMeasures(), //
                 !isAggIndex()//
         );
     }

@@ -280,7 +280,6 @@ public class FavoriteQueryService extends BasicService {
         return new CheckAccelerateSqlListResult(validateSqls, errorSqls);
     }
 
-    @Transaction(project = 0)
     public Map<String, List<String>> acceptAccelerate(String project, final List<String> sqls) {
         aclEvaluate.checkProjectWritePermission(project);
         Preconditions.checkNotNull(sqls);
@@ -310,7 +309,6 @@ public class FavoriteQueryService extends BasicService {
         return result;
     }
 
-    @Transaction(project = 0)
     public void acceptAccelerate(String project, int accelerateSize) {
         aclEvaluate.checkProjectWritePermission(project);
         List<String> unAcceleratedSqlPattern = getAccelerableSqlPattern(project);
@@ -353,7 +351,6 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    @Transaction(project = 1)
     private List<String> accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
         List<String> jobList = Lists.newArrayList();
 
