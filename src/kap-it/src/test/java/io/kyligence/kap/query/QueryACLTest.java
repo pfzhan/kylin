@@ -35,7 +35,6 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -297,9 +296,8 @@ public class QueryACLTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testSimpleConvert() throws Exception {
-        val sql = "select cal_dt, lstg_format_name, sum(price*item_count) from test_kylin_fact group by cal_dt, lstg_format_name order by cal_dt limit 500";
+        val sql = "select tmp.cal_dt, tmp.lstg_format_name, sum(price*item_count) from \"default\".test_kylin_fact as tmp group by tmp.cal_dt, tmp.lstg_format_name order by tmp.cal_dt limit 500";
         val prepender = new TableViewPrepender();
         val authorizedCols = Sets.<String>newHashSet();
         val rowConditions = Maps.<String, Set<String>>newHashMap();
@@ -352,7 +350,6 @@ public class QueryACLTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testWithClauseAliasConflictWithTableView() throws Exception {
         val sql = "with test_kylin_fact as (select * from \"default\".test_kylin_fact where seller_id > 10000000) " +
                 "select tmp1.cal_dt, sum(price*item_count) " +
@@ -379,7 +376,6 @@ public class QueryACLTest extends NAutoTestBase {
         aclMap.put(CAL_DT_TABLE, Pair.newPair(authorizedColsOfLookUpTable, rowConditionsOfLookUpTable));
 
         aclTCRManager.updateAclTCR(generateRowACLData(aclMap), USER1, true);
-        proposeAndBuildIndex(new String[]{sql});
         prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
         prepender.setAclInfo(new QueryContext.AclInfo(USER1, Sets.newHashSet(GROUP1), false));
         val tranformedResult = prepender.convert(sql, PROJECT, DEFAULT_SCHEMA, false);
@@ -391,6 +387,7 @@ public class QueryACLTest extends NAutoTestBase {
                 "GROUP BY TMP1\\.CAL_DT ORDER BY TMP1\\.CAL_DT LIMIT 500";
         Assert.assertTrue(tranformedResult.toUpperCase().matches(expectedPattern));
 
+        proposeAndBuildIndex(new String[]{tranformedResult});
         prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
         val queryExec = new QueryExec(PROJECT, getTestConfig());
         val queryResult = queryExec.executeQuery(tranformedResult);
