@@ -45,6 +45,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -318,12 +319,19 @@ public class SourceUsageManager {
                         e);
             }
         }
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(ResourceStore.HISTORY_SOURCE_USAGE, usage, SOURCE_USAGE_SERIALIZER);
-            return 0;
-        }, GLOBAL, 1);
+        createOrUpdate(usage);
         logger.info("Updating source usage done: {}", usage);
         return usage;
+    }
+
+    private void createOrUpdate(SourceUsageRecord usageRecord) {
+        long now = System.currentTimeMillis();
+        String currentDate = DateFormat.formatToCompactDateStr(now);
+        String resPath = ResourceStore.HISTORY_SOURCE_USAGE + currentDate + ".json";
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(resPath, usageRecord, SOURCE_USAGE_SERIALIZER);
+            return 0;
+        }, GLOBAL, 1);
     }
 
     private double tbToByte(double tb) {
