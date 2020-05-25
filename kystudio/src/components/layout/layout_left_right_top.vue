@@ -75,15 +75,7 @@
 
           <ul class="top-ul ksd-fright">
             <li>
-              <el-popover ref="activeNodes" width="290" popper-class="nodes-popover" v-model="showNodes">
-                <div class="nodes">
-                  <p class="error-text" v-if="showErrorMsg">{{$t('noNodesTip1')}}</p>
-                  <p class="default-tip-text" v-else-if="isNodeLoading">{{$t('loadingNodes')}}</p>
-                  <p class="default-tip-text" v-else-if="!isNodeLoadingSuccess">{{$t('getNodesFailed')}}</p>
-                  <ul v-if="isNodeLoadingSuccess && !isNodeLoading" class="node-details"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
-                </div>
-              </el-popover>
-              <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">{{$t('activeNodes')}}<i v-if="isNodeLoading" class="el-icon-loading"></i><span v-else :class="[getNodesNumColor]">{{isNodeLoadingSuccess ? nodeList.length || '/' : '/'}}</span></p>
+              <capacity/>
             </li>
             <li v-if="showMenuByRole('admin')">
               <el-button
@@ -187,7 +179,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
-import { handleError, handleSuccess, kapConfirm, hasRole, hasPermission } from '../../util/business'
+import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
 import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
@@ -196,6 +188,7 @@ import changeLang from '../common/change_lang'
 import help from '../common/help'
 import KapDetailDialogModal from '../common/GlobalDialog/dialog/detail_dialog'
 import Diagnostic from '../admin/Diagnostic/index'
+import Capacity from '../admin/SystemCapacity/CapacityTopBar'
 import $ from 'jquery'
 import ElementUI from 'kyligence-ui'
 let MessageBox = ElementUI.MessageBox
@@ -216,8 +209,7 @@ let MessageBox = ElementUI.MessageBox
       getAboutKap: 'GET_ABOUTKAP',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
-      getSpeedInfo: 'GET_SPEED_INFO',
-      loadOnlineNodes: 'GET_NODES_LIST'
+      getSpeedInfo: 'GET_SPEED_INFO'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -241,7 +233,8 @@ let MessageBox = ElementUI.MessageBox
     'change_lang': changeLang,
     help,
     KapDetailDialogModal,
-    Diagnostic
+    Diagnostic,
+    Capacity
   },
   computed: {
     ...mapState({
@@ -318,10 +311,6 @@ let MessageBox = ElementUI.MessageBox
       holdNaviBar: 'Fold Navigation Bar',
       unholdNaviBar: 'Unfold Navigation Bar',
       diagnosis: 'Diagnosis',
-      activeNodes: 'Active Instances：',
-      noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. ',
-      getNodesFailed: 'Failed to get, please wait 1 minutes.',
-      loadingNodes: 'loading...',
       disableAddProject: 'Can not create project in edit mode',
       systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
       onlyQueryNode: 'There’s no active job node now. Metadata related operations are temporarily unavailable.'
@@ -347,10 +336,6 @@ let MessageBox = ElementUI.MessageBox
       holdNaviBar: '收起导航栏',
       unholdNaviBar: '展开导航栏',
       diagnosis: '诊断',
-      activeNodes: '活跃节点数：',
-      noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交',
-      getNodesFailed: '获取失败，请等待 1 分钟',
-      loadingNodes: '加载中...',
       disableAddProject: '编辑模式下不可新建项目',
       systemUprade: '系统已进入维护模式，元数据相关操作暂不可用。',
       onlyQueryNode: '系统中暂无活跃的任务节点，元数据相关操作暂不可用。'
@@ -389,12 +374,6 @@ export default class LayoutLeftRightTop extends Vue {
   isAnimation = false
   isGlobalMaskShow = false
   showDiagnostic = false
-  nodeList = []
-  nodesTimer = null
-  showNodes = false
-  showErrorMsg = false
-  isNodeLoading = false
-  isNodeLoadingSuccess = false
   showChangePassword = false
   globalAlterTips = ''
 
@@ -423,59 +402,6 @@ export default class LayoutLeftRightTop extends Vue {
     setTimeout(() => {
       this.changeRouteEvent('route')
     }, 500)
-  }
-  get getNodesNumColor () {
-    // all和query节点都有 @normal-color-1，节点数为0 @error-color-1
-    const alls = this.nodeList.filter(it => it.mode === 'all')
-    // const querys = this.nodeList.filter(it => it.mode === 'query')
-    if (!alls.length) {
-      this.showErrorMsg = true
-      this.showNodes = true
-      setTimeout(() => {
-        this.showNodes = false
-      }, 3000)
-      return 'error-text'
-    } else {
-      this.showErrorMsg = false
-      return 'success-text'
-    }
-  }
-  // 获取多活节点列表
-  getHANodes () {
-    if (this._isDestroyed) {
-      return
-    }
-    this.isNodeLoading = true
-    const data = {ext: true}
-    if (this.nodesTimer) {
-      data.isAuto = true
-    }
-    this.loadOnlineNodes(data).then((res) => {
-      handleSuccess(res, (data) => {
-        if (this._isDestroyed) {
-          return
-        }
-        this.isNodeLoadingSuccess = true
-        this.nodeList = data.servers
-        this.isNodeLoading = false
-        clearTimeout(this.nodesTimer)
-        this.nodesTimer = setTimeout(() => {
-          this.getHANodes()
-        }, 1000 * 60)
-      })
-    }).catch(e => {
-      // 超时登出，弹窗出未登陆提示
-      if (e.status === 401) {
-        handleError(e)
-      } else {
-        this.isNodeLoadingSuccess = false
-        this.isNodeLoading = false
-        clearTimeout(this.nodesTimer)
-        this.nodesTimer = setTimeout(() => {
-          this.getHANodes()
-        }, 1000 * 60)
-      }
-    })
   }
   setGlobalMask (notifyContect) {
     this.isGlobalMaskShow = true
@@ -609,7 +535,6 @@ export default class LayoutLeftRightTop extends Vue {
     }).catch((res) => {
       handleError(res)
     })
-    this.getHANodes()
   }
   changeRouteEvent (from) {
     if (this.showRevertPasswordDialog === 'true' && 'defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
@@ -943,7 +868,6 @@ export default class LayoutLeftRightTop extends Vue {
   }
   destroyed () {
     clearTimeout(this.ST)
-    clearTimeout(this.nodesTimer)
   }
   @Watch('currentPathNameGet')
   onCurrentPathNameGetChange (val) {
@@ -1356,31 +1280,5 @@ export default class LayoutLeftRightTop extends Vue {
   }
   .diagnosis-tip {
     margin-left: 30px !important;
-  }
-  .error-text {
-    color: @error-color-1;
-    font-size: 12px;
-    margin-bottom: 13px;
-  }
-  .default-tip-text {
-    color: @text-normal-color;
-  }
-  .nodes-popover {
-    .nodes {
-      padding: 0 5px;
-      max-height: 170px;
-      overflow: auto;
-      text-align: center;
-      .node-details {
-        text-align: left;
-      }
-      .node-list {
-        color: @text-normal-color;
-        margin-top: 8px;
-        &:first-child {
-          margin-top: 0;
-        }
-      }
-    }
   }
 </style>
