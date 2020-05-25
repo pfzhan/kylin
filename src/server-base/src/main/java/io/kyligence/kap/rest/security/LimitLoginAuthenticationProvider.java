@@ -31,7 +31,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -52,6 +51,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 
@@ -123,6 +123,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         } catch (UsernameNotFoundException e) {
             throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
                     new KylinException(USER_UNAUTHORIZED, MsgPicker.getMsg().getUSER_AUTH_FAILED()));
+        } catch (IllegalArgumentException e) {
+            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
         }
     }
 
@@ -134,28 +136,28 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     }
 
     private void updateUser(ManagedUser managedUser) {
-            boolean isOwner = false;
-            EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        boolean isOwner = false;
+        EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        try {
+            isOwner = manager.checkEpochOwner(EpochManager.GLOBAL);
+        } catch (Exception e) {
+            logger.error("Get global epoch owner failed, update locally.", e);
+            return;
+        }
+        if (isOwner) {
+            userService.updateUser(managedUser);
+        } else {
             try {
-                isOwner = manager.checkEpochOwner(EpochManager.GLOBAL);
-            } catch (Exception e) {
-                logger.error("Get global epoch owner failed, update locally.", e);
-                return;
-            }
-            if (isOwner) {
-                userService.updateUser(managedUser);
-            } else {
-                try {
-                    String owner = manager.getEpochOwner(EpochManager.GLOBAL).split("\\|")[0];
-                    if (clientMap.get(owner) == null) {
-                        clientMap.clear();
-                        clientMap.put(owner, new RestClient(owner));
-                    }
-                    clientMap.get(owner).updateUser(managedUser);
-                } catch (Exception e) {
-                    logger.error("Failed to update user throw restclient", e);
+                String owner = manager.getEpochOwner(EpochManager.GLOBAL).split("\\|")[0];
+                if (clientMap.get(owner) == null) {
+                    clientMap.clear();
+                    clientMap.put(owner, new RestClient(owner));
                 }
+                clientMap.get(owner).updateUser(managedUser);
+            } catch (Exception e) {
+                logger.error("Failed to update user throw restclient", e);
             }
+        }
     }
 
     private void updateUserLockStatus(ManagedUser managedUser, String userName) {

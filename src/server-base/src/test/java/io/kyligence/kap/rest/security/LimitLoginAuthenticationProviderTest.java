@@ -41,6 +41,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -154,6 +156,16 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
                 userAdmin.getAuthorities());
         thrown.expect(DisabledException.class);
         limitLoginAuthenticationProvider.authenticate(token);
+    }
+
+    @Test
+    public void testPbkdf2PasswordEncoder() {
+        limitLoginAuthenticationProvider.setPasswordEncoder(new Pbkdf2PasswordEncoder());
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("ADMIN", "KYLIN",
+                userAdmin.getAuthorities());
+        thrown.expect(BadCredentialsException.class);
+        limitLoginAuthenticationProvider.authenticate(token);
+        limitLoginAuthenticationProvider.setPasswordEncoder(new BCryptPasswordEncoder());
     }
 
 }

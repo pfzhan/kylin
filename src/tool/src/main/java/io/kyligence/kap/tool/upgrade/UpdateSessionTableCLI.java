@@ -29,7 +29,6 @@ import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RESET;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
@@ -68,17 +67,14 @@ public class UpdateSessionTableCLI {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String tableName = config.getMetadataUrlPrefix() + "_SESSION";
         String tableAttributesName = tableName + "_ATTRIBUTES";
-        if (StringUtils.equalsIgnoreCase(config.getSpringStoreType(), "JDBC")
-                && (config.isSessionJdbcEncodeEnabled() || config.isSessionSecureRandomCreateEnabled())) {
-            if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
-                    && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
-                            .equals("com.mysql.jdbc.Driver")) {
-                tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
-                tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_TABLE_SQL, tableName);
-            } else {
-                tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
-                tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_TABLE_SQL, tableName);
-            }
+        if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
+                && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
+                        .equals("com.mysql.jdbc.Driver")) {
+            tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
+            tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_TABLE_SQL, tableName);
+        } else {
+            tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
+            tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_TABLE_SQL, tableName);
         }
     }
 
@@ -94,7 +90,7 @@ public class UpdateSessionTableCLI {
             log.error("try update session table failed", e);
             System.out.println(ANSI_RED + "Failed to alter session table schema : " + sessionTableName
                     + " ,  please alter session table schema manually according to user manaul. Otherwise you may not be able to log in"
-                    + ANSI_RESET);
+                    + "Detailed Message is at logs/shell.stderr" + ANSI_RESET);
         }
     }
 
