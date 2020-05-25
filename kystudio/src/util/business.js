@@ -30,7 +30,7 @@ export function handleError (res, errorcallback) {
     window.kapVm.$store.state.config.errorMsgBox.msg = res.message || window.kapVm.$t('kylinLang.common.notConnectServer')
     window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || res.stack || JSON.stringify(res)
   } else {
-    var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
+    var msg = responseData ? (responseData.msg || responseData.message || window.kapVm.$t('kylinLang.common.unknownError')) : window.kapVm.$t('kylinLang.common.unknownError')
     if (typeof errorcallback !== 'function') {
       window.kapVm.$store.state.config.errorMsgBox.isShow = true
       window.kapVm.$store.state.config.errorMsgBox.msg = msg
