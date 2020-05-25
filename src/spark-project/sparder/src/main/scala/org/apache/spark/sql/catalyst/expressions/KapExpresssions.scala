@@ -428,16 +428,15 @@ case class CeilDateTime(timestamp: Expression,
 
   override def eval(input: InternalRow): Any = {
     evalHelper(input, maxLevel = DateTimeUtils.TRUNC_TO_SECOND) { (t: Any, level: Int) =>
-      KapDateTimeUtils.ceilTimestamp(t.asInstanceOf[Long], level, timeZone)
+      DateTimeUtils.ceilTimestamp(t.asInstanceOf[Long], level, timeZone)
     }
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val ta = KapDateTimeUtils.getClass.getName.stripSuffix("$")
     val tz = ctx.addReferenceObj("timeZone", timeZone)
     codeGenHelper(ctx, ev, maxLevel = DateTimeUtils.TRUNC_TO_SECOND, true) {
       (date: String, fmt: String) =>
-        s"$ta.ceilTimestamp($date, $fmt, $tz);"
+        s"ceilTimestamp($date, $fmt, $tz);"
     }
   }
 }

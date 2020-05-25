@@ -24,8 +24,6 @@
 
 package org.apache.spark.sql.catalyst.util
 
-import java.util.TimeZone
-
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.spark.sql.catalyst.util.DateTimeUtils._
 
@@ -131,32 +129,5 @@ object KapDateTimeUtils {
     case 9 => 30
     case 11 => 30
     case _ => 31
-  }
-
-  /**
-   * Returns the ceil date time from original date time and trunc level.
-   * Trunc level should be generated using `parseTruncLevel()`, should be between 1 and 8
-   */
-  def ceilTimestamp(t: SQLTimestamp, level: Int, timeZone: TimeZone): SQLTimestamp = {
-    val floorValue = DateTimeUtils.truncTimestamp(t.asInstanceOf[Long], level, timeZone)
-    if (floorValue == t) {
-      floorValue
-    } else {
-      // trunc, then add a increment, trunc again === ceil
-      val increment = level match {
-        case TRUNC_TO_YEAR => 366 * DateTimeUtils.MICROS_PER_DAY
-        case TRUNC_TO_QUARTER => 93 * DateTimeUtils.MICROS_PER_DAY
-        case TRUNC_TO_MONTH => 31 * DateTimeUtils.MICROS_PER_DAY
-        case TRUNC_TO_WEEK => 7 * DateTimeUtils.MICROS_PER_DAY
-        case TRUNC_TO_DAY => DateTimeUtils.MICROS_PER_DAY
-        case TRUNC_TO_HOUR => 3600 * DateTimeUtils.MICROS_PER_SECOND
-        case TRUNC_TO_MINUTE => 60 * DateTimeUtils.MICROS_PER_SECOND
-        case TRUNC_TO_SECOND => DateTimeUtils.MICROS_PER_SECOND
-        case _ =>
-          // caller make sure that this should never be reached
-          sys.error(s"Invalid trunc level: $level")
-      }
-      DateTimeUtils.truncTimestamp(floorValue + increment, level, timeZone)
-    }
   }
 }
