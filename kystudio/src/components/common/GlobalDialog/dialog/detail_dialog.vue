@@ -170,6 +170,19 @@ export default class DetailDialogModal extends Vue {
   get submitT () {
     return this.submitText || this.$t('kylinLang.common.submit')
   }
+  // 单独点x关闭弹窗自定义事件
+  handleExit () {
+    if (this.needCallbackWhenClose) {
+      this.callback && this.callback()
+    } else {
+      this.exitCloseFunc && Object.prototype.toString.call(this.exitCloseFunc) === '[object Function]' && this.exitCloseFunc()
+    }
+    this.hideModal()
+    this.resetModal()
+    this.loading = false
+    this.showDetail = false
+    this.multipleSelection = []
+  }
   // 纯关闭弹窗或者点取消按钮和X都resolve
   handleClose (source) {
     if (this.needCallbackWhenClose) {
