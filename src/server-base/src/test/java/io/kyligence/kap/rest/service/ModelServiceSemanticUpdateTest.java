@@ -485,7 +485,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRemoveColumeExistInTableIndex() throws Exception {
+    public void testRemoveColumnExistInTableIndex() throws Exception {
         val request = newSemanticRequest();
         request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
                 .filter(c -> c.isDimension() && c.getId() != 25).collect(Collectors.toList()));

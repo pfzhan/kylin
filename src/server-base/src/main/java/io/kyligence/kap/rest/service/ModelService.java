@@ -1721,8 +1721,8 @@ public class ModelService extends BasicService {
         val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
         request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        request.setSimplifiedDimensions(modelDesc.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toList()));
+        request.setSimplifiedDimensions(modelDesc.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList()));
         request.setComputedColumnDescs(modelDesc.getComputedColumnDescs());
         return request;
     }
