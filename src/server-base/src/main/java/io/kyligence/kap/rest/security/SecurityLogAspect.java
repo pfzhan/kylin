@@ -40,13 +40,17 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Component
 public class SecurityLogAspect {
-    @AfterReturning("execution(* org.springframework.security.authentication.AuthenticationProvider.authenticate(..))" +
+    @AfterReturning("(execution(* io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider.authenticate(..)) " +
+            "|| execution(* io.kyligence.kap.rest.security.OpenAuthenticationProvider.authenticate(..))" +
+            "|| execution(* io.kyligence.kap.rest.security.LdapAuthenticationProvider.authenticate(..))) " +
             "&& args(authentication)")
     public void doAfterLoginSuccess(Authentication authentication) {
         SecurityLoggerUtils.recordLoginSuccess(authentication.getName());
     }
 
-    @AfterThrowing(pointcut = "execution(* org.springframework.security.authentication.AuthenticationProvider.authenticate(..)) " +
+    @AfterThrowing(pointcut = "(execution(* io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider.authenticate(..)) " +
+            "|| execution(* io.kyligence.kap.rest.security.OpenAuthenticationProvider.authenticate(..))" +
+            "|| execution(* io.kyligence.kap.rest.security.LdapAuthenticationProvider.authenticate(..))) " +
             "&& args(authentication)", throwing = "exception")
     public void doAfterLoginError(Authentication authentication, Exception exception) {
         SecurityLoggerUtils.recordLoginFailed(authentication.getName(), exception);
