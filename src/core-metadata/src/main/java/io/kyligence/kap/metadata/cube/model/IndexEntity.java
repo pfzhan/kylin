@@ -351,7 +351,8 @@ public class IndexEntity implements Serializable, IKeep {
 
         @Override
         public int hashCode() {
-            return Objects.hash(dims, measures, isTableIndex);
+            // the hash code of primary array with same elements does not equal
+            return Objects.hash(BitSets.valueOf(dims), BitSets.valueOf(measures), isTableIndex);
         }
     }
 
