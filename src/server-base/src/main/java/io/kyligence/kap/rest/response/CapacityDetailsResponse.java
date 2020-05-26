@@ -37,6 +37,9 @@ public class CapacityDetailsResponse implements Serializable {
     @JsonProperty("capacity")
     private long capacity;
 
+    @JsonProperty("capacity_ratio")
+    private double capacityRatio;
+
     @JsonProperty("status")
     private CapacityStatus status;
 }

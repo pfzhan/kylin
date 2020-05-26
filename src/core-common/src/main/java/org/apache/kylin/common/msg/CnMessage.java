@@ -1001,7 +1001,7 @@ public class CnMessage extends Message {
         return "许可证内容为空";
     }
 
-    public String getINLEGAL_EMAIL() {
+    public String getILLEGAL_EMAIL() {
         return "不允许使用个人电子邮件或非法电子邮件";
     }
 

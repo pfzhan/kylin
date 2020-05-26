@@ -219,9 +219,25 @@ public class SourceUsageManager {
                 status = table.getStatus();
             }
         }
-
         project.setStatus(status);
         project.setCapacity(sum);
+    }
+
+    private void updateProjectUsageRatio(ProjectCapacityDetail project) {
+        long projectCapacity = project.getCapacity();
+        for (TableCapacityDetail table : project.getTables()) {
+            double ratio = calculateRatio(table.getCapacity(), projectCapacity);
+            table.setCapacityRatio(ratio);
+        }
+    }
+
+    private void updateGlobalUsageRatio(SourceUsageRecord sourceUsageRecord) {
+        long currentTotalCapacity = sourceUsageRecord.getCurrentCapacity();
+        ProjectCapacityDetail[] projectCapacityDetails = sourceUsageRecord.getCapacityDetails();
+        for (ProjectCapacityDetail capacityDetail : projectCapacityDetails) {
+            double ratio = calculateRatio(capacityDetail.getCapacity(), currentTotalCapacity);
+            capacityDetail.setCapacityRatio(ratio);
+        }
     }
 
     private void getSumOfAllProjectSourceSizeBytes(SourceUsageRecord sourceUsageParams) {
@@ -284,7 +300,7 @@ public class SourceUsageManager {
 
     private SourceUsageRecord updateSourceUsageInner() {
         SourceUsageRecord usage = new SourceUsageRecord();
-        long start = System.currentTimeMillis();
+        logger.info("Start to calculate source usage...");
 
         // for each project, collect source usage
         for (ProjectInstance project : NProjectManager.getInstance(config).listAllProjects()) {
@@ -298,12 +314,15 @@ public class SourceUsageManager {
                 }
             }
             updateProjectSourceUsage(projectDetail);
+            updateProjectUsageRatio(projectDetail);
             if (projectDetail.getCapacity() > 0) {
                 usage.appendProject(projectDetail);
             }
         }
 
         getSumOfAllProjectSourceSizeBytes(usage);
+
+        updateGlobalUsageRatio(usage);
         usage.setCheckTime(System.currentTimeMillis());
 
         String capacity = System.getProperty(Constants.KE_LICENSE_VOLUME);
@@ -392,6 +411,10 @@ public class SourceUsageManager {
         return getLatestRecordByMs(hoursAgo * 3600L * 1000L);
     }
 
+    public List<SourceUsageRecord> getLatestRecordByDays(int daysAgo) {
+        return getLatestRecordByHours(daysAgo * 24);
+    }
+
     private int getThresholdByDayFromOrigin() {
         try {
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -405,7 +428,15 @@ public class SourceUsageManager {
 
     // return all records in last one month
     public List<SourceUsageRecord> getLastMonthRecords() {
-        return getLatestRecordByHours(24 * 30);
+        return getLatestRecordByDays( 30);
+    }
+
+    public List<SourceUsageRecord> getLastQuarterRecords() {
+        return getLatestRecordByDays(90);
+    }
+
+    public List<SourceUsageRecord> getLastYearRecords() {
+        return getLatestRecordByDays(365);
     }
 
     private boolean isNotOk(SourceUsageRecord.CapacityStatus status) {
@@ -535,5 +566,13 @@ public class SourceUsageManager {
 
     public interface Callback<T> {
         T process();
+    }
+
+    public double calculateRatio(long amount, long totalAmount) {
+        if (amount > 0d) {
+            // Keep two decimals
+            return ((double) Math.round(((double) amount) / totalAmount * 100d)) / 100d;
+        }
+        return 0d;
     }
 }

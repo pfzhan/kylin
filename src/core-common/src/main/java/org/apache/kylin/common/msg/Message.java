@@ -1038,7 +1038,7 @@ public class Message {
         return "license content is empty";
     }
 
-    public String getINLEGAL_EMAIL() {
+    public String getILLEGAL_EMAIL() {
         return "A personal email or illegal email is not allowed";
     }
 

@@ -95,6 +95,9 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
         @JsonProperty("license_capacity")
         private double licenseCapacity;
 
+        @JsonProperty("capacity_ratio")
+        private double capacityRatio;
+
         @JsonProperty("status")
         private CapacityStatus status = CapacityStatus.OK;
 
@@ -109,6 +112,7 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
             this.name = projectCapacity.name;
             this.capacity = projectCapacity.capacity;
             this.status = projectCapacity.status;
+            this.capacityRatio = projectCapacity.capacityRatio;
             this.tables = new TableCapacityDetail[projectCapacity.tables.length];
             for (int i = 0; i < projectCapacity.tables.length; i++) {
                 this.tables[i] = new TableCapacityDetail(projectCapacity.tables[i]);
@@ -161,6 +165,9 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
         @JsonProperty("capacity")
         private long capacity;
 
+        @JsonProperty("capacity_ratio")
+        private double capacityRatio;
+
         @JsonProperty("table_type")
         private TableKind tableKind;
 
@@ -176,6 +183,7 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
             this.status = other.status;
             this.tableKind = other.tableKind;
             this.capacity = other.capacity;
+            this.capacityRatio = other.capacityRatio;
             this.columns = new ColumnCapacityDetail[other.columns.length];
             for (int i = 0; i < other.columns.length; i++) {
                 this.columns[i] = new ColumnCapacityDetail(other.columns[i]);
@@ -267,5 +275,4 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
 
         OK, TENTATIVE, ERROR, OVERCAPACITY
     }
-
 }

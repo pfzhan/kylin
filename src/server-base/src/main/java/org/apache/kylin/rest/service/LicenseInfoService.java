@@ -525,13 +525,13 @@ public class LicenseInfoService extends BasicService {
 
     public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail() {
         LicenseInfoWithDetailsResponse licenseInfoWithDetailsResponse = new LicenseInfoWithDetailsResponse();
-        SourceUsageRecord latestHistory = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
+        SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
-        getLicenseBaseInfo(latestHistory, licenseInfoWithDetailsResponse);
+        getLicenseBaseInfo(latestRecords, licenseInfoWithDetailsResponse);
 
         SourceUsageRecord.ProjectCapacityDetail[] capacityDetails = null;
-        if (latestHistory != null) {
-            capacityDetails = latestHistory.getCapacityDetails();
+        if (latestRecords != null) {
+            capacityDetails = latestRecords.getCapacityDetails();
         }
 
         if (capacityDetails != null && capacityDetails.length > 0) {
@@ -541,6 +541,7 @@ public class LicenseInfoService extends BasicService {
                 capacityDetailsResponse = new CapacityDetailsResponse();
                 capacityDetailsResponse.setName(projectCapacityDetail.getName());
                 capacityDetailsResponse.setCapacity(projectCapacityDetail.getCapacity());
+                capacityDetailsResponse.setCapacityRatio(projectCapacityDetail.getCapacityRatio());
                 capacityDetailsResponse.setStatus(projectCapacityDetail.getStatus());
                 capacityDetailsResponseList.add(capacityDetailsResponse);
             }
@@ -550,7 +551,7 @@ public class LicenseInfoService extends BasicService {
         return licenseInfoWithDetailsResponse;
     }
 
-    private void getLicenseBaseInfo(SourceUsageRecord latestHistory, LicenseMonitorInfoResponse result) {
+    private void getLicenseBaseInfo(SourceUsageRecord latestRecords, LicenseMonitorInfoResponse result) {
         //node part
         int currentNodes = getCurrentNodesNums();
         result.setCurrentNode(currentNodes);
@@ -570,19 +571,19 @@ public class LicenseInfoService extends BasicService {
         }
 
         //capacity part
-        if (latestHistory != null) {
-            result.setTime(latestHistory.getCheckTime());
-            result.setCurrentCapacity(latestHistory.getCurrentCapacity());
-            result.setCapacityStatus(latestHistory.getCapacityStatus());
-            result.setCapacity(latestHistory.getLicenseCapacity());
-            if (isNotOk(latestHistory.getCapacityStatus())) {
-                List<SourceUsageRecord> recentHistories = SourceUsageManager
+        if (latestRecords != null) {
+            result.setTime(latestRecords.getCheckTime());
+            result.setCurrentCapacity(latestRecords.getCurrentCapacity());
+            result.setCapacityStatus(latestRecords.getCapacityStatus());
+            result.setCapacity(latestRecords.getLicenseCapacity());
+            if (isNotOk(latestRecords.getCapacityStatus())) {
+                List<SourceUsageRecord> recentRecords = SourceUsageManager
                         .getInstance(KylinConfig.getInstanceFromEnv()).getLastMonthRecords();
-                result.setFirstErrorTime(latestHistory.getCheckTime());
-                for (int i = recentHistories.size() - 1; i >= 0; i--) {
-                    SourceUsageRecord historyRecord = recentHistories.get(i);
-                    if (isNotOk(historyRecord.getCapacityStatus())) {
-                        result.setFirstErrorTime(historyRecord.getCheckTime());
+                result.setFirstErrorTime(latestRecords.getCheckTime());
+                for (int i = recentRecords.size() - 1; i >= 0; i--) {
+                    SourceUsageRecord sourceUsageRecord = recentRecords.get(i);
+                    if (isNotOk(sourceUsageRecord.getCapacityStatus())) {
+                        result.setFirstErrorTime(sourceUsageRecord.getCheckTime());
                     } else {
                         break;
                     }
@@ -621,11 +622,11 @@ public class LicenseInfoService extends BasicService {
     public ProjectCapacityResponse getLicenseMonitorInfoByProject(String project, String table) {
         ProjectCapacityResponse projectCapacityResponse = new ProjectCapacityResponse();
 
-        SourceUsageRecord latestHistory = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
+        SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
         SourceUsageRecord.ProjectCapacityDetail projectCapacity = null;
-        if (latestHistory != null) {
-            projectCapacity = latestHistory.getProjectCapacity(project);
+        if (latestRecords != null) {
+            projectCapacity = latestRecords.getProjectCapacity(project);
         }
 
         if (projectCapacity != null) {
@@ -638,12 +639,13 @@ public class LicenseInfoService extends BasicService {
                 CapacityDetailsResponse capacityDetailsResponse;
                 List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
                 for (SourceUsageRecord.TableCapacityDetail tableCapacityDetail : tables) {
-                    if (table != null && !tableCapacityDetail.getName().toUpperCase().contains(table.toUpperCase())) {
+                    if (table != null && !StringUtils.containsIgnoreCase(tableCapacityDetail.getName(), table)) {
                         continue;
                     }
                     capacityDetailsResponse = new CapacityDetailsResponse();
                     capacityDetailsResponse.setName(tableCapacityDetail.getName());
                     capacityDetailsResponse.setCapacity(tableCapacityDetail.getCapacity());
+                    capacityDetailsResponse.setCapacityRatio(tableCapacityDetail.getCapacityRatio());
                     capacityDetailsResponse.setStatus(tableCapacityDetail.getStatus());
                     capacityDetailsResponseList.add(capacityDetailsResponse);
                 }
@@ -667,6 +669,30 @@ public class LicenseInfoService extends BasicService {
         return records;
     }
 
+    public Map<Long, Long> getLastQuarterSourceUsageRecords() {
+        Map<Long, Long> records = Maps.newHashMap();
+        List<SourceUsageRecord> lastQuarterRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).getLastQuarterRecords();
+
+        if (lastQuarterRecords != null) {
+            for (SourceUsageRecord record : lastQuarterRecords) {
+                records.put(record.getCheckTime(), record.getCurrentCapacity());
+            }
+        }
+        return records;
+    }
+
+    public Map<Long, Long> getLastYearSourceUsageRecords() {
+        Map<Long, Long> records = Maps.newHashMap();
+        List<SourceUsageRecord> lastYearRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).getLastYearRecords();
+
+        if (lastYearRecords != null) {
+            for (SourceUsageRecord record : lastYearRecords) {
+                records.put(record.getCheckTime(), record.getCurrentCapacity());
+            }
+        }
+        return records;
+    }
+
     public TableExtDesc.RowCountStatus refreshTableExtDesc(String project, String table) {
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -684,9 +710,9 @@ public class LicenseInfoService extends BasicService {
 
     public LicenseMonitorInfoResponse getLicenseMonitorInfo() {
         LicenseMonitorInfoResponse licenseMonitorInfoResponse = new LicenseMonitorInfoResponse();
-        SourceUsageRecord latestHistory = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
+        SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
-        getLicenseBaseInfo(latestHistory, licenseMonitorInfoResponse);
+        getLicenseBaseInfo(latestRecords, licenseMonitorInfoResponse);
         return licenseMonitorInfoResponse;
     }
 
