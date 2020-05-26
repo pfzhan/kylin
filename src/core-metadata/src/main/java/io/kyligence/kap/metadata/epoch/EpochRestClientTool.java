@@ -25,8 +25,6 @@
 package io.kyligence.kap.metadata.epoch;
 
 import org.apache.kylin.common.restclient.RestClient;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 
@@ -34,12 +32,11 @@ public class EpochRestClientTool {
 
     public static void transferUpdateEpochRequest(Epoch epoch, String project) throws IOException {
         String ownerInfo = epoch.getCurrentEpochOwner();
-        transferUpdateEpochRequest(getHost(ownerInfo), getPort(ownerInfo), project);
+        transferUpdateEpochRequest(ownerInfo.split("\\|")[0], project);
     }
 
-    public static void transferUpdateEpochRequest(String host, int port, String project) throws IOException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        RestClient restClient = new RestClient(host, port, authentication.getName(), authentication.getCredentials().toString());
+    public static void transferUpdateEpochRequest(String node, String project) throws IOException {
+        RestClient restClient = new RestClient(node);
         restClient.updatePrjEpoch(project);
     }
 

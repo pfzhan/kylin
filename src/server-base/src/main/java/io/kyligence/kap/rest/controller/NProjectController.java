@@ -32,7 +32,6 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -165,11 +164,9 @@ public class NProjectController extends NBasicController {
         List<String> list = Lists.newArrayList(epochMgr.getAllLeaders());
         if (CollectionUtils.isNotEmpty(list)) {
             String leader = list.get(new Random().nextInt(list.size()));
-            String[] hostAndPort = leader.split(":");
             try {
-                EpochRestClientTool.transferUpdateEpochRequest(hostAndPort[0], Integer.parseInt(hostAndPort[1]),
-                        projectDesc.getName());
-            } catch (IOException e) {
+                EpochRestClientTool.transferUpdateEpochRequest(leader, projectDesc.getName());
+            } catch (Exception e) {
                 logger.info("Transfer update epoch request failed, wait for schedule worker to update epoch.");
             }
         }
