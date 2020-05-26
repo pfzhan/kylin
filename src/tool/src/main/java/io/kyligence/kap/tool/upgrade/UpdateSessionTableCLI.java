@@ -65,7 +65,7 @@ public class UpdateSessionTableCLI {
     public static void main(String[] args) {
         initDataSource();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        String tableName = config.getMetadataUrlPrefix() + "_SESSION";
+        String tableName = config.getMetadataUrlPrefix() + "_session";
         String tableAttributesName = tableName + "_ATTRIBUTES";
         if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
                 && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
