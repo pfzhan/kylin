@@ -638,21 +638,28 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             // job scheduling simulation
             execMgr.addJob(job);
             Assert.assertFalse(execMgr.getJobOutput(cubeStep.getId()).isResumable());
-            await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).untilAsserted(() -> {
-                KylinConfig tempConf = KylinConfig.createKylinConfig(metaConf);
-                try {
-                    NDataflowManager tempDfMgr =  NDataflowManager.getInstance(tempConf, project);
-                    Assert.assertNotNull(tempDfMgr);
-                    NDataflow tempDf = tempDfMgr.getDataflow(dfId);
-                    Assert.assertNotNull(tempDf);
-                    Assert.assertEquals(1, tempDf.getSegments().size());
-                    NDataSegment tempSegment = tempDf.getSegments().getFirstSegment();
-                    Assert.assertNotNull(tempSegment.getLayout(normalLayoutId));
-                    Assert.assertTrue(tempSegment.getLayout(normalLayoutId).isReady());
-                } finally {
-                    ResourceStore.clearCache(tempConf);
-                }
-            });
+            await().atMost(30, TimeUnit.SECONDS).pollDelay(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+                    .untilAsserted(() -> {
+                        final KylinConfig tempConf = KylinConfig.createKylinConfig(metaConf);
+                        try {
+                            Assert.assertNotNull(NProjectManager.getInstance(tempConf));
+                            Assert.assertNotNull(NProjectManager.getInstance(tempConf).getProject(project));
+                            Assert.assertNotNull(NDataModelManager.getInstance(tempConf, project));
+                            Assert.assertNotNull(
+                                    NDataModelManager.getInstance(tempConf, project).getDataModelDesc(dfId));
+                            Assert.assertNotNull(NIndexPlanManager.getInstance(tempConf, project));
+                            Assert.assertNotNull(NIndexPlanManager.getInstance(tempConf, project).getIndexPlan(dfId));
+                            Assert.assertNotNull(NDataflowManager.getInstance(tempConf, project));
+                            NDataflow tempDf = NDataflowManager.getInstance(tempConf, project).getDataflow(dfId);
+                            Assert.assertNotNull(tempDf);
+                            Assert.assertEquals(1, tempDf.getSegments().size());
+                            NDataSegment tempSegment = tempDf.getSegments().getFirstSegment();
+                            Assert.assertNotNull(tempSegment.getLayout(normalLayoutId));
+                            Assert.assertTrue(tempSegment.getLayout(normalLayoutId).isReady());
+                        } finally {
+                            ResourceStore.clearCache(tempConf);
+                        }
+                    });
         } finally {
             //set back table type
             tableDesc.setTableType(originTableType);
