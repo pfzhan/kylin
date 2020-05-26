@@ -89,7 +89,7 @@ class DFChooser(toBuildTree: NSpanningTree,
 
   def computeColumnBytes(): mutable.HashMap[String, Long] = {
     val df = flatTableSource.getFlattableDS
-    val cols = flatTableSource.getAllColumns
+    val cols = flatTableDesc.getAllColumns
     val columns = df.columns
     val length = columns.length
     val result = new mutable.HashMap[String, Long]
@@ -97,15 +97,18 @@ class DFChooser(toBuildTree: NSpanningTree,
     df.take(rows).foreach(row => {
       var i = 0
       for (i <- 0 until length - 1) {
-        val columnName = cols.get(i).getCanonicalName
-        val value = row.get(i)
-        val strValue = if (value == null) null
-        else value.toString
-        val bytes = DFChooser.utf8Length(strValue)
-        if (result.get(columnName).isEmpty) result(columnName) = bytes
-        else result(columnName) = bytes + result(columnName)
+        if (!columns(i).contains(DFBuilderHelper.ENCODE_SUFFIX) && !cols.get(i).getColumnDesc.isComputedColumn) {
+          val columnName = cols.get(i).getCanonicalName
+          val value = row.get(i)
+          val strValue = if (value == null) null
+          else value.toString
+          val bytes = DFChooser.utf8Length(strValue)
+          if (result.get(columnName).isEmpty) result(columnName) = bytes
+          else result(columnName) = bytes + result(columnName)
+        }
       }
-    })
+    }
+    )
     result
   }
 
