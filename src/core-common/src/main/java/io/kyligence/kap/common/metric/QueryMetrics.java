@@ -88,6 +88,8 @@ public class QueryMetrics {
 
     protected String defaultServer;
 
+    protected String recordInfo;
+
     // not a column in query history table,
     protected List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 

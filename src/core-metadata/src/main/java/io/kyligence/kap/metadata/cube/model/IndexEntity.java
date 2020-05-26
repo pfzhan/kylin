@@ -266,6 +266,10 @@ public class IndexEntity implements Serializable, IKeep {
         return id >= TABLE_INDEX_START_ID;
     }
 
+    public static boolean isAggIndex(long id) {
+        return !isTableIndex(id);
+    }
+
     void removeLayouts(List<LayoutEntity> deprecatedLayouts, Predicate<LayoutEntity> isSkip, boolean deleteAuto,
             boolean deleteManual) {
         checkIsNotCachedAndShared();

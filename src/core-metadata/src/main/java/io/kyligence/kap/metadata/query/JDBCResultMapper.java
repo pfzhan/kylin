@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
@@ -33,11 +34,16 @@ import java.util.TimeZone;
 
 import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JDBCResultMapper {
 
     public static final String COUNT = "count";
     public static final String AVG_DURATION = "avg_duration";
+
+    private static final Logger logger = LoggerFactory.getLogger(JDBCResultMapper.class);
 
     public static List<QueryHistory> queryHistoryResultMapper(List<Map<String, Object>> rdbmsResultBySql) {
         List<QueryHistory> queryHistoryList = Lists.newArrayList();
@@ -60,6 +66,8 @@ public class JDBCResultMapper {
             queryHistory.setIndexHit((Boolean) rowMap.get(QueryHistory.IS_INDEX_HIT));
             queryHistory.setQueryTime((Long) rowMap.get(QueryHistory.QUERY_TIME));
             queryHistory.setProjectName((String) rowMap.get(QueryHistory.PROJECT_NAME));
+            queryHistory.setRecordInfo(readRecordInfo(rowMap));
+
             queryHistoryList.add(queryHistory);
         }
         return queryHistoryList;
@@ -112,5 +120,17 @@ public class JDBCResultMapper {
             queryStatisticsList.add(queryStatistics);
         }
         return queryStatisticsList;
+    }
+
+    public static QueryHistory.RecordInfo readRecordInfo(Map<String, Object> rowMap) {
+        if (rowMap.get(QueryHistory.RESERVED_FIELD_3) != null) {
+            byte[] recordInfo = (byte[]) rowMap.get(QueryHistory.RESERVED_FIELD_3);
+            try {
+                return JsonUtil.readValue(recordInfo, QueryHistory.RecordInfo.class);
+            } catch (IOException e) {
+                logger.error("Fail to read query history record info", e);
+            }
+        }
+        return null;
     }
 }

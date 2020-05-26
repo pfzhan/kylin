@@ -171,6 +171,8 @@ public class QueryContext implements Closeable {
         private String correctedSql;
         private Throwable finalCause;
         private Throwable olapCause;
+        private Boolean exactlyMatch;
+        private Integer segCount;
 
         private AtomicLong sourceScanBytes = new AtomicLong();
         private AtomicLong sourceScanRows = new AtomicLong();

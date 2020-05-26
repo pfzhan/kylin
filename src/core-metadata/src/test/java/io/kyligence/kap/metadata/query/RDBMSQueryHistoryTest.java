@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.dbcp.BasicDataSourceFactory;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -443,6 +444,75 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         queryHistoryRequest.setUsername(NORMAL_USER);
         queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0, PROJECT);
         Assert.assertEquals(1, queryHistoryList.size());
+    }
+
+    @Test
+    public void testReadWriteJsonForQueryHistory() throws Exception {
+        Properties properties = getProperties();
+        var createQueryHistorSql = properties.getProperty("create.queryhistory.store.table");
+        getJdbcTemplate().execute(String.format(createQueryHistorSql, getQueryHistoryTableName()));
+        String sql = "INSERT INTO " + getQueryHistoryTableName() + " ("
+                + Joiner.on(",").join(QueryHistory.QUERY_ID, QueryHistory.SQL_TEXT, QueryHistory.SQL_PATTERN,
+                QueryHistory.QUERY_DURATION, QueryHistory.TOTAL_SCAN_BYTES, QueryHistory.TOTAL_SCAN_COUNT,
+                QueryHistory.RESULT_ROW_COUNT, QueryHistory.SUBMITTER, QueryHistory.REALIZATIONS,
+                QueryHistory.QUERY_SERVER, QueryHistory.ERROR_TYPE, QueryHistory.ENGINE_TYPE,
+                QueryHistory.IS_CACHE_HIT, QueryHistory.QUERY_STATUS, QueryHistory.IS_INDEX_HIT,
+                QueryHistory.QUERY_TIME, QueryHistory.MONTH, QueryHistory.QUERY_FIRST_DAY_OF_MONTH,
+                QueryHistory.QUERY_FIRST_DAY_OF_WEEK, QueryHistory.QUERY_DAY, QueryHistory.IS_TABLE_INDEX_USED,
+                QueryHistory.IS_AGG_INDEX_USED, QueryHistory.IS_TABLE_SNAPSHOT_USED, QueryHistory.PROJECT_NAME,
+                QueryHistory.RESERVED_FIELD_3)
+                + ")  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        String project = "test_json";
+        // happy pass - normal json
+        QueryHistory.RecordInfo recordInfoStr = new QueryHistory.RecordInfo(true, 3);
+        String recordInfo1 = JsonUtil.writeValueAsString(recordInfoStr);
+        getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
+                500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
+                TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
+                TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo1.getBytes());
+        // happy pass - normal json
+        String recordInfo2 = "{\"exactMatch\":true,\"segmentNum\":3,\"status\":null}";
+        getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
+                500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
+                TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
+                TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo2.getBytes());
+        // compatible - json add new fields
+        String recordInfo3 = "{\"exactMatch\":true,\"segmentNum\":3,\"status\":null,\"testFields\":12.34}";
+        getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
+                500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
+                TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
+                TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo3.getBytes());
+        // compatible - json delete fields
+        String recordInfo4 = "{\"exactMatch\":true,\"segmentNum\":null,\"status\":null,\"testFields\":12.34}";
+        getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
+                500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
+                TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
+                TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo4.getBytes());
+
+        // read from query history
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+        List<QueryHistory> queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest,
+                10, 0, project);
+
+        Assert.assertEquals(4, queryHistoryList.size());
+        Assert.assertEquals(true, queryHistoryList.get(0).getRecordInfo().getExactMatch());
+        Assert.assertEquals(3, queryHistoryList.get(0).getRecordInfo().getSegmentNum().intValue());
+        Assert.assertNull(queryHistoryList.get(0).getRecordInfo().getStatus());
+        Assert.assertEquals(true, queryHistoryList.get(1).getRecordInfo().getExactMatch());
+        Assert.assertNull(queryHistoryList.get(1).getRecordInfo().getSegmentNum());
+        Assert.assertNull(queryHistoryList.get(1).getRecordInfo().getStatus());
+        Assert.assertEquals(true, queryHistoryList.get(2).getRecordInfo().getExactMatch());
+        Assert.assertEquals(3, queryHistoryList.get(2).getRecordInfo().getSegmentNum().intValue());
+        Assert.assertNull(queryHistoryList.get(2).getRecordInfo().getStatus());
+        Assert.assertEquals(true, queryHistoryList.get(2).getRecordInfo().getExactMatch());
+        Assert.assertEquals(3, queryHistoryList.get(2).getRecordInfo().getSegmentNum().intValue());
+        Assert.assertNull(queryHistoryList.get(2).getRecordInfo().getStatus());
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {

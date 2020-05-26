@@ -52,6 +52,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -82,6 +83,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -101,6 +103,11 @@ public class RealizationChooser {
             ctx.realizationCheck = new RealizationCheck();
             attemptSelectCandidate(ctx);
             Preconditions.checkNotNull(ctx.realization);
+
+            if (IndexEntity.isAggIndex(ctx.storageContext.getCandidate().getCuboidLayout().getId())
+                    && !ctx.isExactlyAggregate()) {
+                QueryContext.current().getMetrics().setExactlyMatch(false);
+            }
         }
     }
 

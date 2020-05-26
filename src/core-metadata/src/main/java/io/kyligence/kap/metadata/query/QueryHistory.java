@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -33,6 +34,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @SuppressWarnings("serial")
@@ -76,6 +78,7 @@ public class QueryHistory {
     public static final String IS_TABLE_INDEX_USED = "is_table_index_used";
     public static final String IS_AGG_INDEX_USED = "is_agg_index_used";
     public static final String IS_TABLE_SNAPSHOT_USED = "is_table_snapshot_used";
+    public static final String RESERVED_FIELD_3 = "reserved_field_3";
 
     public static final String MODEL = "model";
     public static final String LAYOUT_ID = "layout_id";
@@ -201,4 +204,20 @@ public class QueryHistory {
         return realizations;
     }
 
+    RecordInfo recordInfo;
+
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    public static class RecordInfo {
+
+        private Boolean exactMatch;
+        private Integer segmentNum;
+        private String status;
+
+        public RecordInfo(Boolean exactMatch, Integer segmentNum) {
+            this.exactMatch = Objects.isNull(exactMatch) ? true : exactMatch;
+            this.segmentNum = Objects.isNull(segmentNum) ? 0 : segmentNum;
+        }
+    }
 }

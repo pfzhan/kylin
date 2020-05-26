@@ -208,6 +208,7 @@ class FilePruner(val session: SparkSession,
       pruneSegments
     }
     QueryContext.current().record("seg_pruning")
+    QueryContext.current().getMetrics.setSegCount(selected.size)
     selected = selected.par.map { e =>
       val path = new Path(toPath(e.segmentID))
       val maybeStatuses = fsc.getLeafFiles(path)

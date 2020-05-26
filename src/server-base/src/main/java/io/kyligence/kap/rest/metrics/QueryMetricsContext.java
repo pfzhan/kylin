@@ -38,6 +38,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
@@ -164,6 +165,14 @@ public class QueryMetricsContext extends QueryMetrics {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
+        QueryHistory.RecordInfo recordInfo = new QueryHistory.RecordInfo(context.getMetrics().getExactlyMatch(),
+                context.getMetrics().getSegCount());
+        try {
+            this.recordInfo = JsonUtil.writeValueAsString(recordInfo);
+        } catch (Exception e) {
+            logger.info("Fail to collect query record info");
+            this.recordInfo = "";
+        }
     }
 
     private void collectErrorType(final QueryContext context) {
