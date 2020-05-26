@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -62,7 +63,7 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         if (proposeContext.getModelContexts() == null)
             return;
 
-        ProjectInstance projectInstance = NProjectManager.getInstance(proposeContext.getKylinConfig())
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(proposeContext.getProject());
         for (AbstractContext.NModelContext modelCtx : proposeContext.getModelContexts()) {
             if (modelCtx.getTargetIndexPlan() == null) {

@@ -57,13 +57,11 @@ public class NModelMaster {
 
     private final AbstractContext.NModelContext modelContext;
     private final NProposerProvider proposerProvider;
-    private final KylinConfig kylinConfig;
     private final String project;
 
     public NModelMaster(AbstractContext.NModelContext modelContext) {
         this.modelContext = modelContext;
         this.proposerProvider = NProposerProvider.create(modelContext);
-        this.kylinConfig = modelContext.getProposeContext().getKylinConfig();
         this.project = modelContext.getProposeContext().getProject();
     }
 
@@ -116,7 +114,7 @@ public class NModelMaster {
 
     public NDataModel proposeComputedColumn(NDataModel dataModel) {
         log.info("Start proposing computed columns.");
-        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+        KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
         boolean isComputedColumnEnabled = kapConfig.isImplicitComputedColumnConvertEnabled();
         if (!isComputedColumnEnabled) {
             log.warn("The feature of proposing computed column in Kyligence Enterprise has been turned off.");
@@ -157,13 +155,15 @@ public class NModelMaster {
         }
 
         // Rebuild modelTrees and find match one to replace original
-        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project,
-                originQueryList.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(
+                KylinConfig.getInstanceFromEnv(), project, originQueryList.toArray(new String[0]),
+                Lists.newArrayList(dataModel), 1)) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             final AbstractContext proposeContext = modelContext.getProposeContext();
-            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
-                    .build(originQueryList, extractor.getAllOLAPContexts(), null);
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project,
+                    proposeContext) //
+                            .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
                 boolean match = proposeContext instanceof NSmartContext //

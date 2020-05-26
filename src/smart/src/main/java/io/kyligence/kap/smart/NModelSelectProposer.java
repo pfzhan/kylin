@@ -57,7 +57,7 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     public NModelSelectProposer(AbstractContext proposeContext) {
         super(proposeContext);
-        dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
+        dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
     @Override
@@ -100,8 +100,8 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private void initModel(NDataModel modelDesc) {
-        final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
     private NDataModel selectExistedModel(ModelTree modelTree, AbstractContext.NModelContext modelContext) {

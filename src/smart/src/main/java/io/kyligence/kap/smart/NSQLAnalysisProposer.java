@@ -62,13 +62,13 @@ public class NSQLAnalysisProposer extends NAbstractProposer {
     public void execute() {
         initAccelerationInfo(sqls);
         List<NDataModel> models = proposeContext.getOriginModels();
-        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
-                models, getDefaultThreadNum())) {
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(
+                KylinConfig.getInstanceFromEnv(), project, sqls, models, getDefaultThreadNum())) {
             extractor.execute();
             logFailedQuery(extractor);
 
             //TODO refactor this logic to somewhere like initialOrMergeModel
-            val modelContexts = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
+            val modelContexts = new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project, proposeContext) //
                     .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null) //
                     .stream() //
                     .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()) //

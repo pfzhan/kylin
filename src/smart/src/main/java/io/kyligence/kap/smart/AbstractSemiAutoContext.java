@@ -54,7 +54,8 @@ public abstract class AbstractSemiAutoContext extends AbstractContext {
 
     @Override
     public IndexPlan getOriginIndexPlan(String modelId) {
-        return OptimizeRecommendationManager.getInstance(getKylinConfig(), getProject()).applyIndexPlan(modelId);
+        return OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .applyIndexPlan(modelId);
     }
 
     @Override

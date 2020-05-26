@@ -68,10 +68,6 @@ public abstract class AbstractContext {
         this.partialMatch = false;
     }
 
-    public KylinConfig getKylinConfig() {
-        return smartConfig.getKylinConfig();
-    }
-
     public NModelContext createModelContext(ModelTree modelTree) {
         return new NModelContext(this, modelTree);
     }

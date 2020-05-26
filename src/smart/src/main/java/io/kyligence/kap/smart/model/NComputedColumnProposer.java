@@ -266,7 +266,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     }
 
     private List<NDataModel> getOtherModels(NDataModel dataModel) {
-        List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project) //
+        List<NDataModel> otherModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project) //
                 .listUnderliningDataModels().stream() //
                 .filter(m -> !m.getUuid().equals(dataModel.getUuid())) //
                 .collect(Collectors.toList());

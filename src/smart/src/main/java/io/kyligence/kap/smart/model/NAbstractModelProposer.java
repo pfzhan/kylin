@@ -40,17 +40,15 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class NAbstractModelProposer {
 
     protected AbstractContext.NModelContext modelContext;
-    final KylinConfig kylinConfig;
     final String project;
     final NDataModelManager dataModelManager;
 
     NAbstractModelProposer(AbstractContext.NModelContext modelCtx) {
         this.modelContext = modelCtx;
 
-        kylinConfig = modelCtx.getProposeContext().getKylinConfig();
         project = modelCtx.getProposeContext().getProject();
 
-        dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
+        dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
     public AbstractContext.NModelContext getModelContext() {
@@ -66,8 +64,8 @@ public abstract class NAbstractModelProposer {
     }
 
     void initModel(NDataModel modelDesc) {
-        final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
     boolean isValidOlapContext(OLAPContext context) {

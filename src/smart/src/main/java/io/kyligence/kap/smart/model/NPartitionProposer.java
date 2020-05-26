@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.model;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -42,7 +43,8 @@ public class NPartitionProposer extends NAbstractModelProposer {
 
     @Override
     protected void execute(NDataModel dataModel) {
-        NDataLoadingRangeManager dataRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, project);
+        NDataLoadingRangeManager dataRangeManager = NDataLoadingRangeManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
 
         String rootFactTable = dataModel.getRootFactTableName();
         NDataLoadingRange range = dataRangeManager.getDataLoadingRange(rootFactTable);

@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -57,7 +58,7 @@ class NIndexRefresher extends NAbstractIndexProposer {
         super(context);
         smartContext = context.getProposeContext();
         // draftVersion = smartContext.getDraftVersion();
-        favoriteQueryManager = FavoriteQueryManager.getInstance(smartContext.getKylinConfig(),
+        favoriteQueryManager = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 smartContext.getProject());
     }
 

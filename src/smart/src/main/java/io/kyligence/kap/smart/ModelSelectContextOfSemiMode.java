@@ -63,7 +63,7 @@ public class ModelSelectContextOfSemiMode extends AbstractSemiAutoContext {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataflowManager.getInstance(getKylinConfig(), getProject())
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
 
     }

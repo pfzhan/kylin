@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -67,7 +68,8 @@ public class NModelShrinkProposer extends NAbstractProposer {
             truncateModel(model, namedColumnsById, namedColumnsByName, measures);
 
             Map<String, IndexPlan> modelIndexPlans = Maps.newHashMap();
-            List<IndexPlan> allIndexPlans = NIndexPlanManager.getInstance(kylinConfig, project).listAllIndexPlans();
+            List<IndexPlan> allIndexPlans = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .listAllIndexPlans();
             for (IndexPlan indexPlan : allIndexPlans) {
                 if (model.getUuid().equals(indexPlan.getUuid())) {
                     modelIndexPlans.put(indexPlan.getUuid(), indexPlan);
@@ -137,8 +139,8 @@ public class NModelShrinkProposer extends NAbstractProposer {
     }
 
     private void initModel(NDataModel modelDesc) {
-        final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
     @Override

@@ -92,7 +92,7 @@ class IndexSuggester {
         this.model = modelContext.getTargetModel();
         this.indexPlan = indexPlan;
         this.collector = collector;
-        this.projectInstance = NProjectManager.getInstance(this.proposeContext.getKylinConfig())
+        this.projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(this.proposeContext.getProject());
 
         aggFuncIdMap = Maps.newHashMap();
@@ -183,8 +183,8 @@ class IndexSuggester {
             collector.put(cuboidIdentifier, indexEntity);
         }
 
-        LayoutEntity layout = new EntityBuilder.LayoutEntityBuilder(suggestLayoutId(indexEntity), indexEntity).colOrderIds(suggestColOrder(dimIds, measureIds, Lists.newArrayList()))
-                        .isAuto(true).build();
+        LayoutEntity layout = new EntityBuilder.LayoutEntityBuilder(suggestLayoutId(indexEntity), indexEntity)
+                .colOrderIds(suggestColOrder(dimIds, measureIds, Lists.newArrayList())).isAuto(true).build();
         layout.setInProposing(true);
         if (model.getStorageType() == 2 && dimIds.containsAll(indexPlan.getExtendPartitionColumns())) {
             layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
@@ -259,7 +259,7 @@ class IndexSuggester {
         List<TblColRef> filterColumns = new ArrayList<>(filterColumnsCollection);
         List<TblColRef> nonFilterColumns = new ArrayList<>(nonFilterColumnsCollection);
         final Comparator<TblColRef> filterColComparator = ComparatorUtils
-                .filterColComparator(proposeContext.getKylinConfig(), proposeContext.getProject());
+                .filterColComparator(KylinConfig.getInstanceFromEnv(), proposeContext.getProject());
         filterColumns.sort(filterColComparator);
         nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
 

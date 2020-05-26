@@ -67,7 +67,7 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        List<NDataModel> onlineModels = NDataflowManager.getInstance(getKylinConfig(), getProject())
+        List<NDataModel> onlineModels = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
         return genRecommendationEnhancedModels(onlineModels);
     }
@@ -88,8 +88,8 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
 
     private List<NDataModel> genRecommendationEnhancedModels(List<NDataModel> models) {
         List<NDataModel> enhancedDataModel = Lists.newArrayListWithCapacity(models.size());
-        OptimizeRecommendationManager recommendMgr = OptimizeRecommendationManager.getInstance(getKylinConfig(),
-                getProject());
+        OptimizeRecommendationManager recommendMgr = OptimizeRecommendationManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         for (NDataModel model : models) {
             enhancedDataModel.add(recommendMgr.applyModel(model.getId()));
         }
@@ -161,8 +161,8 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
             long layoutItemId = pair.getSecond();
             boolean isQueryHistory = getAccelerateInfoMap().entrySet().stream().noneMatch(entry -> {
                 String sql = entry.getKey();
-                FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getKylinConfig(),
-                        getProject());
+                FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), getProject());
                 return favoriteQueryManager.get(sql) == null
                         || favoriteQueryManager.get(sql).getChannel().equals(FavoriteQuery.CHANNEL_FROM_IMPORTED);
             });

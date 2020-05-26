@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -53,7 +54,7 @@ public class NJoinProposer extends NAbstractModelProposer {
 
         // step 1. produce unique aliasMap
         final TableAliasGenerator.TableAliasDict dict = TableAliasGenerator
-                .generateCommonDictForSpecificModel(kylinConfig, project);
+                .generateCommonDictForSpecificModel(KylinConfig.getInstanceFromEnv(), project);
         val uniqueTblAliasMap = GreedyModelTreesBuilder.TreeBuilder
                 .getUniqueTblAliasBasedOnPosInGraph(modelDesc.getJoinsGraph(), dict);
         for (OLAPContext ctx : modelTree.getOlapContexts()) {

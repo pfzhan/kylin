@@ -115,12 +115,12 @@ public class NSmartContext extends AbstractContext {
 
     @Override
     public IndexPlan getOriginIndexPlan(String modelId) {
-        return NIndexPlanManager.getInstance(getKylinConfig(), getProject()).getIndexPlan(modelId);
+        return NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).getIndexPlan(modelId);
     }
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataflowManager.getInstance(getKylinConfig(), getProject())
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
 
     }
@@ -142,7 +142,8 @@ public class NSmartContext extends AbstractContext {
     }
 
     void saveModel() {
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(getKylinConfig(), getProject());
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                getProject());
         for (AbstractContext.NModelContext modelCtx : getModelContexts()) {
             if (modelCtx.skipSavingMetadata()) {
                 continue;
@@ -157,8 +158,9 @@ public class NSmartContext extends AbstractContext {
     }
 
     private void saveIndexPlan() {
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(getKylinConfig(), getProject());
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getKylinConfig(), getProject());
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                getProject());
         for (AbstractContext.NModelContext modelContext : getModelContexts()) {
             if (modelContext.skipSavingMetadata()) {
                 continue;

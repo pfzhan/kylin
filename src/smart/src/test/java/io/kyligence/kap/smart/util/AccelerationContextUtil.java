@@ -72,7 +72,8 @@ public class AccelerationContextUtil {
             }
 
             void saveModel() {
-                NDataModelManager dataModelManager = NDataModelManager.getInstance(getKylinConfig(), getProject());
+                NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                        getProject());
                 for (AbstractContext.NModelContext modelCtx : getModelContexts()) {
                     if (modelCtx.skipSavingMetadata()) {
                         continue;
@@ -87,8 +88,10 @@ public class AccelerationContextUtil {
             }
 
             private void saveIndexPlan() {
-                NDataflowManager dataflowManager = NDataflowManager.getInstance(getKylinConfig(), getProject());
-                NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getKylinConfig(), getProject());
+                NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                        getProject());
+                NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                        getProject());
                 for (AbstractContext.NModelContext modelContext : getModelContexts()) {
                     if (modelContext.skipSavingMetadata()) {
                         continue;

@@ -31,6 +31,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -48,6 +49,7 @@ import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
+@Ignore
 public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
 
     @Before

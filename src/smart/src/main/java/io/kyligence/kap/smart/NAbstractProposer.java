@@ -24,20 +24,16 @@
 
 package io.kyligence.kap.smart;
 
-import org.apache.kylin.common.KylinConfig;
-
 import lombok.Getter;
 
 public abstract class NAbstractProposer {
 
     @Getter
     final AbstractContext proposeContext;
-    final KylinConfig kylinConfig;
     final String project;
 
     public NAbstractProposer(AbstractContext proposeContext) {
         this.proposeContext = proposeContext;
-        this.kylinConfig = proposeContext.getKylinConfig();
         this.project = proposeContext.getProject();
     }
 
