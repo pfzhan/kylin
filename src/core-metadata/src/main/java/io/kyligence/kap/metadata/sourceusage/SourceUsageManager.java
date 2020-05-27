@@ -521,6 +521,10 @@ public class SourceUsageManager {
     }
 
     public void checkIsOverCapacity(String project) {
+        if (config.isUTEnv()) {
+            return;
+        }
+
         LicenseInfo info = getLicenseInfo(project);
 
         if (info.getProject() != null) {

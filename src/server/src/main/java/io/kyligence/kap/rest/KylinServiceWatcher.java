@@ -39,9 +39,11 @@ import org.apache.curator.x.discovery.details.ServiceCacheListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
 import org.springframework.stereotype.Component;
 
+@ConditionalOnZookeeperEnabled
 @Component
 public class KylinServiceWatcher {
     private static final Logger logger = LoggerFactory.getLogger(KylinServiceWatcher.class);
