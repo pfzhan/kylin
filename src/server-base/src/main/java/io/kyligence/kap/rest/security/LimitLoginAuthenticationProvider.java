@@ -97,7 +97,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             updateUserLockStatus(managedUser, userName);
             Authentication auth = super.authenticate(authentication);
 
-            if (managedUser != null) {
+            if (managedUser != null && managedUser.getWrongTime() > 0) {
                 managedUser.clearAuthenticateFailedRecord();
                 updateUser(managedUser);
             }

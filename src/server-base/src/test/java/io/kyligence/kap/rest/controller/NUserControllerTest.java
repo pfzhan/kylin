@@ -104,7 +104,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public ClearKEPropertiesRule clearKEProperties = new ClearKEPropertiesRule();
 
     @InjectMocks
-    private NUserController nUserController = Mockito.spy(new NUserController());
+    private NUserController nUserController;
 
     @Mock
     private UserService userService;
@@ -130,6 +130,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void setupResource() {
         createTestMetadata();
         getTestConfig().setProperty("kylin.env", "UT");
+        nUserController = Mockito.spy(new NUserController());
     }
 
     @Before
