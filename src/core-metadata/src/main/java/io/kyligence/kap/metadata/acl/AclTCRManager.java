@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -210,7 +211,7 @@ public class AclTCRManager {
             return ArrayListMultimap.<String, String>create();
         }
 
-        val authorizedColsMap = ArrayListMultimap.<String, String>create();
+        val authorizedColsMap = HashMultimap.<String, String>create();
         allAclTCRs.stream().forEach(aclTCR -> aclTCR.getTable().entrySet().stream().forEach(entry -> {
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(entry.getKey());
             if (Objects.isNull(tableDesc) || Objects.isNull(entry.getValue()) || Objects.isNull(entry.getValue().getColumn())) {

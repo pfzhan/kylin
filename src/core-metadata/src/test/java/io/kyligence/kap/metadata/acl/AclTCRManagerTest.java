@@ -108,9 +108,8 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         // test authorized columns -- all
         manager.updateAclTCR(new AclTCR(), "aaa", true);
         manager.updateAclTCR(new AclTCR(), "bbb", false);
-        Set<String> columns = manager.getAuthorizedColumns("aaa", Sets.newHashSet("bbb"));
-        Assert.assertTrue(columns.contains("DEFAULT.TEST_ORDER.ORDER_ID"));
-        Assert.assertTrue(columns.contains("DEFAULT.TEST_COUNTRY.NAME"));
+        var columns = manager.getAuthorizedColumnsGroupByTable("aaa", Sets.newHashSet("bbb"));
+        Assert.assertTrue(columns.isEmpty());
 
         AclTCR a1u1 = new AclTCR();
         AclTCR.Table a1t1 = new AclTCR.Table();
@@ -122,9 +121,8 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         a1t2.put("DEFAULT.TEST_COUNTRY", null);
         a1g1.setTable(a1t2);
         manager.updateAclTCR(a1g1, "a1g1", false);
-        columns = manager.getAuthorizedColumns("a1u1", Sets.newHashSet("a1g1"));
-        Assert.assertTrue(columns.contains("DEFAULT.TEST_ORDER.ORDER_ID"));
-        Assert.assertTrue(columns.contains("DEFAULT.TEST_COUNTRY.NAME"));
+        columns = manager.getAuthorizedColumnsGroupByTable("a1u1", Sets.newHashSet("a1g1"));
+        Assert.assertTrue(columns.isEmpty());
 
         // test authorized columns -- part
         AclTCR.ColumnRow columnRow1 = new AclTCR.ColumnRow();
@@ -141,10 +139,28 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         a1t2.put("DEFAULT.TEST_COUNTRY", columnRow2);
         manager.updateAclTCR(a1g1, "a1g1", false);
 
-        columns = manager.getAuthorizedColumns("a1u1", Sets.newHashSet("a1g1"));
+        columns = manager.getAuthorizedColumnsGroupByTable("a1u1", Sets.newHashSet("a1g1"));
         Assert.assertEquals(2, columns.size());
-        Assert.assertTrue(columns.contains("DEFAULT.TEST_ORDER.ORDER_ID"));
-        Assert.assertTrue(columns.contains("DEFAULT.TEST_COUNTRY.NAME"));
+        Assert.assertTrue(columns.containsKey("DEFAULT.TEST_ORDER"));
+        Assert.assertTrue(columns.get("DEFAULT.TEST_ORDER").contains("ORDER_ID"));
+        Assert.assertTrue(columns.containsKey("DEFAULT.TEST_COUNTRY"));
+        Assert.assertTrue(columns.get("DEFAULT.TEST_COUNTRY").contains("NAME"));
+
+        // duplicate column names
+        AclTCR.ColumnRow columnRow3 = new AclTCR.ColumnRow();
+        AclTCR.Column column3 = new AclTCR.Column();
+        column3.add("NAME");
+        columnRow3.setColumn(column3);
+        a1t1.put("DEFAULT.TEST_COUNTRY", columnRow3);
+        manager.updateAclTCR(a1u1, "a1u1", true);
+
+        columns = manager.getAuthorizedColumnsGroupByTable("a1u1", Sets.newHashSet("a1g1"));
+        Assert.assertEquals(2, columns.size());
+        Assert.assertTrue(columns.containsKey("DEFAULT.TEST_ORDER"));
+        Assert.assertTrue(columns.get("DEFAULT.TEST_ORDER").contains("ORDER_ID"));
+        Assert.assertTrue(columns.containsKey("DEFAULT.TEST_COUNTRY"));
+        Assert.assertEquals(1, columns.get("DEFAULT.TEST_COUNTRY").size());
+        Assert.assertTrue(columns.get("DEFAULT.TEST_COUNTRY").contains("NAME"));
     }
 
     @Test
