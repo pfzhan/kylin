@@ -169,12 +169,12 @@ object SparderTypeUtil extends Logging {
   }
 
   def getValueFromNlsString(s: NlsString): String = {
-    val ret = new StringBuilder
-    ret.append("'")
-    ret.append(s.getValue)
-    ret.append("'")
-    val res = ret.toString
     if (!KylinConfig.getInstanceFromEnv.isQueryEscapedLiteral) {
+      val ret = new StringBuilder
+      ret.append("'")
+      ret.append(s.getValue.replace("'", "\\\'"))
+      ret.append("'")
+      val res = ret.toString
       ParserUtils.unescapeSQLString(res)
     } else {
       s.getValue
