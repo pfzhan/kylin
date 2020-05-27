@@ -58,6 +58,57 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.1.2 release note
+
+**Feature**
+
+- Support to answer some SUM (Expression) queries by models
+
+**Enhancement**
+
+- Improve product security
+  - Standardize the generation of session ID, and improve uniqueness, randomness and security
+  - Fix some potential security problems, and add interface parameter verification
+    - Provide configuration to control whether to enable cross-origin
+  - Filing the Linux operation permissions required for each subdirectory under the installation directory
+  - Support to customize the network address bound to the Kyligence Enterprise service to prevent possible monitoring vulnerabilities
+  - Support encrypted storage of session ID in the database
+  - After the cumulative number of incorrect password entries exceeds a certain value, login will be locked
+  - Improve user login password encryption algorithm
+- Improve Rest API
+  - Add parameter to query API, and support to force pushdown when pushdown switch is turned on
+- Improve log and diagnostic package
+  - Provide log which records user login information, system start and stop information and upgrade information, which will enhance problem traceability
+- Improve product usability
+  - Add explanations to queries can be accelerated in acceleration page
+  - When there is no active All node, before editing a page or form, checking will be provided to prevent the loss of edited content
+- Others
+  - Provide a migration script tool to support the migration of query history from Influxdb to RDBMS
+    - This tool is an auxiliary tool for upgrading and will not be made public. For use, please contact Kyligence Technical Support
+  - Optimize metadata migration tool to support metadata migration from Kyligence Enterprise 3.x to Kyligence Enterprise 4.1
+
+**Bugfix**
+
+- When the memory is relatively large and the core is relatively small, there may be inaccurate resource detection, resulting in the table sampling task can not be carried out normally
+- When the cluster is unstable, the same task may be scheduled by multiple schedulers, resulting in failure
+- When the column name contains '.', the regular matching error during the build process causes the column conversion to fail, resulting in the failure of resource detection in the building
+- Table loading fails when the source table contains columns of data type *Map*
+  > - Known limitation: Columns with data types *Map*, *Array*, *Struct*, and *Binary* will be skipped when loading the table. At the same time, these types of column can still get results when query pushdown, but the results may not be correct
+- Fix the problem of inconsistent front-end and back-end verification in forms
+- Fix the problem that the timeout exit mechanism does not fully take effect
+- Error occurs when adding the computed column which is shaped like a column multiplied by a decimal.
+- When the partition column type is *string* and the selected time format is *yyyy-MM-dd HH: mm: ss: SSS*, automatic acquisition of the time range or manual triggering of incremental building may fail
+- Synchronization result of the model owner by the mirror tool may be wrong
+- Configuration with no default value in the configuration file are read by the upgrade script, resulting in an error
+- The task of regularly accelerating the query history takes up much memory, which may cause the regularly triggered building jobs to fail to execute normally
+- When query contains ceil(floor(column_name to HOUR) to HOUR)，the result between query pushdown and query hitting model is inconsistent
+- Some of the mechanisms in the breakpoint resume of the building job may cause high latency of the building job on the cloud
+- When accelerating more than 10,000 SQLs at a time, the instance service may be unstable
+- When the metadata table name is too long, the query history may fail to refresh
+- When using the view table as a fact table for incremental building, there is no data filtering based on the selected time range
+- By using the aggregation index API to pass in the columns not included in the model, inconsistencies will happen between the columns between model and aggregate index
+- After the random password configuration is closed, the password still needs to be changed when logging in to the web UI
+
 #### Kyligence Enterprise 4.1.1 release note
 
 **Product behavior changes**
