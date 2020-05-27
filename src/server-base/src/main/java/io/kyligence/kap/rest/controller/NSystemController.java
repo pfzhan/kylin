@@ -60,7 +60,6 @@ import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
-import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -69,6 +68,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -90,6 +90,7 @@ import io.kyligence.kap.rest.service.SystemService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping(value = "/api/system", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -217,8 +218,10 @@ public class NSystemController extends NBasicController {
     @ApiOperation(value = "get license monitor info with detail")
     @GetMapping(value = "/capacities")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfoWithDetail() {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseMonitorInfoWithDetail(), "");
+    public EnvelopeResponse getLicenseMonitorInfoWithDetail(@RequestParam(value = "filter_name", required = false, defaultValue = "") String[] filterName,
+                                                            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+                                                            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseMonitorInfoWithDetail(filterName), "");
     }
 
     @ApiOperation(value = "get license monitor info")
@@ -228,18 +231,23 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseMonitorInfo(), "");
     }
 
+    @ApiOperation(value = "get license monitor info by project")
+    @GetMapping(value = "/capacity_info")
+    @ResponseBody
+    public EnvelopeResponse getLicenseMonitorInfoSingleProject(@RequestParam(value = "project") String project,
+                                                           @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
+        List<Map<Long, Long>> projectCapacities = licenseInfoService.getProjectCapacities(project, dataRange);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacities, "");
+    }
+
     @ApiOperation(value = "get license monitor info by project",  notes = "Update Param: page_offset, page_size;")
     @GetMapping(value = "/capacity")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfoByProject(@RequestParam("project") String project,
-                                                           @RequestParam(value = "table", required = false) String table,
-                                                           @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-                                                           @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
-        ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project, table);
+    public EnvelopeResponse getLicenseMonitorInfoByProjects(@RequestParam(value = "project") String project) {
+        ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project);
         if (projectCapacityResponse.getSize() > 0) {
             List<CapacityDetailsResponse> tables = projectCapacityResponse.getTables();
-            List<CapacityDetailsResponse> tableCapacityDetailsPaging = PagingUtil.cutPage(tables, pageOffset, pageSize);
-            projectCapacityResponse.setTables(tableCapacityDetailsPaging);
+            projectCapacityResponse.setTables(tables);
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacityResponse, "");
     }
@@ -250,7 +258,7 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse getLicenseMonitorInfoHistory(@RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
         if ("month".equals(dataRange)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastMonthSourceUsageRecords(), "");
-        } else if ("season".equals(dataRange)) {
+        } else if ("quarter".equals(dataRange)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastQuarterSourceUsageRecords(), "");
         } else if ("year".equals(dataRange)) {
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastYearSourceUsageRecords(), "");
@@ -259,11 +267,11 @@ public class NSystemController extends NBasicController {
     }
 
     @ApiOperation(value = "refresh license monitor info")
-    @GetMapping(value = "/capacity/refresh")
+    @PutMapping(value = "/capacity/refresh")
     @ResponseBody
-    public EnvelopeResponse refresh(@RequestParam("project") String project,
-                                    @RequestParam(value = "table") String table) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.refreshTableExtDesc(project, table), "");
+    public EnvelopeResponse refresh(@RequestParam("project") String project) {
+        licenseInfoService.refreshTableExtDesc(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, project, "");
     }
 
     @PostMapping(value = "/diag")

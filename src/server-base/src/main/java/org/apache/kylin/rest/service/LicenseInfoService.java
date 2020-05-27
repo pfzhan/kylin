@@ -53,6 +53,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -523,7 +524,7 @@ public class LicenseInfoService extends BasicService {
         return output.toString();
     }
 
-    public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail() {
+    public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail(String[] projects) {
         LicenseInfoWithDetailsResponse licenseInfoWithDetailsResponse = new LicenseInfoWithDetailsResponse();
         SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
@@ -534,20 +535,26 @@ public class LicenseInfoService extends BasicService {
             capacityDetails = latestRecords.getCapacityDetails();
         }
 
-        if (capacityDetails != null && capacityDetails.length > 0) {
-            CapacityDetailsResponse capacityDetailsResponse;
-            List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
-            for (SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail : capacityDetails) {
-                capacityDetailsResponse = new CapacityDetailsResponse();
-                capacityDetailsResponse.setName(projectCapacityDetail.getName());
-                capacityDetailsResponse.setCapacity(projectCapacityDetail.getCapacity());
-                capacityDetailsResponse.setCapacityRatio(projectCapacityDetail.getCapacityRatio());
-                capacityDetailsResponse.setStatus(projectCapacityDetail.getStatus());
-                capacityDetailsResponseList.add(capacityDetailsResponse);
-            }
-            licenseInfoWithDetailsResponse.setCapacityDetail(capacityDetailsResponseList);
-            licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
+        if (ArrayUtils.isNotEmpty(capacityDetails)) {
+            licenseInfoWithDetailsResponse = getLicenseInfoDetailResponse(capacityDetails, projects);
         }
+        return licenseInfoWithDetailsResponse;
+    }
+
+    private LicenseInfoWithDetailsResponse getLicenseInfoDetailResponse(SourceUsageRecord.ProjectCapacityDetail[] capacityDetails, String[] projects) {
+        LicenseInfoWithDetailsResponse licenseInfoWithDetailsResponse = new LicenseInfoWithDetailsResponse();
+        CapacityDetailsResponse capacityDetailsResponse;
+        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
+        for (SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail : capacityDetails) {
+            capacityDetailsResponse = new CapacityDetailsResponse();
+            capacityDetailsResponse.setName(projectCapacityDetail.getName());
+            capacityDetailsResponse.setCapacity(projectCapacityDetail.getCapacity());
+            capacityDetailsResponse.setCapacityRatio(projectCapacityDetail.getCapacityRatio());
+            capacityDetailsResponse.setStatus(projectCapacityDetail.getStatus());
+            capacityDetailsResponseList.add(capacityDetailsResponse);
+        }
+        licenseInfoWithDetailsResponse.setCapacityDetail(capacityDetailsResponseList);
+        licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
         return licenseInfoWithDetailsResponse;
     }
 
@@ -618,12 +625,34 @@ public class LicenseInfoService extends BasicService {
         return CollectionUtils.isEmpty(servers) ? 0 : servers.size();
     }
 
+    public List<Map<Long, Long>> getProjectCapacities(String project, String dataRange) {
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<SourceUsageRecord> sourceUsageRecords = Lists.newArrayList();
+        List<Map<Long, Long>> projectCapacities = Lists.newArrayList();
+        if ("month".equals(dataRange)) {
+            sourceUsageRecords = sourceUsageManager.getLastMonthRecords();
+        } else if ("quarter".equals(dataRange)) {
+            sourceUsageRecords = sourceUsageManager.getLastQuarterRecords();
+        } else if ("year".equals(dataRange)) {
+            sourceUsageRecords = sourceUsageManager.getLastYearRecords();
+        }
+        for (SourceUsageRecord sourceUsageRecord : sourceUsageRecords) {
+            Map<Long, Long> map = Maps.newHashMap();
+            map.put(sourceUsageRecord.getProjectCapacity(project).getCapacity(), sourceUsageRecord.getCheckTime());
+            projectCapacities.add(map);
+        }
+        Map<Long, Long> map = Maps.newHashMap();
+        map.put(1212L, System.currentTimeMillis());
+        projectCapacities.add(map);
+        return projectCapacities;
+    }
 
-    public ProjectCapacityResponse getLicenseMonitorInfoByProject(String project, String table) {
+
+    public ProjectCapacityResponse getLicenseMonitorInfoByProject(String project) {
         ProjectCapacityResponse projectCapacityResponse = new ProjectCapacityResponse();
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        SourceUsageRecord latestRecords = sourceUsageManager.getLatestRecord();
 
-        SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getLatestRecord();
         SourceUsageRecord.ProjectCapacityDetail projectCapacity = null;
         if (latestRecords != null) {
             projectCapacity = latestRecords.getProjectCapacity(project);
@@ -635,13 +664,10 @@ public class LicenseInfoService extends BasicService {
             projectCapacityResponse.setStatus(projectCapacity.getStatus());
 
             SourceUsageRecord.TableCapacityDetail[] tables = projectCapacity.getTables();
-            if (tables != null && tables.length > 0) {
+            if (tables.length > 0) {
                 CapacityDetailsResponse capacityDetailsResponse;
                 List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
                 for (SourceUsageRecord.TableCapacityDetail tableCapacityDetail : tables) {
-                    if (table != null && !StringUtils.containsIgnoreCase(tableCapacityDetail.getName(), table)) {
-                        continue;
-                    }
                     capacityDetailsResponse = new CapacityDetailsResponse();
                     capacityDetailsResponse.setName(tableCapacityDetail.getName());
                     capacityDetailsResponse.setCapacity(tableCapacityDetail.getCapacity());
@@ -666,6 +692,8 @@ public class LicenseInfoService extends BasicService {
                 records.put(record.getCheckTime(), record.getCurrentCapacity());
             }
         }
+        records.put(System.currentTimeMillis() - 1000, 1421412L);
+        records.put(System.currentTimeMillis(), 532232L);
         return records;
     }
 
@@ -693,19 +721,19 @@ public class LicenseInfoService extends BasicService {
         return records;
     }
 
-    public TableExtDesc.RowCountStatus refreshTableExtDesc(String project, String table) {
+    public void refreshTableExtDesc(String project) {
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
-        TableExtDesc tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
-        TableExtDesc.RowCountStatus rowCountStatus = tableExt.getRowCountStatus();
-        if (rowCountStatus == null || TableExtDesc.RowCountStatus.TENTATIVE.equals(rowCountStatus)) {
-            sourceUsageManager.refreshLookupTableRowCount(tableDesc, project);
-            sourceUsageManager.updateSourceUsage();
+        List<TableDesc> tableDescList = tableMetadataManager.listAllTables();
+        for (TableDesc tableDesc : tableDescList) {
+            TableExtDesc tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
+            TableExtDesc.RowCountStatus rowCountStatus = tableExt.getRowCountStatus();
+            if (rowCountStatus == null || TableExtDesc.RowCountStatus.TENTATIVE.equals(rowCountStatus)) {
+                sourceUsageManager.refreshLookupTableRowCount(tableDesc, project);
+                sourceUsageManager.updateSourceUsage();
+            }
         }
-        return tableMetadataManager.getTableExtIfExists(tableDesc).getRowCountStatus() == null
-                ? TableExtDesc.RowCountStatus.TENTATIVE
-                : tableMetadataManager.getTableExtIfExists(tableDesc).getRowCountStatus();
+        logger.info("Refresh table capacity in project: {} finished", project);
     }
 
     public LicenseMonitorInfoResponse getLicenseMonitorInfo() {

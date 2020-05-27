@@ -428,7 +428,7 @@ public class SourceUsageManager {
 
     // return all records in last one month
     public List<SourceUsageRecord> getLastMonthRecords() {
-        return getLatestRecordByDays( 30);
+        return getLatestRecordByDays(30);
     }
 
     public List<SourceUsageRecord> getLastQuarterRecords() {
