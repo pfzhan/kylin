@@ -24,25 +24,12 @@
 
 package io.kyligence.kap.smart.query.advisor;
 
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.kylin.query.relnode.OLAPContext;
-
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.smart.query.SQLResult;
 
 public class SqlSyntaxAdvisor extends AbstractSqlAdvisor {
 
     @Override
-    public List<SQLAdvice> propose(SQLResult sqlResult, Collection<OLAPContext> olapContexts) {
-        SQLAdvice advice = adviseSyntaxError(sqlResult);
-
-        if (advice != null) {
-            return Lists.newArrayList(advice);
-        }
-
-        return Lists.newArrayList();
+    public SQLAdvice propose(SQLResult sqlResult) {
+        return adviseSyntaxError(sqlResult);
     }
 }

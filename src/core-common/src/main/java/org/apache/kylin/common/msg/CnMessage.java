@@ -690,6 +690,10 @@ public class CnMessage extends Message {
         return "查询延迟阈值不能为空";
     }
 
+    public String getSQL_NUMBER_EXCEEDS_LIMIT() {
+        return "最多可同时导入 1000 条 SQL";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB() {

@@ -154,6 +154,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_DOWNLOAD_FILE("KE-10017002"), //
     FILE_FORMAT_ERROR("KE-10017003"), //
     EMPTY_FILE_CONTENT("KE-10017004"), //
+    SQL_NUMBER_EXCEEDS_LIMIT("KE-10017005"), //
 
     // 10018XXX kerberos
     INVALID_KERBEROS_FILE("KE-10018001"), //

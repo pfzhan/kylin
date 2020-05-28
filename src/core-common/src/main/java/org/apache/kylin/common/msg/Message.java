@@ -746,6 +746,10 @@ public class Message {
         return "The query delay threshold cannot be empty";
     }
 
+    public String getSQL_NUMBER_EXCEEDS_LIMIT() {
+        return "Up to 1000 SQLs could be imported at a time";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB() {

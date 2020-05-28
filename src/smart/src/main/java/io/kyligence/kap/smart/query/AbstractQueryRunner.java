@@ -34,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
@@ -64,6 +65,8 @@ public abstract class AbstractQueryRunner implements Closeable {
     private final String[] sqls;
     protected KylinConfig kylinConfig;
     protected final String projectName;
+    @Setter
+    protected boolean needCollectOlapContext;
 
     private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
     @Getter
@@ -76,6 +79,7 @@ public abstract class AbstractQueryRunner implements Closeable {
         this.projectName = projectName;
         this.sqls = sqls;
         this.executorService = Executors.newFixedThreadPool(threads, new NamedThreadFactory("SuggestRunner"));
+        this.needCollectOlapContext = true;
     }
 
     private void submitQueryExecute(final CountDownLatch counter, final AbstractQueryExecutor executor,
@@ -113,10 +117,11 @@ public abstract class AbstractQueryRunner implements Closeable {
                     details.enrich(queryContext);
                     details.enrich(sql, projectName, end - begin);
                 }
-
                 Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
                 queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
-                olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
+                if (needCollectOlapContext) {
+                    olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
+                }
             } finally {
                 counter.countDown();
             }
@@ -143,6 +148,7 @@ public abstract class AbstractQueryRunner implements Closeable {
         KylinConfig config = prepareConfig();
         try {
             CountDownLatch latch = new CountDownLatch(sqls.length);
+            setNeedCollectOlapContext(false);
             for (int i = 0; i < sqls.length; i++) {
                 submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
             }

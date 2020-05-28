@@ -24,16 +24,9 @@
 
 package io.kyligence.kap.smart.query.advisor;
 
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.kylin.query.relnode.OLAPContext;
-
 import io.kyligence.kap.smart.query.SQLResult;
 
 public interface ISqlAdvisor {
 
     SQLAdvice propose(SQLResult sqlResult);
-
-    List<SQLAdvice> propose(SQLResult sqlResult, Collection<OLAPContext> olapContexts);
 }

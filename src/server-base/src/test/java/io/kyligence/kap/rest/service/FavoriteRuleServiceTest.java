@@ -362,4 +362,28 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         // same cc expression not replaced with existed cc
         Assert.assertEquals(sql, responses.get(0).getSql());
     }
+
+    @Test
+    public void testImportSqlExceedsLimit() throws Exception {
+        MockMultipartFile file1 = new MockMultipartFile("sqls1.sql", "sqls1.sql", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
+        MockMultipartFile file2 = new MockMultipartFile("sqls2.txt", "sqls2.txt", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
+        MockMultipartFile file4 = new MockMultipartFile("sqls4.sql", "sqls4.sql", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls4.sql")));
+
+        try {
+            favoriteRuleService.importSqls(new MultipartFile[] { file4 }, PROJECT);
+        } catch (Exception ex) {
+            Assert.assertEquals(KylinException.class, ex.getClass());
+            Assert.assertEquals("Up to 1000 SQLs could be imported at a time", ex.getMessage());
+        }
+
+        try {
+            favoriteRuleService.importSqls(new MultipartFile[] { file1, file2, file4 }, PROJECT);
+        } catch (Exception ex) {
+            Assert.assertEquals(KylinException.class, ex.getClass());
+            Assert.assertEquals("Up to 1000 SQLs could be imported at a time", ex.getMessage());
+        }
+    }
 }

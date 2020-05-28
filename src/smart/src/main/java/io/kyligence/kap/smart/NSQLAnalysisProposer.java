@@ -40,7 +40,6 @@ import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.query.SQLResult;
-import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 import lombok.val;
@@ -95,7 +94,7 @@ public class NSQLAnalysisProposer extends NAbstractProposer {
 
     private void logFailedQuery(AbstractQueryRunner extractor) {
         final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
-        ISqlAdvisor sqlAdvisor = new SqlSyntaxAdvisor();
+        SqlSyntaxAdvisor sqlAdvisor = new SqlSyntaxAdvisor();
 
         queryResultMap.forEach((index, sqlResult) -> {
             if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
@@ -105,7 +104,7 @@ public class NSQLAnalysisProposer extends NAbstractProposer {
                 if (!(throwable instanceof NoRealizationFoundException
                         || throwable.getCause() instanceof NoRealizationFoundException)) {
                     if (throwable.getMessage().contains("not found")) {
-                        SQLAdvice sqlAdvices = sqlAdvisor.propose(sqlResult);
+                        SQLAdvice sqlAdvices = sqlAdvisor.proposeWithMessage(sqlResult);
                         accelerateInfo.setPendingMsg(sqlAdvices.getIncapableReason());
                     } else {
                         accelerateInfo.setFailedCause(throwable);

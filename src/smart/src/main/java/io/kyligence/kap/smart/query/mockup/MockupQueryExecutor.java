@@ -95,6 +95,9 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             sqlResult.setException(e);
         } finally {
             Collection<OLAPContext> ctxs = OLAPContext.getThreadLocalContexts();
+            if (ctxs != null) {
+                ctxs.stream().forEach(context -> context.clean());
+            }
             record.setOLAPContexts(ctxs);
             clearCurrentRecord();
         }

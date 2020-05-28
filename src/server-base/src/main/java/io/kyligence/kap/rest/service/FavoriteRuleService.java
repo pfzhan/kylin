@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
@@ -271,6 +273,10 @@ public class FavoriteRuleService extends BasicService {
                         file.getOriginalFilename(), ex);
                 filesParseFailed.add(file.getOriginalFilename());
             }
+        }
+        if (sqls.size() > getConfig().getFavoriteImportSqlMaxSize()) {
+            Message msg = MsgPicker.getMsg();
+            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, msg.getSQL_NUMBER_EXCEEDS_LIMIT());
         }
 
         List<ImportSqlResponse> sqlData = Lists.newArrayList();

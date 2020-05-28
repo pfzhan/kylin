@@ -24,16 +24,12 @@
 
 package io.kyligence.kap.smart.query.advisor;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.query.SQLResult;
 
@@ -52,19 +48,13 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             "Encountered \"(.*)\" at line (\\d+), column (\\d+). Was expecting one of: .*",
             Pattern.MULTILINE | Pattern.DOTALL);
 
-    @Override
-    public SQLAdvice propose(SQLResult sqlResult) {
+    public SQLAdvice proposeWithMessage(SQLResult sqlResult) {
         if (sqlResult == null || sqlResult.getMessage() == null) {
             return null;
         }
 
         String message = sqlResult.getMessage();
         return proposeWithMessage(message);
-    }
-
-    @Override
-    public List<SQLAdvice> propose(SQLResult sqlResult, Collection<OLAPContext> olapContexts) {
-        return Lists.newArrayList();
     }
 
     private SQLAdvice proposeWithMessage(String message) {
@@ -128,7 +118,7 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
     SQLAdvice adviseSyntaxError(SQLResult sqlResult) {
         if (sqlResult.getException() != null && !(sqlResult.getException() instanceof NoRealizationFoundException)
                 && !(sqlResult.getException().getCause() instanceof NoRealizationFoundException)) {
-            return propose(sqlResult);
+            return proposeWithMessage(sqlResult);
         }
         return null;
     }

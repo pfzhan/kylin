@@ -26,13 +26,12 @@ package io.kyligence.kap.smart.query.validator;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import org.apache.commons.collections.CollectionUtils;
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,27 +80,25 @@ public abstract class AbstractSQLValidator {
         }
 
         List<SQLResult> queryResults = queryRunner.getQueryResultList();
-        List<Collection<OLAPContext>> olapContexts = queryRunner.getAllOLAPContexts();
-        return doBatchValidate(sqls, queryResults, olapContexts);
+        return doBatchValidate(sqls, queryResults);
     }
 
-    private Map<String, SQLValidateResult> doBatchValidate(String[] sqls, List<SQLResult> queryResults,
-            List<Collection<OLAPContext>> olapContexts) {
+    private Map<String, SQLValidateResult> doBatchValidate(String[] sqls, List<SQLResult> queryResults) {
 
         Map<String, SQLValidateResult> validateStatsMap = Maps.newHashMap();
         for (int i = 0; i < sqls.length; i++) {
             SQLResult sqlResult = queryResults.get(i);
-            validateStatsMap.put(sqls[i], doValidate(sqlResult, olapContexts.get(i)));
+            validateStatsMap.put(sqls[i], doValidate(sqlResult));
         }
         return validateStatsMap;
     }
 
-    private SQLValidateResult doValidate(SQLResult sqlResult, Collection<OLAPContext> olapContexts) {
+    private SQLValidateResult doValidate(SQLResult sqlResult) {
 
-        List<SQLAdvice> sqlAdvices = sqlAdvisor.propose(sqlResult, olapContexts);
-        if (CollectionUtils.isEmpty(sqlAdvices)) {
+        SQLAdvice sqlAdvice = sqlAdvisor.propose(sqlResult);
+        if (Objects.isNull(sqlAdvice)) {
             return SQLValidateResult.successStats(sqlResult);
         }
-        return SQLValidateResult.failedStats(sqlAdvices, sqlResult);
+        return SQLValidateResult.failedStats(Lists.newArrayList(sqlAdvice), sqlResult);
     }
 }

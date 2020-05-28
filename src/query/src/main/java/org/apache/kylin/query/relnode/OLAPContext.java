@@ -411,6 +411,12 @@ public class OLAPContext {
         return false;
     }
 
+    public void clean() {
+        topNode = null;
+        parentOfTopNode = null;
+        allOlapJoins.clear();
+    }
+
     @Override
     public String toString() {
         return "OLAPContext{" + "firstTableScan=" + firstTableScan + ", allTableScans=" + allTableScans

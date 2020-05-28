@@ -1468,6 +1468,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.favorite.batch-accelerate-size", "500"));
     }
 
+    public int getFavoriteImportSqlMaxSize() {
+        return Integer.valueOf(this.getOptional("kylin.favorite.import-sql-max-size", "1000"));
+    }
+
     // unit of minute
     public long getQueryHistoryScanPeriod() {
         return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period-minutes", "60")) * 60 * 1000L;
