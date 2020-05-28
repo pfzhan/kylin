@@ -84,6 +84,10 @@ public class Counter<T> implements Externalizable, Serializable{
         return count;
     }
 
+    public void setItem(T item) {
+        this.item = item;
+    }
+
     public void setCount(Double count) {
         this.count = count;
     }
