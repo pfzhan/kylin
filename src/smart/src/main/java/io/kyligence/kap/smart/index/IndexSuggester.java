@@ -60,6 +60,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -77,6 +78,7 @@ class IndexSuggester {
     private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
 
     private AbstractContext proposeContext;
+    private AbstractContext.NModelContext modelContext;
     private IndexPlan indexPlan;
     private NDataModel model;
     private final ProjectInstance projectInstance;
@@ -88,6 +90,7 @@ class IndexSuggester {
     IndexSuggester(AbstractContext.NModelContext modelContext, IndexPlan indexPlan,
             Map<IndexIdentifier, IndexEntity> collector) {
 
+        this.modelContext = modelContext;
         this.proposeContext = modelContext.getProposeContext();
         this.model = modelContext.getTargetModel();
         this.indexPlan = indexPlan;
@@ -206,8 +209,19 @@ class IndexSuggester {
 
         indexEntity.getLayouts().add(layout);
         cuboidLayoutIds.add(layout.getId());
+        gatherLayoutRecItems(layout);
 
         return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
+    }
+
+    public void gatherLayoutRecItems(LayoutEntity layout) {
+        if (!proposeContext.needCollectRecommendations()) {
+            return;
+        }
+        LayoutRecItemV2 item = new LayoutRecItemV2();
+        item.setLayout(layout);
+        item.setCreateTime(System.currentTimeMillis());
+        modelContext.getIndexRexItemMap().putIfAbsent(layout.getColOrder(), item);
     }
 
     private boolean isQualifiedSuggestShardBy(OLAPContext context) {

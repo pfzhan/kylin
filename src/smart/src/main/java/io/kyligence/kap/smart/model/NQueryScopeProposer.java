@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -48,10 +49,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -71,7 +75,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
     @Override
     protected void execute(NDataModel dataModel) {
         log.trace("Propose scope for model [{}]", dataModel.getId());
-        ScopeBuilder scopeBuilder = new ScopeBuilder(dataModel);
+        ScopeBuilder scopeBuilder = new ScopeBuilder(dataModel, getModelContext());
 
         ModelTree modelTree = modelContext.getModelTree();
         // Load from context
@@ -107,6 +111,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newLinkedHashMap();
         Map<FunctionDesc, NDataModel.Measure> candidateMeasures = Maps.newLinkedHashMap();
         Set<TblColRef> dimensionAsMeasureColumns = Sets.newHashSet();
+        private Map<String, ComputedColumnDesc> computedColumnDescMap = Maps.newHashMap();
 
         Set<TblColRef> allTableColumns = Sets.newHashSet();
         JoinTableDesc[] joins = new JoinTableDesc[0];
@@ -115,14 +120,21 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         private int maxMeasureId = NDataModel.MEASURE_ID_BASE - 1;
 
         private NDataModel dataModel;
+        private AbstractContext.NModelContext modelContext;
 
-        protected ScopeBuilder(NDataModel dataModel) {
+        protected ScopeBuilder(NDataModel dataModel, AbstractContext.NModelContext modelContext) {
             this.dataModel = dataModel;
+            this.modelContext = modelContext;
 
             // Inherit from old model
             inheritCandidateNamedColumns(dataModel);
             inheritCandidateMeasures(dataModel);
             inheritJoinTables(dataModel);
+
+            dataModel.getComputedColumnDescs().forEach(cc -> {
+                String aliasDotName = cc.getTableAlias() + "." + cc.getColumnName();
+                computedColumnDescMap.putIfAbsent(aliasDotName, cc);
+            });
         }
 
         private void inheritCandidateNamedColumns(NDataModel dataModel) {
@@ -165,8 +177,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             allColumns.forEach(tblColRef -> {
                 ColumnStatus status;
                 boolean isDimension = canTblColRefTreatAsDimension(ctx, tblColRef);
+                boolean isNewDimension = isDimension;
                 if (candidateNamedColumns.containsKey(tblColRef.getIdentity())) {
                     NamedColumn namedColumn = candidateNamedColumns.get(tblColRef.getIdentity());
+                    isNewDimension = isDimension && namedColumn.isExist();
                     isDimension = namedColumn.isDimension() || isDimension;
                     status = isDimension ? ColumnStatus.DIMENSION : ColumnStatus.EXIST;
                     namedColumn.setStatus(status);
@@ -175,7 +189,26 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                     final NamedColumn column = transferToNamedColumn(tblColRef, status);
                     candidateNamedColumns.put(tblColRef.getIdentity(), column);
                 }
+
+                if (isNewDimension) {
+                    addDimRecommendation(candidateNamedColumns.get(tblColRef.getIdentity()), tblColRef);
+                }
             });
+        }
+
+        private void addDimRecommendation(NamedColumn column, TblColRef tblColRef) {
+            if (!modelContext.getProposeContext().needCollectRecommendations()) {
+                return;
+            }
+            String uniqueName = column.getAliasDotColumn();
+            if (tblColRef.getColumnDesc().isComputedColumn()) {
+                uniqueName = computedColumnDescMap.get(uniqueName).getUuid();
+            }
+            DimensionRecItemV2 item = new DimensionRecItemV2();
+            item.setColumn(column);
+            item.setDataType(tblColRef.getDatatype());
+            item.setCreateTime(System.currentTimeMillis());
+            modelContext.getDimensionRecItemMap().putIfAbsent(uniqueName, item);
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {
@@ -185,13 +218,14 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 agg.getParameters().forEach(parameterDesc -> {
                     paramNames.add(parameterDesc.getColRef().getIdentity().replaceAll("\\.", "_"));
                 });
+                boolean isNewMeasure = false;
                 if (!candidateMeasures.containsKey(agg)) {
-
                     FunctionDesc fun = copyFunctionDesc(agg);
                     String name = String.format("%s_%s", fun.getExpression(), String.join("_", paramNames));
                     NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                     if (CubeUtils.isValidMeasure(agg)) {
                         candidateMeasures.put(fun, measure);
+                        isNewMeasure = true;
                     } else {
                         dimensionAsMeasureColumns.addAll(fun.getColRefs());
                     }
@@ -199,8 +233,41 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                     String name = String.format("%s_%s", agg.getExpression(), String.join("_", paramNames));
                     Measure measure = CubeUtils.newMeasure(agg, name, ++maxMeasureId);
                     candidateMeasures.put(agg, measure);
+                    isNewMeasure = true;
+                }
+
+                if (isNewMeasure) {
+                    Measure measure = candidateMeasures.get(agg);
+                    addMeasureRecommendation(measure);
                 }
             });
+        }
+
+        private void addMeasureRecommendation(Measure measure) {
+            if (!modelContext.getProposeContext().needCollectRecommendations()) {
+                return;
+            }
+
+            MeasureRecItemV2 item = new MeasureRecItemV2();
+            item.setMeasure(measure);
+            item.setCreateTime(System.currentTimeMillis());
+            modelContext.getMeasureRecItemMap().putIfAbsent(uniqueMeasureName(measure), item);
+        }
+
+        private String uniqueMeasureName(Measure measure) {
+            Set<String> paramNames = Sets.newHashSet();
+            List<ParameterDesc> parameters = measure.getFunction().getParameters();
+            parameters.forEach(param -> {
+                final ColumnDesc column = param.getColRef().getColumnDesc();
+                if (column.isComputedColumn()) {
+                    paramNames.add(computedColumnDescMap.get(column.getIdentity()).getUuid());
+                } else {
+                    String tableAlias = param.getColRef().getTableRef().getAlias();
+                    String columnID = param.getColRef().getColumnDesc().getId();
+                    paramNames.add(tableAlias + "$" + columnID);
+                }
+            });
+            return String.format("%s__%s", measure.getFunction().getExpression(), String.join("__", paramNames));
         }
 
         private void build() {

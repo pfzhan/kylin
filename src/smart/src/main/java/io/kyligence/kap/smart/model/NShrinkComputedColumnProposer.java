@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.metadata.model.ParameterDesc;
 
@@ -32,6 +33,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.smart.AbstractContext;
 
 public class NShrinkComputedColumnProposer extends NAbstractModelProposer {
@@ -42,7 +44,20 @@ public class NShrinkComputedColumnProposer extends NAbstractModelProposer {
 
     @Override
     protected void execute(NDataModel modelDesc) {
+        discardRedundantRecommendations(modelDesc);
         discardCCFieldIfNotApply(modelDesc);
+    }
+
+    private void discardRedundantRecommendations(NDataModel dataModel) {
+        if (!modelContext.getProposeContext().needCollectRecommendations()) {
+            return;
+        }
+        Map<String, CCRecItemV2> recItemMap = modelContext.getCcRecItemMap();
+        dataModel.getComputedColumnDescs().forEach(cc -> {
+            if (!isCCUsedByModel(cc, dataModel)) {
+                recItemMap.remove(cc.getUuid());
+            }
+        });
     }
 
     private void discardCCFieldIfNotApply(NDataModel model) {

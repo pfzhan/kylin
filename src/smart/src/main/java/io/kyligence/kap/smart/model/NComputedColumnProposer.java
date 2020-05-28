@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.NModelContext;
@@ -73,6 +75,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         List<ComputedColumnDesc> newValidCCList = transferToComputedColumn(dataModel, ccSuggestions);
         evaluateTypeOfComputedColumns(dataModel, newValidCCList);
         cleanInvalidComputedColumnsInModel(dataModel);
+        collectCCRecommendations(newValidCCList);
 
         log.info("Propose ComputedColumns successfully completed in {} s. Valid ComputedColumns on model({}) are: {}.",
                 (System.currentTimeMillis() - startTime) / 1000, dataModel.getId(), dataModel.getComputedColumnNames());
@@ -123,6 +126,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             ccDesc.setComment("Auto suggested from: " + ccSuggestion);
             ccDesc.setDatatype("ANY"); // resolve data type later
             ccDesc.setExpression(ccSuggestion);
+            ccDesc.setUuid(UUID.randomUUID().toString());
             String newCCName = ComputedColumnEvalUtil.generateCCName(ccSuggestion, dataModel, otherModels);
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
@@ -172,6 +176,20 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             usedCols.addAll(getFilterInnerColumns(context));
         }
         return usedCols;
+    }
+
+    private void collectCCRecommendations(List<ComputedColumnDesc> computedColumns) {
+        if (!modelContext.getProposeContext().needCollectRecommendations()
+                || CollectionUtils.isEmpty(computedColumns)) {
+            return;
+        }
+
+        computedColumns.forEach(cc -> {
+            CCRecItemV2 item = new CCRecItemV2();
+            item.setCc(cc);
+            item.setCreateTime(System.currentTimeMillis());
+            modelContext.getCcRecItemMap().putIfAbsent(cc.getUuid(), item);
+        });
     }
 
     protected Set<String> translateToSuggestions(Set<TblColRef> innerColumns, Map<String, String> matchingAlias) {

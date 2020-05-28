@@ -80,6 +80,7 @@ public class ComputedColumnDesc implements Serializable {
     private String datatype;
     @JsonProperty
     private String comment;
+    private String uuid;
 
     public void init(NDataModel model, String rootFactTableName) {
         Map<String, TableRef> aliasMap = model.getAliasMap();

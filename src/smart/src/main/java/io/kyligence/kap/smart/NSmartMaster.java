@@ -74,6 +74,13 @@ public class NSmartMaster {
         return context;
     }
 
+    public static AbstractSemiContextV2 genOptRecommendationSemiV2(KylinConfig config, String project, String[] sqls,
+            Consumer<AbstractContext> hook) {
+        AbstractSemiContextV2 contextV2 = new ModelReuseContextOfSemiV2(config, project, sqls);
+        new NSmartMaster(contextV2).runWithContext(hook);
+        return contextV2;
+    }
+
     public static AbstractContext selectExistedModel(KylinConfig config, String project, String[] sqls,
             Consumer<AbstractContext> hook) {
         AbstractContext context = new ModelSelectContextOfSemiMode(config, project, sqls);

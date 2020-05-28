@@ -36,6 +36,10 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
@@ -95,6 +99,10 @@ public abstract class AbstractContext {
         });
     }
 
+    public boolean needCollectRecommendations() {
+        return this instanceof AbstractSemiContextV2;
+    }
+
     public void handleExceptionAfterModelSelect() {
         // default do nothing 
     }
@@ -113,6 +121,15 @@ public abstract class AbstractContext {
         private IndexPlan targetIndexPlan;
         @Setter
         private IndexPlan originIndexPlan;
+
+        @Setter
+        private Map<String, CCRecItemV2> ccRecItemMap = Maps.newHashMap();
+        @Setter
+        private Map<String, DimensionRecItemV2> dimensionRecItemMap = Maps.newHashMap();
+        @Setter
+        private Map<String, MeasureRecItemV2> measureRecItemMap = Maps.newHashMap();
+        @Setter
+        private Map<List<Integer>, LayoutRecItemV2> indexRexItemMap = Maps.newHashMap();
 
         @Setter
         private boolean snapshotSelected;

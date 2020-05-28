@@ -84,11 +84,21 @@ class NIndexReducer extends NAbstractIndexProposer {
                 allReservedIndexList.size());
         allReservedIndexList.forEach(index -> index.getLayouts().forEach(layout -> layout.setInProposing(false)));
         indexPlan.setIndexes(allReservedIndexList);
+        cleanRedundantLayoutRecommendations(redundantToReservedMap);
 
         // adjust acceleration info
         adjustAccelerationInfo(redundantToReservedMap);
         log.debug("End of reduce indexes and layouts!");
         return indexPlan;
+    }
+
+    private void cleanRedundantLayoutRecommendations(Map<LayoutEntity, LayoutEntity> redundantToReserveMap) {
+        if (!context.getProposeContext().needCollectRecommendations()) {
+            return;
+        }
+        redundantToReserveMap.forEach((redundant, reserved) -> {
+            context.getIndexRexItemMap().remove(redundant.getColOrder());
+        });
     }
 
     private void adjustAccelerationInfo(Map<LayoutEntity, LayoutEntity> redundantToReservedMap) {

@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
@@ -45,10 +46,10 @@ public class NQueryScopeProposerTest extends NLocalWithSparkSessionTest {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runWithContext();
-        NQueryScopeProposer nQueryScopeProposer = new NQueryScopeProposer(
-                smartMaster.getContext().getModelContexts().get(0));
+        AbstractContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
+        NQueryScopeProposer nQueryScopeProposer = new NQueryScopeProposer(modelContext);
         NQueryScopeProposer.ScopeBuilder scopeBuilder = new NQueryScopeProposer.ScopeBuilder(
-                smartMaster.getRecommendedModels().get(0));
+                smartMaster.getRecommendedModels().get(0), modelContext);
 
         TblColRef col1 = TblColRef.mockup(TableDesc.mockup("DEFAULT.A_B"), 1, "C", "double");
         Field f1 = col1.getClass().getDeclaredField("identity");
