@@ -90,6 +90,8 @@ public class QueryHistoryAccessCLI {
         } catch (BadSqlGrammarException e) {
             jdbcTemplate.update("drop table " + RDBMSWriter.getQueryHistoryTableName());
             jdbcTemplate.update("drop table " + RDBMSWriter.getQueryHistoryRealizationTableName());
+            jdbcTemplate.update("drop table " + getMetadataTableName());
+            jdbcTemplate.update("drop table " + getMetadataAuditLogTableName());
             logger.error(FAIL_LOG, e.getMessage());
             return false;
         } catch (Exception e) {
@@ -104,6 +106,14 @@ public class QueryHistoryAccessCLI {
         val props = datasourceParameters(kylinConfig.getMetadataUrl());
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         return new JdbcTemplate(dataSource);
+    }
+
+    static String getMetadataTableName() {
+        return KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+    }
+
+    static String getMetadataAuditLogTableName() {
+        return KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier() + "_audit_log";
     }
 
     public static void main(String[] args) {
