@@ -56,6 +56,7 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
         qe.executeQuery(SQL);
         Dataset<Row> dataset = SparderEnv.getDF();
         Assert.assertNotNull(dataset);
+        SparderEnv.cleanCompute();
         return dataset;
     }
 

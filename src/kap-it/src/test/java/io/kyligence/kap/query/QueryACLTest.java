@@ -35,7 +35,6 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -297,7 +296,6 @@ public class QueryACLTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testSimpleConvert() throws Exception {
         val sql = "select tmp.cal_dt, tmp.lstg_format_name, sum(price*item_count) from \"default\".test_kylin_fact as tmp group by tmp.cal_dt, tmp.lstg_format_name order by tmp.cal_dt limit 500";
         val prepender = new TableViewPrepender();
@@ -317,7 +315,7 @@ public class QueryACLTest extends NAutoTestBase {
         prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
         prepender.setAclInfo(new QueryContext.AclInfo(USER1, Sets.newHashSet(GROUP1), false));
         val result = prepender.convert(sql, PROJECT, "DEFAULT", false);
-        val expected = "with test_kylin_fact as (select cal_dt, item_count, lstg_format_name, price from \"default\".test_kylin_fact WHERE ((CAL_DT=DATE '2012-01-01') AND ((LSTG_FORMAT_NAME='FP-GTC') OR (LSTG_FORMAT_NAME='ABIN')))) " + sql;
+        val expected = "with test_kylin_fact as (select lstg_format_name, item_count, price, cal_dt from \"default\".test_kylin_fact WHERE ((CAL_DT=DATE '2012-01-01') AND ((LSTG_FORMAT_NAME='FP-GTC') OR (LSTG_FORMAT_NAME='ABIN')))) " + sql;
         Assert.assertEquals(expected.toUpperCase(), result.toUpperCase());
 
         prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
@@ -352,7 +350,6 @@ public class QueryACLTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testWithClauseAliasConflictWithTableView() throws Exception {
         val sql = "with test_kylin_fact as (select * from \"default\".test_kylin_fact where seller_id > 10000000) " +
                 "select tmp1.cal_dt, sum(price*item_count) " +
@@ -383,7 +380,7 @@ public class QueryACLTest extends NAutoTestBase {
         prepender.setAclInfo(new QueryContext.AclInfo(USER1, Sets.newHashSet(GROUP1), false));
         val tranformedResult = prepender.convert(sql, PROJECT, DEFAULT_SCHEMA, false);
         val expectedPattern = "WITH TEST_CAL_DT AS \\(SELECT CAL_DT, YEAR_BEG_DT FROM EDW\\.TEST_CAL_DT WHERE \\(\\(YEAR_BEG_DT=DATE '2013-01-01'\\) OR \\(YEAR_BEG_DT=DATE '2012-01-01'\\)\\)\\), " +
-                "TEST_KYLIN_FACT_[a-zA-Z0-9]{5} AS \\(SELECT CAL_DT, ITEM_COUNT, PRICE, SELLER_ID " +
+                "TEST_KYLIN_FACT_[a-zA-Z0-9]{5} AS \\(SELECT ITEM_COUNT, PRICE, CAL_DT, SELLER_ID " +
                 "FROM \"DEFAULT\"\\.TEST_KYLIN_FACT WHERE \\(\\(CAL_DT=DATE '2012-01-02'\\) OR \\(CAL_DT=DATE '2012-01-01'\\)\\)\\),  " +
                 "TEST_KYLIN_FACT AS \\(SELECT \\* FROM TEST_KYLIN_FACT_[a-zA-Z0-9]{5} WHERE SELLER_ID > 10000000\\) " +
                 "SELECT TMP1\\.CAL_DT, SUM\\(PRICE\\*ITEM_COUNT\\) FROM TEST_KYLIN_FACT AS TMP1 JOIN EDW\\.TEST_CAL_DT AS TMP2 ON TMP1\\.CAL_DT = TMP2\\.CAL_DT " +

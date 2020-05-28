@@ -26,7 +26,6 @@ package io.kyligence.kap.query;
 
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.auto.NAutoTestBase;
@@ -41,7 +40,6 @@ public class DynamicQueryTest extends NAutoTestBase {
     private static final String PROJECT = "newten";
 
     @Test
-    @Ignore
     public void testDynamicParamOnAgg() throws Exception {
         proposeAndBuildIndex(new String[] { "select * from test_kylin_fact" });
         getTestConfig().setProperty("kylin.query.use-tableindex-answer-non-raw-query", "true");
@@ -55,7 +53,6 @@ public class DynamicQueryTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testDynamicParamOnLimitOffset() throws Exception {
         proposeAndBuildIndex(new String[] {
                 "select * from (select cal_dt, count(*) from test_kylin_fact group by cal_dt order by cal_dt) as test_kylin_fact order by cal_dt" });
@@ -82,7 +79,6 @@ public class DynamicQueryTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testDynamicParamOnMilliSecTimestamp() throws Exception {
         proposeAndBuildIndex(new String[]{"select time2 from test_measure"});
         String sql = "select time2 from test_measure where time2=?";
