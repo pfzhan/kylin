@@ -102,6 +102,7 @@ public abstract class KylinConfigBase implements Serializable {
     public static final String TRUE = "true";
     public static final String FALSE = "false";
     public static final String QUERY_NODE = "query";
+    public static final String PATH_DELIMITER = "/";
 
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
@@ -669,6 +670,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Path getJobTmpFlatTableDir(String project, String jobId) {
         String path = getJobTmpDir(project) + jobId + "/flat_table/";
+        return new Path(path);
+    }
+
+    public Path getFlatTableDir(String project, String dataFlowId, String segmentId) {
+        String path = getHdfsWorkingDirectoryWithoutScheme() + project + "/flat_table/" + dataFlowId + PATH_DELIMITER + segmentId;
         return new Path(path);
     }
 
@@ -1646,6 +1652,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getPersistFlatTableThreshold() {
         return Integer.parseInt(getOptional("kylin.engine.persist-flattable-threshold", "1"));
+    }
+
+    public boolean isPersistFlatTableEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.persist-flattable-enabled", FALSE));
     }
 
     public boolean isPersistFlatViewEnabled() {

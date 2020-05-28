@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -114,6 +115,9 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     // worked only in HDFSMeteStore
     @JsonProperty("is_fact_view_ready")
     private boolean isFactViewReady = false;
+
+    @JsonProperty("selected_columns")
+    private List<String> selectedColumns = Lists.newArrayList();
 
     // computed fields below
 
@@ -492,6 +496,14 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public void setFactViewReady(boolean factViewReady) {
         isFactViewReady = factViewReady;
+    }
+
+    public List<String> getSelectedColumns() {
+        return selectedColumns;
+    }
+
+    public void setSelectedColumns(List<String> selectedColumns) {
+        this.selectedColumns = selectedColumns;
     }
 
     @Override

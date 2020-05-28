@@ -37,7 +37,6 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.{IJoinedFlatTableDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
 
 import scala.collection.JavaConverters._
@@ -90,37 +89,40 @@ class DFChooser(toBuildTree: NSpanningTree,
 
   def persistFlatTableIfNecessary(): String = {
     var path = ""
-    if (flatTableSource != null
-      && flatTableSource.getToBuildCuboids.size() > config.getPersistFlatTableThreshold) {
-      val columns = new mutable.ListBuffer[String]
+    if (shouldPersistFlatTable()) {
       val df = flatTableSource.getFlattableDS
-
-      val colIndex = df.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
+      val columns = new mutable.ListBuffer[String]
+      val columnIndex = df.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
       flatTableSource.getToBuildCuboids.asScala.foreach { c =>
         columns.appendAll(c.getDimensions.asScala.map(_.toString))
 
         c.getEffectiveMeasures.asScala.foreach { mea =>
           val parameters = mea._2.getFunction.getParameters.asScala
           if (parameters.head.isColumnType) {
-            val measureUsedCols = parameters.map(p => colIndex.apply(flatTableDesc.getColumnIndex(p.getColRef)).toString)
+            val measureUsedCols = parameters.map(p => columnIndex.apply(flatTableDesc.getColumnIndex(p.getColRef)).toString)
             columns.appendAll(measureUsedCols)
           }
         }
       }
-
-      df.select(columns.map(col): _*)
+      val toBuildCuboidColumns = columns.distinct.sorted
+      logInfo(s"to build cuboid columns are $toBuildCuboidColumns")
       if (df.schema.nonEmpty) {
-        path = s"${config.getJobTmpFlatTableDir(seg.getProject, jobId)}"
-
-        if (seg.isFlatTableReady && HadoopUtil.getWorkingFileSystem.exists(new Path(path))) {
+        val selectedColumns = flatTableDesc.getIndices.asScala.sorted.map(_.toString)
+        path = s"${config.getFlatTableDir(seg.getProject, seg.getDataflow.getId, seg.getId)}"
+        if (!shouldUpdateFlatTable(new Path(path), selectedColumns)) {
           logInfo(s"Skip already persisted flat table, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
         } else {
           ss.sparkContext.setJobDescription("Persist flat table.")
           df.write.mode(SaveMode.Overwrite).parquet(path)
-          logInfo(s"Persist flat table into:$path. Selected cols in table are $columns.")
-
-          // checkpoint flat table
-          DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => copied.setFlatTableReady(true))
+          // checkpoint
+          val oldSelectedColumns = seg.getSelectedColumns.asScala
+          logInfo(s"Persist flat table into: $path. " +
+            s"Selected columns in table are [${selectedColumns.mkString(",")}]. " +
+            s"Old Selected columns in table are [${oldSelectedColumns.mkString(",")}].")
+          DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
+            copied.setFlatTableReady(true)
+            copied.setSelectedColumns(selectedColumns.toList.asJava)
+          })
         }
         flatTableSource.setParentStorageDF(ss.read.parquet(path))
       }
@@ -190,6 +192,36 @@ class DFChooser(toBuildTree: NSpanningTree,
     val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding, needJoin)
     sourceInfo.setFlattableDS(afterJoin)
     sourceInfo
+  }
+
+  def shouldPersistFlatTable(): Boolean = {
+    if (flatTableSource == null) {
+      false
+    } else if (config.isPersistFlatTableEnabled) {
+      true
+    } else if (flatTableSource.getToBuildCuboids.size() > config.getPersistFlatTableThreshold) {
+      true
+    } else {
+      false
+    }
+  }
+
+  def shouldUpdateFlatTable(flatTablePath: Path, selectedColumns: Seq[String]): Boolean = {
+    if (seg.isFlatTableReady && HadoopUtil.getWorkingFileSystem.exists(flatTablePath)) {
+      val newSelectedColumns = if (selectedColumns == null) Seq.empty[String]
+      else selectedColumns.filterNot(seg.getSelectedColumns.contains(_)).distinct
+      if (newSelectedColumns.isEmpty) {
+        logInfo(s"Already persisted flat table found without new selected columns," +
+          s" segment: ${seg.getId}, dataFlow: ${seg.getDataflow.getId}")
+        false
+      } else {
+        logInfo(s"Already persisted flat table found with new selected columns: [${newSelectedColumns.mkString(",")}]," +
+          s" segment: ${seg.getId}, dataFlow: ${seg.getDataflow.getId}")
+        true
+      }
+    } else {
+      true
+    }
   }
 }
 

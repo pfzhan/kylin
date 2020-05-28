@@ -150,19 +150,24 @@ public class DFBuildJob extends SparkApplication {
         }
         Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(shareDir);
         updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
-        val fs = FileSystem.get(new Configuration());
-        for (String viewPath : persistedViewFactTable) {
+
+        tailingCleanups(segmentIds, persistedFlatTable, persistedViewFactTable);
+    }
+
+    private void tailingCleanups(Set<String> segmentIds, List<String> flatTables, List<String> factViews) throws IOException {
+        val fs = HadoopUtil.getWorkingFileSystem();
+        for (String viewPath : factViews) {
             fs.delete(new Path(viewPath), true);
             logger.debug("Delete persisted view fact table: {}.", viewPath);
         }
-        for (String path : persistedFlatTable) {
-            fs.delete(new Path(path), true);
-            logger.debug("Delete persisted flat table: {}.", path);
-        }
 
-        // reset flags in mem meta-store before being dumped to meta_out
-        // segment resumable flags shouldn't cross building jobs
-        resetSegmentMemOnly(segmentIds);
+        if (!config.isPersistFlatTableEnabled()) {
+            for (String path : flatTables) {
+                fs.delete(new Path(path), true);
+                logger.debug("Delete persisted flat table: {}.", path);
+            }
+        }
+        resetSegmentMemOnly(segmentIds, !config.isPersistFlatTableEnabled());
     }
 
     protected void updateSegmentSourceBytesSize(String dataflowId, Map<String, Object> toUpdateSegmentSourceSize) {
@@ -429,7 +434,9 @@ public class DFBuildJob extends SparkApplication {
         }
     }
 
-    private void resetSegmentMemOnly(Set<String> segmentIds) {
+    private void resetSegmentMemOnly(Set<String> segmentIds, final boolean resetFlatTable) {
+        // reset flags in mem meta-store before being dumped to meta_out
+        // segment resumable flags shouldn't cross building jobs
         Optional.ofNullable(segmentIds).orElseGet(Collections::emptySet).forEach(segId -> {
             NDataSegment readOnlySeg = getSegment(segId);
             NDataflow readOnlyDf = readOnlySeg.getDataflow();
@@ -439,7 +446,10 @@ public class DFBuildJob extends SparkApplication {
             // reset
             segCopy.setSnapshotReady(false);
             segCopy.setDictReady(false);
-            segCopy.setFlatTableReady(false);
+            if(resetFlatTable) {
+                segCopy.setSelectedColumns(Lists.newArrayList());
+                segCopy.setFlatTableReady(false);
+            }
             segCopy.setFactViewReady(false);
 
             NDataflowUpdate dfUpdate = new NDataflowUpdate(readOnlyDf.getId());

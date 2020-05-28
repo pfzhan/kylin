@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.rest.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_EMAIL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
@@ -48,6 +49,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -745,5 +747,14 @@ public class ProjectService extends BasicService {
         File kFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);
         FileUtils.copyInputStreamToFile(keytabFile.getInputStream(), kFile);
         return kFile;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Transaction(project = 0)
+    public void updateProjectConfig(String project, Map<String, String> overrides) {
+        if (MapUtils.isEmpty(overrides)) {
+            throw new KylinException(EMPTY_PARAMETER, "config map is required");
+        }
+        updateProjectOverrideKylinProps(project, overrides);
     }
 }

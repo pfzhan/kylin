@@ -30,6 +30,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISegment;
@@ -97,11 +98,17 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     // check what columns from hive tables are required, and index them
     private void initParseIndexPlan() {
-        for (Map.Entry<Integer, TblColRef> dimEntry : indexPlan.getEffectiveDimCols().entrySet()) {
+        boolean flatTableEnabled = KylinConfig.getInstanceFromEnv().isPersistFlatTableEnabled();
+        Map<Integer, TblColRef> effectiveDimensions = flatTableEnabled ? indexPlan.getModel().getEffectiveDimensions()
+                : indexPlan.getEffectiveDimCols();
+        for (Map.Entry<Integer, TblColRef> dimEntry : effectiveDimensions.entrySet()) {
             initAddColumn(dimEntry.getValue());
         }
 
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : indexPlan.getEffectiveMeasures().entrySet()) {
+        Map<Integer, NDataModel.Measure> effectiveMeasures = flatTableEnabled
+                ? indexPlan.getModel().getEffectiveMeasures()
+                : indexPlan.getEffectiveMeasures();
+        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : effectiveMeasures.entrySet()) {
             FunctionDesc func = measureEntry.getValue().getFunction();
             List<TblColRef> colRefs = func.getColRefs();
             if (colRefs != null) {

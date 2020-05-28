@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool.garbage;
 
+import static org.apache.kylin.common.util.HadoopUtil.FLAT_TABLE_STORAGE_ROOT;
 import static org.apache.kylin.common.util.HadoopUtil.GLOBAL_DICT_STORAGE_ROOT;
 import static org.apache.kylin.common.util.HadoopUtil.JOB_TMP_ROOT;
 import static org.apache.kylin.common.util.HadoopUtil.PARQUET_STORAGE_ROOT;
@@ -43,6 +44,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -265,6 +267,10 @@ public class StorageCleaner {
         return getDataflowBaseDir(project) + dataflowId;
     }
 
+    private String getDfFlatTableDir(String project, String dataFlowId) {
+        return project + FLAT_TABLE_STORAGE_ROOT + "/" + dataFlowId;
+    }
+
     class ProjectStorageCleaner {
 
         private final String project;
@@ -324,8 +330,12 @@ public class StorageCleaner {
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val activeIndexDataPath = Sets.<String> newHashSet();
             val activeFastBitmapIndexDataPath = Sets.<String> newHashSet();
+            val activeSegmentFlatTableDataPath = Sets.<String> newHashSet();
             val dataflows = NDataflowManager.getInstance(config, project).listAllDataflows().stream()
                     .map(RootPersistentEntity::getId).collect(Collectors.toSet());
+            dataflowManager.listAllDataflows().forEach(df -> df.getSegments().stream() //
+                    .map(segment -> getSegmentFlatTableDir(project, segment))
+                    .forEach(activeSegmentFlatTableDataPath::add));
             dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
                     .map(StorageCleaner.this::getDataLayoutDir).forEach(activeIndexDataPath::add));
@@ -340,6 +350,9 @@ public class StorageCleaner {
                 item.getProject(project).getLayouts()
                         .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath())
                                 || activeFastBitmapIndexDataPath.contains(node.getRelativePath()));
+                item.getProject(project).getDfFlatTables().removeIf(node -> dataflows.contains(node.getName()));
+                item.getProject(project).getSegmentFlatTables()
+                        .removeIf(node -> activeSegmentFlatTableDataPath.contains(node.getRelativePath()));
             }
         }
 
@@ -398,6 +411,10 @@ public class StorageCleaner {
         return project + GLOBAL_DICT_STORAGE_ROOT;
     }
 
+    private String getSegmentFlatTableDir(String project, NDataSegment segment) {
+        return getDfFlatTableDir(project, segment.getDataflow().getId()) + "/" + segment.getId();
+    }
+
     private String getDataLayoutDir(NDataLayout dataLayout) {
         NDataSegDetails segDetails = dataLayout.getSegDetails();
         return getDataflowDir(segDetails.getProject(), segDetails.getDataSegment().getDataflow().getId()) + "/"
@@ -415,7 +432,8 @@ public class StorageCleaner {
                     Pair.newPair(GLOBAL_DICT_STORAGE_ROOT.substring(1), projectNode.getGlobalDictTables()),
                     Pair.newPair(PARQUET_STORAGE_ROOT.substring(1), projectNode.getDataflows()),
                     Pair.newPair(TABLE_EXD_STORAGE_ROOT.substring(1), projectNode.getTableExds()),
-                    Pair.newPair(SNAPSHOT_STORAGE_ROOT.substring(1), tableSnapshotParents))) {
+                    Pair.newPair(SNAPSHOT_STORAGE_ROOT.substring(1), tableSnapshotParents),
+                    Pair.newPair(FLAT_TABLE_STORAGE_ROOT.substring(1), projectNode.getDfFlatTables()))) {
                 val treeNode = new FileTreeNode(pair.getFirst(), projectNode);
                 try {
                     Stream.of(item.getFs().listStatus(new Path(item.getPath(), treeNode.getRelativePath())))
@@ -430,7 +448,8 @@ public class StorageCleaner {
                     Pair.newPair(tableSnapshotParents, projectNode.getSnapshots()), //
                     Pair.newPair(projectNode.getGlobalDictTables(), projectNode.getGlobalDictColumns()), //
                     Pair.newPair(projectNode.getDataflows(), projectNode.getSegments()), //
-                    Pair.newPair(projectNode.getSegments(), projectNode.getLayouts()))) {
+                    Pair.newPair(projectNode.getSegments(), projectNode.getLayouts()),
+                    Pair.newPair(projectNode.getDfFlatTables(), projectNode.getSegmentFlatTables()))) {
                 val slot = pair.getSecond();
                 for (FileTreeNode node : pair.getFirst()) {
                     Stream.of(item.getFs().listStatus(new Path(item.getPath(), node.getRelativePath())))
@@ -469,9 +488,12 @@ public class StorageCleaner {
          *    |--/dict/global_dict
          *    |  +--/${table_identity}
          *    |     +--/${column_name}
-         *    +--/table_snapshot
-         *       +--/${table_identity}
-         *          +--/${snapshot_version}
+         *    |--/table_snapshot
+         *    |  +--/${table_identity}
+         *    |     +--/${snapshot_version}
+         *    |--/flat_table
+         *    |  +--/${dataflow_id}
+         *    |     +--/${segment_id}
          */
 
         List<FileTreeNode> projectNodes = Lists.newArrayList();
@@ -535,9 +557,13 @@ public class StorageCleaner {
 
         List<FileTreeNode> layouts = Lists.newLinkedList();
 
+        List<FileTreeNode> dfFlatTables = Lists.newArrayList();
+
+        List<FileTreeNode> segmentFlatTables = Lists.newArrayList();
+
         Collection<List<FileTreeNode>> getAllCandidates() {
             return Arrays.asList(jobTmps, tableExds, globalDictTables, globalDictColumns, snapshotTables, snapshots,
-                    dataflows, segments, layouts);
+                    dataflows, segments, layouts, dfFlatTables, segmentFlatTables);
         }
 
     }

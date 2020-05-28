@@ -181,6 +181,7 @@ public class BuildLayoutWithUpdate {
         } catch (InterruptedException e) {
             logger.warn("Error occurred when shutdown checkPointer.", e);
             checkPointer.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 

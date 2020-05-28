@@ -33,6 +33,7 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
@@ -387,6 +388,15 @@ public class NProjectController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg("owner", request.getOwner());
         projectService.updateProjectOwner(project, request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateProjectConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/config")
+    @ResponseBody
+    public EnvelopeResponse<String> updateProjectConfig(@PathVariable("project") String project,
+                                                    @RequestBody Map<String, String> request) {
+        projectService.updateProjectConfig(project, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

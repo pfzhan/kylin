@@ -27,13 +27,20 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.datasource.storage.StorageStore;
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
@@ -43,6 +50,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
@@ -67,6 +75,9 @@ public class DFMergeJob extends SparkApplication {
         String newSegmentId = getParam(NBatchConstants.P_SEGMENT_IDS);
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
         mergeSnapshot(dataflowId, newSegmentId);
+
+        //merge flat table
+        mergeFlatTable(dataflowId, newSegmentId);
 
         //merge and save segments
         mergeSegments(dataflowId, newSegmentId, layoutIds);
@@ -100,8 +111,8 @@ public class DFMergeJob extends SparkApplication {
         }
     }
 
-    protected List<NDataSegment> getMergingSegments(NDataflow dataflow,NDataSegment mergedSeg) {
-      return dataflow.getMergingSegments(mergedSeg);
+    protected List<NDataSegment> getMergingSegments(NDataflow dataflow, NDataSegment mergedSeg) {
+        return dataflow.getMergingSegments(mergedSeg);
     }
 
     protected void mergeSegments(String dataflowId, String segmentId, Set<Long> specifiedCuboids) throws IOException {
@@ -117,7 +128,8 @@ public class DFMergeJob extends SparkApplication {
             LayoutEntity layout = assist.getLayout();
             Dataset<Row> afterSort;
             if (IndexEntity.isTableIndex(layout.getIndex().getId())) {
-                afterSort = afterMerge.sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet()));
+                afterSort = afterMerge
+                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet()));
             } else {
                 Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
                 Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),
@@ -181,7 +193,8 @@ public class DFMergeJob extends SparkApplication {
         dataLayout.setBuildJobId(jobId);
         long rowCount = taskStats.numRows();
         if (rowCount == -1) {
-            KylinBuildEnv.get().buildJobInfos().recordAbnormalLayouts(layout.getId(), "Job metrics seems null, use count() to collect cuboid rows.");
+            KylinBuildEnv.get().buildJobInfos().recordAbnormalLayouts(layout.getId(),
+                    "Job metrics seems null, use count() to collect cuboid rows.");
             logger.info("Can not get cuboid row cnt.");
         }
         dataLayout.setRows(rowCount);
@@ -193,6 +206,114 @@ public class DFMergeJob extends SparkApplication {
         return dataLayout;
     }
 
+    private List<String> predicatedSegments(Predicate<NDataSegment> predicate, final List<NDataSegment> sources) {
+        return sources.stream().filter(predicate).map(NDataSegment::getId).collect(Collectors.toList());
+    }
+
+    private List<Path> getSegmentFlatTables(String dataFlowId, List<NDataSegment> segments) {
+        // check flat table ready
+        List<String> notReadies = predicatedSegments((NDataSegment segment) -> !segment.isFlatTableReady(), segments);
+        if (CollectionUtils.isNotEmpty(notReadies)) {
+            final String logStr = String.join(",", notReadies);
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] Plan to merge segments' flat table, "
+                    + "but found that some's flat table were not ready like [{}]", logStr);
+            return Lists.newArrayList();
+        }
+
+        // check flat table exists
+        final FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        List<String> notExists = predicatedSegments((NDataSegment segment) -> {
+            try {
+                Path p = config.getFlatTableDir(project, dataFlowId, segment.getId());
+                return !fs.exists(p);
+            } catch (IOException ioe) {
+                logger.warn("[UNEXPECTED_THINGS_HAPPENED] When checking segment's flat table exists, segment id: {}",
+                        segment.getId(), ioe);
+                return true;
+            }
+        }, segments);
+        if (CollectionUtils.isNotEmpty(notExists)) {
+            final String logStr = String.join(",", notExists);
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] Plan to merge segments' flat table, "
+                    + "but found that some's flat table were not exists like [{}]", logStr);
+            return Lists.newArrayList();
+        }
+
+        return segments.stream().map(segment -> config.getFlatTableDir(project, dataFlowId, segment.getId()))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> getSelectedColumns(List<NDataSegment> segments) {
+        List<String> selectedColumns = null;
+        for (NDataSegment segment : segments) {
+            if (Objects.isNull(selectedColumns)) {
+                selectedColumns = segment.getSelectedColumns();
+            } else {
+                selectedColumns = segment.getSelectedColumns().stream()
+                        .filter(Sets.newHashSet(selectedColumns)::contains).collect(Collectors.toList());
+            }
+
+            if (CollectionUtils.isEmpty(selectedColumns)) {
+                logger.warn("Segments intersected selected columns is empty when merging segment {}", segment.getId());
+                return selectedColumns;
+            }
+        }
+        return selectedColumns;
+    }
+
+    private void mergeFlatTable(String dataFlowId, String segmentId) {
+        if (!config.isPersistFlatTableEnabled()) {
+            logger.info("project {} flat table persisting is not enabled.", project);
+            return;
+        }
+        final NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
+        final NDataflow dataFlow = dfMgr.getDataflow(dataFlowId);
+        final NDataSegment mergedSeg = dataFlow.getSegment(segmentId);
+        final List<NDataSegment> mergingSegments = getMergingSegments(dataFlow, mergedSeg);
+
+        Collections.sort(mergingSegments);
+
+        // check flat table paths
+        List<Path> flatTables = getSegmentFlatTables(dataFlowId, mergingSegments);
+        if (CollectionUtils.isEmpty(flatTables)) {
+            return;
+        }
+
+        // check flat table selected columns
+        List<String> selectedColumns = getSelectedColumns(mergingSegments);
+        if (CollectionUtils.isEmpty(selectedColumns)) {
+            return;
+        }
+
+        Dataset<Row> flatTableDs = null;
+        for (Path p : flatTables) {
+            Dataset<Row> newDs = ss.read().parquet(p.toString());
+            flatTableDs = Objects.isNull(flatTableDs) ? newDs : flatTableDs.union(newDs);
+        }
+
+        if (Objects.isNull(flatTableDs)) {
+            return;
+        }
+
+        // persist storage
+        Path newPath = config.getFlatTableDir(project, dataFlowId, segmentId);
+        ss.sparkContext().setLocalProperty("spark.scheduler.pool", "merge");
+        ss.sparkContext().setJobDescription("Persist flat table.");
+        flatTableDs.write().mode(SaveMode.Overwrite).parquet(newPath.toString());
+
+        final String selectedColumnsStr = String.join(",", selectedColumns);
+        logger.info("Persist merged flat tables to path {} with selected columns [{}], "
+                + "new segment id: {}, dataFlowId: {}", newPath, selectedColumnsStr, segmentId, dataFlowId);
+
+        NDataflow dfCopied = dataFlow.copy();
+        NDataSegment segmentCopied = dfCopied.getSegment(segmentId);
+        segmentCopied.setFlatTableReady(true);
+        segmentCopied.setSelectedColumns(selectedColumns);
+
+        NDataflowUpdate update = new NDataflowUpdate(dataFlowId);
+        update.setToUpdateSegs(segmentCopied);
+        dfMgr.updateDataflow(update);
+    }
 
     @Override
     protected String generateInfo() {
