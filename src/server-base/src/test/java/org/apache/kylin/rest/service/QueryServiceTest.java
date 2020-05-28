@@ -941,7 +941,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
         final SQLResponse response = Mockito.mock(SQLResponse.class);
-        Mockito.doReturn(1L).when(response).getResultRowCount();
+        Mockito.doReturn(2L).when(response).getResultRowCount();
 
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.query-result-row-count", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));

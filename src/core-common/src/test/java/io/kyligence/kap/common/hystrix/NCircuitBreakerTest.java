@@ -51,42 +51,42 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testVerifyProjectCreation() {
-        NCircuitBreaker.verifyProjectCreation(10);
+        NCircuitBreaker.verifyProjectCreation(100);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyProjectCreation(100);
+        NCircuitBreaker.verifyProjectCreation(101);
     }
 
     @Test
     public void testVerifyModelCreation() {
-        NCircuitBreaker.verifyModelCreation(10);
+        NCircuitBreaker.verifyModelCreation(100);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyModelCreation(100);
+        NCircuitBreaker.verifyModelCreation(101);
     }
 
     @Test
     public void testVerifyFavoriteQueryCreation() {
-        NCircuitBreaker.verifyFavoriteQueryCreation(300);
+        NCircuitBreaker.verifyFavoriteQueryCreation(30_000);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyFavoriteQueryCreation(30_000);
+        NCircuitBreaker.verifyFavoriteQueryCreation(30_001);
     }
 
     @Test
     public void testVerifySqlPatternToBlacklist() {
-        NCircuitBreaker.verifySqlPatternToBlacklist(300);
+        NCircuitBreaker.verifySqlPatternToBlacklist(30_000);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifySqlPatternToBlacklist(30_000);
+        NCircuitBreaker.verifySqlPatternToBlacklist(30_001);
     }
 
     @Test
     public void testVerifyQueryResultRowCount() {
-        NCircuitBreaker.verifyQueryResultRowCount(200_000L);
+        NCircuitBreaker.verifyQueryResultRowCount(2_000_000L);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyQueryResultRowCount(2_000_000L);
+        NCircuitBreaker.verifyQueryResultRowCount(2_000_001L);
     }
 
 }

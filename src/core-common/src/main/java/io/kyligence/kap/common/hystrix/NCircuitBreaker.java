@@ -74,7 +74,7 @@ public class NCircuitBreaker {
         }
 
         int threshold = breakerConfig.thresholdOfProject();
-        if (threshold < 1 || current < threshold) {
+        if (threshold < 1 || current <= threshold) {
             return;
         }
 
@@ -87,7 +87,7 @@ public class NCircuitBreaker {
         }
 
         int threshold = breakerConfig.thresholdOfModel();
-        if (threshold < 1 || current < threshold) {
+        if (threshold < 1 || current <= threshold) {
             return;
         }
 
@@ -100,7 +100,7 @@ public class NCircuitBreaker {
         }
 
         int threshold = breakerConfig.thresholdOfFavoriteQuery();
-        if (threshold < 1 || current < threshold) {
+        if (threshold < 1 || current <= threshold) {
             return;
         }
 
@@ -113,7 +113,7 @@ public class NCircuitBreaker {
         }
 
         int threshold = breakerConfig.thresholdOfSqlPatternToBlacklist();
-        if (threshold < 1 || current < threshold) {
+        if (threshold < 1 || current <= threshold) {
             return;
         }
 
@@ -126,7 +126,7 @@ public class NCircuitBreaker {
         }
 
         long threshold = breakerConfig.thresholdOfQueryResultRowCount();
-        if (threshold < 1 || current < threshold) {
+        if (threshold < 1 || current <= threshold) {
             return;
         }
 

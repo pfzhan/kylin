@@ -341,7 +341,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             thrown.expect(CircuitBreakerException.class);
-            manager.create(mockFavoriteQueries(2));
+            manager.create(mockFavoriteQueries(3));
         } finally {
             NCircuitBreaker.stop();
         }
@@ -354,7 +354,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         thrown.expect(CircuitBreakerException.class);
         try {
-            manager.createWithoutCheck(mockFavoriteQueries(2));
+            manager.createWithoutCheck(mockFavoriteQueries(3));
         } finally {
             NCircuitBreaker.stop();
         }
