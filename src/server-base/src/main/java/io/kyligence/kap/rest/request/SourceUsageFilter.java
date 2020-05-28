@@ -21,35 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.io.Serializable;
+import java.util.List;
 
-@Data
-public class LicenseMonitorInfoResponse implements Serializable {
+@Getter
+@Setter
+@AllArgsConstructor
+public class SourceUsageFilter {
 
-    @JsonProperty("current_capacity")
-    private long currentCapacity = 0L;
+    private List<String> projectNames;
 
-    @JsonProperty("capacity")
-    private double capacity = 0L;
+    private String sortBy;
 
-    @JsonProperty("capacity_status")
-    private CapacityStatus capacityStatus = CapacityStatus.OK;
-
-    @JsonProperty("check_time")
-    private long checkTime;
-
-    @JsonProperty("first_error_time")
-    private long firstErrorTime;
-
-    @JsonProperty("error_over_thirty_days")
-    private boolean errorOverThirtyDays = false;
-
-    @JsonProperty("error")
-    private boolean error = false;
+    private boolean reverse;
 }

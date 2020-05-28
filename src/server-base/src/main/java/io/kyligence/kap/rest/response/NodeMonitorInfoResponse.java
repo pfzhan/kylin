@@ -30,25 +30,15 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class LicenseMonitorInfoResponse implements Serializable {
+public class NodeMonitorInfoResponse implements Serializable {
+    @JsonProperty("current_node")
+    private int currentNode = 0;
 
-    @JsonProperty("current_capacity")
-    private long currentCapacity = 0L;
+    @JsonProperty("node")
+    private int node = 0;
 
-    @JsonProperty("capacity")
-    private double capacity = 0L;
-
-    @JsonProperty("capacity_status")
-    private CapacityStatus capacityStatus = CapacityStatus.OK;
-
-    @JsonProperty("check_time")
-    private long checkTime;
-
-    @JsonProperty("first_error_time")
-    private long firstErrorTime;
-
-    @JsonProperty("error_over_thirty_days")
-    private boolean errorOverThirtyDays = false;
+    @JsonProperty("node_status")
+    private CapacityStatus nodeStatus = CapacityStatus.OK;
 
     @JsonProperty("error")
     private boolean error = false;

@@ -35,17 +35,21 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.REMOTE_SERVER_ERRO
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagPackageRequest;
 import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.request.SourceUsageFilter;
 import io.kyligence.kap.rest.response.CapacityDetailsResponse;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
+import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
 import io.kyligence.kap.rest.response.ProjectCapacityResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
@@ -60,6 +64,7 @@ import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -89,8 +94,21 @@ import io.kyligence.kap.rest.service.MaintenanceModeService;
 import io.kyligence.kap.rest.service.SystemService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_EMAIL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
 
 @Controller
 @RequestMapping(value = "/api/system", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -218,60 +236,78 @@ public class NSystemController extends NBasicController {
     @ApiOperation(value = "get license monitor info with detail")
     @GetMapping(value = "/capacities")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfoWithDetail(@RequestParam(value = "filter_name", required = false, defaultValue = "") String[] filterName,
+    public EnvelopeResponse getLicenseMonitorInfoWithDetail(@RequestParam(value = "project_names", required = false, defaultValue = "") String[] projectNames,
                                                             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-                                                            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseMonitorInfoWithDetail(filterName), "");
+                                                            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+                                                            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
+                                                            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Arrays.asList(projectNames), sortBy, reverse);
+        LicenseInfoWithDetailsResponse monitorDetails = licenseInfoService.getLicenseMonitorInfoWithDetail(sourceUsageFilter, pageOffset, pageSize);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, monitorDetails, "");
     }
 
-    @ApiOperation(value = "get license monitor info")
-    @GetMapping(value = "/license/monitor")
+    @ApiOperation(value = "get license capacity info")
+    @GetMapping(value = "/license/capacity")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfo() {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseMonitorInfo(), "");
+    public EnvelopeResponse getLicenseCapacityInfo() {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
-    @ApiOperation(value = "get license monitor info by project")
+    @ApiOperation(value = "get license node info")
+    @GetMapping(value = "/license/node")
+    @ResponseBody
+    public EnvelopeResponse getLicenseNodeInfo() {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseNodeInfo(), "");
+    }
+
+    @ApiOperation(value = "get license monitor info single project")
     @GetMapping(value = "/capacity_info")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoSingleProject(@RequestParam(value = "project") String project,
-                                                           @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
-        List<Map<Long, Long>> projectCapacities = licenseInfoService.getProjectCapacities(project, dataRange);
+                                                               @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
+        Map<Long, Long> projectCapacities = licenseInfoService.getProjectCapacities(project, dataRange);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacities, "");
     }
 
-    @ApiOperation(value = "get license monitor info by project",  notes = "Update Param: page_offset, page_size;")
+    @ApiOperation(value = "get license monitor info in project",  notes = "Update Param: page_offset, page_size;")
     @GetMapping(value = "/capacity")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfoByProjects(@RequestParam(value = "project") String project) {
-        ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project);
+    public EnvelopeResponse getLicenseMonitorInfoInProject(@RequestParam(value = "project") String project,
+                                                           @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+                                                           @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+                                                           @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
+                                                           @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), sortBy, reverse);
+        ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project, sourceUsageFilter);
         if (projectCapacityResponse.getSize() > 0) {
             List<CapacityDetailsResponse> tables = projectCapacityResponse.getTables();
-            projectCapacityResponse.setTables(tables);
+            List<CapacityDetailsResponse> tableCapacityDetailsPaging = PagingUtil.cutPage(tables, pageOffset, pageSize);
+            projectCapacityResponse.setTables(tableCapacityDetailsPaging);
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacityResponse, "");
     }
 
-    @ApiOperation(value = "get last month license monitor info")
+    @ApiOperation(value = "get last month/quarter/year license monitor info")
     @GetMapping(value = "/capacity/dashboard")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoHistory(@RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
-        if ("month".equals(dataRange)) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastMonthSourceUsageRecords(), "");
-        } else if ("quarter".equals(dataRange)) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastQuarterSourceUsageRecords(), "");
-        } else if ("year".equals(dataRange)) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastYearSourceUsageRecords(), "");
-        }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLastMonthSourceUsageRecords(), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getSourceUsageHistory(dataRange), "");
     }
 
-    @ApiOperation(value = "refresh license monitor info")
+    @ApiOperation(value = "refresh license monitor info in a project")
     @PutMapping(value = "/capacity/refresh")
     @ResponseBody
     public EnvelopeResponse refresh(@RequestParam("project") String project) {
         licenseInfoService.refreshTableExtDesc(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, project, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "refresh license monitor info in all projects")
+    @PutMapping(value = "/capacity/refresh_all")
+    @ResponseBody
+    public EnvelopeResponse refreshAll() {
+        licenseInfoService.refreshAllTables();
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @PostMapping(value = "/diag")

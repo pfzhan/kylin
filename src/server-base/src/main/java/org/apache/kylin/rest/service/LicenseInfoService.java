@@ -24,32 +24,31 @@
 
 package org.apache.kylin.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_LICENSE;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.net.InetAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.request.SourceUsageFilter;
+import io.kyligence.kap.rest.response.CapacityDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
+import io.kyligence.kap.rest.response.NodeMonitorInfoResponse;
+import io.kyligence.kap.rest.response.ProjectCapacityResponse;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -67,7 +66,9 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.model.LicenseInfo;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,25 +78,35 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.license.Constants;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.response.CapacityDetailsResponse;
-import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
-import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
-import io.kyligence.kap.rest.response.ProjectCapacityResponse;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_LICENSE;
 
 @Slf4j
 @Service("licenseInfoService")
@@ -524,83 +535,63 @@ public class LicenseInfoService extends BasicService {
         return output.toString();
     }
 
-    public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail(String[] projects) {
+    public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail(SourceUsageFilter sourceUsageFilter, int offset, int limit) {
         LicenseInfoWithDetailsResponse licenseInfoWithDetailsResponse = new LicenseInfoWithDetailsResponse();
         SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
-        getLicenseBaseInfo(latestRecords, licenseInfoWithDetailsResponse);
 
         SourceUsageRecord.ProjectCapacityDetail[] capacityDetails = null;
         if (latestRecords != null) {
             capacityDetails = latestRecords.getCapacityDetails();
         }
+//        CapacityDetailsResponse capacityDetailsResponse1 = new CapacityDetailsResponse();
+//        capacityDetailsResponse1.setCapacity(123123L);
+//        capacityDetailsResponse1.setCapacityRatio(0.1);
+//        capacityDetailsResponse1.setName("test_project1");
+//        capacityDetailsResponse1.setStatus(SourceUsageRecord.CapacityStatus.OK);
+//
+//        CapacityDetailsResponse capacityDetailsResponse2 = new CapacityDetailsResponse();
+//        capacityDetailsResponse2.setCapacity(2223L);
+//        capacityDetailsResponse2.setCapacityRatio(0.5);
+//        capacityDetailsResponse2.setName("test_project2");
+//        capacityDetailsResponse2.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
+//        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
+//        capacityDetailsResponseList.add(capacityDetailsResponse1);
+//        capacityDetailsResponseList.add(capacityDetailsResponse2);
 
         if (ArrayUtils.isNotEmpty(capacityDetails)) {
-            licenseInfoWithDetailsResponse = getLicenseInfoDetailResponse(capacityDetails, projects);
+            List<CapacityDetailsResponse> capacityDetailsResponseList = filterAndSortPrjCapacity(sourceUsageFilter, Arrays.asList(capacityDetails));
+            licenseInfoWithDetailsResponse.setCapacityDetail(PagingUtil.cutPage(capacityDetailsResponseList, offset, limit));
+            licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
         }
+//        licenseInfoWithDetailsResponse.setCapacityDetail(capacityDetailsResponseList);
+//        licenseInfoWithDetailsResponse.setSize(2);
         return licenseInfoWithDetailsResponse;
     }
 
-    private LicenseInfoWithDetailsResponse getLicenseInfoDetailResponse(SourceUsageRecord.ProjectCapacityDetail[] capacityDetails, String[] projects) {
-        LicenseInfoWithDetailsResponse licenseInfoWithDetailsResponse = new LicenseInfoWithDetailsResponse();
-        CapacityDetailsResponse capacityDetailsResponse;
-        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
-        for (SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail : capacityDetails) {
-            capacityDetailsResponse = new CapacityDetailsResponse();
-            capacityDetailsResponse.setName(projectCapacityDetail.getName());
-            capacityDetailsResponse.setCapacity(projectCapacityDetail.getCapacity());
-            capacityDetailsResponse.setCapacityRatio(projectCapacityDetail.getCapacityRatio());
-            capacityDetailsResponse.setStatus(projectCapacityDetail.getStatus());
-            capacityDetailsResponseList.add(capacityDetailsResponse);
-        }
-        licenseInfoWithDetailsResponse.setCapacityDetail(capacityDetailsResponseList);
-        licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
-        return licenseInfoWithDetailsResponse;
-    }
-
-    private void getLicenseBaseInfo(SourceUsageRecord latestRecords, LicenseMonitorInfoResponse result) {
+    public NodeMonitorInfoResponse getLicenseNodeInfo() {
         //node part
+        NodeMonitorInfoResponse nodeMonitorInfoResponse = new NodeMonitorInfoResponse();
         int currentNodes = getCurrentNodesNums();
-        result.setCurrentNode(currentNodes);
+        nodeMonitorInfoResponse.setCurrentNode(currentNodes);
         String serviceNodes = System.getProperty(Constants.KE_LICENSE_NODES);
         if (!StringUtils.isEmpty(serviceNodes) && !UNLIMITED.equals(serviceNodes)) {
             try {
                 int maximumNodeNums = Integer.parseInt(serviceNodes);
-                result.setNode(maximumNodeNums);
+                nodeMonitorInfoResponse.setNode(maximumNodeNums);
                 if (maximumNodeNums < currentNodes) {
-                    result.setNodeStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
+                    nodeMonitorInfoResponse.setNodeStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
                 }
             } catch (NumberFormatException e) {
                 logger.error(
-                        "kap.service.nodes occurred java.lang.NumberFormatException: For input string: " + serviceNodes,
+                        "kap.service.nodes occurred java.lang.NumberFormatException: For input string: {}", serviceNodes,
                         e);
             }
         }
-
-        //capacity part
-        if (latestRecords != null) {
-            result.setTime(latestRecords.getCheckTime());
-            result.setCurrentCapacity(latestRecords.getCurrentCapacity());
-            result.setCapacityStatus(latestRecords.getCapacityStatus());
-            result.setCapacity(latestRecords.getLicenseCapacity());
-            if (isNotOk(latestRecords.getCapacityStatus())) {
-                List<SourceUsageRecord> recentRecords = SourceUsageManager
-                        .getInstance(KylinConfig.getInstanceFromEnv()).getLastMonthRecords();
-                result.setFirstErrorTime(latestRecords.getCheckTime());
-                for (int i = recentRecords.size() - 1; i >= 0; i--) {
-                    SourceUsageRecord sourceUsageRecord = recentRecords.get(i);
-                    if (isNotOk(sourceUsageRecord.getCapacityStatus())) {
-                        result.setFirstErrorTime(sourceUsageRecord.getCheckTime());
-                    } else {
-                        break;
-                    }
-                }
-            }
-        } else {
-            result.setCapacityStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
-        }
-
-        checkErrorThreshold(result);
+        nodeMonitorInfoResponse.setCurrentNode(2);
+        nodeMonitorInfoResponse.setNode(5);
+        nodeMonitorInfoResponse.setNodeStatus(SourceUsageRecord.CapacityStatus.OK);
+        return nodeMonitorInfoResponse;
     }
 
     private void checkErrorThreshold(LicenseMonitorInfoResponse licenseMonitorInfoResponse) {
@@ -611,6 +602,7 @@ public class LicenseInfoService extends BasicService {
         long dayThreshold = (System.currentTimeMillis() - firstErrorTime) / (1000 * 60 * 60 * 24);
         if (dayThreshold >= 30) {
             licenseMonitorInfoResponse.setCapacityStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
+            licenseMonitorInfoResponse.setErrorOverThirtyDays(true);
         }
     }
 
@@ -625,30 +617,22 @@ public class LicenseInfoService extends BasicService {
         return CollectionUtils.isEmpty(servers) ? 0 : servers.size();
     }
 
-    public List<Map<Long, Long>> getProjectCapacities(String project, String dataRange) {
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<SourceUsageRecord> sourceUsageRecords = Lists.newArrayList();
-        List<Map<Long, Long>> projectCapacities = Lists.newArrayList();
-        if ("month".equals(dataRange)) {
-            sourceUsageRecords = sourceUsageManager.getLastMonthRecords();
-        } else if ("quarter".equals(dataRange)) {
-            sourceUsageRecords = sourceUsageManager.getLastQuarterRecords();
-        } else if ("year".equals(dataRange)) {
-            sourceUsageRecords = sourceUsageManager.getLastYearRecords();
-        }
+    public Map<Long, Long> getProjectCapacities(String project, String dataRange) {
+        List<SourceUsageRecord> sourceUsageRecords = getSourceUsageByDataRange(dataRange);
+        Map<Long, Long> projectCapacities = Maps.newHashMap();
+
         for (SourceUsageRecord sourceUsageRecord : sourceUsageRecords) {
-            Map<Long, Long> map = Maps.newHashMap();
-            map.put(sourceUsageRecord.getProjectCapacity(project).getCapacity(), sourceUsageRecord.getCheckTime());
-            projectCapacities.add(map);
+            long checkTime = sourceUsageRecord.getCheckTime();
+            long capacity = sourceUsageRecord.getProjectCapacity(project).getCapacity();
+            projectCapacities.put(checkTime, capacity);
         }
-        Map<Long, Long> map = Maps.newHashMap();
-        map.put(1212L, System.currentTimeMillis());
-        projectCapacities.add(map);
+        projectCapacities.put(System.currentTimeMillis() - 1000, 123124L);
+        projectCapacities.put(System.currentTimeMillis(), 35235L);
         return projectCapacities;
     }
 
 
-    public ProjectCapacityResponse getLicenseMonitorInfoByProject(String project) {
+    public ProjectCapacityResponse getLicenseMonitorInfoByProject(String project, SourceUsageFilter sourceUsageFilter) {
         ProjectCapacityResponse projectCapacityResponse = new ProjectCapacityResponse();
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
         SourceUsageRecord latestRecords = sourceUsageManager.getLatestRecord();
@@ -663,32 +647,37 @@ public class LicenseInfoService extends BasicService {
             projectCapacityResponse.setCapacity(projectCapacity.getCapacity());
             projectCapacityResponse.setStatus(projectCapacity.getStatus());
 
-            SourceUsageRecord.TableCapacityDetail[] tables = projectCapacity.getTables();
+            TableCapacityDetail[] tables = projectCapacity.getTables();
             if (tables.length > 0) {
-                CapacityDetailsResponse capacityDetailsResponse;
-                List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
-                for (SourceUsageRecord.TableCapacityDetail tableCapacityDetail : tables) {
-                    capacityDetailsResponse = new CapacityDetailsResponse();
-                    capacityDetailsResponse.setName(tableCapacityDetail.getName());
-                    capacityDetailsResponse.setCapacity(tableCapacityDetail.getCapacity());
-                    capacityDetailsResponse.setCapacityRatio(tableCapacityDetail.getCapacityRatio());
-                    capacityDetailsResponse.setStatus(tableCapacityDetail.getStatus());
-                    capacityDetailsResponseList.add(capacityDetailsResponse);
-                }
+                List<CapacityDetailsResponse> capacityDetailsResponseList = sortTableCapacity(sourceUsageFilter, Arrays.asList(tables));
                 projectCapacityResponse.setTables(capacityDetailsResponseList);
                 projectCapacityResponse.setSize(capacityDetailsResponseList.size());
             }
         }
+        TableCapacityDetail tableCapacityDetail = new TableCapacityDetail();
+        tableCapacityDetail.setCapacity(12321L);
+        tableCapacityDetail.setCapacityRatio(0.2);
+        tableCapacityDetail.setName("table1");
+        tableCapacityDetail.setStatus(SourceUsageRecord.CapacityStatus.TENTATIVE);
+        tableCapacityDetail.setTableKind(SourceUsageRecord.TableKind.FACT);
+        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
+        CapacityDetailsResponse capacityDetailsResponse = new CapacityDetailsResponse();
+        capacityDetailsResponse.setName(tableCapacityDetail.getName());
+        capacityDetailsResponse.setCapacity(tableCapacityDetail.getCapacity());
+        capacityDetailsResponse.setCapacityRatio(tableCapacityDetail.getCapacityRatio());
+        capacityDetailsResponse.setStatus(tableCapacityDetail.getStatus());
+        capacityDetailsResponseList.add(capacityDetailsResponse);
+        projectCapacityResponse.setTables(capacityDetailsResponseList);
+        projectCapacityResponse.setSize(1);
+
         return projectCapacityResponse;
     }
 
-    public Map<Long, Long> getLastMonthSourceUsageRecords() {
+    public Map<Long, Long> getSourceUsageHistory(String dataRange) {
         Map<Long, Long> records = Maps.newHashMap();
-        List<SourceUsageRecord> lastMonthRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getLastMonthRecords();
-
-        if (lastMonthRecords != null) {
-            for (SourceUsageRecord record : lastMonthRecords) {
+        List<SourceUsageRecord> recordList = getSourceUsageByDataRange(dataRange);
+        if (recordList != null) {
+            for (SourceUsageRecord record : recordList) {
                 records.put(record.getCheckTime(), record.getCurrentCapacity());
             }
         }
@@ -697,28 +686,17 @@ public class LicenseInfoService extends BasicService {
         return records;
     }
 
-    public Map<Long, Long> getLastQuarterSourceUsageRecords() {
-        Map<Long, Long> records = Maps.newHashMap();
-        List<SourceUsageRecord> lastQuarterRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).getLastQuarterRecords();
-
-        if (lastQuarterRecords != null) {
-            for (SourceUsageRecord record : lastQuarterRecords) {
-                records.put(record.getCheckTime(), record.getCurrentCapacity());
-            }
+    private List<SourceUsageRecord> getSourceUsageByDataRange(String dataRange) {
+        List<SourceUsageRecord> recordList = Lists.newArrayList();
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        if ("month".equals(dataRange)) {
+            recordList = sourceUsageManager.getLastMonthRecords();
+        } else if ("quarter".equals(dataRange)) {
+            recordList = sourceUsageManager.getLastQuarterRecords();
+        } else if ("year".equals(dataRange)) {
+            recordList = sourceUsageManager.getLastYearRecords();
         }
-        return records;
-    }
-
-    public Map<Long, Long> getLastYearSourceUsageRecords() {
-        Map<Long, Long> records = Maps.newHashMap();
-        List<SourceUsageRecord> lastYearRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).getLastYearRecords();
-
-        if (lastYearRecords != null) {
-            for (SourceUsageRecord record : lastYearRecords) {
-                records.put(record.getCheckTime(), record.getCurrentCapacity());
-            }
-        }
-        return records;
+        return recordList;
     }
 
     public void refreshTableExtDesc(String project) {
@@ -736,19 +714,90 @@ public class LicenseInfoService extends BasicService {
         logger.info("Refresh table capacity in project: {} finished", project);
     }
 
-    public LicenseMonitorInfoResponse getLicenseMonitorInfo() {
+    public void refreshAllTables() {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<ProjectInstance> projectInstances = projectManager.listAllProjects();
+        for (ProjectInstance projectInstance : projectInstances) {
+            refreshTableExtDesc(projectInstance.getName());
+        }
+    }
+
+    public LicenseMonitorInfoResponse getLicenseCapacityInfo() {
         LicenseMonitorInfoResponse licenseMonitorInfoResponse = new LicenseMonitorInfoResponse();
         SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
-        getLicenseBaseInfo(latestRecords, licenseMonitorInfoResponse);
+        if (latestRecords != null) {
+            licenseMonitorInfoResponse.setCheckTime(latestRecords.getCheckTime());
+            licenseMonitorInfoResponse.setCurrentCapacity(latestRecords.getCurrentCapacity());
+            licenseMonitorInfoResponse.setCapacityStatus(latestRecords.getCapacityStatus());
+            licenseMonitorInfoResponse.setCapacity(latestRecords.getLicenseCapacity());
+            if (isNotOk(latestRecords.getCapacityStatus())) {
+                List<SourceUsageRecord> recentRecords = SourceUsageManager
+                        .getInstance(KylinConfig.getInstanceFromEnv()).getLastMonthRecords();
+                licenseMonitorInfoResponse.setFirstErrorTime(latestRecords.getCheckTime());
+                for (int i = recentRecords.size() - 1; i >= 0; i--) {
+                    SourceUsageRecord sourceUsageRecord = recentRecords.get(i);
+                    if (isNotOk(sourceUsageRecord.getCapacityStatus())) {
+                        licenseMonitorInfoResponse.setFirstErrorTime(sourceUsageRecord.getCheckTime());
+                    } else {
+                        break;
+                    }
+                }
+            }
+        } else {
+            licenseMonitorInfoResponse.setError(true);
+        }
+
+        licenseMonitorInfoResponse.setCheckTime(System.currentTimeMillis());
+        licenseMonitorInfoResponse.setCapacityStatus(SourceUsageRecord.CapacityStatus.OK);
+        licenseMonitorInfoResponse.setCurrentCapacity(123213L);
+        licenseMonitorInfoResponse.setCapacity(23523523);
+
+        checkErrorThreshold(licenseMonitorInfoResponse);
         return licenseMonitorInfoResponse;
     }
 
-    public boolean checkIsOverCapacity() {
-        LicenseMonitorInfoResponse licenseMonitorInfo = getLicenseMonitorInfo();
-        SourceUsageRecord.CapacityStatus capacityStatus = licenseMonitorInfo.getCapacityStatus();
-        SourceUsageRecord.CapacityStatus nodeStatus = licenseMonitorInfo.getNodeStatus();
-        return SourceUsageRecord.CapacityStatus.OVERCAPACITY.equals(capacityStatus)
-                || SourceUsageRecord.CapacityStatus.OVERCAPACITY.equals(nodeStatus);
+    private List<CapacityDetailsResponse> filterAndSortPrjCapacity(final SourceUsageFilter sourceUsageFilter, List<ProjectCapacityDetail> capacityDetails) {
+        Preconditions.checkNotNull(sourceUsageFilter);
+        Preconditions.checkNotNull(capacityDetails);
+
+        Comparator<CapacityDetailsResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? "last_modified" : sourceUsageFilter.getSortBy(),
+                !sourceUsageFilter.isReverse());
+        Set<String> matchedProjects = Sets.newHashSet(sourceUsageFilter.getProjectNames());
+        return capacityDetails.stream().filter(capacityDetail -> {
+            if (CollectionUtils.isEmpty(sourceUsageFilter.getProjectNames())) {
+                return true;
+            }
+            String projectName = capacityDetail.getName();
+            return matchedProjects.contains(projectName);
+        }).map(this::convertProjectDetail).sorted(comparator).collect(Collectors.toList());
     }
+
+    private List<CapacityDetailsResponse> sortTableCapacity(final SourceUsageFilter sourceUsageFilter, List<TableCapacityDetail> capacityDetails) {
+        Preconditions.checkNotNull(capacityDetails);
+        Comparator<CapacityDetailsResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? "last_modified" : sourceUsageFilter.getSortBy(),
+                !sourceUsageFilter.isReverse());
+        return capacityDetails.stream().map(this::convertTableDetail).sorted(comparator).collect(Collectors.toList());
+    }
+
+    private CapacityDetailsResponse convertProjectDetail(ProjectCapacityDetail projectCapacityDetail) {
+        CapacityDetailsResponse capacityDetailsResponse = new CapacityDetailsResponse();
+        capacityDetailsResponse.setName(projectCapacityDetail.getName());
+        capacityDetailsResponse.setCapacity(projectCapacityDetail.getCapacity());
+        capacityDetailsResponse.setCapacityRatio(projectCapacityDetail.getCapacityRatio());
+        capacityDetailsResponse.setStatus(projectCapacityDetail.getStatus());
+        return capacityDetailsResponse;
+    }
+
+    private CapacityDetailsResponse convertTableDetail(TableCapacityDetail tableCapacityDetail) {
+        CapacityDetailsResponse capacityDetailsResponse = new CapacityDetailsResponse();
+        capacityDetailsResponse.setName(tableCapacityDetail.getName());
+        capacityDetailsResponse.setCapacity(tableCapacityDetail.getCapacity());
+        capacityDetailsResponse.setCapacityRatio(tableCapacityDetail.getCapacityRatio());
+        capacityDetailsResponse.setStatus(tableCapacityDetail.getStatus());
+        return capacityDetailsResponse;
+    }
+
 }

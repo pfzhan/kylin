@@ -32,7 +32,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class LicenseInfoWithDetailsResponse extends LicenseMonitorInfoResponse {
+public class LicenseInfoWithDetailsResponse {
     @JsonProperty("size")
     private long size;
 
