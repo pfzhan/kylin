@@ -33,16 +33,17 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.utils.{FileNames, LogUtils}
 import io.kyligence.kap.metadata.cube.model.NDataSegment
-import io.kyligence.kap.metadata.model.NDataModel
+import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
+import org.apache.spark.api.java.function.ReduceFunction
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Encoders, Row, SparkSession}
 import org.apache.spark.utils.ProxyThreadUtils
 
 import scala.collection.JavaConverters._
@@ -167,11 +168,57 @@ class DFSnapshotBuilder extends Logging {
     }
   }
 
+  def utf8Length(sequence: CharSequence): Int = {
+    var count = 0
+    var i = 0
+    val len = sequence.length
+    while ( {
+      i < len
+    }) {
+      val ch = sequence.charAt(i)
+      if (ch <= 0x7F) count += 1
+      else if (ch <= 0x7FF) count += 2
+      else if (Character.isHighSurrogate(ch)) {
+        count += 4
+        i += 1
+      }
+      else count += 3
+
+      {
+        i += 1; i - 1
+      }
+    }
+    count
+  }
+
   def buildSingleSnapshot(tableDesc: TableDesc, baseDir: String, fs: FileSystem): (String, String) = {
     val sourceData = getSourceData(tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
+    val length = sourceData.columns.length
+    val size = sourceData.mapPartitions {
+      iter =>
+        var totalSize = 0l;
+        iter.foreach(row => {
+          var i = 0
+          for (i <- 0 until length - 1) {
+            val value = row.get(i)
+            val strValue = if (value == null) null
+            else value.toString
+            totalSize += utf8Length(strValue)
+          }
+        })
+        List(totalSize).toIterator
+    }(Encoders.scalaLong).reduce(new ReduceFunction[Long] {
+      override def call(t: Long, t1: Long): Long = {
+        t + t1
+      }
+    })
+    val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
+    val copy = updateManager.copyForWrite(tableDesc)
+    copy.setOriginalSize(size)
+    updateManager.updateTableDesc(copy)
     sourceData.coalesce(1).write.parquet(resourcePath)
 
     val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
