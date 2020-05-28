@@ -163,6 +163,7 @@ public class QueryHistory {
     @Column(name = ERROR_TYPE)
     private String errorType;
 
+    private QueryHistoryInfo queryHistoryInfo;
     // only for test
     private transient long insertTime;
 
