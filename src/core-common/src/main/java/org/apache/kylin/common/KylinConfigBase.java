@@ -1837,11 +1837,11 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isSessionSecureRandomCreateEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.web.session.secure-random-create-enabled", "false"));
+        return Boolean.parseBoolean(getOptional("kylin.web.session.secure-random-create-enabled", FALSE));
     }
 
     public boolean isSessionJdbcEncodeEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.web.session.jdbc-encode-enabled", "false"));
+        return Boolean.parseBoolean(getOptional("kylin.web.session.jdbc-encode-enabled", FALSE));
     }
 
     public String getSpringStoreType() {
