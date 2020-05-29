@@ -9,7 +9,7 @@ export const titleMaps = {
   'new': 'addUser',
   'password': 'resetPassword',
   'edit': 'editRole',
-  'group': 'kylinLang.common.group'
+  'group': 'groupMembership'
 }
 
 export function getSubmitData (that) {

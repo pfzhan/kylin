@@ -120,7 +120,7 @@
             width="105"
             sortable="custom"
             prop="duration"
-            :label="$t('Duration')">
+            :label="$t('duration')">
             <template slot-scope="scope">
               {{scope.row.duration/60/1000 | number(2) }}  mins
             </template>

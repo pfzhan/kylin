@@ -448,7 +448,7 @@ export default {
       importModelsMetadata: '导入模型元数据',
       changeProjectOwner: '变更所有者',
       change: '变更',
-      changeDesc: '您可以将该项目的所有者变更为系统管理员，或者项目 ADMIN 角色的用户。',
+      changeDesc: '您可以将该项目的所有者变更为系统管理员、或者项目 ADMIN 角色的用户。',
       changeTo: '变更所有者为',
       pleaseChangeOwner: '请选择项目所有者',
       changeProSuccess: '项目 {project} 的所有者已成功变更为 {owner}。'

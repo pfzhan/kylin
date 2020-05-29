@@ -79,7 +79,7 @@ export default {
     iKnow: 'I Know',
     exportMetadata: 'Export Metadata',
     noModelsExport: 'There are no models in this project, and model metadata cannot be exported.',
-    exportMetadatas: 'Export Models',
+    exportMetadatas: 'Export Model',
     exportMetadataSuccess: 'A model metadata package is being generated. The download will start after generation. please wait.',
     exportMetadataFailed: 'Export models failed. Please try again.',
     importModels: 'Import Models',
@@ -185,7 +185,7 @@ export default {
     modelName: '模型',
     changeTo: '变更所有者为',
     pleaseChangeOwner: '请选择模型所有者',
-    changeDesc: '您可以将该模型的所有者变更为系统管理员，项目 ADMIN 角色的用户或者项目 Management 角色的用户。',
+    changeDesc: '您可以将该模型的所有者变更为系统管理员、项目 ADMIN 角色的用户或者项目 Management 角色的用户。',
     changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。'
   }
 }

@@ -12,7 +12,7 @@ export default {
     drop: 'Drop',
     disable: 'Disable',
     enable: 'Enable',
-    groupMembership: 'Group Membership',
+    groupMembership: 'Assign to Group',
     cofirmDelUser: 'Are you sure to delete the user {userName}?',
     delUserTitle: 'Delete User',
     userList: 'User List',

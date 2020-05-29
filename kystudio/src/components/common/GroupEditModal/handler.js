@@ -5,7 +5,7 @@ export const fieldVisiableMaps = {
 
 export const titleMaps = {
   'new': 'createGroup',
-  'assign': 'kylinLang.common.user'
+  'assign': 'assignUser'
 }
 
 export function getSubmitData (that) {

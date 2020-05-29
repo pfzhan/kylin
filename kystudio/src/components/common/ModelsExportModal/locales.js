@@ -1,6 +1,6 @@
 export default {
   'en': {
-    exportModel: 'Export Model Metadata',
+    exportModel: 'Export Model',
     chooseModels: 'Choose Models',
     emptyText: 'Search results are empty',
     placeholder: 'Filter by model or table name',
@@ -11,7 +11,7 @@ export default {
     fetchModelsFailed: 'Fetch project models failed.'
   },
   'zh-cn': {
-    exportModel: '导出模型元数据',
+    exportModel: '导出模型',
     chooseModels: '选择模型',
     emptyText: '搜索结果为空',
     placeholder: '输入模型或源表名称筛选',

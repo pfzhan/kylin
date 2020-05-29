@@ -18,7 +18,8 @@ export default {
     passwordLength: 'the length of password is at least 8',
     passwordConfirm: 'Password and confirm password are not the same.',
     ok: 'OK',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    groupMembership: 'Assign to Group'
   },
   'zh-cn': {
     addUser: '添加用户',
@@ -39,6 +40,7 @@ export default {
     passwordLength: '密码长度至少 8 位',
     passwordConfirm: '两次密码不一致, 请检查',
     ok: '确定',
-    cancel: '取消'
+    cancel: '取消',
+    groupMembership: '分组'
   }
 }
