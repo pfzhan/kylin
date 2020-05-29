@@ -36,7 +36,7 @@
       <span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
     </el-row>
     <transition name="fade">
-      <div class="selectLabel" v-if="isSelectAllShow&&!$store.state.project.isAllProject">
+      <div class="selectLabel" v-if="isSelectAllShow&&!$store.state.project.isAllProject&&filter.status.length">
         <span>{{$t('selectedJobs', {selectedNumber: selectedNumber})}}</span>
         <el-checkbox v-model="isSelectAll" @change="selectAllChange">{{$t('selectAll')}}</el-checkbox>
       </div>
