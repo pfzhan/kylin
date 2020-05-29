@@ -1,6 +1,7 @@
 export default {
   'en': {
     importSql: 'Import SQL',
+    modelFromSql: 'Add Model From SQL',
     generateModel: 'Model Advisor',
     pleImport: 'Please Import Files',
     sqlFiles: 'SQL File',
@@ -33,6 +34,7 @@ export default {
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
+    modelFromSql: 'SQL 建模',
     generateModel: '模型推荐',
     pleImport: '请导入文件',
     sqlFiles: 'SQL 文件',

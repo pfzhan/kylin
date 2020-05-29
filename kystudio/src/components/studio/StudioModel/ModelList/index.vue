@@ -25,6 +25,7 @@
             type="primary"
             size="medium"
             id="addModel"
+            placement="bottom-start"
             btn-icon="el-icon-ksd-add_2"
             v-if="datasourceActions.includes('modelActions')"
             @click="showAddModelDialog">

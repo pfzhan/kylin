@@ -1,6 +1,6 @@
 export default {
   'en': {
-    importModelsMetadata: 'Import Model Metadata',
+    importModelsMetadata: 'Add Model From Imported',
     selectFile: 'Select the file',
     placeholder: 'Click here and select the file to upload',
     pleaseSelectFile: 'Please select file.',
@@ -23,7 +23,7 @@ export default {
     INVALID_COLUMN_DATATYPE: 'Inconsistent data types'
   },
   'zh-cn': {
-    importModelsMetadata: '导入模型元数据',
+    importModelsMetadata: '导入模型',
     selectFile: '选择文件',
     placeholder: '点击后，选择文件上传',
     pleaseSelectFile: '请选择上传文件。',

@@ -288,7 +288,11 @@ export default class UploadSqlModel extends Vue {
   }
   get uploadTitle () {
     if (this.isGenerateModel) {
-      return this.$t('generateModel')
+      if (this.uploadFlag === 'step1') {
+        return this.$t('modelFromSql')
+      } else {
+        return this.$t('generateModel')
+      }
     } else {
       return this.$t('importSql')
     }

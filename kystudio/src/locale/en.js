@@ -204,7 +204,7 @@ exports.default = {
     tryLater: 'Try It Later'
   },
   model: {
-    generateModel: 'Custom SQL',
+    generateModel: 'From SQL',
     draft: 'Draft',
     modelName: 'Model Name',
     computedColumn: 'Computed Column',

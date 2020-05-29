@@ -82,7 +82,7 @@ export default {
     exportMetadatas: 'Export Model',
     exportMetadataSuccess: 'A model metadata package is being generated. The download will start after generation. please wait.',
     exportMetadataFailed: 'Export models failed. Please try again.',
-    importModels: 'Import Models',
+    importModels: 'From Imported Model',
     emptyIndexTips: 'This model has unbuilt indexes. Please click the build index button to build the indexes.',
     noIndexTips: 'You should add indexes first before building.',
     guideToAcceptRecom: 'You can click the icon beside the model name to optimize model by accepting recommendations based on your query history.',
