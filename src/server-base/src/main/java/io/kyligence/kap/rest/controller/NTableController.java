@@ -554,8 +554,8 @@ public class NTableController extends NBasicController {
             if (StringUtils.isEmpty(request.getTable())) {
                 throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
             }
-            if (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS) {
-                throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+            if (request.isNeedSample() && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
+                throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
                     request.getMaxRows(), request.isNeedBuild());
