@@ -562,6 +562,12 @@ public class SourceUsageManager {
         }
     }
 
+    public boolean isOverCapacity() {
+        long currentCapacity = this.getLatestRecord().getCurrentCapacity();
+        long totalCapacity = Long.parseLong(System.getProperty(Constants.KE_LICENSE_VOLUME));
+        return currentCapacity < totalCapacity * 0.8;
+    }
+
     public <T> T licenseCheckWrap(String project, Callback<T> f) {
         checkIsOverCapacity(project);
 

@@ -52,7 +52,6 @@ import lombok.val;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -68,7 +67,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.model.LicenseInfo;
-import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -544,28 +542,28 @@ public class LicenseInfoService extends BasicService {
         if (latestRecords != null) {
             capacityDetails = latestRecords.getCapacityDetails();
         }
-//        CapacityDetailsResponse capacityDetailsResponse1 = new CapacityDetailsResponse();
-//        capacityDetailsResponse1.setCapacity(123123L);
-//        capacityDetailsResponse1.setCapacityRatio(0.1);
-//        capacityDetailsResponse1.setName("test_project1");
-//        capacityDetailsResponse1.setStatus(SourceUsageRecord.CapacityStatus.OK);
-//
-//        CapacityDetailsResponse capacityDetailsResponse2 = new CapacityDetailsResponse();
-//        capacityDetailsResponse2.setCapacity(2223L);
-//        capacityDetailsResponse2.setCapacityRatio(0.5);
-//        capacityDetailsResponse2.setName("test_project2");
-//        capacityDetailsResponse2.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
-//        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
-//        capacityDetailsResponseList.add(capacityDetailsResponse1);
-//        capacityDetailsResponseList.add(capacityDetailsResponse2);
+        CapacityDetailsResponse capacityDetailsResponse1 = new CapacityDetailsResponse();
+        capacityDetailsResponse1.setCapacity(123123L);
+        capacityDetailsResponse1.setCapacityRatio(0.1);
+        capacityDetailsResponse1.setName("test_project1");
+        capacityDetailsResponse1.setStatus(SourceUsageRecord.CapacityStatus.OK);
 
-        if (ArrayUtils.isNotEmpty(capacityDetails)) {
-            List<CapacityDetailsResponse> capacityDetailsResponseList = filterAndSortPrjCapacity(sourceUsageFilter, Arrays.asList(capacityDetails));
-            licenseInfoWithDetailsResponse.setCapacityDetail(PagingUtil.cutPage(capacityDetailsResponseList, offset, limit));
-            licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
-        }
-//        licenseInfoWithDetailsResponse.setCapacityDetail(capacityDetailsResponseList);
-//        licenseInfoWithDetailsResponse.setSize(2);
+        CapacityDetailsResponse capacityDetailsResponse2 = new CapacityDetailsResponse();
+        capacityDetailsResponse2.setCapacity(2223L);
+        capacityDetailsResponse2.setCapacityRatio(0.5);
+        capacityDetailsResponse2.setName("test_project2");
+        capacityDetailsResponse2.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
+        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
+        capacityDetailsResponseList.add(capacityDetailsResponse1);
+        capacityDetailsResponseList.add(capacityDetailsResponse2);
+
+//        if (ArrayUtils.isNotEmpty(capacityDetails)) {
+//            List<CapacityDetailsResponse> capacityDetailsResponseList = filterAndSortPrjCapacity(sourceUsageFilter, Arrays.asList(capacityDetails));
+//            licenseInfoWithDetailsResponse.setCapacityDetail(PagingUtil.cutPage(capacityDetailsResponseList, offset, limit));
+//            licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
+//        }
+        licenseInfoWithDetailsResponse.setCapacityDetail(capacityDetailsResponseList);
+        licenseInfoWithDetailsResponse.setSize(2);
         return licenseInfoWithDetailsResponse;
     }
 

@@ -254,7 +254,7 @@ public class NSystemController extends NBasicController {
     }
 
     @ApiOperation(value = "get license node info")
-    @GetMapping(value = "/license/node")
+    @GetMapping(value = "/license/nodes")
     @ResponseBody
     public EnvelopeResponse getLicenseNodeInfo() {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseNodeInfo(), "");
@@ -307,7 +307,7 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse refreshAll() {
         licenseInfoService.refreshAllTables();
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
     @PostMapping(value = "/diag")

@@ -58,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -473,9 +474,18 @@ public abstract class AbstractExecutable implements Executable {
                 break;
             }
         }
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        if (sourceUsageManager.isOverCapacity()) {
+            notifyUserJobIssue(JobIssueEnum.OVER_CAPACITY_THRESHOLD);
+        }
         if (hasEmptyLayout) {
             notifyUserJobIssue(JobIssueEnum.LOAD_EMPTY_DATA);
         }
+    }
+
+    public void updateSourceUsage() {
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        sourceUsageManager.updateSourceUsage();
     }
 
     public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
@@ -483,6 +493,7 @@ public abstract class AbstractExecutable implements Executable {
                 (this instanceof DefaultChainedExecutable) || this.getParent() instanceof DefaultChainedExecutable);
         val projectConfig = NProjectManager.getInstance(getConfig()).getProject(project).getConfig();
         boolean needNotification = true;
+        boolean needOverCapacityNotification = false;
         switch (jobIssue) {
         case JOB_ERROR:
             needNotification = projectConfig.getJobErrorNotificationEnabled();
@@ -493,16 +504,27 @@ public abstract class AbstractExecutable implements Executable {
         case SOURCE_RECORDS_CHANGE:
             needNotification = projectConfig.getJobSourceRecordsChangeNotificationEnabled();
             break;
+        case OVER_CAPACITY_THRESHOLD:
+            needNotification = projectConfig.isOverCapacityNotificationEnabled();
+            needOverCapacityNotification = true;
+            break;
         default:
             throw new IllegalArgumentException(String.format("no process for jobIssue: %s.", jobIssue));
         }
         if (!needNotification) {
             return;
         }
-        if (this instanceof DefaultChainedExecutable) {
-            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this));
+        List<String> users;
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (needOverCapacityNotification) {
+            users = getOverCapacityMailingUsers(kylinConfig);
         } else {
-            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()));
+            users = getAllNotifyUsers(kylinConfig);
+        }
+        if (this instanceof DefaultChainedExecutable) {
+            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
+        } else {
+            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()), users);
         }
     }
 
@@ -684,9 +706,8 @@ public abstract class AbstractExecutable implements Executable {
                 .toString();
     }
 
-    private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content) {
+    private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content, List<String> users) {
         try {
-            List<String> users = getAllNofifyUsers(kylinConfig);
             if (users.isEmpty()) {
                 logger.debug("no need to send email, user list is empty.");
                 return;
@@ -712,7 +733,7 @@ public abstract class AbstractExecutable implements Executable {
 
     protected void sendMail(Pair<String, String> email) {
         try {
-            List<String> users = getAllNofifyUsers(getConfig());
+            List<String> users = getAllNotifyUsers(getConfig());
             if (users.isEmpty()) {
                 logger.debug("no need to send email, user list is empty");
                 return;

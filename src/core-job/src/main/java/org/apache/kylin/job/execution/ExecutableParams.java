@@ -96,12 +96,22 @@ public class ExecutableParams {
         setNotifyList(StringUtils.join(notifications, ","));
     }
 
-    public List<String> getAllNofifyUsers(KylinConfig kylinConfig) {
-        List<String> users = Lists.newArrayList();
-        users.addAll(getNotifyList());
+    public List<String> getAllNotifyUsers(KylinConfig kylinConfig) {
         final String[] adminDls = kylinConfig.getAdminDls();
-        if (null != adminDls) {
-            Collections.addAll(users, adminDls);
+        List<String> users = getAllNotifyUserList(adminDls);
+        users.addAll(getNotifyList());
+        return users;
+    }
+
+    public List<String> getOverCapacityMailingUsers(KylinConfig kylinConfig) {
+        final String[] overCapacityMailingUsers = kylinConfig.getOverCapacityMailingList();
+        return getAllNotifyUserList(overCapacityMailingUsers);
+    }
+
+    public List<String> getAllNotifyUserList(String[] notifyUsers) {
+        List<String> users = Lists.newArrayList();
+        if (null != notifyUsers) {
+            Collections.addAll(users, notifyUsers);
         }
         return users;
     }

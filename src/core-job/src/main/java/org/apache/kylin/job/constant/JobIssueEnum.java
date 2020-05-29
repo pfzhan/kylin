@@ -46,7 +46,7 @@ package org.apache.kylin.job.constant;
 import lombok.Getter;
 
 public enum JobIssueEnum {
-    JOB_ERROR("Error Job"), LOAD_EMPTY_DATA("Load Empty Data"), SOURCE_RECORDS_CHANGE("Source Records Change");
+    JOB_ERROR("Error Job"), LOAD_EMPTY_DATA("Load Empty Data"), SOURCE_RECORDS_CHANGE("Source Records Change"), OVER_CAPACITY_THRESHOLD("Over capacity threshold");
     @Getter
     private final String displayName;
 

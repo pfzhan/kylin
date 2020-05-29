@@ -765,6 +765,14 @@ public abstract class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.job.max-local-consumption-ratio", "0.5"));
     }
 
+    public String[] getOverCapacityMailingList() {
+        return getOptionalStringArray("kylin.capacity.notification-emails", new String[0]);
+    }
+
+    public boolean isOverCapacityNotificationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.capacity.notification-enabled", FALSE));
+    }
+
     public boolean isMailEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.job.notification-enabled", FALSE));
     }
