@@ -49,8 +49,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Random;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.shaded.curator.org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.job.exception.ZkPeekLockInterruptException;
@@ -60,6 +58,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.shaded.curator.org.apache.curator.test.TestingServer;
 
 public class ZookeeperDistributedLockTest extends NLocalFileMetadataTestCase {
 
@@ -72,7 +73,7 @@ public class ZookeeperDistributedLockTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         zkTestServer = new TestingServer();
         zkTestServer.start();
-        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         createTestMetadata();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("/zklock");
@@ -84,7 +85,6 @@ public class ZookeeperDistributedLockTest extends NLocalFileMetadataTestCase {
         factory.lockForCurrentProcess().purgeLocks(ZK_PFX);
         zkTestServer.close();
         cleanupTestMetadata();
-        System.clearProperty("kylin.env.zookeeper-connect-string");
     }
 
     @Test

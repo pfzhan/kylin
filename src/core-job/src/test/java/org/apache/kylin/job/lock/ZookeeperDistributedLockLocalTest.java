@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,9 +43,9 @@
 package org.apache.kylin.job.lock;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.Closeable;
@@ -55,17 +54,17 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLock.Watcher;
 import org.apache.kylin.job.exception.ZkReleaseLockException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.shaded.curator.org.apache.curator.test.TestingServer;
 
 public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCase {
@@ -74,24 +73,23 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
 
     static ZookeeperDistributedLock.Factory factory;
 
-    @BeforeClass
-    public static void setup() throws Exception {
+    @Before
+    public void setup() throws Exception {
         staticCreateTestMetadata();
 
         TestingServer zkTestServer = new TestingServer();
         zkTestServer.start();
-        System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("/zklock");
         factory = new ZookeeperDistributedLock.Factory();
     }
 
-    @AfterClass
-    public static void after() throws Exception {
+    @After
+    public void after() throws Exception {
         staticCleanupTestMetadata();
         factory.lockForCurrentProcess().purgeLocks(ZK_PFX);
-        System.clearProperty("kylin.env.zookeeper-connect-string");
     }
 
     @Test
