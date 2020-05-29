@@ -642,14 +642,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                     .untilAsserted(() -> {
                         final KylinConfig tempConf = KylinConfig.createKylinConfig(metaConf);
                         try {
-                            Assert.assertNotNull(NProjectManager.getInstance(tempConf));
-                            Assert.assertNotNull(NProjectManager.getInstance(tempConf).getProject(project));
-                            Assert.assertNotNull(NDataModelManager.getInstance(tempConf, project));
-                            Assert.assertNotNull(
-                                    NDataModelManager.getInstance(tempConf, project).getDataModelDesc(dfId));
-                            Assert.assertNotNull(NIndexPlanManager.getInstance(tempConf, project));
-                            Assert.assertNotNull(NIndexPlanManager.getInstance(tempConf, project).getIndexPlan(dfId));
-                            Assert.assertNotNull(NDataflowManager.getInstance(tempConf, project));
+                            // ensure that meta data were uploaded
+                            Assert.assertTrue(execMgr.getJobOutput(cubeStep.getId()).isResumable());
                             NDataflow tempDf = NDataflowManager.getInstance(tempConf, project).getDataflow(dfId);
                             Assert.assertNotNull(tempDf);
                             Assert.assertEquals(1, tempDf.getSegments().size());
