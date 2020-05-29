@@ -17,7 +17,7 @@
       </div>
       <div v-scroll.reactive v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
         <div class="add_dimensions" v-guide.batchAddDimensionBox>
-          <div v-show="!searchChar">
+          <div v-show="!searchChar.trim()">
             <!-- 事实表 -->
             <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
               <div :class="{'error-content-tip': filterErrorContent(table)}">
@@ -200,7 +200,7 @@
               </div>
             </template>
           </div>
-          <div v-show="searchChar">
+          <div v-show="searchChar.trim()">
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
                   border
                   :empty-text="emptyText"
