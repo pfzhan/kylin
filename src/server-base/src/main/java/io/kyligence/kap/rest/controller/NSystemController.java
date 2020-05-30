@@ -102,12 +102,14 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_EMAIL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
 
 @Controller
