@@ -44,6 +44,7 @@ package org.apache.kylin.job.execution;
 
 import java.time.LocalDate;
 
+import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
@@ -65,7 +66,7 @@ public class EmailNotificationContent {
     public static final String CONCLUSION_FOR_JOB_ERROR = "We found an error job happened in your Kyligence system as below. It won't affect your system stability and you may repair it by following instructions.";
     public static final String CONCLUSION_FOR_LOAD_EMPTY_DATA = "We found a job has loaded empty data in your Kyligence system as below. It won't affect your system stability and you may reload data by following instructions.";
     public static final String CONCLUSION_FOR_SOURCE_RECORDS_CHANGE = "We found some source records updated in your Kyligence system. You can reload updated records by following instructions. Ignore this issue may cause query result inconsistency over different indexes.";
-    public static final String CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD = "The amount of data volume used (${volume_used}) has reached 80% of the license’s limit (${volume_total}).";
+    public static final String CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD = "The amount of data volume used (${volume_used}/${volume_total}) has reached 80% of the license’s limit.";
 
     public static final String SOLUTION_FOR_JOB_ERROR = "You may resume the job first. If still won't work, please send the job's diagnose package to kyligence technical support.";
     public static final String SOLUTION_FOR_LOAD_EMPTY_DATA = "You may refresh the empty segment of the model ${model_name} to reload data.";
@@ -105,8 +106,11 @@ public class EmailNotificationContent {
         case OVER_CAPACITY_THRESHOLD:
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
             long currentCapacity = sourceUsageManager.getLatestRecord().getCurrentCapacity();
+            long licenseVolume = Long.parseLong(System.getProperty("ke.license.volume"));
+            String readableCurrentCapacity = SizeConvertUtil.getReadableFileSize(currentCapacity);
+            String readableLicenseVolume = SizeConvertUtil.getReadableFileSize(licenseVolume);
             content.setConclusion(CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD.replaceAll("\\$\\{volume_used\\}",
-                    String.valueOf(currentCapacity)).replaceAll("\\$\\{volume_used\\}", System.getProperty("ke.license.volume")));
+                    readableCurrentCapacity).replaceAll("\\$\\{volume_total\\}", readableLicenseVolume));
             content.setSolution(SOLUTION_FOR_OVER_CAPACITY_THRESHOLD);
             break;
         default:
