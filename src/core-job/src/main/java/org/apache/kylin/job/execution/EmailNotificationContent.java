@@ -44,6 +44,7 @@ package org.apache.kylin.job.execution;
 
 import java.time.LocalDate;
 
+import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
@@ -106,7 +107,7 @@ public class EmailNotificationContent {
         case OVER_CAPACITY_THRESHOLD:
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
             long currentCapacity = sourceUsageManager.getLatestRecord().getCurrentCapacity();
-            long licenseVolume = Long.parseLong(System.getProperty("ke.license.volume"));
+            long licenseVolume = Long.parseLong(System.getProperty(Constants.KE_LICENSE_VOLUME));
             String readableCurrentCapacity = SizeConvertUtil.getReadableFileSize(currentCapacity);
             String readableLicenseVolume = SizeConvertUtil.getReadableFileSize(licenseVolume);
             content.setConclusion(CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD.replaceAll("\\$\\{volume_used\\}",
