@@ -74,5 +74,45 @@ export default {
   },
   loadOnlineNodes: (para) => {
     return Vue.resource(apiUrl + 'system/servers').get(para)
+  },
+  // 获取系统已使用数据量（每月、每季、每年）
+  getSystemCapacity: (para) => {
+    return Vue.resource(apiUrl + `system/capacity/dashboard`).get(para)
+  },
+  // 获取当个项目已使用数据量（每月、每季、每年）
+  getProjectCapacity: (para) => {
+    return Vue.resource(apiUrl + `system/capacity_info`).get(para)
+  },
+  // 节点使用情况
+  getNodesInfo: () => {
+    return Vue.resource(apiUrl + 'system/license/nodes').get()
+  },
+  // 获取系统容量
+  getSystemCapacityInfo: () => {
+    return Vue.resource(apiUrl + 'system/license/capacity').get()
+  },
+  // 单个项目下面表的数据量
+  getProjectCapacityDetails: (para) => {
+    return Vue.resource(apiUrl + 'system/capacity').get(para)
+  },
+  // 获取项目数据量列表
+  getProjectCapacityList: (para) => {
+    return Vue.resource(apiUrl + 'system/capacities').get(para)
+  },
+  // 刷新单个项目数据量
+  refreshProjectCapacity: (para) => {
+    return Vue.http.put(apiUrl + 'system/capacity/refresh', para)
+  },
+  // 刷新重构
+  refreshAllSystem: () => {
+    return Vue.http.put(apiUrl + 'system/capacity/refresh_all')
+  },
+  // 获取通知状态
+  getNotifyStatus: () => {
+    return Vue.resource(apiUrl + 'system/capacity/notification').get()
+  },
+  // 保存预警通知邮箱及是否开启状态
+  saveAlertEmails: (para) => {
+    return Vue.resource(apiUrl + 'system/capacity/notification').post(para)
   }
 }

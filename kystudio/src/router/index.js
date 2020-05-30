@@ -101,6 +101,11 @@ let routerOptions = {
         component: () => import('../components/admin/User/index.vue')
       },
       {
+        name: 'SystemCapacity',
+        path: 'admin/systemcapacity',
+        component: () => import('../components/admin/SystemCapacity/index.vue')
+      },
+      {
         name: 'Job',
         path: 'monitor/job',
         component: jobs

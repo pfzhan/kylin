@@ -1,0 +1,274 @@
+<template>
+  <div class="capacity-top-bar">
+    <el-popover ref="activeNodes" width="290" popper-class="nodes-popover" v-model="showNodes">
+      <div class="contain">
+        <div class="lastest-update-time">
+          <el-tooltip :content="$t('lastUpdateTime')" effect="dark" placement="top"><i class="icon el-icon-ksd-type_time"></i></el-tooltip>{{latestUpdateTime | timeFormatHasTimeZone}}</div>
+        <div class="data-valumns">
+          <p class="label">
+            <span>{{$t('usedData')}}：<i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i><span :class="[getValueColor]" v-else-if="!systemCapacityInfo.error">{{getCapacityPrecent}}%</span></span>
+            <template v-if="!systemCapacityInfo.isLoading">
+              <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
+              <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
+                <el-tag size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}</el-tag>
+              </el-tooltip>
+              <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
+            </template>
+          </p>
+          <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.error}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span v-else>{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span></span>
+            <template v-if="!systemNodeInfo.isLoading">
+              <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
+              <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
+                <el-tag size="mini" type="danger">{{$t('failApi')}}</el-tag>
+              </el-tooltip> -->
+              <el-tag size="mini" type="danger" v-if="!allNodeNumber">{{$t('noActiveAllNode')}}</el-tag>
+              <el-tag size="mini" type="danger" v-if="systemNodeInfo.node_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
+            </template>
+            <span class="icon el-icon-ksd-more_02 node-list-icon"></span></p>
+        </div>
+      </div>
+      <div class="nodes" v-if="showNodeDetails">
+        <!-- <p class="error-text" v-if="!nodeList.filter(it => it.mode === 'all').length">{{$t('noNodesTip1')}}</p> -->
+        <ul v-if="isNodeLoadingSuccess && !isNodeLoading" class="node-details"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
+      </div>
+    </el-popover>
+    <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">{{$t('serverStatus')}}
+      <i v-if="showLoadingStatus" class="el-icon-loading"></i>
+      <span v-else>
+        <span :class="['flag', getNodesNumColor]" v-if="getDataFails">&bull;</span>
+        <template v-else>
+          <span class="font-disabled">{{$t('failApi')}}</span>
+          <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
+            <i class="icon el-icon-ksd-restart" v-if="isAdminRole" @click.stop="refreshCapacityOrNodes"></i>
+          </el-tooltip>
+        </template>
+      </span>
+    </p>
+  </div>
+</template>
+<script>
+  import Vue from 'vue'
+  import { Component, Watch } from 'vue-property-decorator'
+  import { mapActions, mapState, mapGetters } from 'vuex'
+  import locales from './locales'
+
+  @Component({
+    methods: {
+      ...mapActions({
+        getNodeList: 'GET_NODES_LIST',
+        getNodesInfo: 'GET_NODES_INFO',
+        getSystemCapacity: 'GET_SYSTEM_CAPACITY_INFO',
+        refreshAll: 'REFRESH_ALL_SYSTEM'
+      })
+    },
+    computed: {
+      ...mapState({
+        systemNodeInfo: state => state.capacity.systemNodeInfo,
+        systemCapacityInfo: state => state.capacity.systemCapacityInfo,
+        latestUpdateTime: state => state.capacity.latestUpdateTime
+      }),
+      ...mapGetters([
+        'allNodeNumber',
+        'isAdminRole'
+      ])
+    },
+    locales
+  })
+  export default class CapacityTopBar extends Vue {
+    showNodes = false
+    // isNodeLoadingSuccess = false
+    nodeList = []
+    isNodeLoading = true
+    timer = null
+    showNodeDetails = false
+
+    @Watch('showNodes')
+    changeNodePopover (newVal, oldVal) {
+      !newVal && (this.showNodeDetails = false)
+    }
+
+    get getDataFails () {
+      return !((this.systemCapacityInfo.error && !this.systemCapacityInfo.error_over_thirty_days) || this.systemNodeInfo.error)
+    }
+
+    get getNodesNumColor () {
+      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || this.systemNodeInfo.node_status === 'OVERCAPACITY' || !this.allNodeNumber) {
+        return 'is-danger'
+      } else if (this.getCapacityPrecent >= 80) {
+        return 'is-warning'
+      } else {
+        return 'is-success'
+      }
+    }
+
+    get getValueColor () {
+      const num = this.getCapacityPrecent
+      console.log(num)
+      if (num >= 80 && num < 100) {
+        return 'is-warn'
+      } else if (num > 100) {
+        return 'is-error'
+      } else {
+        return ''
+      }
+    }
+
+    get getCapacityPrecent () {
+      return this.systemCapacityInfo.capacity === 0 ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+    }
+
+    get showLoadingStatus () {
+      console.log(this.systemCapacityInfo.current_capacity, this.systemCapacityInfo.capacity, this.getCapacityPrecent)
+      return this.systemCapacityInfo.capacity_status !== 'OVERCAPACITY' && !this.systemCapacityInfo.error_over_thirty_days && this.systemNodeInfo.node_status !== 'OVERCAPACITY' && this.getCapacityPrecent < 80 && (this.systemCapacityInfo.isLoading || this.systemNodeInfo.isLoading || this.isNodeLoading)
+    }
+
+    created () {
+      this.getHANodes()
+      this.getNodesInfo()
+      this.getSystemCapacity()
+    }
+
+    getHANodes () {
+      this.isNodeLoading = true
+      this.getNodeList({ext: true}).then((res) => {
+        console.log(res, 1111)
+        this.isNodeLoadingSuccess = true
+        this.$set(this, 'nodeList', res)
+        this.isNodeLoading = false
+        clearTimeout(this.timer)
+        this.timer = setTimeout(() => {
+          this.getHANodes()
+        }, 1000 * 60)
+      }).catch(() => {
+        clearTimeout(this.timer)
+        this.timer = setTimeout(() => {
+          this.getHANodes()
+        }, 1000 * 60)
+      })
+    }
+
+    openNodeDetails () {
+      this.showNodeDetails = true
+    }
+
+    // 刷新获取失败的接口
+    async refreshCapacityOrNodes () {
+      this.isNodeLoading = true
+      if (this.systemCapacityInfo.error) {
+        await this.refreshAll()
+        this.isNodeLoading = false
+      }
+      if (this.systemNodeInfo.error) {
+        await this.getNodesInfo()
+        this.isNodeLoading = false
+      }
+    }
+  }
+</script>
+<style lang="less" scoped>
+  @import '../../../assets/styles/variables.less';
+  
+  .capacity-top-bar {
+    position: relative;
+    min-width: 75px;
+    // padding-right: 20px;
+    .active-nodes {
+      .flag {
+        font-size: 38px;
+        position: absolute;
+        top: -13px;
+        font-family: -webkit-pictograph;
+      }
+    }
+    .font-disabled {
+      color: @text-disabled-color;
+    }
+  }
+  .is-danger {
+    color: @error-color-1;
+  }
+  .is-warning {
+    color: @warning-color-1;
+  }
+  .is-success {
+    color: @normal-color-1;
+  }
+  .error-text {
+    color: @error-color-1;
+    font-size: 12px;
+    margin-bottom: 13px;
+  }
+</style>
+
+<style lang="less">
+  @import '../../../assets/styles/variables.less';
+  .nodes-popover {
+    padding: 0 !important;
+    .font-disabled {
+      color: @text-disabled-color;
+    }
+    .contain {
+      .lastest-update-time {
+        height: 30px;
+        padding: 5px 10px;
+        line-height: 20px;
+        box-sizing: border-box;
+        color: @text-normal-color;
+        border-bottom: 1px solid @line-border-color3;
+        .icon {
+          margin-right: 5px;
+          color: @text-disabled-color;
+        }
+      }
+      .data-valumns {
+        padding: 10px 0;
+        box-sizing: border-box;
+        .label {
+          line-height: 28px;
+          padding: 0 10px;
+          box-sizing: border-box;
+        }
+        .node-item {
+          position: relative;
+          cursor: pointer;
+          .node-list-icon {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-size: 9px;
+          }
+          &:hover {
+            background: @base-color-9;
+          }
+          &.is-disabled {
+            pointer-events: none;
+          }
+        }
+      }
+    }
+    .nodes {
+      max-height: 170px;
+      overflow: auto;
+      text-align: left;
+      position: absolute;
+      background: #ffffff;
+      left: calc(~'100% + 5px');
+      margin-top: -35px;
+      width: 300px;
+      padding: 10px;
+      box-sizing: border-box;
+      box-shadow: 0 0px 6px 0px #E5E5E5;
+      .node-details {
+        text-align: left;
+      }
+      .node-list {
+        color: @text-normal-color;
+        margin-top: 8px;
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+    }
+  }
+</style>

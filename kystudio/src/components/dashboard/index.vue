@@ -74,6 +74,23 @@
             </div>
           </div>
         </el-col>
+        <el-col :span="8" class="project-data-col">
+          <div class="col-board">
+            <div class="col-title">
+              <span>{{$t('projectDataline')}}</span>
+              <el-tooltip placement="right" :content="$t('dataValume')">
+                <i class="icon el-icon-ksd-what"></i>
+              </el-tooltip>
+              <span class="select-date-line">
+                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '115px' : '72px'}">
+                  <el-option v-for="(item, index) in dataOptions" :key="index" :value="item.value" :label="item.text">
+                  </el-option>
+                </el-select>
+              </span>
+            </div>
+            <div id="used-data-project"></div>
+          </div>
+        </el-col>
         <el-col :span="8">
           <div class="dash-card">
             <div class="cart-title clearfix">
@@ -204,14 +221,16 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccess } from '../../util/business'
+import { handleSuccess, transToUtcDateFormat } from '../../util/business'
 import { handleSuccessAsync, handleError } from '../../util/index'
 import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
 import $ from 'jquery'
 import * as d3 from 'd3'
+import echarts from 'echarts'
 import moment from 'moment-timezone'
 import BarChart from './BarChart'
 import LineChart from './LineChart'
+import charts from '../admin/SystemCapacity/charts'
 @Component({
   methods: {
     ...mapActions({
@@ -223,7 +242,8 @@ import LineChart from './LineChart'
       loadQueryDuraChartData: 'LOAD_QUERY_DURA_CHART_DATA',
       loadDashboardJobInfo: 'LOAD_DASHBOARD_JOB_INFO',
       loadJobChartData: 'LOAD_JOB_CHART_DATA',
-      loadJobBulidChartData: 'LOAD_JOB_BULID_CHART_DATA'
+      loadJobBulidChartData: 'LOAD_JOB_BULID_CHART_DATA',
+      getProjectCapacity: 'GET_PROJECT_CAPACITY'
     })
   },
   components: {
@@ -268,7 +288,12 @@ import LineChart from './LineChart'
       quotaTips1: 'The project only has 10% storage quota. Some new jobs will be terminated when no storage quota is available. Please clean up low-efficient storage in time, increase the',
       quotaTips2: 'No storage quota available. The system will terminate the new load data job and build index job, while the query engine will still serve. Please clean up low-efficient storage in time, increase the',
       quotaTips3: ' low-efficient storage threshold',
-      quotaTips4: ', or notify the system administrator to increase the storage quota for this project.'
+      quotaTips4: ', or notify the system administrator to increase the storage quota for this project.',
+      projectDataline: 'Data Volume Used',
+      dataValume: 'The amount of uncompressed data which has been loaded into the project',
+      cMonth: 'This Month',
+      cSeason: 'This Quarter',
+      cYear: 'This Year'
     },
     'zh-cn': {
       storageQuota: '存储配额',
@@ -300,7 +325,12 @@ import LineChart from './LineChart'
       quotaTips1: '只有10%存储配额可用，当没有可用存储配额时系统将终止部分新增的任务。请及时清理低效存储，提高',
       quotaTips2: '已无可用的存储配额。系统将终止新增的数据加载任务和索引构建任务，查询引擎依然正常服务。请及时清理低效存储，提高',
       quotaTips3: '低效存储阈值',
-      quotaTips4: '，或者通知系统管理员提高本项目的存储配额。'
+      quotaTips4: '，或者通知系统管理员提高本项目的存储配额。',
+      projectDataline: '已使用数据量',
+      dataValume: '已经载入该项目的不压缩的数据量',
+      cMonth: '当月',
+      cSeason: '当季',
+      cYear: '当年'
     }
   }
 })
@@ -332,6 +362,7 @@ export default class Dashboard extends Vue {
   dateUnit = 'day'
   unitOptions = ['day', 'week', 'month']
   isNoQuota = false
+  selectedDataLine = 'month'
   get chartTitle () {
     if (this.showQueryChart) {
       return this.$t('queryCount')
@@ -342,6 +373,14 @@ export default class Dashboard extends Vue {
     } else if (this.showBulidChart) {
       return this.$t('jobDuration')
     }
+  }
+  // 折线图获取的数据集（当月、当季、当年）
+  get dataOptions () {
+    return [
+      { text: this.$t('cMonth'), value: 'month' },
+      { text: this.$t('cSeason'), value: 'quarter' },
+      { text: this.$t('cYear'), value: 'year' }
+    ]
   }
   gotoQueryHistory () {
     this.$router.push('/query/queryhistory')
@@ -485,8 +524,28 @@ export default class Dashboard extends Vue {
           $(targetDom).empty()
           this.drawImpactChart()
         }
+        this.resetChartsPosition()
       }
     })
+    this.getProjectCapacityRange()
+  }
+  changeProjectDataLine () {
+    this.getProjectCapacityRange()
+  }
+  getProjectCapacityRange () {
+    this.getProjectCapacity({project: this.$store.state.project.selected_project, data_range: this.selectedDataLine}).then((data) => {
+      console.log(data, 4444)
+      this.initCharts(data)
+    })
+  }
+  initCharts (data) {
+    const xDates = Object.keys(data).map(it => (transToUtcDateFormat(+it)))
+    const yVol = Object.values(data).map(it => (+it / 1024 / 1024 / 1024 / 1024).toFixed(2))
+    this.lineCharts = echarts.init(this.$el.querySelector('#used-data-project'))
+    this.lineCharts.setOption(charts.line(xDates, yVol))
+  }
+  resetChartsPosition () {
+    this.lineCharts.resize()
   }
   get pickerOptions () {
     return {
@@ -687,6 +746,36 @@ export default class Dashboard extends Vue {
     }
     .dashboard-content {
       margin: 20px;
+    }
+    .project-data-col {
+      height: 242px;
+      position: relative;
+      .col-board {
+        width: 100%;
+        height: 100%;
+        border-radius:1px 1px 0px 0px;
+        border:1px solid @line-border-color3;
+      }
+      #used-data-project {
+        width: 100%;
+        height: calc(~'100% - 36px')
+      }
+      .col-title {
+        height: 36px;
+        background: @table-stripe-color;
+        line-height: 36px;
+        font-size: 14px;
+        color: @text-title-color;
+        padding: 0 15px;
+        .icon {
+          margin-left: 5px;
+          cursor: pointer;
+        }
+        .select-date-line {
+          position: absolute;
+          right: 10px;
+        }
+      }
     }
     .el-date-editor--daterange.el-input__inner {
       width: 240px;

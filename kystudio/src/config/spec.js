@@ -24,7 +24,8 @@ export default {
       { "id": "group", "value": "group", "title": "Group" },
       { "id": "groupDetail", "value": "groupdetail", "title": "GroupDetail" },
       { "id": "projectAuthority", "value": "projectauthority", "title": "Project Authority" },
-      { "id": "diagnostic", "value": "diagnostic", "title": "" }
+      { "id": "diagnostic", "value": "diagnostic", "title": "" },
+      { "id": "systemCapacity", "value": "systemcapacity", "title": "System Capacity" }
     ],
     "datasource": [
       { "id": "hive", "value": 9, "title": "HIVE" },
@@ -146,7 +147,7 @@ export default {
     "menu": {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
-        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic]", "value": "admin,project,user,group,groupDetail,diagnostic,projectAuthority" },
+        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic,systemCapacity]", "value": "admin,project,user,group,groupDetail,diagnostic,projectAuthority,systemCapacity" },
         { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
         { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin,projectAuthority" },
         { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },

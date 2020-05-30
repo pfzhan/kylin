@@ -89,6 +89,11 @@ export const menusData = [
     name: 'group',
     path: '/admin/group',
     icon: 'el-icon-ksd-table_group'
+  },
+  {
+    name: 'systemcapacity',
+    path: '/admin/systemCapacity',
+    icon: 'el-icon-ksd-Combined_Shape'
   }
 ]
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']

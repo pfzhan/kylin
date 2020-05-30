@@ -1,0 +1,809 @@
+<template>
+  <div class="system-capacity">
+    <p class="main-title">{{$t('mainTitle')}}
+      <el-tooltip effect="dark" placement="top">
+        <span slot="content">{{$t('capacityTip1')}}<a target="_blank" :href="$lang === 'en' ? 'https://docs.kyligence.io/books/v4.1/en/operation/metrics/service.en.html' : 'https://docs.kyligence.io/books/v4.1/zh-cn/operation/metrics/service.cn.html'">{{$t('manual')}}</a></span>
+        <i class="icon el-icon-ksd-what"></i>
+      </el-tooltip>
+    </p>
+    <p class="system-msg">
+      <span>{{$t('usedData')}}<i class="icon el-icon-ksd-what"></i>：</span>
+      <i class="icon el-icon-loading" v-if="systemCapacityInfo.isLoading"></i>
+      <template v-else>
+        <span :class="['used-data-number', getValueColor]"><span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">{{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})</span></span>
+        <span>
+          <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
+          <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
+                <el-tag size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
+              </el-tooltip></span>
+          <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
+          <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
+            <i class="icon el-icon-ksd-restart" v-if="systemCapacityInfo.error" @click="refreshSystemBuildJob"></i>
+          </el-tooltip>
+        </span>
+      </template>
+      <span class="line">|</span>
+      <span class="used-nodes">{{$t('usedNodes')}}：<span :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']"><span v-if="!systemNodeInfo.isLoading && !systemNodeInfo.error">{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span><i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i></span>
+        <span>
+          <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
+          <!-- <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
+              <el-tag size="mini" type="danger">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
+            </el-tooltip></span> -->
+          <el-tag size="mini" type="danger" v-if="systemNodeInfo.node_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
+          <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
+            <i class="icon el-icon-ksd-restart" v-if="systemNodeInfo.error"></i>
+          </el-tooltip>
+        </span>
+      </span>
+      <!-- <p class="alert-notice clearfix"><span>{{$t('alertNotice')}}</span><span :class="noticeType ? 'is-open' : 'is-error'">{{ noticeType ? $t('open') : $t('close') }}</span><i class="icon el-icon-ksd-table_edit" @click="changeNoitceType"></i></p> -->
+    </p>
+    <el-row :gutter="10" class="content">
+      <el-col :span="16" class="data-map">
+        <div class="col-board">
+          <div class="col-title"><span>{{$t('usedDataline')}}</span>
+            <el-tooltip :content="$t('usedDatalineTip')" effect="dark" placement="top">
+              <i class="icon el-icon-ksd-what"></i>
+            </el-tooltip>
+            <span class="select-date-line">
+              <el-select size="mini" v-model="selectedDataLine" @change="changeDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '115px' : '72px'}">
+                <el-option v-for="(item, index) in dataOptions" :key="index" :value="item.value" :label="item.text">
+                </el-option>
+              </el-select>
+            </span>
+          </div>
+          <div id="used-data-map" :class="[!lineOptions && 'hide-charts']"></div>
+          <empty-data :showImage="false" v-show="!lineOptions" />
+        </div>
+      </el-col>
+      <el-col class="node-table" :span="8">
+        <div class="col-board">
+          <div class="col-title"><span>{{$t('nodeList')}}</span></div>
+          <div class="table-bg">
+            <el-table
+              :data="nodes"
+              size="small"
+              border
+              v-scroll-shadow
+              class="node-list"
+              :empty-text="$t('kylinLang.common.noData')"
+            >
+              <el-table-column prop="host" :label="$t('node')"></el-table-column>
+              <el-table-column :label="$t('type')" width="80">
+                <template slot-scope="scope">
+                  <span>{{scope.row.mode.replace(/^(\w)(\w+)$/, (v, $1, $2) => `${$1.toLocaleUpperCase()}${$2}`)}}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <div class="project-data">
+      <div class="col-title"><span>{{$t('projectDatas')}}</span></div>
+      <div class="contain">
+        <div class="data-tree-map">
+          <div id="tree-map">
+            <empty-data />
+          </div>
+        </div>
+        <div class="project-usage-table">
+          <el-input v-model="filterProject" prefix-icon="el-icon-search" :placeholder="$t('projectPlaceholder')" :clearable="true" size="small" @input="changeResult"></el-input>
+          <div class="list">
+            <el-table
+              :data="projectCapacity.list"
+              size="small"
+              border
+              v-scroll-shadow
+              class="project-capacity"
+              max-height="360"
+              @sort-change="projectSortChange"
+              :empty-text="$t('kylinLang.common.noData')"
+            >
+              <el-table-column prop="name" :label="$t('project')" align="left" show-overflow-tooltip></el-table-column>
+              <el-table-column :render-header="renderUsageHeader" prop="capacity_ratio" sortable align="right" width="140">
+                <template slot-scope="scope">{{scope.row.status !== 'ERROR' ? (scope.row.capacity_ratio * 100).toFixed(2) + '%' : $t('failApi')}}</template>
+              </el-table-column>
+              <el-table-column :label="$t('usedCapacity')" prop="capacity" sortable align="right" width="120">
+                <template slot-scope="scope"><span v-if="scope.row.status !== 'ERROR'">{{scope.row.capacity | dataSize}}</span><span v-else>{{$t('failApi')}}</span></template>
+              </el-table-column>
+              <el-table-column :label="$t('tools')" align="left" class-name="tools-list" width="80">
+                <template slot-scope="scope">
+                  <common-tip :content="$t('viewDetail')">
+                    <i class="sub-icon el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                  </common-tip>
+                  <common-tip :content="$t('kylinLang.common.refresh')">
+                    <i class="sub-icon el-icon-ksd-restart" v-if="scope.row.status === 'ERROR'" @click="refreshProjectCapacity(scope.row)"></i>
+                  </common-tip>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
+        </div>
+      </div>
+    </div>
+    <el-dialog
+      :title="$t('dataAlertTitle')"
+      v-if="showAlert"
+      :visible="true"
+      width="400px"
+      @close="showAlert = false"
+      :close-on-click-modal="false"
+      :is-dragable="true"
+      custom-class="alert-dialog"
+      ref="alert-msg-dialog">
+      <div class="dialog-body">
+        <p>
+          <span>{{$t('noticeLabel')}}</span>
+          <el-switch
+            v-model="alertMsg.notify"
+            active-text="OFF"
+            inactive-text="ON">
+          </el-switch>
+        </p>
+        <p :class="[!alertMsg.notify && 'is-disabled']">{{$t('alertCapacityText')}}</p>
+        <el-form :model="alertMsg" ref="emailsValidate" size="small" @keydown.enter="() => { return false }">
+          <el-form-item :rules="emailRules" prop="emails">
+            <!-- <el-select
+              v-model="alertMsg.emails"
+              multiple
+              filterable
+              allow-create
+              default-first-option
+              popper-class="custom-email-content"
+              class="change-input-emails"
+              @change="changeEmails"
+            ></el-select> -->
+            <div :class="['input-emails', errorEmailTip && 'error-emails']" @click="alertMsg.notify && handlerClickEvent()">
+              <div class="disable-mask" v-if="!alertMsg.notify"></div>
+              <span>
+                <el-tag size="small" closable v-for="(item, index) in alertMsg.emailTags" :key="index" @close.stop="removeCurrentTag(item)">{{ item }}</el-tag>
+              </span>
+              <el-input ref="emailInput" size="medium" v-if="showEmailInput" :clearable="false" v-model="alertMsg.emails" @focus="handleEventFocus" @blur="changeEmails"></el-input>
+            </div>
+          </el-form-item>
+        </el-form>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button plain @click="showAlert = false">{{$t('know')}}</el-button>
+        <el-button type="primary" plain @click="submitEmailNotice" :disabled="!isChangeValue">{{$t('kylinLang.common.save')}}</el-button>
+      </span>
+    </el-dialog>
+    <!-- project占比详情 -->
+    <el-dialog
+      :title="$t('projectDetailsTitle', {projectName: currentProjectName})"
+      v-if="showProjectChargedDetails"
+      :visible="true"
+      width="720px"
+      @close="showProjectChargedDetails = false"
+      :close-on-click-modal="false"
+      :is-dragable="false"
+      custom-class="project-charged-details-dialog"
+      ref="project-charged-details">
+      <div class="dialog-body">
+        <el-table
+          :data="projectDetail.list"
+          border
+          v-scroll-shadow
+          @sort-change="projectDetailsSortChange"
+          class="charged-table"
+          :empty-text="$t('kylinLang.common.noData')"
+        >
+          <el-table-column prop="name" :label="$t('tableName')" align="left" show-overflow-tooltip></el-table-column>
+          <el-table-column :render-header="renderDetailUsageHeader" prop="capacity_ratio" sortable align="right">
+            <template slot-scope="scope"><span>{{scope.row.capacity_ratio * 100 + '%'}}</span></template>
+          </el-table-column>
+          <el-table-column :label="$t('usedCapacity')" prop="capacity" sortable align="right">
+            <template slot-scope="scope">{{scope.row.capacity | dataSize}}</template>
+          </el-table-column>
+        </el-table>
+        <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" plain @click="showProjectChargedDetails = false">{{$t('kylinLang.common.close')}}</el-button>
+      </span>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import Vue from 'vue'
+import { Component, Watch } from 'vue-property-decorator'
+import locales from './locales'
+// import echartsLine from 'echarts/lib/chart/line'
+import charts from './charts'
+import echarts from 'echarts'
+import EmptyData from '../../common/EmptyData/EmptyData'
+import { mapActions, mapState } from 'vuex'
+import { transToUtcDateFormat } from '../../../util/business'
+
+@Component({
+  methods: {
+    ...mapActions({
+      getSystemCapacity: 'GET_SYSTEM_CAPACITY',
+      getProjectDetails: 'GET_PROJECT_CAPACITY_DETAILS',
+      getProjectCapacityList: 'GET_PROJECT_CAPACITY_LIST',
+      refreshSingleProjectCapacity: 'REFRESH_SINGLE_PROJECT',
+      refreshAll: 'REFRESH_ALL_SYSTEM',
+      getNotifyStatus: 'GET_EMAIL_NOTIFY_STATUS',
+      saveAlertEmails: 'SAVE_ALERT_EMAILS'
+    })
+  },
+  computed: {
+    ...mapState({
+      nodeList: state => state.capacity.nodeList,
+      systemNodeInfo: state => state.capacity.systemNodeInfo,
+      systemCapacityInfo: state => state.capacity.systemCapacityInfo
+    })
+  },
+  locales,
+  components: {
+    EmptyData
+  }
+})
+export default class SystemCapacity extends Vue {
+  usedData = {
+    used: 100,
+    sum: 200
+  }
+  // usedNodes = {
+  //   used: 7,
+  //   total: 10
+  // }
+  alertMsg = {
+    notify: false,
+    emails: '',
+    emailTags: []
+  }
+  oldAlert = {
+    notify: false,
+    emails: '',
+    emailTags: []
+  }
+  errorEmailTip = false
+  showEmailInput = false
+  noticeType = false
+  lineCharts = null
+  lineOptions = null
+  treeMapCharts = null
+  filterProject = ''
+  nodes = []
+  projectCapacity = {
+    list: [],
+    pageSize: 10,
+    currentPage: 1,
+    totalSize: 10
+  }
+  showAlert = false
+  showProjectChargedDetails = false
+  currentProjectName = ''
+  projectDetail = {
+    list: [],
+    pageSize: 10,
+    currentPage: 1,
+    totalSize: 10
+  }
+  selectedDataLine = 'month'
+  dalyTimer = null
+
+  @Watch('alertMsg.notify')
+  changeAlertEmail (newVal, oldVal) {
+    if (newVal !== oldVal && !newVal) {
+      this.errorEmailTip = false
+      this.$refs.emailsValidate.resetFields()
+    }
+  }
+
+  @Watch('nodeList')
+  changeNodes (newVal, oldVal) {
+    if (newVal.length && !oldVal.length) this.nodes = newVal
+  }
+
+  created () {
+    this.getProjectList()
+    this.getNotifyStatus().then(status => {
+      this.noticeType = status
+    })
+  }
+
+  // 获取项目占比
+  getProjectList (data = {}) {
+    this.getProjectCapacityList({project_names: this.filterProject, page_offset: this.projectCapacity.currentPage, page_size: this.projectCapacity.pageSize, ...data}).then(data => {
+      this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
+      this.initTreeMapCharts()
+    })
+  }
+
+  // 项目重排
+  projectSortChange (sortBy) {
+    this.getProjectList({sort_by: sortBy.prop, reverse: sortBy.order === 'descending'})
+  }
+
+  // 切换折线图数据范围
+  changeDataLine () {
+    this.getCapacityBySystem()
+  }
+
+  getCapacityBySystem () {
+    this.getSystemCapacity({data_range: this.selectedDataLine}).then(data => {
+      if (!Object.keys(data).length) {
+        this.lineOptions = null
+      } else {
+        this.lineOptions = data
+        this.initLineCharts()
+      }
+    })
+  }
+
+  get getCapacityPrecent () {
+    return (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+  }
+
+  // 邮箱规则
+  get emailRules () {
+    return [
+      { validator: this.validateEmail, trigger: 'blur', required: true }
+    ]
+  }
+
+  // 折线图获取的数据集（当月、当季、当年）
+  get dataOptions () {
+    return [
+      { text: this.$t('cMonth'), value: 'month' },
+      { text: this.$t('cSeason'), value: 'quarter' },
+      { text: this.$t('cYear'), value: 'year' }
+    ]
+  }
+
+  // 判断数据量预警数值是否更改
+  get isChangeValue () {
+    return this.oldAlert.notify !== this.alertMsg.notify || this.oldAlert.emailTags.join(',') !== this.alertMsg.emailTags.join(',')
+  }
+
+  // 根据已使用的数据量判断显示的颜色
+  get getValueColor () {
+    const num = this.getCapacityPrecent
+    console.log(num)
+    if (num >= 80 && num < 100) {
+      return 'is-warn'
+    } else if (num > 100) {
+      return 'is-error'
+    } else {
+      return ''
+    }
+  }
+
+  initLineCharts () {
+    if (this.lineOptions) {
+      const xDates = Object.keys(this.lineOptions).map(it => (transToUtcDateFormat(+it)))
+      const yVol = Object.values(this.lineOptions).map(it => (+it / 1024 / 1024 / 1024 / 1024).toFixed(2))
+      this.lineCharts = echarts.init(document.getElementById('used-data-map'))
+      this.lineCharts.setOption(charts.line(xDates, yVol))
+    }
+  }
+
+  initTreeMapCharts () {
+    if (!this.projectCapacity.list.length) return
+    const data = this.projectCapacity.list.filter(item => item.status !== 'ERROR').map(it => ({name: it.name, value: it.capacity_ratio * 100, capacity: it.capacity}))
+    const formatUtil = echarts.format
+    this.treeMapCharts = echarts.init(this.$el.querySelector('#tree-map'))
+    this.treeMapCharts.setOption(charts.treeMap(this, data, formatUtil))
+    this.treeMapCharts.on('click', (params) => {
+      this.filterProject = params.data.name
+      this.getProjectList()
+    })
+  }
+
+  resetChartsPosition () {
+    this.lineCharts && this.lineCharts.resize()
+    this.treeMapCharts && this.treeMapCharts.resize()
+  }
+
+  lisenceEvent () {
+    window.addEventListener('resize', this.resetChartsPosition)
+  }
+
+  handleEventFocus () {
+    window.addEventListener('keydown', this.delEmailEvent)
+  }
+
+  delEmailEvent (e) {
+    if (!this.alertMsg.emails && e.key && e.key === 'Backspace' && this.alertMsg.emailTags.length) {
+      this.alertMsg.emailTags.pop()
+    }
+  }
+
+  changeResult () {
+    clearTimeout(this.dalyTimer)
+    this.dalyTimer = setTimeout(() => {
+      this.getProjectList()
+    }, 500)
+  }
+
+  pageCurrentChange () {
+    this.getProjectList()
+  }
+
+  // table详情排序
+  projectDetailsSortChange (sort) {
+    this.getTableDetails({sort_by: sort.prop, reverse: sort.order === 'descending'})
+  }
+
+  // 切换项目详情页码
+  pageCurrentChangeByDetail () {
+    this.getTableDetails()
+  }
+
+  changeNoitceType () {
+    this.showAlert = true
+  }
+
+  async submitEmailNotice () {
+    if (await this.$refs.emailsValidate.validate()) {
+      // this.showAlert = false
+      // todo 邮箱提醒接口
+      this.saveAlertEmails({})
+      this.noticeType = this.alertMsg.notify
+      this.oldAlert = this.alertMsg
+    }
+  }
+
+  renderUsageHeader (h, { column, index }) {
+    return <span class="usage-header">
+      { this.$t('usage') }
+      <el-tooltip content={ this.$t('usageTip') } effect="dark" placement="top">
+        <span class="icon el-icon-ksd-what"></span>
+      </el-tooltip>
+    </span>
+  }
+
+  // 表占比tip
+  renderDetailUsageHeader (h, { column, index }) {
+    return <span class="usage-header">
+      { this.$t('usage') }
+      <el-tooltip content={ this.$t('usageTableTip') } effect="dark" placement="top">
+        <span class="icon el-icon-ksd-what"></span>
+      </el-tooltip>
+    </span>
+  }
+
+  // 展示项目占比详情
+  showDetail (row) {
+    this.currentProjectName = row.name
+    this.showProjectChargedDetails = true
+    this.getTableDetails()
+  }
+
+  getTableDetails (data = {}) {
+    this.getProjectDetails({project: this.currentProjectName, page_offset: this.projectDetail.currentPage, page_size: this.projectDetail.pageSize, ...data}).then(data => {
+      this.projectDetail = {...this.projectDetail, list: data.tables, totalSize: data.size}
+    })
+  }
+
+  // 手动认证邮箱格式
+  validateEmail (rule, value, callback) {
+    console.log(value)
+    const emails = value.split(',')
+    const reg = /^\w+((.\w+)|(-\w+))@[A-Za-z0-9]+((.|-)[A-Za-z0-9]+).[A-Za-z0-9]+$/
+    if (!value && !this.alertMsg.emailTags.length) {
+      this.errorEmailTip = true
+      callback(new Error(this.$t('noEmail')))
+    } else if (value && emails.length && emails.filter(it => !reg.test(it)).length) {
+      this.errorEmailTip = true
+      callback(new Error(this.$t('errorEmailFormat')))
+    } else {
+      this.errorEmailTip = false
+      callback()
+    }
+  }
+
+  // 邮件预警
+  async changeEmails () {
+    if (await this.$refs.emailsValidate.validate() && this.alertMsg.emails) {
+      this.alertMsg.emailTags = [...this.alertMsg.emailTags, ...this.alertMsg.emails.split(',')]
+      this.alertMsg.emails = ''
+    }
+    this.showEmailInput = false
+    console.log(this.alertMsg.emails)
+    window.removeEventListener('keydown', this.delEmailEvent)
+  }
+
+  handlerClickEvent () {
+    console.log(1111)
+    this.showEmailInput = true
+    this.$nextTick(() => {
+      this.$refs.emailInput.$el.querySelector('.el-input__inner').focus()
+    })
+  }
+
+  // 删除邮箱tag
+  removeCurrentTag (name) {
+    const index = this.alertMsg.emailTags.findIndex(n => n === name)
+    index >= 0 && this.alertMsg.emailTags.splice(index, 1)
+  }
+
+  // 刷新单个项目占比及数据量
+  refreshProjectCapacity (row) {
+    this.refreshSingleProjectCapacity({project: row.name}).then(() => {
+      this.getProjectList()
+    })
+  }
+
+  // 刷新构建 重新获取系统容量
+  refreshSystemBuildJob () {
+    this.refreshAll()
+  }
+
+  mounted () {
+    this.getCapacityBySystem()
+    // this.initCharts()
+    this.initTreeMapCharts()
+    this.lisenceEvent()
+  }
+
+  beforeDestroy () {
+    window.removeEventListener('resize', this.resetChartsPosition)
+    window.removeEventListener('keydown', this.delEmailEvent)
+  }
+}
+</script>
+
+<style scoped lang="less">
+@import '../../../assets/styles/variables.less';
+
+.system-capacity {
+  padding: 20px 15px;
+  box-sizing: border-box;
+  background: @base-background-color-1;
+  .main-title {
+    color: @text-title-color;
+    font-weight: bold;
+    font-size: @text-title-size;
+  }
+  .font-disabled {
+    color: @text-disabled-color;
+  }
+  .icon {
+    margin-left: 2px;
+    color: @text-disabled-color;
+    cursor: pointer;
+  }
+  .el-tag.el-tag--danger {
+    .icon {
+      color: @error-color-1;
+    }
+  }
+  .alert-notice {
+    float: right;
+    margin-top: -17px;
+    font-size: @text-assist-size;
+    .is-open {
+      color: @normal-color-1;
+    }
+    .icon {
+      margin-left: 5px;
+      cursor: pointer;
+      &:hover {
+        color: @base-color;
+      }
+    }
+  }
+  .system-msg {
+    margin-top: 10px;
+    font-size: @text-assist-size;
+    .used-data-number {
+      color: @text-title-color;
+      font-weight: 500;
+      .is-danger {
+        color: @error-color-1;
+      }
+    }
+    .line {
+      margin: 0 15px;
+      color: @line-border-color3;
+    }
+    .used-nodes {
+      .num {
+        color: @text-title-color;
+        font-weight: 500;
+      }
+    }
+    .el-icon-ksd-restart {
+      color: @base-color;
+    }
+  }
+  .col-board {
+    width: 100%;
+    height: 100%;
+    border-radius:1px 1px 0px 0px;
+    // border:1px solid @line-border-color3;
+    background: @fff;
+    // background:rgba(255,255,255,1);
+    box-shadow:0px 0px 5px 0px rgba(240,240,240,1);
+  }
+  .col-title {
+    height: 36px;
+    // background: @table-stripe-color;
+    line-height: 50px;
+    font-size: @text-subtitle-size;
+    color: @text-title-color;
+    padding: 0 15px;
+    font-weight: bold;
+  }
+  .content {
+    margin-top: 15px;
+    .hide-charts {
+      opacity: 0;
+    }
+    .data-map {
+      height: 320px;
+      position: relative;
+      #used-data-map {
+        width: 100%;
+        height: calc(~'100% - 36px');
+      }
+      .select-date-line {
+        position: absolute;
+        right: 17px;
+        // .el-select {
+        //   width: 72px;
+        // }
+      }
+    }
+    .node-table {
+      height: 320px;
+      position: relative;
+      .table-bg {
+        width: 100%;
+        height: calc(~'100% - 36px');
+        padding: 10px 10px 15px 10px;
+        box-sizing: border-box;
+        overflow: auto;
+      }
+    }
+  }
+  .project-data {
+    height: 500px;
+    margin-top: 10px;
+    border-radius:2px;
+    // border:1px solid @line-border-color3;
+    box-shadow:0px 0px 5px 0px rgba(240,240,240,1);
+    background: @fff;
+    position: relative;
+    // overflow: auto;
+    .contain {
+      height: calc(~'100% - 40px');
+      display: flex;
+      padding: 10px 15px;
+      box-sizing: border-box;
+      .data-tree-map {
+        flex: 1;
+        height: calc(~'100% - 30px');
+        position: relative;
+      }
+      .project-usage-table {
+        width: 50%;
+        text-align: right;
+        margin-left: 10px;
+        .el-input {
+          width: 220px;
+          position: absolute;
+          top: 10px;
+          right: 15px;
+        }
+        .list {
+          // margin-top: 10px;
+        }
+      }
+      #tree-map {
+        height: 100%;
+      }
+    }
+    .sub-icon {
+      cursor: pointer;
+    }
+  }
+  .is-warn {
+    color: @warning-color-1 !important;
+  }
+  .is-error {
+    color: @error-color-1 !important;
+  }
+  .alert-dialog {
+    .is-disabled {
+      color: @text-disabled-color;
+    }
+    .input-emails {
+      border: 1px solid @line-border-color3;
+      padding: 0 10px;
+      position: relative;
+      min-height: 32px;
+      .el-input {
+        display: inline-block;
+        max-width: 100%;
+        width: inherit;
+      }
+      .el-tag {
+        margin-right: 5px;
+      }
+      &.error-emails {
+        border: 1px solid @error-color-1;
+      }
+      .el-input--medium {
+        // width: inherit;
+        // max-width: 100%;
+      }
+      .disable-mask {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: #f5f5f5;
+        cursor: not-allowed;
+        z-index: 10;
+        opacity: .5;
+      }
+    }
+  }
+}
+// .alert-dialog {
+//   /deep/.el-input__inner {
+//     padding-right: 10px;
+//   }
+//   /deep/.el-input__suffix {
+//     display: none;
+//   }
+// }
+// .change-input-emails /deep/ .el-input__suffix {
+//   display: none;
+// }
+</style>
+
+<style lang="less">
+  @import '../../../assets/styles/variables.less';
+  .input-emails {
+    .el-input__inner {
+      border: none;
+      padding: 0;
+    }
+  }
+  .project-data {
+    .empty-data.empty-data-normal {
+      img {
+        height: 80px
+      }
+    }
+  }
+  .change-input-emails {
+    width: 100%;
+    .el-input__suffix {
+      display: none;
+    }
+    .el-input__inner {
+      cursor: text;
+      padding-right: 10px;
+    }
+  }
+  .custom-email-content {
+    display: none;
+  }
+  .data-line-dropdown {
+    .el-select-dropdown__item {
+      font-size: 12px;
+    }
+  }
+  .tools-list {
+    .tip_box {
+      margin-left: 5px;
+      &:first-child {
+        margin-left: inherit;
+      }
+    }
+  }
+  .usage-header {
+    .icon {
+      margin-left: 5px;
+    }
+  }
+</style>

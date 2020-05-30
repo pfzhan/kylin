@@ -464,7 +464,8 @@ exports.default = {
     modelList: 'Model',
     index: 'Index',
     modeledit: 'Model Edit',
-    refresh: 'Refresh'
+    refresh: 'Refresh',
+    systemcapacity: 'Capacity'
   },
   user: {
     tip_password_unsafe: 'The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:"<>?[];\',./`).',

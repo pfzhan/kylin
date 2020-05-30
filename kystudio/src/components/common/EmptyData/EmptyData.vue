@@ -1,7 +1,7 @@
 <template>
   <div class="empty-data" :class="emptyClass">
     <div class="center">
-      <img :src="emptyImageUrl" :class="{'large-icon': size === 'large'}"/>
+      <img :src="emptyImageUrl" :class="{'large-icon': size === 'large'}" v-if="showImage"/>
     </div>
     <div class="center">
       <div v-html="emptyContent"></div>
@@ -26,6 +26,10 @@ import defaultImage from '../../../assets/img/no_data.png'
     },
     size: {
       type: String
+    },
+    showImage: {
+      type: Boolean,
+      default: true
     }
   },
   locales
