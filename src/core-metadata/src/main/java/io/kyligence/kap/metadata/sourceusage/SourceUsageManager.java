@@ -583,8 +583,13 @@ public class SourceUsageManager {
     }
 
     public boolean isOverCapacity() {
-        long currentCapacity = this.getLatestRecord().getCurrentCapacity();
-        long totalCapacity = Long.parseLong(System.getProperty(Constants.KE_LICENSE_VOLUME));
+        if (Constants.UNLIMITED.equals(System.getProperty(Constants.KE_LICENSE_VOLUME))) {
+            logger.info("Current license has unlimited volume.");
+            return false;
+        }
+        SourceUsageRecord sourceUsageRecord = this.getLatestRecord();
+        long currentCapacity = sourceUsageRecord.getCurrentCapacity();
+        long totalCapacity = (long) sourceUsageRecord.getLicenseCapacity();
         return currentCapacity < totalCapacity * 0.8;
     }
 

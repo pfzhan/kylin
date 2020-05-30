@@ -44,9 +44,9 @@ package org.apache.kylin.job.execution;
 
 import java.time.LocalDate;
 
-import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.job.constant.JobIssueEnum;
@@ -69,7 +69,7 @@ public class EmailNotificationContent {
     public static final String CONCLUSION_FOR_SOURCE_RECORDS_CHANGE = "We found some source records updated in your Kyligence system. You can reload updated records by following instructions. Ignore this issue may cause query result inconsistency over different indexes.";
     public static final String CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD = "The amount of data volume used (${volume_used}/${volume_total}) has reached 80% of the license’s limit.";
 
-    public static final String SOLUTION_FOR_JOB_ERROR = "You may resume the job first. If still won't work, please send the job's diagnose package to kyligence technical support.";
+    public static final String SOLUTION_FOR_JOB_ERROR = "You may resume the job first. If still won't work, please send the job's diagnostic package to kyligence technical support.";
     public static final String SOLUTION_FOR_LOAD_EMPTY_DATA = "You may refresh the empty segment of the model ${model_name} to reload data.";
     public static final String SOLUTION_FOR_SOURCE_RECORDS_CHANGE = "You may refresh the segment from ${start_time} to ${end_time} to apply source records change.";
     public static final String SOLUTION_FOR_OVER_CAPACITY_THRESHOLD = "To ensure the availability of your service, please contact Kyligence to get a new license, or try deleting some segments.";
@@ -106,8 +106,9 @@ public class EmailNotificationContent {
             break;
         case OVER_CAPACITY_THRESHOLD:
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-            long currentCapacity = sourceUsageManager.getLatestRecord().getCurrentCapacity();
-            long licenseVolume = Long.parseLong(System.getProperty(Constants.KE_LICENSE_VOLUME));
+            SourceUsageRecord sourceUsageRecord = sourceUsageManager.getLatestRecord();
+            long currentCapacity = sourceUsageRecord.getCurrentCapacity();
+            long licenseVolume = (long) sourceUsageRecord.getLicenseCapacity();
             String readableCurrentCapacity = SizeConvertUtil.getReadableFileSize(currentCapacity);
             String readableLicenseVolume = SizeConvertUtil.getReadableFileSize(licenseVolume);
             content.setConclusion(CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD.replaceAll("\\$\\{volume_used\\}",
