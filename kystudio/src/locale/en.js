@@ -201,7 +201,9 @@ exports.default = {
     storageQuotaLimit: 'Please input a value no less than 1.00',
     noAllNodeTips: 'There’s no active All node now. Service might be unstable. Do you want to continue?',
     continueOperate: 'Continue',
-    tryLater: 'Try It Later'
+    tryLater: 'Try It Later',
+    unSavedTips: 'There exist unsaved edits in current page. Are you sure to discard the changes and leave?',
+    discardChanges: 'Discard changes'
   },
   model: {
     generateModel: 'From SQL',

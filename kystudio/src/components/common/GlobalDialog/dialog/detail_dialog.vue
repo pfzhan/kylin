@@ -1,6 +1,7 @@
 <template>
   <el-dialog class="global-dialog-box"
-    width="480px"
+    :class="{'hide-bottom-border-top': hideBottomLine}"
+    :width="wid"
     :before-close="handleClose"
     :title="title || $t('kylinLang.common.notice')"
     :close-on-click-modal="false"
@@ -103,6 +104,8 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
   computed: {
     ...mapState('DetailDialogModal', {
       title: state => state.title,
+      wid: state => state.wid,
+      hideBottomLine: state => state.hideBottomLine,
       details: state => state.details,
       detailTableData: state => state.detailTableData,
       detailColumns: state => state.detailColumns,
@@ -120,6 +123,8 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       showCopyBtn: state => state.showCopyBtn,
       needCallbackWhenClose: state => state.needCallbackWhenClose, // 数据源处的特殊需求，关闭时执行回调
       callback: state => state.callback,
+      cancelReject: state => state.cancelReject,
+      needConcelReject: state => state.needConcelReject, // 模拟conform弹窗关闭时reject
       customCallback: state => state.customCallback,
       closeText: state => state.closeText,
       cancelText: state => state.cancelText,
@@ -169,20 +174,15 @@ export default class DetailDialogModal extends Vue {
     if (this.needCallbackWhenClose) {
       this.callback && this.callback()
     }
-    this.hideModal()
-    this.resetModal()
-    this.loading = false
-    this.showDetail = false
-    this.multipleSelection = []
+    if (this.needConcelReject) {
+      this.cancelReject && this.cancelReject()
+    }
+    this.handleReset()
   }
   // 取消按钮是关闭且resolve，点X保留纯关闭弹窗
   handleCloseAndResove () {
     this.callback && this.callback()
-    this.hideModal()
-    this.resetModal()
-    this.loading = false
-    this.showDetail = false
-    this.multipleSelection = []
+    this.handleReset()
   }
   handleSubmit () {
     this.loading = true
@@ -192,8 +192,15 @@ export default class DetailDialogModal extends Vue {
       } else {
         this.callback && this.callback()
       }
-      this.handleClose()
+      this.handleReset()
     }, 200)
+  }
+  handleReset () {
+    this.hideModal()
+    this.resetModal()
+    this.loading = false
+    this.showDetail = false
+    this.multipleSelection = []
   }
   toggleDetail () {
     this.showDetail = !this.showDetail
@@ -318,6 +325,9 @@ export default class DetailDialogModal extends Vue {
     overflow: hidden;
     margin: 10px auto;
     width:calc(~'100% - 20px')!important;
+  }
+  &.hide-bottom-border-top .el-dialog__footer {
+    border-top: none;
   }
 }
 </style>

@@ -226,6 +226,9 @@ let MessageBox = ElementUI.MessageBox
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -634,10 +637,34 @@ export default class LayoutLeftRightTop extends Vue {
     })
   }
   changeProject (val) {
-    this.setProject(val)
-    var currentPathName = this.$router.currentRoute.name
-    var currentPath = this.$router.currentRoute.path
-    this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPathName, currentPath)
+    if (this.$store.state.system.isEditForm) {
+      // agg group 弹框打开，有修改时取消确认
+      this.callGlobalDetailDialog({
+        msg: this.$t('kylinLang.common.unSavedTips'),
+        title: this.$t('kylinLang.common.tip'),
+        dialogType: 'warning',
+        showDetailBtn: false,
+        needConcelReject: true,
+        hideBottomLine: true,
+        wid: '420px',
+        submitText: this.$t('kylinLang.common.discardChanges')
+      }).then(() => {
+        this.setProject(val)
+        var currentPathName = this.$router.currentRoute.name
+        var currentPath = this.$router.currentRoute.path
+        this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPathName, currentPath)
+      }).catch(() => {
+        this.$nextTick(() => {
+          let preProject = this.$store.state.project.selected_project // 恢复上一次的project
+          this.$refs['projectSelect'].selected_project = preProject
+        })
+      })
+    } else {
+      this.setProject(val)
+      var currentPathName = this.$router.currentRoute.name
+      var currentPath = this.$router.currentRoute.path
+      this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPathName, currentPath)
+    }
   }
   async addProject () {
     try {

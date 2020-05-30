@@ -346,6 +346,10 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       updateAggregateGroups: 'UPDATE_AGGREGATE_GROUPS',
       getCalcCuboids: 'GET_AGG_CUBOIDS',
       getIndexDiff: 'GET_INDEX_DIFF'
+    }),
+    ...mapMutations({
+      setChangedForm: 'SET_CHANGED_FORM',
+      setProject: 'SET_PROJECT'
     })
   },
   locales
@@ -673,10 +677,22 @@ export default class AggregateModal extends Vue {
     // 销毁组件前需要重置组件里的相关信息，以防切换模型，展开聚合组时，信息混乱
     this.hideModal()
     this.isEditGlobalDim = false
+    this.setChangedForm(false)
     this.resetModalForm()
     this.callback && this.callback(false)
   }
-  handleClose (isSubmit) {
+  get isEditForm () {
+    return this.cloneForm !== JSON.stringify(this.form)
+  }
+  @Watch('isEditForm')
+  onChangeForm (val) {
+    this.setChangedForm(val)
+  }
+  async handleClose (isSubmit) {
+    // 有修改时取消确认
+    if (!this.isSubmit && this.isEditForm) {
+      await kapConfirm(this.$t('kylinLang.common.unSavedTips'), {type: 'warning', confirmButtonText: this.$t('kylinLang.common.discardChanges')}, this.$t('kylinLang.common.tip'))
+    }
     this.hideModal()
     this.isEditGlobalDim = false
     setTimeout(() => {

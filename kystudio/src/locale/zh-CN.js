@@ -200,7 +200,9 @@ exports.default = {
     storageQuotaLimit: '请输入不小于 1.00 的数值',
     noAllNodeTips: '系统中暂无活跃的任务节点，编辑可能无法提交或者保存。确定继续吗？',
     continueOperate: '继续操作',
-    tryLater: '稍后再试'
+    tryLater: '稍后再试',
+    unSavedTips: '当前页面有未保存的编辑内容，是否确认丢弃更改并离开？',
+    discardChanges: '丢弃更改'
   },
   model: {
     generateModel: 'SQL 建模',

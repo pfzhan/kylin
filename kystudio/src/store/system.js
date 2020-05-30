@@ -46,7 +46,8 @@ export default {
     loadHiveTableNameEnabled: 'true',
     kerberosEnabled: 'false',
     jobLogs: '',
-    showRevertPasswordDialog: 'true'
+    showRevertPasswordDialog: 'true',
+    isEditForm: false
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -92,6 +93,9 @@ export default {
     },
     [types.TOGGLE_LICENSE_DIALOG]: function (state, result) {
       state.showLisenceSuccessDialog = result
+    },
+    [types.SET_CHANGED_FORM]: function (state, result) {
+      state.isEditForm = result
     }
   },
   actions: {
