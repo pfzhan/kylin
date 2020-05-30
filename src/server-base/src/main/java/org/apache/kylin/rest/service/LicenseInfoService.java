@@ -31,7 +31,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
@@ -65,7 +64,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -572,6 +570,9 @@ public class LicenseInfoService extends BasicService {
         NodeMonitorInfoResponse nodeMonitorInfoResponse = new NodeMonitorInfoResponse();
         int currentNodes = getCurrentNodesNums();
         nodeMonitorInfoResponse.setCurrentNode(currentNodes);
+        if (currentNodes == 0) {
+            nodeMonitorInfoResponse.setError(true);
+        }
         String serviceNodes = System.getProperty(Constants.KE_LICENSE_NODES);
         if (!StringUtils.isEmpty(serviceNodes) && !UNLIMITED.equals(serviceNodes)) {
             try {
@@ -712,14 +713,6 @@ public class LicenseInfoService extends BasicService {
         logger.info("Refresh table capacity in project: {} finished", project);
     }
 
-    public void refreshAllTables() {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<ProjectInstance> projectInstances = projectManager.listAllProjects();
-        for (ProjectInstance projectInstance : projectInstances) {
-            refreshTableExtDesc(projectInstance.getName());
-        }
-    }
-
     public LicenseMonitorInfoResponse getLicenseCapacityInfo() {
         LicenseMonitorInfoResponse licenseMonitorInfoResponse = new LicenseMonitorInfoResponse();
         SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
@@ -796,6 +789,11 @@ public class LicenseInfoService extends BasicService {
         capacityDetailsResponse.setCapacityRatio(tableCapacityDetail.getCapacityRatio());
         capacityDetailsResponse.setStatus(tableCapacityDetail.getStatus());
         return capacityDetailsResponse;
+    }
+
+    public void updateSourceUsage() {
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        sourceUsageManager.updateSourceUsage();
     }
 
 }

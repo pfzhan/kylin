@@ -27,7 +27,7 @@ import java.text.DecimalFormat;
 
 public class SizeConvertUtil {
 
-    private SizeConvertUtil () {
+    private SizeConvertUtil() {
         throw new IllegalStateException("Wrong usage for utility class.");
     }
 

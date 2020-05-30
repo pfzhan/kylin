@@ -77,6 +77,7 @@ public class SourceUsageManager {
 
     private static final Serializer<SourceUsageRecord> SOURCE_USAGE_SERIALIZER = new JsonSerializer<>(SourceUsageRecord.class);
     public static final String GLOBAL = "_global";
+    private static final String PATH_DELIMITER = "/";
 
     public static SourceUsageManager getInstance(KylinConfig config) {
         return config.getManager(SourceUsageManager.class);
@@ -346,11 +347,30 @@ public class SourceUsageManager {
     private void createOrUpdate(SourceUsageRecord usageRecord) {
         long now = System.currentTimeMillis();
         String currentDate = DateFormat.formatToCompactDateStr(now);
-        String resPath = ResourceStore.HISTORY_SOURCE_USAGE + currentDate + ".json";
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(resPath, usageRecord, SOURCE_USAGE_SERIALIZER);
-            return 0;
-        }, GLOBAL, 1);
+        String resPath = ResourceStore.HISTORY_SOURCE_USAGE + PATH_DELIMITER + currentDate + ".json";
+        try {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                ResourceStore resourceStore = getStore();
+                SourceUsageRecord record = resourceStore.getResource(resPath, SOURCE_USAGE_SERIALIZER);
+                if (record == null) {
+                    resourceStore.checkAndPutResource(resPath, usageRecord, SOURCE_USAGE_SERIALIZER);
+                } else {
+                    record.setLicenseCapacity(usageRecord.getLicenseCapacity());
+                    record.setCapacityDetails(usageRecord.getCapacityDetails());
+                    record.setCapacityStatus(usageRecord.getCapacityStatus());
+                    record.setCheckTime(usageRecord.getCheckTime());
+                    record.setCurrentCapacity(usageRecord.getCurrentCapacity());
+                    resourceStore.checkAndPutResource(resPath, record, SOURCE_USAGE_SERIALIZER);
+                }
+                return 0;
+            }, GLOBAL, 1);
+        } catch (Exception e) {
+            logger.error("Failed to update source usage record.", e);
+        }
+    }
+
+    public ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
     private double tbToByte(double tb) {

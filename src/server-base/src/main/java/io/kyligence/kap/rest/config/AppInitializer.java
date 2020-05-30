@@ -128,7 +128,7 @@ public class AppInitializer {
             log.error("NQueryHistoryScheduler init fail");
         }
         val sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
-        sourceUsageManager.updateSourceUsage();
+        sourceUsageManager.tryReconstructSourceUsageHistory();
     }
 
     @EventListener(ApplicationReadyEvent.class)
