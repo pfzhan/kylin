@@ -204,31 +204,8 @@ class DFSnapshotBuilder extends Logging with Serializable {
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
     sourceData.coalesce(1).write.parquet(resourcePath)
-    val size = sourceData.mapPartitions {
-      iter =>
-        var totalSize = 0l;
-        val length = sourceData.columns.length
-        iter.foreach(row => {
-          var i = 0
-          for (i <- 0 until length - 1) {
-            val value = row.get(i)
-            val strValue = if (value == null) null
-            else value.toString
-            log.info("snapshot size is" + strValue)
-            totalSize += utf8Length(strValue)
-          }
-        })
-        List(totalSize).toIterator
-    }(Encoders.scalaLong).reduce(new ReduceFunction[Long] {
-      override def call(t: Long, t1: Long): Long = {
-        t + t1
-      }
-    })
-    concurrentMap.put(tableDesc.getIdentity, size)
-    val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
-    val copy = updateManager.copyForWrite(tableDesc)
-    copy.setOriginalSize(size)
-    updateManager.updateTableDesc(copy)
+    val columnSize = sourceData.columns.length
+    computeSnapshotSize(sourceData, tableDesc, concurrentMap, columnSize)
     val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
     val currSnapMd5 = getFileMd5(currSnapFile)
     val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
@@ -269,18 +246,16 @@ class DFSnapshotBuilder extends Logging with Serializable {
     (tableDesc.getIdentity, snapshotTablePath)
   }
 
-  def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc): Unit = {
-    val length = sourceData.columns.length
+  def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc, concurrentMap: ConcurrentMap[String, Long], columnSize: Int): Unit = {
     val size = sourceData.mapPartitions {
       iter =>
         var totalSize = 0l;
         iter.foreach(row => {
           var i = 0
-          for (i <- 0 until length - 1) {
+          for (i <- 0 until columnSize - 1) {
             val value = row.get(i)
             val strValue = if (value == null) null
             else value.toString
-            log.info("snapshot size is" + strValue)
             totalSize += utf8Length(strValue)
           }
         })
@@ -290,10 +265,8 @@ class DFSnapshotBuilder extends Logging with Serializable {
         t + t1
       }
     })
-    val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
-    val copy = updateManager.copyForWrite(tableDesc)
-    copy.setOriginalSize(size)
-    updateManager.updateTableDesc(copy)
+
+    concurrentMap.put(tableDesc.getIdentity, size)
   }
 
   def buildSingleSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
@@ -326,32 +299,7 @@ class DFSnapshotBuilder extends Logging with Serializable {
       sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
     val columnSize = sourceData.columns.length
-    val size = sourceData.mapPartitions {
-      iter =>
-        var totalSize = 0l;
-        iter.foreach(row => {
-          var i = 0
-          for (i <- 0 until columnSize - 1) {
-            val value = row.get(i)
-            val strValue = if (value == null) null
-            else value.toString
-            totalSize += utf8Length(strValue)
-          }
-        })
-        List(totalSize).toIterator
-    }(Encoders.scalaLong).reduce(new ReduceFunction[Long] {
-      override def call(t: Long, t1: Long): Long = {
-        t + t1
-      }
-    })
-
-    logInfo(s"snapshot size is ${size}")
-    concurrentMap.put(tableDesc.getIdentity, size)
-    val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
-    val copy = updateManager.copyForWrite(tableDesc)
-    logInfo(s"table is ${tableDesc.getIdentity}")
-    copy.setOriginalSize(size)
-    updateManager.updateTableDesc(copy)
+    computeSnapshotSize(sourceData, tableDesc, concurrentMap, columnSize)
     (tableDesc.getIdentity, snapshotTablePath)
   }
 }

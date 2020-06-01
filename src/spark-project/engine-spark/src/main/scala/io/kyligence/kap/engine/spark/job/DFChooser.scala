@@ -91,12 +91,10 @@ class DFChooser(toBuildTree: NSpanningTree,
     val df = flatTableSource.getFlattableDS
     val cols = flatTableSource.getAllColumns
     val columns = df.columns
-    columns.foreach(s => {
-      log.info("column name is " + s)
-    })
     val length = columns.length
     val result = new mutable.HashMap[String, Long]
-    df.take(100).foreach(row => {
+    val rows = config.getCapacitySampleRows
+    df.take(rows).foreach(row => {
       var i = 0
       for (i <- 0 until length - 1) {
         val columnName = cols.get(i).getCanonicalName
