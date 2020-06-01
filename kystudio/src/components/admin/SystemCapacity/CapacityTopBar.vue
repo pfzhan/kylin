@@ -6,7 +6,7 @@
           <el-tooltip :content="$t('lastUpdateTime')" effect="dark" placement="top"><i class="icon el-icon-ksd-type_time"></i></el-tooltip>{{latestUpdateTime | timeFormatHasTimeZone}}</div>
         <div class="data-valumns">
           <p class="label">
-            <span>{{$t('usedData')}}：<i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i><span :class="[getValueColor]" v-else-if="!systemCapacityInfo.error">{{getCapacityPrecent}}%</span></span>
+            <span>{{$t('usedData')}}：<i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.error">{{getCapacityPrecent}}%</span></span>
             <template v-if="!systemCapacityInfo.isLoading">
               <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
               <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -16,7 +16,7 @@
             </template>
           </p>
           <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.error}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
-            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="{'is-danger': systemNodeInfo.current_node > systemNodeInfo.node}" v-else>{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span></span>
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node}]" v-else-if="!systemNodeInfo.error">{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span></span>
             <template v-if="!systemNodeInfo.isLoading">
               <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -33,7 +33,7 @@
         <ul v-if="isNodeLoadingSuccess && !isNodeLoading" class="node-details"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
       </div>
     </el-popover>
-    <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">{{$t('serverStatus')}}
+    <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes"><span class="server-status">{{$t('serverStatus')}}</span>
       <i v-if="showLoadingStatus" class="el-icon-loading"></i>
       <span v-else>
         <span :class="['flag', getNodesNumColor]" v-if="getDataFails">&bull;</span>
@@ -89,7 +89,7 @@
     }
 
     get getDataFails () {
-      return !((this.systemCapacityInfo.error && !this.systemCapacityInfo.error_over_thirty_days) || this.systemNodeInfo.error)
+      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80
     }
 
     get getNodesNumColor () {
@@ -174,11 +174,17 @@
     min-width: 75px;
     // padding-right: 20px;
     .active-nodes {
+      .server-status {
+        font-weight: bold;
+      }
       .flag {
         font-size: 38px;
         position: absolute;
         top: -13px;
         font-family: -webkit-pictograph;
+      }
+      .el-icon-ksd-restart {
+        color: @base-color-9;
       }
     }
     .font-disabled {
@@ -205,6 +211,10 @@
   @import '../../../assets/styles/variables.less';
   .nodes-popover {
     padding: 0 !important;
+    margin-left: -50px;
+    .popper__arrow {
+      margin-left: 50px;
+    }
     .font-disabled {
       color: @text-disabled-color;
     }

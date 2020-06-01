@@ -539,8 +539,9 @@ export default class Dashboard extends Vue {
     })
   }
   initCharts (data) {
-    const xDates = Object.keys(data).map(it => (transToUtcDateFormat(+it)))
-    const yVol = Object.values(data).map(it => (+it / 1024 / 1024 / 1024 / 1024).toFixed(2))
+    const objs = Object.keys(data).sort((a, b) => a - b)
+    const xDates = objs.map(it => (transToUtcDateFormat(+it)))
+    const yVol = objs.map(it => (+data[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
     this.lineCharts = echarts.init(this.$el.querySelector('#used-data-project'))
     this.lineCharts.setOption(charts.line(xDates, yVol))
   }
@@ -768,7 +769,7 @@ export default class Dashboard extends Vue {
         color: @text-title-color;
         padding: 0 15px;
         .icon {
-          margin-left: 5px;
+          // margin-left: 5px;
           cursor: pointer;
         }
         .select-date-line {

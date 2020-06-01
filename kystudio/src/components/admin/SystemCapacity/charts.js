@@ -111,6 +111,13 @@ export default {
           breadcrumb: {
             show: false
           },
+          tooltip: {
+            backgroundColor: '#fff',
+            textStyle: {
+              color: '#323232'
+            },
+            extraCssText: 'box-shadow:0px 0px 6px 0px rgba(229,229,229,1),0px 2px 4px 0px rgba(229,229,229,1);'
+          },
           roam: false,
           nodeClick: false,
           levels: [

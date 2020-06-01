@@ -1,10 +1,11 @@
 <template>
   <div class="system-capacity">
     <p class="main-title">{{$t('mainTitle')}}
-      <el-tooltip effect="dark" placement="top">
-        <span slot="content">{{$t('capacityTip1')}}<a target="_blank" :href="$lang === 'en' ? 'https://docs.kyligence.io/books/v4.1/en/operation/metrics/service.en.html' : 'https://docs.kyligence.io/books/v4.1/zh-cn/operation/metrics/service.cn.html'">{{$t('manual')}}</a></span>
-        <i class="icon el-icon-ksd-what"></i>
-      </el-tooltip>
+      <el-popover ref="systemCapacity" width="290" popper-class="system-capacity-popover" trigger="hover">
+        <span v-if="$lang === 'en'">{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.1/en/operation/metrics/service.en.html">{{$t('manual')}}</a>{{$t('capacityTip2')}}</span>
+        <span v-else>{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.1/zh-cn/operation/metrics/service.cn.html">{{$t('manual')}}</a></span>
+      </el-popover>
+      <i class="icon el-icon-ksd-what" v-popover:systemCapacity></i>
     </p>
     <p class="system-msg">
       <span>{{$t('usedData')}}：</span>
@@ -31,7 +32,7 @@
             </el-tooltip></span> -->
           <el-tag size="mini" type="danger" v-if="systemNodeInfo.node_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
           <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
-            <i class="icon el-icon-ksd-restart" v-if="systemNodeInfo.error"></i>
+            <i class="icon el-icon-ksd-restart" v-if="systemNodeInfo.error" @click="refreshNodes"></i>
           </el-tooltip>
         </span>
       </span>
@@ -109,7 +110,7 @@
               <el-table-column :label="$t('tools')" align="left" class-name="tools-list" width="80">
                 <template slot-scope="scope">
                   <common-tip :content="$t('viewDetail')">
-                    <i class="sub-icon el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                    <i :class="['sub-icon', 'el-icon-ksd-desc', {'is-disabled': scope.row.status === 'ERROR'}]" @click="scope.row.status !== 'ERROR' && showDetail(scope.row)"></i>
                   </common-tip>
                   <common-tip :content="$t('kylinLang.common.refresh')">
                     <i class="sub-icon el-icon-ksd-restart" v-if="scope.row.status === 'ERROR'" @click="refreshProjectCapacity(scope.row)"></i>
@@ -227,7 +228,8 @@ import filterElements from '../../../filter/index'
       refreshSingleProjectCapacity: 'REFRESH_SINGLE_PROJECT',
       refreshAll: 'REFRESH_ALL_SYSTEM',
       getNotifyStatus: 'GET_EMAIL_NOTIFY_STATUS',
-      saveAlertEmails: 'SAVE_ALERT_EMAILS'
+      saveAlertEmails: 'SAVE_ALERT_EMAILS',
+      getNodesInfo: 'GET_NODES_INFO'
     })
   },
   computed: {
@@ -536,6 +538,11 @@ export default class SystemCapacity extends Vue {
     this.refreshAll()
   }
 
+  // 手动刷新节点信息
+  refreshNodes () {
+    this.getNodesInfo()
+  }
+
   mounted () {
     this.getCapacityBySystem()
     // this.initCharts()
@@ -706,6 +713,10 @@ export default class SystemCapacity extends Vue {
     }
     .sub-icon {
       cursor: pointer;
+      &.is-disabled {
+        color: @text-disabled-color;
+        cursor: not-allowed;
+      }
     }
   }
   .is-warn {
