@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.collect.Lists;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -88,6 +90,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     @JsonProperty("column_source_bytes")
     private Map<String, Long> columnSourceBytes;
+
+    @Getter
+    @Setter
+    @JsonProperty("ori_snapshot_size")
+    private Map<String, Long> oriSnapshotSize = Maps.newHashMap();
 
     private Long storageSize = null;
 

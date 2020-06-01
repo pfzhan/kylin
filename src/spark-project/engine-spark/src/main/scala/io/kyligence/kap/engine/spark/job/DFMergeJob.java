@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -97,11 +98,43 @@ public class DFMergeJob extends SparkApplication {
         NDataSegment segCopy = flowCopy.getSegment(segmentId);
 
         makeSnapshotForNewSegment(segCopy, mergingSegments);
-
+        mergeColumnSizeForNewSegment(segCopy, mergingSegments);
         NDataflowUpdate update = new NDataflowUpdate(dataflowId);
         update.setToUpdateSegs(segCopy);
         mgr.updateDataflow(update);
 
+    }
+
+    private void mergeColumnSizeForNewSegment(NDataSegment segCopy, List<NDataSegment> mergingSegments) {
+        List<NDataSegment> collect = mergingSegments.stream()
+                .filter(nDataSegment -> MapUtils.isNotEmpty(nDataSegment.getColumnSourceBytes()))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(collect))
+            return;
+        else {
+            Map<String, Long> result = Maps.newHashMap();
+            Map<String, Long> byteSize = collect.get(0).getColumnSourceBytes();
+            long sourceCount = collect.get(0).getSourceCount();
+            for (val seg : mergingSegments) {
+                Map<String, Long> newByteSizeMap = Maps.newHashMap();
+                if (MapUtils.isEmpty(seg.getColumnSourceBytes())) {
+                    for (Map.Entry<String, Long> entry : byteSize.entrySet()) {
+                        newByteSizeMap.put(entry.getKey(), entry.getValue() * (seg.getSourceCount() / sourceCount));
+                    }
+                } else {
+                    newByteSizeMap = seg.getColumnSourceBytes();
+                }
+                mergeByteSizeMap(result, newByteSizeMap);
+            }
+            segCopy.setColumnSourceBytes(result);
+        }
+    }
+
+    private void mergeByteSizeMap(Map<String, Long> result, Map<String, Long> newByteSizeMap) {
+        for (Map.Entry<String, Long> entry : newByteSizeMap.entrySet()) {
+            val oriSize = result.getOrDefault(entry.getKey(), 0L);
+            result.put(entry.getKey(), oriSize + entry.getValue());
+        }
     }
 
     private void makeSnapshotForNewSegment(NDataSegment newSeg, List<NDataSegment> mergingSegments) {

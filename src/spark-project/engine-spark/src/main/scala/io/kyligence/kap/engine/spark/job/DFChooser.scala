@@ -37,7 +37,7 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.{IJoinedFlatTableDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
-import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
+import org.apache.spark.sql._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -85,6 +85,54 @@ class DFChooser(toBuildTree: NSpanningTree,
         }
       }
     map.foreach(entry => reuseSources.put(entry._1, entry._2))
+  }
+
+  def computeColumnBytes(): mutable.HashMap[String, Long] = {
+    val df = flatTableSource.getFlattableDS
+    val cols = flatTableSource.getAllColumns
+    val columns = df.columns
+    columns.foreach(s => {
+      log.info("column name is " + s)
+    })
+    val length = columns.length
+    val result = new mutable.HashMap[String, Long]
+    df.take(100).foreach(row => {
+      var i = 0
+      for (i <- 0 until length - 1) {
+        val columnName = cols.get(i).getCanonicalName
+        val value = row.get(i)
+        val strValue = if (value == null) null
+        else value.toString
+        val bytes = utf8Length(strValue)
+        if (result.get(columnName).isEmpty) result(columnName) = bytes
+        else result(columnName) = bytes + result(columnName)
+      }
+    })
+    result
+  }
+
+
+  def utf8Length(sequence: CharSequence): Int = {
+    var count = 0
+    var i = 0
+    val len = sequence.length
+    while ( {
+      i < len
+    }) {
+      val ch = sequence.charAt(i)
+      if (ch <= 0x7F) count += 1
+      else if (ch <= 0x7FF) count += 2
+      else if (Character.isHighSurrogate(ch)) {
+        count += 4
+        i += 1
+      }
+      else count += 3
+
+      {
+        i += 1; i - 1
+      }
+    }
+    count
   }
 
   def persistFlatTableIfNecessary(): String = {
@@ -191,6 +239,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss, sourceInfo)
     val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding, needJoin)
     sourceInfo.setFlattableDS(afterJoin)
+    sourceInfo.setAllColumns(flatTableDesc.getAllColumns)
     sourceInfo
   }
 

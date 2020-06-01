@@ -26,7 +26,9 @@ package io.kyligence.kap.engine.spark.builder;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -48,6 +50,15 @@ public class NBuildSourceInfo {
     private long layoutId;
     private Dataset<Row> parentDF;
     private Collection<IndexEntity> toBuildCuboids = new LinkedHashSet<>();
+    private List<TblColRef> allColumns;
+
+    public List<TblColRef> getAllColumns() {
+        return allColumns;
+    }
+
+    public void setAllColumns(List<TblColRef> allColumns) {
+        this.allColumns = allColumns;
+    }
 
     public long getByteSize() {
         return byteSize;

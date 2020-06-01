@@ -30,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +40,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,6 +50,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -81,6 +84,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import lombok.val;
+import scala.collection.JavaConversions;
 
 public class DFBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
@@ -127,6 +131,13 @@ public class DFBuildJob extends SparkApplication {
             // choose source
             DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
             datasetChooser.decideSources();
+            NDataSegment segment = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getSegment(segId);
+            NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(config, project);
+            for (Map.Entry<String, Long> entry : segment.getOriSnapshotSize().entrySet()) {
+                TableDesc copy = metadataManager.copyForWrite(metadataManager.getTableDesc(entry.getKey()));
+                copy.setOriginalSize(entry.getValue());
+                metadataManager.updateTableDesc(copy);
+            }
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
             infos.clearCuboidsNumPerLayer(segId);
@@ -135,6 +146,9 @@ public class DFBuildJob extends SparkApplication {
                 val path = datasetChooser.persistFlatTableIfNecessary();
                 if (!path.isEmpty()) {
                     persistedFlatTable.add(path);
+                    long rowCount = buildFromFlatTable.getFlattableDS().count();
+                    val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes());
+                    updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), rowCount);
                 }
                 if (!org.apache.commons.lang3.StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
                     persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
@@ -152,6 +166,29 @@ public class DFBuildJob extends SparkApplication {
         updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
 
         tailingCleanups(segmentIds, persistedFlatTable, persistedViewFactTable);
+    }
+
+    private void updateColumnBytesInseg(String dataflowId, Map<String, Object> columnBytes, String id, long rowCount) {
+        HashMap<String, Long> map = Maps.newHashMap();
+        long times = 0;
+        if (rowCount < 100)
+            times = 1;
+        else
+            times = rowCount / 100;
+        for (Map.Entry<String, Object> entry : columnBytes.entrySet()) {
+            map.put(entry.getKey(), Long.parseLong(entry.getValue().toString()) * times);
+        }
+        NDataflow dataflow = dfMgr.getDataflow(dataflowId);
+        NDataflow newDF = dataflow.copy();
+        val update = new NDataflowUpdate(dataflow.getUuid());
+        List<NDataSegment> nDataSegments = Lists.newArrayList();
+        NDataSegment segment = newDF.getSegment(id);
+        segment.setColumnSourceBytes(map);
+        nDataSegments.add(segment);
+
+        update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update);
+
     }
 
     private void tailingCleanups(Set<String> segmentIds, List<String> flatTables, List<String> factViews) throws IOException {

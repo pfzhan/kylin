@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.io.IOException
 import java.util.UUID
-import java.util.concurrent.Executors
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, Executors}
 
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
@@ -52,7 +52,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.Breaks._
 import scala.util.{Failure, Success, Try}
 
-class DFSnapshotBuilder extends Logging {
+class DFSnapshotBuilder extends Logging with Serializable {
 
   var ss: SparkSession = _
   var seg: NDataSegment = _
@@ -67,12 +67,14 @@ class DFSnapshotBuilder extends Logging {
     this.ss = ss
   }
 
+  @transient
   private val ParquetPathFilter: PathFilter = new PathFilter {
     override def accept(path: Path): Boolean = {
       path.getName.endsWith(PARQUET_SUFFIX)
     }
   }
 
+  @transient
   private val Md5PathFilter: PathFilter = new PathFilter {
     override def accept(path: Path): Boolean = {
       path.getName.endsWith(MD5_SUFFIX)
@@ -84,6 +86,7 @@ class DFSnapshotBuilder extends Logging {
     logInfo(s"Building snapshots for: $seg")
     val model = seg.getDataflow.getModel
     val newSnapMap = Maps.newHashMap[String, String]
+    val snapSizeMap = new ConcurrentHashMap[String, Long]
     val fs = HadoopUtil.getWorkingFileSystem
     val baseDir = KapConfig.wrap(seg.getConfig).getReadHdfsWorkingDirectory
     val toBuildTableDesc = distinctTableDesc(model)
@@ -100,7 +103,7 @@ class DFSnapshotBuilder extends Logging {
               }
               try {
                 KylinConfig.setAndUnsetThreadLocalConfig(kylinConf)
-                buildSingleSnapshotWithoutMd5(tableDesc, baseDir)
+                buildSingleSnapshotWithoutMd5(tableDesc, baseDir, snapSizeMap)
               } catch {
                 case exception: Exception =>
                   logError(s"Error for build snapshot table with $tableDesc", exception)
@@ -124,7 +127,7 @@ class DFSnapshotBuilder extends Logging {
     } else {
       toBuildTableDesc.foreach {
         tableDesc =>
-          val tuple = buildSingleSnapshot(tableDesc, baseDir, fs)
+          val tuple = buildSingleSnapshot(tableDesc, baseDir, fs, snapSizeMap)
           newSnapMap.put(tuple._1, tuple._2)
       }
     }
@@ -134,6 +137,10 @@ class DFSnapshotBuilder extends Logging {
     DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
       copied.getSnapshots.putAll(newSnapMap)
       copied.setSnapshotReady(true)
+      for ((k: String, v: Long) <- snapSizeMap.asScala) {
+        logInfo(s"Snapshot size is: $k : $v")
+        copied.getOriSnapshotSize.put(k, v)
+      }
     })
   }
 
@@ -191,21 +198,23 @@ class DFSnapshotBuilder extends Logging {
     count
   }
 
-  def buildSingleSnapshot(tableDesc: TableDesc, baseDir: String, fs: FileSystem): (String, String) = {
+  def buildSingleSnapshot(tableDesc: TableDesc, baseDir: String, fs: FileSystem, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
     val sourceData = getSourceData(tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
-    val length = sourceData.columns.length
+    sourceData.coalesce(1).write.parquet(resourcePath)
     val size = sourceData.mapPartitions {
       iter =>
         var totalSize = 0l;
+        val length = sourceData.columns.length
         iter.foreach(row => {
           var i = 0
           for (i <- 0 until length - 1) {
             val value = row.get(i)
             val strValue = if (value == null) null
             else value.toString
+            log.info("snapshot size is" + strValue)
             totalSize += utf8Length(strValue)
           }
         })
@@ -215,12 +224,11 @@ class DFSnapshotBuilder extends Logging {
         t + t1
       }
     })
+    concurrentMap.put(tableDesc.getIdentity, size)
     val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
     val copy = updateManager.copyForWrite(tableDesc)
     copy.setOriginalSize(size)
     updateManager.updateTableDesc(copy)
-    sourceData.coalesce(1).write.parquet(resourcePath)
-
     val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
     val currSnapMd5 = getFileMd5(currSnapFile)
     val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
@@ -261,7 +269,34 @@ class DFSnapshotBuilder extends Logging {
     (tableDesc.getIdentity, snapshotTablePath)
   }
 
-  def buildSingleSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String): (String, String) = {
+  def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc): Unit = {
+    val length = sourceData.columns.length
+    val size = sourceData.mapPartitions {
+      iter =>
+        var totalSize = 0l;
+        iter.foreach(row => {
+          var i = 0
+          for (i <- 0 until length - 1) {
+            val value = row.get(i)
+            val strValue = if (value == null) null
+            else value.toString
+            log.info("snapshot size is" + strValue)
+            totalSize += utf8Length(strValue)
+          }
+        })
+        List(totalSize).toIterator
+    }(Encoders.scalaLong).reduce(new ReduceFunction[Long] {
+      override def call(t: Long, t1: Long): Long = {
+        t + t1
+      }
+    })
+    val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
+    val copy = updateManager.copyForWrite(tableDesc)
+    copy.setOriginalSize(size)
+    updateManager.updateTableDesc(copy)
+  }
+
+  def buildSingleSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
     val sourceData = getSourceData(tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
     val snapshotTablePath = tablePath + "/" + UUID.randomUUID
@@ -271,17 +306,17 @@ class DFSnapshotBuilder extends Logging {
         .map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength)
         .sum * 1.0 / MB
       val num = Math.ceil(sizeInMB / KylinBuildEnv.get().kylinConfig.getSnapshotShardSizeMB).intValue()
-      (num,sizeInMB)
+      (num, sizeInMB)
     } catch {
       case t: Throwable =>
         logWarning("Error occurred when estimate repartition number.", t)
-        (0,0)
+        (0, 0)
     }
     ss.sparkContext.setJobDescription(s"Build table snapshot ${tableDesc.getIdentity}.")
     lazy val snapshotInfo = Map(
       "source" -> tableDesc.getIdentity,
-      "snapshot"   -> snapshotTablePath,
-      "sizeMB"-> sizeMB,
+      "snapshot" -> snapshotTablePath,
+      "sizeMB" -> sizeMB,
       "partition" -> repartitionNum
     )
     logInfo(s"Building snapshot: ${LogUtils.jsonMap(snapshotInfo)}")
@@ -290,6 +325,33 @@ class DFSnapshotBuilder extends Logging {
     } else {
       sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
+    val columnSize = sourceData.columns.length
+    val size = sourceData.mapPartitions {
+      iter =>
+        var totalSize = 0l;
+        iter.foreach(row => {
+          var i = 0
+          for (i <- 0 until columnSize - 1) {
+            val value = row.get(i)
+            val strValue = if (value == null) null
+            else value.toString
+            totalSize += utf8Length(strValue)
+          }
+        })
+        List(totalSize).toIterator
+    }(Encoders.scalaLong).reduce(new ReduceFunction[Long] {
+      override def call(t: Long, t1: Long): Long = {
+        t + t1
+      }
+    })
+
+    logInfo(s"snapshot size is ${size}")
+    concurrentMap.put(tableDesc.getIdentity, size)
+    val updateManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, tableDesc.getProject)
+    val copy = updateManager.copyForWrite(tableDesc)
+    logInfo(s"table is ${tableDesc.getIdentity}")
+    copy.setOriginalSize(size)
+    updateManager.updateTableDesc(copy)
     (tableDesc.getIdentity, snapshotTablePath)
   }
 }
