@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -79,6 +80,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
                     abstractExecutable.getJobType());
             recordDownJobStats(abstractExecutable, nDataLayouts);
+            SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
         }
     }

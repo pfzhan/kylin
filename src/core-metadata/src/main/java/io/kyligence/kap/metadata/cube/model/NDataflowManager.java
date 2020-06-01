@@ -607,19 +607,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     private boolean needUpdateSourceUsage(final NDataflowUpdate update) {
-        if (update.getToAddSegs() != null) {
-            return true;
-        }
-        if (update.getToRemoveSegs() != null) {
-            return true;
-        }
-        if (update.getToUpdateSegs() != null) {
-            return true;
-        }
-        if (update.getToAddOrUpdateLayouts() != null) {
-            return true;
-        }
-        return update.getToRemoveLayouts() != null;
+        return update.getToRemoveSegs() != null || update.getToRemoveLayouts() != null;
     }
 
     public NDataflow dropDataflow(String dfId) {
