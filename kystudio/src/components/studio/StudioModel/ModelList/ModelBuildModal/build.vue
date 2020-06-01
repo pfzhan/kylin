@@ -120,7 +120,7 @@
                 :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                 @change="resetError"
                 value-format="timestamp"
-                :format="format"
+                :format="partitionMeta.format"
                 :placeholder="$t('kylinLang.common.startTime')">
               </el-date-picker>
               <el-date-picker
@@ -130,7 +130,7 @@
                 :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                 value-format="timestamp"
                 @change="resetError"
-                :format="format"
+                :format="partitionMeta.format"
                 :placeholder="$t('kylinLang.common.endTime')">
               </el-date-picker>
               <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
@@ -185,6 +185,7 @@
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
   import { BuildIndexStatus } from 'config/model'
+  import moment from 'moment'
 
   vuex.registerModule(['modals', 'ModelBuildModal'], store)
 
@@ -251,7 +252,7 @@
     partitionMeta = {
       table: '',
       column: '',
-      format: ''
+      format: 'yyyy-MM-dd'
     }
     prevPartitionMeta = {
       table: '',
@@ -426,10 +427,13 @@
     }
     validateRange (rule, value, callback) {
       const [ startValue, endValue ] = value
+      const format = this.partitionMeta.format.toUpperCase() || 'YYYY-MM-DD'
+      const formatTimestampStart = startValue && new Date(moment(new Date(startValue)).format(format)).getTime()
+      const formatTimestampEnd = endValue && new Date(moment(new Date(endValue)).format(format)).getTime()
       const isLoadExisted = this.modelBuildMeta.isLoadExisted
-      if ((!startValue || !endValue || transToUTCMs(startValue) > transToUTCMs(endValue)) && !isLoadExisted) {
+      if ((!startValue || !endValue || transToUTCMs(formatTimestampStart) > transToUTCMs(formatTimestampEnd)) && !isLoadExisted) {
         callback(new Error(this.$t('invaildDate')))
-      } else if (startValue && endValue && transToUTCMs(startValue) === transToUTCMs(endValue) && !isLoadExisted) {
+      } else if (startValue && endValue && transToUTCMs(formatTimestampStart) === transToUTCMs(formatTimestampEnd) && !isLoadExisted) {
         callback(new Error(this.$t('invaildDateNoEqual')))
       } else {
         callback()
