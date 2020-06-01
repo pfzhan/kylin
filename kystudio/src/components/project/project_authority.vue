@@ -208,7 +208,7 @@ import tableAccess from './table_access'
       tableName: 'Table Name',
       datasourceType: 'Data Source',
       tableType: 'Table',
-      deleteAccessTip: 'Please confirm whethter to delete the authorization of {userName} in this project?',
+      deleteAccessTip: 'Please confirm whether to delete the authorization of {userName} in this project?',
       access: 'Role',
       deleteAccessTitle: 'Delete Access',
       authorTips: 'System management has all permissions for all projects, so the system administrator is not included in the added user list.',
