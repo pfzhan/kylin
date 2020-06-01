@@ -172,7 +172,6 @@ public class NSystemController extends NBasicController {
 
         byte[] bytes = uploadfile.getBytes();
         licenseInfoService.updateLicense(new String(bytes));
-        licenseInfoService.updateSourceUsage();
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
@@ -192,7 +191,6 @@ public class NSystemController extends NBasicController {
             throw new KylinException(EMPTY_FILE_CONTENT, MsgPicker.getMsg().getCONTENT_IS_EMPTY());
 
         licenseInfoService.updateLicense(bytes);
-        licenseInfoService.updateSourceUsage();
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }

@@ -482,6 +482,7 @@ public class LicenseInfoService extends BasicService {
         FileUtils.deleteQuietly(tmpLicense);
         FileUtils.writeByteArrayToFile(backupAndDeleteLicense("backup"), bytes);
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
+        SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
     }
 
     public void updateLicense(String string) throws IOException {

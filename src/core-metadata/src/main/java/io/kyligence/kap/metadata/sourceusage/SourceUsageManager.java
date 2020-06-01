@@ -270,7 +270,7 @@ public class SourceUsageManager {
             ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(column.getIdentity()) == null
                     ? new ColumnCapacityDetail(column.getIdentity())
                     : tableDetail.getColumnByName(column.getIdentity());
-            long sourceBytes = dataflowColumnsBytes.get(column.getIdentity());
+            long sourceBytes = dataflowColumnsBytes.getOrDefault(column.getIdentity(), 0L);
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
             tableDetail.updateColumn(columnDetail);
             checkTableKind(tableDetail, model);
