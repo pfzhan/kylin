@@ -327,9 +327,9 @@ public class SourceUsageManager {
         usage.setCheckTime(System.currentTimeMillis());
 
         String capacity = System.getProperty(Constants.KE_LICENSE_VOLUME);
-        if (!StringUtils.isEmpty(capacity) && !"Unlimited".equals(capacity)) {
+        if (!StringUtils.isEmpty(capacity) && !Constants.UNLIMITED.equals(capacity)) {
             try {
-                double licenseCapacity = tbToByte(Double.parseDouble(capacity));
+                double licenseCapacity = Double.parseDouble(capacity);
                 usage.setLicenseCapacity(licenseCapacity);
                 if (licenseCapacity < usage.getCurrentCapacity()) {
                     usage.setCapacityStatus(OVERCAPACITY);
@@ -371,10 +371,6 @@ public class SourceUsageManager {
 
     public ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-    }
-
-    private double tbToByte(double tb) {
-        return tb * 1024 * 1024 * 1024 * 1024;
     }
 
     public void tryReconstructSourceUsageHistory() {
@@ -582,7 +578,7 @@ public class SourceUsageManager {
         }
     }
 
-    public boolean isOverCapacity() {
+    public boolean isOverCapacityThreshold() {
         if (Constants.UNLIMITED.equals(System.getProperty(Constants.KE_LICENSE_VOLUME))) {
             logger.info("Current license has unlimited volume.");
             return false;
@@ -590,6 +586,7 @@ public class SourceUsageManager {
         SourceUsageRecord sourceUsageRecord = this.getLatestRecord();
         long currentCapacity = sourceUsageRecord.getCurrentCapacity();
         long totalCapacity = (long) sourceUsageRecord.getLicenseCapacity();
+        logger.info("Current capacity is: {}, total capacity is: {}", currentCapacity, totalCapacity);
         return currentCapacity < totalCapacity * 0.8;
     }
 
