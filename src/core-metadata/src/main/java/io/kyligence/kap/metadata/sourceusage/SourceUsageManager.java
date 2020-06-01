@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -98,8 +99,16 @@ public class SourceUsageManager {
 
     private Map<String, Long> calcAvgColumnSourceBytes(NDataSegment segment) {
         Map<String, Long> columnSourceBytes = Maps.newHashMap();
-        Set<TblColRef> allColumns = new HashSet<>(new NCubeJoinedFlatTableDesc(segment).getAllColumns());
+        Set<TblColRef> allColumns;
+        try {
+            allColumns = new HashSet<>(new NCubeJoinedFlatTableDesc(segment).getAllColumns());
+        } catch (Exception e) {
+            return columnSourceBytes;
+        }
         long inputRecordsSize = segment.getSourceBytesSize();
+        if (inputRecordsSize == 0L) {
+            logger.debug("Source bytes size for segment: {} is zero", segment);
+        }
         if (allColumns.isEmpty()) {
             return columnSourceBytes;
         }
@@ -114,9 +123,8 @@ public class SourceUsageManager {
     private Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
         Map<String, Long> dataflowSourceMap = new HashMap<>();
         for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
-            Map<String, Long> segmentSourceMap = segment.getColumnSourceBytes().size() > 0
-                    ? segment.getColumnSourceBytes()
-                    : calcAvgColumnSourceBytes(segment);
+            Map<String, Long> segmentSourceMap = segment.getColumnSourceBytes() == null ?
+                    calcAvgColumnSourceBytes(segment) : segment.getColumnSourceBytes();
             for (Map.Entry<String, Long> sourceMap : segmentSourceMap.entrySet()) {
                 String column = sourceMap.getKey();
                 Long value = dataflowSourceMap.getOrDefault(column, 0L);
@@ -261,7 +269,12 @@ public class SourceUsageManager {
         Map<String, Long> dataflowColumnsBytes = sumDataflowColumnSourceMap(dataflow);
 
         NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY).get(0);
-        List<TblColRef> allColumns = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
+        List<TblColRef> allColumns = Lists.newArrayList();
+        try {
+            allColumns = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
+        } catch (Exception e) {
+            logger.error("Failed to get all columns' TblColRef for segment: {}", dataSegment, e);
+        }
         for (TblColRef column : allColumns) {
             String tableName = column.getTableRef().getTableIdentity();
             TableCapacityDetail tableDetail = projectDetail.getTableByName(tableName) == null
@@ -309,9 +322,14 @@ public class SourceUsageManager {
 
             // for each dataflow in project, collect table details
             for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
-                NDataflow dataflow = NDataflowManager.getInstance(config, project.getName()).getDataflow(projectDataModel.getRealization());
-                if (dataflow != null && !dataflow.getSegments(SegmentStatusEnum.READY).isEmpty()) {
-                    calculateTableInProject(dataflow, projectDetail);
+                NDataflow dataflow;
+                try {
+                    dataflow = NDataflowManager.getInstance(config, project.getName()).getDataflow(projectDataModel.getRealization());
+                    if (dataflow != null && !dataflow.getSegments(SegmentStatusEnum.READY).isEmpty()) {
+                        calculateTableInProject(dataflow, projectDetail);
+                    }
+                } catch (Exception e) {
+                    logger.error("Failed to get dataflow for {}", projectDataModel, e);
                 }
             }
             updateProjectSourceUsage(projectDetail);

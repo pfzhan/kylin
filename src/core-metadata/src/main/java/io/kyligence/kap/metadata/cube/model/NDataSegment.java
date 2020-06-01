@@ -416,7 +416,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public void setColumnSourceBytes(Map<String, Long> columnSourceBytes) {
-        checkIsNotCachedAndShared();
         this.columnSourceBytes = columnSourceBytes;
     }
 
