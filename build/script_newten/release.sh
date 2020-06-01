@@ -48,11 +48,11 @@ echo "Kyligence Enterprise Release Version: ${release_version}"
 
 package_name="Kyligence-Enterprise-${release_version}.tar.gz"
 if [[ -f LICENSE ]]; then
-    kap_dir=`tar -tf ${package_name}|head -1`
+    kap_dir=`tar -tf dist/${package_name}|head -1`
     rm -rf $kap_dir
     mkdir $kap_dir
     cp LICENSE $kap_dir
-    gzip -d ${package_name}
+    gzip -d dist/${package_name}
     tar_name=`ls dist/Kyligence-Enterprise*.tar`
     tar -uf ${tar_name} $kap_dir/LICENSE
     gzip ${tar_name}
