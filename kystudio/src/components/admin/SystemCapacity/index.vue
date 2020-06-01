@@ -7,14 +7,14 @@
       </el-tooltip>
     </p>
     <p class="system-msg">
-      <span>{{$t('usedData')}}<i class="icon el-icon-ksd-what"></i>：</span>
+      <span>{{$t('usedData')}}：</span>
       <i class="icon el-icon-loading" v-if="systemCapacityInfo.isLoading"></i>
       <template v-else>
         <span :class="['used-data-number', getValueColor]"><span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">{{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})</span></span>
         <span>
           <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
           <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
-                <el-tag size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
+                <el-tag class="over-thirty-days" size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
               </el-tooltip></span>
           <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
           <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
@@ -101,10 +101,10 @@
             >
               <el-table-column prop="name" :label="$t('project')" align="left" show-overflow-tooltip></el-table-column>
               <el-table-column :render-header="renderUsageHeader" prop="capacity_ratio" sortable align="right" width="140">
-                <template slot-scope="scope">{{scope.row.status !== 'ERROR' ? (scope.row.capacity_ratio * 100).toFixed(2) + '%' : $t('failApi')}}</template>
+                <template slot-scope="scope"><span v-if="scope.row.status !== 'ERROR'">{{(scope.row.capacity_ratio * 100).toFixed(2)}}%</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
               </el-table-column>
               <el-table-column :label="$t('usedCapacity')" prop="capacity" sortable align="right" width="120">
-                <template slot-scope="scope"><span v-if="scope.row.status !== 'ERROR'">{{scope.row.capacity | dataSize}}</span><span v-else>{{$t('failApi')}}</span></template>
+                <template slot-scope="scope"><span v-if="scope.row.status !== 'ERROR'">{{scope.row.capacity | dataSize}}</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
               </el-table-column>
               <el-table-column :label="$t('tools')" align="left" class-name="tools-list" width="80">
                 <template slot-scope="scope">
@@ -118,7 +118,7 @@
               </el-table-column>
             </el-table>
           </div>
-          <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
+          <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
         </div>
       </div>
     </div>
@@ -197,7 +197,7 @@
             <template slot-scope="scope">{{scope.row.capacity | dataSize}}</template>
           </el-table-column>
         </el-table>
-        <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain @click="showProjectChargedDetails = false">{{$t('kylinLang.common.close')}}</el-button>
@@ -216,6 +216,7 @@ import echarts from 'echarts'
 import EmptyData from '../../common/EmptyData/EmptyData'
 import { mapActions, mapState } from 'vuex'
 import { transToUtcDateFormat } from '../../../util/business'
+import filterElements from '../../../filter/index'
 
 @Component({
   methods: {
@@ -271,7 +272,7 @@ export default class SystemCapacity extends Vue {
   projectCapacity = {
     list: [],
     pageSize: 10,
-    currentPage: 1,
+    currentPage: 0,
     totalSize: 10
   }
   showAlert = false
@@ -280,7 +281,7 @@ export default class SystemCapacity extends Vue {
   projectDetail = {
     list: [],
     pageSize: 10,
-    currentPage: 1,
+    currentPage: 0,
     totalSize: 10
   }
   selectedDataLine = 'month'
@@ -301,16 +302,17 @@ export default class SystemCapacity extends Vue {
 
   created () {
     this.getProjectList()
-    this.getNotifyStatus().then(status => {
-      this.noticeType = status
-    })
+    // 获取邮箱提醒状态
+    // this.getNotifyStatus().then(status => {
+    //   this.noticeType = status
+    // })
   }
 
   // 获取项目占比
   getProjectList (data = {}) {
     this.getProjectCapacityList({project_names: this.filterProject, page_offset: this.projectCapacity.currentPage, page_size: this.projectCapacity.pageSize, ...data}).then(data => {
       this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
-      this.initTreeMapCharts()
+      !this.filterProject && this.initTreeMapCharts()
     })
   }
 
@@ -363,8 +365,7 @@ export default class SystemCapacity extends Vue {
   // 根据已使用的数据量判断显示的颜色
   get getValueColor () {
     const num = this.getCapacityPrecent
-    console.log(num)
-    if (num >= 80 && num < 100) {
+    if (num >= 80 && num <= 100) {
       return 'is-warn'
     } else if (num > 100) {
       return 'is-error'
@@ -375,8 +376,9 @@ export default class SystemCapacity extends Vue {
 
   initLineCharts () {
     if (this.lineOptions) {
-      const xDates = Object.keys(this.lineOptions).map(it => (transToUtcDateFormat(+it)))
-      const yVol = Object.values(this.lineOptions).map(it => (+it / 1024 / 1024 / 1024 / 1024).toFixed(2))
+      const objs = Object.keys(this.lineOptions).sort((a, b) => a - b)
+      const xDates = objs.map(it => (transToUtcDateFormat(+it)))
+      const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
       this.lineCharts = echarts.init(document.getElementById('used-data-map'))
       this.lineCharts.setOption(charts.line(xDates, yVol))
     }
@@ -384,7 +386,7 @@ export default class SystemCapacity extends Vue {
 
   initTreeMapCharts () {
     if (!this.projectCapacity.list.length) return
-    const data = this.projectCapacity.list.filter(item => item.status !== 'ERROR').map(it => ({name: it.name, value: it.capacity_ratio * 100, capacity: it.capacity}))
+    const data = this.projectCapacity.list.filter(item => item.status !== 'ERROR').map(it => ({name: it.name, value: it.capacity_ratio * 100, capacity: filterElements.dataSize(+it.capacity)}))
     const formatUtil = echarts.format
     this.treeMapCharts = echarts.init(this.$el.querySelector('#tree-map'))
     this.treeMapCharts.setOption(charts.treeMap(this, data, formatUtil))
@@ -597,6 +599,9 @@ export default class SystemCapacity extends Vue {
       .is-danger {
         color: @error-color-1;
       }
+    }
+    .over-thirty-days {
+      cursor: pointer;
     }
     .line {
       margin: 0 15px;

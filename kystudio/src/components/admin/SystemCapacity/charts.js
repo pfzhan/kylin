@@ -13,7 +13,9 @@ export default {
         boundaryGap: false,
         data: xData || [],
         axisLabel: {
-          interval: 1
+          interval: 'auto',
+          align: 'center',
+          fontSize: 10
         }
       },
       yAxis: {
@@ -70,7 +72,6 @@ export default {
     }
   },
   treeMap: function (_this, data, formatUtil, options = {}) {
-    console.log(_this)
     return {
       grid: {
         width: '100%',
@@ -85,10 +86,9 @@ export default {
           for (let i = 1; i < treePathInfo.length; i++) {
             treePath.push(treePathInfo[i].name)
           }
-          console.log(info)
           return [
-            '<div class="tooltip-title">项目名称：' + formatUtil.encodeHTML(treePath.join('/')) + '</div>',
-            '已用容量: ' + formatUtil.addCommas(capacity) + ' KB'
+            '<div class="tooltip-title">' + _this.$t('projectNameByTreeMap') + '：' + formatUtil.encodeHTML(treePath.join('/')) + '</div>',
+            _this.$t('usedCapacityByTreeMap') + ': ' + capacity
           ].join('')
         }
       },

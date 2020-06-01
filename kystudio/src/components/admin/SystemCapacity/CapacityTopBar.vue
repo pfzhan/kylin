@@ -10,13 +10,13 @@
             <template v-if="!systemCapacityInfo.isLoading">
               <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
               <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
-                <el-tag size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}</el-tag>
+                <el-tag class="over-thirty-days" size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="is-danger el-icon-ksd-what ksd-ml-5"></i></el-tag>
               </el-tooltip>
               <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
             </template>
           </p>
           <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.error}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
-            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span v-else>{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span></span>
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="{'is-danger': systemNodeInfo.current_node > systemNodeInfo.node}" v-else>{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span></span>
             <template v-if="!systemNodeInfo.isLoading">
               <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -105,10 +105,10 @@
     get getValueColor () {
       const num = this.getCapacityPrecent
       console.log(num)
-      if (num >= 80 && num < 100) {
-        return 'is-warn'
-      } else if (num > 100) {
-        return 'is-error'
+      if (num > 100) {
+        return 'is-danger'
+      } else if (num >= 80 && num <= 100) {
+        return 'is-warning'
       } else {
         return ''
       }
@@ -228,6 +228,9 @@
           line-height: 28px;
           padding: 0 10px;
           box-sizing: border-box;
+          .over-thirty-days {
+            cursor: pointer;
+          }
         }
         .node-item {
           position: relative;

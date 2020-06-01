@@ -41,7 +41,9 @@ export default {
     cSeason: 'This Quarter',
     cYear: 'This Year',
     usageTip: 'Project’s data volume / System’s data volume',
-    usageTableTip: 'Table’s data volume / Project’s data volume'
+    usageTableTip: 'Table’s data volume / Project’s data volume',
+    projectNameByTreeMap: 'Project Name',
+    usedCapacityByTreeMap: 'Used Capacity'
   },
   'zh-cn': {
     mainTitle: '系统容量',
@@ -86,6 +88,8 @@ export default {
     cSeason: '当季',
     cYear: '当年',
     usageTip: '项目数据量 / 系统数据量',
-    usageTableTip: '表数据量 / 该项目数据量'
+    usageTableTip: '表数据量 / 该项目数据量',
+    projectNameByTreeMap: '项目名称',
+    usedCapacityByTreeMap: '已用容量'
   }
 }
