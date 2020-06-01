@@ -64,6 +64,7 @@ import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -129,6 +130,9 @@ public class NSystemController extends NBasicController {
 
     @Autowired
     private ClusterManager clusterManager;
+
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
     private static final Pattern trialPattern = Pattern.compile("\\S[a-zA-Z\\s\\d\\u4e00-\\u9fa5]+\\S");
 
@@ -243,6 +247,7 @@ public class NSystemController extends NBasicController {
                                                             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
                                                             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
                                                             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        aclEvaluate.checkIsGlobalAdmin();
         SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Arrays.asList(projectNames), sortBy, reverse);
         LicenseInfoWithDetailsResponse monitorDetails = licenseInfoService.getLicenseMonitorInfoWithDetail(sourceUsageFilter, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, monitorDetails, "");
@@ -279,6 +284,7 @@ public class NSystemController extends NBasicController {
                                                            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
                                                            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
                                                            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        aclEvaluate.checkProjectAdminPermission(project);
         SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), sortBy, reverse);
         ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project, sourceUsageFilter);
         if (projectCapacityResponse.getSize() > 0) {
@@ -300,6 +306,7 @@ public class NSystemController extends NBasicController {
     @PutMapping(value = "/capacity/refresh")
     @ResponseBody
     public EnvelopeResponse refresh(@RequestParam("project") String project) {
+        aclEvaluate.checkIsGlobalAdmin();
         licenseInfoService.refreshTableExtDesc(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -308,6 +315,7 @@ public class NSystemController extends NBasicController {
     @PutMapping(value = "/capacity/refresh_all")
     @ResponseBody
     public EnvelopeResponse refreshAll() {
+        aclEvaluate.checkIsGlobalAdmin();
         licenseInfoService.updateSourceUsage();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
