@@ -2,7 +2,7 @@
   <el-dialog class="global-dialog-box"
     :class="{'hide-bottom-border-top': hideBottomLine}"
     :width="wid"
-    :before-close="handleClose"
+    :before-close="() => handleClose('close')"
     :title="title || $t('kylinLang.common.notice')"
     :close-on-click-modal="false"
     :append-to-body="true"
@@ -129,7 +129,8 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       closeText: state => state.closeText,
       cancelText: state => state.cancelText,
       submitText: state => state.submitText,
-      needResolveCancel: state => state.needResolveCancel
+      needResolveCancel: state => state.needResolveCancel,
+      onlyCloseDialogReject: state => state.onlyCloseDialogReject
     })
   },
   methods: {
@@ -170,11 +171,11 @@ export default class DetailDialogModal extends Vue {
     return this.submitText || this.$t('kylinLang.common.submit')
   }
   // 纯关闭弹窗或者点取消按钮和X都resolve
-  handleClose () {
+  handleClose (source) {
     if (this.needCallbackWhenClose) {
       this.callback && this.callback()
     }
-    if (this.needConcelReject) {
+    if (this.needConcelReject || (this.onlyCloseDialogReject && source === 'close')) {
       this.cancelReject && this.cancelReject()
     }
     this.handleReset()

@@ -557,7 +557,10 @@
       try {
         if (this.buildType === 'incremental' && this.buildOrComplete === 'build') {
           this.$refs.buildForm.validate(async (valid) => {
-            if (!valid) { return }
+            if (!valid) {
+              this.btnLoading = false
+              return
+            }
             await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
             await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
             const partition_desc = {}
@@ -568,7 +571,6 @@
             }
             partition_desc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
             partition_desc.partition_date_format = this.partitionMeta.format
-            this.btnLoading = true
             let start = null
             let end = null
             if (!this.modelBuildMeta.isLoadExisted) {
@@ -599,32 +601,37 @@
                   obj['date_range_end'] = seg.end
                   tableData.push(obj)
                 })
-                await this.callGlobalDetailDialog({
-                  msg: this.$t('segmentHoletips', {modelName: this.modelDesc.name}),
-                  title: this.$t('fixSegmentTitle'),
-                  detailTableData: tableData,
-                  detailColumns: [
-                    {column: 'start', label: this.$t('kylinLang.common.startTime')},
-                    {column: 'end', label: this.$t('kylinLang.common.endTime')}
-                  ],
-                  isShowSelection: true,
-                  dialogType: 'warning',
-                  showDetailBtn: false,
-                  needResolveCancel: true,
-                  cancelText: this.$t('ignore'),
-                  submitText: this.$t('fixAndBuild'),
-                  customCallback: async (segments) => {
-                    selectSegmentHoles = segments.map((seg) => {
-                      return {start: seg.date_range_start, end: seg.date_range_end}
-                    })
-                    try {
-                      this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
-                    } catch (e) {
-                      handleError(e)
+                try {
+                  await this.callGlobalDetailDialog({
+                    msg: this.$t('segmentHoletips', {modelName: this.modelDesc.name}),
+                    title: this.$t('fixSegmentTitle'),
+                    detailTableData: tableData,
+                    detailColumns: [
+                      {column: 'start', label: this.$t('kylinLang.common.startTime')},
+                      {column: 'end', label: this.$t('kylinLang.common.endTime')}
+                    ],
+                    isShowSelection: true,
+                    dialogType: 'warning',
+                    showDetailBtn: false,
+                    needResolveCancel: true,
+                    cancelText: this.$t('ignore'),
+                    submitText: this.$t('fixAndBuild'),
+                    onlyCloseDialogReject: true,
+                    customCallback: async (segments) => {
+                      selectSegmentHoles = segments.map((seg) => {
+                        return {start: seg.date_range_start, end: seg.date_range_end}
+                      })
+                      try {
+                        this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
+                      } catch (e) {
+                        handleError(e)
+                      }
                     }
-                  }
-                })
-                this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
+                  })
+                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
+                } catch (e) {
+                  this.btnLoading = false
+                }
               } else {
                 this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
               }

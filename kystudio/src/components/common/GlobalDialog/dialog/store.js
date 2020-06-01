@@ -10,6 +10,7 @@ const initialState = JSON.stringify({
   callback: null,
   cancelReject: null,
   customCallback: null,
+  onlyCloseDialogReject: false,
   msg: '',
   detailMsg: '',
   title: '',
@@ -63,9 +64,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, wid = '480px', details = [], detailTableData = [], detailColumns = [], isShowSelection = false, theme = 'plain', showDetailBtn = true, showIcon = true, showDetailDirect = false, customClass = '', showCopyTextLeftBtn = false, showCopyBtn = false, needCallbackWhenClose = false, customCallback = null, closeText = '', cancelText = '', submitText = '', needResolveCancel = false, needConcelReject = false, hideBottomLine = false }) {
+    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, wid = '480px', details = [], detailTableData = [], detailColumns = [], isShowSelection = false, theme = 'plain', showDetailBtn = true, showIcon = true, showDetailDirect = false, customClass = '', showCopyTextLeftBtn = false, showCopyBtn = false, needCallbackWhenClose = false, customCallback = null, closeText = '', cancelText = '', submitText = '', needResolveCancel = false, needConcelReject = false, hideBottomLine = false, onlyCloseDialogReject = false }) {
       return new Promise(async (resolve, reject) => {
-        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, wid, details, detailTableData, detailColumns, isShowSelection, theme, showDetailBtn, showIcon, showDetailDirect, customClass, showCopyTextLeftBtn, showCopyBtn, needCallbackWhenClose, customCallback, closeText, cancelText, submitText, needResolveCancel, callback: resolve, needConcelReject, cancelReject: reject, hideBottomLine })
+        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, wid, details, detailTableData, detailColumns, isShowSelection, theme, showDetailBtn, showIcon, showDetailDirect, customClass, showCopyTextLeftBtn, showCopyBtn, needCallbackWhenClose, customCallback, closeText, cancelText, submitText, needResolveCancel, callback: resolve, needConcelReject, cancelReject: reject, hideBottomLine, onlyCloseDialogReject })
         commit(types.SHOW_MODAL)
       })
     }
