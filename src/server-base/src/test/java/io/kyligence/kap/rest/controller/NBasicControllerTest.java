@@ -47,6 +47,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.fixture.FixtureController;
 
+import java.text.SimpleDateFormat;
+
 public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
@@ -167,6 +169,21 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Invalid start or end time format. Only support timestamp type, unit ms");
         nBasicController.validateDataRange("start", "end");
+    }
+
+    @Test
+    public void testTimeRangeEndEqualToStartWithDateFormat() {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String start = null;
+        String end = null;
+        try {
+            start = Long.toString(format.parse("2012-01-01 00:00:00").getTime());
+            end = Long.toString(format.parse("2012-01-01 06:00:00").getTime());
+        } catch (Exception e) {
+        }
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("The end time must be greater than the start time");
+        nBasicController.validateDataRange(start, end, "yyyy-MM-dd");
     }
 
 }

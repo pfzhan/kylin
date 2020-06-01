@@ -2808,4 +2808,16 @@ public class ModelService extends BasicService {
                 .add(new CheckSegmentResponse.SegmentInfo(seg.getId(), seg.getName())));
         return checkSegmentResponse;
     }
+
+    public String getPartitionColumnFormatById(String project, String modelId) {
+        NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null:dataModelDesc.getPartitionDesc().getPartitionDateFormat();
+        return partitionDateFormat;
+    }
+
+    public String getPartitionColumnFormatByAlias(String project, String modelAlias) {
+        NDataModel dataModelDesc = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null:dataModelDesc.getPartitionDesc().getPartitionDateFormat();
+        return partitionDateFormat;
+    }
 }

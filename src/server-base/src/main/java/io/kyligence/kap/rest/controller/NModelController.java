@@ -187,8 +187,9 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
-        validateDataRange(modelRequest.getStart(), modelRequest.getEnd());
         validatePartitionDesc(modelRequest.getPartitionDesc());
+        String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null:modelRequest.getPartitionDesc().getPartitionDateFormat();
+        validateDataRange(modelRequest.getStart(), modelRequest.getEnd(), partitionDateFormat);
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -311,7 +312,8 @@ public class NModelController extends NBasicController {
             @RequestBody SegmentFixRequest segmentsRequest) throws Exception {
         checkProjectName(segmentsRequest.getProject());
         checkRequiredArg("segment_holes", segmentsRequest.getSegmentHoles());
-        segmentsRequest.getSegmentHoles().forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd()));
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(segmentsRequest.getProject(), modelId);
+        segmentsRequest.getSegmentHoles().forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
         JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
                 segmentsRequest.getSegmentHoles());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
@@ -323,7 +325,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
-        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
@@ -480,7 +483,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateSemantic(@RequestBody ModelRequest request) throws Exception {
         checkProjectName(request.getProject());
-        validateDataRange(request.getStart(), request.getEnd());
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(request.getProject(), request.getId());
+        validateDataRange(request.getStart(), request.getEnd(), partitionColumnFormat);
         validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, request.getUuid());
         try {
@@ -635,7 +639,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
@@ -648,7 +653,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),

@@ -200,13 +200,15 @@ public class OpenModelController extends NBasicController {
             @PathVariable("model") String modelAlias,
             @RequestBody ModelParatitionDescRequest modelParatitionDescRequest) {
         checkProjectName(project);
+        String partitionDateFormat = null;
         if (modelParatitionDescRequest.getPartitionDesc() != null) {
             checkRequiredArg("partition_date_column",
                     modelParatitionDescRequest.getPartitionDesc().getPartitionDateColumn());
             checkRequiredArg("partition_date_format",
                     modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat());
+            partitionDateFormat = modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat();
         }
-        validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+        validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(), partitionDateFormat);
         modelService.updateDataModelParatitionDesc(project, modelAlias, modelParatitionDescRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

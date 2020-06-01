@@ -3901,4 +3901,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Failed to get segment information as broken is broken");
         modelService.checkSegments("gc_test", "broken", "0", "100");
     }
+
+    @Test
+    public void testGetPartitionColumnFormat(){
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById("default", "82fa7671-a935-45f5-8779-85703601f49a");
+        Assert.assertEquals("yyyy-MM-dd", partitionColumnFormat);
+
+        partitionColumnFormat = modelService.getPartitionColumnFormatByAlias("default", "ut_inner_join_cube_partial");
+        Assert.assertEquals("yyyy-MM-dd", partitionColumnFormat);
+
+        partitionColumnFormat = modelService.getPartitionColumnFormatById("gc_test", "e0e90065-e7c3-49a0-a801-20465ca64799");
+        Assert.assertEquals(null, partitionColumnFormat);
+
+        partitionColumnFormat = modelService.getPartitionColumnFormatByAlias("gc_test", "m1");
+        Assert.assertEquals(null, partitionColumnFormat);
+    }
+
 }

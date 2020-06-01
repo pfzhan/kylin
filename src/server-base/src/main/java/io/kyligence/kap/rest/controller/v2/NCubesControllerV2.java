@@ -133,7 +133,8 @@ public class NCubesControllerV2 extends NBasicController {
             throws Exception {
         String startTime = String.valueOf(request.getStartTime());
         String endTime = String.valueOf(request.getEndTime());
-        validateDataRange(startTime, endTime);
+        String partitionColumnFormat = modelService.getPartitionColumnFormatByAlias(request.getProject(), modelAlias);
+        validateDataRange(startTime, endTime, partitionColumnFormat);
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {

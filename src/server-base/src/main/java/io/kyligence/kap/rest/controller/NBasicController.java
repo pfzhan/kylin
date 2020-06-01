@@ -83,6 +83,7 @@ import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -371,6 +372,10 @@ public class NBasicController {
     }
 
     public void validateDataRange(String start, String end) {
+        validateDataRange(start, end, null);
+    }
+
+    public void validateDataRange(String start, String end, String partitionColumnFormat) {
         if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end)) {
             return;
         }
@@ -379,8 +384,8 @@ public class NBasicController {
             long startLong = 0;
             long endLong = 0;
             try {
-                startLong = Long.parseLong(start);
-                endLong = Long.parseLong(end);
+                startLong = DateFormat.getFormatTimeStamp(start, partitionColumnFormat);
+                endLong = DateFormat.getFormatTimeStamp(end, partitionColumnFormat);
             } catch (Exception e) {
                 throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
             }
