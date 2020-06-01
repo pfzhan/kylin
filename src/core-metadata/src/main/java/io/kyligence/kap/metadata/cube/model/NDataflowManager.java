@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -582,7 +583,26 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             df.setCost(update.getCost() > 0 ? update.getCost() : df.getCost());
 
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
+            if (needUpdateSourceUsage(update)) {
+                SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
+            }
         });
+    }
+
+    private boolean needUpdateSourceUsage(final NDataflowUpdate update) {
+        if (update.getToAddSegs() != null) {
+            return true;
+        }
+        if (update.getToRemoveSegs() != null) {
+            return true;
+        }
+        if (update.getToUpdateSegs() != null) {
+            return true;
+        }
+        if (update.getToAddOrUpdateLayouts() != null) {
+            return true;
+        }
+        return update.getToRemoveLayouts() != null;
     }
 
     public NDataflow dropDataflow(String dfId) {

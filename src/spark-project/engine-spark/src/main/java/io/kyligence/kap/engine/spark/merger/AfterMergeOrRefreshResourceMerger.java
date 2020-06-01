@@ -115,7 +115,6 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
                     abstractExecutable.getJobType());
             recordDownJobStats(abstractExecutable, nDataLayouts);
-            abstractExecutable.updateSourceUsage();
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
         }
     }

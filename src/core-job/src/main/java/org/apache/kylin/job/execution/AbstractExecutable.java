@@ -483,11 +483,6 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    public void updateSourceUsage() {
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        sourceUsageManager.updateSourceUsage();
-    }
-
     public final void notifyUserJobIssue(JobIssueEnum jobIssue) {
         Preconditions.checkState(
                 (this instanceof DefaultChainedExecutable) || this.getParent() instanceof DefaultChainedExecutable);
