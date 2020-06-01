@@ -700,6 +700,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder",
                         "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"));
 
+        map.put("isOverCapacityNotificationEnabled", new PropertiesEntity("kylin.capacity.notification-enabled", "false", false));
+        map.put("getOverCapacityMailingList", new PropertiesEntity("kylin.capacity.notification-emails", "", new String[0]));
+
     }
 
     @Before
@@ -719,7 +722,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(317, methodsCount);
+        Assert.assertEquals(319, methodsCount);
     }
 
     @Test

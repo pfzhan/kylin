@@ -173,7 +173,7 @@ public class LicenseInfoService extends BasicService {
         result.setDates(System.getProperty(Constants.KE_DATES));
         result.setCommit(System.getProperty(Constants.KE_COMMIT));
 
-        if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISEVALUATION))) {
+        if (isEvaluation()) {
             result.setEvaluation(true);
         }
         if ("true".equals(System.getProperty(Constants.KE_LICENSE_ISCLOUD))) {
@@ -593,6 +593,9 @@ public class LicenseInfoService extends BasicService {
         if (currentNodes == 0) {
             nodeMonitorInfoResponse.setError(true);
         }
+        if (isEvaluation()) {
+            nodeMonitorInfoResponse.setEvaluation(true);
+        }
         String serviceNodes = System.getProperty(Constants.KE_LICENSE_NODES);
         if (!StringUtils.isEmpty(serviceNodes) && !UNLIMITED.equals(serviceNodes)) {
             try {
@@ -634,6 +637,10 @@ public class LicenseInfoService extends BasicService {
         //get current nodes
         List<ServerInfoResponse> servers = clusterManager.getQueryServers();
         return CollectionUtils.isEmpty(servers) ? 0 : servers.size();
+    }
+
+    private boolean isEvaluation() {
+        return "true".equals(System.getProperty(Constants.KE_LICENSE_ISEVALUATION));
     }
 
     public Map<Long, Long> getProjectCapacities(String project, String dataRange) {
@@ -758,7 +765,9 @@ public class LicenseInfoService extends BasicService {
         } else {
             licenseMonitorInfoResponse.setError(true);
         }
-
+        if (isEvaluation()) {
+            licenseMonitorInfoResponse.setEvaluation(true);
+        }
         licenseMonitorInfoResponse.setCheckTime(System.currentTimeMillis());
         licenseMonitorInfoResponse.setCapacityStatus(SourceUsageRecord.CapacityStatus.OK);
         licenseMonitorInfoResponse.setCurrentCapacity(123213L);

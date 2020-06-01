@@ -52,4 +52,7 @@ public class LicenseMonitorInfoResponse implements Serializable {
 
     @JsonProperty("error")
     private boolean error = false;
+
+    @JsonProperty("is_evaluation")
+    private boolean isEvaluation = false;
 }
