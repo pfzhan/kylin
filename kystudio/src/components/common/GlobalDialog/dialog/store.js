@@ -10,7 +10,7 @@ const initialState = JSON.stringify({
   callback: null,
   cancelReject: null,
   customCallback: null,
-  onlyCloseDialogReject: false,
+  onlyCloseDialogReject: false, // 点击x关闭弹窗返reject
   msg: '',
   detailMsg: '',
   title: '',
