@@ -61,6 +61,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.date.Constant;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import lombok.val;
@@ -89,7 +90,7 @@ public class AuditLogTool extends ExecutableApplication {
     private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("DESTINATION_DIR")
             .withDescription("Specify the directory for audit log backup or restore").isRequired(true).create("dir");
 
-    private static final int BATCH_SIZE = 200;
+    private static final int BATCH_SIZE = 5000;
 
     private static final String AUDIT_LOG_SUFFIX = ".jsonl";
 
@@ -156,8 +157,7 @@ public class AuditLogTool extends ExecutableApplication {
         long startTs = job.getStartTime();
         long endTs = job.getEndTime();
 
-        persist(extract(startTs, endTs),
-                Paths.get(dir, String.format("%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
+        extract(startTs, endTs, Paths.get(dir, String.format("%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
     }
 
     private void extractFull(OptionsHelper optionsHelper, final String dir) throws Exception {
@@ -169,8 +169,8 @@ public class AuditLogTool extends ExecutableApplication {
         }
         long startTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_START_TIME));
         long endTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_END_TIME));
-        persist(extract(startTs, endTs),
-                Paths.get(dir, String.format("%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
+
+        extract(startTs, endTs, Paths.get(dir, String.format("%d-%d%s", startTs, endTs, AUDIT_LOG_SUFFIX)).toFile());
     }
 
     private void restore(OptionsHelper optionsHelper, final String dir) throws Exception {
@@ -214,24 +214,11 @@ public class AuditLogTool extends ExecutableApplication {
         }
     }
 
-    private void persist(List<AuditLog> auditLogs, File auditLogFile) throws Exception {
+    private void extract(long startTs, long endTs, File auditLogFile) throws Exception {
         auditLogFile.getParentFile().mkdirs();
-        try (final BufferedWriter bw = new BufferedWriter(new FileWriter(auditLogFile))) {
-            auditLogs.forEach(x -> {
-                try {
-                    bw.write(JsonUtil.writeValueAsString(x));
-                    bw.newLine();
-                } catch (Exception e) {
-                    logger.error("audit log serialize error, id={}", x.getId(), e);
-                }
-            });
-        }
-    }
-
-    private List<AuditLog> extract(long startTs, long endTs) throws Exception {
-        List<AuditLog> result = Lists.newArrayList();
         long fromId = 0L;
-        try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig)) {
+        try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig);
+                BufferedWriter bw = new BufferedWriter(new FileWriter(auditLogFile), Constant.AUDIT_MAX_BUFFER_SIZE)) {
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("audit log task is interrupt");
@@ -240,8 +227,14 @@ public class AuditLogTool extends ExecutableApplication {
                 if (CollectionUtils.isEmpty(auditLogs)) {
                     break;
                 }
-
-                result.addAll(auditLogs);
+                auditLogs.forEach(x -> {
+                    try {
+                        bw.write(JsonUtil.writeValueAsString(x));
+                        bw.newLine();
+                    } catch (Exception e) {
+                        logger.error("Write audit log error, id is {}", x.getId(), e);
+                    }
+                });
 
                 if (auditLogs.size() < BATCH_SIZE) {
                     break;
@@ -249,6 +242,5 @@ public class AuditLogTool extends ExecutableApplication {
                 fromId = auditLogs.get(auditLogs.size() - 1).getId();
             }
         }
-        return result;
     }
 }

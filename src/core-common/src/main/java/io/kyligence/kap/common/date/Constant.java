@@ -44,4 +44,6 @@ package io.kyligence.kap.common.date;
 public class Constant {
     public final static long SECOND = 1000L;
     public final static long MINUTE = 60 * SECOND;
+
+    public final static int AUDIT_MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 }
