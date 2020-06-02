@@ -23,8 +23,14 @@
  */
 package io.kyligence.kap.rest.config;
 
-import java.net.MalformedURLException;
+import static java.lang.Math.toIntExact;
 
+import java.net.MalformedURLException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.TimeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -38,6 +44,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.CacheControl;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
@@ -61,12 +68,35 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 public class AppConfig extends WebMvcConfigurerAdapter {
 
+    @Value("${kylin.thread.pool.core-pool-size:5}")
+    private int threadPoolCorePoolSize;
+    @Value("${kylin.thread.pool.max-pool-size:20}")
+    private int threadPoolMaxPoolSize;
+    @Value("${kylin.thread.pool.queue-capacity:200}")
+    private int threadPoolQueueCapacity;
+    @Value("${kylin.thread.pool.keep-alive-time:300s}")
+    private String threadPoolKeepAliveTime;
+
     @Bean
     public TaskScheduler taskScheduler() {
         val scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(5);
         scheduler.setThreadNamePrefix("DefaultTaskScheduler-");
         return scheduler;
+    }
+
+    @Bean
+    public ThreadPoolTaskExecutor threadPoolTaskExecutor() {
+        ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
+        threadPoolTaskExecutor.setCorePoolSize(threadPoolCorePoolSize);
+        threadPoolTaskExecutor.setMaxPoolSize(threadPoolMaxPoolSize);
+        threadPoolTaskExecutor.setQueueCapacity(threadPoolQueueCapacity);
+        int threadPoolKeepAliveSeconds = toIntExact(TimeUtil.timeStringAs(
+                StringUtils.isBlank(threadPoolKeepAliveTime) ? "300s" : threadPoolKeepAliveTime, TimeUnit.SECONDS));
+        threadPoolTaskExecutor.setKeepAliveSeconds(threadPoolKeepAliveSeconds);
+        threadPoolTaskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        threadPoolTaskExecutor.setThreadNamePrefix("DefaultThreadPoolTaskExecutor-");
+        return threadPoolTaskExecutor;
     }
 
     @Bean

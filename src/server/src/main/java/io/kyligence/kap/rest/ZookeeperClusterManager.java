@@ -29,10 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -44,24 +44,33 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.lock.ZookeeperUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.cluster.ClusterConstant;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @ConditionalOnZookeeperEnabled
 @Component
+@Slf4j
 public class ZookeeperClusterManager implements ClusterManager {
 
     @Autowired
     ZookeeperDiscoveryClient discoveryClient;
+
+    @Autowired
+    AsyncTaskExecutor executor;
 
     List<ServerInfoResponse> cache;
 
@@ -92,11 +101,9 @@ public class ZookeeperClusterManager implements ClusterManager {
 
     private List<String> getQueryServers(String serviceId) {
         checkServiceId(serviceId);
-        val list = discoveryClient.getInstances(serviceId);
-        if (CollectionUtils.isEmpty(list)) {
-            return Lists.newArrayList();
-        }
-        List<String> hosts = list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
+        val list = submitWithTimeOut(() -> discoveryClient.getInstances(serviceId), 3);
+        List<String> hosts = list.stream()
+                .map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
                 .collect(Collectors.toList());
         if (!Objects.equals(serviceId, ClusterConstant.QUERY)) {
             mergeJobNodeWithEpoch(hosts);
@@ -164,4 +171,13 @@ public class ZookeeperClusterManager implements ClusterManager {
         }
     }
 
+    List<ServiceInstance> submitWithTimeOut(Callable<List<ServiceInstance>> callable, long timeout) {
+        val task = executor.submit(callable);
+        try {
+            return task.get(timeout, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("ZookeeperDiscoveryClient getInstances error {}", e.getMessage(), e);
+        }
+        return Lists.newArrayList();
+    }
 }
