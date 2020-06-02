@@ -43,6 +43,6 @@ public class NodeMonitorInfoResponse implements Serializable {
     @JsonProperty("error")
     private boolean error = false;
 
-    @JsonProperty("is_evaluation")
-    private boolean isEvaluation = false;
+    @JsonProperty("evaluation")
+    private boolean evaluation = false;
 }
