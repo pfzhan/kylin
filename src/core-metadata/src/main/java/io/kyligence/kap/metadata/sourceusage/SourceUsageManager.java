@@ -509,23 +509,18 @@ public class SourceUsageManager {
 
         if (latestHistory != null) {
             info.setTime(latestHistory.getCheckTime());
-            info.setCurrentCapacity(latestHistory.getCurrentCapacity());
-            info.setCapacityStatus(latestHistory.getCapacityStatus());
-            info.setCapacity(latestHistory.getLicenseCapacity());
 
-            if (project != null) {
-                KylinConfig kylinConfig = NProjectManager.getInstance(config).getProject(project).getConfig();
+            if (project == null) {
+                info.setCurrentCapacity(latestHistory.getCurrentCapacity());
+                info.setCapacity(latestHistory.getLicenseCapacity());
+                info.setCapacityStatus(latestHistory.getCapacityStatus());
+            } else {
+                ProjectCapacityDetail projectCapacity = latestHistory.getProjectCapacity(project);
 
-                // have project usage capacity config
-                if (kylinConfig.getSourceUsageQuota() != -1) {
-                    info.setProject(project);
-                    ProjectCapacityDetail projectCapacity = latestHistory.getProjectCapacity(project);
-
-                    if (projectCapacity != null) {
-                        info.setProjectCapacity(projectCapacity.getLicenseCapacity());
-                        info.setProjectCurrentCapacity(projectCapacity.getCapacity());
-                        info.setProjectCapacityStatus(projectCapacity.getStatus());
-                    }
+                if (projectCapacity != null) {
+                    info.setCurrentCapacity(projectCapacity.getCapacity());
+                    info.setCapacity(projectCapacity.getLicenseCapacity());
+                    info.setCapacityStatus(projectCapacity.getStatus());
                 }
             }
 
@@ -544,14 +539,14 @@ public class SourceUsageManager {
                 }
             }
         } else {
-            info.setCapacityStatus(OVERCAPACITY);
+            logger.warn("Latest history of source usage record is null.");
         }
 
         long firstErrorTime = info.getFirstErrorTime();
         if (firstErrorTime != 0L) {
             long dayThreshold = (System.currentTimeMillis() - firstErrorTime) / (1000 * 60 * 60 * 24);
             if (dayThreshold >= 30) {
-                info.setCapacityStatus(OVERCAPACITY);
+                logger.warn("Failed to fetch data volume usage for over {} days", dayThreshold);
             }
         }
 
@@ -563,24 +558,35 @@ public class SourceUsageManager {
             return;
         }
 
-        LicenseInfo info = getLicenseInfo(project);
+        boolean checkProject = false;
 
-        if (info.getProject() != null) {
-            if (info.getProjectCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
+        if (project != null) {
+            KylinConfig kylinConfig = NProjectManager.getInstance(config).getProject(project).getConfig();
+
+            // have project usage capacity config
+            if (kylinConfig.getSourceUsageQuota() != -1) {
+                checkProject = true;
+            }
+        }
+
+        LicenseInfo info = getLicenseInfo(checkProject ? project : null);
+
+        if (checkProject) {
+            if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
                         String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY(),
-                                info.getProjectCurrentCapacity(), info.getProjectCapacity(), info.getCurrentNode(), info.getNode()));
-            } else if (info.getProjectCapacityStatus() == OVERCAPACITY) {
+                                info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
+            } else if (info.getCapacityStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
                         String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(),
-                                info.getProjectCurrentCapacity(), info.getProjectCapacity()));
+                                info.getCurrentCapacity(), info.getCapacity()));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
                         String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
                                 info.getCurrentNode(), info.getNode()));
             }
 
-            logger.info("Current capacity status of project: {} is ok", info.getProject());
+            logger.info("Current capacity status of project: {} is ok", project);
         } else {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,

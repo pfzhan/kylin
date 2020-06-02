@@ -1671,7 +1671,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getSourceUsageQuota() {
-        Double d = Double.parseDouble(getOptional("kylin.storage.source-usage-in-giga-bytes", "-1"));
+        Double d = Double.parseDouble(getOptional("kylin.storage.source-quota-in-giga-bytes", "-1"));
 
         return d >= 0 ? ((Double) (d * 1024 * 1024 * 1024)).longValue() : -1;
     }

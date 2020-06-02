@@ -50,18 +50,6 @@ public class LicenseInfo implements Serializable {
     @JsonProperty("capacity_status")
     private CapacityStatus capacityStatus = CapacityStatus.OK;
 
-    @JsonProperty("project")
-    private String project;
-
-    @JsonProperty("project_capacity")
-    private double projectCapacity = 0L;
-
-    @JsonProperty("project_current_capacity")
-    private long projectCurrentCapacity = 0L;
-
-    @JsonProperty("project_capacity_status")
-    private CapacityStatus projectCapacityStatus = CapacityStatus.OK;
-
     @JsonProperty("time")
     private long time;
 
