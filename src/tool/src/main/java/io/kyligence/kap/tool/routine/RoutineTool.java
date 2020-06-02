@@ -23,24 +23,31 @@
  */
 package io.kyligence.kap.tool.routine;
 
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.kylin.common.util.ExecutableApplication;
-import org.apache.kylin.common.util.OptionsHelper;
-
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Slf4j
 public class RoutineTool extends ExecutableApplication implements IKeep {
-    private boolean cleanup;
+    private boolean storageCleanup;
+    private boolean metadataCleanup;
     private String[] projects = new String[0];
 
+    private static final Option OPTION_CLEANUP_METADATA = new Option("m", "metadata", false, "cleanup metadata garbage after check.");
     private static final Option OPTION_CLEANUP = new Option("c", "cleanup", false, "cleanup hdfs garbage after check.");
     private static final Option OPTION_PROJECTS = new Option("p", "projects", true, "specify projects to clearup.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
@@ -51,6 +58,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         options.addOption(OPTION_CLEANUP);
         options.addOption(OPTION_PROJECTS);
         options.addOption(OPTION_HELP);
+        options.addOption(OPTION_CLEANUP_METADATA);
         return options;
     }
 
@@ -61,8 +69,32 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         }
         initOptionValues(optionsHelper);
 
+        if (metadataCleanup) {
+            try {
+                System.out.println("Start Cleanup MetaData");
+                List<String> projectsToCleanup = Arrays.asList(projects);
+                if (projectsToCleanup.isEmpty()) {
+                    projectsToCleanup = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
+                            .stream().map(ProjectInstance::getName).collect(Collectors.toList());
+                }
+                for (String projName : projectsToCleanup) {
+                    try {
+                        GarbageCleaner.unsafeCleanupMetadataManually(projName);
+                    } catch (Exception e) {
+                        log.error("Project[{}] cleanup Metadata failed", projName, e);
+                    }
+                }
+                System.out.println("Cleanup MetaData Finished");
+            } catch (Exception e) {
+                log.error("cleanup Metadata failed", e);
+                System.out.println(StorageCleaner.ANSI_RED
+                        + "cleanup Metadata failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
+                        + StorageCleaner.ANSI_RESET);
+            }
+        }
+
         try {
-            StorageCleaner storageCleaner = new StorageCleaner(cleanup, Arrays.asList(projects));
+            StorageCleaner storageCleaner = new StorageCleaner(storageCleanup, Arrays.asList(projects));
             System.out.println("Start cleanup HDFS");
             storageCleaner.execute();
             System.out.println("cleanup HDFS finished");
@@ -83,13 +115,14 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
     }
 
     private void initOptionValues(OptionsHelper optionsHelper) {
-        this.cleanup = optionsHelper.hasOption(OPTION_CLEANUP);
+        this.storageCleanup = optionsHelper.hasOption(OPTION_CLEANUP);
+        this.metadataCleanup = optionsHelper.hasOption(OPTION_CLEANUP_METADATA);
 
         if (optionsHelper.hasOption(OPTION_PROJECTS)) {
             this.projects = optionsHelper.getOptionValue(OPTION_PROJECTS).split(",");
         }
-        log.info("RoutineTool has option cleanup: " + cleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
-        System.out.println("RoutineTool has option cleanup: " + cleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+        log.info("RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+        System.out.println("RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
     }
 
     public static void main(String[] args) {

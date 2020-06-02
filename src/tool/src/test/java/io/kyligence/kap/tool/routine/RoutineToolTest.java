@@ -48,11 +48,11 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
     public void testExecuteRoutine() {
         RoutineTool routineTool = new RoutineTool();
         routineTool.execute(new String[] { "--cleanup" });
-        Assert.assertTrue(routineTool.isCleanup());
+        Assert.assertTrue(routineTool.isStorageCleanup());
         routineTool.execute(new String[] {});
-        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertFalse(routineTool.isStorageCleanup());
         routineTool.execute(new String[] {});
-        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertFalse(routineTool.isStorageCleanup());
     }
 
     @Test
@@ -60,17 +60,17 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
         RoutineTool routineTool = new RoutineTool();
         routineTool.execute(new String[] {});
 
-        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertFalse(routineTool.isStorageCleanup());
         Assert.assertArrayEquals(new String[]{}, routineTool.getProjects());
 
         routineTool.execute(new String[] {"--projects=ssb"});
 
-        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertFalse(routineTool.isStorageCleanup());
         Assert.assertArrayEquals(new String[]{"ssb"}, routineTool.getProjects());
 
         routineTool.execute(new String[] {"--projects=ssb,default"});
 
-        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertFalse(routineTool.isStorageCleanup());
         Assert.assertArrayEquals(new String[]{"ssb", "default"}, routineTool.getProjects());
 
     }

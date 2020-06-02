@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 
@@ -39,21 +40,23 @@ public class GarbageCleaner {
     }
 
     /**
-     * trigger by user
+     * Clean up metadat manually
+     * Note that this is not a cluster safe method
+     * and should only be used in command line tools while KE is shutdown.
+     * For a safe metadata clean up,
+     * please see {@link io.kyligence.kap.tool.garbage.GarbageCleaner#cleanupMetadataManually(java.lang.String)}
      * @param project
      */
-    public static void cleanupMetadataManually(String project) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
-            if (instance.isSmartMode()) {
-                new BrokenModelCleaner().cleanup(project);
-            }
+    public static void unsafeCleanupMetadataManually(String project) {
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project) == null) {
+            return;
+        }
 
-            if (!instance.isExpertMode()) {
-                new FavoriteQueryCleaner().cleanup(project);
-                new IndexCleaner().cleanup(project);
-            }
-            new ExecutableCleaner().cleanup(project);
+        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
+        snapshotCleaner.checkStaleSnapshots();
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            doCleanupMetadataManually(project, snapshotCleaner);
             return 0;
         }, project);
 
@@ -61,10 +64,44 @@ public class GarbageCleaner {
     }
 
     /**
+     * trigger by user
+     * @param project
+     */
+    public static void cleanupMetadataManually(String project) {
+        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
+        snapshotCleaner.checkStaleSnapshots();
+
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            doCleanupMetadataManually(project, snapshotCleaner);
+            return 0;
+        }, project);
+
+        NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+    }
+
+    public static void doCleanupMetadataManually(String project, SnapshotCleaner snapshotCleaner) {
+        val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+        if (instance.isSmartMode()) {
+            new BrokenModelCleaner().cleanup(project);
+        }
+
+        if (!instance.isExpertMode()) {
+            new FavoriteQueryCleaner().cleanup(project);
+            new IndexCleaner().cleanup(project);
+        }
+        new ExecutableCleaner().cleanup(project);
+        snapshotCleaner.cleanup(project);
+    }
+
+
+    /**
      * trigger by a scheduler that is scheduled at 12:00 am every day
      * @param project
      */
     public static void cleanupMetadataAtScheduledTime(String project) {
+        SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
+        snapshotCleaner.checkStaleSnapshots();
+
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
             if (instance.isSmartMode()) {
@@ -76,6 +113,7 @@ public class GarbageCleaner {
             }
 
             new ExecutableCleaner().cleanup(project);
+            snapshotCleaner.cleanup(project);
             return 0;
         }, project);
         NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
