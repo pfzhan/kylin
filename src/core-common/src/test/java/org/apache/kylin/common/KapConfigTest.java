@@ -291,6 +291,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
 
         map.put("getMonitorSparkPeriodSeconds",
                 new PropertiesEntity("kylin.storage.monitor-spark-period-seconds", "30", 30));
+        map.put("isRecordSourceUsage", new PropertiesEntity("kylin.source.record-source-usage", "true", true));
 
     }
 
@@ -310,7 +311,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(111, methodsCount);
+        Assert.assertEquals(112, methodsCount);
     }
 
     @Test

@@ -245,7 +245,7 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse getLicenseMonitorInfoWithDetail(@RequestParam(value = "project_names", required = false, defaultValue = "") String[] projectNames,
                                                             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
                                                             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
-                                                            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
+                                                            @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
                                                             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         aclEvaluate.checkIsGlobalAdmin();
         SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Arrays.asList(projectNames), sortBy, reverse);
@@ -282,7 +282,7 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse getLicenseMonitorInfoInProject(@RequestParam(value = "project") String project,
                                                            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
                                                            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
-                                                           @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
+                                                           @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
                                                            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         aclEvaluate.checkProjectAdminPermission(project);
         SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), sortBy, reverse);
