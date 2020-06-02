@@ -2597,6 +2597,7 @@ public class ModelService extends BasicService {
         NModelDescResponse response = new NModelDescResponse();
         response.setUuid(model.getUuid());
         response.setLastModified(model.getLastModified());
+        response.setCreateTime(model.getCreateTime());
         response.setVersion(model.getVersion());
         response.setName(model.getAlias());
         response.setProject(model.getProject());

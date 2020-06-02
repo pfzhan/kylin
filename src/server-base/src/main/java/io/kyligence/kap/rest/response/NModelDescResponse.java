@@ -40,7 +40,9 @@ public class NModelDescResponse implements Serializable {
     @JsonProperty("uuid")
     private String uuid;
     @JsonProperty("last_modified")
-    private Long lastModified;
+    private long lastModified;
+    @JsonProperty("create_time")
+    private long createTime;
     @JsonProperty("version")
     private String version;
     @JsonProperty("name")

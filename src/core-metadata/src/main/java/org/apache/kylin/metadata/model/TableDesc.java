@@ -139,6 +139,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     public TableDesc(TableDesc other) {
         this.uuid = other.uuid;
         this.lastModified = other.lastModified;
+        this.createTime = other.createTime;
         this.name = other.name;
         this.sourceType = other.sourceType;
         this.kafkaBootstrapServers = other.kafkaBootstrapServers;

@@ -3650,6 +3650,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(model.getVersion().equals("4.0.0.0"));
         Assert.assertTrue(model.getMeasures().size() == 11);
         Assert.assertTrue(model.getAggregationGroups().size() == 2);
+        Assert.assertNotEquals(0, model.getCreateTime());
     }
 
     @Test
