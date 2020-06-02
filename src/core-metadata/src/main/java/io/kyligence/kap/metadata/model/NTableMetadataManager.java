@@ -291,7 +291,7 @@ public class NTableMetadataManager {
 
     public boolean existsSnapshotTableByName(String tableName) {
         String snapshotDir = getTableDesc(tableName).getLastSnapshotPath();
-        return !StringUtils.isEmpty(snapshotDir);
+        return StringUtils.isNotEmpty(snapshotDir);
     }
 
     private TableExtDesc convertOldTableExtToNewer(String resourceName) {

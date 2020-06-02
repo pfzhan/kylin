@@ -1723,7 +1723,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getPersistFlatTableThreshold() {
-        return Integer.parseInt(getOptional("kylin.engine.persist-flattable-threshold", "1"));
+        return Integer.parseInt(getOptional("kylin.engine.persist-flattable-threshold", "0"));
     }
 
     public boolean isPersistFlatTableEnabled() {
@@ -1930,7 +1930,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getCapacitySampleRows() {
-        return Integer.parseInt(getOptional("kylin.capacity.sample-rows", ""));
+        return Integer.parseInt(getOptional("kylin.capacity.sample-rows", "100"));
     }
 
     public String getUserPasswordEncoder() {

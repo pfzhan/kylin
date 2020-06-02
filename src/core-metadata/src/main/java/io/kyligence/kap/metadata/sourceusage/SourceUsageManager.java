@@ -179,12 +179,16 @@ public class SourceUsageManager {
 
                 rowBytes += (double) columnBytes / (double) recordCount;
             }
-            tableBytes = (long) (rowBytes * tableExtDesc.getTotalRows());
+            long tableTotalRows = tableExtDesc.getTotalRows();
+            if (tableTotalRows == 0L) {
+                logger.debug("Total rows for table: {} is zero.", tableName);
+            }
+            tableBytes = (long) (rowBytes * tableTotalRows);
             if (!TableExtDesc.RowCountStatus.OK.equals(tableExtDesc.getRowCountStatus())) {
                 table.setStatus(SourceUsageRecord.CapacityStatus.TENTATIVE);
             }
         } catch (Exception e) {
-            logger.error("Fail to calculate lookup table.", e);
+            logger.error("Failed to calculate lookup table: {} source usage.", tableName, e);
             table.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
             return 0;
         }

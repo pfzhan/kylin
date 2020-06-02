@@ -40,7 +40,7 @@ public class ProjectCapacityResponse implements Serializable {
     private long capacity;
 
     @JsonProperty("status")
-    private CapacityStatus status  = CapacityStatus.OK;
+    private CapacityStatus status = CapacityStatus.OK;
 
     @JsonProperty("size")
     private int size;
