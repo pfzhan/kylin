@@ -74,12 +74,6 @@ public class GarbageCleaner {
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             doCleanupMetadataManually(project, snapshotCleaner);
-            if (!instance.isExpertMode()) {
-                new FavoriteQueryCleaner().cleanup(project);
-                new IndexCleaner().cleanup(project);
-            }
-            new ExecutableCleaner().cleanup(project);
-
             return 0;
         }, project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -123,7 +117,6 @@ public class GarbageCleaner {
 
             new ExecutableCleaner().cleanup(project);
             snapshotCleaner.cleanup(project);
-
             return 0;
         }, project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
