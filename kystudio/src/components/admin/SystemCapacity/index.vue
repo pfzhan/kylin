@@ -11,7 +11,14 @@
       <span>{{$t('usedData')}}：</span>
       <i class="icon el-icon-loading" v-if="systemCapacityInfo.isLoading"></i>
       <template v-else>
-        <span :class="['used-data-number', getValueColor]"><span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">{{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})</span></span>
+        <span :class="['used-data-number', getValueColor]">
+          <span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">
+            <template v-if="!systemCapacityInfo.is_evaluation">
+              {{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})
+            </template>
+            <template v-else>{{systemCapacityInfo.current_capacity | dataSize}}</template>
+          </span>
+        </span>
         <span>
           <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
           <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -24,7 +31,15 @@
         </span>
       </template>
       <span class="line">|</span>
-      <span class="used-nodes">{{$t('usedNodes')}}：<span :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']"><span v-if="!systemNodeInfo.isLoading && !systemNodeInfo.error">{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span><i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i></span>
+      <span class="used-nodes">{{$t('usedNodes')}}：<span :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']">
+        <span v-if="!systemNodeInfo.isLoading && !systemNodeInfo.error">
+          <template v-if="!systemNodeInfo.is_evaluation">
+            {{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}
+          </template>
+          <template v-else>
+            {{systemNodeInfo.current_node}}
+          </template>
+        </span><i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i></span>
         <span>
           <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
           <!-- <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -245,14 +260,6 @@ import filterElements from '../../../filter/index'
   }
 })
 export default class SystemCapacity extends Vue {
-  usedData = {
-    used: 100,
-    sum: 200
-  }
-  // usedNodes = {
-  //   used: 7,
-  //   total: 10
-  // }
   alertMsg = {
     notify: false,
     emails: '',
@@ -340,7 +347,7 @@ export default class SystemCapacity extends Vue {
   }
 
   get getCapacityPrecent () {
-    return (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+    return this.systemCapacityInfo.is_evaluation ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
   }
 
   // 邮箱规则
@@ -486,7 +493,6 @@ export default class SystemCapacity extends Vue {
 
   // 手动认证邮箱格式
   validateEmail (rule, value, callback) {
-    console.log(value)
     const emails = value.split(',')
     const reg = /^\w+((.\w+)|(-\w+))@[A-Za-z0-9]+((.|-)[A-Za-z0-9]+).[A-Za-z0-9]+$/
     if (!value && !this.alertMsg.emailTags.length) {
@@ -508,12 +514,10 @@ export default class SystemCapacity extends Vue {
       this.alertMsg.emails = ''
     }
     this.showEmailInput = false
-    console.log(this.alertMsg.emails)
     window.removeEventListener('keydown', this.delEmailEvent)
   }
 
   handlerClickEvent () {
-    console.log(1111)
     this.showEmailInput = true
     this.$nextTick(() => {
       this.$refs.emailInput.$el.querySelector('.el-input__inner').focus()

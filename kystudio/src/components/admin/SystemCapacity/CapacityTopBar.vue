@@ -6,7 +6,7 @@
           <el-tooltip :content="$t('lastUpdateTime')" effect="dark" placement="top"><i class="icon el-icon-ksd-type_time"></i></el-tooltip>{{latestUpdateTime | timeFormatHasTimeZone}}</div>
         <div class="data-valumns">
           <p class="label">
-            <span>{{$t('usedData')}}：<i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.error">{{getCapacityPrecent}}%</span></span>
+            <span>{{$t('usedData')}}：<i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.error">{{!systemCapacityInfo.evaluation ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span></span>
             <template v-if="!systemCapacityInfo.isLoading">
               <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
               <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -16,7 +16,7 @@
             </template>
           </p>
           <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.error}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
-            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node}]" v-else-if="!systemNodeInfo.error">{{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}</span></span>
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node}]" v-else-if="!systemNodeInfo.error">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
             <template v-if="!systemNodeInfo.isLoading">
               <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -52,6 +52,7 @@
   import { Component, Watch } from 'vue-property-decorator'
   import { mapActions, mapState, mapGetters } from 'vuex'
   import locales from './locales'
+  import filterElements from '../../../filter/index'
 
   @Component({
     methods: {
@@ -82,6 +83,7 @@
     isNodeLoading = true
     timer = null
     showNodeDetails = false
+    filterElements = filterElements
 
     @Watch('showNodes')
     changeNodePopover (newVal, oldVal) {
@@ -89,7 +91,7 @@
     }
 
     get getDataFails () {
-      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80
+      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.error && !this.systemNodeInfo.error)
     }
 
     get getNodesNumColor () {
@@ -104,7 +106,6 @@
 
     get getValueColor () {
       const num = this.getCapacityPrecent
-      console.log(num)
       if (num > 100) {
         return 'is-danger'
       } else if (num >= 80 && num <= 100) {
@@ -115,11 +116,10 @@
     }
 
     get getCapacityPrecent () {
-      return this.systemCapacityInfo.capacity === 0 ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+      return this.systemCapacityInfo.capacity === 0 || this.systemCapacityInfo.evaluation ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
     }
 
     get showLoadingStatus () {
-      console.log(this.systemCapacityInfo.current_capacity, this.systemCapacityInfo.capacity, this.getCapacityPrecent)
       return this.systemCapacityInfo.capacity_status !== 'OVERCAPACITY' && !this.systemCapacityInfo.error_over_thirty_days && this.systemNodeInfo.node_status !== 'OVERCAPACITY' && this.getCapacityPrecent < 80 && (this.systemCapacityInfo.isLoading || this.systemNodeInfo.isLoading || this.isNodeLoading)
     }
 
@@ -132,7 +132,6 @@
     getHANodes () {
       this.isNodeLoading = true
       this.getNodeList({ext: true}).then((res) => {
-        console.log(res, 1111)
         this.isNodeLoadingSuccess = true
         this.$set(this, 'nodeList', res)
         this.isNodeLoading = false
@@ -268,7 +267,7 @@
       background: #ffffff;
       left: calc(~'100% + 5px');
       margin-top: -35px;
-      width: 300px;
+      width: 280px;
       padding: 10px;
       box-sizing: border-box;
       box-shadow: 0 0px 6px 0px #E5E5E5;
