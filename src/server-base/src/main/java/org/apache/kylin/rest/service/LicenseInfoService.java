@@ -620,7 +620,8 @@ public class LicenseInfoService extends BasicService {
 
         for (SourceUsageRecord sourceUsageRecord : sourceUsageRecords) {
             long checkTime = sourceUsageRecord.getCheckTime();
-            long capacity = sourceUsageRecord.getProjectCapacity(project).getCapacity();
+            ProjectCapacityDetail projectCapacityDetail = sourceUsageRecord.getProjectCapacity(project);
+            long capacity = projectCapacityDetail == null ? 0L : projectCapacityDetail.getCapacity();
             projectCapacities.put(checkTime, capacity);
         }
         return projectCapacities;
