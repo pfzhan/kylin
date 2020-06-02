@@ -185,6 +185,7 @@ public class DFBuildJob extends SparkApplication {
         val update = new NDataflowUpdate(dataflow.getUuid());
         List<NDataSegment> nDataSegments = Lists.newArrayList();
         NDataSegment segment = newDF.getSegment(id);
+        segment.setSourceCount(rowCount);
         segment.getColumnSourceBytes().putAll(map);
         nDataSegments.add(segment);
 

@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -106,28 +107,15 @@ public class DFMergeJob extends SparkApplication {
     }
 
     private void mergeColumnSizeForNewSegment(NDataSegment segCopy, List<NDataSegment> mergingSegments) {
-        List<NDataSegment> collect = mergingSegments.stream()
-                .filter(nDataSegment -> MapUtils.isNotEmpty(nDataSegment.getColumnSourceBytes()))
-                .collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(collect))
-            return;
-        else {
-            Map<String, Long> result = Maps.newHashMap();
-            Map<String, Long> byteSize = collect.get(0).getColumnSourceBytes();
-            long sourceCount = collect.get(0).getSourceCount();
-            for (val seg : mergingSegments) {
-                Map<String, Long> newByteSizeMap = Maps.newHashMap();
-                if (MapUtils.isEmpty(seg.getColumnSourceBytes())) {
-                    for (Map.Entry<String, Long> entry : byteSize.entrySet()) {
-                        newByteSizeMap.put(entry.getKey(), entry.getValue() * (seg.getSourceCount() / sourceCount));
-                    }
-                } else {
-                    newByteSizeMap = seg.getColumnSourceBytes();
-                }
-                mergeByteSizeMap(result, newByteSizeMap);
-            }
-            segCopy.setColumnSourceBytes(result);
+        SourceUsageManager usageManager = SourceUsageManager.getInstance(config);
+        Map<String, Long> result = Maps.newHashMap();
+        for (val seg : mergingSegments) {
+            Map<String, Long> newByteSizeMap = MapUtils.isEmpty(seg.getColumnSourceBytes())
+                    ? usageManager.calcAvgColumnSourceBytes(seg)
+                    : seg.getColumnSourceBytes();
+            mergeByteSizeMap(result, newByteSizeMap);
         }
+        segCopy.setColumnSourceBytes(result);
     }
 
     private void mergeByteSizeMap(Map<String, Long> result, Map<String, Long> newByteSizeMap) {

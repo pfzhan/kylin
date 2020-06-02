@@ -97,7 +97,7 @@ public class SourceUsageManager {
         this.config = config;
     }
 
-    private Map<String, Long> calcAvgColumnSourceBytes(NDataSegment segment) {
+    public Map<String, Long> calcAvgColumnSourceBytes(NDataSegment segment) {
         Map<String, Long> columnSourceBytes = Maps.newHashMap();
         Set<TblColRef> allColumns;
         try {
