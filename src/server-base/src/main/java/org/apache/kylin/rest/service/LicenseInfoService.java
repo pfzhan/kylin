@@ -116,6 +116,8 @@ public class LicenseInfoService extends BasicService {
 
     public static final String LICENSE_FILENAME = "LICENSE";
     public static final String HOSTNAME = "hostname";
+    
+    private static final String CAPACITY = "capacity";
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
 
@@ -730,7 +732,7 @@ public class LicenseInfoService extends BasicService {
         Preconditions.checkNotNull(capacityDetails);
 
         Comparator<CapacityDetailsResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? "last_modified" : sourceUsageFilter.getSortBy(),
+                StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? CAPACITY : sourceUsageFilter.getSortBy(),
                 !sourceUsageFilter.isReverse());
         Set<String> matchedProjects = Sets.newHashSet(sourceUsageFilter.getProjectNames());
         return capacityDetails.stream().filter(capacityDetail -> {
@@ -745,7 +747,7 @@ public class LicenseInfoService extends BasicService {
     private List<CapacityDetailsResponse> sortTableCapacity(final SourceUsageFilter sourceUsageFilter, List<TableCapacityDetail> capacityDetails) {
         Preconditions.checkNotNull(capacityDetails);
         Comparator<CapacityDetailsResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? "last_modified" : sourceUsageFilter.getSortBy(),
+                StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? CAPACITY : sourceUsageFilter.getSortBy(),
                 !sourceUsageFilter.isReverse());
         return capacityDetails.stream().map(this::convertTableDetail).sorted(comparator).collect(Collectors.toList());
     }
