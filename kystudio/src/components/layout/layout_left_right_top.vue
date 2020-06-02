@@ -400,7 +400,7 @@ export default class LayoutLeftRightTop extends Vue {
     //   this.noProjectTips()
     // }
     setTimeout(() => {
-      this.changeRouteEvent()
+      this.changeRouteEvent('route')
     }, 500)
   }
   get getNodesNumColor () {
@@ -578,7 +578,7 @@ export default class LayoutLeftRightTop extends Vue {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/dashboard'
 
-    this.changeRouteEvent()
+    this.changeRouteEvent('created')
     // 获取许可证接口成功之后再弹无项目弹窗
     this.getAboutKap().then(() => {
       // 新手引导模式不用反复弹提示
@@ -590,13 +590,13 @@ export default class LayoutLeftRightTop extends Vue {
     })
     this.getHANodes()
   }
-  changeRouteEvent () {
+  changeRouteEvent (from) {
     if (this.showRevertPasswordDialog === 'true' && 'defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
       this.showChangePassword = true
       this.callUserEditModal({ editType: 'password', showCloseBtn: false, showCancelBtn: false, userDetail: this.$store.state.user.currentUser }).then(() => {
         this.noProjectTips()
       })
-    } else {
+    } else if (from !== 'created') {
       this.noProjectTips()
     }
   }
