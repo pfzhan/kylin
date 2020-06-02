@@ -16,7 +16,10 @@
       <template v-else>
         <span :class="['used-data-number', getValueColor]">
           <span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">
-            {{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})
+            <template v-if="!systemCapacityInfo.is_evaluation">
+              {{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})
+            </template>
+            <template v-else>{{systemCapacityInfo.current_capacity | dataSize}}</template>
           </span>
         </span>
         <span>
