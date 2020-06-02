@@ -1410,6 +1410,8 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isAllNode() {
         return ClusterConstant.ALL.equals(getServerMode());
+    }
+
     public String[] getAllModeServers() {
         return this.getSystemStringArray("kylin.server.cluster-mode-all", new String[0]);
     }
@@ -1430,10 +1432,6 @@ public abstract class KylinConfigBase implements Serializable {
         allServers.addAll(Arrays.asList(getJobModeServers()));
 
         return allServers;
-    }
-
-    public boolean isLeaderNode() {
-        return !QUERY_NODE.equals(getServerMode());
     }
 
     public Boolean getStreamingChangeMeta() {
