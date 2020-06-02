@@ -327,18 +327,19 @@ public class SourceUsageManager {
 
         // for each project, collect source usage
         for (ProjectInstance project : NProjectManager.getInstance(config).listAllProjects()) {
-            ProjectCapacityDetail projectDetail = new ProjectCapacityDetail(project.getName());
+            String projectName = project.getName();
+            ProjectCapacityDetail projectDetail = new ProjectCapacityDetail(projectName);
 
             // for each dataflow in project, collect table details
             for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
                 NDataflow dataflow;
                 try {
-                    dataflow = NDataflowManager.getInstance(config, project.getName()).getDataflow(projectDataModel.getRealization());
+                    dataflow = NDataflowManager.getInstance(config, projectName).getDataflow(projectDataModel.getRealization());
                     if (dataflow != null && !dataflow.getSegments(SegmentStatusEnum.READY).isEmpty()) {
                         calculateTableInProject(dataflow, projectDetail);
                     }
                 } catch (Exception e) {
-                    logger.error("Failed to get dataflow for {}", projectDataModel, e);
+                    logger.error("Failed to get dataflow for {} in project: {}", projectDataModel, projectName, e);
                 }
             }
             updateProjectSourceUsage(projectDetail);
