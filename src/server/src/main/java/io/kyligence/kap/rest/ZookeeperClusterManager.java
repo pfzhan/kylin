@@ -23,16 +23,14 @@
  */
 package io.kyligence.kap.rest;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -50,16 +48,15 @@ import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.rest.cluster.ClusterConstant;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import static io.kyligence.kap.common.util.AddressUtil.convertHost;
 
 @ConditionalOnZookeeperEnabled
 @Component
@@ -69,10 +66,10 @@ public class ZookeeperClusterManager implements ClusterManager {
     @Autowired
     ZookeeperDiscoveryClient discoveryClient;
 
+    List<ServerInfoResponse> cache;
+
     @Autowired
     AsyncTaskExecutor executor;
-
-    List<ServerInfoResponse> cache;
 
     public ZookeeperClusterManager(ZookeeperDiscoveryClient discoveryClient) throws Exception {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
@@ -99,32 +96,28 @@ public class ZookeeperClusterManager implements ClusterManager {
         return instance.getHost() + ":" + instance.getPort();
     }
 
-    private List<String> getQueryServers(String serviceId) {
-        checkServiceId(serviceId);
-        val list = submitWithTimeOut(() -> discoveryClient.getInstances(serviceId), 3);
-        List<String> hosts = list.stream()
-                .map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
+    private List<String> getServers(String serverMode) {
+        checkServerMode(serverMode);
+        val list = submitWithTimeOut(() -> discoveryClient.getInstances(serverMode), 3);
+        if (CollectionUtils.isEmpty(list)) {
+            return Lists.newArrayList();
+        }
+        List<String> hosts = list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
                 .collect(Collectors.toList());
-        if (!Objects.equals(serviceId, ClusterConstant.QUERY)) {
-            mergeJobNodeWithEpoch(hosts);
+        if (!Objects.equals(serverMode, ClusterConstant.QUERY)) {
+            mergeJobNodeWithEpoch(hosts, serverMode);
         }
         return hosts;
     }
 
-    private void checkServiceId(String serviceId) {
-        Preconditions.checkArgument(serviceId.trim().equals(ClusterConstant.QUERY)
-                || serviceId.trim().equals(ClusterConstant.ALL) || serviceId.trim().equals(ClusterConstant.JOB));
+    private void checkServerMode(String serverMode) {
+        Preconditions.checkArgument(serverMode.trim().equals(ClusterConstant.QUERY)
+                || serverMode.trim().equals(ClusterConstant.ALL) || serverMode.trim().equals(ClusterConstant.JOB));
     }
 
     @Override
     public List<ServerInfoResponse> getQueryServers() {
-        List<ServerInfoResponse> servers = new ArrayList<>();
-        for (val nodeType : Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.QUERY)) {
-            for (val host : getQueryServers(nodeType)) {
-                servers.add(new ServerInfoResponse(host, nodeType));
-            }
-        }
-        return servers;
+        return getServerByMode(ClusterConstant.ALL, ClusterConstant.QUERY);
     }
 
     @Override
@@ -140,35 +133,40 @@ public class ZookeeperClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getJobServers() {
+        return getServerByMode(ClusterConstant.ALL, ClusterConstant.JOB);
+    }
+
+    @Override
+    public List<ServerInfoResponse> getServers() {
+        return getServerByMode(ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
+    }
+
+    private List<ServerInfoResponse> getServerByMode(String... mode) {
         List<ServerInfoResponse> servers = new ArrayList<>();
-        Set<String> hosts = Sets.newHashSet();
-        for (val nodeType : Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
-            for (val host : getQueryServers(nodeType)) {
-                hosts.add(host);
+        for (val nodeType : mode) {
+            for (val host : getServers(nodeType)) {
                 servers.add(new ServerInfoResponse(host, nodeType));
             }
         }
-
-        return servers;
+        return cleanServer(servers);
     }
 
-    private void mergeJobNodeWithEpoch(List<String> hosts) {
-        val ips = hosts.stream().map(s -> {
-            val hostAndPort = s.split(":");
-            String host = hostAndPort[0];
-            String port = hostAndPort[1];
-            try {
-                return InetAddress.getByName(host).getHostAddress() + ":" + port;
-            } catch (UnknownHostException e) {
-                return "127.0.0.1:" + port;
-            }
-        }).collect(Collectors.toList());
+    private void mergeJobNodeWithEpoch(List<String> hosts, String serverMode) {
+        val ips = hosts.stream().map(host -> convertHost(host)).collect(Collectors.toList());
         EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        for (String leader : epochManager.getAllLeaders()) {
+        for (String leader : epochManager.getAllLeadersByMode(serverMode)) {
             if (!ips.contains(leader)) {
                 hosts.add(leader);
             }
         }
+    }
+
+
+    private List<ServerInfoResponse> cleanServer(List<ServerInfoResponse> servers) {
+        return servers.stream()
+                .sorted(Comparator.comparing(ServerInfoResponse::getHost))
+                .collect(Collectors.toMap(server -> convertHost(server.getHost()), server -> server, (server1, server2) -> server2)).values()
+                .stream().collect(Collectors.toList());
     }
 
     List<ServiceInstance> submitWithTimeOut(Callable<List<ServiceInstance>> callable, long timeout) {
@@ -180,4 +178,5 @@ public class ZookeeperClusterManager implements ClusterManager {
         }
         return Lists.newArrayList();
     }
+
 }

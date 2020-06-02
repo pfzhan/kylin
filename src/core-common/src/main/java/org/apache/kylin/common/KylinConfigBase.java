@@ -64,6 +64,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.common.util.ClusterConstant;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -77,7 +79,6 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -1368,8 +1369,24 @@ public abstract class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.mode", "all");
     }
 
-    public boolean isLeaderNode() {
-        return !QUERY_NODE.equals(getServerMode());
+    public boolean isJobNode() {
+        return !ClusterConstant.QUERY.equals(getServerMode());
+    }
+
+    public boolean isQueryNode() {
+        return !ClusterConstant.JOB.equals(getServerMode());
+    }
+
+    public boolean isJobNodeOnly() {
+        return ClusterConstant.JOB.equals(getServerMode());
+    }
+
+    public boolean isQueryNodeOnly() {
+        return ClusterConstant.QUERY.equals(getServerMode());
+    }
+
+    public boolean isAllNode() {
+        return ClusterConstant.ALL.equals(getServerMode());
     }
 
     public Boolean getStreamingChangeMeta() {

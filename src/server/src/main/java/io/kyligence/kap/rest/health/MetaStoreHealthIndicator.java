@@ -31,7 +31,6 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
-import org.apache.kylin.rest.constant.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
@@ -152,7 +151,7 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
     public Health health() {
         Health ret;
         try {
-            if (Constant.SERVER_MODE_ALL.equals(this.serverMode)) {
+            if (KylinConfig.getInstanceFromEnv().isJobNode()) {
                 ret = allNodeCheck();
             } else {
                 ret = queryNodeCheck();

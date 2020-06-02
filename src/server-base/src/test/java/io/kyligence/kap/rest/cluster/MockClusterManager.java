@@ -24,8 +24,8 @@
 package io.kyligence.kap.rest.cluster;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
-import org.apache.kylin.rest.constant.Constant;
 
 import java.util.List;
 
@@ -37,8 +37,8 @@ public class MockClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getQueryServers() {
-        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", Constant.SERVER_MODE_QUERY),
-                new ServerInfoResponse("127.0.0.1:7071", Constant.SERVER_MODE_QUERY));
+        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", ClusterConstant.QUERY),
+                new ServerInfoResponse("127.0.0.1:7071", ClusterConstant.QUERY));
     }
 
     @Override
@@ -48,6 +48,11 @@ public class MockClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getJobServers() {
-        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", Constant.SERVER_MODE_ALL));
+        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", ClusterConstant.ALL));
+    }
+
+    @Override
+    public List<ServerInfoResponse> getServers() {
+        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", ClusterConstant.ALL));
     }
 }

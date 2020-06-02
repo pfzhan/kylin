@@ -81,7 +81,7 @@ public class EpochOrchestrator implements IKeep {
         this.kylinConfig = kylinConfig;
         epochMgr = EpochManager.getInstance(kylinConfig);
         String serverMode = kylinConfig.getServerMode();
-        if (!kylinConfig.isLeaderNode()) {
+        if (!kylinConfig.isJobNode()) {
             logger.info("server mode: " + serverMode + ", no need to run EventOrchestrator");
             return;
         }

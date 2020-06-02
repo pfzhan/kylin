@@ -206,12 +206,6 @@ function startKE(){
 
     prepareFairScheduler
 
-    serverMode=`$KYLIN_HOME/bin/get-properties.sh kylin.server.mode`
-    if [ "$serverMode" == "job" ]; then
-        echo "kylin.server.mode should be \"all\" or \"query\""
-        exit -1
-    fi
-
     port=`$KYLIN_HOME/bin/get-properties.sh server.port`
     if [[ -f ${KYLIN_HOME}/bin/check-env-bypass ]]; then
         checkRestPort

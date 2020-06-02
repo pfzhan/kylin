@@ -52,7 +52,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
@@ -77,22 +76,23 @@ import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE+1)
 public class QueryNodeFilter implements Filter {
 
     private static final String API_PREFIX = "/kylin/api";
     private static final String ROUTED = "routed";
     private static final String ERROR = "error";
     private static final String API_ERROR = "/api/error";
+    private static final String FILTER_PASS = "filter_pass";
 
 
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     private static Set<String> notRouteDeleteApiSet = Sets.newHashSet();
     private static Set<String> notRoutePutApiSet = Sets.newHashSet();
+
     private static String ERROR_REQUEST_URL = "/kylin/api/error";
 
 
@@ -143,7 +143,8 @@ public class QueryNodeFilter implements Filter {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
             HttpServletResponse servletResponse = (HttpServletResponse) response;
-            String serverMode = KylinConfig.getInstanceFromEnv().getServerMode();
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
             // not start with /kylin/api
             if (checkNeedToRoute(servletRequest)) {
                 chain.doFilter(request, response);
@@ -171,7 +172,7 @@ public class QueryNodeFilter implements Filter {
 
             request = projectInfo.getSecond();
 
-            if(checkProcessLocal(serverMode, project, contentType, request)){
+            if(checkProcessLocal(kylinConfig, project, contentType, request)){
                 log.info("process local caused by project owner");
                 chain.doFilter(request, response);
                 return;
@@ -255,11 +256,12 @@ public class QueryNodeFilter implements Filter {
                 (method.equals("PUT") && notRoutePutApiSet.contains(uri)) ||
                 (method.equals("DELETE") && notRouteDeleteApiSet.contains(uri)) ||
                 "true".equalsIgnoreCase(servletRequest.getHeader(ROUTED)) ||
+                "true".equals(servletRequest.getAttribute(FILTER_PASS)) ||
                 KylinConfig.getInstanceFromEnv().isUTEnv();
     }
 
-    private boolean checkProcessLocal(String serverMode, String project, String contentType, ServletRequest request) {
-        if (!Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)) {
+    private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType, ServletRequest request) {
+        if (!kylinConfig.isQueryNode()) {
             // process local
             if (((HttpServletRequest) request).getRequestURI().contains("epoch")
                     || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {

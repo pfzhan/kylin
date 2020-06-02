@@ -53,7 +53,10 @@ public enum SystemErrorCode implements ErrorCodeSupplier {
     EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE("KE-40021001"), //
 
     // 40022XXX segment
-    FAILED_MERGE_SEGMENT("KE-40022001"); //
+    FAILED_MERGE_SEGMENT("KE-40022001"), //
+
+    // 40023XXX job
+    JOBNODE_API_INVALID("KE-40023002");
 
     private final ErrorCode errorCode;
 

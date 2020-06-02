@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.ClusterConstant;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -108,7 +109,7 @@ public class MonitorService extends BasicService {
             }
         }
         MonitorReporter.getInstance().submit(new AbstractMonitorCollectTask(
-                Lists.newArrayList(Constant.SERVER_MODE_ALL, Constant.SERVER_MODE_QUERY)) {
+                Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.QUERY, ClusterConstant.JOB)) {
             @Override
             protected MonitorMetric collect() {
                 QueryMonitorMetric queryMonitorMetric = MonitorReporter.getInstance().createQueryMonitorMetric();
@@ -120,11 +121,11 @@ public class MonitorService extends BasicService {
                 return queryMonitorMetric;
             }
         });
-        if (!kylinConfig.isLeaderNode()) {
+        if (!kylinConfig.isJobNode()) {
             return;
         }
         MonitorReporter.getInstance().submit(
-                new AbstractMonitorCollectTask(Lists.newArrayList(Constant.SERVER_MODE_ALL, Constant.SERVER_MODE_JOB)) {
+                new AbstractMonitorCollectTask(Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
                     @Override
                     protected MonitorMetric collect() {
                         return collectJobMetric();

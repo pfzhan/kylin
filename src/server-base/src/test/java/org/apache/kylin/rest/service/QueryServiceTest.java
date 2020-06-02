@@ -944,10 +944,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(2L).when(response).getResultRowCount();
 
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.query-result-row-count", "1");
-        NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+
+        Mockito.doReturn(response).when(queryService).queryAndUpdateCache(Mockito.any(SQLRequest.class),
+        Mockito.anyLong(), Mockito.anyBoolean());
         try {
-            Mockito.doReturn(response).when(queryService).queryAndUpdateCache(Mockito.any(SQLRequest.class),
-                    Mockito.anyLong(), Mockito.anyBoolean());
+            getTestConfig().setProperty("kylin.server.mode", "job");
+            NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
+            queryService.queryWithCache(request, false);
+        }catch (KylinException e){
+            Assert.assertEquals("Query is not allowed in 'job' mode.", e.getMessage());
+        }
+
+        try {
+            getTestConfig().setProperty("kylin.server.mode", "query");
+            NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
             thrown.expect(CircuitBreakerException.class);
             queryService.queryWithCache(request, false);
         } finally {

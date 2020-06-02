@@ -225,7 +225,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         consumeExecutor = new ScheduledThreadPoolExecutor(1);
         startId.set(currentId);
         val interval = config.getCatchUpInterval();
-        if (config.isLeaderNode() && !config.isUTEnv()) {
+        if (config.isJobNode() && !config.isUTEnv()) {
             log.info("current maxId is {}", currentId);
             consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
             return;

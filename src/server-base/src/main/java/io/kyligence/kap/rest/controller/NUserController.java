@@ -453,4 +453,5 @@ public class NUserController extends NBasicController {
         }
         return password;
     }
+
 }

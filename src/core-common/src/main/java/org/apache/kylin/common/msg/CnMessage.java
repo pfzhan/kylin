@@ -38,7 +38,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.common.msg;
 
@@ -1230,5 +1230,8 @@ public class CnMessage extends Message {
     }
     public String getINSUFFICIENT_AUTHENTICATION() {
         return "无法认证用户信息，请重新登录。";
+    }
+    public String getJOB_NODE_INVALID(String url) {
+        return String.format("该请求服务在job node中无效：%s", url);
     }
 }

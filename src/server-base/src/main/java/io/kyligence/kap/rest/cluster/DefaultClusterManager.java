@@ -28,6 +28,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +66,11 @@ public class DefaultClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getJobServers() {
+        return getQueryServers();
+    }
+
+    @Override
+    public List<ServerInfoResponse> getServers() {
         return getQueryServers();
     }
 }

@@ -82,7 +82,7 @@ public class NUserGroupService implements IUserGroupService {
     @EventListener(AfterMetadataReadyEvent.class)
     public void init(AfterMetadataReadyEvent event) {
         val config = KylinConfig.getInstanceFromEnv();
-        if (Constant.SERVER_MODE_QUERY.equals(config.getServerMode())) {
+        if (config.isQueryNodeOnly()) {
             return;
         }
         UserGroup userGroup = null;

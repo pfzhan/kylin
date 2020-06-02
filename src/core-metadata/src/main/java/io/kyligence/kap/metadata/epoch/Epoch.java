@@ -51,4 +51,9 @@ public class Epoch extends RootPersistentEntity {
     @Getter
     @Setter
     private long lastEpochRenewTime;
+
+    @JsonProperty("server_mode")
+    @Getter
+    @Setter
+    private String serverMode;
 }

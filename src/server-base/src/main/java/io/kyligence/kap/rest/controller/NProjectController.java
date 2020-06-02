@@ -162,7 +162,7 @@ public class NProjectController extends NBasicController {
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<String> list = Lists.newArrayList(epochMgr.getAllLeaders());
+        List<String> list = Lists.newArrayList(epochMgr.getAllLeadersByMode(null));
         if (CollectionUtils.isNotEmpty(list)) {
             String leader = list.get(new Random().nextInt(list.size()));
             try {

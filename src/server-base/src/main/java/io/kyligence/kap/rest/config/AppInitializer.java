@@ -86,9 +86,9 @@ public class AppInitializer {
 
         NCircuitBreaker.start(KapConfig.wrap(kylinConfig));
 
-        boolean isLeader = kylinConfig.isLeaderNode();
+        boolean isJob = kylinConfig.isJobNode();
 
-        if (isLeader) {
+        if (isJob) {
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
@@ -110,14 +110,16 @@ public class AppInitializer {
             resourceStore.catchup();
         }
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
-        if(kylinConfig.isSparderAsync()){
-            event.getApplicationContext().publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
-        } else {
-            event.getApplicationContext().publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));
+
+        if(kylinConfig.isQueryNode()){
+            if(kylinConfig.isSparderAsync()){
+                event.getApplicationContext().publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
+            } else {
+                event.getApplicationContext().publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));
+            }
         }
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
-
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();
@@ -129,7 +131,7 @@ public class AppInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (kylinConfig.isLeaderNode()) {
+        if (kylinConfig.isJobNode()) {
             new EpochOrchestrator(kylinConfig);
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),

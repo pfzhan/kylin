@@ -37,4 +37,6 @@ public interface ClusterManager extends IKeep {
     List<ServerInfoResponse> getQueryServersFromCache();
 
     List<ServerInfoResponse> getJobServers();
+
+    List<ServerInfoResponse> getServers();
 }

@@ -80,7 +80,7 @@ public class EventOrchestratorManager {
 
     private static void initEventOrchestrators(KylinConfig kylinConfig) {
         String serverMode = kylinConfig.getServerMode();
-        if (!(kylinConfig.isLeaderNode())) {
+        if (!(kylinConfig.isJobNode())) {
             logger.info("server mode: " + serverMode + ", no need to initEventOrchestrators");
             return;
         } else {

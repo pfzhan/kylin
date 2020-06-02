@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.monitor;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.metrics.service.MonitorMetric;
 import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
+import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -75,7 +75,7 @@ public class MonitorReporterTest extends NLocalFileMetadataTestCase {
         monitorReporter.startReporter();
 
         monitorReporter.submit(new AbstractMonitorCollectTask(
-                Lists.newArrayList(Constant.SERVER_MODE_ALL, Constant.SERVER_MODE_QUERY)) {
+                Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.QUERY, ClusterConstant.JOB)) {
             @Override
             protected MonitorMetric collect() {
                 return mockQueryMonitorMetric();

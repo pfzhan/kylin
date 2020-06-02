@@ -97,7 +97,6 @@ import lombok.val;
 
 /**
  * Handle query requests.
- *
  * @author xduo
  */
 @RestController
@@ -197,12 +196,12 @@ public class NQueryController extends NBasicController {
 
     @GetMapping(value = "/servers")
     @ResponseBody
-    public EnvelopeResponse<List> getQueryServers(
+    public EnvelopeResponse<List> getServers(
             @RequestParam(value = "ext", required = false, defaultValue = "false") boolean ext) {
         if (ext) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers(), "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getServers(), "");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers().stream()
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getServers().stream()
                     .map(ServerInfoResponse::getHost).collect(Collectors.toList()), "");
         }
     }

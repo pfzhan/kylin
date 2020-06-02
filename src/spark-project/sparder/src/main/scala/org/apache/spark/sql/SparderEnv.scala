@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.hadoop.security.UserGroupInformation
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
@@ -128,11 +129,13 @@ object SparderEnv extends Logging {
         initializingThread = new Thread(new Runnable {
           override def run(): Unit = {
             try {
-              val sparkSession = System.getProperty("spark.local") match {
-                case "true" =>
+              val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
+                                ("true").equals(System.getProperty("spark.local"))
+              val sparkSession = isLocalMode match {
+                case true =>
                   SparkSession.builder
                     .master("local")
-                    .appName("sparder-test-sql-context")
+                    .appName("sparder-local-sql-context")
                     .withExtensions { ext =>
                       ext.injectPlannerStrategy(_ => KylinSourceStrategy)
                       ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)

@@ -45,7 +45,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
@@ -110,9 +109,8 @@ public class NHiveTableName implements Runnable {
     }
 
     private void checkIsAllNode() {
-        boolean isAllNode = KylinConfig.getInstanceFromEnv().getServerMode().equals(Constant.SERVER_MODE_ALL);
-        if (!isAllNode) {
-            throw new RuntimeException("Only all node can load hive table name");
+        if (!KylinConfig.getInstanceFromEnv().isJobNode()) {
+            throw new RuntimeException("Only job/all node can load hive table name");
         }
         if (!KylinConfig.getInstanceFromEnv().getLoadHiveTablenameEnabled()) {
             throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_LOAD_HIVE_TABLE_NAME());

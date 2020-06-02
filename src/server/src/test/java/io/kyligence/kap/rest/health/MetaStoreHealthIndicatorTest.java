@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.health;
 
+import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,10 +47,13 @@ public class MetaStoreHealthIndicatorTest extends NLocalFileMetadataTestCase {
     @Test
     public void testHealth() {
         MetaStoreHealthIndicator indicator = Mockito.spy(new MetaStoreHealthIndicator());
-        indicator.setServerMode(Constant.SERVER_MODE_ALL);
+        indicator.setServerMode(ClusterConstant.ALL);
         Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
 
-        indicator.setServerMode(Constant.SERVER_MODE_QUERY);
+        indicator.setServerMode(ClusterConstant.JOB);
+        Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
+
+        indicator.setServerMode(ClusterConstant.QUERY);
         Assert.assertEquals(Health.up().build().getStatus(), indicator.health().getStatus());
     }
 

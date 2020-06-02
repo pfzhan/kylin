@@ -1226,6 +1226,10 @@ public class Message {
         return String.format("Measure %s already exists.", measureName);
     }
 
+    public String getJOB_NODE_INVALID(String url) {
+        return String.format("Rest api is invalid in job node: %s", url);
+    }
+
     public String getINVALID_TIME_FORMAT() {
         return "Fail to set the time partition column. The time partition column selected does not conform to the time format. Please select anothor time partition column again.";
     }

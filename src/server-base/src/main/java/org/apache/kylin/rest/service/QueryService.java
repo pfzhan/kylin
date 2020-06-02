@@ -110,7 +110,6 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
@@ -378,8 +377,7 @@ public class QueryService extends BasicService {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String serverMode = kylinConfig.getServerMode();
-        if (!(Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)
-                || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode))) {
+        if (!kylinConfig.isQueryNode()) {
             throw new KylinException(PERMISSION_DENIED, String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {

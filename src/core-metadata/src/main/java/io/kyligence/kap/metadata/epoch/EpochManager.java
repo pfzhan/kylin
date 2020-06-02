@@ -198,8 +198,9 @@ public class EpochManager implements IKeep {
     }
 
     private Epoch getNewEpoch(Epoch epoch, boolean force, String project) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (epoch == null) {
-            epoch = new Epoch(1L, identity, System.currentTimeMillis());
+            epoch = new Epoch(1L, identity, System.currentTimeMillis(), kylinConfig.getServerMode());
         } else {
             if (!epoch.getCurrentEpochOwner().equals(identity)) {
                 if (isEpochLegal(epoch) && !force) return null;
@@ -209,6 +210,7 @@ public class EpochManager implements IKeep {
                     epoch.setEpochId(epoch.getEpochId() + 1);
                 }
             }
+            epoch.setServerMode(kylinConfig.getServerMode());
             epoch.setLastEpochRenewTime(System.currentTimeMillis());
             epoch.setCurrentEpochOwner(identity);
         }
@@ -277,13 +279,17 @@ public class EpochManager implements IKeep {
         }
     }
 
-    public Set<String> getAllLeaders() {
+    public Set<String> getAllLeadersByMode(String serverMode) {
         NProjectManager prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         Set<String> leaders = Sets.newHashSet();
         prjMgr.listAllProjects().stream().map(ProjectInstance::getEpoch)
                 .filter(epoch -> isEpochLegal(epoch))
                 .map(Epoch::getCurrentEpochOwner).map(s -> getHostAndPort(s)).collect(Collectors.toSet());
         Epoch globalEpoch = getGlobalEpoch();
+        if(StringUtils.isNotBlank(serverMode) && StringUtils.isNotBlank(globalEpoch.getServerMode())
+                && !serverMode.equals(globalEpoch.getServerMode())){
+            return leaders;
+        }
         if (isEpochLegal(globalEpoch)) {
             leaders.add(getHostAndPort(globalEpoch.getCurrentEpochOwner()));
         }

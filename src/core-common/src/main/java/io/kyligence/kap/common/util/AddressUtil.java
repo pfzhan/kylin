@@ -24,6 +24,7 @@
 package io.kyligence.kap.common.util;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 
 import java.net.InetAddress;
@@ -39,5 +40,18 @@ public class AddressUtil {
             log.warn("use the InetAddress get local ip failed!", e);
         }
         return serverIp + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
+    }
+
+    public static String convertHost(String serverHost) {
+        String hostArr;
+        val hostAndPort = serverHost.split(":");
+        String host = hostAndPort[0];
+        String port = hostAndPort[1];
+        try {
+            hostArr = InetAddress.getByName(host).getHostAddress() + ":" + port;
+        } catch (UnknownHostException e) {
+            hostArr = "127.0.0.1:" + port;
+        }
+        return hostArr;
     }
 }
