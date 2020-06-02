@@ -66,6 +66,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -3475,6 +3476,38 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         NDataModelResponse response1 = modelService.getCube("nmodel_full_measure_test", null);
         Assert.assertNotNull(response1);
+    }
+
+    @Test
+    public void testAddOldParams() {
+        // normal model
+        List<NDataModelResponse> modelResponseList = modelService.getModels("nmodel_full_measure_test",
+                "default", false, "", null, "last_modify", true);
+        Assert.assertEquals(1, modelResponseList.size());
+        Assert.assertTrue(Objects.isNull(modelResponseList.get(0).getOldParams()));
+
+        List<NDataModel> models = new ArrayList<>(modelResponseList);
+        modelService.addOldParams(models);
+        NDataModelResponse model = modelResponseList.get(0);
+        Assert.assertTrue(Objects.nonNull(model.getOldParams()));
+        Assert.assertEquals(100, model.getOldParams().getInputRecordSizeBytes());
+
+        // broken model
+        String brokenModelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(brokenModelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+        NDataModelResponse brokenModelResponse = new NDataModelResponse(brokenModel);
+        brokenModelResponse.setBroken(brokenModel.isBroken());
+        Assert.assertTrue(Objects.isNull(brokenModelResponse.getOldParams()));
+
+        List<NDataModelResponse> brokenModelResponseList = Lists.newArrayList(brokenModelResponse);
+        List<NDataModel> brokenModels  = modelService.addOldParams(new ArrayList<>(brokenModelResponseList));
+        Assert.assertEquals(1, brokenModels.size());
+        Assert.assertTrue(Objects.nonNull(brokenModelResponse.getOldParams()));
+        Assert.assertEquals(0, brokenModelResponse.getOldParams().getInputRecordSizeBytes());
     }
 
     @Test

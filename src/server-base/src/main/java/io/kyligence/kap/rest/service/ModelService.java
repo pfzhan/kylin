@@ -261,7 +261,33 @@ public class ModelService extends BasicService {
             oldParams.setName(model.getAlias());
             oldParams.setJoinTables(model.getJoinTables());
 
+            long inputRecordCnt = 0L;
+            long inputRecordSizeBytes = 0L;
+
+            if (!model.isBroken()) {
+                List<NDataSegmentResponse> segments = getSegmentsResponse(model.getId(), model.getProject(), "1",
+                        String.valueOf(Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
+                for (NDataSegmentResponse segment : segments) {
+                    long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
+                            .max(Long::compareTo).orElse(0L);
+                    inputRecordCnt += sourceRows;
+                    inputRecordSizeBytes += segment.getSourceBytesSize();
+
+                    NDataSegmentResponse.OldParams segmentOldParams = new NDataSegmentResponse.OldParams();
+                    segmentOldParams.setSizeKB(segment.getBytesSize() / 1024);
+                    segmentOldParams.setInputRecords(sourceRows);
+                    segment.setOldParams(segmentOldParams);
+                }
+                if (model instanceof NDataModelResponse) {
+                    ((NDataModelResponse) model).setSegments(segments);
+                }
+            }
+
             if (model instanceof NDataModelResponse) {
+                oldParams.setProjectName(model.getProject());
+                oldParams.setSizeKB(((NDataModelResponse) model).getStorage() / 1024);
+                oldParams.setInputRecordSizeBytes(inputRecordSizeBytes);
+                oldParams.setInputRecordCnt(inputRecordCnt);
                 ((NDataModelResponse) model).setOldParams(oldParams);
             } else if (model instanceof RelatedModelResponse) {
                 ((RelatedModelResponse) model).setOldParams(oldParams);
@@ -435,9 +461,9 @@ public class ModelService extends BasicService {
             long inputRecordSizeBytes = 0L;
             if (!modelResponse.isModelBroken()) {
                 List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
-                        "" + (Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
+                        String.valueOf(Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
                 for (NDataSegmentResponse segment : segments) {
-                    Long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
+                    long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
                             .max(Long::compareTo).orElse(0L);
                     inputRecordCnt += sourceRows;
                     inputRecordSizeBytes += segment.getSourceBytesSize();

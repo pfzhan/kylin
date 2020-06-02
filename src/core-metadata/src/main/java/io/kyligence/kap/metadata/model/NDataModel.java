@@ -370,6 +370,7 @@ public class NDataModel extends RootPersistentEntity {
 
     public NDataModel(NDataModel other) {
         this.uuid = other.uuid;
+        this.createTime = other.createTime;
         this.lastModified = other.lastModified;
         this.version = other.version;
         this.alias = other.alias;
@@ -390,6 +391,9 @@ public class NDataModel extends RootPersistentEntity {
         this.dataCheckDesc = other.dataCheckDesc;
         this.canvas = other.canvas;
         this.brokenReason = other.brokenReason;
+        this.configLastModifier = other.configLastModifier;
+        this.configLastModified = other.configLastModified;
+        this.semanticVersion = other.semanticVersion;
     }
 
     public KylinConfig getConfig() {
