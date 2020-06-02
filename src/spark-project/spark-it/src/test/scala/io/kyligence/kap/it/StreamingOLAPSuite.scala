@@ -32,6 +32,7 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite, SparderQueryTest}
 import org.apache.spark.sql.kafka010.OffsetRangeManager
 import org.apache.spark.utils.KafkaTestUtils
+import org.scalatest.Ignore
 import org.scalatest.concurrent.Eventually
 
 import scala.collection.JavaConverters._
@@ -39,6 +40,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 
+@Ignore
 class StreamingOLAPSuite
   extends SparderBaseFunSuite
     with QuerySupport
