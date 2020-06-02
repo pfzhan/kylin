@@ -24,9 +24,32 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.common.metric.SystemInfoCollector;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import lombok.Getter;
+import lombok.val;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.job.Scheduler;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.lock.JobLock;
+import org.apache.kylin.job.runners.FetcherRunner;
+import org.apache.kylin.job.runners.JobCheckRunner;
+import org.apache.kylin.job.runners.QuotaStorageCheckRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,38 +57,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ExecutorServiceUtil;
-import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.common.util.SetThreadName;
-import org.apache.kylin.job.Scheduler;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
-import org.apache.kylin.job.exception.JobStoppedVoluntarilyException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.Executable;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.job.lock.JobLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.common.metric.SystemInfoCollector;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
-import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
-import lombok.Getter;
-import lombok.val;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  */
@@ -75,21 +68,19 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     @Getter
     private String project;
     private JobLock jobLock;
-    private FetcherRunner fetcher;
-    private CheckerRunner checker;
     private ScheduledExecutorService fetcherPool;
     private ExecutorService jobPool;
+    @Getter
     private ExecutableContext context;
-    private static ConcurrentHashMap<String, Thread> threadToInterrupt = new ConcurrentHashMap<>();
-    private volatile boolean initialized = false;
-    private volatile boolean hasStarted = false;
-    private volatile boolean isJobFull = false;
-    private volatile boolean reachQuotaLimit = false;
+    private AtomicBoolean initialized = new AtomicBoolean(false);
+    private AtomicBoolean hasStarted = new AtomicBoolean(false);
+    @Getter
     private JobEngineConfig jobEngineConfig;
-    private ProjectStorageInfoCollector collector;
+    @Getter
     private static volatile Semaphore memoryRemaining = new Semaphore(Integer.MAX_VALUE);
     private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
-    private int currentPrjUsingMemory;
+    @Getter
+    private AtomicInteger currentPrjUsingMemory = new AtomicInteger(0);
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
     public NDefaultScheduler() {
@@ -107,278 +98,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
                 System.identityHashCode(NDefaultScheduler.this));
     }
 
-    public static void stopThread(String jobId) {
-        Thread thread = threadToInterrupt.get(jobId);
-        if (thread != null) {
-            thread.interrupt();
-            threadToInterrupt.remove(jobId);
-        }
-    }
-
-    private boolean checkSuicide(String jobId) {
-        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        if (executableManager.getJob(jobId).getStatus().isFinalState()) {
-            return false;
-        }
-        return executableManager.getJob(jobId).checkSuicide();
-    }
-
-    private boolean checkTimeoutIfNeeded(String jobId, Long startTime) {
-        Integer timeOutMinute = KylinConfig.getInstanceFromEnv().getSchedulerJobTimeOutMinute();
-        if (timeOutMinute == 0) {
-            return false;
-        }
-        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        if (executableManager.getJob(jobId).getStatus().isFinalState()) {
-            return false;
-        }
-        long duration = System.currentTimeMillis() - startTime;
-        long durationMins = Math.toIntExact(duration / (60 * 1000));
-        return durationMins >= timeOutMinute;
-    }
-
-    private boolean discardSuicidalJob(String jobId) {
-        try {
-            if (checkSuicide(jobId)) {
-                return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    if (checkSuicide(jobId)) {
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).cancelJob(jobId);
-                        return true;
-                    }
-                    return false;
-                }, epochId, project);
-            }
-        } catch (Exception e) {
-            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
-                    + " should be suicidal but discard failed", e);
-        }
-        return false;
-    }
-
-    private boolean discardTimeoutJob(String jobId, Long startTime) {
-        try {
-            if (checkTimeoutIfNeeded(jobId, startTime)) {
-                return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    if (checkTimeoutIfNeeded(jobId, startTime)) {
-                        logger.error("project {} job {} running timeout.", project, jobId);
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).errorJob(jobId);
-                        return true;
-                    }
-                    return false;
-                }, epochId, project);
-            }
-        } catch (Exception e) {
-            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
-                    + " should be timeout but discard failed", e);
-        }
-        return false;
-    }
-
-    private class CheckerRunner implements Runnable {
-
-        @Override
-        public void run() {
-            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
-                forceShutdown();
-                return;
-            }
-            logger.info("start check project {}", project);
-            isJobFull = isJobPoolFull();
-            reachQuotaLimit = reachStorageQuota();
-
-            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            Map<String, Executable> runningJobs = context.getRunningJobs();
-            Map<String, Long> runningJobInfos = context.getRunningJobInfos();
-            for (final String id : executableManager.getJobs()) {
-                if (runningJobs.containsKey(id)) {
-                    discardTimeoutJob(id, runningJobInfos.get(id));
-                }
-            }
-        }
-
-        private boolean isJobPoolFull() {
-            Map<String, Executable> runningJobs = context.getRunningJobs();
-            if (runningJobs.size() >= jobEngineConfig.getMaxConcurrentJobLimit()) {
-                logger.warn("There are too many jobs running, Job Fetch will wait until next schedule time");
-                return true;
-            }
-
-            return false;
-        }
-
-        private boolean reachStorageQuota() {
-            val storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
-            val totalSize = storageVolumeInfo.getTotalStorageSize();
-            val storageQuotaSize = storageVolumeInfo.getStorageQuotaSize();
-            if (totalSize < 0) {
-                logger.error(
-                        "Project '{}' : an exception occurs when getting storage volume info, no job will be scheduled!!! The error info : {}",
-                        project, storageVolumeInfo.getThrowableMap().get(StorageInfoEnum.TOTAL_STORAGE));
-                return true;
-            }
-            if (totalSize >= storageQuotaSize) {
-                logger.info("Project '{}' reach storage quota, no job will be scheduled!!!", project);
-                return true;
-            }
-            return false;
-        }
-    }
-
-    private class FetcherRunner implements Runnable {
-
-        @Override
-        public synchronized void run() {
-            try {
-                if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
-                    forceShutdown();
-                    return;
-                }
-                val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                Map<String, Executable> runningJobs = context.getRunningJobs();
-
-                int nRunning = 0;
-                int nReady = 0;
-                int nStopped = 0;
-                int nOthers = 0;
-                int nError = 0;
-                int nDiscarded = 0;
-                int nSucceed = 0;
-                int nSuicidal = 0;
-                for (final String id : executableManager.getJobs()) {
-                    if (discardSuicidalJob(id)) {
-                        nDiscarded++;
-                        continue;
-                    }
-
-                    if (runningJobs.containsKey(id)) {
-
-                        // this is very important to prevent from same job being scheduled at same time.
-                        // e.g. when a job is restarted, the old job may still be running (even if we tried to interrupt it)
-                        // until the old job is finished, the new job should not start
-                        nRunning++;
-                        continue;
-                    }
-
-                    final Output output = executableManager.getOutput(id);
-                    switch (output.getState()) {
-                        case READY:
-                            nReady++;
-                            if (!isJobFull && !reachQuotaLimit) {
-                                logger.info("fetcher schedule {} ", id);
-
-                                scheduleJob(id);
-                            }
-                            break;
-                        case DISCARDED:
-                            nDiscarded++;
-                            break;
-                        case ERROR:
-                            nError++;
-                            break;
-                        case SUCCEED:
-                            nSucceed++;
-                            break;
-                        case PAUSED:
-                            nStopped++;
-                            break;
-                        case SUICIDAL:
-                            nSuicidal++;
-                            break;
-                        default:
-                            nOthers++;
-                            break;
-                    }
-                }
-
-                logger.info(
-                        "Job Status in project {}: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} suicidal,  {} others",
-                        project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded,
-                        nSuicidal, nOthers);
-            } catch (Exception e) {
-                logger.warn("Job Fetcher caught a exception ", e);
-            }
-        }
-
-        private void scheduleJob(String id) {
-            AbstractExecutable executable = null;
-            String jobDesc = null;
-
-            boolean memoryLock = false;
-            int useMemoryCapacity = 0;
-            try {
-                val config = KylinConfig.getInstanceFromEnv();
-                val executableManager = NExecutableManager.getInstance(config, project);
-                executable = executableManager.getJob(id);
-                useMemoryCapacity = executable.computeStepDriverMemory();
-
-                memoryLock = memoryRemaining.tryAcquire(useMemoryCapacity);
-                currentPrjUsingMemory += useMemoryCapacity;
-                if (memoryLock) {
-                    jobDesc = executable.toString();
-                    logger.info("{} prepare to schedule", jobDesc);
-                    context.addRunningJob(executable);
-                    jobPool.execute(new JobRunner(executable));
-                    logger.info("{} scheduled", jobDesc);
-                } else {
-                    logger.info("memory is not enough, remaining: {} MB", memoryRemaining.availablePermits());
-                }
-            } catch (Exception ex) {
-                if (executable != null) {
-                    context.removeRunningJob(executable);
-                    if (memoryLock) {
-                        // may release twice when exception raise after jobPool execute executable
-                        memoryRemaining.release(useMemoryCapacity);
-                        currentPrjUsingMemory -= useMemoryCapacity;
-                    }
-                }
-                logger.warn(jobDesc + " fail to schedule", ex);
-            }
-        }
-    }
-
-    private class JobRunner implements Runnable {
-
-        private final AbstractExecutable executable;
-
-        public JobRunner(AbstractExecutable executable) {
-            this.executable = executable;
-        }
-
-        @Override
-        public void run() {
-            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
-                forceShutdown();
-                return;
-            }
-            //only the first 8 chars of the job uuid
-            try (SetThreadName ignored = new SetThreadName("JobWorker(prj:%s,jobid:%s)", project,
-                    executable.getId().substring(0, 8))) {
-                threadToInterrupt.put(executable.getId(), Thread.currentThread());
-                executable.execute(context);
-                // trigger the next step asap
-                fetcherPool.schedule(fetcher, 0, TimeUnit.SECONDS);
-            } catch (JobStoppedVoluntarilyException | JobStoppedNonVoluntarilyException e) {
-                logger.info("Job quits either voluntarily or non-voluntarily", e);
-            } catch (ExecuteException e) {
-                logger.error("ExecuteException occurred while job: " + executable.getId(), e);
-            } catch (Exception e) {
-                logger.error("unknown error execute job: " + executable.getId(), e);
-            } finally {
-                threadToInterrupt.remove(executable.getId());
-                context.removeRunningJob(executable);
-                val usingMemory = executable.computeStepDriverMemory();
-                memoryRemaining.release(usingMemory);
-                currentPrjUsingMemory -= usingMemory;
-            }
-        }
-    }
-
     public static synchronized NDefaultScheduler getInstance(String project) {
         return INSTANCE_MAP.computeIfAbsent(project, NDefaultScheduler::new);
     }
 
     public void fetchJobsImmediately() {
-        fetcherPool.schedule(new FetcherRunner(), 1, TimeUnit.SECONDS);
+        fetcherPool.schedule(new FetcherRunner(this, jobPool, fetcherPool), 1, TimeUnit.SECONDS);
     }
 
     public static List<NDefaultScheduler> listAllSchedulers() {
@@ -422,9 +147,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         if (!UnitOfWork.isAlreadyInTransaction())
             logger.info("Initializing Job Engine ....");
 
-        if (!initialized) {
-            initialized = true;
-        } else {
+        if (!initialized.compareAndSet(false, true)) {
             return;
         }
 
@@ -433,8 +156,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         if (!jobLock.lockJobEngine()) {
             throw new IllegalStateException("Cannot start job scheduler due to lack of job lock");
         }
-        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
-        collector = new ProjectStorageInfoCollector(storageInfoEnumList);
 
         //load all executable, set them to a consistent status
         fetcherPool = Executors.newScheduledThreadPool(1,
@@ -461,11 +182,15 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
 
         int pollSecond = jobEngineConfig.getPollIntervalSecond();
         logger.info("Fetching jobs every {} seconds", pollSecond);
-        fetcher = new FetcherRunner();
-        checker = new CheckerRunner();
+        val fetcher = new FetcherRunner(this, jobPool, fetcherPool);
+
+        if (config.isCheckQuotaStorageEnabled()) {
+            fetcherPool.scheduleWithFixedDelay(new QuotaStorageCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
+        }
+
+        fetcherPool.scheduleWithFixedDelay(new JobCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
         fetcherPool.scheduleWithFixedDelay(fetcher, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
-        fetcherPool.scheduleWithFixedDelay(checker, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
-        hasStarted = true;
+        hasStarted.set(true);
     }
 
     @Override
@@ -484,15 +209,15 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     }
 
     private void releaseResources() {
-        initialized = false;
-        hasStarted = false;
+        initialized.set(false);
+        hasStarted.set(false);
         jobLock.unlockJobEngine();
-        memoryRemaining.release(currentPrjUsingMemory);
+        memoryRemaining.release(currentPrjUsingMemory.get());
     }
 
     @Override
     public boolean hasStarted() {
-        return this.hasStarted;
+        return hasStarted.get();
     }
 
     public static double currentAvailableMem() {

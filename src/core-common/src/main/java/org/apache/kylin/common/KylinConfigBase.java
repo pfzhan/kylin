@@ -819,6 +819,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.job.log-print-enabled", TRUE));
 
     }
+
+    public boolean isCheckQuotaStorageEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.job.check-quota-storage-enabled", TRUE));
+    }
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================
@@ -1682,7 +1686,6 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isBuildCheckPartitionColEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.check-partition-col-enabled", TRUE));
     }
-
     public boolean isShardingJoinOptEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.expose-sharding-trait", TRUE));
     }

@@ -42,15 +42,14 @@
 
 package org.apache.kylin.job.execution;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.common.KylinConfig;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
-
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.kylin.common.KylinConfig;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  */
@@ -60,11 +59,19 @@ public class ExecutableContext {
     @Getter
     @Setter
     private long epochId;
+    @Getter
+    @Setter
+    private volatile boolean isJobFull = false;
+    @Getter
+    @Setter
+    private volatile boolean reachQuotaLimit = false;
+
     private final ConcurrentMap<String, Executable> runningJobs;
     private final ConcurrentMap<String, Long> runningJobInfos;
     private final KylinConfig kylinConfig;
+
     public ExecutableContext(ConcurrentMap<String, Executable> runningJobs,
-            ConcurrentMap<String, Long> runningJobInfos, KylinConfig kylinConfig, long epochId) {
+                             ConcurrentMap<String, Long> runningJobInfos, KylinConfig kylinConfig, long epochId) {
         this.runningJobs = runningJobs;
         this.runningJobInfos = runningJobInfos;
         this.kylinConfig = kylinConfig;
