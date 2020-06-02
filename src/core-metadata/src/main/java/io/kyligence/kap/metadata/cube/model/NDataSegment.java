@@ -89,7 +89,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private long sourceBytesSize = -1;
 
     @JsonProperty("column_source_bytes")
-    private Map<String, Long> columnSourceBytes;
+    private Map<String, Long> columnSourceBytes = Maps.newHashMap();
 
     @Getter
     @Setter
