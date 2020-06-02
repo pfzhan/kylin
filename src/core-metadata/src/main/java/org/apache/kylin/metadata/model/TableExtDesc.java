@@ -42,6 +42,22 @@
 
 package org.apache.kylin.metadata.model;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.MetadataConstants;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,24 +66,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.MetadataConstants;
-
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -143,6 +141,12 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
     @Setter
     @JsonProperty("row_count_status")
     private TableExtDesc.RowCountStatus rowCountStatus;
+
+    @Getter
+    @Setter
+    @JsonProperty("original_size")
+    private long originalSize = -1;
+
 
     public TableExtDesc() {
     }

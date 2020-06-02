@@ -51,6 +51,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -134,9 +135,11 @@ public class DFBuildJob extends SparkApplication {
             NDataSegment segment = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getSegment(segId);
             NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(config, project);
             for (Map.Entry<String, Long> entry : segment.getOriSnapshotSize().entrySet()) {
-                TableDesc copy = metadataManager.copyForWrite(metadataManager.getTableDesc(entry.getKey()));
-                copy.setOriginalSize(entry.getValue());
-                metadataManager.updateTableDesc(copy);
+                TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
+                TableExtDesc originTableExt = metadataManager.getTableExtIfExists(tableDesc);
+                TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
+                tableExtDescCopy.setOriginalSize(entry.getValue());
+                metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
             }
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();

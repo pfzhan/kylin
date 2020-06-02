@@ -148,7 +148,8 @@ public class SourceUsageManager {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, projectName);
         TableDesc tableDesc = tableManager.getTableDesc(tableName);
         if (tableManager.existsSnapshotTableByName(tableName)) {
-            long originalSize = tableDesc.getOriginalSize();
+            TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(tableDesc);
+            long originalSize = tableExtDesc.getOriginalSize();
             if (originalSize != 0) {
                 return originalSize;
             }
@@ -288,6 +289,10 @@ public class SourceUsageManager {
                     ? new ColumnCapacityDetail(column.getIdentity())
                     : tableDetail.getColumnByName(column.getIdentity());
             long sourceBytes = dataflowColumnsBytes.getOrDefault(column.getIdentity(), 0L);
+            if (sourceBytes == 0L) {
+                tableDetail.setStatus(CapacityStatus.TENTATIVE);
+                projectDetail.setStatus(CapacityStatus.TENTATIVE);
+            }
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
             tableDetail.updateColumn(columnDetail);
             checkTableKind(tableDetail, model);
@@ -340,6 +345,9 @@ public class SourceUsageManager {
             updateProjectUsageRatio(projectDetail);
             if (projectDetail.getCapacity() > 0) {
                 usage.appendProject(projectDetail);
+            }
+            if (projectDetail.getStatus() == CapacityStatus.TENTATIVE) {
+                usage.setCapacityStatus(CapacityStatus.TENTATIVE);
             }
         }
 
