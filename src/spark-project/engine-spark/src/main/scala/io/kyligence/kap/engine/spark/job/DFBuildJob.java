@@ -145,6 +145,7 @@ public class DFBuildJob extends SparkApplication {
             if (buildFromFlatTable != null) {
                 val path = datasetChooser.persistFlatTableIfNecessary();
                 if (!path.isEmpty()) {
+                    logger.info("FlatTable persisted, compute column size");
                     persistedFlatTable.add(path);
                     long rowCount = buildFromFlatTable.getFlattableDS().count();
                     val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes());
