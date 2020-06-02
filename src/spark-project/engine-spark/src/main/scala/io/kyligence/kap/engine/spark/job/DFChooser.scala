@@ -34,7 +34,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
-import org.apache.kylin.metadata.model.{IJoinedFlatTableDesc, TblColRef}
+import org.apache.kylin.metadata.model.{TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql._
@@ -101,36 +101,12 @@ class DFChooser(toBuildTree: NSpanningTree,
         val value = row.get(i)
         val strValue = if (value == null) null
         else value.toString
-        val bytes = utf8Length(strValue)
+        val bytes = DFChooser.utf8Length(strValue)
         if (result.get(columnName).isEmpty) result(columnName) = bytes
         else result(columnName) = bytes + result(columnName)
       }
     })
     result
-  }
-
-
-  def utf8Length(sequence: CharSequence): Int = {
-    var count = 0
-    var i = 0
-    val len = sequence.length
-    while ( {
-      i < len
-    }) {
-      val ch = sequence.charAt(i)
-      if (ch <= 0x7F) count += 1
-      else if (ch <= 0x7FF) count += 2
-      else if (Character.isHighSurrogate(ch)) {
-        count += 4
-        i += 1
-      }
-      else count += 3
-
-      {
-        i += 1; i - 1
-      }
-    }
-    count
   }
 
   def persistFlatTableIfNecessary(): String = {
@@ -287,6 +263,24 @@ object DFChooser extends Logging {
       needEncoding)
 
   val FLAT_TABLE_FLAG: Long = -1L
+
+  def utf8Length(sequence: CharSequence): Int = {
+    var count = 0
+    var i = 0
+    val len = sequence.length
+    while (i < len) {
+      val ch = sequence.charAt(i)
+      if (ch <= 0x7F) count += 1
+      else if (ch <= 0x7FF) count += 2
+      else if (Character.isHighSurrogate(ch)) {
+        count += 4
+        i += 1
+      }
+      else count += 3
+    }
+    count
+  }
+
 
   def needJoinLookupTables(model: NDataModel, toBuildTree: NSpanningTree): Boolean = {
     val conf = KylinConfig.getInstanceFromEnv
