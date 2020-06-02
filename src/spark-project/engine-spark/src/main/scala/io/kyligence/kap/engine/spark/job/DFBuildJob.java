@@ -41,7 +41,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -50,8 +49,6 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -132,15 +129,6 @@ public class DFBuildJob extends SparkApplication {
             // choose source
             DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
             datasetChooser.decideSources();
-            NDataSegment segment = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getSegment(segId);
-            NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(config, project);
-            for (Map.Entry<String, Long> entry : segment.getOriSnapshotSize().entrySet()) {
-                TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
-                TableExtDesc originTableExt = metadataManager.getTableExtIfExists(tableDesc);
-                TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
-                tableExtDescCopy.setOriginalSize(entry.getValue());
-                metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
-            }
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
             infos.clearCuboidsNumPerLayer(segId);

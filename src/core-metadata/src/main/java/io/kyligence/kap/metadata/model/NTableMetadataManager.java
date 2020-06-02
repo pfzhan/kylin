@@ -278,6 +278,7 @@ public class NTableMetadataManager {
         copyForWrite.setColumnStats(other.getAllColumnStats());
         copyForWrite.setSampleRows(other.getSampleRows());
         copyForWrite.setTotalRows(other.getTotalRows());
+        copyForWrite.setOriginalSize(other.getOriginalSize());
         saveTableExt(copyForWrite);
     }
 
@@ -352,7 +353,7 @@ public class NTableMetadataManager {
     public void updateTableDesc(TableDesc tableDesc) {
         if (!srcTableCrud.contains(tableDesc.getIdentity())) {
             throw new IllegalStateException("tableDesc " + tableDesc.getName() + "does not exist");
-        }
+    }
         saveSourceTable(tableDesc);
     }
 

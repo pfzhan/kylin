@@ -26,7 +26,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.TblColRef
+import org.apache.kylin.metadata.model.{TableDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.{Column, Dataset, Row}

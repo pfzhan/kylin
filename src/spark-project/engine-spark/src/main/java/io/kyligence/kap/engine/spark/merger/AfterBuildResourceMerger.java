@@ -25,11 +25,14 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -50,6 +53,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 
 @Slf4j
 public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
@@ -80,6 +85,16 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             val layoutIds = ExecutableUtils.getLayoutIds(abstractExecutable);
             NDataLayout[] nDataLayouts = merge(dataFlowId, segmentIds, layoutIds, buildResourceStore,
                     abstractExecutable.getJobType());
+            NDataflow dataflow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dataFlowId);
+            NDataSegment segment = dataflow.getSegment(segmentIds.iterator().next());
+            NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
+            for (Map.Entry<String, Long> entry : segment.getOriSnapshotSize().entrySet()) {
+                TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
+                TableExtDesc originTableExt = metadataManager.getTableExtIfExists(tableDesc);
+                TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
+                tableExtDescCopy.setOriginalSize(entry.getValue());
+                metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
+            }
             recordDownJobStats(abstractExecutable, nDataLayouts);
             SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv()).post(new SourceUsageUpdateNotifier());
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);

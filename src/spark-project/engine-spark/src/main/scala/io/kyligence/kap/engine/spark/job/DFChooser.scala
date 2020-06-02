@@ -274,9 +274,9 @@ object DFChooser extends Logging {
       else if (ch <= 0x7FF) count += 2
       else if (Character.isHighSurrogate(ch)) {
         count += 4
-        i += 1
       }
       else count += 3
+      i += 1
     }
     count
   }

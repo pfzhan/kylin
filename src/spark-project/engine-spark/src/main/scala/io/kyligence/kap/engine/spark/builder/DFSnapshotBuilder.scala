@@ -40,7 +40,6 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
-import org.apache.spark.api.java.function.ReduceFunction
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.{Dataset, Encoders, Row, SparkSession}
@@ -254,11 +253,7 @@ class DFSnapshotBuilder extends Logging with Serializable {
           }
         })
         List(totalSize).toIterator
-    }(Encoders.scalaLong).reduce(new ReduceFunction[Long] {
-      override def call(t: Long, t1: Long): Long = {
-        t + t1
-      }
-    })
+    }(Encoders.scalaLong).reduce(_ + _)
     concurrentMap.put(tableDesc.getIdentity, size)
   }
 

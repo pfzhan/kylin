@@ -25,12 +25,14 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -48,6 +50,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 
 public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
@@ -76,6 +80,14 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         toUpdateSegments.add(mergedSegment);
         if (JobTypeEnum.INDEX_REFRESH.equals(jobType)) {
             updateSnapshotTableIfNeed(mergedSegment);
+            NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
+            for (Map.Entry<String, Long> entry : mergedSegment.getOriSnapshotSize().entrySet()) {
+                TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
+                TableExtDesc originTableExt = metadataManager.getTableExtIfExists(tableDesc);
+                TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
+                tableExtDescCopy.setOriginalSize(entry.getValue());
+                metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
+            }
         }
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
