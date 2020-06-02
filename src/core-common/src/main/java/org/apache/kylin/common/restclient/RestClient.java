@@ -301,6 +301,23 @@ public class RestClient {
         return response;
     }
 
+    public HttpResponse updateSourceUsage() throws IOException {
+        String url = baseUrl + "/system/capacity/refresh_all";
+        HttpPut put = newPut(url);
+        put.addHeader("routed", "true");
+        HttpResponse response = null;
+        try {
+            response = client.execute(put);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                logger.error("Invalid response: {} for refresh capacity: {} \n{}", response.getStatusLine().getStatusCode(), url, msg);
+            }
+        } finally {
+            cleanup(put, response);
+        }
+        return response;
+    }
+
     public HttpResponse updatePrjEpoch(String project) throws IOException {
         String url = baseUrl + "/epoch";
         HttpPost post = newPost(url);

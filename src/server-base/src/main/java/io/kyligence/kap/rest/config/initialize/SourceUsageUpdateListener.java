@@ -25,21 +25,42 @@ package io.kyligence.kap.rest.config.initialize;
 
 import com.google.common.eventbus.Subscribe;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.restclient.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class SourceUsageUpdateListener {
 
     private static final Logger logger = LoggerFactory.getLogger(SourceUsageUpdateListener.class);
 
+    private ConcurrentHashMap<String, RestClient> clientMap = new ConcurrentHashMap<>();
+
     @Subscribe
     public void onUpdate(SourceUsageUpdateNotifier notifier) {
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        logger.debug("Start to update source usage...");
-        sourceUsageManager.updateSourceUsage();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        EpochManager epochManager = EpochManager.getInstance(kylinConfig);
+        if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
+            logger.debug("Start to update source usage...");
+            sourceUsageManager.updateSourceUsage();
+        } else {
+            try {
+                String owner = epochManager.getEpochOwner(EpochManager.GLOBAL).split("\\|")[0];
+                if (clientMap.get(owner) == null) {
+                    clientMap.clear();
+                    clientMap.put(owner, new RestClient(owner));
+                }
+                clientMap.get(owner).updateSourceUsage();
+            } catch (Exception e) {
+                logger.error("Failed to update source usage using rest client", e);
+            }
+        }
     }
 }
