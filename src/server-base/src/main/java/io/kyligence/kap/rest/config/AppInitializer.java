@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.Broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
@@ -127,8 +126,6 @@ public class AppInitializer {
         } catch (Exception ex) {
             log.error("NQueryHistoryScheduler init fail");
         }
-        val sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
-        sourceUsageManager.tryReconstructSourceUsageHistory();
     }
 
     @EventListener(ApplicationReadyEvent.class)

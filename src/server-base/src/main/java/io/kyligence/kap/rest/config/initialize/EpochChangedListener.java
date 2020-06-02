@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config.initialize;
 import java.io.IOException;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -105,6 +106,7 @@ public class EpochChangedListener implements IKeep {
             if (eventMgr.hasProjectEventCheckerStarted(GLOBAL))
                 return;
             CreateAdminUserUtils.createAllAdmins(userService, env);
+            SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
             logger.info("Register global metrics...");
             NMetricsRegistry.registerGlobalMetrics(kylinConfig);
             UnitOfWork.doInTransactionWithRetry(() -> {
