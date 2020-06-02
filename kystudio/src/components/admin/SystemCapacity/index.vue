@@ -10,13 +10,13 @@
     <p class="system-msg">
       <span>{{$t('usedData')}}：</span>
       <i class="icon el-icon-loading" v-if="systemCapacityInfo.isLoading"></i>
+      <template v-else-if="systemCapacityInfo.evaluation">
+        {{systemCapacityInfo.current_capacity | dataSize}}
+      </template>
       <template v-else>
         <span :class="['used-data-number', getValueColor]">
           <span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">
-            <template v-if="!systemCapacityInfo.is_evaluation">
-              {{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})
-            </template>
-            <template v-else>{{systemCapacityInfo.current_capacity | dataSize}}</template>
+            {{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})
           </span>
         </span>
         <span>
@@ -31,16 +31,18 @@
         </span>
       </template>
       <span class="line">|</span>
-      <span class="used-nodes">{{$t('usedNodes')}}：<span :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']">
-        <span v-if="!systemNodeInfo.isLoading && !systemNodeInfo.error">
-          <template v-if="!systemNodeInfo.is_evaluation">
+      <span class="used-nodes">
+        <span>{{$t('usedNodes')}}：</span>
+        <i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i>
+        <template v-else-if="systemNodeInfo.evaluation">
+          {{systemNodeInfo.current_node}}
+        </template>
+        <span v-else :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']">
+          <span v-if="!systemNodeInfo.isLoading && !systemNodeInfo.error">
             {{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}
-          </template>
-          <template v-else>
-            {{systemNodeInfo.current_node}}
-          </template>
-        </span><i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i></span>
-        <span>
+          </span>
+        </span>
+        <span v-if="!systemNodeInfo.isLoading">
           <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
           <!-- <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
               <el-tag size="mini" type="danger">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
@@ -306,10 +308,11 @@ export default class SystemCapacity extends Vue {
 
   @Watch('nodeList')
   changeNodes (newVal, oldVal) {
-    if (newVal.length && !oldVal.length) this.nodes = newVal
+    if (newVal.length && !this.nodes.length) this.nodes = newVal
   }
 
   created () {
+    this.nodes = this.nodeList.length ? this.nodeList : []
     this.getProjectList()
     // 获取邮箱提醒状态
     // this.getNotifyStatus().then(status => {
@@ -347,7 +350,7 @@ export default class SystemCapacity extends Vue {
   }
 
   get getCapacityPrecent () {
-    return this.systemCapacityInfo.is_evaluation ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+    return this.systemCapacityInfo.evaluation ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
   }
 
   // 邮箱规则

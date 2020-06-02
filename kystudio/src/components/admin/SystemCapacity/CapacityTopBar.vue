@@ -6,8 +6,11 @@
           <el-tooltip :content="$t('lastUpdateTime')" effect="dark" placement="top"><i class="icon el-icon-ksd-type_time"></i></el-tooltip>{{latestUpdateTime | timeFormatHasTimeZone}}</div>
         <div class="data-valumns">
           <p class="label">
-            <span>{{$t('usedData')}}：<i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.error">{{!systemCapacityInfo.evaluation ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span></span>
-            <template v-if="!systemCapacityInfo.isLoading">
+            <span>{{$t('usedData')}}：
+              <i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i>
+              <span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.error">{{!systemCapacityInfo.evaluation ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span>
+            </span>
+            <template v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.evaluation">
               <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
               <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
                 <el-tag class="over-thirty-days" size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="is-danger el-icon-ksd-what ksd-ml-5"></i></el-tag>
@@ -16,8 +19,8 @@
             </template>
           </p>
           <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.error}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
-            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node}]" v-else-if="!systemNodeInfo.error">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
-            <template v-if="!systemNodeInfo.isLoading">
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.evaluation}]" v-else-if="!systemNodeInfo.error">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
+            <template v-if="!systemNodeInfo.isLoading && !systemNodeInfo.evaluation">
               <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
                 <el-tag size="mini" type="danger">{{$t('failApi')}}</el-tag>

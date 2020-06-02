@@ -82,7 +82,7 @@
                 <i class="icon el-icon-ksd-what"></i>
               </el-tooltip>
               <span class="select-date-line">
-                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '115px' : '72px'}">
+                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '88px' : '72px'}">
                   <el-option v-for="(item, index) in dataOptions" :key="index" :value="item.value" :label="item.text">
                   </el-option>
                 </el-select>
