@@ -546,35 +546,9 @@ public class LicenseInfoService extends BasicService {
         SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
 
-        ProjectCapacityDetail[] capacityDetails = new ProjectCapacityDetail[3];
+        ProjectCapacityDetail[] capacityDetails = null;
         if (latestRecords != null) {
             capacityDetails = latestRecords.getCapacityDetails();
-        }
-        List<ProjectCapacityDetail> projectCapacityDetails = Lists.newArrayList();
-        ProjectCapacityDetail projectCapacityDetail = new ProjectCapacityDetail();
-        projectCapacityDetail.setName("test_project");
-        projectCapacityDetail.setCapacity(2233L);
-        projectCapacityDetail.setCapacityRatio(0.2);
-        projectCapacityDetail.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
-
-        ProjectCapacityDetail projectCapacityDetail1 = new ProjectCapacityDetail();
-        projectCapacityDetail1.setName("test_project1");
-        projectCapacityDetail1.setCapacity(123123L);
-        projectCapacityDetail1.setCapacityRatio(0.4);
-        projectCapacityDetail1.setStatus(SourceUsageRecord.CapacityStatus.OK);
-
-        ProjectCapacityDetail projectCapacityDetail2 = new ProjectCapacityDetail();
-        projectCapacityDetail2.setName("test_project2");
-        projectCapacityDetail2.setCapacity(12532523L);
-        projectCapacityDetail2.setCapacityRatio(0.3);
-        projectCapacityDetail2.setStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
-
-        projectCapacityDetails.add(projectCapacityDetail);
-        projectCapacityDetails.add(projectCapacityDetail1);
-        projectCapacityDetails.add(projectCapacityDetail2);
-
-        for (int i = 0; i < projectCapacityDetails.size(); ++i) {
-            capacityDetails[i] = projectCapacityDetails.get(i);
         }
 
         if (ArrayUtils.isNotEmpty(capacityDetails)) {
@@ -610,9 +584,6 @@ public class LicenseInfoService extends BasicService {
                         e);
             }
         }
-        nodeMonitorInfoResponse.setCurrentNode(2);
-        nodeMonitorInfoResponse.setNode(5);
-        nodeMonitorInfoResponse.setNodeStatus(SourceUsageRecord.CapacityStatus.OK);
         return nodeMonitorInfoResponse;
     }
 
@@ -652,8 +623,6 @@ public class LicenseInfoService extends BasicService {
             long capacity = sourceUsageRecord.getProjectCapacity(project).getCapacity();
             projectCapacities.put(checkTime, capacity);
         }
-        projectCapacities.put(System.currentTimeMillis() - 1000, 123124L);
-        projectCapacities.put(System.currentTimeMillis(), 35235L);
         return projectCapacities;
     }
 
@@ -680,22 +649,6 @@ public class LicenseInfoService extends BasicService {
                 projectCapacityResponse.setSize(capacityDetailsResponseList.size());
             }
         }
-        TableCapacityDetail tableCapacityDetail = new TableCapacityDetail();
-        tableCapacityDetail.setCapacity(12321L);
-        tableCapacityDetail.setCapacityRatio(0.2);
-        tableCapacityDetail.setName("table1");
-        tableCapacityDetail.setStatus(SourceUsageRecord.CapacityStatus.TENTATIVE);
-        tableCapacityDetail.setTableKind(SourceUsageRecord.TableKind.FACT);
-        List<CapacityDetailsResponse> capacityDetailsResponseList = Lists.newArrayList();
-        CapacityDetailsResponse capacityDetailsResponse = new CapacityDetailsResponse();
-        capacityDetailsResponse.setName(tableCapacityDetail.getName());
-        capacityDetailsResponse.setCapacity(tableCapacityDetail.getCapacity());
-        capacityDetailsResponse.setCapacityRatio(tableCapacityDetail.getCapacityRatio());
-        capacityDetailsResponse.setStatus(tableCapacityDetail.getStatus());
-        capacityDetailsResponseList.add(capacityDetailsResponse);
-        projectCapacityResponse.setTables(capacityDetailsResponseList);
-        projectCapacityResponse.setSize(1);
-
         return projectCapacityResponse;
     }
 
@@ -707,8 +660,6 @@ public class LicenseInfoService extends BasicService {
                 records.put(record.getCheckTime(), record.getCurrentCapacity());
             }
         }
-        records.put(System.currentTimeMillis() - 1000, 1421412L);
-        records.put(System.currentTimeMillis(), 532232L);
         return records;
     }
 
@@ -768,10 +719,6 @@ public class LicenseInfoService extends BasicService {
         if (isEvaluation()) {
             licenseMonitorInfoResponse.setEvaluation(true);
         }
-        licenseMonitorInfoResponse.setCheckTime(System.currentTimeMillis());
-        licenseMonitorInfoResponse.setCapacityStatus(SourceUsageRecord.CapacityStatus.OK);
-        licenseMonitorInfoResponse.setCurrentCapacity(123213L);
-        licenseMonitorInfoResponse.setCapacity(23523523);
 
         checkErrorThreshold(licenseMonitorInfoResponse);
         return licenseMonitorInfoResponse;
