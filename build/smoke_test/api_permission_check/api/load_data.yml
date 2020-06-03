@@ -5,12 +5,12 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   json:
-    start: 312825600000
-    end: 315417600000
+    start: ${get_data_range(start)}
+    end: ${get_data_range(end)}
     partition_desc:
       partition_date_column: SSB.P_LINEORDER.LO_ORDERDATE
-      partition_date_format: yyyy-MM-dd
+      partition_date_format: ${get_partition_column_format($project_name)}
     segment_holes: []
     project: $project_name
   method: PUT
-  url: models/${get_model_uuid($model_name,$project_name)}/model_segments
+  url: models/${get_model_uuid($resident_model,$project_name)}/model_segments

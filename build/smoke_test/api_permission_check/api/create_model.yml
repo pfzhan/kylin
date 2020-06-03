@@ -1,4 +1,4 @@
-name: 创建模型
+name: 创建 model
 request:
   headers:
     Content-Type: application/json;charset=utf-8
@@ -23,6 +23,11 @@ request:
     last_modified: 0
     filter_condition: ''
     partition_desc:
+      partition_date_column: P_LINEORDER.LO_ORDERDATE
+      partition_date_format: ${get_partition_column_format($project_name)}
+      partition_date_start: 0
+      partition_time_column:
+      partition_type: APPEND
     management_type: MODEL_BASED
     canvas:
       coordinate:

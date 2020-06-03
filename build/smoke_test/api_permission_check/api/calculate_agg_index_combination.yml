@@ -7,7 +7,7 @@ request:
   json:
     aggregation_groups:
     - includes:
-      - 0
+      - 7
       measures:
       - 100000
       select_rule:

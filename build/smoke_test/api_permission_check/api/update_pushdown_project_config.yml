@@ -7,6 +7,6 @@ request:
   json:
     project: $project_name
     runner_class_name: 'io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl'
-    converter_class_names: 'org.apache.kylin.query.util.PowerBIConverter'
+    converter_class_names: 'io.kyligence.kap.query.security.HackSelectStarWithColumnACL,org.apache.kylin.source.adhocquery.HivePushDownConverter'
   method: PUT
   url: projects/$project_name/push_down_project_config

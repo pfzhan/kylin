@@ -8,6 +8,6 @@ request:
     end: $end_time
     project: $project_name
     start: $start_time
-    table: SSB.LINEORDER
+    table: SSB.P_LINEORDER
   method: POST
   url: tables/data_range

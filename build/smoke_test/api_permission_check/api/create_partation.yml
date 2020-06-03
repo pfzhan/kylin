@@ -6,8 +6,8 @@ request:
     authorization: Basic $role
   json:
     column: LO_ORDERDATE
-    partition_column_format: yyyy-MM-dd
+    partition_column_format: ${get_partition_column_format($project_name)}
     project: $project_name
-    table: SSB.LINEORDER
+    table: SSB.P_LINEORDER
   method: POST
   url: tables/partition_key

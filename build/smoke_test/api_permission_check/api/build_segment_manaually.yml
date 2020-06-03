@@ -8,7 +8,7 @@ request:
     end: 315417600000
     partition_desc:
       partition_date_column: KYLIN_CAL_DT.CAL_DT
-      partition_date_format: yyyy-MM-dd
+      partition_date_format: ${get_partition_column_format($project_name)}
     project: test_model
     segment_holes: []
     start: 312825600000

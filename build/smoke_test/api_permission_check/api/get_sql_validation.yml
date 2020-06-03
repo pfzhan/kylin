@@ -6,6 +6,6 @@ request:
     authorization: Basic $role
   json:
     project: $project_name
-    sql: select * from SSB.LINEORDER
+    sql: select * from SSB.P_LINEORDER
   method: PUT
   url: query/favorite_queries/sql_validation

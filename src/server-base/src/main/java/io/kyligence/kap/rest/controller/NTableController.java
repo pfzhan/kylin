@@ -26,7 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
@@ -299,11 +301,9 @@ public class NTableController extends NBasicController {
         try {
             response = tableService.getLatestDataRange(project, table);
         } catch (KylinTimeoutException ke) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            throw new KylinException(UNKNOWN_ERROR_CODE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
         } catch (Exception e) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");

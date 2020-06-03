@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -136,9 +137,10 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         AccessRequest accessRequest = new AccessRequest();
         accessRequest.setSid(sid);
         accessRequest.setPrincipal(true);
+        AclEntity ae = accessService.getAclEntity(type, uuid);
         Mockito.doReturn(true).when(userService).userExists(sid);
         Mockito.doNothing().when(aclTCRService).updateAclTCR(uuid, null);
-        Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
+        Mockito.doNothing().when(accessService).grant(ae, "1", true, "ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -253,7 +255,8 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
     private void testGrantPermissionForUser(String sid, String expectedMsg) throws Exception {
         AccessRequest accessRequest = new AccessRequest();
         accessRequest.setSid(sid);
-        Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
+        AclEntity ae = accessService.getAclEntity(type, uuid);
+        Mockito.doNothing().when(accessService).grant(ae, "1", true, "ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

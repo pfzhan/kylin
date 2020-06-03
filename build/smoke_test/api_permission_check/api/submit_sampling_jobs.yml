@@ -6,7 +6,7 @@ request:
     authorization: Basic $role
   json:
     project: $project_name
-    qualified_table_name: SSB.LINEORDER
+    qualified_table_name: SSB.P_LINEORDER
     rows: 20000000
   method: POST
   url: tables/sampling_jobs

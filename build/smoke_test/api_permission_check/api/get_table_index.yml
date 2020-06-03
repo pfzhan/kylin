@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: GET
-  url: index_plans/table_index?project=$project_name&model=${get_model_uuid($model_name,$project_name)}
+  url: index_plans/table_index?project=$project_name&model=${get_model_uuid($resident_model,$project_name)}

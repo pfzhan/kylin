@@ -4,9 +4,5 @@ request:
     Content-Type: application/json;charset=utf-8
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
-  json:
-    project: $project_name
-    threshold: 20
-    tips_enabled: false
-  method: PUT
+  method: GET
   url: projects/$project_name/query_accelerate_threshold

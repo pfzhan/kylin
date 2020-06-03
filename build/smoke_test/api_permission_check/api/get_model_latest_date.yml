@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: GET
-  url: models/$random_uuid/data_range/latest_data?project=$project_name
+  url: models/${get_model_uuid($resident_model,$project_name)}/data_range/latest_data?project=$project_name

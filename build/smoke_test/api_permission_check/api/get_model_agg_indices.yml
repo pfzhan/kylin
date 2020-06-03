@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: GET
-  url: models/${get_model_uuid($model_name,$project_name)}/agg_indices?project=$project_name
+  url: models/${get_model_uuid($resident_model,$project_name)}/agg_indices?project=$project_name

@@ -2,7 +2,7 @@ name: 删除job
 request:
   headers:
     Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
+    accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: DELETE
-  url: jobs?job_ids=$job_id&project=$project_name
+  url: jobs?project=$project_name&job_ids=$job_id

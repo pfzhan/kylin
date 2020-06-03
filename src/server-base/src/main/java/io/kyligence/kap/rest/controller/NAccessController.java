@@ -59,7 +59,6 @@ import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -129,17 +128,15 @@ public class NAccessController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
-        accessService.checkAuthorized(ae);
-        Acl acl = accessService.getAcl(ae);
         List<String> whole = Lists.newArrayList();
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             whole.addAll(getAllUserNames());
-            List<String> users = accessService.getAllAclSids(acl, MetadataConstants.TYPE_USER);
+            List<String> users = accessService.getAllAclSids(ae, MetadataConstants.TYPE_USER);
             whole.removeAll(users);
             whole.removeAll(userService.listAdminUsers());
         } else {
             whole.addAll(getAllUserGroups());
-            List<String> groups = accessService.getAllAclSids(acl, MetadataConstants.TYPE_GROUP);
+            List<String> groups = accessService.getAllAclSids(ae, MetadataConstants.TYPE_GROUP);
             whole.removeAll(groups);
             whole.remove(ROLE_ADMIN);
         }
@@ -193,7 +190,6 @@ public class NAccessController extends NBasicController {
             throws IOException {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
-        accessService.checkAuthorized(ae);
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
                 nameSeg, isCaseSensitive);
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
@@ -213,7 +209,8 @@ public class NAccessController extends NBasicController {
         if (accessRequest.isPrincipal()) {
             accessService.checkGlobalAdmin(accessRequest.getSid());
         }
-        accessService.grant(entityType, uuid, accessRequest.getSid(), accessRequest.isPrincipal(),
+        AclEntity ae = accessService.getAclEntity(entityType, uuid);
+        accessService.grant(ae, accessRequest.getSid(), accessRequest.isPrincipal(),
                 accessRequest.getPermission());
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, Lists.newArrayList(accessRequest));
@@ -232,7 +229,8 @@ public class NAccessController extends NBasicController {
         List<String> users = requests.stream().filter(AccessRequest::isPrincipal).map(AccessRequest::getSid)
                 .collect(Collectors.toList());
         accessService.checkGlobalAdmin(users);
-        accessService.batchGrant(requests, entityType, uuid);
+        AclEntity ae = accessService.getAclEntity(entityType, uuid);
+        accessService.batchGrant(requests, ae);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, requests);
         }

@@ -2,7 +2,7 @@ name: 添加table index
 request:
   headers:
     Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin-v4-public+json
+    accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   json:
     col_order:

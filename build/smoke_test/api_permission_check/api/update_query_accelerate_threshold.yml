@@ -1,13 +1,12 @@
-name: 刷新segment
+name: 更新加速偏好
 request:
   headers:
     Content-Type: application/json;charset=utf-8
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   json:
-    ids:
-    - $segment_id
     project: $project_name
-    type: REFRESH
+    threshold: 20
+    tips_enabled: false
   method: PUT
-  url: models/${get_model_uuid($model,$project_name)}/segments
+  url: projects/$project_name/query_accelerate_threshold

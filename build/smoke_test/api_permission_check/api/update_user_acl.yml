@@ -6,5 +6,97 @@ request:
     authorization: 'Basic $role'
   method: PUT
   json:
-  - database_name: ssb
+  - tables:
+      - authorized: true
+        columns:
+          - {authorized: true, column_name: C_ADDRESS}
+          - {authorized: true, column_name: C_CITY}
+          - {authorized: true, column_name: C_CUSTKEY}
+          - {authorized: true, column_name: C_MKTSEGMENT}
+          - {authorized: true, column_name: C_NAME}
+          - {authorized: true, column_name: C_NATION}
+          - {authorized: true, column_name: C_PHONE}
+          - {authorized: true, column_name: C_REGION}
+        rows: []
+        table_name: CUSTOMER
+        authorized_column_num: 0
+        total_column_num: 8
+      - authorized: true
+        columns:
+          - {authorized: true, column_name: LO_COMMITDATE}
+          - {authorized: true, column_name: LO_CUSTKEY}
+          - {authorized: true, column_name: LO_DISCOUNT}
+          - {authorized: true, column_name: LO_EXTENDEDPRICE}
+          - {authorized: true, column_name: LO_LINENUMBER}
+          - {authorized: true, column_name: LO_ORDERDATE}
+          - {authorized: true, column_name: LO_ORDERKEY}
+          - {authorized: true, column_name: LO_ORDERPRIOTITY}
+          - {authorized: true, column_name: LO_ORDTOTALPRICE}
+          - {authorized: true, column_name: LO_PARTKEY}
+          - {authorized: true, column_name: LO_QUANTITY}
+          - {authorized: true, column_name: LO_REVENUE}
+          - {authorized: true, column_name: LO_SHIPMODE}
+          - {authorized: true, column_name: LO_SHIPPRIOTITY}
+          - {authorized: true, column_name: LO_SUPPKEY}
+          - {authorized: true, column_name: LO_SUPPLYCOST}
+          - {authorized: true, column_name: LO_TAX}
+        rows: []
+        table_name: LINEORDER
+        authorized_column_num: 0
+        total_column_num: 17
+      - authorized: true
+        columns:
+          - {authorized: true, column_name: LO_COMMITDATE}
+          - {authorized: true, column_name: LO_CUSTKEY}
+          - {authorized: true, column_name: LO_DISCOUNT}
+          - {authorized: true, column_name: LO_EXTENDEDPRICE}
+          - {authorized: true, column_name: LO_LINENUMBER}
+          - {authorized: true, column_name: LO_ORDERDATE}
+          - {authorized: true, column_name: LO_ORDERKEY}
+          - {authorized: true, column_name: LO_ORDERPRIOTITY}
+          - {authorized: true, column_name: LO_ORDTOTALPRICE}
+          - {authorized: true, column_name: LO_PARTKEY}
+          - {authorized: true, column_name: LO_QUANTITY}
+          - {authorized: true, column_name: LO_REVENUE}
+          - {authorized: true, column_name: LO_SHIPMODE}
+          - {authorized: true, column_name: LO_SHIPPRIOTITY}
+          - {authorized: true, column_name: LO_SUPPKEY}
+          - {authorized: true, column_name: LO_SUPPLYCOST}
+          - {authorized: true, column_name: LO_TAX}
+          - {authorized: true, column_name: V_REVENUE}
+        rows: []
+        table_name: P_LINEORDER
+        authorized_column_num: 0
+        total_column_num: 18
+      - authorized: true
+        columns:
+          - {authorized: true, column_name: P_BRAND}
+          - {authorized: true, column_name: P_CATEGORY}
+          - {authorized: true, column_name: P_COLOR}
+          - {authorized: true, column_name: P_CONTAINER}
+          - {authorized: true, column_name: P_MFGR}
+          - {authorized: true, column_name: P_NAME}
+          - {authorized: true, column_name: P_PARTKEY}
+          - {authorized: true, column_name: P_SIZE}
+          - {authorized: true, column_name: P_TYPE}
+        rows: []
+        table_name: PART
+        authorized_column_num: 0
+        total_column_num: 9
+      - authorized: true
+        columns:
+          - {authorized: true, column_name: S_ADDRESS}
+          - {authorized: true, column_name: S_CITY}
+          - {authorized: true, column_name: S_NAME}
+          - {authorized: true, column_name: S_NATION}
+          - {authorized: true, column_name: S_PHONE}
+          - {authorized: true, column_name: S_REGION}
+          - {authorized: true, column_name: S_SUPPKEY}
+        rows: []
+        table_name: SUPPLIER
+        authorized_column_num: 0
+        total_column_num: 7
+    authorized_table_num: 5
+    total_table_num: 5
+    database_name: SSB
   url: acl/sid/User/$resident_user?project=$project_name

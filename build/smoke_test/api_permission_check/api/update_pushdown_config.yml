@@ -6,6 +6,6 @@ request:
     authorization: Basic $role
   json:
     project: $project_name
-    push_down_enabled: false
+    push_down_enabled: true
   method: PUT
   url: projects/$project_name/push_down_config

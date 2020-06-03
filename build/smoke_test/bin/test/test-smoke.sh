@@ -154,7 +154,7 @@ export PYTHON_VENV_HOME=$dir/build/smoke_test/venv
 allure_report=$dir/Report
 runTest
 
-# runApiPermissionCheck
+runApiPermissionCheck
 
 # unset postgres password
 unset PGPASSWORD

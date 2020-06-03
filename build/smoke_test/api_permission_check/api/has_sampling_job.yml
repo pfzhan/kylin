@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: GET
-  url: tables/sampling_check_result?project=$project_name&qualified_table_name=SSB.LINEORDER
+  url: tables/sampling_check_result?project=$project_name&qualified_table_name=SSB.P_LINEORDER

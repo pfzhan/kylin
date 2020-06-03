@@ -10,13 +10,7 @@ config:
 
 testcases:
 -
-    name: setup project and datasource
-    testcase: testcases/setup.yml
-    parameters:
-        role: ${get_role(ADMIN)}
-
--
     name: test admin role
     testcase: testcases/simple_for_test.yml
     parameters:
-        role: ${get_role(ADMIN)}
+        role: ${get_role(PROJECT_ADMIN)}

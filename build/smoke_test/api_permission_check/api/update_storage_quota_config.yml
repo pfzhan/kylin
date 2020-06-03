@@ -1,13 +1,12 @@
-name: 刷新segment
+name: 更新存储配额
 request:
   headers:
     Content-Type: application/json;charset=utf-8
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   json:
-    ids:
-    - $segment_id
     project: $project_name
-    type: REFRESH
+    storage_quota_size: 12094627905536
+    storage_quota_tb_size: "11.00"
   method: PUT
-  url: models/${get_model_uuid($model,$project_name)}/segments
+  url: projects/$project_name/storage_quota

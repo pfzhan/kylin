@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: DELETE
-  url: index_plans/index/20000020001?project=$project_name&model=${get_model_uuid($model_name,$project_name)}
+  url: index_plans/index/${get_table_index_id($model_name,$project_name)}?project=$project_name&model=${get_model_uuid($model_name,$project_name)}

@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: GET
-  url: tables/partition_column_format?project=$project_name&table=SSB.LINEORDER&partition_column=LO_ORDERDATE
+  url: tables/partition_column_format?project=$project_name&table=SSB.P_LINEORDER&partition_column=LO_ORDERDATE

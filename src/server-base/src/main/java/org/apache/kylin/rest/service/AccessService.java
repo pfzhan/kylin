@@ -42,10 +42,10 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USER_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;
@@ -142,15 +142,9 @@ public class AccessService extends BasicService {
         return acl;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
-    public boolean checkAuthorized(AclEntity ae) {
-        return true;
-    }
-
     @Transaction
-    public void batchGrant(List<AccessRequest> requests, String type, String uuid) {
-        AclEntity ae = getAclEntity(type, uuid);
-        checkAuthorized(ae);
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public void batchGrant(List<AccessRequest> requests, AclEntity ae) {
         Map<Sid, Permission> sid2perm = requests.stream().map(r -> {
             Sid sid = getSid(r.getSid(), r.isPrincipal());
             Permission permission = AclPermissionFactory.getPermission(r.getPermission());
@@ -186,7 +180,6 @@ public class AccessService extends BasicService {
     @Transaction
     MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
         Message msg = MsgPicker.getMsg();
-        checkAuthorized(ae);
         if (ae == null)
             throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
         if (permission == null)
@@ -205,9 +198,8 @@ public class AccessService extends BasicService {
     }
 
     @Transaction
-    public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission) {
-        AclEntity ae = getAclEntity(type, uuid);
-        checkAuthorized(ae);
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public void grant(AclEntity ae, String identifier, Boolean isPrincipal, String permission) {
         Sid sid = getSid(identifier, isPrincipal);
         grant(ae, AclPermissionFactory.getPermission(permission), sid);
     }
@@ -354,6 +346,7 @@ public class AccessService extends BasicService {
         }
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public List<AccessEntryResponse> generateAceResponsesByFuzzMatching(AclEntity ae, String nameSeg,
             boolean isCaseSensitive) throws IOException {
         List<AccessEntryResponse> resultsAfterFuzzyMatching = generateAceResponsesByFuzzMatching(getAcl(ae), nameSeg,
@@ -409,7 +402,9 @@ public class AccessService extends BasicService {
         return generateAceResponsesByFuzzMatching(acl, null, false);
     }
 
-    public List<String> getAllAclSids(Acl acl, String type) {
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public List<String> getAllAclSids(AclEntity ae, String type) {
+        Acl acl = getAcl(ae);
         if (null == acl) {
             return Collections.emptyList();
         }

@@ -3,7 +3,7 @@ config:
 
 teststeps:
   - api: api/project_create.yml
-    name: (43)创建 project
+    name: 创建 project
     variables:
       project: $project_name
     validate:
@@ -12,7 +12,7 @@ teststeps:
           - 200
 
   - api: api/update_data_source_type.yml
-    name: (56)设置数据源类型
+    name: 设置数据源类型
     variables:
       project: $project_name
     validate:
@@ -21,7 +21,7 @@ teststeps:
           - 200
 
   - api: api/load_tables.yml
-    name: (85)加载表
+    name: 加载表
     variables:
       project: $project_name
     validate:
@@ -31,7 +31,7 @@ teststeps:
 
 # create project admin user
   - api: api/create_user.yml
-    name: (67)创建用户
+    name: 创建用户
     variables:
       username: ${get_user_name_by_role(PROJECT_ADMIN)}
       password: ${get_password_by_role(PROJECT_ADMIN)}
@@ -41,7 +41,7 @@ teststeps:
           - 200
 
   - api: api/batch_create_user_permission_in_project.yml
-    name: (second16)批量添加用户和用户组项目级权限
+    name: 批量添加用户和用户组项目级权限
     variables:
       permission: ADMINISTRATION
       user: ${get_user_name_by_role(PROJECT_ADMIN)}
@@ -52,7 +52,7 @@ teststeps:
 
 # create management user
   - api: api/create_user.yml
-    name: (67)创建用户
+    name: 创建用户
     variables:
       username: ${get_user_name_by_role(MANAGEMENT)}
       password: ${get_password_by_role(MANAGEMENT)}
@@ -62,7 +62,7 @@ teststeps:
           - 200
 
   - api: api/batch_create_user_permission_in_project.yml
-    name: (second16)批量添加用户和用户组项目级权限
+    name: 批量添加用户和用户组项目级权限
     variables:
       permission: MANAGEMENT
       user: ${get_user_name_by_role(MANAGEMENT)}
@@ -73,7 +73,7 @@ teststeps:
 
 # create operation user
   - api: api/create_user.yml
-    name: (67)创建用户
+    name: 创建用户
     variables:
       username: ${get_user_name_by_role(OPERATION)}
       password: ${get_password_by_role(OPERATION)}
@@ -83,7 +83,7 @@ teststeps:
           - 200
 
   - api: api/batch_create_user_permission_in_project.yml
-    name: (second16)批量添加用户和用户组项目级权限
+    name: 批量添加用户和用户组项目级权限
     variables:
       permission: OPERATION
       user: ${get_user_name_by_role(OPERATION)}
@@ -94,7 +94,7 @@ teststeps:
 
 # create query user
   - api: api/create_user.yml
-    name: (67)创建用户
+    name: 创建用户
     variables:
       username: ${get_user_name_by_role(QUERY)}
       password: ${get_password_by_role(QUERY)}
@@ -104,7 +104,7 @@ teststeps:
           - 200
 
   - api: api/batch_create_user_permission_in_project.yml
-    name: (second16)批量添加用户和用户组项目级权限
+    name: 批量添加用户和用户组项目级权限
     variables:
       permission: READ
       user: ${get_user_name_by_role(QUERY)}
@@ -115,7 +115,7 @@ teststeps:
 
 # create all user, no project permission
   - api: api/create_user.yml
-    name: (67)创建用户
+    name: 创建用户
     variables:
       username: ${get_user_name_by_role(ALL)}
       password: ${get_password_by_role(ALL)}
@@ -126,7 +126,7 @@ teststeps:
 
 # create resident user, for role does not have permission to create user
   - api: api/create_user.yml
-    name: (67)创建用户
+    name: 创建用户
     variables:
       username: $resident_user
       password: $resident_password
@@ -135,11 +135,27 @@ teststeps:
           - status_code
           - 200
 
-
-
 # Create a resident model for users who do not have permission to create models
   - api: api/create_model.yml
-    name: (create_model)创建模型
+    name: 创建 model
+    variables:
+      model_name: $resident_model
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/save_model.yml
+    name: 保存model
+    variables:
+      model_name: $resident_model
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/create_table_index.yml
+    name: 添加table index
     variables:
       model_name: $resident_model
     validate:

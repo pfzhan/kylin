@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   method: GET
-  url: tables/auto_merge_config?project=$project_name&model=${get_model_uuid($model_name,$project_name)}&table=SSB.P_LINEORDER
+  url: tables/auto_merge_config?project=$project_name&model=${get_model_uuid($resident_model,$project_name)}&table=SSB.P_LINEORDER

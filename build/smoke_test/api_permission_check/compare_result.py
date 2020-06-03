@@ -81,29 +81,31 @@ def compare_two_dict(expect_result, actually_result):
     tmp_keys = list(actually_result.keys())
     for i in tmp_keys:
         try:
-            if expect_result[i.split(")")[1]] != actually_result[i]:
-                print('%s,expect role: %s, actual role: %s' % (i, expect_result[i.split(")")[1]], actually_result[i]))
+            if expect_result[i] != actually_result[i]:
+                print('%s, expect role: %s, actual role: %s' % (i, expect_result[i], actually_result[i]))
         except KeyError as e:
             pass
         except IndexError as n:
             pass
 
 
-def process(root_dir, file_path):
+def process(root_dir):
     runner = HttpRunner()
     runner.run(os.path.join(root_dir, 'api_permission_check/testsuites/demo_testsuite.yml'))
     res_details = runner._summary['details']
-    print("res_details: \n" + str(res_details) + "\n")
     apis_dict = parse_res(res_details)
+
     actually_result = get_api_mini(apis_dict)
     print("actually_result: \n" + str(actually_result) + "\n")
-    expect_result = get_expect_result(file_path)
+
+    csv_expect_result = os.path.join(root_dir, 'api_permission_check/test_expect_result.csv')
+    expect_result = get_expect_result(csv_expect_result)
     print("expect_result: \n" + str(expect_result) + "\n")
-    print("Does not meet the expected API permissions: \n")
+
+    print("Does not meet the expected api permission items: \n")
     compare_two_dict(expect_result, actually_result)
 
 
 if __name__ == '__main__':
     root_dir = os.environ.get('root_dir')
-    file_path = os.path.join(root_dir, 'api_permission_check/test_expect_result.csv')
-    process(root_dir, file_path)
+    process(root_dir)

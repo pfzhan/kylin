@@ -5,4 +5,4 @@ request:
     accept: application/vnd.apache.kylin-v4-public+json
     authorization: Basic $role
   method: GET
-  url: models?status=&page_offset=0&page_size=10&exact=false&model_name=&sort_by=last_modify&reverse=true&model_alias_or_owner=&owner=&project=$project_name
+  url: models?status=&page_offset=0&page_size=10&exact=false&model_name=$model_name&sort_by=last_modify&reverse=true&model_alias_or_owner=&owner=&project=$project_name

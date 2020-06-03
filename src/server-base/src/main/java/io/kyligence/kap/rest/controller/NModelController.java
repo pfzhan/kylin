@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
 import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_CREATE_MODEL;
 import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
@@ -33,6 +34,7 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_REFRESH_SEG
 import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_RANGE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -279,11 +281,9 @@ public class NModelController extends NBasicController {
         try {
             response = modelService.getLatestDataRange(project, modelId, partitionDesc);
         } catch (KylinTimeoutException e) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            throw new KylinException(UNKNOWN_ERROR_CODE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
         } catch (Exception e) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
