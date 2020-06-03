@@ -38,7 +38,8 @@ export default {
     similar_index_tip: 'There already exists one index or more who has a high similarity with this index.',
     LOW_FREQUENCY: 'Low Frequency',
     INCLUDED: 'Inclusion Relation',
-    SIMILAR: 'High Similarity'
+    SIMILAR: 'High Similarity',
+    recommendationTips: 'Only the first {recommendationPageSize} recommendations could be viewed for each tab.'
   },
   'zh-cn': {
     recommendModalTitle: '查看优化建议（{selected}/{total})',
@@ -79,6 +80,7 @@ export default {
     similar_index_tip: '存在与该索引相似的索引。',
     LOW_FREQUENCY: '低频使用',
     INCLUDED: '包含关系',
-    SIMILAR: '高相似度'
+    SIMILAR: '高相似度',
+    recommendationTips: '每个分类下最多展示前 {recommendationPageSize} 条优化建议。'
   }
 }

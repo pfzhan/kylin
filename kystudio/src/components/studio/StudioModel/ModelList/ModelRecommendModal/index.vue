@@ -62,6 +62,7 @@
         </el-tabs>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
+        <span v-if="isShowtips" class="ksd-fs-14 pull-left ksd-mt-5">{{$t('recommendationTips', {'recommendationPageSize': this.recommendationPageSize})}}</span>
         <el-button plain @click="closeModal()" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" :loading="btnLoading" :disabled="clearBtnLoading || btnLoading || !canSubmitRecom" size="medium" @click="submit">{{$t('acceptBtn')}}</el-button>
       </div>
@@ -166,23 +167,30 @@
         this.loadModalInfo()
       }
     }
+    get recommendationPageSize () {
+      return +this.$store.state.system.recommendationPageSize
+    }
+    // 任意一个tab下优化建议超过 recommendationPageSize 调 （默认500）显示文案提示
+    get isShowtips () {
+      return this.dialogInfo.dimension_recommendation_size > this.recommendationPageSize || this.dialogInfo.measure_recommendation_size > this.recommendationPageSize || this.dialogInfo.cc_recommendation_size > this.recommendationPageSize || this.dialogInfo.index_recommendation_size > this.recommendationPageSize
+    }
     // 弹窗标题
     get dialogTitle () {
       let selectedTotal = this.selectedObj.dimension_selectedLen + this.selectedObj.measure_selectedLen + this.selectedObj.cc_selectedLen + this.selectedObj.index_selectedLen
-      let total = this.dialogInfo.dimension_recommendations.length + this.dialogInfo.measure_recommendations.length + this.dialogInfo.cc_recommendations.length + this.dialogInfo.index_recommendations.length
+      let total = this.dialogInfo.total_size
       return this.$t('recommendModalTitle', {selected: selectedTotal, total: total})
     }
     // 几个 tab 标题
     get dimensionTabTitle () {
-      return this.$t('tabDimension', {selected: this.selectedObj.dimension_selectedLen, total: this.dialogInfo.dimension_recommendations.length})
+      return this.$t('tabDimension', {selected: this.selectedObj.dimension_selectedLen, total: this.dialogInfo.dimension_recommendation_size})
     }
 
     get measureTabTitle () {
-      return this.$t('tabMeasure', {selected: this.selectedObj.measure_selectedLen, total: this.dialogInfo.measure_recommendations.length})
+      return this.$t('tabMeasure', {selected: this.selectedObj.measure_selectedLen, total: this.dialogInfo.measure_recommendation_size})
     }
 
     get computedColumnTabTitle () {
-      return this.$t('tabCC', {selected: this.selectedObj.cc_selectedLen, total: this.dialogInfo.cc_recommendations.length})
+      return this.$t('tabCC', {selected: this.selectedObj.cc_selectedLen, total: this.dialogInfo.cc_recommendation_size})
     }
 
     // get aggIndexTabTitle () {
@@ -194,7 +202,7 @@
     // }
 
     get indexTabTitle () {
-      return this.$t('index', {selected: this.selectedObj.index_selectedLen, total: this.dialogInfo.index_recommendations.length})
+      return this.$t('index', {selected: this.selectedObj.index_selectedLen, total: this.dialogInfo.index_recommendation_size})
     }
 
     // 控制提交按钮是否可点 - 有一条建议选中就可以点了
@@ -307,16 +315,17 @@
       this.clearBtnLoading = true
       let params = {
         project: this.currentSelectedProject,
-        model: this.modelDesc.uuid
+        model: this.modelDesc.uuid,
+        all: true
       }
-      for (var prop in this.dialogInfo) {
-        if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'index_recommendations') {
-          let temp = this.dialogInfo[prop].map((item) => {
-            return item.item_id
-          })
-          params[prop] = temp.length > 0 ? temp.join(',') : ''
-        }
-      }
+      // for (var prop in this.dialogInfo) {
+      //   if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'index_recommendations') {
+      //     let temp = this.dialogInfo[prop].map((item) => {
+      //       return item.item_id
+      //     })
+      //     params[prop] = temp.length > 0 ? temp.join(',') : ''
+      //   }
+      // }
       // 需要二次确认
       this.$confirm(this.$t('confirmClearRecomm'), this.$t('kylinLang.common.notice'), {
         confirmButtonText: this.$t('kylinLang.common.submit'),

@@ -47,7 +47,8 @@ export default {
     kerberosEnabled: 'false',
     jobLogs: '',
     showRevertPasswordDialog: 'true',
-    isEditForm: false
+    isEditForm: false,
+    recommendationPageSize: 0
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -146,6 +147,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.source.load-hive-tablename-enabled', key: 'loadHiveTableNameEnabled', defaultValue: 'true'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.kerberos.project-level-enabled', key: 'kerberosEnabled'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.metadata.random-admin-password.enabled', key: 'showRevertPasswordDialog', defaultValue: 'true'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.recommendation-page-size', key: 'recommendationPageSize'})
           resolve(response)
         }, () => {
           reject()
