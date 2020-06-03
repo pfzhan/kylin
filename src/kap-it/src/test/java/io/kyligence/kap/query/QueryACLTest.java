@@ -461,4 +461,32 @@ public class QueryACLTest extends NAutoTestBase {
             Assert.assertEquals("2012-01-01", resultList.get(0));
         }
     }
+
+    @Test
+    public void testNestedSqlFrom() throws Exception {
+        val sql = "select * from (select year(cal_dt) as cal_dt_year from (select CAL_DT from \"default\".TEST_KYLIN_FACT where CAL_DT > '2012-01-01' and CAL_DT < '2012-02-01' and trans_id > 200)) where cal_dt_year < '2013'";
+        val prepender = new TableViewPrepender();
+        val authorizedCols = Sets.<String>newHashSet();
+        val rowConditions = Maps.<String, Set<String>>newHashMap();
+        authorizedCols.add("CAL_DT");
+        authorizedCols.add("TRANS_ID");
+        rowConditions.put("CAL_DT", new HashSet<String>(){{add("2012-01-15");}});
+
+        val aclMap = Maps.<String, Pair<Set<String>, Map<String, Set<String>>>>newHashMap();
+        aclMap.put(FACT_TABLE, Pair.newPair(authorizedCols, rowConditions));
+
+        aclTCRManager.updateAclTCR(generateRowACLData(aclMap), USER1, true);
+        prepender.setAclInfo(new QueryContext.AclInfo(USER1, Sets.newHashSet(GROUP1), false));
+        val transformedSql = prepender.transform(sql, PROJECT, DEFAULT_SCHEMA);
+        val expectedSql = "WITH TEST_KYLIN_FACT AS (SELECT * FROM \"DEFAULT\".TEST_KYLIN_FACT WHERE (CAL_DT=DATE '2012-01-15')) " + sql;
+        Assert.assertEquals(transformedSql.toUpperCase(), expectedSql.toUpperCase());
+
+        proposeAndBuildIndex(new String[]{sql});
+        prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
+        val queryExec = new QueryExec(PROJECT, getTestConfig());
+        val queryResult = queryExec.executeQuery(transformedSql);
+        Assert.assertNotNull(queryResult);for (List<String> resultList : queryResult.getRows()) {
+            Assert.assertEquals("2012", resultList.get(0));
+        }
+    }
 }

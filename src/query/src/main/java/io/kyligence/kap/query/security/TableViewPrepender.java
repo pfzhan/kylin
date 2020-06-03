@@ -101,7 +101,7 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
 
     private Set<String> getGroups() {
         if (Objects.isNull(aclInfo)) {
-            return null;
+            return Sets.newHashSet();
         }
         return aclInfo.getGroups();
     }
@@ -206,7 +206,7 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
 
             var alias = tableAliasMap.get(tableIdentity);
             if (alias == null) {
-                val tableName = tableIdentity.split("\\.")[1];
+                String tableName = tableIdentity.split("\\.")[1];
                 if (withAlias.contains(tableName)) {
                     alias = getRandomAlias(tableName);
                 } else {
@@ -288,7 +288,7 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
 
                 val database = tableInfo.getFirst();
                 val tableName = tableInfo.getSecond();
-                val tableIdentity = database + "." + tableName;
+                String tableIdentity = database + "." + tableName;
                 if (tableViewIdentities.contains(tableIdentity) && tableName.equalsIgnoreCase(alias)) {
                     tableToBeReplaced.add(tableIdentifier);
                 }
@@ -451,17 +451,17 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
                     case OVER:
                         break;
                     default:
-                        tableIdentifiers.add((SqlIdentifier) sqlFrom);
+                        sqlFrom.accept(this);
                         break;
                 }
+                return null;
             } else if (sqlCall instanceof SqlWithItem) {
                 val sqlWithItem = (SqlWithItem) sqlCall;
                 withClauses.put(sqlWithItem.name.toString(), new TableIdentifierFinder(sqlWithItem.query).getTableIdentifiers());
+                return null;
             } else {
-                sqlCall.getOperator().acceptCall(this, sqlCall);
+                return sqlCall.getOperator().acceptCall(this, sqlCall);
             }
-
-            return null;
         }
 
         @Override
