@@ -150,15 +150,17 @@ public class SourceUsageManager {
         if (tableManager.existsSnapshotTableByName(tableName)) {
             TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(tableDesc);
             long originalSize = tableExtDesc.getOriginalSize();
-            if (originalSize != 0) {
-                return originalSize;
+            if (originalSize == 0) {
+                logger.warn("Original size of table:{} is zero", tableName);
+                table.setStatus(CapacityStatus.TENTATIVE);
             }
-            return getLookupTableSourceByScale(table, projectName);
+            return originalSize;
         } else {
             return 0;
         }
     }
 
+    // for calculating lookup table without snapshot source usage
     private long getLookupTableSourceByScale(TableCapacityDetail table, String projectName) {
         String tableName = table.getName();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(config, projectName);
@@ -171,7 +173,7 @@ public class SourceUsageManager {
                 long recordCount = 0;
                 long columnBytes = 0;
                 for (String dataflow : column.getSourceBytesMap().keySet()) {
-                    recordCount += dataflowManager.getDataflow(dataflow).getStorageBytesSize();
+                    recordCount += dataflowManager.getDataflow(dataflow).getLastSegment().getSourceCount();
                     columnBytes += column.getDataflowSourceBytes(dataflow);
                 }
 
@@ -182,6 +184,7 @@ public class SourceUsageManager {
             }
             long tableTotalRows = tableExtDesc.getTotalRows();
             if (tableTotalRows == 0L) {
+                //TODO currently, table total rows is always zero
                 logger.debug("Total rows for table: {} is zero.", tableName);
             }
             tableBytes = (long) (rowBytes * tableTotalRows);
@@ -279,6 +282,7 @@ public class SourceUsageManager {
             allColumns = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
         } catch (Exception e) {
             logger.error("Failed to get all columns' TblColRef for segment: {}", dataSegment, e);
+            projectDetail.setStatus(CapacityStatus.ERROR);
         }
         for (TblColRef column : allColumns) {
             String tableName = column.getTableRef().getTableIdentity();
@@ -291,7 +295,6 @@ public class SourceUsageManager {
             long sourceBytes = dataflowColumnsBytes.getOrDefault(column.getIdentity(), 0L);
             if (sourceBytes == 0L) {
                 tableDetail.setStatus(CapacityStatus.TENTATIVE);
-                projectDetail.setStatus(CapacityStatus.TENTATIVE);
             }
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
             tableDetail.updateColumn(columnDetail);
@@ -347,8 +350,10 @@ public class SourceUsageManager {
             if (projectDetail.getCapacity() > 0) {
                 usage.appendProject(projectDetail);
             }
-            if (projectDetail.getStatus() == CapacityStatus.TENTATIVE) {
-                usage.setCapacityStatus(CapacityStatus.TENTATIVE);
+            CapacityStatus defaultStatus = CapacityStatus.OK;
+            CapacityStatus projectStatus = projectDetail.getStatus();
+            if (projectStatus.compareTo(defaultStatus) > 0) {
+                usage.setCapacityStatus(projectStatus);
             }
         }
 
