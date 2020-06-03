@@ -31,9 +31,6 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.query.schema.KapOLAPSchema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
@@ -69,12 +66,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.query.schema.KapOLAPSchema;
 
 // match alias in query to alias in model
 // Not designed to reuse, re-new per query
@@ -170,7 +171,8 @@ public class QueryAliasMatcher {
             if (call instanceof SqlJoin) {
                 SqlJoin join = (SqlJoin) call;
                 if (join.getConditionType() != JoinConditionType.ON) {
-                    throw new IllegalArgumentException("JoinConditionType is not ON: " + join.toSqlString(SqlDialect.CALCITE));
+                    throw new IllegalArgumentException(
+                            "JoinConditionType is not ON: " + join.toSqlString(SqlDialect.CALCITE));
                 }
                 if (join.getJoinType() != JoinType.INNER && join.getJoinType() != JoinType.LEFT) {
                     throw new IllegalArgumentException("JoinType must be INNER or LEFT");
@@ -211,7 +213,7 @@ public class QueryAliasMatcher {
                     TblColRef colRef = TblColRef.columnForUnknownModel(tableRef, sourceColumn);
                     columns.add(colRef);
                 }
-                
+
             }
 
             return new ColumnRowType(columns);
@@ -236,7 +238,8 @@ public class QueryAliasMatcher {
                 olapSchema = new KapOLAPSchema(project, name,
                         NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                                 .listTablesGroupBySchema().get(name),
-                        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getModelsGroupbyTable());
+                        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                                .getModelsGroupbyTable());
                 schemaMap.put(name, olapSchema);
             }
             return olapSchema;
@@ -507,31 +510,27 @@ public class QueryAliasMatcher {
      */
     static TblColRef resolveTblColRef(SqlIdentifier sqlIdentifier, LinkedHashMap<String, ColumnRowType> alias2CRT) {
         TblColRef ret = null;
-        if (sqlIdentifier.names.size() == 2) {
-            //alias.col
-            String alias = sqlIdentifier.names.get(0);
-            String col = sqlIdentifier.names.get(1);
-            ColumnRowType columnRowType = alias2CRT.get(alias);
-
-            if (columnRowType == null) {
-                throw new IllegalStateException("Alias " + alias + " is not defined");
-            }
-
-            if (columnRowType == QueryAliasMatcher.SUBQUERY_TAG) {
-                return null;
-            }
-
-            ret = columnRowType.getColumnByName(col);
-        } else if (sqlIdentifier.names.size() == 1) {
-            //only col
-            String col = sqlIdentifier.names.get(0);
+        ImmutableList<String> namesOfIdentifier = sqlIdentifier.names;
+        if (namesOfIdentifier.size() == 3) {
+            // db.tableAlias.colName
+            String tableAlias = namesOfIdentifier.get(1);
+            String colName = namesOfIdentifier.get(2);
+            ColumnRowType columnRowType = alias2CRT.get(tableAlias);
+            Preconditions.checkState(columnRowType != null, "Alias " + tableAlias + " is not defined");
+            return columnRowType == QueryAliasMatcher.SUBQUERY_TAG ? null : columnRowType.getColumnByName(colName);
+        } else if (namesOfIdentifier.size() == 2) {
+            // tableAlias.colName 
+            String tableAlias = namesOfIdentifier.get(0);
+            String colName = namesOfIdentifier.get(1);
+            ColumnRowType columnRowType = alias2CRT.get(tableAlias);
+            Preconditions.checkState(columnRowType != null, "Alias " + tableAlias + " is not defined");
+            return columnRowType == QueryAliasMatcher.SUBQUERY_TAG ? null : columnRowType.getColumnByName(colName);
+        } else if (namesOfIdentifier.size() == 1) {
+            // only colName
+            String col = namesOfIdentifier.get(0);
             ret = resolveTblColRef(alias2CRT, col);
         }
 
-//        if (ret == null) {
-//            throw new IllegalStateException(
-//                    "The join condition column " + sqlIdentifier.toString() + " cannot be resolved");
-//        }
         return ret;
     }
 

@@ -45,7 +45,6 @@ package org.apache.kylin.query.util;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.query.security.AccessDeniedException;
@@ -55,6 +54,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 
@@ -99,22 +101,71 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
                     "default", 0, 0, "DEFAULT", true);
             String newSql1 = QueryUtil.massageSql(queryParams1);
             Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT FROM test_kylin_fact", newSql1);
-            QueryParams queryParams2 = new QueryParams(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
-                    "default", 0, 0, "DEFAULT", true);
+            QueryParams queryParams2 = new QueryParams(config,
+                    "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", "default", 0, 0, "DEFAULT", true);
             newSql1 = QueryUtil.massageSql(queryParams2);
             Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT,DEAL_AMOUNT FROM test_kylin_fact", newSql1);
 
             // disable ConvertToComputedColumn
             config.setProperty("kylin.query.transformers", "");
-            QueryParams queryParams3 = new QueryParams(config, "SELECT price * item_count FROM test_kylin_fact", "default",
-                    0, 0, "DEFAULT", true);
+            QueryParams queryParams3 = new QueryParams(config, "SELECT price * item_count FROM test_kylin_fact",
+                    "default", 0, 0, "DEFAULT", true);
             String newSql2 = QueryUtil.massageSql(queryParams3);
             Assert.assertEquals("SELECT price * item_count FROM test_kylin_fact", newSql2);
-            QueryParams queryParams4 = new QueryParams(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
-                    "default", 0, 0, "DEFAULT", false);
+            QueryParams queryParams4 = new QueryParams(config,
+                    "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", "default", 0, 0, "DEFAULT", false);
             newSql2 = QueryUtil.massageSql(queryParams4);
             Assert.assertEquals("SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", newSql2);
         }
+    }
+
+    @Test
+    public void testConvertedToComputedColumn() {
+        String modelUuid = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        final KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, "default");
+        modelManager.updateDataModel(modelUuid, copyForWrite -> {
+            ComputedColumnDesc cc = new ComputedColumnDesc();
+            cc.setTableAlias("TEST_KYLIN_FACT");
+            cc.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+            cc.setComment("");
+            cc.setColumnName("TMP_CC");
+            cc.setDatatype("DECIMAL(38,4)");
+            cc.setExpression("TEST_KYLIN_FACT.PRICE + 1");
+            cc.setInnerExpression("TEST_KYLIN_FACT.PRICE + 1");
+            copyForWrite.getComputedColumnDescs().add(cc);
+        });
+
+        config.setProperty("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
+
+        // join condition is tableAlias.colName = tableAlias.colName
+        String sql = "select price + 1 from test_kylin_fact left join TEST_CATEGORY_GROUPINGS "
+                + "on TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID and  TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID";
+        String expected = "select TEST_KYLIN_FACT.TMP_CC from test_kylin_fact left join TEST_CATEGORY_GROUPINGS "
+                + "on TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID and  TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID";
+        QueryParams queryParams = new QueryParams(config, sql, "default", 0, 0, "DEFAULT", true);
+        String result = QueryUtil.massageSql(queryParams);
+        Assert.assertEquals(expected, result);
+
+        // join condition is colName = colName
+        String sql2 = "select price + 1 from test_kylin_fact left join TEST_CATEGORY_GROUPINGS "
+                + "on TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID and LSTG_SITE_ID = SITE_ID";
+        String expected2 = "select TEST_KYLIN_FACT.TMP_CC from test_kylin_fact left join TEST_CATEGORY_GROUPINGS "
+                + "on TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID and LSTG_SITE_ID = SITE_ID";
+        QueryParams queryParams2 = new QueryParams(config, sql2, "default", 0, 0, "DEFAULT", true);
+        String result2 = QueryUtil.massageSql(queryParams2);
+        Assert.assertEquals(expected2, result2);
+
+        // join condition is colName = colName
+        String sql3 = "SELECT PRICE + 1 FROM TEST_KYLIN_FACT LEFT JOIN TEST_CATEGORY_GROUPINGS "
+                + "ON \"DEFAULT\".TEST_KYLIN_FACT.LEAF_CATEG_ID = \"DEFAULT\".TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID"
+                + " AND  \"DEFAULT\".TEST_KYLIN_FACT.LSTG_SITE_ID = \"DEFAULT\".TEST_CATEGORY_GROUPINGS.SITE_ID";
+        String expected3 = "SELECT TEST_KYLIN_FACT.TMP_CC FROM TEST_KYLIN_FACT LEFT JOIN TEST_CATEGORY_GROUPINGS "
+                + "ON \"DEFAULT\".TEST_KYLIN_FACT.LEAF_CATEG_ID = \"DEFAULT\".TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID "
+                + "AND  \"DEFAULT\".TEST_KYLIN_FACT.LSTG_SITE_ID = \"DEFAULT\".TEST_CATEGORY_GROUPINGS.SITE_ID";
+        QueryParams queryParams3 = new QueryParams(config, sql3, "default", 0, 0, "DEFAULT", true);
+        String result3 = QueryUtil.massageSql(queryParams3);
+        Assert.assertEquals(expected3, result3);
     }
 
     @Test
