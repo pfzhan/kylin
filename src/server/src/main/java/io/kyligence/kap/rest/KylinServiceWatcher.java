@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.ClusterConstant;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
@@ -57,13 +58,13 @@ public class KylinServiceWatcher {
 
     public KylinServiceWatcher(ServiceDiscovery<ZookeeperInstance> serviceDiscovery) throws Exception {
         // all server cache
-        allServiceCache = createServiceCache(serviceDiscovery, "all");
+        allServiceCache = createServiceCache(serviceDiscovery, ClusterConstant.ALL);
 
         // query server cache
-        queryServiceCache = createServiceCache(serviceDiscovery, "query");
+        queryServiceCache = createServiceCache(serviceDiscovery, ClusterConstant.QUERY);
 
         // job server cache
-        jobServiceCache = createServiceCache(serviceDiscovery, "job");
+        jobServiceCache = createServiceCache(serviceDiscovery, ClusterConstant.JOB);
 
         start();
     }

@@ -113,7 +113,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 switch (output.getState()) {
                     case READY:
                         nReady++;
-                        if (!context.isJobFull() && !context.isReachQuotaLimit()) {
+                        if (!context.isJobFull() && !context.isReachQuotaLimit() && !context.isLicenseOverCapacity()) {
                             logger.info("fetcher schedule {} ", id);
 
                             scheduleJob(id);

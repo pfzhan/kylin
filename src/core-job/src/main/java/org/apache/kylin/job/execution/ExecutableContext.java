@@ -65,6 +65,9 @@ public class ExecutableContext {
     @Getter
     @Setter
     private volatile boolean reachQuotaLimit = false;
+    @Getter
+    @Setter
+    private volatile boolean isLicenseOverCapacity = false;
 
     private final ConcurrentMap<String, Executable> runningJobs;
     private final ConcurrentMap<String, Long> runningJobInfos;

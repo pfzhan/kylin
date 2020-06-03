@@ -44,6 +44,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.lock.JobLock;
 import org.apache.kylin.job.runners.FetcherRunner;
 import org.apache.kylin.job.runners.JobCheckRunner;
+import org.apache.kylin.job.runners.LicenseCapacityCheckRunner;
 import org.apache.kylin.job.runners.QuotaStorageCheckRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -189,6 +190,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         }
 
         fetcherPool.scheduleWithFixedDelay(new JobCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
+        fetcherPool.scheduleWithFixedDelay(new LicenseCapacityCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
         fetcherPool.scheduleWithFixedDelay(fetcher, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
         hasStarted.set(true);
     }
