@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.util;
 
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
@@ -31,7 +32,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @Slf4j
-public class AddressUtil {
+public class AddressUtil implements IKeep {
     public static String getLocalInstance() {
         String serverIp = "127.0.0.1";
         try {
