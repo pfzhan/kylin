@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.config;
 
 import io.kyligence.kap.rest.Broadcaster.BroadcastListener;
+import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
 import org.apache.kylin.common.KapConfig;
@@ -80,6 +81,9 @@ public class AppInitializer {
     @Autowired
     BroadcastListener broadcastListener;
 
+    @Autowired
+    SourceUsageUpdateListener sourceUsageUpdateListener;
+
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -101,6 +105,7 @@ public class AppInitializer {
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(epochChangedListener);
             SchedulerEventBusFactory.getInstance(kylinConfig).register(broadcastListener);
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(sourceUsageUpdateListener);
 
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
