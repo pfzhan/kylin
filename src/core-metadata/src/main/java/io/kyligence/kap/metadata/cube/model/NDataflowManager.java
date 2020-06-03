@@ -56,6 +56,7 @@ import lombok.val;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
@@ -607,7 +608,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     private boolean needUpdateSourceUsage(final NDataflowUpdate update) {
-        return update.getToRemoveSegs() != null || update.getToRemoveLayouts() != null;
+        return ArrayUtils.isNotEmpty(update.getToRemoveSegs()) || ArrayUtils.isNotEmpty(update.getToRemoveLayouts());
     }
 
     public NDataflow dropDataflow(String dfId) {

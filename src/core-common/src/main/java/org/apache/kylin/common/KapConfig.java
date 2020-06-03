@@ -539,7 +539,7 @@ public class KapConfig {
     }
 
     public boolean isRecordSourceUsage() {
-        return Boolean.parseBoolean(config.getOptional("kylin.source.record-source-usage", "true"));
+        return Boolean.parseBoolean(config.getOptional("kylin.source.record-source-usage-enabled", "true"));
     }
 
     /**

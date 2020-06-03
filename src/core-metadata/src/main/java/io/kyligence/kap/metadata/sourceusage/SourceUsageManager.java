@@ -106,8 +106,8 @@ public class SourceUsageManager {
             return columnSourceBytes;
         }
         long inputRecordsSize = segment.getSourceBytesSize();
-        if (inputRecordsSize == 0L) {
-            logger.debug("Source bytes size for segment: {} is zero", segment);
+        if (inputRecordsSize == -1) {
+            logger.debug("Source bytes size for segment: {} is -1", segment);
         }
         if (allColumns.isEmpty()) {
             return columnSourceBytes;

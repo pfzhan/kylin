@@ -291,7 +291,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
 
         map.put("getMonitorSparkPeriodSeconds",
                 new PropertiesEntity("kylin.storage.monitor-spark-period-seconds", "30", 30));
-        map.put("isRecordSourceUsage", new PropertiesEntity("kylin.source.record-source-usage", "true", true));
+        map.put("isRecordSourceUsage", new PropertiesEntity("kylin.source.record-source-usage-enabled", "true", true));
 
     }
 
