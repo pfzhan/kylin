@@ -34,7 +34,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
-import org.apache.kylin.metadata.model.{TblColRef}
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql._

@@ -33,7 +33,7 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.{DFChooser, KylinBuildEnv}
 import io.kyligence.kap.engine.spark.utils.{FileNames, LogUtils}
 import io.kyligence.kap.metadata.cube.model.NDataSegment
-import io.kyligence.kap.metadata.model.{NDataModel}
+import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
 import org.apache.kylin.common.util.HadoopUtil
@@ -172,23 +172,6 @@ class DFSnapshotBuilder extends Logging with Serializable {
         logError(s"building snapshot get file: ${file.getPath} md5 error,msg: ${error.getMessage}")
         throw new IOException(s"Failed to generate file: ${file.getPath} md5 ", error)
     }
-  }
-
-  def utf8Length(sequence: CharSequence): Int = {
-    var count = 0
-    var i = 0
-    val len = sequence.length
-    while (i < len) {
-      val ch = sequence.charAt(i)
-      if (ch <= 0x7F) count += 1
-      else if (ch <= 0x7FF) count += 2
-      else if (Character.isHighSurrogate(ch)) {
-        count += 4
-        i += 1
-      }
-      else count += 3
-    }
-    count
   }
 
   def buildSingleSnapshot(tableDesc: TableDesc, baseDir: String, fs: FileSystem, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
