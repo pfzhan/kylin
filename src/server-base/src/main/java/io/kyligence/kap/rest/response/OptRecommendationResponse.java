@@ -52,7 +52,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OptRecommendationResponse implements Serializable {
     public static final int PAGING_OFFSET = 0;
-    public static final int PAGING_SIZE = 10;
+    public static final int PAGING_SIZE;
+    static {
+        PAGING_SIZE = KylinConfig.getInstanceFromEnv().getRecommendationPageSize();
+    }
 
     @JsonProperty("cc_recommendations")
     private List<CCRecommendationItem> ccRecommendations;
@@ -66,6 +69,21 @@ public class OptRecommendationResponse implements Serializable {
     @JsonProperty("index_recommendations")
     private List<LayoutRecommendationResponse> indexRecommendations;
 
+    @JsonProperty("total_size")
+    private int totalSize;
+
+    @JsonProperty("cc_recommendation_size")
+    private int ccRecommendationSize;
+
+    @JsonProperty("dimension_recommendation_size")
+    private int dimensionRecommendationSize;
+
+    @JsonProperty("measure_recommendation_size")
+    private int measureRecommendationSize;
+
+    @JsonProperty("index_recommendation_size")
+    private int indexRecommendationSize;
+
     private String modelId;
     private String project;
 
@@ -73,9 +91,22 @@ public class OptRecommendationResponse implements Serializable {
         this.modelId = optRecommendation.getUuid();
         this.project = optRecommendation.getProject();
 
+        totalSize = optRecommendation.getRecommendationsCount();
         this.ccRecommendations = optRecommendation.getCcRecommendations();
+        this.ccRecommendationSize = ccRecommendations.size();
+        if (ccRecommendationSize > PAGING_SIZE) {
+            ccRecommendations = ccRecommendations.subList(0, PAGING_SIZE);
+        }
         this.dimensionRecommendations = optRecommendation.getDimensionRecommendations();
+        this.dimensionRecommendationSize = dimensionRecommendations.size();
+        if (dimensionRecommendationSize > PAGING_SIZE) {
+            dimensionRecommendations = dimensionRecommendations.subList(0, PAGING_SIZE);
+        }
         this.measureRecommendations = optRecommendation.getMeasureRecommendations();
+        this.measureRecommendationSize = measureRecommendations.size();
+        if (measureRecommendations.size() > PAGING_SIZE) {
+            measureRecommendations = measureRecommendations.subList(0, PAGING_SIZE);
+        }
         this.indexRecommendations = convertIndexRecommendation(optRecommendation, sources);
 
     }
@@ -86,7 +117,11 @@ public class OptRecommendationResponse implements Serializable {
 
     private List<LayoutRecommendationResponse> convertIndexRecommendation(OptimizeRecommendation optimizeRecommendation,
             List<String> sources) {
-        val indexRecommendationItems = optimizeRecommendation.getLayoutRecommendations();
+        List<LayoutRecommendationItem> indexRecommendationItems = optimizeRecommendation.getLayoutRecommendations();
+        this.indexRecommendationSize = indexRecommendationItems.size();
+        if (indexRecommendationSize > PAGING_SIZE) {
+            indexRecommendationItems = indexRecommendationItems.subList(0, PAGING_SIZE);
+        }
         val optimizedModel = getOptRecomManager().applyModel(modelId);
         val idNameMap = optimizedModel.getAllNamedColumns().stream()
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getId, NDataModel.NamedColumn::getAliasDotColumn));

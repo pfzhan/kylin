@@ -52,4 +52,7 @@ public class RemoveRecommendationsRequest {
 
     @JsonProperty("index_recommendations")
     private List<Long> indexItemIds = Lists.newArrayList();
+
+    @JsonProperty("all")
+    private boolean cleanAll;
 }

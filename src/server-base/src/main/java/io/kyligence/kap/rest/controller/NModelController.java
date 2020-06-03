@@ -36,9 +36,13 @@ import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARTITION_
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -753,24 +757,38 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "cc_recommendations", required = false) List<Long> ccItemIds,
             @RequestParam(value = "dimension_recommendations", required = false) List<Long> dimensionItemIds,
             @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
-            @RequestParam(value = "index_recommendations", required = false) List<Long> indexItemIds) {
+            @RequestParam(value = "index_recommendations", required = false) List<Long> indexItemIds,
+            @RequestParam(value = "all", required = false) boolean cleanAll) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         val request = new RemoveRecommendationsRequest();
         request.setModelId(modelId);
         request.setProject(project);
-        if (ccItemIds != null)
-            request.setCcItemIds(ccItemIds);
-        if (dimensionItemIds != null)
-            request.setDimensionItemIds(dimensionItemIds);
-        if (measureItemIds != null)
-            request.setMeasureItemIds(measureItemIds);
-        if (indexItemIds != null)
-            request.setIndexItemIds(indexItemIds);
+        if (cleanAll) {
+            request.setCleanAll(true);
+            val optimizeRecommendation = OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(modelId);
+            request.setCcItemIds(getItemIds(optimizeRecommendation.getCcRecommendations()));
+            request.setDimensionItemIds(getItemIds(optimizeRecommendation.getDimensionRecommendations()));
+            request.setMeasureItemIds(getItemIds(optimizeRecommendation.getMeasureRecommendations()));
+            request.setIndexItemIds(getItemIds(optimizeRecommendation.getLayoutRecommendations()));
+        } else {
+            if (ccItemIds != null)
+                request.setCcItemIds(ccItemIds);
+            if (dimensionItemIds != null)
+                request.setDimensionItemIds(dimensionItemIds);
+            if (measureItemIds != null)
+                request.setMeasureItemIds(measureItemIds);
+            if (indexItemIds != null)
+                request.setIndexItemIds(indexItemIds);
+        }
 
         optimizeRecommendationService.removeRecommendations(request, request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    private <T extends RecommendationItem<T>> List<Long> getItemIds(List<T> recommendationItems) {
+        return recommendationItems.stream().map(RecommendationItem::getItemId).collect(Collectors.toList());
     }
 
     @ApiOperation(value = "getLayoutRecommendationContent (update)", notes = "Add URL: {model}")

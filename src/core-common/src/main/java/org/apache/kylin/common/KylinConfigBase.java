@@ -1887,4 +1887,8 @@ public abstract class KylinConfigBase implements Serializable {
                 "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder");
     }
 
+    public int getRecommendationPageSize() {
+        return Integer.parseInt(getOptional("kylin.model.recommendation-page-size", "500"));
+    }
+
 }

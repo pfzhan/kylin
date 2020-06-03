@@ -767,7 +767,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).removeOptimizeRecommendations(request.getModelId(), request.getProject(), null,
-                null, null, null);
+                null, null, null, false);
 
         // project is empty
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/recommendations")
