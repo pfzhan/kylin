@@ -38,6 +38,7 @@ import java.util.Set;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -123,7 +124,7 @@ public class SourceUsageManager {
     private Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
         Map<String, Long> dataflowSourceMap = new HashMap<>();
         for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
-            Map<String, Long> segmentSourceMap = segment.getColumnSourceBytes() == null ?
+            Map<String, Long> segmentSourceMap = MapUtils.isEmpty(segment.getColumnSourceBytes()) ?
                     calcAvgColumnSourceBytes(segment) : segment.getColumnSourceBytes();
             for (Map.Entry<String, Long> sourceMap : segmentSourceMap.entrySet()) {
                 String column = sourceMap.getKey();
