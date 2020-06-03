@@ -56,7 +56,7 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
     private long currentCapacity;
 
     @JsonProperty("license_capacity")
-    private double licenseCapacity;
+    private long licenseCapacity;
 
     @JsonProperty("capacity_details")
     private ProjectCapacityDetail[] capacityDetails;
@@ -93,7 +93,7 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
         private long capacity;
 
         @JsonProperty("license_capacity")
-        private double licenseCapacity;
+        private long licenseCapacity;
 
         @JsonProperty("capacity_ratio")
         private double capacityRatio;

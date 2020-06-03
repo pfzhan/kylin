@@ -407,8 +407,8 @@ public class LicenseInfoService extends BasicService {
         setProperty(Constants.KE_LICENSE_NODES, prefix, realNode);
     }
 
-    private double tbToByte(double tb) {
-        return tb * 1024 * 1024 * 1024 * 1024;
+    private long tbToByte(double tb) {
+        return (long) tb * 1024 * 1024 * 1024 * 1024;
     }
 
     private String getRealNode(String node, Consumer<String> checker) throws IOException {

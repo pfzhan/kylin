@@ -36,7 +36,7 @@ public class LicenseMonitorInfoResponse implements Serializable {
     private long currentCapacity = 0L;
 
     @JsonProperty("capacity")
-    private double capacity = 0L;
+    private long capacity = 0L;
 
     @JsonProperty("capacity_status")
     private CapacityStatus capacityStatus = CapacityStatus.OK;

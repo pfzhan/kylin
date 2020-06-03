@@ -366,7 +366,7 @@ public class SourceUsageManager {
         String capacity = System.getProperty(Constants.KE_LICENSE_VOLUME);
         if (!StringUtils.isEmpty(capacity) && !Constants.UNLIMITED.equals(capacity)) {
             try {
-                double licenseCapacity = Double.parseDouble(capacity);
+                long licenseCapacity = Long.parseLong(capacity);
                 usage.setLicenseCapacity(licenseCapacity);
                 if (licenseCapacity < usage.getCurrentCapacity()) {
                     usage.setCapacityStatus(OVERCAPACITY);
