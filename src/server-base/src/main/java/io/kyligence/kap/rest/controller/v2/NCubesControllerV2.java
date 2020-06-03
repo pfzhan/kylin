@@ -133,14 +133,13 @@ public class NCubesControllerV2 extends NBasicController {
             throws Exception {
         String startTime = String.valueOf(request.getStartTime());
         String endTime = String.valueOf(request.getEndTime());
-        String partitionColumnFormat = modelService.getPartitionColumnFormatByAlias(request.getProject(), modelAlias);
-        validateDataRange(startTime, endTime, partitionColumnFormat);
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
             throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
-
+        String partitionColumnFormat = modelService.getPartitionColumnFormatByAlias(dataModelResponse.getProject(), modelAlias);
+        validateDataRange(startTime, endTime, partitionColumnFormat);
         JobInfoResponseV2 result = null;
         switch (request.getBuildType()) {
         case "BUILD":
