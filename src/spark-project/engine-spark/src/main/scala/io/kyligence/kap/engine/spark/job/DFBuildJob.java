@@ -163,13 +163,13 @@ public class DFBuildJob extends SparkApplication {
     private void updateColumnBytesInseg(String dataflowId, Map<String, Object> columnBytes, String id, long rowCount) {
         HashMap<String, Long> map = Maps.newHashMap();
         val rows = config.getCapacitySampleRows();
-        long multiple = 0;
+        double multiple = 0D;
         if (rowCount < rows)
-            multiple = 1;
+            multiple = 1D;
         else
-            multiple = rowCount / rows;
+            multiple = (double) rowCount / rows;
         for (Map.Entry<String, Object> entry : columnBytes.entrySet()) {
-            map.put(entry.getKey(), Long.parseLong(entry.getValue().toString()) * multiple);
+            map.put(entry.getKey(), (long) (Long.parseLong(entry.getValue().toString()) * multiple));
         }
         NDataflow dataflow = dfMgr.getDataflow(dataflowId);
         NDataflow newDF = dataflow.copy();

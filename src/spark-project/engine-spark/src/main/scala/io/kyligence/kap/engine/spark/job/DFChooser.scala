@@ -267,16 +267,19 @@ object DFChooser extends Logging {
   def utf8Length(sequence: CharSequence): Int = {
     var count = 0
     var i = 0
-    val len = sequence.length
-    while (i < len) {
-      val ch = sequence.charAt(i)
-      if (ch <= 0x7F) count += 1
-      else if (ch <= 0x7FF) count += 2
-      else if (Character.isHighSurrogate(ch)) {
-        count += 4
+    if (sequence != null) {
+      val len = sequence.length
+      while (i < len) {
+        val ch = sequence.charAt(i)
+        if (ch <= 0x7F) count += 1
+        else if (ch <= 0x7FF) count += 2
+        else if (Character.isHighSurrogate(ch)) {
+          count += 4
+          i += 1
+        }
+        else count += 3
+        i += 1
       }
-      else count += 3
-      i += 1
     }
     count
   }
