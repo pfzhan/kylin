@@ -408,7 +408,7 @@ public class LicenseInfoService extends BasicService {
     }
 
     private long tbToByte(double tb) {
-        return (long) tb * 1024 * 1024 * 1024 * 1024;
+        return (long) (tb * 1024 * 1024 * 1024 * 1024);
     }
 
     private String getRealNode(String node, Consumer<String> checker) throws IOException {
