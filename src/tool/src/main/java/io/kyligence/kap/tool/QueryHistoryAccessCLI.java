@@ -44,6 +44,7 @@ public class QueryHistoryAccessCLI {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccessCLI.class);
     private static final String PROJECT = "test_project";
     private static final String FAIL_LOG = "query history access test failed.";
+    private static final String DROP_TABLE = "drop table ";
     private JdbcTemplate jdbcTemplate;
 
     public QueryHistoryAccessCLI(JdbcTemplate jdbcTemplate) {
@@ -88,10 +89,10 @@ public class QueryHistoryAccessCLI {
             jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryRealizationTableName()
                     + " where project_name = '" + PROJECT + "'");
         } catch (BadSqlGrammarException e) {
-            jdbcTemplate.update("drop table " + RDBMSWriter.getQueryHistoryTableName());
-            jdbcTemplate.update("drop table " + RDBMSWriter.getQueryHistoryRealizationTableName());
-            jdbcTemplate.update("drop table " + getMetadataTableName());
-            jdbcTemplate.update("drop table " + getMetadataAuditLogTableName());
+            jdbcTemplate.update(DROP_TABLE + RDBMSWriter.getQueryHistoryTableName());
+            jdbcTemplate.update(DROP_TABLE + RDBMSWriter.getQueryHistoryRealizationTableName());
+            jdbcTemplate.update(DROP_TABLE + getMetadataTableName());
+            jdbcTemplate.update(DROP_TABLE + getMetadataAuditLogTableName());
             logger.error(FAIL_LOG, e.getMessage());
             return false;
         } catch (Exception e) {
