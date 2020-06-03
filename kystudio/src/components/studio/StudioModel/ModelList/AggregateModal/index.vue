@@ -690,7 +690,7 @@ export default class AggregateModal extends Vue {
   }
   async handleClose (isSubmit) {
     // 有修改时取消确认
-    if (!this.isSubmit && this.isEditForm) {
+    if (!isSubmit && this.isEditForm) {
       await kapConfirm(this.$t('kylinLang.common.unSavedTips'), {type: 'warning', confirmButtonText: this.$t('kylinLang.common.discardChanges')}, this.$t('kylinLang.common.tip'))
     }
     this.hideModal()
