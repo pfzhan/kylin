@@ -150,8 +150,8 @@ public class SourceUsageManager {
         if (tableManager.existsSnapshotTableByName(tableName)) {
             TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(tableDesc);
             long originalSize = tableExtDesc.getOriginalSize();
-            if (originalSize == 0) {
-                logger.warn("Original size of table:{} is zero", tableName);
+            if (originalSize == -1) {
+                logger.warn("Original size of table:{} is -1, set table status to TENTATIVE", tableName);
                 table.setStatus(CapacityStatus.TENTATIVE);
             }
             return originalSize;
@@ -232,8 +232,9 @@ public class SourceUsageManager {
             long capacity = Math.min(sourceCapacity, inputCapacity);
             table.setCapacity(capacity);
             sum += capacity;
-            if (table.getStatus().compareTo(status) > 0) {
-                status = table.getStatus();
+            CapacityStatus tableStatus = table.getStatus();
+            if (tableStatus.compareTo(status) > 0) {
+                status = tableStatus;
             }
         }
         project.setStatus(status);
