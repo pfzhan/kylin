@@ -29,6 +29,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
@@ -128,5 +129,21 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
             Assert.assertTrue(epochMgr.checkEpochOwner(prj.getName()));
         }
+    }
+
+    @Test
+    public void testSetMaintenanceMode() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        EpochManager epochManager = EpochManager.getInstance(config);
+        Assert.assertNull(epochManager.getGlobalEpoch());
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        var globalEpoch = epochManager.getGlobalEpoch();
+        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        epochManager.setMaintenanceMode("MODE1");
+        globalEpoch = epochManager.getGlobalEpoch();
+        Assert.assertTrue(globalEpoch.isMaintenanceMode());
+        epochManager.unsetMaintenanceMode("MODE1");
+        globalEpoch = epochManager.getGlobalEpoch();
+        Assert.assertFalse(globalEpoch.isMaintenanceMode());
     }
 }

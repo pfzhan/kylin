@@ -22,21 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.epoch;
+package io.kyligence.kap.rest.response;
 
-import static org.apache.kylin.common.exception.SystemErrorCode.EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import org.apache.kylin.common.exception.KylinException;
+import java.util.List;
 
-import lombok.Getter;
-
-public class EpochNotMatchException extends KylinException {
-
-    @Getter
-    private String project;
-
-    public EpochNotMatchException(String msg, String project) {
-        super(EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE, msg);
-        this.project = project;
-    }
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+public class ServersResponse {
+    @JsonProperty("status")
+    private MaintenanceModeResponse status;
+    private List servers;
 }

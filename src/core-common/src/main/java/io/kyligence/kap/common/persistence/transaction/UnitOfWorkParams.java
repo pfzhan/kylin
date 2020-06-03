@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import java.util.function.Consumer;
+
+import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import lombok.Builder;
 import lombok.Data;
 
@@ -34,6 +37,7 @@ public class UnitOfWorkParams<T> {
 
     private UnitOfWork.Callback<T> epochChecker;
 
+    private Consumer<ResourceRelatedEvent> writeInterceptor;
 
     @Builder.Default
     private boolean all = false;

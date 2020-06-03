@@ -24,26 +24,6 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
-import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static org.apache.kylin.common.persistence.ResourceStore.GLOBAL_EPOCH;
 
 import java.util.Collection;
@@ -58,8 +38,31 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.JsonSerializer;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
+import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
+import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.val;
 
 public class EpochManager implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(EpochManager.class);
@@ -102,7 +105,52 @@ public class EpochManager implements IKeep {
 
     //for test
     public Epoch getGlobalEpoch() {
-        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(GLOBAL_EPOCH, EPOCH_SERIALIZER);
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(GLOBAL_EPOCH,
+                EPOCH_SERIALIZER);
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MaintenanceModeResult {
+        private boolean successful;
+        private String status;
+    }
+
+    public Boolean setMaintenanceMode(String reason) {
+        return UnitOfWork.doInTransactionWithRetry(() -> {
+            Epoch epoch = getGlobalEpoch();
+            if (epoch == null || !epoch.getCurrentEpochOwner().equals(identity)) {
+                throw new EpochNotMatchException("System is trying to recover, please try again later",
+                        EpochManager.GLOBAL);
+            }
+            if (epoch.isMaintenanceMode()) {
+                return Boolean.FALSE;
+            }
+            epoch.setMaintenanceMode(true);
+            epoch.setMaintenanceModeReason(reason);
+            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch,
+                    EPOCH_SERIALIZER);
+            return Boolean.TRUE;
+        }, GLOBAL, 1);
+    }
+
+    public Boolean unsetMaintenanceMode(String reason) {
+        return UnitOfWork.doInTransactionWithRetry(() -> {
+            Epoch epoch = getGlobalEpoch();
+            if (epoch == null || !epoch.getCurrentEpochOwner().equals(identity)) {
+                throw new EpochNotMatchException("System is trying to recover, please try again later",
+                        EpochManager.GLOBAL);
+            }
+            if (!epoch.isMaintenanceMode()) {
+                return Boolean.FALSE;
+            }
+            epoch.setMaintenanceMode(false);
+            epoch.setMaintenanceModeReason(reason);
+            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch,
+                    EPOCH_SERIALIZER);
+            return Boolean.TRUE;
+        }, GLOBAL, 1);
     }
 
     private boolean updateGlobalEpoch(boolean force) {
@@ -111,16 +159,18 @@ public class EpochManager implements IKeep {
             if (epoch == null) {
                 return false;
             }
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch, EPOCH_SERIALIZER);
+            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch,
+                    EPOCH_SERIALIZER);
             return true;
         }, GLOBAL, 1);
     }
 
     private List<ProjectInstance> getProjectsToMarkOwner() {
         List<ProjectInstance> prjs = NProjectManager.getInstance(config).listAllProjects();
-        return prjs.stream().filter(p -> !isEpochLegal(p.getEpoch()) || p.getEpoch().getCurrentEpochOwner().equals(identity)).collect(Collectors.toList());
+        return prjs.stream()
+                .filter(p -> !isEpochLegal(p.getEpoch()) || p.getEpoch().getCurrentEpochOwner().equals(identity))
+                .collect(Collectors.toList());
     }
-
 
     private void tryUpdatePrjEpochs(Set<String> newEpochs) throws Exception {
         List<ProjectInstance> prjs = getProjectsToMarkOwner();
@@ -200,10 +250,11 @@ public class EpochManager implements IKeep {
     private Epoch getNewEpoch(Epoch epoch, boolean force, String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (epoch == null) {
-            epoch = new Epoch(1L, identity, System.currentTimeMillis(), kylinConfig.getServerMode());
+            epoch = new Epoch(1L, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), false, null);
         } else {
             if (!epoch.getCurrentEpochOwner().equals(identity)) {
-                if (isEpochLegal(epoch) && !force) return null;
+                if (isEpochLegal(epoch) && !force)
+                    return null;
                 epoch.setEpochId(epoch.getEpochId() + 1);
             } else {
                 if (!currentEpochs.contains(project)) {
@@ -233,7 +284,6 @@ public class EpochManager implements IKeep {
         for (String prj : escapedProjects) {
             schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj));
         }
-
 
         if (!started) {
             started = true;
@@ -282,12 +332,11 @@ public class EpochManager implements IKeep {
     public Set<String> getAllLeadersByMode(String serverMode) {
         NProjectManager prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         Set<String> leaders = Sets.newHashSet();
-        prjMgr.listAllProjects().stream().map(ProjectInstance::getEpoch)
-                .filter(epoch -> isEpochLegal(epoch))
+        prjMgr.listAllProjects().stream().map(ProjectInstance::getEpoch).filter(epoch -> isEpochLegal(epoch))
                 .map(Epoch::getCurrentEpochOwner).map(s -> getHostAndPort(s)).collect(Collectors.toSet());
         Epoch globalEpoch = getGlobalEpoch();
-        if(StringUtils.isNotBlank(serverMode) && StringUtils.isNotBlank(globalEpoch.getServerMode())
-                && !serverMode.equals(globalEpoch.getServerMode())){
+        if (StringUtils.isNotBlank(serverMode) && StringUtils.isNotBlank(globalEpoch.getServerMode())
+                && !serverMode.equals(globalEpoch.getServerMode())) {
             return leaders;
         }
         if (isEpochLegal(globalEpoch)) {
@@ -297,7 +346,8 @@ public class EpochManager implements IKeep {
     }
 
     public boolean isEpochLegal(Epoch epoch) {
-        return epoch != null && StringUtils.isNotEmpty(epoch.getCurrentEpochOwner()) && System.currentTimeMillis() - epoch.getLastEpochRenewTime() <= config.getEpochExpireTimeSecond() * 1000;
+        return epoch != null && StringUtils.isNotEmpty(epoch.getCurrentEpochOwner()) && System.currentTimeMillis()
+                - epoch.getLastEpochRenewTime() <= config.getEpochExpireTimeSecond() * 1000;
     }
 
     public String getEpochOwner(String project) {

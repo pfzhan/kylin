@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.metadata.epoch;
 
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 @SuppressWarnings("serial")
 @AllArgsConstructor
@@ -56,4 +57,15 @@ public class Epoch extends RootPersistentEntity {
     @Getter
     @Setter
     private String serverMode;
+
+    @JsonProperty("maintenance_mode")
+    @Getter
+    @Setter
+    private boolean maintenanceMode = false;
+
+    @JsonProperty("maintenance_mode_reason")
+    @Getter
+    @Setter
+    private String maintenanceModeReason;
+
 }

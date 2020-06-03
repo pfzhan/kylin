@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import static org.apache.kylin.metadata.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
 
 import java.util.ArrayList;
 import java.util.Arrays;

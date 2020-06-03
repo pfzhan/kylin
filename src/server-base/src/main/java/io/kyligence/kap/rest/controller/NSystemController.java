@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -63,11 +64,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagPackageRequest;
 import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.request.MaintenanceModeRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
+import io.kyligence.kap.rest.response.MaintenanceModeResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import io.kyligence.kap.rest.response.ServersResponse;
+import io.kyligence.kap.rest.service.MaintenanceModeService;
 import io.kyligence.kap.rest.service.SystemService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -82,6 +89,13 @@ public class NSystemController extends NBasicController {
     @Autowired
     @Qualifier("systemService")
     private SystemService systemService;
+
+    @Autowired
+    @Qualifier("maintenanceModeService")
+    private MaintenanceModeService maintenanceModeService;
+
+    @Autowired
+    private ClusterManager clusterManager;
 
     private static final Pattern trialPattern = Pattern.compile("\\S[a-zA-Z\\s\\d\\u4e00-\\u9fa5]+\\S");
 
@@ -243,4 +257,38 @@ public class NSystemController extends NBasicController {
         }
     }
 
+    @PostMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<String> setReadMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest) throws Exception {
+        maintenanceModeService.setMaintenanceMode(maintenanceModeRequest.getReason());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @DeleteMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<String> unsetReadMode(@RequestParam(value = "reason") String reason) throws Exception {
+        maintenanceModeService.unsetMaintenanceMode(reason);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<MaintenanceModeResponse> getMaintenanceMode() throws Exception {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, maintenanceModeService.getMaintenanceMode(), "");
+    }
+
+    @GetMapping(value = "/servers")
+    @ResponseBody
+    public EnvelopeResponse<ServersResponse> getServers(
+            @RequestParam(value = "ext", required = false, defaultValue = "false") boolean ext) {
+        val response = new ServersResponse();
+        val servers = clusterManager.getServers();
+        response.setStatus(maintenanceModeService.getMaintenanceMode());
+        if (ext) {
+            response.setServers(servers);
+        } else {
+            response.setServers(servers.stream().map(ServerInfoResponse::getHost).collect(Collectors.toList()));
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
 }

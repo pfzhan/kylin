@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.request.EpochRequest;
-import io.kyligence.kap.rest.service.EpochService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,18 +36,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.rest.request.EpochRequest;
+import io.kyligence.kap.rest.service.EpochService;
 
 @Controller
-@RequestMapping(value = "/api/epoch", produces = {HTTP_VND_APACHE_KYLIN_JSON})
+@RequestMapping(value = "/api/epoch", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NEpochController extends NBasicController {
 
     @Autowired
     @Qualifier("epochService")
     private EpochService epochService;
 
-    @PostMapping(value = "", produces = {HTTP_VND_APACHE_KYLIN_JSON})
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<String> updateEpochOwner(@RequestBody EpochRequest epochRequest) throws Exception {
         epochService.updateEpoch(epochRequest.getProjects(), epochRequest.isForce());

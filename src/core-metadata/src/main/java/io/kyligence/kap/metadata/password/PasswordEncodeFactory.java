@@ -41,8 +41,8 @@
  */
 package io.kyligence.kap.metadata.password;
 
-import static org.apache.kylin.metadata.exception.SystemErrorCode.FAILED_INIT_PASSWORD_ENCODER;
-import static org.apache.kylin.metadata.exception.SystemErrorCode.INVALID_PASSWORD_ENCODER;
+import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_INIT_PASSWORD_ENCODER;
+import static org.apache.kylin.common.exception.SystemErrorCode.INVALID_PASSWORD_ENCODER;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;

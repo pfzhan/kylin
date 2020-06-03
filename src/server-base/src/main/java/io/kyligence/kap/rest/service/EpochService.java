@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 
 @Component("epochService")
 public class EpochService extends BasicService {
@@ -48,5 +49,4 @@ public class EpochService extends BasicService {
                 epochMgr.updateEpoch(project);
         }
     }
-
 }

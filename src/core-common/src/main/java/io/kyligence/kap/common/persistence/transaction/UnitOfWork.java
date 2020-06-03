@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.transaction;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -65,7 +66,7 @@ public class UnitOfWork {
     private static SchedulerEventBusFactory factory;
 
     static {
-        factory  = SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv());
+        factory = SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
@@ -261,15 +262,16 @@ public class UnitOfWork {
             } else {
                 return new ResourceCreateOrUpdateEvent(x);
             }
-        }).collect(Collectors.<Event>toList());
+        }).collect(Collectors.<Event> toList());
 
         //clean rs and config
         work.cleanResource();
 
         val originConfig = KylinConfig.getInstanceFromEnv();
         // publish events here
-        val unitMessages = packageEvents(eventList, get().getProject(), traceId);
         val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
+        val writeInterceptor = params.getWriteInterceptor();
+        val unitMessages = packageEvents(eventList, get().getProject(), traceId, writeInterceptor);
         long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
                 .count();
         log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
@@ -280,12 +282,15 @@ public class UnitOfWork {
         String unitPath = null;
         if (StringUtils.isNotEmpty(unitName) && checker != null) {
             if (unitName.equals(GLOBAL_UNIT))
-                oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath = ResourceStore.GLOBAL_EPOCH).getMvcc();
+                oriMvcc = ResourceStore.getKylinMetaStore(originConfig)
+                        .getResource(unitPath = ResourceStore.GLOBAL_EPOCH).getMvcc();
             else
-                oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json").getMvcc();
+                oriMvcc = ResourceStore.getKylinMetaStore(originConfig)
+                        .getResource(unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json").getMvcc();
 
         }
-        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc, params.getEpochId());
+        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc,
+                params.getEpochId());
         if (!params.isReadonly() && !config.isUTEnv()) {
             factory.post(new BroadcastEventReadyNotifier());
         }
@@ -301,12 +306,21 @@ public class UnitOfWork {
         return null;
     }
 
-    private static UnitMessages packageEvents(List<Event> events, String project, String uuid) {
-        Preconditions.checkState(events.stream().filter(e -> e instanceof ResourceRelatedEvent).allMatch(e -> {
+    private static UnitMessages packageEvents(List<Event> events, String project, String uuid,
+            Consumer<ResourceRelatedEvent> writeInterceptor) {
+        for (Event e : events) {
+            if (!(e instanceof ResourceRelatedEvent)) {
+                continue;
+            }
             val event = (ResourceRelatedEvent) e;
-            return event.getResPath().startsWith("/" + project) || event.getResPath().endsWith("/" + project + ".json")
-                    || get().getParams().isAll();
-        }), "some event are not in project " + project);
+            if (!(event.getResPath().startsWith("/" + project) || event.getResPath().endsWith("/" + project + ".json")
+                    || get().getParams().isAll())) {
+                throw new IllegalStateException("some event are not in project " + project);
+            }
+            if (writeInterceptor != null) {
+                writeInterceptor.accept(event);
+            }
+        }
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
         events.forEach(e -> e.setKey(get().getProject()));

@@ -31,6 +31,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.rest.service.MaintenanceModeService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -62,6 +63,10 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     @Autowired
     @Qualifier("userService")
     UserService userService;
+
+    @Autowired
+    @Qualifier("maintenanceModeService")
+    MaintenanceModeService maintenanceModeService;
 
     private ConcurrentHashMap<String, RestClient> clientMap = new ConcurrentHashMap<>();
 
@@ -97,7 +102,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             updateUserLockStatus(managedUser, userName);
             Authentication auth = super.authenticate(authentication);
 
-            if (managedUser != null && managedUser.getWrongTime() > 0) {
+            if (managedUser != null && managedUser.getWrongTime() > 0 && !maintenanceModeService.isMaintenanceMode()) {
                 managedUser.clearAuthenticateFailedRecord();
                 updateUser(managedUser);
             }

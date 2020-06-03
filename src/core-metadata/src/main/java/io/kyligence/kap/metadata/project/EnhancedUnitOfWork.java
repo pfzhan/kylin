@@ -24,6 +24,8 @@
 package io.kyligence.kap.metadata.project;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.SystemErrorCode;
 import org.apache.kylin.common.persistence.ResourceStore;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -62,6 +64,13 @@ public class EnhancedUnitOfWork implements IKeep {
                     throw new EpochNotMatchException("System is trying to recover, please try again later", params.getUnitName());
                 }
                 return null;
+            });
+            params.setWriteInterceptor((event) -> {
+                if (EpochManager.getInstance(config).getGlobalEpoch().isMaintenanceMode()) {
+                    if (!event.getResPath().equals(ResourceStore.GLOBAL_EPOCH)) {
+                        throw new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE, "System is in maintenance mode");
+                    }
+                }
             });
         }
         return UnitOfWork.doInTransactionWithRetry(params);

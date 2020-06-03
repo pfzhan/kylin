@@ -39,10 +39,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.metadata.exception;
-
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
+package org.apache.kylin.common.exception;
 
 public enum SystemErrorCode implements ErrorCodeSupplier {
     // 40005XXX password
@@ -56,7 +53,12 @@ public enum SystemErrorCode implements ErrorCodeSupplier {
     FAILED_MERGE_SEGMENT("KE-40022001"), //
 
     // 40023XXX job
-    JOBNODE_API_INVALID("KE-40023002");
+    JOBNODE_API_INVALID("KE-40023002"), //
+
+    // 40024XXX read mode
+    WRITE_IN_MAINTENANCE_MODE("KE-40024001"), //
+    FAILED_ENTER_MAINTENANCE_MODE("KE-40024002"), //
+    FAILED_LEAVE_MAINTENANCE_MODE("KE-40024003");
 
     private final ErrorCode errorCode;
 
