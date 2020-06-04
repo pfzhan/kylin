@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,6 +58,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.BytesSerializer;
@@ -105,6 +107,19 @@ public class DataType implements Serializable {
     private static final String INT4 = "int4";
     private static final String LONG8 = "long8";
     private static final String ARRAY = "array";
+    private static final String MAP = "map";
+    private static final String STRUCT = "struct";
+
+    public static final List<String> UNSUPPORTED_TYPES = Lists.newArrayList(ARRAY, MAP, STRUCT, BINARY);
+
+    public static boolean isUnsupportedType(String typeName) {
+        for (String unsupportedType : UNSUPPORTED_TYPES) {
+            if (typeName.contains(unsupportedType)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static synchronized void register(String... typeNames) {
         VALID_TYPES.addAll(Arrays.asList(typeNames));
