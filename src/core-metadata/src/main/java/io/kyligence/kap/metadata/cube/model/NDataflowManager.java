@@ -601,8 +601,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
             if (needUpdateSourceUsage(update)) {
-                UnitOfWork.get().doAfterUnit(
-                        () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new SourceUsageUpdateNotifier()));
+                if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                    SchedulerEventBusFactory.getInstance(config).postWithLimit(new SourceUsageUpdateNotifier());
+                } else {
+                    UnitOfWork.get().doAfterUnit(
+                            () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new SourceUsageUpdateNotifier()));
+                }
             }
         });
     }
