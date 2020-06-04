@@ -51,16 +51,16 @@
           </template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.dimension')" prop="recommendation.dimension_recommendations" show-overflow-tooltip width="95" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.dimension_recommendations.length}}</template>
+          <template slot-scope="scope">{{scope.row.recommendation.dimension_recommendation_size}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.measure')" prop="recommendation.measure_recommendations" width="90" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.measure_recommendations.length}}</template>
+          <template slot-scope="scope">{{scope.row.recommendation.measure_recommendation_size}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="recommendation.cc_recommendations" width="150" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.cc_recommendations.length}}</template>
+          <template slot-scope="scope">{{scope.row.recommendation.cc_recommendation_size}}</template>
         </el-table-column>
         <el-table-column :label="$t('index')" prop="recommendation.index_recommendations" width="70" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.index_recommendations.length}}</template>
+          <template slot-scope="scope">{{scope.row.recommendation.index_recommendation_size}}</template>
         </el-table-column>
         <el-table-column label="SQL" prop="sqls" width="60" align="right">
           <template slot-scope="scope">{{scope.row.sqls.length}}</template>
