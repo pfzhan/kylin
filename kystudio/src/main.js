@@ -108,7 +108,9 @@ const skipUpdateApiList = [
   'kylin/api/jobs',
   'kylin/api/jobs/waiting_jobs',
   'kylin/api/query/favorite_queries',
-  'kylin/api/query/favorite_queries/size'
+  'kylin/api/query/favorite_queries/size',
+  'kylin/api/system/license/nodes',
+  'kylin/api/system/license/capacity'
 ]
 Vue.http.interceptors.push(function (request, next) {
   const isProgressVisiable = !request.headers.get('X-Progress-Invisiable')
