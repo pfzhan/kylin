@@ -27,7 +27,7 @@
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
                 <el-tag size="mini" type="danger">{{$t('failApi')}}</el-tag>
               </el-tooltip> -->
-              <el-tag size="mini" type="danger" v-if="!allNodeNumber">{{$t('noActiveAllNode')}}</el-tag>
+              <el-tag size="mini" type="danger" v-if="isOnlyQueryNode">{{$t('noActiveAllNode')}}</el-tag>
               <el-tag size="mini" type="danger" v-if="systemNodeInfo.node_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
             </template>
             <span class="icon el-icon-ksd-more_02 node-list-icon"></span></p>
@@ -76,7 +76,7 @@
         latestUpdateTime: state => state.capacity.latestUpdateTime
       }),
       ...mapGetters([
-        'allNodeNumber',
+        'isOnlyQueryNode',
         'isAdminRole'
       ])
     },
@@ -92,11 +92,11 @@
     nodesTimer = null
 
     get getDataFails () {
-      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
+      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || this.isOnlyQueryNode || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
     }
 
     get getNodesNumColor () {
-      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || this.systemNodeInfo.node_status === 'OVERCAPACITY' || !this.allNodeNumber) {
+      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode) {
         return 'is-danger'
       } else if (this.getCapacityPrecent >= 80) {
         return 'is-warning'
