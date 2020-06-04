@@ -39,6 +39,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.kylin.job.execution.JobTypeEnum.TABLE_SAMPLING;
+
 public class FetcherRunner extends AbstractDefaultSchedulerRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(FetcherRunner.class);
@@ -113,11 +115,18 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 switch (output.getState()) {
                     case READY:
                         nReady++;
-                        if (!context.isJobFull() && !context.isReachQuotaLimit() && !context.isLicenseOverCapacity()) {
-                            logger.info("fetcher schedule {} ", id);
-
-                            scheduleJob(id);
+                        if (context.isJobFull() || context.isReachQuotaLimit()) {
+                            break;
                         }
+
+                        if (context.isLicenseOverCapacity()
+                                && executableManager.getJob(id) != null
+                                && TABLE_SAMPLING != executableManager.getJob(id).getJobType()) {
+                            break;
+                        }
+
+                        logger.info("fetcher schedule {} ", id);
+                        scheduleJob(id);
                         break;
                     case DISCARDED:
                         nDiscarded++;
