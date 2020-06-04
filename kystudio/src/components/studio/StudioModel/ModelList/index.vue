@@ -467,7 +467,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       'datasourceActions',
       'modelActions',
       'metadataActions',
-      'allNodeNumber'
+      'isOnlyQueryNode'
     ])
   },
   methods: {
@@ -983,8 +983,14 @@ export default class ModelList extends Vue {
   handleEditModel (modelName, event) {
     event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
 
-    if (!this.allNodeNumber) {
-      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
+    if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
+      let msg = ''
+      if (this.$store.state.capacity.maintenance_mode) {
+        msg = this.$t('kylinLang.common.systemUpgradeTips')
+      } else if (this.isOnlyQueryNode) {
+        msg = this.$t('kylinLang.common.noAllNodeTips')
+      }
+      kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(() => {
         this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
       })
     } else {

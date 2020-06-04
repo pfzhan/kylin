@@ -1,6 +1,6 @@
 <template>
   <div id="jobListPage">
-  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips&&isAdminRole&&$store.state.config.platform !== 'iframe'" @close="closeTips" show-icon></el-alert>
+  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="isShowAdminTips" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20">
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
@@ -602,6 +602,10 @@ export default class JobsList extends Vue {
     const { details } = this.selectedJob
     let nodes = details ? details.map(it => it.info.node_info || '').filter(item => item !== '') : []
     return nodes.join(',')
+  }
+
+  get isShowAdminTips () {
+    return this.$store.state.user.isShowAdminTips && this.isAdminRole && this.$store.state.config.platform !== 'iframe' && !this.$store.state.system.isShowGlobalAlter
   }
 
   @Watch('$store.state.project.isAllProject')

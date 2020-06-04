@@ -48,7 +48,8 @@ export default {
     jobLogs: '',
     showRevertPasswordDialog: 'true',
     isEditForm: false,
-    recommendationPageSize: 0
+    recommendationPageSize: 0,
+    isShowGlobalAlter: false
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -97,6 +98,9 @@ export default {
     },
     [types.SET_CHANGED_FORM]: function (state, result) {
       state.isEditForm = result
+    },
+    [types.SET_GLOBAL_ALTER]: function (state, result) {
+      state.isShowGlobalAlter = result
     }
   },
   actions: {

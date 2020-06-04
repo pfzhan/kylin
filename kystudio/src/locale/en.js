@@ -199,11 +199,12 @@ exports.default = {
     noMeasureInModel: 'No measures added to this model.',
     pleaseClickEditModel: 'Click "Edit Model" to add some.',
     storageQuotaLimit: 'Please input a value no less than 1.00',
-    noAllNodeTips: 'There’s no active All node now. Service might be unstable. Do you want to continue?',
+    noAllNodeTips: 'There’s no active job node now. Service might be unstable. Do you want to continue?',
     continueOperate: 'Continue',
     tryLater: 'Try It Later',
     unSavedTips: 'There exist unsaved edits in current page. Are you sure to discard the changes and leave?',
-    discardChanges: 'Discard changes'
+    discardChanges: 'Discard changes',
+    systemUpgradeTips: 'System is currently undergoing maintenance. Edits might not be able to be submitted or saved. Do you want to continue?'
   },
   model: {
     generateModel: 'From SQL',

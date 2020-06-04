@@ -111,7 +111,11 @@
             </li>
           </ul>
         </div>
-        <div class="panel-content" id="scrollBox" >
+        <div class="panel-content" id="scrollBox" :class="{'ksd-pt-38': isShowAlter}">
+          <div class="alter-block" v-if="isShowAlter">
+            <el-alert :title="globalAlterTips" type="error" :closable="false" show-icon>
+            </el-alert>
+          </div>
           <div class="grid-content bg-purple-light" id="scrollContent">
             <!-- <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box"> -->
               <!-- 面包屑在dashboard页面不显示 -->
@@ -222,7 +226,8 @@ let MessageBox = ElementUI.MessageBox
       cacheHistory: 'CACHE_HISTORY',
       saveTabs: 'SET_QUERY_TABS',
       resetSpeedInfo: 'CACHE_SPEED_INFO',
-      setProject: 'SET_PROJECT'
+      setProject: 'SET_PROJECT',
+      setGlobalAlter: 'SET_GLOBAL_ALTER'
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
@@ -254,7 +259,8 @@ let MessageBox = ElementUI.MessageBox
       'currentProjectData',
       'availableMenus',
       'isAutoProject',
-      'isGuideMode'
+      'isGuideMode',
+      'isOnlyQueryNode'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -278,6 +284,16 @@ let MessageBox = ElementUI.MessageBox
     canAddProject () {
       // 模型编辑页面的时候，新增项目的按钮不可点
       return this.$route.name !== 'ModelEdit'
+    },
+    isShowAlter () {
+      const isGlobalAlter = this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode
+      if (this.$store.state.capacity.maintenance_mode) {
+        this.globalAlterTips = this.$t('systemUprade')
+      } else if (this.isOnlyQueryNode) {
+        this.globalAlterTips = this.$t('onlyQueryNode')
+      }
+      this.setGlobalAlter(isGlobalAlter)
+      return isGlobalAlter
     }
   },
   locales: {
@@ -306,7 +322,9 @@ let MessageBox = ElementUI.MessageBox
       noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. ',
       getNodesFailed: 'Failed to get, please wait 1 minutes.',
       loadingNodes: 'loading...',
-      disableAddProject: 'Can not create project in edit mode'
+      disableAddProject: 'Can not create project in edit mode',
+      systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
+      onlyQueryNode: 'There’s no active job node now. Metadata related operations are temporarily unavailable.'
     },
     'zh-cn': {
       resetPassword: '重置密码',
@@ -333,7 +351,9 @@ let MessageBox = ElementUI.MessageBox
       noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交',
       getNodesFailed: '获取失败，请等待 1 分钟',
       loadingNodes: '加载中...',
-      disableAddProject: '编辑模式下不可新建项目'
+      disableAddProject: '编辑模式下不可新建项目',
+      systemUprade: '系统已进入维护模式，元数据相关操作暂不可用。',
+      onlyQueryNode: '系统中暂无活跃的任务节点，元数据相关操作暂不可用。'
     }
   }
 })
@@ -376,6 +396,7 @@ export default class LayoutLeftRightTop extends Vue {
   isNodeLoading = false
   isNodeLoadingSuccess = false
   showChangePassword = false
+  globalAlterTips = ''
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -435,7 +456,7 @@ export default class LayoutLeftRightTop extends Vue {
           return
         }
         this.isNodeLoadingSuccess = true
-        this.nodeList = data
+        this.nodeList = data.servers
         this.isNodeLoading = false
         clearTimeout(this.nodesTimer)
         this.nodesTimer = setTimeout(() => {
@@ -945,6 +966,11 @@ export default class LayoutLeftRightTop extends Vue {
     border-radius: 50%;
     background-color:@error-color-1;
     opacity: 0;
+  }
+  .alter-block {
+    position: fixed;
+    top: 53px;
+    width: 100%;
   }
   .speed_dialog {
     .animateImg {

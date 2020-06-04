@@ -202,7 +202,8 @@ exports.default = {
     continueOperate: '继续操作',
     tryLater: '稍后再试',
     unSavedTips: '当前页面有未保存的编辑内容，是否确认丢弃更改并离开？',
-    discardChanges: '丢弃更改'
+    discardChanges: '丢弃更改',
+    systemUpgradeTips: '系统已进入维护模式，编辑可能无法提交或者保存。确定继续吗？'
   },
   model: {
     generateModel: 'SQL 建模',

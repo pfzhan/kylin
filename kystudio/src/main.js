@@ -104,7 +104,7 @@ Vue.use(VueKonva)
 Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn'
 Vue.http.options.xhr = { withCredentials: true }
 const skipUpdateApiList = [
-  'kylin/api/query/servers',
+  'kylin/api/system/servers',
   'kylin/api/jobs',
   'kylin/api/jobs/waiting_jobs',
   'kylin/api/query/favorite_queries',

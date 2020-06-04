@@ -38,7 +38,7 @@
             </div>
           </div>
           <!-- Source Table详细信息 -->
-          <el-tabs class="table-details" type="card" v-model="viewType">
+          <el-tabs class="table-details" :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" type="card" v-model="viewType">
             <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
               <TableDataLoad :project="currentProjectData" :table="selectedTable" :isShowLoadData="datasourceActions.includes('loadData')" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
@@ -410,6 +410,11 @@ export default class StudioSource extends Vue {
     padding-bottom: 20px;
     .el-tabs__content {
       min-height: calc(~'100vh - 196px');
+    }
+    &.is-global-alter {
+      .el-tabs__content {
+        min-height: calc(~'100vh - 249px');
+      }
     }
   }
   .table-update-at {

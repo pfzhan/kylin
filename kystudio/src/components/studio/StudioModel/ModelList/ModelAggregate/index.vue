@@ -227,7 +227,7 @@ import NModel from '../../ModelEdit/model.js'
       'currentProjectData',
       'isAutoProject',
       'datasourceActions',
-      'allNodeNumber'
+      'isOnlyQueryNode'
     ]),
     modelInstance () {
       this.model.project = this.currentProjectData.name
@@ -363,8 +363,14 @@ export default class ModelAggregate extends Vue {
     this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
   }
   confrimEditTableIndex (indexDesc) {
-    if (!this.allNodeNumber) {
-      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+    if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
+      let msg = ''
+      if (this.$store.state.capacity.maintenance_mode) {
+        msg = this.$t('kylinLang.common.systemUpgradeTips')
+      } else if (this.isOnlyQueryNode) {
+        msg = this.$t('kylinLang.common.noAllNodeTips')
+      }
+      kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         this.editTableIndex(indexDesc)
       })
     } else {
@@ -618,8 +624,14 @@ export default class ModelAggregate extends Vue {
     this.isLoading = false
   }
   async handleAggregateGroup () {
-    if (!this.allNodeNumber) {
-      kapConfirm(this.$t('kylinLang.common.noAllNodeTips'), {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
+    if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
+      let msg = ''
+      if (this.$store.state.capacity.maintenance_mode) {
+        msg = this.$t('kylinLang.common.systemUpgradeTips')
+      } else if (this.isOnlyQueryNode) {
+        msg = this.$t('kylinLang.common.noAllNodeTips')
+      }
+      kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
         const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
         isSubmit && await this.refreshIndexGraphAfterSubmitSetting()

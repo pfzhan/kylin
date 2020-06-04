@@ -49,7 +49,7 @@
       </div>
     </div>
     <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" v-if="extraoptionObj&&!errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
-    <div class="no-result-block" v-if="!extraoptionObj&&!isLoading">
+    <div class="no-result-block"  :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" v-if="!extraoptionObj&&!isLoading">
       <kap-nodata :content="$t('queryTips')"></kap-nodata>
     </div>
     <save_query_dialog :show="saveQueryFormVisible" :sql="this.sourceSchema" :project="currentSelectedProject" v-on:closeModal="closeModal"></save_query_dialog>
@@ -315,6 +315,9 @@ export default class QueryTab extends Vue {
     .no-result-block {
       height: calc(~'100vh - 380px');
       position: relative;
+      &.is-global-alter {
+        height: calc(~'100vh - 433px');
+      }
     }
   }
   #queryPanelBox {

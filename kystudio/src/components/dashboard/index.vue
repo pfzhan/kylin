@@ -1,6 +1,6 @@
 <template>
   <div id="dashboard">
-    <el-alert class="quota_tips" type="error" :closable="false" show-icon v-if="isNoQuota">
+    <el-alert class="quota_tips" type="error" :closable="false" show-icon v-if="isNoQuota&&!$store.state.system.isShowGlobalAlter">
       <span slot="title">
         <span>{{noMoreQuotaTips1}}</span><a v-if="dashboardActions.includes('viewSetting')" @click="gotoSetting">{{$t('quotaTips3')}}</a><span>{{$t('quotaTips4')}}</span>
       </span>

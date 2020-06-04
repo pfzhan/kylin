@@ -71,5 +71,8 @@ export default {
   downloadJobLogs: (para) => {
     const { jobId, stepId, project } = para
     return Vue.resource(apiUrl + `jobs/${jobId}/steps/${stepId}/log?project=${project}`).get()
+  },
+  loadOnlineNodes: (para) => {
+    return Vue.resource(apiUrl + 'system/servers').get(para)
   }
 }
