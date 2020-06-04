@@ -109,6 +109,7 @@ public class SourceUsageManager {
         long inputRecordsSize = segment.getSourceBytesSize();
         if (inputRecordsSize == -1) {
             logger.debug("Source bytes size for segment: {} is -1", segment);
+            return columnSourceBytes;
         }
         if (allColumns.isEmpty()) {
             return columnSourceBytes;
@@ -298,7 +299,6 @@ public class SourceUsageManager {
             if (sourceBytes == -1L) {
                 logger.debug("Column: {} calculate failed, set table: {} status to TENTATIVE", column.getName(), tableName);
                 tableDetail.setStatus(CapacityStatus.TENTATIVE);
-                sourceBytes = 0L;
             }
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
             tableDetail.updateColumn(columnDetail);
