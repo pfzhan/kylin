@@ -294,9 +294,11 @@ public class SourceUsageManager {
             ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(column.getIdentity()) == null
                     ? new ColumnCapacityDetail(column.getIdentity())
                     : tableDetail.getColumnByName(column.getIdentity());
-            long sourceBytes = dataflowColumnsBytes.getOrDefault(column.getIdentity(), 0L);
-            if (sourceBytes == 0L) {
+            long sourceBytes = dataflowColumnsBytes.getOrDefault(column.getIdentity(), -1L);
+            if (sourceBytes == -1L) {
+                logger.debug("Column: {} calculate failed, set table: {} status to TENTATIVE", column.getName(), tableName);
                 tableDetail.setStatus(CapacityStatus.TENTATIVE);
+                sourceBytes = 0L;
             }
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
             tableDetail.updateColumn(columnDetail);
