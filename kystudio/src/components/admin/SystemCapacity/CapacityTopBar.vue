@@ -54,7 +54,7 @@
 </template>
 <script>
   import Vue from 'vue'
-  import { Component, Watch } from 'vue-property-decorator'
+  import { Component } from 'vue-property-decorator'
   import { mapActions, mapState, mapGetters } from 'vuex'
   import locales from './locales'
   import filterElements from '../../../filter/index'
@@ -84,17 +84,12 @@
   })
   export default class CapacityTopBar extends Vue {
     showNodes = false
-    // isNodeLoadingSuccess = false
+    isNodeLoadingSuccess = false
     nodeList = []
     isNodeLoading = true
     showNodeDetails = false
     filterElements = filterElements
     nodesTimer = null
-
-    @Watch('showNodes')
-    changeNodePopover (newVal, oldVal) {
-      !newVal && (this.showNodeDetails = false)
-    }
 
     get getDataFails () {
       return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
@@ -165,10 +160,6 @@
           }, 1000 * 60)
         }
       })
-    }
-
-    openNodeDetails () {
-      this.showNodeDetails = true
     }
 
     // 刷新获取失败的接口
