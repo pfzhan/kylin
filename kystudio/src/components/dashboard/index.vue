@@ -82,7 +82,7 @@
                 <i class="icon el-icon-ksd-what"></i>
               </el-tooltip>
               <span class="select-date-line">
-                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '88px' : '72px'}">
+                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '110px' : '72px'}">
                   <el-option v-for="(item, index) in dataOptions" :key="index" :value="item.value" :label="item.text">
                   </el-option>
                 </el-select>
@@ -296,7 +296,8 @@ import EmptyData from '../common/EmptyData/EmptyData'
       dataValume: 'The amount of uncompressed data which has been loaded into the project',
       cMonth: 'This Month',
       cSeason: 'This Quarter',
-      cYear: 'This Year'
+      cYear: 'This Year',
+      usedCapacity: 'Data Volume'
     },
     'zh-cn': {
       storageQuota: '存储配额',
@@ -333,7 +334,8 @@ import EmptyData from '../common/EmptyData/EmptyData'
       dataValume: '已经载入该项目的不压缩的数据量',
       cMonth: '当月',
       cSeason: '当季',
-      cYear: '当年'
+      cYear: '当年',
+      usedCapacity: '数据量'
     }
   }
 })
@@ -547,7 +549,7 @@ export default class Dashboard extends Vue {
     const xDates = objs.map(it => (transToUtcDateFormat(+it)))
     const yVol = objs.map(it => (+data[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
     this.lineCharts = echarts.init(this.$el.querySelector('#used-data-project'))
-    this.lineCharts.setOption(charts.line(xDates, yVol))
+    this.lineCharts.setOption(charts.line(this, xDates, yVol))
   }
   resetChartsPosition () {
     this.lineCharts && this.lineCharts.resize()
