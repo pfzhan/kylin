@@ -596,7 +596,6 @@ public class LicenseInfoService extends BasicService {
         }
         long dayThreshold = (System.currentTimeMillis() - firstErrorTime) / (1000 * 60 * 60 * 24);
         if (dayThreshold >= 30) {
-            licenseMonitorInfoResponse.setCapacityStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
             licenseMonitorInfoResponse.setErrorOverThirtyDays(true);
         }
     }

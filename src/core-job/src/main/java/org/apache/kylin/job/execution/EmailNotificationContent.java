@@ -108,7 +108,7 @@ public class EmailNotificationContent {
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
             SourceUsageRecord sourceUsageRecord = sourceUsageManager.getLatestRecord();
             long currentCapacity = sourceUsageRecord.getCurrentCapacity();
-            long licenseVolume = (long) sourceUsageRecord.getLicenseCapacity();
+            long licenseVolume = sourceUsageRecord.getLicenseCapacity();
             String readableCurrentCapacity = SizeConvertUtil.getReadableFileSize(currentCapacity);
             String readableLicenseVolume = SizeConvertUtil.getReadableFileSize(licenseVolume);
             content.setConclusion(CONCLUSION_FOR_OVER_CAPACITY_THRESHOLD.replaceAll("\\$\\{volume_used\\}",
