@@ -24,24 +24,6 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -90,7 +72,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.metadata.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
 
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);

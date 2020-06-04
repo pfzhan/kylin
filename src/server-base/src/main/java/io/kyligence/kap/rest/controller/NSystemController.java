@@ -24,34 +24,22 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_EMAIL;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import com.google.common.collect.Lists;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagPackageRequest;
 import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.request.MaintenanceModeRequest;
 import io.kyligence.kap.rest.request.SourceUsageFilter;
 import io.kyligence.kap.rest.response.CapacityDetailsResponse;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
 import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
+import io.kyligence.kap.rest.response.MaintenanceModeResponse;
 import io.kyligence.kap.rest.response.ProjectCapacityResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import io.kyligence.kap.rest.response.ServersResponse;
+import io.kyligence.kap.rest.service.MaintenanceModeService;
 import io.kyligence.kap.rest.service.SystemService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -81,20 +69,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.request.BackupRequest;
-import io.kyligence.kap.rest.request.DiagPackageRequest;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.request.MaintenanceModeRequest;
-import io.kyligence.kap.rest.response.DiagStatusResponse;
-import io.kyligence.kap.rest.response.MaintenanceModeResponse;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import io.kyligence.kap.rest.response.ServersResponse;
-import io.kyligence.kap.rest.service.MaintenanceModeService;
-import io.kyligence.kap.rest.service.SystemService;
-import io.swagger.annotations.ApiOperation;
-import lombok.val;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -104,6 +78,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
