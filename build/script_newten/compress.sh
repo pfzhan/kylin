@@ -73,7 +73,7 @@ cp ../src/udf/target/kap-udf-${kap_version}.jar ${package_name}/lib/kylin-udf-${
 
 # add kylin user jar to lib
 rm -rf ../tmp/merge
-mkdir ../tmp/merge
+mkdir -p ../tmp/merge
 cd ../tmp/merge
 jar -xf ../kylin-user-session-dep-${release_version}-obf.jar
 jar -xf ../../src/spark-project/kylin-user-session/target/original-kylin-user-session-${kap_version}.jar
