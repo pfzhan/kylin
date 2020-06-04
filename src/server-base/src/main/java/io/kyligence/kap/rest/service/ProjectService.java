@@ -45,6 +45,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
@@ -540,6 +542,7 @@ public class ProjectService extends BasicService {
         val prjManager = getProjectManager();
         prjManager.forceDropProject(project);
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv()).post(new SourceUsageUpdateNotifier());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
