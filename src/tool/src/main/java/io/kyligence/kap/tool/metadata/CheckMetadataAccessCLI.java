@@ -30,6 +30,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -124,6 +125,11 @@ public class CheckMetadataAccessCLI implements IKeep {
     }
 
     public static void main(String[] args) {
+        StorageURL metadataUrl = KylinConfig.getInstanceFromEnv().getMetadataUrl();
+        if (metadataUrl.metadataLengthIllegal()) {
+            logger.info("the maximum length of metadata_name allowed is {}", StorageURL.METADATA_MAX_LENGTH);
+            System.exit(1);
+        }
         CheckMetadataAccessCLI cli = new CheckMetadataAccessCLI();
 
         if (args.length != 1) {

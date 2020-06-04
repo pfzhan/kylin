@@ -62,6 +62,8 @@ import org.apache.commons.lang.StringUtils;
  */
 public class StorageURL {
 
+    public static final int METADATA_MAX_LENGTH = 33;
+
     private static final LoadingCache<String, StorageURL> cache = CacheBuilder.newBuilder()//
             .maximumSize(100)//
             .build(new CacheLoader<String, StorageURL>() {
@@ -158,6 +160,10 @@ public class StorageURL {
 
     public static String replaceUrl(StorageURL storageURL) {
         return storageURL.getIdentifier().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_");
+    }
+
+    public boolean metadataLengthIllegal() {
+        return this.getIdentifier().length() > METADATA_MAX_LENGTH;
     }
 
     @Override

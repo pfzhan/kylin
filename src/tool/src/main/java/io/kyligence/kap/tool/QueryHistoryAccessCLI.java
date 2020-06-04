@@ -32,7 +32,6 @@ import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -44,7 +43,6 @@ public class QueryHistoryAccessCLI {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccessCLI.class);
     private static final String PROJECT = "test_project";
     private static final String FAIL_LOG = "query history access test failed.";
-    private static final String DROP_TABLE = "drop table ";
     private JdbcTemplate jdbcTemplate;
 
     public QueryHistoryAccessCLI(JdbcTemplate jdbcTemplate) {
@@ -88,13 +86,6 @@ public class QueryHistoryAccessCLI {
                     + PROJECT + "'");
             jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryRealizationTableName()
                     + " where project_name = '" + PROJECT + "'");
-        } catch (BadSqlGrammarException e) {
-            jdbcTemplate.update(DROP_TABLE + RDBMSWriter.getQueryHistoryTableName());
-            jdbcTemplate.update(DROP_TABLE + RDBMSWriter.getQueryHistoryRealizationTableName());
-            jdbcTemplate.update(DROP_TABLE + getMetadataTableName());
-            jdbcTemplate.update(DROP_TABLE + getMetadataAuditLogTableName());
-            logger.error(FAIL_LOG, e.getMessage());
-            return false;
         } catch (Exception e) {
             logger.error(FAIL_LOG, e.getMessage());
             return false;
@@ -107,14 +98,6 @@ public class QueryHistoryAccessCLI {
         val props = datasourceParameters(kylinConfig.getMetadataUrl());
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         return new JdbcTemplate(dataSource);
-    }
-
-    static String getMetadataTableName() {
-        return KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
-    }
-
-    static String getMetadataAuditLogTableName() {
-        return KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier() + "_audit_log";
     }
 
     public static void main(String[] args) {
