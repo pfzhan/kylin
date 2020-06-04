@@ -682,7 +682,7 @@ export default class AggregateModal extends Vue {
     this.callback && this.callback(false)
   }
   get isEditForm () {
-    return this.cloneForm !== JSON.stringify(this.form)
+    return this.cloneForm && this.cloneForm !== JSON.stringify(this.form) && this.isShow
   }
   @Watch('isEditForm')
   onChangeForm (val) {
@@ -697,6 +697,7 @@ export default class AggregateModal extends Vue {
     this.isEditGlobalDim = false
     setTimeout(() => {
       this.resetModalForm()
+      this.setChangedForm(false)
       this.callback && this.callback({isSubmit})
     }, 200)
   }
