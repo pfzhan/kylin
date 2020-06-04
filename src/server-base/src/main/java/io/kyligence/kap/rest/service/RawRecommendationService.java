@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
@@ -39,10 +40,16 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecommendationManager;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -85,6 +92,41 @@ public class RawRecommendationService extends BasicService {
 
         log.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
                 System.currentTimeMillis() - startTime);
+    }
+
+    public void updateCostAndSelectTopRec() {
+        updateCost();
+        selectTopRec();
+    }
+
+    private void updateCost() {
+
+        for (ProjectInstance projectInstance : NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listAllProjects()) {
+            RawRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
+                    .updateAllCost(projectInstance.getName());
+        }
+    }
+
+    private void selectTopRec() {
+        for (ProjectInstance projectInstance : NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listAllProjects()) {
+            for (String model : projectInstance.getModels()) {
+                var recLimitRule = FavoriteRule.getDefaultRule(
+                        FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
+                                .getByName(FavoriteRule.RECOMMENDATION_RULE_NAME),
+                        FavoriteRule.RECOMMENDATION_RULE_NAME);
+                int limit = Integer
+                        .valueOf(((FavoriteRule.Condition) recLimitRule.getConds().get(0)).getRightThreshold());
+                List<RawRecItem> bestItem = RawRecSelection.getInstance().selectBestLayout(limit,
+                        projectInstance.getName(), model);
+                // TODO saveToMetadata
+            }
+        }
+    }
+
+    public void updateCost(String project) {
+
     }
 
     private List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,

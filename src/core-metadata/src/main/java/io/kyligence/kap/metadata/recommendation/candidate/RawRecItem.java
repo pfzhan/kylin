@@ -42,7 +42,6 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
-import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.recommendation.entity.RecItemV2;
 import lombok.Getter;
 import lombok.Setter;
@@ -64,8 +63,10 @@ public class RawRecItem {
     private long[] dependID;
 
     // only for raw layout recommendation
-    private FrequencyMap freqMap;
+    private LayoutMetric layoutMetric;
     private int hitCount;
+    private double cost;
+    private double totalLatencyOfLastDay;
     private double totalTime;
     private double maxTime;
     private double minTime;

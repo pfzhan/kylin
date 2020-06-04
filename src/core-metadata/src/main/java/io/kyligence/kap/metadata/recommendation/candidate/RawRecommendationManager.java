@@ -29,8 +29,6 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-
 public class RawRecommendationManager {
     private final String project;
     private final KylinConfig kylinConfig;
@@ -38,8 +36,8 @@ public class RawRecommendationManager {
     private Map<String, RawRecItem> favoriteQueryMap;
 
     // CONSTRUCTOR
-    public static FavoriteQueryManager getInstance(KylinConfig kylinConfig, String project) {
-        return kylinConfig.getManager(project, FavoriteQueryManager.class);
+    public static RawRecommendationManager getInstance(KylinConfig kylinConfig, String project) {
+        return kylinConfig.getManager(project, RawRecommendationManager.class);
     }
 
     // called by reflection
@@ -67,6 +65,14 @@ public class RawRecommendationManager {
         return null;
     }
 
+    public List<RawRecItem> getCandidatesByModelAndBenifit(String project, String model, int limit) {
+        return null;
+    }
+
+    public List<RawRecItem> getCandidatesByProjectAndBenifit(String project, int limit) {
+        return null;
+    }
+
     public void save(RawRecItem rawRecItem) {
         jdbcRawRecStore.save(rawRecItem);
     }
@@ -75,4 +81,7 @@ public class RawRecommendationManager {
         jdbcRawRecStore.batchSave();
     }
 
+    public void updateAllCost(String project) {
+
+    }
 }
