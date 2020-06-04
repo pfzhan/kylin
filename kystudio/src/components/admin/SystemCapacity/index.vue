@@ -398,7 +398,7 @@ export default class SystemCapacity extends Vue {
       const xDates = objs.map(it => (transToUtcDateFormat(+it)))
       const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
       this.lineCharts = echarts.init(document.getElementById('used-data-map'))
-      this.lineCharts.setOption(charts.line(xDates, yVol))
+      this.lineCharts.setOption(charts.line(this, xDates, yVol))
     }
   }
 
@@ -414,6 +414,7 @@ export default class SystemCapacity extends Vue {
     })
   }
 
+  // echart 随窗口变化
   resetChartsPosition () {
     this.lineCharts && this.lineCharts.resize()
     this.treeMapCharts && this.treeMapCharts.resize()

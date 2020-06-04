@@ -1,6 +1,6 @@
 export default {
   // 折线图标options
-  line: (xData, yData) => {
+  line: (_this, xData, yData) => {
     return {
       grid: {
         top: 30,
@@ -66,7 +66,7 @@ export default {
         padding: [5, 10],
         position: 'bottom',
         formatter: (params) => {
-          return `<span>数据量：${params.data} T</span>`
+          return `<span>${_this.$t('usedCapacity')}：${params.data} T</span>`
         }
       }
     }

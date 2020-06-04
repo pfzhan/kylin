@@ -58,6 +58,7 @@
   import { mapActions, mapState, mapGetters } from 'vuex'
   import locales from './locales'
   import filterElements from '../../../filter/index'
+  import { handleError } from '../../../util/business'
 
   @Component({
     methods: {
@@ -86,9 +87,9 @@
     // isNodeLoadingSuccess = false
     nodeList = []
     isNodeLoading = true
-    timer = null
     showNodeDetails = false
     filterElements = filterElements
+    nodesTimer = null
 
     @Watch('showNodes')
     changeNodePopover (newVal, oldVal) {
@@ -135,20 +136,34 @@
     }
 
     getHANodes () {
+      if (this._isDestroyed) {
+        return
+      }
       this.isNodeLoading = true
-      this.getNodeList({ext: true}).then((res) => {
+      const data = {ext: true}
+      if (this.nodesTimer) {
+        data.isAuto = true
+      }
+      this.getNodeList(data).then((res) => {
+        if (this._isDestroyed) {
+          return
+        }
         this.isNodeLoadingSuccess = true
         this.$set(this, 'nodeList', res)
         this.isNodeLoading = false
-        clearTimeout(this.timer)
-        this.timer = setTimeout(() => {
+        clearTimeout(this.nodesTimer)
+        this.nodesTimer = setTimeout(() => {
           this.getHANodes()
         }, 1000 * 60)
-      }).catch(() => {
-        clearTimeout(this.timer)
-        this.timer = setTimeout(() => {
-          this.getHANodes()
-        }, 1000 * 60)
+      }).catch((e) => {
+        if (e.status === 401) {
+          handleError(e)
+        } else {
+          clearTimeout(this.nodesTimer)
+          this.timer = setTimeout(() => {
+            this.getHANodes()
+          }, 1000 * 60)
+        }
       })
     }
 
