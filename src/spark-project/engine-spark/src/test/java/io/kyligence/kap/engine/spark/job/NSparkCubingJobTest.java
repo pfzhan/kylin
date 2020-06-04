@@ -646,6 +646,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                             Assert.assertTrue(execMgr.getJobOutput(cubeStep.getId()).isResumable());
                             NDataflow tempDf = NDataflowManager.getInstance(tempConf, project).getDataflow(dfId);
                             Assert.assertNotNull(tempDf);
+                            Assert.assertFalse(tempDf.isBroken());
                             Assert.assertEquals(1, tempDf.getSegments().size());
                             NDataSegment tempSegment = tempDf.getSegments().getFirstSegment();
                             Assert.assertNotNull(tempSegment.getLayout(normalLayoutId));
