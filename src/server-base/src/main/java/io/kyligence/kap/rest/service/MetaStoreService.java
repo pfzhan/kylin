@@ -383,7 +383,6 @@ public class MetaStoreService extends BasicService {
             String newUuid = UUID.randomUUID().toString();
             srcModel.setUuid(newUuid);
             srcModel.setProject(project);
-            srcModel.setLastModified(0L);
             srcModel.setMvcc(-1);
             try {
                 targetDataModelManager.createDataModelDesc(srcModel, AclPermissionUtil.getCurrentUsername());
@@ -396,7 +395,6 @@ public class MetaStoreService extends BasicService {
             IndexPlan srcIndexPlan = JsonUtil.readValue(indexPlanRaw.getByteSource().read(), IndexPlan.class);
             srcIndexPlan.setUuid(newUuid);
             srcIndexPlan.setProject(project);
-            srcIndexPlan.setLastModified(0L);
             srcIndexPlan.setMvcc(-1);
             targetIndexPlanManager.createIndexPlan(srcIndexPlan);
 

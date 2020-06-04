@@ -70,6 +70,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
             store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes()), -1);
             store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes()), -1);
             store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes()), 0);
+            store.checkAndPutResource("/p1/abc4", ByteStreams.asByteSource("abc2".getBytes()), 1000L, -1);
             store.deleteResource("/p1/abc");
             return 0;
         }, "p1");
@@ -81,13 +82,16 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         dataSource.setPassword(url.getParameter("password"));
         val jdbcTemplate = new JdbcTemplate(dataSource);
         val all = jdbcTemplate.query("select * from " + url.getIdentifier(), new RawResourceRowMapper());
-        Assert.assertEquals(2, all.size());
+        Assert.assertEquals(3, all.size());
         for (RawResource resource : all) {
             if (resource.getResPath().equals("/p1/abc2")) {
                 Assert.assertEquals(0, resource.getMvcc());
             }
             if (resource.getResPath().equals("/p1/abc3")) {
                 Assert.assertEquals(1, resource.getMvcc());
+            }
+            if (resource.getResPath().equals("/p1/abc4")) {
+                Assert.assertEquals(1000L, resource.getTimestamp());
             }
         }
     }

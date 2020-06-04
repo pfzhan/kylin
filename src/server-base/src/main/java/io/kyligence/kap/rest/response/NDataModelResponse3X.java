@@ -153,6 +153,7 @@ public class NDataModelResponse3X extends NDataModel {
                 NDataModelResponse3X.class);
         ModelStatus3XEnum newStatus = ModelStatus3XEnum.convert(nDataModelResponse.getStatus());
         nDataModelResponse3X.setStatus(null == newStatus ? null : newStatus.name());
+        nDataModelResponse3X.setMvcc(nDataModelResponse.getMvcc());
 
         return nDataModelResponse3X;
     }

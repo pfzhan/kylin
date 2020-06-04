@@ -117,18 +117,23 @@ public class ThreadViewResourceStore extends ResourceStore {
 
     @Override
     public RawResource checkAndPutResource(String resPath, ByteSource byteSource, long oldMvcc) {
+        return checkAndPutResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc);
+    }
+
+    @Override
+    public RawResource checkAndPutResource(String resPath, ByteSource byteSource, long timeStamp, long oldMvcc) {
         RawResource r = overlay.getResourceImpl(resPath);
 
         if (r == null) {
             //TODO: should check meta's write footprint
             long resourceMvcc = underlying.getResourceMvcc(resPath);
             Preconditions.checkState(resourceMvcc == oldMvcc, "Resource mvcc not equals old mvcc", resourceMvcc, oldMvcc);
-            overlay.putResourceWithoutCheck(resPath, byteSource, System.currentTimeMillis(), oldMvcc + 1);
+            overlay.putResourceWithoutCheck(resPath, byteSource, timeStamp, oldMvcc + 1);
         } else {
             if (!KylinConfig.getInstanceFromEnv().isUTEnv() && r instanceof TombRawResource) {
-                    throw new IllegalStateException(String.format("It's not allowed to create the same metadata in path {%s} after deleting it in one transaction", resPath));
+                throw new IllegalStateException(String.format("It's not allowed to create the same metadata in path {%s} after deleting it in one transaction", resPath));
             }
-            overlay.checkAndPutResource(resPath, byteSource, oldMvcc);
+            overlay.checkAndPutResource(resPath, byteSource, timeStamp, oldMvcc);
         }
 
         val raw = overlay.getResourceImpl(resPath);

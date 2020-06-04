@@ -99,6 +99,11 @@ public class InMemResourceStore extends ResourceStore {
 
     @Override
     public RawResource checkAndPutResource(String resPath, ByteSource byteSource, long oldMvcc) {
+        return checkAndPutResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc);
+    }
+
+    @Override
+    public RawResource checkAndPutResource(String resPath, ByteSource byteSource, long timeStamp, long oldMvcc) {
         checkEnv();
         if (!data.containsKey(resPath) || data.get(resPath) == TombVersionedRawResource.getINSTANCE()) {
             if (oldMvcc != -1) {
@@ -107,15 +112,14 @@ public class InMemResourceStore extends ResourceStore {
             }
             synchronized (data) {
                 if (!data.containsKey(resPath) || data.get(resPath) == TombVersionedRawResource.getINSTANCE()) {
-                    RawResource rawResource = new RawResource(resPath, byteSource, System.currentTimeMillis(),
-                            oldMvcc + 1);
+                    RawResource rawResource = new RawResource(resPath, byteSource, timeStamp, oldMvcc + 1);
                     data.put(resPath, new VersionedRawResource(rawResource));
                     return rawResource;
                 }
             }
         }
         VersionedRawResource versionedRawResource = data.get(resPath);
-        RawResource r = new RawResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc + 1);
+        RawResource r = new RawResource(resPath, byteSource, timeStamp, oldMvcc + 1);
         try {
             versionedRawResource.update(r);
         } catch (VersionConflictException e) {

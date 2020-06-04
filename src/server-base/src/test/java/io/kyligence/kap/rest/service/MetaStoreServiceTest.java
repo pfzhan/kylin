@@ -205,6 +205,7 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
         metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(importedModelUuid));
         NModelDescResponse modelDescResponse = modelService.getModelDesc("warningmodel1", "default");
         Assert.assertNotNull(modelDescResponse);
+        Assert.assertNotEquals(0L, modelDescResponse.getLastModified());
     }
 
     @Test

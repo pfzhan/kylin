@@ -23,13 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
-import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
+import lombok.Setter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -94,16 +94,14 @@ public class MessageSynchronization {
         val oldRaw = resourceStore.getResource(raw.getResPath());
         if (!config.isJobNode()) {
             resourceStore.deleteResource(raw.getResPath());
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
-                    raw.getMvcc());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
             return;
         }
 
         if (oldRaw == null) {
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
-                    raw.getMvcc());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
         } else {
-            resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc() - 1);
+            resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc() - 1);
         }
     }
 

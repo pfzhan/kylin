@@ -3914,6 +3914,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result = modelService.getCubes0(null, getProject());
         Assert.assertEquals(6, result.size());
         Assert.assertTrue(result.get(3).isModelBroken());
+        Assert.assertEquals(1, result.get(1).getOldParams().getJoinTables().size());
     }
 
     @Test

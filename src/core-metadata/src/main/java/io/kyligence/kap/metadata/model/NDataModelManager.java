@@ -83,11 +83,10 @@ public class NDataModelManager {
         init(config, project);
     }
 
-    protected void init(KylinConfig cfg, final String project) throws IOException {
+    protected void init(KylinConfig cfg, final String project) {
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
-        val tableManager = NTableMetadataManager.getInstance(config, project);
         this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class) {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {

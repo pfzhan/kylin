@@ -350,6 +350,8 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
      */
     public abstract RawResource checkAndPutResource(String resPath, ByteSource byteSource, long oldMvcc);
 
+    public abstract RawResource checkAndPutResource(String resPath, ByteSource byteSource,  long timeStamp, long oldMvcc);
+
     /**
      * delete a resource, does nothing on a folder
      */

@@ -483,6 +483,7 @@ public class ModelService extends BasicService {
             oldParams.setSizeKB(modelResponse.getStorage() / 1024);
             oldParams.setInputRecordSizeBytes(inputRecordSizeBytes);
             oldParams.setInputRecordCnt(inputRecordCnt);
+            oldParams.setJoinTables(modelResponse.getJoinTables());
             modelResponse.setOldParams(oldParams);
         });
 
@@ -1332,6 +1333,7 @@ public class ModelService extends BasicService {
             checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
         }
         modelRequest.setOwner(AclPermissionUtil.getCurrentUsername());
+        modelRequest.setLastModified(modelRequest.getCreateTime());
         checkModelRequest(modelRequest);
 
         //remove some attributes in modelResponse to fit NDataModel
