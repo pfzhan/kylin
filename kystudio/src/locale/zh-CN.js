@@ -493,6 +493,14 @@ exports.default = {
     addModelTip4: '您可以继续定义索引，当模型具有索引后，才可以加载数据和分析。',
     loadTableTip: 'Kyligence 企业数据分析平台需要连接您的源数据系统。选择你所需的数据集并且从中同步表的元数据。这里我们选用 SSB 数据集为后续建模做准备。'
   },
+  capacity: {
+    systemCapacityOverAlert: '当前已使用数据量 {capacity} 超过许可证上限。系统无法进行构建或数据加载任务。请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。',
+    nodeOverAlert: '当前已使用节点数 {nodes} 超过许可证上限。系统无法进行构建或数据加载任务。请联系 Kyligence 销售人员，或尝试停止部分节点以解除限制。',
+    bothSystemAndNodeAlert: '当前已使用数据量 {capacity} 和节点数 {nodes} 均超过许可证上限。系统无法进行构建或数据加载任务。请联系 Kyligence 销售人员，或尝试删除一些 Segment并停止部分节点以解除限制。',
+    capacityOverPrecent: '当前已使用数据量 {capacity} 已达许可证上限的80%。为防止容量超额后无法进行构建或数据加载任务，请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。',
+    overThirtyDays: '已使用数据量获取失败已超过 30 天。系统无法进行构建任务和数据加载任务。请联系 Kyligence 销售人员。',
+    noJobNodes: '暂无活跃的 Job 节点，构建任务与元数据操作将暂时无法提交'
+  },
   kybotXY: {
     agreement: `若您（下称“您”或“用户”）代表某公司或者其他机构使用任何产品
 时，您特此陈述您作为该公司或该等其他机构的员工或代理，您有权代

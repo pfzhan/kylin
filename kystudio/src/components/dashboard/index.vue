@@ -88,7 +88,8 @@
                 </el-select>
               </span>
             </div>
-            <div id="used-data-project"></div>
+            <div id="used-data-project" :class="[!projectCapacity && 'hide-charts']"></div>
+            <empty-data :showImage="false" v-show="!projectCapacity" />
           </div>
         </el-col>
         <el-col :span="8">
@@ -231,6 +232,7 @@ import moment from 'moment-timezone'
 import BarChart from './BarChart'
 import LineChart from './LineChart'
 import charts from '../admin/SystemCapacity/charts'
+import EmptyData from '../common/EmptyData/EmptyData'
 @Component({
   methods: {
     ...mapActions({
@@ -248,7 +250,8 @@ import charts from '../admin/SystemCapacity/charts'
   },
   components: {
     'vn-bar': BarChart,
-    'vn-line': LineChart
+    'vn-line': LineChart,
+    EmptyData
   },
   computed: {
     ...mapGetters([
@@ -363,6 +366,7 @@ export default class Dashboard extends Vue {
   unitOptions = ['day', 'week', 'month']
   isNoQuota = false
   selectedDataLine = 'month'
+  projectCapacity = null
   get chartTitle () {
     if (this.showQueryChart) {
       return this.$t('queryCount')
@@ -534,7 +538,7 @@ export default class Dashboard extends Vue {
   }
   getProjectCapacityRange () {
     this.getProjectCapacity({project: this.$store.state.project.selected_project, data_range: this.selectedDataLine}).then((data) => {
-      console.log(data, 4444)
+      this.projectCapacity = Object.keys(data).length ? data : null
       this.initCharts(data)
     })
   }
@@ -546,7 +550,7 @@ export default class Dashboard extends Vue {
     this.lineCharts.setOption(charts.line(xDates, yVol))
   }
   resetChartsPosition () {
-    this.lineCharts.resize()
+    this.lineCharts && this.lineCharts.resize()
   }
   get pickerOptions () {
     return {
@@ -760,6 +764,9 @@ export default class Dashboard extends Vue {
       #used-data-project {
         width: 100%;
         height: calc(~'100% - 36px')
+      }
+      .hide-charts {
+        opacity: 0;
       }
       .col-title {
         height: 36px;

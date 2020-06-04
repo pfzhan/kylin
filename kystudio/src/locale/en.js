@@ -497,6 +497,14 @@ exports.default = {
     addModelTip4: 'We suggest creating some indexes after saving the model. So you can load data to it and do analysis instantly.',
     loadTableTip: 'The Kyligence Enterprise platform may need to connect with your source data. Choose your desired dataset and sync its schema. Here we will use the SSB dataset to do further tasks.'
   },
+  capacity: {
+    systemCapacityOverAlert: 'The amount of data volume used {capacity} exceeds the license’s limit. Build index and load data is unavailable.Please contact Kyligence, or try deleting some segments.',
+    nodeOverAlert: 'The amount of nodes used {nodes} exceeds the license’s limit. Build index and load data is unavailable. Please contact Kyligence, or try stopping some nodes.',
+    bothSystemAndNodeAlert: 'The amount of data volume used {capacity} and nodes used {nodes} exceeds license’s limit.Build index and load data is unavailable. Please contact Kyligence, or try deleting some segments and stopping some nodes.',
+    capacityOverPrecent: 'The amount of data volume used {capacity} has reached 80% of the license limit. To ensure the availability of build index and data load, please contact Kyligence, or try deleting some segments.',
+    overThirtyDays: 'Failed to fetch data volume used for over 30 days. Build index and load data is unavailable. Please contact Kyligence for support.',
+    noJobNodes: 'There is no active Job node. The build jobs and metadata operations cannot be submitted temporarily. '
+  },
   kybotXY: {
     agreement: `
 IF YOU (“YOU” OR “CUSTOMER”) PLAN TO USE ANY OF THE

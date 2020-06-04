@@ -2,31 +2,35 @@
   <div class="system-capacity">
     <p class="main-title">{{$t('mainTitle')}}
       <el-popover ref="systemCapacity" width="290" popper-class="system-capacity-popover" trigger="hover">
-        <span v-if="$lang === 'en'">{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.1/en/operation/metrics/service.en.html">{{$t('manual')}}</a>{{$t('capacityTip2')}}</span>
-        <span v-else>{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v4.1/zh-cn/operation/metrics/service.cn.html">{{$t('manual')}}</a></span>
+        <span v-if="$lang === 'en'">{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v3.4/en/operation/license_capacity.en.html">{{$t('manual')}}</a>{{$t('capacityTip2')}}</span>
+        <span v-else>{{$t('capacityTip1')}}<a target="_blank" href="https://docs.kyligence.io/books/v3.4/zh-cn/operation/license_capacity.cn.html">{{$t('manual')}}</a></span>
       </el-popover>
       <i class="icon el-icon-ksd-what" v-popover:systemCapacity></i>
     </p>
     <p class="system-msg">
       <span>{{$t('usedData')}}：</span>
       <i class="icon el-icon-loading" v-if="systemCapacityInfo.isLoading"></i>
-      <template v-else-if="systemCapacityInfo.evaluation">
-        {{systemCapacityInfo.current_capacity | dataSize}}
-      </template>
       <template v-else>
         <span :class="['used-data-number', getValueColor]">
-          <span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.error">
-            {{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})
+          <span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.fail">
+            <template v-if="systemCapacityInfo.evaluation">
+              {{systemCapacityInfo.current_capacity | dataSize}}
+            </template>
+            <template v-else>
+              <span>{{getCapacityPrecent}}% ({{systemCapacityInfo.current_capacity | dataSize}}/{{systemCapacityInfo.capacity | dataSize}})</span>
+            </template>
           </span>
         </span>
         <span>
-          <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
-          <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
-                <el-tag class="over-thirty-days" size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
-              </el-tooltip></span>
+          <span class="font-disabled" v-if="systemCapacityInfo.fail">{{$t('failApi')}}</span>
+          <span v-if="systemCapacityInfo.error_over_thirty_days">
+            <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
+              <el-tag class="over-thirty-days" size="mini" type="danger">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
+            </el-tooltip>
+          </span>
           <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
           <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
-            <i class="icon el-icon-ksd-restart" v-if="systemCapacityInfo.error" @click="refreshSystemBuildJob"></i>
+            <i class="icon el-icon-ksd-restart" v-if="systemCapacityInfo.fail" @click="refreshSystemBuildJob"></i>
           </el-tooltip>
         </span>
       </template>
@@ -34,22 +38,24 @@
       <span class="used-nodes">
         <span>{{$t('usedNodes')}}：</span>
         <i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i>
-        <template v-else-if="systemNodeInfo.evaluation">
-          {{systemNodeInfo.current_node}}
-        </template>
         <span v-else :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']">
-          <span v-if="!systemNodeInfo.isLoading && !systemNodeInfo.error">
-            {{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}
-          </span>
+          <template v-if="!systemNodeInfo.isLoading && !systemNodeInfo.fail">
+            <template v-if="systemNodeInfo.evaluation">
+              {{systemNodeInfo.current_node}}
+            </template>
+            <span v-else>
+              {{systemNodeInfo.current_node}}/{{systemNodeInfo.node}}
+            </span>
+          </template>
         </span>
         <span v-if="!systemNodeInfo.isLoading">
-          <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
+          <span class="font-disabled" v-if="systemNodeInfo.fail">{{$t('failApi')}}</span>
           <!-- <span><el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
               <el-tag size="mini" type="danger">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
             </el-tooltip></span> -->
           <el-tag size="mini" type="danger" v-if="systemNodeInfo.node_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
           <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
-            <i class="icon el-icon-ksd-restart" v-if="systemNodeInfo.error" @click="refreshNodes"></i>
+            <i class="icon el-icon-ksd-restart" v-if="systemNodeInfo.fail" @click="refreshNodes"></i>
           </el-tooltip>
         </span>
       </span>
@@ -350,7 +356,7 @@ export default class SystemCapacity extends Vue {
   }
 
   get getCapacityPrecent () {
-    return this.systemCapacityInfo.evaluation ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+    return this.systemCapacityInfo.evaluation ? 0 : (((this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity) || 0) * 100.00).toFixed(2)
   }
 
   // 邮箱规则

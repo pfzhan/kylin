@@ -8,20 +8,22 @@
           <p class="label">
             <span>{{$t('usedData')}}：
               <i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i>
-              <span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.error">{{!systemCapacityInfo.evaluation ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span>
+              <span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.fail">{{!systemCapacityInfo.evaluation ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span>
             </span>
-            <template v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.evaluation">
-              <span class="font-disabled" v-if="systemCapacityInfo.error">{{$t('failApi')}}</span>
-              <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
-                <el-tag class="over-thirty-days" size="mini" type="danger" v-if="systemCapacityInfo.error_over_thirty_days">{{$t('failApi')}}<i class="is-danger el-icon-ksd-what ksd-ml-5"></i></el-tag>
-              </el-tooltip>
+            <template v-if="!systemCapacityInfo.isLoading">
+              <span class="font-disabled" v-if="systemCapacityInfo.fail">{{$t('failApi')}}</span>
+              <span v-if="systemCapacityInfo.error_over_thirty_days">
+                <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
+                  <el-tag class="over-thirty-days" size="mini" type="danger">{{$t('failApi')}}<i class="is-danger el-icon-ksd-what ksd-ml-5"></i></el-tag>
+                </el-tooltip>
+              </span>
               <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
             </template>
           </p>
-          <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.error}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
-            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.evaluation}]" v-else-if="!systemNodeInfo.error">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
-            <template v-if="!systemNodeInfo.isLoading && !systemNodeInfo.evaluation">
-              <span class="font-disabled" v-if="systemNodeInfo.error">{{$t('failApi')}}</span>
+          <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.fail}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.evaluation}]" v-else-if="!systemNodeInfo.fail">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
+            <template v-if="!systemNodeInfo.isLoading">
+              <span class="font-disabled" v-if="systemNodeInfo.fail">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
                 <el-tag size="mini" type="danger">{{$t('failApi')}}</el-tag>
               </el-tooltip> -->
@@ -94,7 +96,7 @@
     }
 
     get getDataFails () {
-      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.error && !this.systemNodeInfo.error)
+      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || !this.allNodeNumber || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
     }
 
     get getNodesNumColor () {
@@ -157,11 +159,11 @@
     // 刷新获取失败的接口
     async refreshCapacityOrNodes () {
       this.isNodeLoading = true
-      if (this.systemCapacityInfo.error) {
+      if (this.systemCapacityInfo.fail) {
         await this.refreshAll()
         this.isNodeLoading = false
       }
-      if (this.systemNodeInfo.error) {
+      if (this.systemNodeInfo.fail) {
         await this.getNodesInfo()
         this.isNodeLoading = false
       }
@@ -186,7 +188,7 @@
         font-family: -webkit-pictograph;
       }
       .el-icon-ksd-restart {
-        color: @base-color-9;
+        color: @base-color;
       }
     }
     .font-disabled {
