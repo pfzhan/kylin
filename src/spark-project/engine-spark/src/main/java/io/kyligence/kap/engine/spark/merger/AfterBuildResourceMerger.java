@@ -90,7 +90,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
             for (Map.Entry<String, Long> entry : segment.getOriSnapshotSize().entrySet()) {
                 TableDesc tableDesc = metadataManager.getTableDesc(entry.getKey());
-                TableExtDesc originTableExt = metadataManager.getTableExtIfExists(tableDesc);
+                TableExtDesc originTableExt = metadataManager.getOrCreateTableExt(tableDesc);
                 TableExtDesc tableExtDescCopy = metadataManager.copyForWrite(originTableExt);
                 tableExtDescCopy.setOriginalSize(entry.getValue());
                 metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);

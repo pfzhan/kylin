@@ -474,8 +474,9 @@ public abstract class AbstractExecutable implements Executable {
                 break;
             }
         }
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        if (sourceUsageManager.isOverCapacityThreshold()) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
+        if (kylinConfig.isOverCapacityNotificationEnabled() && sourceUsageManager.isOverCapacityThreshold()) {
             notifyUserJobIssue(JobIssueEnum.OVER_CAPACITY_THRESHOLD);
         }
         if (hasEmptyLayout) {

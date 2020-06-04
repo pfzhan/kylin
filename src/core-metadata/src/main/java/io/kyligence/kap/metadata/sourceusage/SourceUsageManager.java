@@ -630,8 +630,12 @@ public class SourceUsageManager {
             return false;
         }
         SourceUsageRecord sourceUsageRecord = this.getLatestRecord();
+        if (sourceUsageRecord == null) {
+            logger.debug("Source usage record is null, ignore...");
+            return false;
+        }
         long currentCapacity = sourceUsageRecord.getCurrentCapacity();
-        long totalCapacity = (long) sourceUsageRecord.getLicenseCapacity();
+        long totalCapacity = sourceUsageRecord.getLicenseCapacity();
         logger.info("Current capacity is: {}, total capacity is: {}", currentCapacity, totalCapacity);
         return currentCapacity < totalCapacity * 0.8;
     }
