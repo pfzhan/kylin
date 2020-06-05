@@ -98,7 +98,7 @@ public class ProjectSchemaFactory {
         return defaultSchemaName;
     }
 
-    public void addProjectSchemas(CalciteSchema parentSchema) {
+    private void addProjectSchemas(CalciteSchema parentSchema) {
 
         for (String schemaName : schemasMap.keySet()) {
             CalciteSchema added = parentSchema.add(schemaName, createSchema(schemaName));

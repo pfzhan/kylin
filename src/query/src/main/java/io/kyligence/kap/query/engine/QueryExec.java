@@ -32,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
@@ -79,10 +80,12 @@ public class QueryExec {
          this.kylinConfig = kylinConfig;
          config = KECalciteConfig.fromKapConfig(kylinConfig);
          schemaFactory =  projectSchemaFactory;
-         catalogReader = createCatalogReader(config, schemaFactory);
+         CalciteSchema rootSchema = schemaFactory.createProjectRootSchema();
+         String defaultSchemaName = schemaFactory.getDefaultSchema();
+         catalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
          planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
          sqlConverter = new SQLConverter(config, planner, catalogReader);
-         dataContext = createDataContext();
+         dataContext = createDataContext(rootSchema);
          planner.setExecutor(new RexExecutorImpl(dataContext));
          queryOptimizer = new QueryOptimizer(planner);
      }
@@ -195,15 +198,15 @@ public class QueryExec {
     }
 
     private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig,
-            ProjectSchemaFactory schemaFactory) {
+                                                      CalciteSchema rootSchema, String defaultSchemaName) {
         RelDataTypeSystem relTypeSystem = new KylinRelDataTypeSystem();
         JavaTypeFactory javaTypeFactory = new JavaTypeFactoryImpl(relTypeSystem);
-        return new CalciteCatalogReader(schemaFactory.createProjectRootSchema(),
-                Collections.singletonList(schemaFactory.getDefaultSchema()), javaTypeFactory, connectionConfig);
+        return new CalciteCatalogReader(rootSchema,
+                Collections.singletonList(defaultSchemaName), javaTypeFactory, connectionConfig);
     }
 
-    private SimpleDataContext createDataContext() {
-        return new SimpleDataContext(schemaFactory.createProjectRootSchema().plus(), sqlConverter.javaTypeFactory(),
+    private SimpleDataContext createDataContext(CalciteSchema rootSchema) {
+        return new SimpleDataContext(rootSchema.plus(), sqlConverter.javaTypeFactory(),
                 kylinConfig);
     }
 
