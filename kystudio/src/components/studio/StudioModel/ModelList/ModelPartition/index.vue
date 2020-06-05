@@ -71,7 +71,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from 'store'
 import locales from './locales'
 import store, { types } from './store'
-import { timeDataType } from 'config'
+import { timeDataType, dateFormats } from 'config'
 import NModel from '../../ModelEdit/model.js'
 import { isDatePartitionType, objectClone, kapConfirm } from 'util'
 import { handleSuccessAsync, handleError } from 'util/index'
@@ -116,18 +116,10 @@ export default class ModelPartition extends Vue {
   isLoadingFormat = false
   isLoadingSave = false
   timeDataType = timeDataType
-  dateFormats = [
-    {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
-    {label: 'yyyyMMdd', value: 'yyyyMMdd'},
-    {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
-    {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
-    {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'}
-    // {label: 'yyyy-MM', value: 'yyyy-MM'},
-    // {label: 'yyyyMM', value: 'yyyyMM'}
-  ]
   partitionRules = {
     column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
   }
+  dateFormats = dateFormats
   prevPartitionMeta = {
     table: '',
     column: '',

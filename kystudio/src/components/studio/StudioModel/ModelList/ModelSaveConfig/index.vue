@@ -119,7 +119,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { timeDataType } from '../../../../../config'
+import { timeDataType, dateFormats } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { isDatePartitionType, objectClone, kapConfirm } from '../../../../../util'
@@ -254,15 +254,7 @@ export default class ModelPartitionModal extends Vue {
     }
   }
   filterCondition = ''
-  dateFormats = [
-    {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
-    {label: 'yyyyMMdd', value: 'yyyyMMdd'},
-    {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
-    {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
-    {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'}
-    // {label: 'yyyy-MM', value: 'yyyy-MM'},
-    // {label: 'yyyyMM', value: 'yyyyMM'}
-  ]
+  dateFormats = dateFormats
   get partitionTitle () {
     if (this.mode === 'saveModel') {
       return this.$t('modelSaveSet')

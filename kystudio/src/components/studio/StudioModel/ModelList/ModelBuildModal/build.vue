@@ -185,6 +185,7 @@
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
   import { BuildIndexStatus } from 'config/model'
+  import { dateFormats } from 'config'
   import moment from 'moment'
 
   vuex.registerModule(['modals', 'ModelBuildModal'], store)
@@ -263,15 +264,7 @@
       column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
     }
     isLoadingFormat = false
-    dateFormats = [
-      {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
-      {label: 'yyyyMMdd', value: 'yyyyMMdd'},
-      {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
-      {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
-      {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'},
-      {label: 'yyyy-MM', value: 'yyyy-MM'},
-      {label: 'yyyyMM', value: 'yyyyMM'}
-    ]
+    dateFormats = dateFormats
     isExpand = true
     isShowWarning = false
 

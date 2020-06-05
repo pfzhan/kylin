@@ -161,6 +161,16 @@ export const timeDataType = [
   'timestamp', 'date', 'time', 'datetime'
 ]
 
+export const dateFormats = [
+  {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
+  {label: 'yyyyMMdd', value: 'yyyyMMdd'},
+  {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
+  {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
+  {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'},
+  {label: 'yyyy-MM', value: 'yyyy-MM'},
+  {label: 'yyyyMM', value: 'yyyyMM'}
+]
+
 // 根据服务端提供在 issue 的列表，做下数组处理，且进行了去重，最后放到这边的 keywordArr 这个变量中
 const keywordArr = [
   'abs',
