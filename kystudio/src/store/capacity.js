@@ -283,14 +283,14 @@ export default {
       if (JSON.stringify(_flag) === '{}') {
         commit('CAPACITY_ALERT_TYPE', null)
       } else {
-        if (state.capacityAlert && state.capacityAlert.flag < _flag.flag) return
+        // if (state.capacityAlert && state.capacityAlert.flag < _flag.flag) return
         commit('CAPACITY_ALERT_TYPE', _flag)
       }
     }
   },
   getters: {
     isOnlyQueryNode (state) {
-      return state.nodeList.filter(it => it.mode === 'query').length === state.nodeList.length
+      return state.nodeList.length && state.nodeList.filter(it => it.mode === 'query').length === state.nodeList.length
     }
   }
 }

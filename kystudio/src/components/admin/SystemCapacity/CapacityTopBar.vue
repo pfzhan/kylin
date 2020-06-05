@@ -22,7 +22,7 @@
           </p>
           <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.fail}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
             <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.evaluation}]" v-else-if="!systemNodeInfo.fail">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
-            <template v-if="!systemNodeInfo.isLoading">
+            <template v-if="!systemNodeInfo.isLoading && isNodeLoadingSuccess">
               <span class="font-disabled" v-if="systemNodeInfo.fail">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
                 <el-tag size="mini" type="danger">{{$t('failApi')}}</el-tag>

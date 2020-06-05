@@ -105,7 +105,7 @@
         </div>
         <div class="panel-content" id="scrollBox" :class="{'ksd-pt-38': isShowAlter}">
           <div class="alter-block" v-if="isShowAlter">
-            <el-alert :title="globalAlterTips" type="error" :closable="false" show-icon>
+            <el-alert :title="globalAlterTips.text" :type="globalAlterTips.flag === 0 ? 'error' : 'warning'" :closable="globalAlterTips.flag !== 0" show-icon>
             </el-alert>
           </div>
           <div class="grid-content bg-purple-light" id="scrollContent">
@@ -242,7 +242,8 @@ let MessageBox = ElementUI.MessageBox
       isSemiAutomatic: state => state.project.isSemiAutomatic,
       licenseDates: state => state.system.serverAboutKap,
       currentUser: state => state.user.currentUser,
-      showRevertPasswordDialog: state => state.system.showRevertPasswordDialog
+      showRevertPasswordDialog: state => state.system.showRevertPasswordDialog,
+      capacityAlert: state => state.capacity.capacityAlert
     }),
     ...mapGetters([
       'currentPathNameGet',
@@ -279,11 +280,11 @@ let MessageBox = ElementUI.MessageBox
       return this.$route.name !== 'ModelEdit'
     },
     isShowAlter () {
-      const isGlobalAlter = this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode
+      const isGlobalAlter = this.$store.state.capacity.maintenance_mode || this.capacityAlert
       if (this.$store.state.capacity.maintenance_mode) {
-        this.globalAlterTips = this.$t('systemUprade')
-      } else if (this.isOnlyQueryNode) {
-        this.globalAlterTips = this.$t('onlyQueryNode')
+        this.globalAlterTips = { text: this.$t('systemUprade'), flag: 0 }
+      } else if (this.capacityAlert) {
+        this.globalAlterTips = { ...this.capacityAlert, text: this.$t(`kylinLang.capacity.${this.capacityAlert.text}`, this.capacityAlert.query ? this.capacityAlert.query : {}) }
       }
       this.setGlobalAlter(isGlobalAlter)
       return isGlobalAlter
@@ -375,7 +376,7 @@ export default class LayoutLeftRightTop extends Vue {
   isGlobalMaskShow = false
   showDiagnostic = false
   showChangePassword = false
-  globalAlterTips = ''
+  globalAlterTips = {}
 
   get isAdminView () {
     const adminRegex = /^\/admin/
