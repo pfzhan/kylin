@@ -64,6 +64,8 @@ case class WriteTaskStats(
 
 abstract class StorageStore extends Logging {
 
+  protected val TEMP_FLAG = "_temp_"
+
   def save(
             layout: LayoutEntity,
             outputPath: Path,
@@ -99,13 +101,17 @@ class StorageStoreV1 extends StorageStore {
   }
 
   private def repartitionWriter(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame) = {
-    val tempPath = outputPath.toString + "_temp_" + System.currentTimeMillis()
+    // cleanup before writing
+    val hadoopConf = dataFrame.sparkSession.sparkContext.hadoopConfiguration
+    val fs = outputPath.getFileSystem(hadoopConf)
+    StorageUtils.cleanupPotentialTempFiles(fs, outputPath, includeSelf = false)
+
+    val tempPath = outputPath.toString + TEMP_FLAG + System.currentTimeMillis()
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
-    val hadoopConf = dataFrame.sparkSession.sparkContext.hadoopConfiguration
 
     val bucketNum = StorageUtils.calculateBucketNum(tempPath, layout, rowCount, kapConfig)
-    val summary = HadoopUtil.getContentSummary(outputPath.getFileSystem(hadoopConf), new Path(tempPath))
+    val summary = HadoopUtil.getContentSummary(fs, new Path(tempPath))
     val repartitionThresholdSize = if (findCountDistinctMeasure(layout)) {
       kapConfig.getParquetStorageCountDistinctShardSizeRowCount
     } else {
@@ -184,8 +190,8 @@ class StorageStoreV2 extends StorageStore with Logging {
     val sparkSession = dataFrame.sparkSession
     val hadoopConf = sparkSession.sparkContext.hadoopConfiguration
     val fs = outputPath.getFileSystem(hadoopConf)
-    StorageUtils.cleanTempPath(fs, outputPath, cleanSelf = true)
-    val tempPath1 = outputPathStr + "_temp_" + System.currentTimeMillis()
+    StorageUtils.cleanupPotentialTempFiles(fs, outputPath, includeSelf = true)
+    val tempPath1 = outputPathStr + TEMP_FLAG + System.currentTimeMillis()
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath1)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
     val bucket = StorageUtils.calculateBucketNum(tempPath1, layout, rowCount, kapConfig)
@@ -227,7 +233,7 @@ class StorageStoreV2 extends StorageStore with Logging {
     }
 
     val (fileCount, byteSize) = collectFileCountAndSizeAfterSave(outputPath, hadoopConf)
-    StorageUtils.cleanTempPath(fs, outputPath, cleanSelf = false)
+    StorageUtils.cleanupPotentialTempFiles(fs, outputPath, includeSelf = false)
     WriteTaskStats(partitionValues.size, fileCount, byteSize, rowCount,
       metrics.getMetrics(Metrics.SOURCE_ROWS_CNT), bucketNum, partitionValues.toList.asJava)
   }

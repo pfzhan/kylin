@@ -56,20 +56,21 @@ object StorageUtils extends Logging {
   }
 
   // clean intermediate temp path after job or recover from an error job, usually with postfix '_temp'
-  def cleanTempPath(fs: FileSystem, path: Path, cleanSelf: Boolean): Unit = {
-    if (fs.exists(path)  && cleanSelf) {
-      fs.delete(path, true)
-      logInfo(s"Delete dir $path")
+  def cleanupPotentialTempFiles(fs: FileSystem, targetPath: Path, includeSelf: Boolean): Unit = {
+    if (fs.exists(targetPath)  && includeSelf) {
+      fs.delete(targetPath, true)
+      logInfo(s"Delete dir $targetPath")
     }
-    if (fs.exists(path.getParent)) {
-      fs.listStatus(path.getParent, new PathFilter {
-        override def accept(child: Path): Boolean = {
-          child.toString.startsWith(path.toString + "_temp")
+    if (fs.exists(targetPath.getParent)) {
+      val namePrefix = targetPath.getName + "_temp"
+      fs.listStatus(targetPath.getParent, new PathFilter {
+        override def accept(destPath: Path): Boolean = {
+          destPath.getName.startsWith(namePrefix)
         }
-      }).map(_.getPath).foreach { path =>
-        if (fs.exists(path)) {
-          fs.delete(path, true)
-          logInfo(s"Delete temp dir $path")
+      }).map(_.getPath).foreach { tempPath =>
+        if (fs.exists(tempPath)) {
+          fs.delete(tempPath, true)
+          logInfo(s"Delete temp dir $tempPath")
         }
       }
     }
