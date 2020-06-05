@@ -420,10 +420,22 @@
     }
     validateRange (rule, value, callback) {
       const [ startValue, endValue ] = value
-      const format = this.partitionMeta.format.toUpperCase() || 'YYYY-MM-DD'
-      const formatTimestampStart = startValue && new Date(moment(new Date(startValue)).format(format)).getTime()
-      const formatTimestampEnd = endValue && new Date(moment(new Date(endValue)).format(format)).getTime()
+      let format = ''
+      switch (this.partitionMeta.format) {
+        case 'yyyy-MM-dd':
+        case 'yyyyMMdd':
+        case 'yyyy/MM/dd':
+          format = 'YYYY/MM/DD'
+          break
+        case 'yyyy-MM':
+        case 'yyyyMM':
+          format = 'YYYY/MM'
+          break
+      }
+      const formatTimestampStart = !format ? startValue : (startValue && new Date(moment(new Date(startValue)).format(format)).getTime())
+      const formatTimestampEnd = !format ? endValue : (endValue && new Date(moment(new Date(endValue)).format(format)).getTime())
       const isLoadExisted = this.modelBuildMeta.isLoadExisted
+
       if ((!startValue || !endValue || transToUTCMs(formatTimestampStart) > transToUTCMs(formatTimestampEnd)) && !isLoadExisted) {
         callback(new Error(this.$t('invaildDate')))
       } else if (startValue && endValue && transToUTCMs(formatTimestampStart) === transToUTCMs(formatTimestampEnd) && !isLoadExisted) {
