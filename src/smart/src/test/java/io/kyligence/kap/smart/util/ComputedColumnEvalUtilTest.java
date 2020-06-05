@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.util;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
@@ -180,7 +181,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
         // add a good computed column
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
-        cc1.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
+        cc1.setColumnName(ComputedColumnUtil.DEFAULT_CC_NAME);
         cc1.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
         cc1.setExpression("SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)");
         cc1.setInnerExpression("SUBSTRING(LSTG_FORMAT_NAME, 1, 4)");
@@ -191,7 +192,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
         // add a bad computed column
         ComputedColumnDesc cc2 = new ComputedColumnDesc();
-        cc2.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
+        cc2.setColumnName(ComputedColumnUtil.DEFAULT_CC_NAME);
         cc2.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
         cc2.setExpression("CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)");
         cc2.setInnerExpression("CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)");
@@ -206,7 +207,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
         // add a good computed column again
         ComputedColumnDesc cc3 = new ComputedColumnDesc();
-        cc3.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
+        cc3.setColumnName(ComputedColumnUtil.DEFAULT_CC_NAME);
         cc3.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
         cc3.setExpression("YEAR(TEST_KYLIN_FACT.CAL_DT)");
         cc3.setInnerExpression("YEAR(TEST_KYLIN_FACT.CAL_DT)");
@@ -255,14 +256,14 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         // first CC will named CC_AUTO_1
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
         cc1.setExpression("SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)");
-        Assert.assertEquals(0, ComputedColumnEvalUtil.getBiggestCCIndex(dataModel, otherModels));
+        Assert.assertEquals(0, ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels));
         cc1.setColumnName("CC_AUTO_1");
         dataModel.getComputedColumnDescs().add(cc1);
 
         // second CC will named CC_AUTO_2
         ComputedColumnDesc cc2 = new ComputedColumnDesc();
         cc2.setExpression("concat(LSTG_FORMAT_NAME,1)");
-        Assert.assertEquals(1, ComputedColumnEvalUtil.getBiggestCCIndex(dataModel, otherModels));
+        Assert.assertEquals(1, ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels));
     }
 
 }

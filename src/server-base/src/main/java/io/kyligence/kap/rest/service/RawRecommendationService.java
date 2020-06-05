@@ -44,6 +44,7 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -238,6 +239,12 @@ public class RawRecommendationService {
 
     private void mockSaveLayoutRawRecItems(List<RawRecItem> layoutRecItems) {
         //todo 
+    }
+
+    private void updateRecommendationV2(String project, String id, List<Integer> rawIds) {
+        OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+        managerV2.createOrUpdate(id, rawIds);
     }
 
 }

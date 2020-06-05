@@ -30,11 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -439,7 +436,7 @@ public class OptimizeRecommendationManager {
     }
 
     @AllArgsConstructor
-    class NameChangerCCConflictHandler implements ComputedColumnUtil.CCConflictHandler {
+    class NameChangerCCConflictHandler extends ComputedColumnUtil.BasicCCConflictHandler {
 
         private CCRecommendationItem recommendation;
         private OptimizeContext context;
@@ -816,7 +813,7 @@ public class OptimizeRecommendationManager {
         return newName;
     }
 
-    private static class CCToGraphVisitor extends SqlBasicVisitor {
+    private static class CCToGraphVisitor extends CCVisitor {
         private Graph<CCRecommendationItem> graph;
         private Map<String, Graph.Node<CCRecommendationItem>> ccMap;
         private CCRecommendationItem suggestion;
@@ -828,18 +825,6 @@ public class OptimizeRecommendationManager {
             this.ccMap = ccMap;
             this.suggestion = suggestion;
             this.factTable = factTable;
-        }
-
-        @Override
-        public SqlCall visit(SqlCall call) {
-            if (call instanceof SqlBasicCall) {
-                SqlBasicCall basicCall = (SqlBasicCall) call;
-
-                for (SqlNode node : basicCall.getOperands()) {
-                    node.accept(this);
-                }
-            }
-            return null;
         }
 
         @Override

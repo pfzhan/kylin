@@ -60,6 +60,53 @@ import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
 public class ComputedColumnUtil {
+    public static final String CC_NAME_PREFIX = "CC_AUTO_";
+    public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
+
+    public static String generateCCName(String ccExpression, NDataModel dataModel, List<NDataModel> otherModels) {
+        List<NDataModel> allModels = Lists.newArrayList(otherModels);
+        allModels.add(dataModel);
+
+        for (String originCCexp : getAllCCNameAndExp(allModels).values()) {
+            if (isLiteralSameCCExprString(originCCexp, ccExpression)) {
+                BiMap<String, String> inversedAllCCNameAndExp = getAllCCNameAndExp(allModels).inverse();
+                return inversedAllCCNameAndExp.get(originCCexp);
+            }
+        }
+        return null;
+    }
+
+    public static BiMap<String, String> getAllCCNameAndExp(List<NDataModel> allModels) {
+        BiMap<String, String> allCCNameAndExp = HashBiMap.create();
+        for (NDataModel otherModel : allModels) {
+            for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
+                allCCNameAndExp.put(cc.getColumnName(), cc.getExpression());
+            }
+        }
+        return allCCNameAndExp;
+    }
+
+    public static int getBiggestCCIndex(NDataModel dataModel, List<NDataModel> otherModels) {
+        List<NDataModel> allModels = Lists.newArrayList(otherModels);
+        allModels.add(dataModel);
+        int biggest = 0;
+        for (String ccName : getAllCCNameAndExp(allModels).keySet()) {
+            if (ccName.startsWith(CC_NAME_PREFIX)) {
+                String idxStr = ccName.substring(CC_NAME_PREFIX.length());
+                int idx;
+                try {
+                    idx = Integer.parseInt(idxStr);
+                } catch (NumberFormatException e) {
+                    break;
+                }
+                if (idx > biggest) {
+                    biggest = idx;
+                }
+            }
+        }
+        return biggest;
+    }
+
     public static class ExprIdentifierFinder extends SqlBasicVisitor<SqlNode> {
         List<Pair<String, String>> columnWithTableAlias;
 
@@ -207,6 +254,10 @@ public class ComputedColumnUtil {
         boolean sameName = isSameName(existingCC, newCC);
         boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
 
+        if (sameName && sameCCExpr) {
+            handler.handleOnSameExprSameName(existingModel, existingCC, newCC);
+        }
+
         if (sameName) {
             if (!isSameAliasTable(existingCC, newCC, aliasMapping)) {
                 handler.handleOnWrongPositionName(existingModel, existingCC, newCC, aliasMapping);
@@ -336,9 +387,44 @@ public class ComputedColumnUtil {
 
         void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC);
+
+        void handleOnSameExprSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC);
     }
 
-    public static class DefaultCCConflictHandler implements CCConflictHandler {
+    public static class BasicCCConflictHandler implements CCConflictHandler {
+        @Override
+        public void handleOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
+            // do nothing
+        }
+
+        @Override
+        public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,
+                ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
+            // do nothing
+        }
+
+        @Override
+        public void handleOnWrongPositionExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
+            // do nothing
+        }
+
+        @Override
+        public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            // do nothing
+        }
+
+        @Override
+        public void handleOnSameExprSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            // do nothing
+        }
+    }
+
+    public static class DefaultCCConflictHandler extends BasicCCConflictHandler {
 
         @Override
         public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,

@@ -33,12 +33,14 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -61,6 +63,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -81,6 +84,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -878,5 +882,88 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public boolean isFastBitmapEnabled() {
         return overrideProps.containsKey("kylin.query.fast-bitmap-enabled")
                 && Boolean.parseBoolean(overrideProps.get("kylin.query.fast-bitmap-enabled"));
+    }
+
+    public class IndexPlanUpdateHandler {
+        IndexPlan indexPlan;
+        Map<IndexEntity.IndexIdentifier, IndexEntity> whiteIndexesMap;
+        Map<IndexEntity.IndexIdentifier, IndexEntity> allIndexesMap;
+        AtomicLong nextAggregationIndexId;
+        AtomicLong nextTableIndexId;
+
+        private IndexPlanUpdateHandler() {
+            indexPlan = IndexPlan.this.isCachedAndShared ? JsonUtil.deepCopyQuietly(IndexPlan.this, IndexPlan.class)
+                    : IndexPlan.this;
+            whiteIndexesMap = indexPlan.getWhiteListIndexesMap();
+            allIndexesMap = indexPlan.getAllIndexesMap();
+            nextAggregationIndexId = new AtomicLong(indexPlan.getNextAggregationIndexId());
+            nextTableIndexId = new AtomicLong(indexPlan.getNextTableIndexId());
+        }
+
+        public void add(LayoutEntity layout, boolean isAgg) {
+            val identifier = createIndexIdentifier(layout, isAgg);
+            if (!whiteIndexesMap.containsKey(identifier)) {
+                val index = new IndexEntity();
+                index.setDimensions(getDimensions(layout));
+                index.setMeasures(getMeasures(layout));
+                index.setNextLayoutOffset(2);
+                if (allIndexesMap.get(identifier) != null) {
+                    index.setId(allIndexesMap.get(identifier).getId());
+                    index.setNextLayoutOffset(allIndexesMap.get(identifier).getNextLayoutOffset());
+                } else {
+                    index.setId(isAgg ? nextAggregationIndexId.getAndAdd(IndexEntity.INDEX_ID_STEP)
+                            : nextTableIndexId.getAndAdd(IndexEntity.INDEX_ID_STEP));
+                }
+                layout.setIndex(index);
+                layout.setId(index.getId() + index.getNextLayoutOffset());
+                index.setLayouts(Lists.newArrayList(layout));
+                index.setNextLayoutOffset(index.getNextLayoutOffset() + 1);
+                whiteIndexesMap.put(identifier, index);
+
+            } else {
+                val indexEntity = whiteIndexesMap.get(identifier);
+                if (indexEntity.getLayouts().contains(layout)) {
+                    return;
+                }
+                layout.setId(indexEntity.getId() + indexEntity.getNextLayoutOffset());
+                layout.setIndex(indexEntity);
+                indexEntity.setNextLayoutOffset(indexEntity.getNextLayoutOffset() + 1);
+                indexEntity.getLayouts().add(layout);
+            }
+        }
+
+        public IndexPlan complete() {
+            indexPlan.setIndexes(whiteIndexesMap.values().stream().sorted(Comparator.comparingLong(IndexEntity::getId))
+                    .collect(Collectors.toList()));
+            return indexPlan;
+        }
+    }
+
+    public IndexPlan.IndexPlanUpdateHandler createUpdateHandler() {
+        return new IndexPlanUpdateHandler();
+    }
+
+    public IndexEntity.IndexIdentifier createIndexIdentifier(LayoutEntity layout, boolean agg) {
+        return new IndexEntity.IndexIdentifier(//
+                getDimensions(layout), //
+                getMeasures(layout), //
+                !agg//
+        );
+    }
+
+    @JsonIgnore
+    public List<Integer> getMeasures(LayoutEntity layout) {
+        return layout.getColOrder().stream()
+                .filter(i -> (i >= NDataModel.MEASURE_ID_BASE && i < OptimizeRecommendationManager.ID_OFFSET)
+                        || (i >= OptimizeRecommendationManager.ID_OFFSET + NDataModel.MEASURE_ID_BASE))
+                .collect(Collectors.toList());
+    }
+
+    @JsonIgnore
+    public List<Integer> getDimensions(LayoutEntity layout) {
+        return layout.getColOrder().stream()
+                .filter(i -> (i < NDataModel.MEASURE_ID_BASE) || (i >= OptimizeRecommendationManager.ID_OFFSET
+                        && i < OptimizeRecommendationManager.ID_OFFSET + NDataModel.MEASURE_ID_BASE))
+                .collect(Collectors.toList());
     }
 }

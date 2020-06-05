@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -111,7 +112,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         }
 
         List<NDataModel> otherModels = getOtherModels(dataModel);
-        int maxUsedComputedColumnIndex = ComputedColumnEvalUtil.getBiggestCCIndex(dataModel, otherModels);
+        int maxUsedComputedColumnIndex = ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels);
         for (String ccSuggestion : ccSuggestions) {
             ComputedColumnDesc ccDesc = modelContext.getUsedCC().get(ccSuggestion);
             // In general, cc expressions in the SQL statements should have been replaced in transformers,
@@ -127,11 +128,11 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             ccDesc.setDatatype("ANY"); // resolve data type later
             ccDesc.setExpression(ccSuggestion);
             ccDesc.setUuid(UUID.randomUUID().toString());
-            String newCCName = ComputedColumnEvalUtil.generateCCName(ccSuggestion, dataModel, otherModels);
+            String newCCName = ComputedColumnUtil.generateCCName(ccSuggestion, dataModel, otherModels);
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
             } else {
-                ccDesc.setColumnName(ComputedColumnEvalUtil.CC_NAME_PREFIX + (++maxUsedComputedColumnIndex));
+                ccDesc.setColumnName(ComputedColumnUtil.CC_NAME_PREFIX + (++maxUsedComputedColumnIndex));
             }
             ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(dataModel, project, ccDesc, null));
             dataModel.getComputedColumnDescs().add(ccDesc);

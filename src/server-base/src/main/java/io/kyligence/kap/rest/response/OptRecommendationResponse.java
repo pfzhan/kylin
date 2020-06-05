@@ -138,6 +138,11 @@ public class OptRecommendationResponse implements Serializable {
     }
 
     private LayoutRecommendationResponse convertToIndexRecommendationResponse(LayoutRecommendationItem item) {
+        return convertToIndexRecommendationResponse(project, modelId, item);
+    }
+
+    public static LayoutRecommendationResponse convertToIndexRecommendationResponse(String project, String modelId,
+            LayoutRecommendationItem item) {
         val response = new LayoutRecommendationResponse();
         response.setInfo(item.getExtraInfo());
         response.setItemId(item.getItemId());

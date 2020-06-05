@@ -1239,6 +1239,10 @@ public class NDataModel extends RootPersistentEntity {
         return Collections.unmodifiableSet(ccColumnNames);
     }
 
+    public static boolean isMeasureId(int id) {
+        return id >= MEASURE_ID_BASE;
+    }
+
     public void setSeekingCCAdvice(boolean seekingCCAdvice) {
         isSeekingCCAdvice = seekingCCAdvice;
     }

@@ -114,6 +114,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
     public static final String JOB_STATISTICS = "/job_stats";
     public static final String MODEL_OPTIMIZE_RECOMMENDATION = "/recommendation";
+    public static final String MODEL_OPTIMIZE_RECOMMENDATION_V2 = "/recommendation_v2";
     public static final String EXECUTABLE_JOB = "/execute";
     public static final String GLOBAL_EPOCH = GLOBAL_PROJECT + "/epoch";
     public static final String HISTORY_SOURCE_USAGE = GLOBAL_PROJECT + "/history_source_usage";

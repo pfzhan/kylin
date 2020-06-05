@@ -419,6 +419,12 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-core-metadata</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-storage</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>

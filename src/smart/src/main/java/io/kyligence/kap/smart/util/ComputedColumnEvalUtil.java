@@ -30,6 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -44,8 +45,6 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -54,15 +53,11 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ComputedColumnEvalUtil {
-
-    public static final String CC_NAME_PREFIX = "CC_AUTO_";
-    public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
     private static final Pattern PATTERN_COLUMN = Pattern
             .compile("cannot resolve '(.*?)' given input columns: \\[(.*?),(.*?)];");
@@ -207,63 +202,20 @@ public class ComputedColumnEvalUtil {
     }
 
     private static String incrementIndex(String oldAlias) {
-        if (oldAlias == null || !oldAlias.startsWith(CC_NAME_PREFIX) || oldAlias.equals(CC_NAME_PREFIX)) {
-            return DEFAULT_CC_NAME;
+        if (oldAlias == null || !oldAlias.startsWith(ComputedColumnUtil.CC_NAME_PREFIX) || oldAlias.equals(ComputedColumnUtil.CC_NAME_PREFIX)) {
+            return ComputedColumnUtil.DEFAULT_CC_NAME;
         }
 
-        String idxStr = oldAlias.substring(CC_NAME_PREFIX.length());
+        String idxStr = oldAlias.substring(ComputedColumnUtil.CC_NAME_PREFIX.length());
         int idx;
         try {
             idx = Integer.parseInt(idxStr);
         } catch (NumberFormatException e) {
-            return DEFAULT_CC_NAME;
+            return ComputedColumnUtil.DEFAULT_CC_NAME;
         }
 
         idx++;
-        return CC_NAME_PREFIX + idx;
+        return ComputedColumnUtil.CC_NAME_PREFIX + idx;
     }
 
-    public static String generateCCName(String ccExpression, NDataModel dataModel, List<NDataModel> otherModels) {
-        List<NDataModel> allModels = Lists.newArrayList(otherModels);
-        allModels.add(dataModel);
-
-        for (String originCCexp : getAllCCNameAndExp(allModels).values()) {
-            if (ComputedColumnUtil.isLiteralSameCCExprString(originCCexp, ccExpression)) {
-                BiMap<String, String> inversedAllCCNameAndExp = getAllCCNameAndExp(allModels).inverse();
-                return inversedAllCCNameAndExp.get(originCCexp);
-            }
-        }
-        return null;
-    }
-
-    public static int getBiggestCCIndex(NDataModel dataModel, List<NDataModel> otherModels) {
-        List<NDataModel> allModels = Lists.newArrayList(otherModels);
-        allModels.add(dataModel);
-        int biggest = 0;
-        for (String ccName : getAllCCNameAndExp(allModels).keySet()) {
-            if (ccName.startsWith(CC_NAME_PREFIX)) {
-                String idxStr = ccName.substring(CC_NAME_PREFIX.length());
-                int idx;
-                try {
-                    idx = Integer.parseInt(idxStr);
-                } catch (NumberFormatException e) {
-                    break;
-                }
-                if (idx > biggest) {
-                    biggest = idx;
-                }
-            }
-        }
-        return biggest;
-    }
-
-    public static BiMap<String, String> getAllCCNameAndExp(List<NDataModel> allModels) {
-        BiMap<String, String> allCCNameAndExp = HashBiMap.create();
-        for (NDataModel otherModel : allModels) {
-            for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
-                allCCNameAndExp.put(cc.getColumnName(), cc.getExpression());
-            }
-        }
-        return allCCNameAndExp;
-    }
 }

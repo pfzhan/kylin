@@ -148,6 +148,14 @@ public class JsonUtil {
         return mapper.writeValueAsString(value);
     }
 
+    public static String writeValueAsStringQuietly(Object value) {
+        try {
+            return writeValueAsString(value);
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot write " + value.getClass(), e);
+        }
+    }
+
     public static byte[] writeValueAsBytes(Object value) throws JsonProcessingException {
         return mapper.writeValueAsBytes(value);
     }
