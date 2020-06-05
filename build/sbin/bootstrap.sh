@@ -231,11 +231,18 @@ function startKE(){
         kylin_server_log4j="file:${KYLIN_HOME}/server/conf/kylin-server-log4j.properties"
     fi
 
-    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
+    TIME_ZONE=`${KYLIN_HOME}/bin/get-properties.sh kylin.web.timezone`
+    if [[ -n ${TIME_ZONE} ]]; then
+        TIME_ZONE="-Duser.timezone=${TIME_ZONE}"
+    fi
+
+    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/guardian.sh kill"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
 
     PID=`cat ${KYLIN_HOME}/pid`
     CUR_DATE=$(date "+%Y-%m-%d %H:%M:%S")
     echo $CUR_DATE" new KE process pid is "$PID >> ${KYLIN_HOME}/logs/kylin.log
+
+    sh ${KYLIN_HOME}/bin/guardian.sh start
 
     echo "Kyligence Enterprise is starting. It may take a while. For status, please visit http://`hostname`:$port/kylin/index.html."
     echo "You may also check status via: PID:`cat ${KYLIN_HOME}/pid`, or Log: ${KYLIN_HOME}/logs/kylin.log."
@@ -243,6 +250,8 @@ function startKE(){
 }
 
 function stopKE(){
+    sh ${KYLIN_HOME}/bin/guardian.sh stop
+
     STOP_TIME=$(date "+%Y-%m-%d %H:%M:%S")
     if [ -f "${KYLIN_HOME}/pid" ]; then
         PID=`cat ${KYLIN_HOME}/pid`

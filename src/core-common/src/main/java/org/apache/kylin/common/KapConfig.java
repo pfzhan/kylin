@@ -159,7 +159,8 @@ public class KapConfig {
     }
 
     public boolean isProjectInternalDefaultPermissionGranted() {
-        return Boolean.parseBoolean(config.getOptional("kylin.acl.project-internal-default-permission-granted", "true"));
+        return Boolean
+                .parseBoolean(config.getOptional("kylin.acl.project-internal-default-permission-granted", "true"));
     }
 
     /**
@@ -530,8 +531,8 @@ public class KapConfig {
     }
 
     public boolean enablePushdownPrepareStatementWithParams() {
-        return Boolean
-                .valueOf(config.getOptional("kylin.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
+        return Boolean.valueOf(
+                config.getOptional("kylin.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
     }
 
     public boolean runConstantQueryLocally() {
@@ -622,5 +623,4 @@ public class KapConfig {
     public boolean isQueryEscapedLiteral() {
         return Boolean.parseBoolean(config.getOptional("kylin.query.parser.escaped-string-literals", FALSE));
     }
-
 }

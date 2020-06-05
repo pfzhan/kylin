@@ -27,6 +27,7 @@ import io.kyligence.kap.rest.Broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
+import io.kyligence.kap.tool.daemon.KapGuardianHATask;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -60,6 +61,8 @@ import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.util.JStackDumpTask;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Date;
 
 @Slf4j
 @Configuration
@@ -116,11 +119,13 @@ public class AppInitializer {
         }
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
-        if(kylinConfig.isQueryNode()){
-            if(kylinConfig.isSparderAsync()){
-                event.getApplicationContext().publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
+        if (kylinConfig.isQueryNode()) {
+            if (kylinConfig.isSparderAsync()) {
+                event.getApplicationContext()
+                        .publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
             } else {
-                event.getApplicationContext().publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));
+                event.getApplicationContext()
+                        .publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));
             }
         }
         // register acl update listener
@@ -151,6 +156,13 @@ public class AppInitializer {
         if (kylinConfig.getJStackDumpTaskEnabled()) {
             taskScheduler.scheduleAtFixedRate(new JStackDumpTask(),
                     kylinConfig.getJStackDumpTaskPeriod() * Constant.MINUTE);
+        }
+
+        if (kylinConfig.isGuardianEnabled() && kylinConfig.isGuardianHAEnabled()) {
+            log.info("Guardian Process ha is enabled, start check scheduler");
+            taskScheduler.scheduleAtFixedRate(new KapGuardianHATask(),
+                    new Date(System.currentTimeMillis() + kylinConfig.getGuardianHACheckInitDelay() * Constant.SECOND),
+                    kylinConfig.getGuardianHACheckInterval() * Constant.SECOND);
         }
     }
 

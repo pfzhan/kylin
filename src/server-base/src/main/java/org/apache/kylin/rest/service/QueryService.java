@@ -108,6 +108,7 @@ import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
@@ -357,8 +358,10 @@ public class QueryService extends BasicService {
             long t = System.currentTimeMillis();
             logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
             sqlRequest.setUsername(getUsername());
+            QueryLimiter.tryAcquire();
             return queryWithCache(sqlRequest, isQueryInspect);
         } finally {
+            QueryLimiter.release();
             QueryContext.current().close();
         }
     }

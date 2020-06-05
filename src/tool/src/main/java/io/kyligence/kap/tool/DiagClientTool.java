@@ -176,6 +176,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         exportSparkLog(exportDir, startTime, endTime, start, recordTime);
 
+        exportKgLogs(exportDir, startTime, endTime, start, recordTime);
+
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
 

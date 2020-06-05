@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
+import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -429,5 +430,13 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             logger.info("Dump metadata result code : {} , cmd : {} , pid : {}.", result.getCode(), result.getCmd(),
                     result.getProcessId());
         }
+    }
+
+    protected void exportKgLogs(File exportDir, long startTime, long endTime, long start, File recordTime) {
+        executorService.execute(() -> {
+            logger.info("Start to extract guardian process log.");
+            KylinLogTool.extractKGLogs(exportDir, startTime, endTime);
+            DiagnosticFilesChecker.writeMsgToFile("KG_LOGS", System.currentTimeMillis() - start, recordTime);
+        });
     }
 }

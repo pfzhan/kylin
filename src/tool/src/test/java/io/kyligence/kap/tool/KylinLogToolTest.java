@@ -71,6 +71,41 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
             + "  \"owner\" : \"ADMIN\",\n" + "  \"runTimes\" : 1,\n"
             + "  \"job_id\" : \"d0f45b72-db2f-407b-9d6f-7cfe6f6624e8\"\n" + "}";
 
+    private static final String kgLogMsg = "2020-06-08 05:23:22,410 INFO  [ke-guardian-process] daemon.KapGuardian : Guardian Process: health check finished ...\n"
+            + "2020-06-08 05:24:22,410 INFO  [ke-guardian-process] daemon.KapGuardian : Guardian Process: start to run health checkers ...\n"
+            + "2020-06-08 05:24:22,410 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker:[io.kyligence.kap.tool.daemon.checker.KEProcessChecker] start to do check ...\n"
+            + "2020-06-08 05:24:22,432 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker: [io.kyligence.kap.tool.daemon.checker.KEProcessChecker], do check finished! \n"
+            + "2020-06-08 05:24:22,432 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler], Health Checker: [io.kyligence.kap.tool.daemon.checker.KEProcessChecker] check result is NORMAL, message: \n"
+            + "2020-06-08 05:24:22,432 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler] handle the check result success ...\n"
+            + "2020-06-08 05:24:22,432 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker:[io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker] start to do check ...\n"
+            + "2020-06-08 05:24:22,614 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker: [io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker], do check finished! \n"
+            + "2020-06-08 05:24:22,614 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.UpGradeStateHandler], Health Checker: [io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker] check result is QUERY_UPGRADE, messa\n"
+            + "ge: Full gc time duration ratio in 300 seconds is less than 20.00%\n"
+            + "2020-06-08 05:24:22,617 INFO  [ke-guardian-process] handler.UpGradeStateHandler : Upgrade query service success ...\n"
+            + "2020-06-08 05:24:22,617 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.UpGradeStateHandler] handle the check result success ...\n"
+            + "2020-06-08 05:24:22,617 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker:[io.kyligence.kap.tool.daemon.checker.KEStatusChecker] start to do check ...\n"
+            + "2020-06-08 05:24:22,621 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker: [io.kyligence.kap.tool.daemon.checker.KEStatusChecker], do check finished! \n"
+            + "2020-06-08 05:24:22,621 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler], Health Checker: [io.kyligence.kap.tool.daemon.checker.KEStatusChecker] check result is NORMAL, message: \n"
+            + "2020-06-08 05:24:22,621 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler] handle the check result success ...\n"
+            + "2020-06-08 05:24:22,621 INFO  [ke-guardian-process] daemon.KapGuardian : Guardian Process: health check finished ...\n"
+            + "2020-06-08 05:25:22,621 INFO  [ke-guardian-process] daemon.KapGuardian : Guardian Process: start to run health checkers ...";
+
+    private static final String kgLog1Msg = "2020-06-08 05:25:22,621 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker:[io.kyligence.kap.tool.daemon.checker.KEProcessChecker] start to do check ...\n"
+            + "2020-06-08 05:25:22,642 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker: [io.kyligence.kap.tool.daemon.checker.KEProcessChecker], do check finished! \n"
+            + "2020-06-08 05:25:22,642 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler], Health Checker: [io.kyligence.kap.tool.daemon.checker.KEProcessChecker] check result is NORMAL, message: \n"
+            + "2020-06-08 05:25:22,642 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler] handle the check result success ...\n"
+            + "2020-06-08 05:25:22,642 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker:[io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker] start to do check ...\n"
+            + "2020-06-08 05:25:22,830 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker: [io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker], do check finished! \n"
+            + "2020-06-08 05:25:22,831 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.UpGradeStateHandler], Health Checker: [io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker] check result is QUERY_UPGRADE, messa\n"
+            + "ge: Full gc time duration ratio in 300 seconds is less than 20.00%\n"
+            + "2020-06-08 05:25:22,834 INFO  [ke-guardian-process] handler.UpGradeStateHandler : Upgrade query service success ...\n"
+            + "2020-06-08 05:25:22,834 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.UpGradeStateHandler] handle the check result success ...\n"
+            + "2020-06-08 05:25:22,834 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker:[io.kyligence.kap.tool.daemon.checker.KEStatusChecker] start to do check ...\n"
+            + "2020-06-08 05:25:22,838 INFO  [ke-guardian-process] checker.AbstractHealthChecker : Checker: [io.kyligence.kap.tool.daemon.checker.KEStatusChecker], do check finished! \n"
+            + "2020-06-08 05:25:22,838 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler], Health Checker: [io.kyligence.kap.tool.daemon.checker.KEStatusChecker] check result is NORMAL, message: \n"
+            + "2020-06-08 05:25:22,838 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler] handle the check result success ...\n"
+            + "2020-06-08 05:25:22,838 INFO  [ke-guardian-process] daemon.KapGuardian : Guardian Process: health check finished ...";
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -245,5 +280,32 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         for (String childDir : childDirs) {
             Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
         }
+    }
+
+    @Test
+    public void testExtractKGLog() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        File kgLog = new File(ToolUtil.getLogFolder(), "guardian.log");
+        File kgLog1 = new File(ToolUtil.getLogFolder(), "guardian.log.1");
+
+        FileUtils.writeStringToFile(kgLog, kgLogMsg);
+        FileUtils.writeStringToFile(kgLog1, kgLog1Msg);
+
+        long startTime = new DateTime(2020, 6, 8, 5, 24, 0).getMillis();
+        long endTime = new DateTime(2020, 6, 8, 5, 26, 0).getMillis();
+
+        KylinLogTool.extractKGLogs(mainDir, startTime, endTime);
+
+        FileUtils.deleteQuietly(kgLog);
+        FileUtils.deleteQuietly(kgLog1);
+
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/guardian.log"))
+                .contains("2020-06-08 05:24:22,410"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/guardian.log.1"))
+                .contains("2020-06-08 05:25:22,838"));
+        Assert.assertFalse(
+                FileUtils.readFileToString(new File(mainDir, "logs/guardian.log")).contains("2020-06-08 05:23:22,410"));
     }
 }

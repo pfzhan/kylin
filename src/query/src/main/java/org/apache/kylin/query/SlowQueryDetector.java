@@ -43,8 +43,14 @@
 package org.apache.kylin.query;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +59,8 @@ public class SlowQueryDetector extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetector.class);
 
     private final ConcurrentHashMap<Thread, QueryEntry> runningQueries = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, CanceledSlowQueryStatus> canceledSlowQueriesStatus = Maps
+            .newConcurrentMap();
     private final int detectionIntervalMs;
     private int queryTimeoutMs;
 
@@ -73,11 +81,16 @@ public class SlowQueryDetector extends Thread {
     }
 
     public void queryStart() {
-        runningQueries.put(currentThread(), new QueryEntry(currentThread(), System.currentTimeMillis()));
+        runningQueries.put(currentThread(),
+                new QueryEntry(System.currentTimeMillis(), currentThread(), QueryContext.current().getQueryId()));
     }
 
     public void queryEnd() {
-        runningQueries.remove(currentThread());
+        QueryEntry entry = runningQueries.remove(currentThread());
+        if (null != entry && null != canceledSlowQueriesStatus.get(entry.queryId)) {
+            canceledSlowQueriesStatus.remove(entry.queryId);
+            logger.info("Remove query [{}] from canceledSlowQueriesStatus", entry.queryId);
+        }
     }
 
     @Override
@@ -94,29 +107,74 @@ public class SlowQueryDetector extends Thread {
         }
     }
 
+    public static ConcurrentMap<String, CanceledSlowQueryStatus> getCanceledSlowQueriesStatus() {
+        return canceledSlowQueriesStatus;
+    }
+
+    @VisibleForTesting
+    public static void addCanceledSlowQueriesStatus(ConcurrentMap<String, CanceledSlowQueryStatus> slowQueriesStatus) {
+        canceledSlowQueriesStatus.putAll(slowQueriesStatus);
+    }
+
+    @VisibleForTesting
+    public static void clearCanceledSlowQueriesStatus() {
+        canceledSlowQueriesStatus.clear();
+    }
+
     private void checkTimeout() {
         // interrupt query thread if timeout
         for (QueryEntry e : runningQueries.values()) {
-            e.setInterruptIfTimeout();
-        }
-    }
+            if (!e.setInterruptIfTimeout()) {
+                continue;
+            }
 
-    private class QueryEntry {
-        final long startTime;
-        final Thread thread;
-
-        QueryEntry(Thread thread, long startTime) {
-            this.startTime = startTime;
-            this.thread = thread;
-        }
-
-        private void setInterruptIfTimeout() {
-            long runningMs = System.currentTimeMillis() - startTime;
-            if (runningMs >= queryTimeoutMs) {
-                thread.interrupt();
-                logger.error("Trying to cancel query:" + thread.getName());
+            try {
+                CanceledSlowQueryStatus canceledSlowQueryStatus = canceledSlowQueriesStatus.get(e.getQueryId());
+                if (null == canceledSlowQueryStatus) {
+                    canceledSlowQueriesStatus.putIfAbsent(e.getQueryId(), new CanceledSlowQueryStatus(e.getQueryId(), 1,
+                            System.currentTimeMillis(), e.getRunningTime()));
+                    logger.info("Query [{}] has been canceled 1 times, put to canceledSlowQueriesStatus", e.queryId);
+                } else {
+                    int canceledTimes = canceledSlowQueryStatus.getCanceledTimes() + 1;
+                    canceledSlowQueriesStatus.put(e.getQueryId(), new CanceledSlowQueryStatus(e.getQueryId(),
+                            canceledTimes, System.currentTimeMillis(), e.getRunningTime()));
+                    logger.info("Query [{}] has been canceled {} times", e.getQueryId(), canceledTimes);
+                }
+            } catch (Exception ex) {
+                logger.error("Record slow query status failed!", ex);
             }
         }
     }
 
+    @Getter
+    @AllArgsConstructor
+    private class QueryEntry {
+        final long startTime;
+        final Thread thread;
+        final String queryId;
+
+        public long getRunningTime() {
+            return (System.currentTimeMillis() - startTime) / 1000;
+        }
+
+        private boolean setInterruptIfTimeout() {
+            long runningMs = System.currentTimeMillis() - startTime;
+            if (runningMs >= queryTimeoutMs) {
+                thread.interrupt();
+                logger.error("Trying to cancel query: {}", thread.getName());
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class CanceledSlowQueryStatus {
+        public final String queryId;
+        public final int canceledTimes;
+        public final long lastCanceledTime;
+        public final float queryDurationTime;
+    }
 }

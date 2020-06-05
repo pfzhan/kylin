@@ -703,6 +703,25 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isOverCapacityNotificationEnabled", new PropertiesEntity("kylin.capacity.notification-enabled", "false", false));
         map.put("getOverCapacityMailingList", new PropertiesEntity("kylin.capacity.notification-emails", "", new String[0]));
 
+        map.put("isGuardianEnabled", new PropertiesEntity("kylin.guardian.enabled", "false", false));
+        map.put("getGuardianCheckInterval", new PropertiesEntity("kylin.guardian.check-interval", "1min", 60L));
+        map.put("getGuardianCheckInitDelay", new PropertiesEntity("kylin.guardian.check-init-delay", "5min", 5*60L));
+        map.put("isGuardianHAEnabled", new PropertiesEntity("kylin.guardian.ha-enabled", "true", true));
+        map.put("getGuardianHACheckInterval", new PropertiesEntity("kylin.guardian.ha-check-interval", "1min", 60L));
+        map.put("getGuardianHACheckInitDelay", new PropertiesEntity("kylin.guardian.ha-check-init-delay", "5min", 5*60L));
+        map.put("getGuardianHealthCheckers", new PropertiesEntity("kylin.guardian.checkers", "io.kyligence.kap.tool.daemon.checker.KEProcessChecker", "io.kyligence.kap.tool.daemon.checker.KEProcessChecker"));
+        map.put("getGuardianFullGCCheckFactor", new PropertiesEntity("kylin.guardian.full-gc-check-factor", "5", 5));
+        map.put("isFullGCRatioBeyondRestartEnabled", new PropertiesEntity("kylin.guardian.full-gc-duration-ratio-restart-enabled", "true", true));
+        map.put("getGuardianFullGCRatioThreshold", new PropertiesEntity("kylin.guardian.full-gc-duration-ratio-threshold", "60", 60.0));
+        map.put("isDowngradeOnFullGCBusyEnable", new PropertiesEntity("kylin.guardian.downgrade-on-full-gc-busy-enabled", "true", true));
+        map.put("getGuardianFullGCHighWatermark", new PropertiesEntity("kylin.guardian.full-gc-busy-high-watermark", "40", 40.0));
+        map.put("getGuardianFullGCLowWatermark", new PropertiesEntity("kylin.guardian.full-gc-busy-low-watermark", "20", 20.0));
+        map.put("getGuardianApiFailThreshold", new PropertiesEntity("kylin.guardian.api-fail-threshold", "3", 3));
+        map.put("isSparkFailRestartKeEnabled", new PropertiesEntity("kylin.guardian.restart-spark-fail-restart-enabled", "true", true));
+        map.put("getGuardianSparkFailThreshold", new PropertiesEntity("kylin.guardian.restart-spark-fail-threshold", "3", 3));
+        map.put("getDowngradeParallelQueryThreshold", new PropertiesEntity("kylin.downgrade-mode.parallel-query-threshold", "10", 10));
+        map.put("isSlowQueryKillFailedRestartKeEnabled", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-restart-enabled", "true", true));
+        map.put("getGuardianSlowQueryKillFailedThreshold", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-threshold", "3", 3));
     }
 
     @Before
@@ -722,7 +741,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(326, methodsCount);
+        Assert.assertEquals(348, methodsCount);
     }
 
     @Test

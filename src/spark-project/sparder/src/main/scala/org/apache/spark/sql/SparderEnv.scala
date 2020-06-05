@@ -55,6 +55,12 @@ object SparderEnv extends Logging {
   @volatile
   var APP_MASTER_TRACK_URL: String = null
 
+  @volatile
+  var startSparkFailureTimes: Int = 0
+
+  @volatile
+  var lastStartSparkFailureTime: Long = 0
+
   def getSparkSession: SparkSession = withClassLoad {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
@@ -128,6 +134,8 @@ object SparderEnv extends Logging {
       if (initializingThread == null && (spark == null || spark.sparkContext.isStopped)) {
         initializingThread = new Thread(new Runnable {
           override def run(): Unit = {
+            var startSparkSucceed = false
+
             try {
               val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
                                 ("true").equals(System.getProperty("spark.local"))
@@ -167,10 +175,19 @@ object SparderEnv extends Logging {
               registerListener(sparkSession.sparkContext)
               initMonitorEnv()
               APP_MASTER_TRACK_URL = null
+              startSparkSucceed = true
             } catch {
               case throwable: Throwable =>
                 logError("Error for initializing spark ", throwable)
             } finally {
+              if (startSparkSucceed) {
+                startSparkFailureTimes = 0
+                lastStartSparkFailureTime = 0
+              } else {
+                startSparkFailureTimes += 1
+                lastStartSparkFailureTime = System.currentTimeMillis()
+              }
+
               logInfo("Setting initializing Spark thread to null.")
               initializingThread = null
             }

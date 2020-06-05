@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,7 +51,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
@@ -427,6 +428,46 @@ public class RestClient {
             logger.error("Error during HTTP connection cleanup", ex);
         }
         request.releaseConnection();
+    }
+
+    public <T> T getKapHealthStatus(TypeReference<T> clz, byte[] encryptedToken) throws Exception {
+        String url = baseUrl + "/health/instance_info";
+
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setEntity(new ByteArrayEntity(encryptedToken));
+        HttpResponse response = null;
+        try {
+            httpPost.setURI(new URI(url));
+            response = client.execute(httpPost);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " with health status url " + url + "\n" + msg);
+            }
+
+            return JsonUtil.readValue(getContent(response), clz);
+        } finally {
+            cleanup(httpPost, response);
+        }
+    }
+
+    public void downOrUpGradeKE(String status, byte[] encryptedToken) throws Exception {
+        String url = baseUrl + "/health/instance_service/" + status;
+
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setEntity(new ByteArrayEntity(encryptedToken));
+        HttpResponse response = null;
+        try {
+            httpPost.setURI(new URI(url));
+            response = client.execute(httpPost);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                throw new IOException("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " with downOrUpGradeKE url " + url + "\n" + msg);
+            }
+        } finally {
+            cleanup(httpPost, response);
+        }
     }
 
 }

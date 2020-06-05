@@ -101,6 +101,8 @@ public abstract class KylinConfigBase implements Serializable {
     public static final long REJECT_SIMILARITY_THRESHOLD = 100_000_000L;
     public static final double SIMILARITY_THRESHOLD = 0.9;
 
+    public static final long MINUTE = 60;
+
     public static final String TRUE = "true";
     public static final String FALSE = "false";
     public static final String QUERY_NODE = "query";
@@ -1737,6 +1739,7 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isBuildCheckPartitionColEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.check-partition-col-enabled", TRUE));
     }
+
     public boolean isShardingJoinOptEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.expose-sharding-trait", TRUE));
     }
@@ -1942,4 +1945,116 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.model.recommendation-page-size", "500"));
     }
 
+    // Guardian Process
+    public boolean isGuardianEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.guardian.enabled", FALSE));
+    }
+
+    private long getConfigItemSeconds(String configItem, long defaultLongValue, long rangeStart, long rangeEnd) {
+        long resultValue = defaultLongValue;
+        try {
+            resultValue = TimeUtil.timeStringAs(getOptional(configItem, String.format("%dS", defaultLongValue)),
+                    TimeUnit.SECONDS);
+        } catch (Exception e) {
+            return resultValue;
+        }
+
+        return rangeStart <= resultValue && resultValue <= rangeEnd ? resultValue : defaultLongValue;
+    }
+
+    private int getConfigItemIntValue(String configItem, int defaultIntValue, int rangeStart, int rangeEnd) {
+        int resultValue = defaultIntValue;
+        try {
+            resultValue = Integer.parseInt(getOptional(configItem, String.valueOf(defaultIntValue)));
+        } catch (Exception e) {
+            return resultValue;
+        }
+
+        return rangeStart <= resultValue && resultValue <= rangeEnd ? resultValue : defaultIntValue;
+    }
+
+    private double getConfigItemDoubleValue(String configItem, double defaultDoubleValue, double rangeStart,
+            double rangeEnd) {
+        double resultValue = defaultDoubleValue;
+        try {
+            resultValue = Integer.parseInt(getOptional(configItem, String.valueOf(defaultDoubleValue)));
+        } catch (Exception e) {
+            return resultValue;
+        }
+
+        return rangeStart <= resultValue && resultValue <= rangeEnd ? resultValue : defaultDoubleValue;
+    }
+
+    public long getGuardianCheckInterval() {
+        return getConfigItemSeconds("kylin.guardian.check-interval", MINUTE, MINUTE, 60 * MINUTE);
+    }
+
+    public long getGuardianCheckInitDelay() {
+        return getConfigItemSeconds("kylin.guardian.check-init-delay", 5 * MINUTE, MINUTE, 60 * MINUTE);
+    }
+
+    public boolean isGuardianHAEnabled() {
+        return !FALSE.equalsIgnoreCase(getOptional("kylin.guardian.ha-enabled", TRUE));
+    }
+
+    public long getGuardianHACheckInterval() {
+        return getConfigItemSeconds("kylin.guardian.ha-check-interval", MINUTE, MINUTE, 60 * MINUTE);
+    }
+
+    public long getGuardianHACheckInitDelay() {
+        return getConfigItemSeconds("kylin.guardian.ha-check-init-delay", 5 * MINUTE, MINUTE, 60 * MINUTE);
+    }
+
+    public String getGuardianHealthCheckers() {
+        return getOptional("kylin.guardian.checkers",
+                "io.kyligence.kap.tool.daemon.checker.KEProcessChecker,io.kyligence.kap.tool.daemon.checker.FullGCDurationChecker,io.kyligence.kap.tool.daemon.checker.KEStatusChecker");
+    }
+
+    public int getGuardianFullGCCheckFactor() {
+        return getConfigItemIntValue("kylin.guardian.full-gc-check-factor", 5, 1, 60);
+    }
+
+    public boolean isFullGCRatioBeyondRestartEnabled() {
+        return !FALSE.equalsIgnoreCase(getOptional("kylin.guardian.full-gc-duration-ratio-restart-enabled", "true"));
+    }
+
+    public double getGuardianFullGCRatioThreshold() {
+        return getConfigItemDoubleValue("kylin.guardian.full-gc-duration-ratio-threshold", 75.0, 0.0, 100.0);
+    }
+
+    public boolean isDowngradeOnFullGCBusyEnable() {
+        return !FALSE.equalsIgnoreCase(getOptional("kylin.guardian.downgrade-on-full-gc-busy-enabled", "true"));
+    }
+
+    public double getGuardianFullGCHighWatermark() {
+        return getConfigItemDoubleValue("kylin.guardian.full-gc-busy-high-watermark", 40.0, 0.0, 100.0);
+    }
+
+    public double getGuardianFullGCLowWatermark() {
+        return getConfigItemDoubleValue("kylin.guardian.full-gc-busy-low-watermark", 20.0, 0.0, 100.0);
+    }
+
+    public int getGuardianApiFailThreshold() {
+        return getConfigItemIntValue("kylin.guardian.api-fail-threshold", 5, 1, 100);
+    }
+
+    public boolean isSparkFailRestartKeEnabled() {
+        return !FALSE.equalsIgnoreCase(getOptional("kylin.guardian.restart-spark-fail-restart-enabled", "true"));
+    }
+
+    public int getGuardianSparkFailThreshold() {
+        return getConfigItemIntValue("kylin.guardian.restart-spark-fail-threshold", 3, 1, 100);
+    }
+
+    public int getDowngradeParallelQueryThreshold() {
+        return getConfigItemIntValue("kylin.guardian.downgrade-mode-parallel-query-threshold", 10, 0, 100);
+    }
+
+    public boolean isSlowQueryKillFailedRestartKeEnabled() {
+        return !FALSE.equalsIgnoreCase(getOptional("kylin.guardian.kill-slow-query-fail-restart-enabled", "true"));
+    }
+
+    public Integer getGuardianSlowQueryKillFailedThreshold() {
+        return getConfigItemIntValue("kylin.guardian.kill-slow-query-fail-threshold", 3, 1, 100);
+    }
 }

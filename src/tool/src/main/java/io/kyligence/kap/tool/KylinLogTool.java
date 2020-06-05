@@ -319,7 +319,7 @@ public class KylinLogTool {
         try {
             FileUtils.forceMkdir(destLogDir);
 
-            File logsDir = new File(ToolUtil.getKylinHome() + File.separator + "logs");
+            File logsDir = new File(ToolUtil.getKylinHome(), "logs");
             if (!logsDir.exists()) {
                 logger.error("Can not find the logs dir: {}", logsDir);
                 return;
@@ -346,22 +346,7 @@ public class KylinLogTool {
             logger.info("Extract kylin log from {} to {} .", timeRange.getFirst(), timeRange.getSecond());
 
             for (File logFile : kylinLogs) {
-                String lastDate = new DateTime(logFile.lastModified()).toString(SECOND_DATE_FORMAT);
-                if (lastDate.compareTo(timeRange.getFirst()) < 0) {
-                    continue;
-                }
-
-                String logFirstTime = getFirstTimeByLogFile(logFile);
-                if (Objects.isNull(logFirstTime) || logFirstTime.compareTo(timeRange.getSecond()) > 0) {
-                    continue;
-                }
-
-                if (logFirstTime.compareTo(timeRange.getFirst()) >= 0
-                        && lastDate.compareTo(timeRange.getSecond()) <= 0) {
-                    FileUtils.copyFileToDirectory(logFile, destLogDir);
-                } else {
-                    extractLogByTimeRange(logFile, timeRange, new File(destLogDir, logFile.getName()));
-                }
+                extractLogByRange(logFile, timeRange, destLogDir);
             }
         } catch (Exception e) {
             logger.error("Failed to extract kylin.log, ", e);
@@ -583,6 +568,60 @@ public class KylinLogTool {
 
         } catch (Exception e) {
             logger.error("Failed to extract sparder log, ", e);
+        }
+    }
+
+    private static void extractLogByRange(File logFile, Pair<String, String> timeRange, File destLogDir)
+            throws IOException {
+        String lastDate = new DateTime(logFile.lastModified()).toString(SECOND_DATE_FORMAT);
+        if (lastDate.compareTo(timeRange.getFirst()) < 0) {
+            return;
+        }
+
+        String logFirstTime = getFirstTimeByLogFile(logFile);
+        if (Objects.isNull(logFirstTime) || logFirstTime.compareTo(timeRange.getSecond()) > 0) {
+            return;
+        }
+
+        if (logFirstTime.compareTo(timeRange.getFirst()) >= 0 && lastDate.compareTo(timeRange.getSecond()) <= 0) {
+            FileUtils.copyFileToDirectory(logFile, destLogDir);
+        } else {
+            extractLogByTimeRange(logFile, timeRange, new File(destLogDir, logFile.getName()));
+        }
+    }
+
+    public static void extractKGLogs(File exportDir, long startTime, long endTime) {
+        File kgLogsDir = new File(exportDir, "logs");
+        try {
+            FileUtils.forceMkdir(kgLogsDir);
+
+            if (endTime < startTime) {
+                logger.error("endTime: {} < startTime: {}", endTime, startTime);
+                return;
+            }
+
+            File logsDir = new File(ToolUtil.getKylinHome(), "logs");
+            if (!logsDir.exists()) {
+                logger.error("Can not find the logs dir: {}", logsDir);
+                return;
+            }
+
+            File[] kgLogs = logsDir.listFiles(pathname -> pathname.getName().startsWith("guardian.log"));
+            if (null == kgLogs || 0 == kgLogs.length) {
+                logger.error("Can not find the guardian.log file!");
+                return;
+            }
+
+            Pair<String, String> timeRange = new Pair<>(new DateTime(startTime).toString(SECOND_DATE_FORMAT),
+                    new DateTime(endTime).toString(SECOND_DATE_FORMAT));
+
+            logger.info("Extract guardian log from {} to {} .", timeRange.getFirst(), timeRange.getSecond());
+
+            for (File logFile : kgLogs) {
+                extractLogByRange(logFile, timeRange, kgLogsDir);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to extract kg log!", e);
         }
     }
 }

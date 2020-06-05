@@ -52,7 +52,12 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     UNSUPPORTED_SUM_CASE_WHEN("KE-20029001"), //
 
     // 20030XXX push down
-    INVALID_PARAMETER_PUSH_DOWN("KE-20030001"); //
+    INVALID_PARAMETER_PUSH_DOWN("KE-20030001"), //
+
+    // 20032XXX query busy
+    BUSY_QUERY("KE-20032001"), //
+
+    ;
 
     private final ErrorCode errorCode;
 

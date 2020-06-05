@@ -27,6 +27,12 @@ export SPARK_HOME=$KYLIN_HOME/spark
 
 tool_jar=$(ls $KYLIN_HOME/tool/kap-tool-*.jar)
 
-result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:$tool_jar:${SPARK_HOME}/jars/*" io.kyligence.kap.tool.KylinConfigCLI $@ 2>${KYLIN_HOME}/logs/shell.stderr`
+if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
+    kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties"
+    else
+    kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
+fi
+
+result=`java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:$tool_jar:${SPARK_HOME}/jars/*" io.kyligence.kap.tool.KylinConfigCLI $@ 2>${KYLIN_HOME}/logs/shell.stderr`
 
 echo "$result"
