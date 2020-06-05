@@ -214,7 +214,7 @@ export default class QueryTab extends Vue {
       this.isLoading = false
       handleError(res, (data, code, status, msg) => {
         this.errinfo = msg || this.$t('kylinLang.common.timeOut')
-        if (!status || status === 500 || status < 0) {
+        if (!status || status !== 200 || status < 0) {
           this.config.errorMsgBox.isShow = true
           this.config.errorMsgBox.msg = this.errinfo
           this.config.errorMsgBox.detail = data
