@@ -51,34 +51,34 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testVerifyProjectCreation() {
-        NCircuitBreaker.verifyProjectCreation(100);
+        NCircuitBreaker.verifyProjectCreation(10);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyProjectCreation(101);
+        NCircuitBreaker.verifyProjectCreation(100);
     }
 
     @Test
     public void testVerifyModelCreation() {
-        NCircuitBreaker.verifyModelCreation(100);
+        NCircuitBreaker.verifyModelCreation(10);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyModelCreation(101);
+        NCircuitBreaker.verifyModelCreation(100);
     }
 
     @Test
     public void testVerifyFavoriteQueryCreation() {
-        NCircuitBreaker.verifyFavoriteQueryCreation(30_000);
+        NCircuitBreaker.verifyFavoriteQueryCreation(300);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifyFavoriteQueryCreation(30_001);
+        NCircuitBreaker.verifyFavoriteQueryCreation(30_000);
     }
 
     @Test
     public void testVerifySqlPatternToBlacklist() {
-        NCircuitBreaker.verifySqlPatternToBlacklist(30_000);
+        NCircuitBreaker.verifySqlPatternToBlacklist(300);
 
         thrown.expect(CircuitBreakerException.class);
-        NCircuitBreaker.verifySqlPatternToBlacklist(30_001);
+        NCircuitBreaker.verifySqlPatternToBlacklist(30_000);
     }
 
     @Test
