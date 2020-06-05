@@ -513,7 +513,7 @@ public class ModelService extends BasicService {
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
-                nDataModelResponse.setModelBroken(modelDesc.isBroken());
+                nDataModelResponse.setBroken(modelDesc.isBroken());
                 nDataModelResponse.setStatus(modelResponseStatus);
                 nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
                 nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));

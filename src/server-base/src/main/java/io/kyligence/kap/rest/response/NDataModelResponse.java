@@ -64,9 +64,6 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("usage")
     private long usage;
 
-    @JsonProperty("model_broken")
-    private boolean modelBroken;
-
     @JsonProperty("root_fact_table_deleted")
     private boolean rootFactTableDeleted = false;
 
@@ -110,6 +107,11 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("all_measures")
     public List<Measure> getMeasures() {
         return getAllMeasures().stream().filter(m -> !m.isTomb()).collect(Collectors.toList());
+    }
+
+    @JsonProperty("model_broken")
+    public boolean isModelBroken() {
+        return this.isBroken();
     }
 
     @JsonProperty("simplified_tables")

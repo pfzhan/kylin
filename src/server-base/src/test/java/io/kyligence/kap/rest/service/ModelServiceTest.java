@@ -3913,7 +3913,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
         val result = modelService.getCubes0(null, getProject());
         Assert.assertEquals(6, result.size());
+
+        Assert.assertFalse(result.get(0).isModelBroken());
+        Assert.assertFalse(result.get(0).isBroken());
+
         Assert.assertTrue(result.get(3).isModelBroken());
+        Assert.assertTrue(result.get(3).isBroken());
         Assert.assertEquals(1, result.get(1).getOldParams().getJoinTables().size());
     }
 
