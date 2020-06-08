@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.server;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.Test;
 import org.springframework.http.MediaType;
@@ -35,8 +37,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
 public class NModelControllerWithRealServiceTest extends AbstractMVCIntegrationTestCase {
 
     @Test
@@ -44,7 +44,8 @@ public class NModelControllerWithRealServiceTest extends AbstractMVCIntegrationT
 
         final ComputedColumnCheckRequest ccRequest = new ComputedColumnCheckRequest();
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel model = modelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NDataModel model = modelManager
+                .copyForWrite(modelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a"));
         model.getComputedColumnDescs().get(0).setColumnName("rename_cc");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
@@ -55,6 +56,6 @@ public class NModelControllerWithRealServiceTest extends AbstractMVCIntegrationT
                 .perform(MockMvcRequestBuilders.post("/api/models/computed_columns/check")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(ccRequest))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError()).andReturn();
     }
 }
