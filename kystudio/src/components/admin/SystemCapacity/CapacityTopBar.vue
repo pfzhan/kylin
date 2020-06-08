@@ -66,7 +66,8 @@
         getNodeList: 'GET_NODES_LIST',
         getNodesInfo: 'GET_NODES_INFO',
         getSystemCapacity: 'GET_SYSTEM_CAPACITY_INFO',
-        refreshAll: 'REFRESH_ALL_SYSTEM'
+        refreshAll: 'REFRESH_ALL_SYSTEM',
+        resetCapacityData: 'RESET_CAPACITY_DATA'
       })
     },
     computed: {
@@ -144,7 +145,7 @@
           return
         }
         this.isNodeLoadingSuccess = true
-        this.$set(this, 'nodeList', res)
+        this.$set(this, 'nodeList', res.servers)
         this.isNodeLoading = false
         clearTimeout(this.nodesTimer)
         this.nodesTimer = setTimeout(() => {
@@ -173,6 +174,10 @@
         await this.getNodesInfo()
         this.isNodeLoading = false
       }
+    }
+
+    beforeDestroy () {
+      this.resetCapacityData()
     }
   }
 </script>

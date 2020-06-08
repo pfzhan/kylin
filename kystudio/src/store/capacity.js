@@ -286,6 +286,10 @@ export default {
         // if (state.capacityAlert && state.capacityAlert.flag < _flag.flag) return
         commit('CAPACITY_ALERT_TYPE', _flag)
       }
+    },
+    [types.RESET_CAPACITY_DATA] (_) {
+      nodeTimer && clearTimeout(nodeTimer)
+      capacityTimer && clearTimeout(capacityTimer)
     }
   },
   getters: {
