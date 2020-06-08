@@ -142,7 +142,7 @@
               </el-table-column>
             </el-table>
           </div>
-          <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
+          <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
         </div>
       </div>
     </div>
@@ -221,7 +221,7 @@
             <template slot-scope="scope">{{scope.row.capacity | dataSize}}</template>
           </el-table-column>
         </el-table>
-        <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain @click="showProjectChargedDetails = false">{{$t('kylinLang.common.close')}}</el-button>
@@ -290,7 +290,9 @@ export default class SystemCapacity extends Vue {
     list: [],
     pageSize: 10,
     currentPage: 0,
-    totalSize: 10
+    totalSize: 10,
+    sort_by: '',
+    reverse: ''
   }
   showAlert = false
   showProjectChargedDetails = false
@@ -299,7 +301,9 @@ export default class SystemCapacity extends Vue {
     list: [],
     pageSize: 10,
     currentPage: 0,
-    totalSize: 10
+    totalSize: 10,
+    sort_by: '',
+    reverse: ''
   }
   selectedDataLine = 'month'
   dalyTimer = null
@@ -327,16 +331,17 @@ export default class SystemCapacity extends Vue {
   }
 
   // 获取项目占比
-  getProjectList (data = {}) {
-    this.getProjectCapacityList({project_names: this.filterProject, page_offset: this.projectCapacity.currentPage, page_size: this.projectCapacity.pageSize, ...data}).then(data => {
+  getProjectList () {
+    this.getProjectCapacityList({project_names: this.filterProject, page_offset: this.projectCapacity.currentPage, page_size: this.projectCapacity.pageSize, sort_by: this.projectCapacity.sort_by, reverse: this.projectCapacity.reverse}).then(data => {
       this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
-      !this.filterProject && this.initTreeMapCharts()
+      !this.filterProject && !this.projectCapacity.currentPage && this.initTreeMapCharts()
     })
   }
 
   // 项目重排
   projectSortChange (sortBy) {
-    this.getProjectList({sort_by: sortBy.prop, reverse: sortBy.order === 'descending'})
+    this.projectCapacity = {...this.projectCapacity, ...{sort_by: sortBy.prop, reverse: sortBy.order === 'descending'}}
+    this.getProjectList()
   }
 
   // 切换折线图数据范围
@@ -396,7 +401,7 @@ export default class SystemCapacity extends Vue {
     if (this.lineOptions) {
       const objs = Object.keys(this.lineOptions).sort((a, b) => a - b)
       const xDates = objs.map(it => (transToUtcDateFormat(+it)))
-      const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
+      const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024))
       this.lineCharts = echarts.init(document.getElementById('used-data-map'))
       this.lineCharts.setOption(charts.line(this, xDates, yVol))
     }
@@ -441,17 +446,20 @@ export default class SystemCapacity extends Vue {
     }, 500)
   }
 
-  pageCurrentChange () {
+  pageCurrentChange (page) {
+    this.projectCapacity.currentPage = page
     this.getProjectList()
   }
 
   // table详情排序
   projectDetailsSortChange (sort) {
-    this.getTableDetails({sort_by: sort.prop, reverse: sort.order === 'descending'})
+    this.projectDetail = {...this.projectDetail, ...{sort_by: sort.prop, reverse: sort.order === 'descending'}}
+    this.getTableDetails()
   }
 
   // 切换项目详情页码
-  pageCurrentChangeByDetail () {
+  pageCurrentChangeByDetail (val) {
+    this.projectDetail.currentPage = val
     this.getTableDetails()
   }
 
@@ -495,8 +503,8 @@ export default class SystemCapacity extends Vue {
     this.getTableDetails()
   }
 
-  getTableDetails (data = {}) {
-    this.getProjectDetails({project: this.currentProjectName, page_offset: this.projectDetail.currentPage, page_size: this.projectDetail.pageSize, ...data}).then(data => {
+  getTableDetails () {
+    this.getProjectDetails({project: this.currentProjectName, page_offset: this.projectDetail.currentPage, page_size: this.projectDetail.pageSize, sort_by: this.projectDetail.sort_by, reverse: this.projectDetail.reverse}).then(data => {
       this.projectDetail = {...this.projectDetail, list: data.tables, totalSize: data.size}
     })
   }

@@ -66,7 +66,7 @@ export default {
         padding: [5, 10],
         position: 'bottom',
         formatter: (params) => {
-          return `<span>${_this.$t('usedCapacity')}：${params.data} T</span>`
+          return `<span>${_this.$t('usedCapacity')}：${params.data === 0 ? 0 : params.data.toFixed(3)} T</span>`
         }
       }
     }
