@@ -735,28 +735,25 @@ public class CnMessage extends Message {
     }
 
     public String getLICENSE_SOURCE_OVER_CAPACITY() {
-        return "当前已使用数据量（%s/%s）超过许可证上限。系统无法进行构建或数据加载任务。\n" +
-                "请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。";
+        return "当前已使用数据量（%s/%s）超过许可证上限。系统无法进行构建或数据加载任务。\n" + "请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。";
     }
 
     public String getLICENSE_PROJECT_SOURCE_OVER_CAPACITY() {
-        return "当前项目已使用数据量（%s/%s）超过配置上限。系统无法进行构建或数据加载任务。\n" +
-                "请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。";
+        return "当前项目已使用数据量（%s/%s）超过配置上限。系统无法进行构建或数据加载任务。\n" + "请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。";
     }
 
     public String getLICENSE_NODES_OVER_CAPACITY() {
-        return "当前已使用节点数（%s/%s）超过许可证上限。系统无法进行构建或数据加载任务。\n" +
-                "请联系 Kyligence 销售人员，或尝试停止部分节点以解除限制。";
+        return "当前已使用节点数（%s/%s）超过许可证上限。系统无法进行构建或数据加载任务。\n" + "请联系 Kyligence 销售人员，或尝试停止部分节点以解除限制。";
     }
 
     public String getLICENSE_SOURCE_NODES_OVER_CAPACITY() {
-        return "当前已使用数据量（%s/%s）和节点数（%s/%s）均超过许可证上限。系统无法进行构建或数据加载任务。\n" +
-                "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
+        return "当前已使用数据量（%s/%s）和节点数（%s/%s）均超过许可证上限。系统无法进行构建或数据加载任务。\n"
+                + "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
     }
 
     public String getLICENSE_PROJECT_SOURCE_NODES_OVER_CAPACITY() {
-        return "当前项目已使用数据量（%s/%s）和节点数（%s/%s）均超过配置上限。系统无法进行构建或数据加载任务。\n" +
-                "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
+        return "当前项目已使用数据量（%s/%s）和节点数（%s/%s）均超过配置上限。系统无法进行构建或数据加载任务。\n"
+                + "请联系 Kyligence 销售人员，或尝试停止部分节点并且删除一些 Segment并停止部分节点以解除限制。";
     }
 
     // ICredential
@@ -1257,10 +1254,16 @@ public class CnMessage extends Message {
         return "PASSWORD ENCODER 初始化失败，请检查配置项kylin.security.user-password-encoder";
 
     }
+
     public String getINSUFFICIENT_AUTHENTICATION() {
         return "无法认证用户信息，请重新登录。";
     }
+
     public String getJOB_NODE_INVALID(String url) {
         return String.format("该请求服务在job node中无效：%s", url);
+    }
+
+    public String getWRITE_IN_MAINTENANCE_MODE() {
+        return "系统已进入维护模式，元数据相关操作暂不可用。请稍后再试。";
     }
 }
