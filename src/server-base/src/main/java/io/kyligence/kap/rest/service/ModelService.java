@@ -919,7 +919,7 @@ public class ModelService extends BasicService {
         }
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setAlias(newModelName);
-        nDataModel.setLastModified(0L);
+        nDataModel.setLastModified(System.currentTimeMillis());
         nDataModel.setMvcc(-1);
         changeModelOwner(nDataModel);
         val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
@@ -932,7 +932,7 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         IndexPlan copy = indexPlanManager.copy(indexPlan);
         copy.setUuid(newModelId);
-        copy.setLastModified(0L);
+        copy.setLastModified(System.currentTimeMillis());
         copy.setMvcc(-1);
         indexPlanManager.createIndexPlan(copy);
         NDataflow nDataflow = new NDataflow();
@@ -1377,6 +1377,7 @@ public class ModelService extends BasicService {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val indexPlan = new IndexPlan();
         indexPlan.setUuid(model.getUuid());
+        indexPlan.setLastModified(System.currentTimeMillis());
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
         SegmentRange range = null;

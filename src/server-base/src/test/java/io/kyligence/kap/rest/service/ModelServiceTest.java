@@ -1414,7 +1414,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setUuid("new_model");
         modelRequest.setLastModified(0L);
         modelRequest.setProject("default");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
+        NDataModel result = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertNotEquals(0L, result.getLastModified());
     }
 
     @Test
