@@ -56,6 +56,8 @@ public class DateFormat {
     public static final String DEFAULT_DATE_PATTERN = "yyyy-MM-dd";
     public static final String DEFAULT_DATE_PATTERN_WITH_SLASH = "yyyy/MM/dd";
     public static final String DEFAULT_DATE_PATTERN_WITH_DOT = "yyyy.MM.dd";
+    public static final String COMPACT_MONTH_PATTERN = "yyyyMM";
+    public static final String DEFAULT_MONTH_PATTERN = "yyyy-MM";
 
     public static final String DEFAULT_TIME_PATTERN = "HH:mm:ss";
     public static final String DEFAULT_TIME_PATTERN_WITHOUT_SECONDS = "HH:mm";
@@ -107,6 +109,8 @@ public class DateFormat {
                 DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P2);
         dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}:\\d{2}:\\d+$",
                 DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P2);
+        dateFormatRegex.put("^\\d{6}$", COMPACT_MONTH_PATTERN);
+        dateFormatRegex.put("^\\d{4}-\\d{2}$", DEFAULT_MONTH_PATTERN);
     }
 
     public static FastDateFormat getDateFormat(String datePattern) {
@@ -241,6 +245,7 @@ public class DateFormat {
      */
     public static String getFormattedDate(String date, String datePattern) {
         DateTimeFormatter formatter = new DateTimeFormatterBuilder().append(DateTimeFormatter.ofPattern(datePattern))
+                .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
                 .parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
                 .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter();
         LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);

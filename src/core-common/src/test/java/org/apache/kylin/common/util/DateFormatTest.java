@@ -75,6 +75,8 @@ public class DateFormatTest {
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01 01:00:00.000"));
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01 01:00:00.1"));
 
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01"));
+
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-1-1"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010/1/1"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010.1.1"));
@@ -84,7 +86,6 @@ public class DateFormatTest {
 
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-01-01 1:1:1"));
 
-        Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-01"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("abc"));
     }
 
@@ -145,6 +146,14 @@ public class DateFormatTest {
         Assert.assertNotEquals(String.valueOf(date.getTime()),
                 DateFormat.getFormattedDate("2010-01-01 02:02:02.333",
                         DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS));
+
+        Assert.assertEquals(String.valueOf(date.getTime()),
+                DateFormat.getFormattedDate("201001",
+                        DateFormat.COMPACT_MONTH_PATTERN));
+
+        Assert.assertEquals(String.valueOf(date.getTime()),
+                DateFormat.getFormattedDate("2010-01",
+                        DateFormat.DEFAULT_MONTH_PATTERN));
 
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2020-05-01 01:01:01.333"));
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2020/05/01 01:01:01.333"));
