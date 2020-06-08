@@ -496,7 +496,13 @@ export default class AggregateModal extends Vue {
   }
   get isDisabledSaveBtn () {
     // 正在计算的时候按钮disable，选的维度有空的时候，disable，聚合组数为0 时
-    return this.calcLoading || this.isSubmit || !this.isFormVaild || !this.form.aggregateArray || this.form.aggregateArray.length === 0 || this.cloneForm === JSON.stringify(this.form)
+    const cloneForm = objectClone(this.form)
+    if (cloneForm && cloneForm.aggregateArray.length) {
+      cloneForm.aggregateArray.forEach((a) => {
+        delete a.activeTab // 切换tab不属于编辑内容变化
+      })
+    }
+    return this.calcLoading || this.isSubmit || !this.isFormVaild || !this.form.aggregateArray || this.form.aggregateArray.length === 0 || this.cloneForm === JSON.stringify(cloneForm)
   }
   renderCoboidTextCheck (cuboidsInfo, id) {
     let cuboidText = ''
@@ -530,7 +536,13 @@ export default class AggregateModal extends Vue {
         let id = this.form.aggregateArray[i].id
         this.isWaitingCheckCuboids[id] = true
       }
-      this.cloneForm = JSON.stringify(this.form)
+      const cloneForm = objectClone(this.form)
+      if (cloneForm && cloneForm.aggregateArray.length) {
+        cloneForm.aggregateArray.forEach((a) => {
+          delete a.activeTab // 切换tab不属于编辑内容变化
+        })
+      }
+      this.cloneForm = JSON.stringify(cloneForm)
       this.calcCuboids()
       this.$nextTick(() => {
         const detailContents = this.$el.querySelectorAll('.aggregate-modal .aggregate-dialog .aggregate-group')
@@ -682,7 +694,13 @@ export default class AggregateModal extends Vue {
     this.callback && this.callback(false)
   }
   get isEditForm () {
-    return this.cloneForm && this.cloneForm !== JSON.stringify(this.form) && this.isShow
+    const cloneForm = objectClone(this.form)
+    if (cloneForm && cloneForm.aggregateArray.length) {
+      cloneForm.aggregateArray.forEach((a) => {
+        delete a.activeTab // 切换tab不属于编辑内容变化
+      })
+    }
+    return this.cloneForm !== JSON.stringify(cloneForm) && this.isShow
   }
   @Watch('isEditForm')
   onChangeForm (val) {
