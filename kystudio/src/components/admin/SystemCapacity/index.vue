@@ -401,9 +401,9 @@ export default class SystemCapacity extends Vue {
     if (this.lineOptions) {
       const objs = Object.keys(this.lineOptions).sort((a, b) => a - b)
       const xDates = objs.map(it => (transToUtcDateFormat(+it)))
-      const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024))
+      const yVol = objs.map(it => (+this.lineOptions[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
       this.lineCharts = echarts.init(document.getElementById('used-data-map'))
-      this.lineCharts.setOption(charts.line(this, xDates, yVol))
+      this.lineCharts.setOption(charts.line(this, xDates, yVol, this.lineOptions))
     }
   }
 

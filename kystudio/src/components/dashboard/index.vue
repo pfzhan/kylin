@@ -547,9 +547,9 @@ export default class Dashboard extends Vue {
   initCharts (data) {
     const objs = Object.keys(data).sort((a, b) => a - b)
     const xDates = objs.map(it => (transToUtcDateFormat(+it)))
-    const yVol = objs.map(it => (+data[it] / 1024 / 1024 / 1024 / 1024))
+    const yVol = objs.map(it => (+data[it] / 1024 / 1024 / 1024 / 1024).toFixed(2))
     this.lineCharts = echarts.init(this.$el.querySelector('#used-data-project'))
-    this.lineCharts.setOption(charts.line(this, xDates, yVol))
+    this.lineCharts.setOption(charts.line(this, xDates, yVol, data))
   }
   resetChartsPosition () {
     this.lineCharts && this.lineCharts.resize()

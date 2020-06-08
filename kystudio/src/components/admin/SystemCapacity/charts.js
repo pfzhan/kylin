@@ -1,6 +1,8 @@
+import filterElements from '../../../filter/index'
+
 export default {
   // 折线图标options
-  line: (_this, xData, yData) => {
+  line: (_this, xData, yData, sourceData) => {
     return {
       grid: {
         top: 30,
@@ -66,7 +68,7 @@ export default {
         padding: [5, 10],
         position: 'bottom',
         formatter: (params) => {
-          return `<span>${_this.$t('usedCapacity')}：${params.data === 0 ? 0 : params.data.toFixed(3)} T</span>`
+          return `<span>${_this.$t('usedCapacity')}：${filterElements.dataSize(sourceData[Object.keys(sourceData).sort((a, b) => a - b)[params.dataIndex]])} </span>`
         }
       }
     }
