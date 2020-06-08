@@ -243,7 +243,7 @@ public class DataType implements Serializable {
         Matcher m = pattern.matcher(datatype);
         Matcher m2 = complexPattern.matcher(datatype);
         if (m.matches() == false && m2.matches() == false)
-            throw new IllegalArgumentException("bad data type -- " + datatype + ", does not match " + pattern);
+            throw newBadDataTypeError(datatype, "does not match " + pattern);
 
         if (m2.matches()) {
             m = m2;
@@ -261,16 +261,14 @@ public class DataType implements Serializable {
                 try {
                     n = Integer.parseInt(parts[i]);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException(
-                            "bad data type -- " + datatype + ", precision/scale not numeric");
+                    throw newBadDataTypeError(datatype, "precision/scale not numeric");
                 }
                 if (i == 0)
                     precision = n;
                 else if (i == 1)
                     scale = n;
                 else
-                    throw new IllegalArgumentException(
-                            "bad data type -- " + datatype + ", too many precision/scale parts");
+                    throw newBadDataTypeError(datatype, "too many precision/scale parts");
             }
         }
 
@@ -482,5 +480,10 @@ public class DataType implements Serializable {
      */
     public static int decimalBoundedScale(int scale) {
         return Math.min(scale, DECIMAL_MAX_SCALE);
+    }
+
+    private IllegalArgumentException newBadDataTypeError(String datatype, String reason) {
+        return new IllegalArgumentException(
+                "bad data type -- " + datatype + ", " + reason);
     }
 }
