@@ -269,12 +269,12 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
     private synchronized Runnable createFetcher(ResourceStore.Callback<Boolean> checker) {
         return () -> {
-            if (!blockingQueue.offer(new Object())) {
+            if (stop.get()) {
+                blockingQueue.clear();
+                consumeExecutor.shutdownNow();
                 return;
             }
-            if (stop.get()) {
-                consumeExecutor.shutdownNow();
-                blockingQueue.clear();
+            if (!blockingQueue.offer(new Object())) {
                 return;
             }
             val replayer = MessageSynchronization.getInstance(config);
@@ -284,21 +284,17 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 startId.set(withTransaction(transactionManager, () -> {
                     val logs = fetch(finalStartId, Integer.MAX_VALUE);
                     if (CollectionUtils.isEmpty(logs)) {
-                        blockingQueue.clear();
                         return finalStartId;
                     }
                     long currentMaxId = logs.get(logs.size() - 1).getId();
                     if (logs.size() < currentMaxId - finalStartId) {
-                        blockingQueue.clear();
                         return finalStartId;
                     }
                     replayLogs(replayer, logs);
-                    blockingQueue.clear();
                     return currentMaxId;
                 }));
 
             } catch (TransactionException e) {
-                blockingQueue.clear();
                 log.warn("cannot create transaction, ignore it", e);
                 try {
                     Thread.sleep(5000);
@@ -308,10 +304,11 @@ public class JdbcAuditLogStore implements AuditLogStore {
             } catch (Exception e) {
                 log.error("unknown exception, exit ", e);
                 stop.set(true);
-                blockingQueue.clear();
                 if (!config.isUTEnv()) {
                     System.exit(-2);
                 }
+            } finally {
+                blockingQueue.clear();
             }
         };
     }
