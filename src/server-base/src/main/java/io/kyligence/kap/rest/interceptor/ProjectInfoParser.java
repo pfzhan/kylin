@@ -42,8 +42,27 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ProjectInfoParser implements IKeep {
+    private static final Pattern[] URL_PROJECT_PATTERNS = new Pattern[] {
+            Pattern.compile("^/kylin/api/projects/([^/]+)/(backup|default_database" +
+                    "|query_accelerate_threshold|storage" +
+                    "|storage_quota|shard_num_config" +
+                    "|garbage_cleanup_config|job_notification_config" +
+                    "|push_down_config|push_down_project_config|computed_column_config" +
+                    "|segment_config|project_general_info" +
+                    "|project_config|source_type" +
+                    "|yarn_queue|project_kerberos_info" +
+                    "|owner|config)$"),
+            Pattern.compile("^/kylin/api/projects/([^/]+)$"),
+            Pattern.compile("^/kylin/api/models/([^/]+)/[^/]+/partition_desc$")
+    };
+
+    private ProjectInfoParser() {
+        throw new IllegalStateException("Utility class");
+    }
 
     public static Pair<String, ServletRequest> parseProjectInfo(ServletRequest request) {
         ServletRequest requestWrapper = request;
@@ -59,6 +78,10 @@ public class ProjectInfoParser implements IKeep {
                     project = projectRequest.getProject();
                 }
 
+            }
+
+            if (StringUtils.isEmpty(project)) {
+                project = extractProject(((HttpServletRequest) request).getRequestURI());
             }
         } catch (IOException e) {
             // ignore JSON exception
@@ -120,8 +143,17 @@ public class ProjectInfoParser implements IKeep {
 
     @Data
     public static class ProjectRequest implements IKeep {
-
         private String project;
+    }
 
+    public static String extractProject(String url) {
+        for (Pattern pattern : URL_PROJECT_PATTERNS) {
+            Matcher matcher = pattern.matcher(url);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+
+        return null;
     }
 }
