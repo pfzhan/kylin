@@ -294,8 +294,9 @@ export function transToUTCMs (ms, _vue) {
   let h = date.getHours()
   let M = date.getMinutes()
   let s = date.getSeconds()
+  let millis = date.getUTCMilliseconds()
   let timeFormat = '-'
-  let utcTime = +Date.UTC(y, m, d, h, M, s)
+  let utcTime = +Date.UTC(y, m, d, h, M, s, millis)
   let dateStr = y + timeFormat + toDoubleNumber(m + 1) + timeFormat + toDoubleNumber(d) + ' ' + toDoubleNumber(h) + ':' + toDoubleNumber(M) + ':' + toDoubleNumber(s)
   let momentObj = moment(dateStr).tz(zone)
   let offsetMinutes = momentObj._offset
