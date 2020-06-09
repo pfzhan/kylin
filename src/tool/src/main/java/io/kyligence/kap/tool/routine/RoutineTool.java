@@ -128,6 +128,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
     public static void main(String[] args) {
         RoutineTool tool = new RoutineTool();
         tool.execute(args);
+        System.exit(0);
     }
 
 }
