@@ -46,7 +46,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
+import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 
 /**
  **/
@@ -96,7 +96,7 @@ public class JobNodeFilter implements Filter {
                 chain.doFilter(request, response);
             }else {
                 request.setAttribute(ERROR,
-                        new KylinException(NO_ACTIVE_ALL_NODE, MsgPicker.getMsg().getJOB_NODE_INVALID(request.getRequestURI())));
+                        new KylinException(JOBNODE_API_INVALID, MsgPicker.getMsg().getJOB_NODE_INVALID(request.getRequestURI())));
                 request.getRequestDispatcher(API_ERROR).forward(request, response);
             }
             return true;

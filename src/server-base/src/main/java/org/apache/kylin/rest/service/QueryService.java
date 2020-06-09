@@ -42,6 +42,7 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -378,7 +379,7 @@ public class QueryService extends BasicService {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String serverMode = kylinConfig.getServerMode();
         if (!kylinConfig.isQueryNode()) {
-            throw new KylinException(PERMISSION_DENIED, String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
+            throw new KylinException(JOBNODE_API_INVALID, msg.getQUERY_NOT_ALLOWED());
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
             throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());

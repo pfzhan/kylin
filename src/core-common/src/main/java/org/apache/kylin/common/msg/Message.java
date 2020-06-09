@@ -600,9 +600,8 @@ public class Message {
         return "StreamingConfig with name '%s' not found.";
     }
 
-    // Query
     public String getQUERY_NOT_ALLOWED() {
-        return "Query is not allowed in '%s' mode.";
+        return "Job node is not available for queries.";
     }
 
     public String getNOT_SUPPORTED_SQL() {
@@ -1258,7 +1257,7 @@ public class Message {
     }
 
     public String getJOB_NODE_INVALID(String url) {
-        return String.format("Rest api is invalid in job node: %s", url);
+        return "The request can’t be executed on job node.";
     }
 
     public String getINVALID_TIME_FORMAT() {

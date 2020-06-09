@@ -462,9 +462,8 @@ public class CnMessage extends Message {
         return "找不到 StreamingConfig '%s'";
     }
 
-    // Query
     public String getQUERY_NOT_ALLOWED() {
-        return "'%s' 模式不支持查询";
+        return "任务节点不支持查询";
     }
 
     public String getNOT_SUPPORTED_SQL() {
@@ -1260,7 +1259,7 @@ public class CnMessage extends Message {
     }
 
     public String getJOB_NODE_INVALID(String url) {
-        return String.format("该请求服务在job node中无效：%s", url);
+        return "该服务请求无法在任务节点执行";
     }
 
     public String getWRITE_IN_MAINTENANCE_MODE() {
