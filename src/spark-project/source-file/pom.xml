@@ -34,14 +34,17 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-engine-spark</artifactId>
         </dependency>
-
         <!--for S3 -->
         <!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-aws</artifactId>
-            <version>${hadoop2.version}</version>
-            <!--<scope>provided</scope>-->
+            <version>2.8.5-kylin-r1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.11.791</version>
         </dependency>
 
     </dependencies>

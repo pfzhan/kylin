@@ -10,6 +10,8 @@ if [ "$1" == "-v" ]; then
     shift
 fi
 
+KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
+
 function prepareEnv {
     export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
     export SPARK_HOME=${KYLIN_HOME}/spark
@@ -212,7 +214,9 @@ function startKE(){
         checkZookeeperRole
     fi
 
-    checkSparkDir
+    if [[ ${KYLIN_ENV_CHANNEL} == "on-premises" || -z ${KYLIN_ENV_CHANNEL} ]]; then
+        checkSparkDir
+    fi
 
     checkHiveDirAcl
 

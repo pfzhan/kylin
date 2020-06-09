@@ -6,6 +6,7 @@ if [ "$1" == "-v" ]; then
     shift
 fi
 
+KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
 export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
 export SPARK_HOME=${KYLIN_HOME}/spark
 
@@ -33,7 +34,14 @@ if [[ "$CHECKENV_ING" == "" ]]; then
         export CHECKENV_REPORT_PFX=">   "
         export QUIT_MESSAGE_LOG=${ERRORS}
 
-        for f in ${KYLIN_HOME}/sbin/check-*.sh
+        CHECK_FILES=
+        if [[ ${KYLIN_ENV_CHANNEL} == "on-premises" || -z ${KYLIN_ENV_CHANNEL} ]]; then
+            CHECK_FILES=`ls ${KYLIN_HOME}/sbin/check-*.sh`
+        else
+            CHECK_FILES=("${KYLIN_HOME}/sbin/check-1400-java.sh"
+                         "${KYLIN_HOME}/sbin/check-1500-ports.sh")
+        fi
+        for f in ${CHECK_FILES}
         do
             if [[ ! $f == *check-env.sh ]]; then
                 echo `getValueByKey ${TITLE} ${f}`

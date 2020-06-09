@@ -191,8 +191,9 @@ object KylinSession extends Logging {
         return sparkConf
       }
       sparkConf.set("spark.amIpFilter.enabled", "false")
-      sparkConf.set("spark.executor.plugins", "org.apache.spark.memory.MonitorExecutorExtension")
-
+      if (!KylinConfig.getInstanceFromEnv.getChannel.equalsIgnoreCase("cloud")) {
+        sparkConf.set("spark.executor.plugins", "org.apache.spark.memory.MonitorExecutorExtension")
+      }
       // kerberos
       if (kapConfig.isKerberosEnabled) {
         sparkConf.set("spark.yarn.keytab", kapConfig.getKerberosKeytabPath)

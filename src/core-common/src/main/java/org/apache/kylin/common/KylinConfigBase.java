@@ -538,6 +538,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("server.port", "7070");
     }
 
+    public String getChannel() {
+        return getOptional("kylin.env.channel", "on-premises");
+    }
+
     public boolean isServerHttpsEnabled() {
         return Boolean.valueOf(getOptional("kylin.server.https.enable", FALSE));
     }
@@ -1014,6 +1018,10 @@ public abstract class KylinConfigBase implements Serializable {
         } else {
             return files.last();
         }
+    }
+
+    public String getExtraJarsPath() {
+        return getOptional("kylin.engine.extra-jars-path", "");
     }
 
     public String getKylinJobJarPath() {

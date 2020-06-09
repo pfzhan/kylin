@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
@@ -439,6 +440,10 @@ public class NSparkExecutable extends AbstractExecutable {
 
         if (sparkConfs.containsKey("spark.sql.hive.metastore.jars")) {
             jars = jars + COMMA + sparkConfs.get("spark.sql.hive.metastore.jars");
+        }
+
+        if (!Strings.isEmpty(config.getExtraJarsPath())) {
+            jars = jars + COMMA + config.getExtraJarsPath();
         }
 
         sb.append("--name job_step_%s ");

@@ -5,6 +5,15 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
+KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
+
+function fetchCloudHadoopConf() {
+    mkdir -p ${KYLIN_HOME}/hadoop_conf
+    CLOUD_HADOOP_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.cloud.hadoop-conf-dir`
+    checkAndCopyFile $CLOUD_HADOOP_CONF_DIR/core-site.xml
+    checkAndCopyFile $CLOUD_HADOOP_CONF_DIR/hive-site.xml
+}
+
 function fetchKylinHadoopConf() {
 
     export FI_ENV_PLATFORM=
@@ -134,6 +143,10 @@ then
 
     export HADOOP_CONF_DIR=${KYLIN_HOME}/hadoop_conf
 
-    fetchKylinHadoopConf
+    if [[ ${KYLIN_ENV_CHANNEL} == "on-premises" || -z ${KYLIN_ENV_CHANNEL} ]]; then
+        fetchKylinHadoopConf
+    else
+        fetchCloudHadoopConf
+    fi
 fi
 
