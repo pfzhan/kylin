@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -120,16 +121,17 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         // export cube metadata
         if (includeMeta) {
             executorService.execute(() -> {
-                logger.info("Start to dump metadata.");
                 try {
                     File metaDir = new File(exportDir, "metadata");
                     FileUtils.forceMkdir(metaDir);
-
                     String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
                             "-excludeTableExd" };
-                    new MetadataTool().execute(metaToolArgs);
+                    String dumpMetadataCmd = String.format(
+                            "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -compress false -excludeTableExd",
+                            KylinConfig.getKylinHome(), metaDir.getAbsolutePath());
+                    dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd);
                 } catch (Exception e) {
-                    logger.warn("Failed to extract job metadata.", e);
+                    logger.warn("Failed to extract full metadata.", e);
                 }
 
                 DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);

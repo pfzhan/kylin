@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -130,13 +131,17 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
                     FileUtils.forceMkdir(metaDir);
                     String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
                             "-excludeTableExd" };
-                    new MetadataTool().execute(metaToolArgs);
+                    String dumpMetadataCmd = String.format(
+                            "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -project %s -excludeTableExd",
+                            KylinConfig.getKylinHome(), metaDir.getAbsolutePath(), project);
+                    dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd);
                 } catch (Exception e) {
                     logger.warn("Failed to extract job metadata.", e);
                 }
                 DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
             });
         }
+
         // dump audit log
         executorService.execute(() -> {
             logger.info("Start to dump audit log.");
@@ -200,7 +205,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
-    private void exportMetrics(File exportDir, final long start, final File recordTime, final String project){
+    private void exportMetrics(File exportDir, final long start, final File recordTime, final String project) {
         // influxdb metrics
         executorService.execute(() -> {
             logger.info("Start to dump influxdb metrics.");
@@ -215,8 +220,8 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         });
     }
 
-    private void exportSparkLog(File exportDir, final long start, final File recordTime, String project,
-                                String jobId, AbstractExecutable job){
+    private void exportSparkLog(File exportDir, final long start, final File recordTime, String project, String jobId,
+            AbstractExecutable job) {
         // job spark log
         executorService.execute(() -> {
             logger.info("Start to extract spark logs.");
@@ -226,7 +231,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         // extract job step eventLogs
         executorService.execute(() -> {
             logger.info("Start to extract job eventLogs.");
-            if(job instanceof DefaultChainedExecutable){
+            if (job instanceof DefaultChainedExecutable) {
                 List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
                 Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
                 KylinLogTool.extractJobEventLogs(exportDir, tasks, sparkConf);
@@ -241,7 +246,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         });
     }
 
-    private void exportConf(File exportDir, final long start, final File recordTime, final boolean includeConf){
+    private void exportConf(File exportDir, final long start, final File recordTime, final boolean includeConf) {
         // export conf
         if (includeConf) {
             executorService.execute(() -> {
@@ -272,7 +277,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             DiagnosticFilesChecker.writeMsgToFile("CATALOG_INFO", System.currentTimeMillis() - start, recordTime);
         });
     }
-
 
     @VisibleForTesting
     public AbstractExecutable getJobByJobId(String jobId) {

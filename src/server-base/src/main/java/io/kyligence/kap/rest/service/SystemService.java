@@ -128,10 +128,10 @@ public class SystemService extends BasicService {
             extractor = new DiagClientTool();
             extractor.setSparderAppId(SparderEnv.getSparkSession().sparkContext().applicationId());
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
-                    endTime };
+                    endTime, "-subProcessMeta" };
         } else {//job
             extractor = new JobDiagInfoTool();
-            arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-job", jobId };
+            arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-job", jobId, "-subProcessMeta" };
         }
         Future task = executorService.submit(() -> {
             try {

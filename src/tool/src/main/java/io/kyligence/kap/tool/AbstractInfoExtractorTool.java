@@ -60,6 +60,7 @@ import io.kyligence.kap.tool.util.ToolUtil;
 import io.kyligence.kap.tool.util.ZipFileUtil;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
 public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -90,6 +91,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     static final Option OPTION_SYSTEM_ENV = OptionBuilder.withArgName("systemProp").hasArg().isRequired(false)
             .withDescription("specify whether to include system env and properties to extract. Default false.")
             .create("systemProp");
+
+    @SuppressWarnings("static-access")
+    static final Option OPTION_META_SUBPROCESS = OptionBuilder.withArgName("subProcessMeta").isRequired(false)
+            .withDescription("Specify whether using sub process to dump metadata").create("subProcessMeta");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";
     private static final String[] COMMIT_SHA1_FILES = { "commit_SHA1", "commit.sha1" };
@@ -144,6 +149,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
         options.addOption(OPTION_START_TIME);
         options.addOption(OPTION_END_TIME);
+        options.addOption(OPTION_META_SUBPROCESS);
 
         packageType = DEFAULT_PACKAGE_TYPE;
 
@@ -406,6 +412,22 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             logger.warn("diagnosis main task quit by interrupt , all sub task exit ? {} , waiting for {} ms ",
                     allSubTaskExit, System.currentTimeMillis() - start);
             throw e;
+        }
+    }
+
+    protected void dumpMetadata(OptionsHelper optionsHelper, String[] metaToolArgs, String dumpMetadataCmd)
+            throws Exception {
+        boolean subProcessMeta = optionsHelper.hasOption(OPTION_META_SUBPROCESS);
+        logger.info("Start to dump metadata , subProcessMeta {}.", subProcessMeta);
+        File metaDir = new File(exportDir, "metadata");
+        FileUtils.forceMkdir(metaDir);
+        if (!subProcessMeta) {
+            new MetadataTool().execute(metaToolArgs);
+        } else {
+            logger.info("Dump metadata cmd is {}", dumpMetadataCmd);
+            val result = new CliCommandExecutor().execute(dumpMetadataCmd, null);
+            logger.info("Dump metadata result code : {} , cmd : {} , pid : {}.", result.getCode(), result.getCmd(),
+                    result.getProcessId());
         }
     }
 }

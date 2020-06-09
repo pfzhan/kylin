@@ -163,7 +163,7 @@ public class MetadataTool extends ExecutableApplication {
     }
 
     public static void main(String[] args) {
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(KylinConfig.getInstanceFromEnv());
 
         int retFlag = runWithCurator((isLocal, address) -> {
             val optionsHelper = new OptionsHelper();
@@ -288,7 +288,8 @@ public class MetadataTool extends ExecutableApplication {
                     return null;
                 }
                 for (String projectPath : projectFolders) {
-                    if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)) {
+                    if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)
+                            || projectPath.equals(ResourceStore.METASTORE_IMAGE)) {
                         continue;
                     }
                     // The "_global" directory is already included in the full backup
