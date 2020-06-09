@@ -29,7 +29,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
@@ -69,6 +68,8 @@ public class NSparkTableMetaExplorer implements Serializable {
             return UNSPECIFIED;
         }
     }
+
+    private static final List<String> UNSUPOORT_TYPE = Lists.newArrayList("array", "map", "struct", "binary");
 
     private static final Map<PROVIDER, String> PROVIDER_METADATA_TYPE_STRING = new EnumMap<>(PROVIDER.class);
 
@@ -128,7 +129,7 @@ public class NSparkTableMetaExplorer implements Serializable {
                 type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
             }
             String finalType = type;
-            if (DataType.isUnsupportedType(finalType)) {
+            if (UNSUPOORT_TYPE.stream().anyMatch(finalType::contains)) {
                 logger.info("Load table {} ignore column {}:{}", tableMetadata.identifier().identifier(), field.name(),
                         finalType);
                 continue;

@@ -32,10 +32,8 @@ import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
-import org.apache.kylin.metadata.datatype.DataType
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -45,7 +43,6 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.JavaConverters._
 
 object SparkSqlClient {
-
   val logger: Logger = LoggerFactory.getLogger(classOf[SparkSqlClient])
 
   def executeSql(ss: SparkSession, sql: String, uuid: UUID): Pair[JList[JList[String]], JList[StructField]] = {
@@ -65,7 +62,7 @@ object SparkSqlClient {
     logger.info(msg)
 
     Trace.addTimelineAnnotation(msg)
-    dFToList(ss, sql, uuid, df)
+    DFToList(ss, sql, uuid, df)
   }
 
   private def autoSetShufflePartitions(ss: SparkSession, df: DataFrame) = {
@@ -86,27 +83,17 @@ object SparkSqlClient {
     }
   }
 
-  private def dFToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame) = {
+  private def DFToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
-      // filter out unsupported columns types (map, array, binary)
-      val temporarySchema = df.schema.fields.zipWithIndex.map {
-        case (_, index) => s"temporary_$index"
-      }
-      val tempDF = df.toDF(temporarySchema: _*)
-      val supportedCols = tempDF.schema.filter(tp => !isUnsupportedType(tp.dataType.typeName))
-        .map(tp => col(s"`${tp.name}`"))
-      val trimmedDF = tempDF.select(supportedCols: _*)
-      val rowList = trimmedDF.collect().map(_.toSeq.map {
+      val rowList = df.collect().map(_.toSeq.map {
         case null => null
         case value: Timestamp => DateFormat.castTimestampToString(value.getTime)
         case value: Any => value.toString
       }.asJava).toSeq.asJava
-
-      val fieldList = df.schema.filter(field => !isUnsupportedType(field.dataType.typeName))
-        .map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
-      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(trimmedDF.queryExecution.executedPlan)
+      val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
+      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
       QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
       Pair.newPair(rowList, fieldList)
@@ -126,8 +113,6 @@ object SparkSqlClient {
       HadoopUtil.setCurrentConfiguration(null)
     }
   }
-
-  def isUnsupportedType(typeName: String): Boolean = DataType.isUnsupportedType(typeName)
 }
 
 class SparkSqlClient
