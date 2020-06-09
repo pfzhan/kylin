@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.junit.After;
@@ -159,7 +160,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
         epochManager.setMaintenanceMode("MODE1");
         transactionThrown.expectInTransaction(KylinException.class);
-        transactionThrown.expectMessageInTransaction("System is in maintenance mode");
+        transactionThrown.expectMessageInTransaction(MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE());
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
