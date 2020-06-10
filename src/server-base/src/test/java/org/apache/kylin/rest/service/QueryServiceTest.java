@@ -105,6 +105,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -934,6 +935,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore
     public void testQueryWithResultRowCountBreaker() {
         final String sql = "select * from success_table_2";
         final String project = "default";
