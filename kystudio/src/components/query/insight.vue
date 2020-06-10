@@ -297,7 +297,7 @@ export default class NewQuery extends Vue {
     if (index === 0 || index === this.editableTabs[1].index) { // 编辑器结果中断查询时置空或者显示最新一条查询的结果
       this.editableTabs[0].extraoption = data
       this.editableTabs[0].queryErrorInfo = errorInfo
-      this.editableTabs[0].cancelQuery = false
+      this.editableTabs[0].cancelQuery = true
     }
     if (index) {
       let tabs = this.editableTabs
