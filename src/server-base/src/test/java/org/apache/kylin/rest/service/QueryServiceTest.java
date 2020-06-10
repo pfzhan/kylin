@@ -954,7 +954,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
             queryService.queryWithCache(request, false);
         }catch (KylinException e){
-            Assert.assertEquals("Query is not allowed in 'job' mode.", e.getMessage());
+            Assert.assertEquals("Job node is not available for queries.", e.getMessage());
         }
 
         try {
