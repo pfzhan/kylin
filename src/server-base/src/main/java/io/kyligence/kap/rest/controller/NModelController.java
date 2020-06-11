@@ -657,7 +657,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        String partitionColumnFormat = buildSegmentsRequest.getPartitionDesc().getPartitionDateFormat();
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
