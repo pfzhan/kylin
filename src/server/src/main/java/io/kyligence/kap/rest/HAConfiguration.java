@@ -25,10 +25,13 @@ package io.kyligence.kap.rest;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 
+import java.io.IOException;
+
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.session.SessionProperties;
@@ -43,13 +46,11 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
 import org.springframework.session.web.context.AbstractHttpSessionApplicationInitializer;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextListener;
 
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.context.request.RequestContextListener;
-
-import java.io.IOException;
 
 @Slf4j
 @Configuration
@@ -106,7 +107,8 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     @LoadBalanced
     public RestTemplate restTemplate() {
         val restTemplate = new RestTemplate();
-        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(
+                HttpClientBuilder.create().disableCookieManagement().useSystemProperties().build()));
         restTemplate.setUriTemplateHandler(new ProxyUriTemplateHandler());
         return restTemplate;
     }
