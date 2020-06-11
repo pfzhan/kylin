@@ -1,6 +1,6 @@
 <template>
   <div class="model-dimension-list">
-    <div class="list-empty" v-if="dimensions.totalCount === 0">
+    <div class="list-empty" v-if="model.dimensions.length === 0">
       <div>{{$t('kylinLang.common.noDimensionInModel')}}</div>
       <div>{{$t('kylinLang.common.pleaseClickEditModel')}}</div>
     </div>

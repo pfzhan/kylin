@@ -1,6 +1,6 @@
 <template>
   <div class="model-measure-list">
-    <div class="list-empty" v-if="measures.totalCount === 0">
+    <div class="list-empty" v-if="model.measures.length === 0">
       <div>{{$t('kylinLang.common.noMeasureInModel')}}</div>
       <div>{{$t('kylinLang.common.pleaseClickEditModel')}}</div>
     </div>
