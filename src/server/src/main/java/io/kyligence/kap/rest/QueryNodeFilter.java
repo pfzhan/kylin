@@ -261,7 +261,7 @@ public class QueryNodeFilter implements Filter {
     }
 
     private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType, ServletRequest request) {
-        if (!kylinConfig.isQueryNode()) {
+        if (!kylinConfig.isQueryNodeOnly()) {
             // process local
             if (((HttpServletRequest) request).getRequestURI().contains("epoch")
                     || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
