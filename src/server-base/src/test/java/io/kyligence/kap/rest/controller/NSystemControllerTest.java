@@ -25,11 +25,19 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import io.kyligence.kap.junit.rule.TransactionExceptedException;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.LicenseInfoService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -51,6 +59,8 @@ import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
 
+import java.util.List;
+
 public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
 
@@ -64,6 +74,9 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private NSystemController nSystemController = Mockito.spy(new NSystemController());
+
+    @Rule
+    public TransactionExceptedException thrown = TransactionExceptedException.none();
 
     @Before
     public void setUp() {
@@ -165,5 +178,29 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
                 .param("host", "ip").param("id", "id").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController).remoteStopPackage(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+    }
+
+    @Test
+    public void testCheckProjectArg() {
+        AclEvaluate sourceValue = nSystemController.getAclEvaluate();
+        AclEvaluate mockAclEvaluate = Mockito.mock(AclEvaluate.class);
+
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<ProjectInstance> projectInstanceList = projectManager.listAllProjects();
+        projectInstanceList.stream().forEach(projectInstance -> {
+            Mockito.doReturn(true).when(mockAclEvaluate).hasProjectAdminPermission(projectInstance);
+        });
+
+        nSystemController.setAclEvaluate(mockAclEvaluate);
+
+        List<String> validProjectList = nSystemController.getValidProjects(new String[] {});
+        Assert.assertEquals(validProjectList.size(), projectInstanceList.size());
+
+        nSystemController.getValidProjects(new String[] { "ssb", "SSB" });
+
+        thrown.expect(KylinException.class);
+        nSystemController.getValidProjects(new String[] { "ssb1" });
+
+        nSystemController.setAclEvaluate(sourceValue);
     }
 }

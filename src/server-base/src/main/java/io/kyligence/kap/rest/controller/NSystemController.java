@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.rest.controller;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagPackageRequest;
@@ -43,12 +45,15 @@ import io.kyligence.kap.rest.service.MaintenanceModeService;
 import io.kyligence.kap.rest.service.SystemService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
@@ -74,7 +79,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -86,6 +90,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FILE_CONTE
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_EMAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
 
 @Controller
@@ -110,6 +115,16 @@ public class NSystemController extends NBasicController {
     private AclEvaluate aclEvaluate;
 
     private static final Pattern trialPattern = Pattern.compile("\\S[a-zA-Z\\s\\d\\u4e00-\\u9fa5]+\\S");
+
+    @VisibleForTesting
+    public void setAclEvaluate(AclEvaluate aclEvaluate) {
+        this.aclEvaluate = aclEvaluate;
+    }
+
+    @VisibleForTesting
+    public AclEvaluate getAclEvaluate() {
+        return this.aclEvaluate;
+    }
 
     @GetMapping(value = "/license")
     @ResponseBody
@@ -214,18 +229,48 @@ public class NSystemController extends NBasicController {
         setDownloadResponse(licenseInfo, "license.info", MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
     }
 
+    @VisibleForTesting
+    public List<String> getValidProjects(String[] projects) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+
+        List<ProjectInstance> projectInstanceList = Lists.newArrayList();
+        if (0 == projects.length) {
+            projectInstanceList.addAll(projectManager.listAllProjects());
+        } else {
+            for (String project : projects) {
+                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(project);
+                if (null == projectInstance) {
+                    throw new KylinException(INVALID_PROJECT_NAME,
+                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                }
+
+                projectInstanceList.add(projectInstance);
+            }
+        }
+
+        return projectInstanceList.stream().filter(aclEvaluate::hasProjectAdminPermission).map(ProjectInstance::getName)
+                .collect(Collectors.toList());
+    }
+
     @ApiOperation(value = "get license monitor info with detail")
     @GetMapping(value = "/capacities")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfoWithDetail(@RequestParam(value = "project_names", required = false, defaultValue = "") String[] projectNames,
-                                                            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-                                                            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
-                                                            @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
-                                                            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        aclEvaluate.checkIsGlobalAdmin();
-        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Arrays.asList(projectNames), sortBy, reverse);
-        LicenseInfoWithDetailsResponse monitorDetails = licenseInfoService.getLicenseMonitorInfoWithDetail(sourceUsageFilter, pageOffset, pageSize);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, monitorDetails, "");
+    public EnvelopeResponse<LicenseInfoWithDetailsResponse> getLicenseMonitorInfoWithDetail(
+            @RequestParam(value = "project_names", required = false, defaultValue = "") String[] projectNames,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        List<String> argProjects = getValidProjects(projectNames);
+        LicenseInfoWithDetailsResponse result;
+        if (CollectionUtils.isEmpty(argProjects)) {
+            result = new LicenseInfoWithDetailsResponse(0, Lists.newArrayList());
+        } else {
+            SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(argProjects, sortBy, reverse);
+            result = licenseInfoService.getLicenseMonitorInfoWithDetail(sourceUsageFilter, pageOffset, pageSize);
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "get license capacity info")
