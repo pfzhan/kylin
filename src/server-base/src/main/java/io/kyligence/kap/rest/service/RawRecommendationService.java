@@ -38,6 +38,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
@@ -75,7 +76,8 @@ public class RawRecommendationService {
 
         List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContextV2, savedCCRawRecItems);
         List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContextV2, savedCCRawRecItems);
-        Map<Integer, Long> savedDimensionAndMeasure = mockSaveDimensionAndMeasure(dimensionRecItems, measureRecItems);
+        Map<Integer, Integer> savedDimensionAndMeasure = mockSaveDimensionAndMeasure(dimensionRecItems,
+                measureRecItems);
 
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, savedDimensionAndMeasure,
                 queryIDList);
@@ -107,10 +109,13 @@ public class RawRecommendationService {
                         FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
                                 .getByName(FavoriteRule.RECOMMENDATION_RULE_NAME),
                         FavoriteRule.RECOMMENDATION_RULE_NAME);
+                int semanticVersion = NDataModelManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
+                        .getDataModelDesc(model).getSemanticVersion();
                 int limit = Integer
-                        .valueOf(((FavoriteRule.Condition) recLimitRule.getConds().get(0)).getRightThreshold());
+                        .parseInt(((FavoriteRule.Condition) recLimitRule.getConds().get(0)).getRightThreshold());
                 List<RawRecItem> bestItem = RawRecSelection.getInstance().selectBestLayout(limit,
-                        projectInstance.getName(), model);
+                        projectInstance.getName(), model, semanticVersion);
                 // TODO saveToMetadata
             }
         }
@@ -121,7 +126,7 @@ public class RawRecommendationService {
     }
 
     private List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
-            Map<Integer, Long> savedDimensionAndMeasure, List<Long> queryIDList) {
+            Map<Integer, Integer> savedDimensionAndMeasure, List<Long> queryIDList) {
         //todo manager update already existing items
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -130,10 +135,10 @@ public class RawRecommendationService {
                         modelContext.getTargetModel().getUuid(), //
                         modelContext.getTargetModel().getSemanticVersion(), //
                         RawRecItem.RawRecType.LAYOUT);
-                recItem.setEntity(layoutItem);
+                recItem.setRecEntity(layoutItem);
                 recItem.setCreateTime(layoutItem.getCreateTime());
                 // use dbColOrder instead
-                long[] colOrderInDB = new long[colOrder.size()];
+                int[] colOrderInDB = new int[colOrder.size()];
                 for (int i = 0; i < colOrder.size(); i++) {
                     final Integer id = colOrder.get(i);
                     if (savedDimensionAndMeasure.containsKey(id)) {
@@ -143,7 +148,7 @@ public class RawRecommendationService {
                     }
                 }
                 recItem.setUniqueFlag(Arrays.toString(colOrderInDB));
-                recItem.setDependID(colOrderInDB);
+                recItem.setDependIDs(colOrderInDB);
                 //todo: add other statistics
 
                 rawRecItems.add(recItem);
@@ -163,13 +168,13 @@ public class RawRecommendationService {
                         modelContext.getTargetModel().getSemanticVersion(), //
                         RawRecItem.RawRecType.MEASURE);
                 recItem.setUniqueFlag(name);
-                recItem.setEntity(measureItem);
+                recItem.setRecEntity(measureItem);
                 recItem.setCreateTime(measureItem.getCreateTime());
                 String[] params = name.split("__");
-                long[] dependID = new long[params.length - 1];
+                int[] dependID = new int[params.length - 1];
                 for (String param : params) {
                     if (ccRecItemMap.containsKey(param)) {
-                        recItem.setDependID(dependID);
+                        recItem.setDependIDs(dependID);
                     }
 
                 }
@@ -190,10 +195,10 @@ public class RawRecommendationService {
                         modelContext.getTargetModel().getSemanticVersion(), //
                         RawRecItem.RawRecType.DIMENSION);
                 recItem.setUniqueFlag(name);
-                recItem.setEntity(dimItem);
+                recItem.setRecEntity(dimItem);
                 recItem.setCreateTime(dimItem.getCreateTime());
                 if (ccRecItemMap.containsKey(name)) {
-                    recItem.setDependID(new long[] { ccRecItemMap.get(name).getId() });
+                    recItem.setDependIDs(new int[] { ccRecItemMap.get(name).getId() });
                 }
 
                 rawRecItems.add(recItem);
@@ -212,7 +217,7 @@ public class RawRecommendationService {
                         modelContext.getTargetModel().getSemanticVersion(), //
                         RawRecItem.RawRecType.COMPUTED_COLUMN);
                 recItem.setUniqueFlag(innerExp);
-                recItem.setEntity(ccItem);
+                recItem.setRecEntity(ccItem);
                 recItem.setCreateTime(ccItem.getCreateTime());
                 rawRecItems.add(recItem);
             });
@@ -225,7 +230,7 @@ public class RawRecommendationService {
         return Maps.newHashMap();
     }
 
-    private Map<Integer, Long> mockSaveDimensionAndMeasure(List<RawRecItem> dimensionRecItems,
+    private Map<Integer, Integer> mockSaveDimensionAndMeasure(List<RawRecItem> dimensionRecItems,
             List<RawRecItem> measureRecItems) {
         //todo
         return Maps.newHashMap();

@@ -22,45 +22,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import java.io.IOException;
+
+import lombok.ToString;
+import org.apache.kylin.common.util.JsonUtil;
+
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.RecItemV2;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@ToString
 public class RawRecItem {
+    private static final String TYPE_ERROR_FORMAT = "incorrect raw recommendation type(%d), type value must from 1 to 4 included";
+    private static final String STATE_ERROR_FORMAT = "incorrect raw recommendation state(%d), type value must from 0 to 4 included";
 
-    private long id;
+    private int id;
     private String project;
     private String modelID;
     private String uniqueFlag;
     private int semanticVersion;
     private RawRecType type;
-    private RecItemV2 entity;
+    private RecItemV2 recEntity;
     private RawRecState state;
     private long createTime;
     private long updateTime;
-    private long[] dependID;
+    private int[] dependIDs;
 
     // only for raw layout recommendation
     private LayoutMetric layoutMetric;
@@ -88,6 +82,10 @@ public class RawRecItem {
         this.type = type;
     }
 
+    public boolean needCache() {
+        return id != 0 && state == RawRecItem.RawRecState.INITIAL && type != RawRecType.LAYOUT;
+    }
+
     /**
      * Raw recommendation type
      */
@@ -109,7 +107,7 @@ public class RawRecItem {
      * Raw recommendation state
      */
     public enum RawRecState {
-        INITIAL(0), RECOMMENDED(1), APPLIED(2), ABORT(3), DELETED(4);
+        INITIAL(0), RECOMMENDED(1), APPLIED(2), DISCARD(3), DELETED(4);
 
         private int id;
 
@@ -119,6 +117,65 @@ public class RawRecItem {
 
         RawRecState(int id) {
             this.id = id;
+        }
+    }
+
+    public static int[] toDependIds(String jsonString) {
+        try {
+            return JsonUtil.readValue(jsonString, int[].class);
+        } catch (IOException e) {
+            throw new IllegalStateException("cannot deserialize depend id correctly", e);
+        }
+    }
+
+    public static RawRecItem.RawRecType toRecType(byte recType) {
+        switch (recType) {
+        case 1:
+            return RawRecItem.RawRecType.COMPUTED_COLUMN;
+        case 2:
+            return RawRecItem.RawRecType.DIMENSION;
+        case 3:
+            return RawRecItem.RawRecType.MEASURE;
+        case 4:
+            return RawRecItem.RawRecType.LAYOUT;
+        default:
+            throw new IllegalStateException(String.format(RawRecItem.TYPE_ERROR_FORMAT, recType));
+        }
+    }
+
+    public static RawRecItem.RawRecState toRecState(byte stateType) {
+        switch (stateType) {
+        case 0:
+            return RawRecItem.RawRecState.INITIAL;
+        case 1:
+            return RawRecItem.RawRecState.RECOMMENDED;
+        case 2:
+            return RawRecItem.RawRecState.APPLIED;
+        case 3:
+            return RawRecItem.RawRecState.DISCARD;
+        case 4:
+            return RawRecItem.RawRecState.DELETED;
+        default:
+            throw new IllegalStateException(String.format(RawRecItem.STATE_ERROR_FORMAT, stateType));
+        }
+    }
+
+    public static RecItemV2 toRecItem(String jsonString, byte recType) {
+        try {
+            switch (recType) {
+            case 1:
+                return JsonUtil.readValue(jsonString, CCRecItemV2.class);
+            case 2:
+                return JsonUtil.readValue(jsonString, DimensionRecItemV2.class);
+            case 3:
+                return JsonUtil.readValue(jsonString, MeasureRecItemV2.class);
+            case 4:
+                return JsonUtil.readValue(jsonString, LayoutRecItemV2.class);
+            default:
+                throw new IllegalStateException(String.format(RawRecItem.TYPE_ERROR_FORMAT, recType));
+            }
+        } catch (IOException | IllegalStateException e) {
+            throw new IllegalStateException("cannot deserialize recommendation entity.", e);
         }
     }
 }

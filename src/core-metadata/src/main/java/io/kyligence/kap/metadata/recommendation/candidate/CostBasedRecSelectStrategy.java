@@ -41,15 +41,15 @@ public class CostBasedRecSelectStrategy implements RecSelectStrategy {
     }
 
     @Override
-    public List<RawRecItem> getBestRecItemByModel(int topn, String project, String model) {
+    public List<RawRecItem> getBestRecItemByModel(int topn, String project, String model, int semanticVersion) {
         RawRecommendationManager rawRecommendationManager = RawRecommendationManager.getInstance(config, project);
-        return rawRecommendationManager.getCandidatesByModelAndBenifit(project, model, topn);
+        return rawRecommendationManager.getCandidatesByModelAndBenefit(project, model, topn);
     }
 
     @Override
     public List<RawRecItem> getBestRecItemByProject(int topn, String project) {
         RawRecommendationManager rawRecommendationManager = RawRecommendationManager.getInstance(config, project);
-        return rawRecommendationManager.getCandidatesByProjectAndBenifit(project, topn);
+        return rawRecommendationManager.getCandidatesByProjectAndBenefit(project, topn);
     }
 
     public void update(RawRecItem recItem, long time) {

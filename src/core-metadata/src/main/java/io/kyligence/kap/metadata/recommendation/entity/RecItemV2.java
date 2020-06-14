@@ -34,6 +34,6 @@ import lombok.Setter;
 public class RecItemV2 {
     @JsonProperty("id")
     private long id;
-    @JsonProperty("createTime")
+    @JsonProperty("create_time")
     private long createTime;
 }

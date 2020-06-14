@@ -40,8 +40,8 @@ public class RawRecSelection {
     private RawRecSelection(KylinConfig config) {
     }
 
-    public List<RawRecItem> selectBestLayout(int topn, String model, String project) {
-        return getStrategy().getBestRecItemByModel(topn, project, model);
+    public List<RawRecItem> selectBestLayout(int topn, String model, String project, int semanticVersion) {
+        return getStrategy().getBestRecItemByModel(topn, project, model, semanticVersion);
     }
 
     public RecSelectStrategy getStrategy() {

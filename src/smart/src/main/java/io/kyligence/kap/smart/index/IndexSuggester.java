@@ -221,6 +221,7 @@ class IndexSuggester {
         LayoutRecItemV2 item = new LayoutRecItemV2();
         item.setLayout(layout);
         item.setCreateTime(System.currentTimeMillis());
+        item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
         modelContext.getIndexRexItemMap().putIfAbsent(layout.getColOrder(), item);
     }
 

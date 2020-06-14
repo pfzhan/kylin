@@ -39,4 +39,6 @@ import lombok.Setter;
 public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
     @JsonProperty("layout")
     private LayoutEntity layout;
+    @JsonProperty("is_agg")
+    private boolean isAgg;
 }

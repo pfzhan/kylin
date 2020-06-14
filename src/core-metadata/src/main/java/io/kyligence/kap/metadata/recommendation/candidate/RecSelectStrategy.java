@@ -30,7 +30,7 @@ public interface RecSelectStrategy {
 
     List<RawRecItem> getBestRecItem(int topn);
 
-    List<RawRecItem> getBestRecItemByModel(int topn, String project, String model);
+    List<RawRecItem> getBestRecItemByModel(int topn, String project, String model, int semanticVersion);
 
     List<RawRecItem> getBestRecItemByProject(int topn, String project);
 }
