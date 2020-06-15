@@ -112,6 +112,7 @@ public class SourceUsageManager {
             return columnSourceBytes;
         }
         if (allColumns.isEmpty()) {
+            logger.debug("No effective columns found in segment: {}", segment);
             return columnSourceBytes;
         }
         long perColumnSize = inputRecordsSize / allColumns.size();
@@ -150,7 +151,7 @@ public class SourceUsageManager {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, projectName);
         TableDesc tableDesc = tableManager.getTableDesc(tableName);
         if (tableManager.existsSnapshotTableByName(tableName)) {
-            TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(tableDesc);
+            TableExtDesc tableExtDesc = tableManager.getOrCreateTableExt(tableDesc);
             long originalSize = tableExtDesc.getOriginalSize();
             if (originalSize == -1) {
                 logger.warn("Original size of table:{} is -1, set table status to TENTATIVE", tableName);
