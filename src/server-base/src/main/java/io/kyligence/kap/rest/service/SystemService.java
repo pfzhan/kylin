@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 
 import java.io.File;
 import java.io.IOException;

@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.COLUMN_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_REFRESH_CATALOG_CACHE;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_CATALOG_CACHE;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.File;
 import java.io.IOException;

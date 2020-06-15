@@ -24,11 +24,11 @@
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_PARSE_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_PARSE_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -138,7 +138,8 @@ public class NCubesControllerV2 extends NBasicController {
         if (Objects.isNull(dataModelResponse)) {
             throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
-        String partitionColumnFormat = modelService.getPartitionColumnFormatByAlias(dataModelResponse.getProject(), modelAlias);
+        String partitionColumnFormat = modelService.getPartitionColumnFormatByAlias(dataModelResponse.getProject(),
+                modelAlias);
         validateDataRange(startTime, endTime, partitionColumnFormat);
         JobInfoResponseV2 result = null;
         switch (request.getBuildType()) {

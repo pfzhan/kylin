@@ -25,10 +25,10 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_MODEL_ID;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_FORMAT_ERROR;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_ID;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_FORMAT_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

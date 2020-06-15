@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest;
 
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
+import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;

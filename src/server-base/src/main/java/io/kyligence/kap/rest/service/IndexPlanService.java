@@ -23,10 +23,10 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_AGG_INDEX;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_TABLE_INDEX;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_AGG_INDEX;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_TABLE_INDEX;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,7 +54,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.rest.exception.ServerErrorCode;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;

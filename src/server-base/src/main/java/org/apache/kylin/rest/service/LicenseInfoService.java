@@ -104,7 +104,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_LICENSE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_LICENSE;
 
 @Slf4j
 @Service("licenseInfoService")

@@ -24,14 +24,13 @@
 
 package io.kyligence.kap.rest.security;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.USER_LOCKED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.common.exception.ServerErrorCode.LOGIN_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_LOCKED;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.rest.service.MaintenanceModeService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -55,6 +54,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.rest.service.MaintenanceModeService;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -127,7 +127,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             }
         } catch (UsernameNotFoundException e) {
             throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
-                    new KylinException(USER_UNAUTHORIZED, MsgPicker.getMsg().getUSER_AUTH_FAILED()));
+                    new KylinException(LOGIN_FAILED, MsgPicker.getMsg().getUSER_AUTH_FAILED()));
         } catch (IllegalArgumentException e) {
             throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
         }

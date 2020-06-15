@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.security;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_KERBEROS_FILE;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_KERBEROS_FILE;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.File;
 

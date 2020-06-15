@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
 
 import java.io.IOException;
 import java.util.ArrayList;

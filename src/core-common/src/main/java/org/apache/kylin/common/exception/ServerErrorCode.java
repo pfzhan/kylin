@@ -39,10 +39,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.rest.exception;
-
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
+package org.apache.kylin.common.exception;
 
 public enum ServerErrorCode implements ErrorCodeSupplier {
     // 10000XXX general
@@ -57,7 +54,8 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     EMPTY_PROJECT_NAME("KE-10001002"), //
     INVALID_PROJECT_NAME("KE-10001003"), //
     DUPLICATE_PROJECT_NAME("KE-10001004"), //
-    PROJECT_NAME_ILLEGAL("KE-10001005"),
+    PROJECT_NAME_ILLEGAL("KE-10001005"), //
+    FAILED_CREATE_PROJECT("KE-10001006"), //
 
     // 10002XXX model
     MODEL_NOT_EXIST("KE-10002001"), //
@@ -80,6 +78,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     USER_LOCKED("KE-10003005"), //
     FAILED_UPDATE_USER("KE-10003006"), //
     USER_UNAUTHORIZED("KE-10003007"), //
+    LOGIN_FAILED("KE-10003008"), //
 
     // 10004XXX user group
     USERGROUP_NOT_EXIST("KE-10004001"), //
@@ -196,9 +195,11 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     EMPTY_FREQUENCY_RULE_VALUE("KE-10027001"), //
     EMPTY_DURATION_RULE_VALUE("KE-10027002"), //
     EMPTY_COUNT_RULE_VALUE("KE-10027003"), //
+    FAILED_ACCELERATE_QUERY("KE-10027004"), //
+    FAILED_INSERT_ACCELERATE_QUERY_BLACKLIST("KE-10027005"), //
 
-    // 10028XXX json
-    FAILED_PARSE_JSON("KE-10028001");//
+    // 00031XXX query result
+    FAILED_OBTAIN_QUERY_RESULT("KE-10031001"); //
 
     private final ErrorCode errorCode;
 

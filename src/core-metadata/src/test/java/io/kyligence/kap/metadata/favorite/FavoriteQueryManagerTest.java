@@ -31,6 +31,7 @@ import java.util.TreeMap;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,7 +44,6 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.hystrix.CircuitBreakerException;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -340,7 +340,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.fq", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
-            thrown.expect(CircuitBreakerException.class);
+            thrown.expect(KylinException.class);
             manager.create(mockFavoriteQueries(2));
         } finally {
             NCircuitBreaker.stop();
@@ -352,7 +352,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager manager = Mockito.spy(FavoriteQueryManager.getInstance(getTestConfig(), PROJECT));
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.fq", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
-        thrown.expect(CircuitBreakerException.class);
+        thrown.expect(KylinException.class);
         try {
             manager.createWithoutCheck(mockFavoriteQueries(2));
         } finally {

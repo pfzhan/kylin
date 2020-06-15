@@ -26,10 +26,10 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ConflictItem;
 import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ModelMetadataConflict;
-import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_EXPRESSION;
-import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

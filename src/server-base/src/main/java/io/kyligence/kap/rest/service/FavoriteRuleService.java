@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 
 import java.io.IOException;
 import java.util.ArrayList;

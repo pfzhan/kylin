@@ -26,8 +26,8 @@ package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.tool.util.ServiceDiscoveryUtil.runWithCurator;
-import static org.apache.kylin.tool.ToolErrorCode.FILE_ALREADY_EXIST;
-import static org.apache.kylin.tool.ToolErrorCode.INVALID_SHELL_PARAMETER;
+import static org.apache.kylin.common.exception.ToolErrorCode.FILE_ALREADY_EXIST;
+import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
 
 import java.io.File;
 import java.io.IOException;

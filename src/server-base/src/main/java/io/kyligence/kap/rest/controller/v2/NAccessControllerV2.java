@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.USER_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.ArrayList;

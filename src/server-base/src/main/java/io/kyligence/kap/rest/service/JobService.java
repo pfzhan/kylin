@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.io.DataInputStream;
 import java.io.IOException;

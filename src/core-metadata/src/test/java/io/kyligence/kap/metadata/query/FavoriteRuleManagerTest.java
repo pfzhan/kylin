@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,7 +39,6 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.hystrix.CircuitBreakerException;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -163,7 +163,7 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.sql-pattern-to-blacklist", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
-            thrown.expect(CircuitBreakerException.class);
+            thrown.expect(KylinException.class);
             manager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("test_ck_sql2"));
         } finally {
             NCircuitBreaker.stop();

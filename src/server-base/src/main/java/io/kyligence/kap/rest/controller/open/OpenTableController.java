@@ -24,9 +24,9 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
 
 import java.io.IOException;
 import java.util.List;

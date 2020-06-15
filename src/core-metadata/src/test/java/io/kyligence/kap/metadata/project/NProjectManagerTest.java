@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -39,7 +40,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
-import io.kyligence.kap.common.hystrix.CircuitBreakerException;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -88,7 +88,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.project", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
-            thrown.expect(CircuitBreakerException.class);
+            thrown.expect(KylinException.class);
             manager.createProject("test_ck_project", "admin", "", null, MaintainModelType.MANUAL_MAINTAIN);
         } finally {
             NCircuitBreaker.stop();

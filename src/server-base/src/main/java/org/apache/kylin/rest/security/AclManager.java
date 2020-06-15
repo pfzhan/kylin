@@ -58,7 +58,7 @@ import com.google.common.collect.Maps;
 
 import lombok.val;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 /**
  */

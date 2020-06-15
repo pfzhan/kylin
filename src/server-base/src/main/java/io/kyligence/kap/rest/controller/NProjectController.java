@@ -26,10 +26,10 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PROJECT_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
 import java.util.List;

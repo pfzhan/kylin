@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.DATABASE_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_EMAIL;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
 import java.io.IOException;

@@ -42,8 +42,9 @@
 
 package io.kyligence.kap.rest.security;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.USER_LOCKED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.common.exception.ServerErrorCode.LOGIN_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_LOCKED;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -78,7 +79,7 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
             return;
         }
         setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
-                new KylinException(USER_UNAUTHORIZED, exception.getMessage()));
+                new KylinException(LOGIN_FAILED, exception.getMessage()));
     }
 
     public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex)

@@ -42,32 +42,24 @@
 
 package org.apache.kylin.rest.service;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.hystrix.CircuitBreakerException;
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.cluster.DefaultClusterManager;
-import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import lombok.val;
-import net.sf.ehcache.CacheManager;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -116,23 +108,32 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.cluster.DefaultClusterManager;
+import io.kyligence.kap.rest.config.AppConfig;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import lombok.val;
+import net.sf.ehcache.CacheManager;
 
 /**
  * @author xduo
@@ -293,8 +294,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST)).when(queryService).tryPushDownSelectQuery(sqlRequest, null, null,
-                false);
+                Collections.EMPTY_LIST)).when(queryService).tryPushDownSelectQuery(sqlRequest, null, null, false);
 
         final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
 
@@ -948,19 +948,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.query-result-row-count", "1");
 
         Mockito.doReturn(response).when(queryService).queryAndUpdateCache(Mockito.any(SQLRequest.class),
-        Mockito.anyLong(), Mockito.anyBoolean());
+                Mockito.anyLong(), Mockito.anyBoolean());
         try {
             getTestConfig().setProperty("kylin.server.mode", "job");
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
             queryService.queryWithCache(request, false);
-        }catch (KylinException e){
+        } catch (KylinException e) {
             Assert.assertEquals("Job node is not available for queries.", e.getMessage());
         }
 
         try {
             getTestConfig().setProperty("kylin.server.mode", "query");
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
-            thrown.expect(CircuitBreakerException.class);
+            thrown.expect(KylinException.class);
             queryService.queryWithCache(request, false);
         } finally {
             NCircuitBreaker.stop();
@@ -1012,8 +1012,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "Is Query Push-Down:\\s(.*?)" + matchNewLine + "Is Prepare:\\s(.*?)" + matchNewLine
                 + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)" + matchNewLine
                 + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
-                + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "Is forced to Push-Down:\\s(.*?)" + matchNewLine
-                + "[=]+\\[QUERY\\][=]+.*";
+                + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "Is forced to Push-Down:\\s(.*?)"
+                + matchNewLine + "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);
 
@@ -1148,8 +1148,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
         List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default");
         boolean noFactTableType = metaWithTypeList.stream()
-                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
-                .findFirst().get().getTYPE().isEmpty();
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME())).findFirst().get()
+                .getTYPE().isEmpty();
         Assert.assertFalse(noFactTableType);
 
         // fact table is broken
@@ -1161,8 +1161,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         metaWithTypeList = queryService.getMetadataV2("default");
         noFactTableType = metaWithTypeList.stream()
-                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
-                .findFirst().get().getTYPE().isEmpty();
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME())).findFirst().get()
+                .getTYPE().isEmpty();
         Assert.assertTrue(noFactTableType);
     }
 }

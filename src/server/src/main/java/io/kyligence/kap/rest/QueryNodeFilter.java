@@ -23,10 +23,10 @@
  */
 package io.kyligence.kap.rest;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.TRANSFER_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
+import static org.apache.kylin.common.exception.ServerErrorCode.TRANSFER_FAILED;
 
 import java.io.IOException;
 import java.util.Collections;

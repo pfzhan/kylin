@@ -25,13 +25,13 @@
 package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
-import static org.apache.kylin.tool.ToolErrorCode.DIRECTORY_NOT_EXIST;
-import static org.apache.kylin.tool.ToolErrorCode.EMPTY_JOB_PARAMETER;
-import static org.apache.kylin.tool.ToolErrorCode.EMPTY_PROJECT_PARAMETER;
-import static org.apache.kylin.tool.ToolErrorCode.EMPTY_TABLE_PARAMETER;
-import static org.apache.kylin.tool.ToolErrorCode.INVALID_SHELL_PARAMETER;
-import static org.apache.kylin.tool.ToolErrorCode.PROJECT_PARAMETER_NOT_EXIST;
-import static org.apache.kylin.tool.ToolErrorCode.TABLE_PARAMETER_NOT_EXIST;
+import static org.apache.kylin.common.exception.ToolErrorCode.DIRECTORY_NOT_EXIST;
+import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_JOB_PARAMETER;
+import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_PROJECT_PARAMETER;
+import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_TABLE_PARAMETER;
+import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
+import static org.apache.kylin.common.exception.ToolErrorCode.PROJECT_PARAMETER_NOT_EXIST;
+import static org.apache.kylin.common.exception.ToolErrorCode.TABLE_PARAMETER_NOT_EXIST;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

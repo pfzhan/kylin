@@ -43,9 +43,9 @@
 package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USER_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;

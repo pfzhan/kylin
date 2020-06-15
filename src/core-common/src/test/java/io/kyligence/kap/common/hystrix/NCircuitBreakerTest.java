@@ -25,6 +25,7 @@
 package io.kyligence.kap.common.hystrix;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,7 +54,7 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
     public void testVerifyProjectCreation() {
         NCircuitBreaker.verifyProjectCreation(10);
 
-        thrown.expect(CircuitBreakerException.class);
+        thrown.expect(KylinException.class);
         NCircuitBreaker.verifyProjectCreation(100);
     }
 
@@ -61,7 +62,7 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
     public void testVerifyModelCreation() {
         NCircuitBreaker.verifyModelCreation(10);
 
-        thrown.expect(CircuitBreakerException.class);
+        thrown.expect(KylinException.class);
         NCircuitBreaker.verifyModelCreation(100);
     }
 
@@ -69,7 +70,7 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
     public void testVerifyFavoriteQueryCreation() {
         NCircuitBreaker.verifyFavoriteQueryCreation(300);
 
-        thrown.expect(CircuitBreakerException.class);
+        thrown.expect(KylinException.class);
         NCircuitBreaker.verifyFavoriteQueryCreation(30_000);
     }
 
@@ -77,7 +78,7 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
     public void testVerifySqlPatternToBlacklist() {
         NCircuitBreaker.verifySqlPatternToBlacklist(300);
 
-        thrown.expect(CircuitBreakerException.class);
+        thrown.expect(KylinException.class);
         NCircuitBreaker.verifySqlPatternToBlacklist(30_000);
     }
 
@@ -85,7 +86,7 @@ public class NCircuitBreakerTest extends NLocalFileMetadataTestCase {
     public void testVerifyQueryResultRowCount() {
         NCircuitBreaker.verifyQueryResultRowCount(2_000_000L);
 
-        thrown.expect(CircuitBreakerException.class);
+        thrown.expect(KylinException.class);
         NCircuitBreaker.verifyQueryResultRowCount(2_000_001L);
     }
 

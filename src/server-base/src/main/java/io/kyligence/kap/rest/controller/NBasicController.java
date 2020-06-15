@@ -44,16 +44,16 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
 import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DISPOSITION;
-import static org.apache.kylin.rest.exception.ServerErrorCode.ACCESS_DENIED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_ID;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
-import static org.apache.kylin.rest.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_RANGE;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
-import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_ID;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
+import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -117,6 +117,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -124,7 +125,6 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);

@@ -39,10 +39,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.tool;
-
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
+package org.apache.kylin.common.exception;
 
 public enum ToolErrorCode implements ErrorCodeSupplier {
     // 50001XXX project

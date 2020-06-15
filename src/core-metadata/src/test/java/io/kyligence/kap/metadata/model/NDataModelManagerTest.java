@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -43,7 +44,6 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.hystrix.CircuitBreakerException;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -239,7 +239,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.model", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
-            thrown.expect(CircuitBreakerException.class);
+            thrown.expect(KylinException.class);
             manager.createDataModelDesc(mockModel(), owner);
         } finally {
             NCircuitBreaker.stop();

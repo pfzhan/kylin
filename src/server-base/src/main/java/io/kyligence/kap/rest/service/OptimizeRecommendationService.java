@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_APPROVE_RECOMMENDATION;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_APPROVE_RECOMMENDATION;
 
 import java.util.List;
 import java.util.Map;

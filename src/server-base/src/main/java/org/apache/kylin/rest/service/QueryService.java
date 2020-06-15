@@ -43,10 +43,10 @@
 package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
-import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
 import java.io.DataInputStream;

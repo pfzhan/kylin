@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest.util;
 
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
-import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_USER;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_USER;
 
 import java.io.IOException;
 import java.util.List;
