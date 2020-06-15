@@ -695,17 +695,17 @@ public class LicenseInfoService extends BasicService {
 
     public LicenseMonitorInfoResponse getLicenseCapacityInfo() {
         LicenseMonitorInfoResponse licenseMonitorInfoResponse = new LicenseMonitorInfoResponse();
-        SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
+        SourceUsageRecord latestRecord = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
-        if (latestRecords != null) {
-            licenseMonitorInfoResponse.setCheckTime(latestRecords.getCheckTime());
-            licenseMonitorInfoResponse.setCurrentCapacity(latestRecords.getCurrentCapacity());
-            licenseMonitorInfoResponse.setCapacityStatus(latestRecords.getCapacityStatus());
-            licenseMonitorInfoResponse.setCapacity(latestRecords.getLicenseCapacity());
-            if (isNotOk(latestRecords.getCapacityStatus())) {
-                List<SourceUsageRecord> recentRecords = SourceUsageManager
-                        .getInstance(KylinConfig.getInstanceFromEnv()).getLastMonthRecords();
-                licenseMonitorInfoResponse.setFirstErrorTime(latestRecords.getCheckTime());
+        if (null != latestRecord) {
+            licenseMonitorInfoResponse.setCheckTime(latestRecord.getCheckTime());
+            licenseMonitorInfoResponse.setCurrentCapacity(latestRecord.getCurrentCapacity());
+            licenseMonitorInfoResponse.setCapacityStatus(latestRecord.getCapacityStatus());
+            licenseMonitorInfoResponse.setCapacity(latestRecord.getLicenseCapacity());
+            if (isNotOk(latestRecord.getCapacityStatus())) {
+                List<SourceUsageRecord> recentRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
+                        .getLastMonthRecords();
+                licenseMonitorInfoResponse.setFirstErrorTime(latestRecord.getCheckTime());
                 for (int i = recentRecords.size() - 1; i >= 0; i--) {
                     SourceUsageRecord sourceUsageRecord = recentRecords.get(i);
                     if (isNotOk(sourceUsageRecord.getCapacityStatus())) {

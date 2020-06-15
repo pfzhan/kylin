@@ -232,7 +232,7 @@ public class NSystemController extends NBasicController {
     @GetMapping(value = "/license/capacity")
     @ResponseBody
     public EnvelopeResponse getLicenseCapacityInfo() {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
     @ApiOperation(value = "get license node info")

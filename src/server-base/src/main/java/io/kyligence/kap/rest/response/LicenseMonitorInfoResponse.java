@@ -45,7 +45,7 @@ public class LicenseMonitorInfoResponse implements Serializable {
     private long checkTime;
 
     @JsonProperty("first_error_time")
-    private long firstErrorTime;
+    private long firstErrorTime = 0;
 
     @JsonProperty("error_over_thirty_days")
     private boolean errorOverThirtyDays = false;
