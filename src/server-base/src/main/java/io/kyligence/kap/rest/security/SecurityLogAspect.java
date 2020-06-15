@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -40,26 +41,42 @@ import lombok.extern.slf4j.Slf4j;
 @Aspect
 @Component
 public class SecurityLogAspect {
-    @AfterReturning("(execution(* io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider.authenticate(..)) " +
-            "|| execution(* io.kyligence.kap.rest.security.OpenAuthenticationProvider.authenticate(..))" +
-            "|| execution(* io.kyligence.kap.rest.security.LdapAuthenticationProvider.authenticate(..))) " +
-            "&& args(authentication)")
+
+    @Autowired
+    private LoginLogFilter loginLogFilter;
+
+    @AfterReturning("(execution(* io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider.authenticate(..)) "
+            + "|| execution(* io.kyligence.kap.rest.security.OpenAuthenticationProvider.authenticate(..))"
+            + "|| execution(* io.kyligence.kap.rest.security.LdapAuthenticationProvider.authenticate(..))) "
+            + "&& args(authentication)")
     public void doAfterLoginSuccess(Authentication authentication) {
-        SecurityLoggerUtils.recordLoginSuccess(authentication.getName());
+        if (null == loginLogFilter.getLoginInfoThreadLocal().get()) {
+            loginLogFilter.getLoginInfoThreadLocal().set(new LoginLogFilter.LoginInfo());
+        }
+
+        loginLogFilter.getLoginInfoThreadLocal().get().setUserName(authentication.getName());
+        loginLogFilter.getLoginInfoThreadLocal().get().setLoginSuccess(Boolean.TRUE);
+
     }
 
-    @AfterThrowing(pointcut = "(execution(* io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider.authenticate(..)) " +
-            "|| execution(* io.kyligence.kap.rest.security.OpenAuthenticationProvider.authenticate(..))" +
-            "|| execution(* io.kyligence.kap.rest.security.LdapAuthenticationProvider.authenticate(..))) " +
-            "&& args(authentication)", throwing = "exception")
+    @AfterThrowing(pointcut = "(execution(* io.kyligence.kap.rest.security.LimitLoginAuthenticationProvider.authenticate(..)) "
+            + "|| execution(* io.kyligence.kap.rest.security.OpenAuthenticationProvider.authenticate(..))"
+            + "|| execution(* io.kyligence.kap.rest.security.LdapAuthenticationProvider.authenticate(..))) "
+            + "&& args(authentication)", throwing = "exception")
     public void doAfterLoginError(Authentication authentication, Exception exception) {
-        SecurityLoggerUtils.recordLoginFailed(authentication.getName(), exception);
+        if (null == loginLogFilter.getLoginInfoThreadLocal().get()) {
+            loginLogFilter.getLoginInfoThreadLocal().set(new LoginLogFilter.LoginInfo());
+        }
+
+        loginLogFilter.getLoginInfoThreadLocal().get().setUserName(authentication.getName());
+        loginLogFilter.getLoginInfoThreadLocal().get().setLoginSuccess(Boolean.FALSE);
+        loginLogFilter.getLoginInfoThreadLocal().get().setException(exception);
     }
 
-    @AfterReturning(value = "execution(* org.springframework.security.web.authentication.logout.LogoutSuccessHandler.onLogoutSuccess(..)) " +
-            "&& args(request, response, authentication)", argNames = "request, response, authentication")
+    @AfterReturning(value = "execution(* org.springframework.security.web.authentication.logout.LogoutSuccessHandler.onLogoutSuccess(..)) "
+            + "&& args(request, response, authentication)", argNames = "request, response, authentication")
     public void doAfterLogoutSuccess(HttpServletRequest request, HttpServletResponse response,
-                                     Authentication authentication) {
+            Authentication authentication) {
         SecurityLoggerUtils.recordLogout(authentication.getName());
     }
 }
