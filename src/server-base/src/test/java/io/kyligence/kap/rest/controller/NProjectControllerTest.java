@@ -55,6 +55,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
@@ -417,5 +418,50 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(projectService).updateProjectOwner(project, ownerChangeRequest);
         nProjectController.updateProjectOwner(project, ownerChangeRequest);
         Mockito.verify(nProjectController).updateProjectOwner(project, ownerChangeRequest);
+    }
+
+    @Test
+    public void testGetFrequencyRule() throws Exception {
+        String project = "default";
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/favorite_rules", project)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nProjectController).getFavoriteRules(project);
+    }
+
+    @Test
+    public void testUpdateFrequencyRule() throws Exception {
+        String project = "default";
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setProject(project);
+        request.setFreqEnable(false);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nProjectController).updateFavoriteRules(Mockito.any(request.getClass()));
+    }
+
+    @Test
+    public void testUpdateFrequencyRuleWithWrongArgs() throws Exception {
+        String project = "default";
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setProject(project);
+        request.setFreqEnable(true);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is(400));
+
+        request.setFreqEnable(false);
+        request.setDurationEnable(true);
+        request.setMinDuration("0");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is(400));
     }
 }

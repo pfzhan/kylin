@@ -135,9 +135,7 @@ public class FavoriteRuleManager {
 
         List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
         if (!conditions.isEmpty()) {
-            for (FavoriteRule.AbstractCondition condition : conditions) {
-                newConditions.add(condition);
-            }
+            newConditions.addAll(conditions);
         }
 
         copy.setConds(newConditions);

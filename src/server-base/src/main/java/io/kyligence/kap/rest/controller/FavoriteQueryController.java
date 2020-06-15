@@ -26,20 +26,13 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
 
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,39 +163,6 @@ public class FavoriteQueryController extends NBasicController {
         checkProjectUnmodifiable(project);
         favoriteQueryService.ignoreAccelerate(project, ignoreSize);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "getFavoriteRules (update)", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
-    @GetMapping(value = "/rules")
-    @ResponseBody
-    public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@RequestParam(value = "project") String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, favoriteRuleService.getFavoriteRules(project), "");
-    }
-
-    @ApiOperation(value = "updateFavoriteRules (update)", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
-    @PutMapping(value = "/rules")
-    @ResponseBody
-    public EnvelopeResponse<String> updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) {
-        checkProjectName(request.getProject());
-        checkProjectUnmodifiable(request.getProject());
-        checkUpdateFavoriteRuleArgs(request);
-        favoriteRuleService.updateRegularRule(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
-        // either disabled or arguments not empty
-        if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue()))
-            throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE,
-                    MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
-
-        if (request.isDurationEnable()
-                && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration())))
-            throw new KylinException(EMPTY_DURATION_RULE_VALUE, MsgPicker.getMsg().getDELAY_THRESHOLD_CAN_NOT_EMPTY());
-
-        if (request.isCountEnable() && StringUtils.isEmpty(request.getCountValue()))
-            throw new KylinException(EMPTY_COUNT_RULE_VALUE, MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
     }
 
     @ApiOperation(value = "getBlacklist (update)", notes = "Update Response: total_size")

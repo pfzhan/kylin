@@ -63,4 +63,8 @@ public class FavoriteRuleUpdateRequest implements Serializable, ProjectInsensiti
     private List<String> users;
     @JsonProperty("user_groups")
     private List<String> userGroups;
+    @JsonProperty("recommendation_enable")
+    private boolean recommendationEnable;
+    @JsonProperty("recommendations_value")
+    private String recommendationsValue;
 }

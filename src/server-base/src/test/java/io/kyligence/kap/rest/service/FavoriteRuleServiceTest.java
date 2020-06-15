@@ -33,9 +33,6 @@ import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.NotFoundException;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -66,7 +63,6 @@ import lombok.var;
 
 public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
-    private static final String PROJECT_NEWTEN = "newten";
 
     @InjectMocks
     private FavoriteRuleService favoriteRuleService = Mockito.spy(new FavoriteRuleService());
@@ -216,97 +212,6 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         result = favoriteRuleService.importSqls(new MultipartFile[] { emptyFile }, PROJECT);
         Assert.assertNotNull(result);
         Assert.assertEquals(0, result.get("size"));
-    }
-
-    @Test
-    public void testGetRulesWithError() {
-        // assert get rule error
-        try {
-            favoriteRuleService.getFavoriteRules(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), FavoriteRule.COUNT_RULE_NAME),
-                    ex.getMessage());
-        }
-    }
-
-    @Test
-    public void testGetFilterRulesAndUpdate() {
-        NFavoriteScheduler favoriteScheduler = Mockito.mock(NFavoriteScheduler.class);
-        Mockito.doReturn(true).when(favoriteScheduler).hasStarted();
-        Mockito.doReturn(favoriteScheduler).when(favoriteRuleService).getFavoriteScheduler(PROJECT);
-
-        Map<String, Object> favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
-
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("count_enable"));
-        Assert.assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
-
-        List<String> users = (List<String>) favoriteRuleResponse.get("users");
-        List<String> userGroups = (List<String>) favoriteRuleResponse.get("user_groups");
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("submitter_enable"));
-        Assert.assertEquals(3, users.size());
-        Assert.assertEquals(1, userGroups.size());
-
-        long minDuration = (Long) favoriteRuleResponse.get("min_duration");
-        long maxDuration = (Long) favoriteRuleResponse.get("max_duration");
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("duration_enable"));
-        Assert.assertEquals(5, minDuration);
-        Assert.assertEquals(8, maxDuration);
-
-        // the request of updating frequency rule
-        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
-        request.setProject(PROJECT);
-        request.setFreqEnable(false);
-        request.setFreqValue("0.2");
-        request.setDurationEnable(false);
-        request.setMinDuration("0");
-        request.setMaxDuration("10");
-        request.setSubmitterEnable(false);
-        request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
-
-        favoriteRuleService.updateRegularRule(PROJECT, request);
-        Mockito.verify(favoriteScheduler).scheduleImmediately();
-
-        // assert
-        favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
-        Assert.assertFalse((boolean) favoriteRuleResponse.get("freq_enable"));
-        Assert.assertFalse((boolean) favoriteRuleResponse.get("duration_enable"));
-        Assert.assertFalse((boolean) favoriteRuleResponse.get("submitter_enable"));
-        Assert.assertEquals(0.2, (float) favoriteRuleResponse.get("freq_value"), 0.1);
-
-        users = (List<String>) favoriteRuleResponse.get("users");
-        Assert.assertEquals(4, users.size());
-        userGroups = (List<String>) favoriteRuleResponse.get("user_groups");
-        Assert.assertEquals(0, userGroups.size());
-
-        minDuration = (Long) favoriteRuleResponse.get("min_duration");
-        maxDuration = (Long) favoriteRuleResponse.get("max_duration");
-        Assert.assertEquals(0, minDuration);
-        Assert.assertEquals(10, maxDuration);
-
-        request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
-
-        favoriteRuleService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
-        users = (List<String>) favoriteRuleResponse.get("users");
-        Assert.assertEquals(4, users.size());
-        userGroups = (List<String>) favoriteRuleResponse.get("user_groups");
-        Assert.assertEquals(2, userGroups.size());
-        Assert.assertEquals("ROLE_ADMIN", userGroups.get(0));
-
-        // assert if favorite rules' values are empty
-        request.setFreqEnable(false);
-        request.setFreqValue(null);
-        request.setDurationEnable(false);
-        request.setMinDuration(null);
-        request.setMaxDuration(null);
-
-        favoriteRuleService.updateRegularRule(PROJECT, request);
-        favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
-        Assert.assertNull(favoriteRuleResponse.get("freq_value"));
-        Assert.assertNull(favoriteRuleResponse.get("min_duration"));
-        Assert.assertNull(favoriteRuleResponse.get("max_duration"));
     }
 
     @Test

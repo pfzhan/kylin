@@ -24,17 +24,20 @@
 
 package io.kyligence.kap.metadata.favorite;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.Lists;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
+
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -45,10 +48,8 @@ public class FavoriteRule extends RootPersistentEntity {
     public static final String DURATION_RULE_NAME = "duration";
     public static final String SUBMITTER_RULE_NAME = "submitter";
     public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
-
+    public static final String RECOMMENDATION_RULE_NAME = "recommendations";
     public static final String BLACKLIST_NAME = "blacklist";
-
-    public static final String ENABLE = "enable";
 
     public FavoriteRule(List<AbstractCondition> conds, String name, boolean isEnabled) {
         this.conds = conds;
@@ -96,11 +97,12 @@ public class FavoriteRule extends RootPersistentEntity {
         }
 
         public SQLCondition(String sqlPattern) {
-            this.id = UUID.randomUUID().toString();
+            this();
             this.sqlPattern = sqlPattern;
             this.createTime = System.currentTimeMillis();
         }
 
+        @VisibleForTesting
         public SQLCondition(String id, String sqlPattern) {
             this.id = id;
             this.sqlPattern = sqlPattern;
@@ -128,27 +130,34 @@ public class FavoriteRule extends RootPersistentEntity {
     public static FavoriteRule getDefaultRule(FavoriteRule rule, String name) {
         switch (name) {
         case COUNT_RULE_NAME:
-            return rule == null
-                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "10")), name, true)
-                    : rule;
-        case FREQUENCY_RULE_NAME:
-            return rule == null
-                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "0.1")), name, false)
-                    : rule;
-        case SUBMITTER_RULE_NAME:
-            return rule == null
-                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "ADMIN")), name, true)
-                    : rule;
         case SUBMITTER_GROUP_RULE_NAME:
-            return rule == null
-                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "ROLE_ADMIN")), name, true)
-                    : rule;
+        case SUBMITTER_RULE_NAME:
+        case RECOMMENDATION_RULE_NAME:
+            return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, true) : rule;
+        case FREQUENCY_RULE_NAME:
         case DURATION_RULE_NAME:
-            return rule == null
-                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition("0", "180")), name, false)
-                    : rule;
+            return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, false) : rule;
         default:
             return rule;
+        }
+    }
+
+    public static Condition getDefaultCondition(String ruleName) {
+        switch (ruleName) {
+        case COUNT_RULE_NAME:
+            return new Condition(null, "10");
+        case FREQUENCY_RULE_NAME:
+            return new Condition(null, "0.1");
+        case SUBMITTER_RULE_NAME:
+            return new Condition(null, "ADMIN");
+        case SUBMITTER_GROUP_RULE_NAME:
+            return new Condition(null, "ROLE_ADMIN");
+        case DURATION_RULE_NAME:
+            return new Condition("0", "180");
+        case RECOMMENDATION_RULE_NAME:
+            return new Condition(null, "20");
+        default:
+            return null;
         }
     }
 }

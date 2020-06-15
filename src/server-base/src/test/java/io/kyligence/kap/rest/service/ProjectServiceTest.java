@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -64,6 +65,8 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.NotFoundException;
+import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
@@ -96,6 +99,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -123,6 +127,7 @@ import lombok.var;
 
 public class ProjectServiceTest extends ServiceTestBase {
     private static final String PROJECT = "default";
+    private static final String PROJECT_NEWTEN = "newten";
     private static final String PROJECT_ID = "a8f4da94-a8a4-464b-ab6f-b3012aba04d5";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
@@ -274,7 +279,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testUpdateStorageQuotaConfig() throws Exception {
         thrown.expect(KylinException.class);
         thrown.expectMessage("No valid storage quota size, Please set an integer greater than or equal to 1TB "
-                        + "to 'storage_quota_size', unit byte.");
+                + "to 'storage_quota_size', unit byte.");
         projectService.updateStorageQuotaConfig(PROJECT, 2147483648L);
 
         projectService.updateStorageQuotaConfig(PROJECT, 1024L * 1024 * 1024 * 1024);
@@ -524,20 +529,17 @@ public class ProjectServiceTest extends ServiceTestBase {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         getTestConfig().setProperty("kylin.query.pushdown.converter-class-name", "");
         pushDownProjectConfigRequest.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
-        pushDownProjectConfigRequest.setConverterClassNames(
-                "org.apache.kylin.query.util.PowerBIConverter");
+        pushDownProjectConfigRequest.setConverterClassNames("org.apache.kylin.query.util.PowerBIConverter");
         projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
-        String[] converterClassNames = new String[] {
-                "org.apache.kylin.query.util.PowerBIConverter"};
+        String[] converterClassNames = new String[] { "org.apache.kylin.query.util.PowerBIConverter" };
         // response
         response = projectService.getProjectConfig(project);
-        Assert.assertEquals(
-                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", response.getRunnerClassName());
+        Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", response.getRunnerClassName());
         Assert.assertEquals(String.join(",", converterClassNames), response.getConverterClassNames());
         // project config
         val projectConfig2 = projectManager.getProject(project).getConfig();
-        Assert.assertEquals(
-                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", projectConfig2.getPushDownRunnerClassName());
+        Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl",
+                projectConfig2.getPushDownRunnerClassName());
         Assert.assertArrayEquals(converterClassNames, projectConfig2.getPushDownConverterClassNames());
     }
 
@@ -757,8 +759,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         // user not exists
         ownerChangeRequest1.setOwner("nonUser");
-        thrown.expectMessage("Illegal users!" +
-                " Only the system administrator and the project administrator role of this project can be set as the project owner.");
+        thrown.expectMessage("Illegal users!"
+                + " Only the system administrator and the project administrator role of this project can be set as the project owner.");
         projectService.updateProjectOwner(project, ownerChangeRequest1);
 
         // empty admin users, throw exception
@@ -768,8 +770,99 @@ public class ProjectServiceTest extends ServiceTestBase {
         OwnerChangeRequest ownerChangeRequest2 = new OwnerChangeRequest();
         ownerChangeRequest2.setOwner(owner);
 
-        thrown.expectMessage("Illegal users!" +
-                " Only the system administrator and the project administrator role of this project can be set as the project owner.");
+        thrown.expectMessage("Illegal users!"
+                + " Only the system administrator and the project administrator role of this project can be set as the project owner.");
         projectService.updateProjectOwner(project, ownerChangeRequest2);
+    }
+
+    @Test
+    public void testGetRulesWithError() {
+        // assert get rule error
+        try {
+            projectService.getFavoriteRules(PROJECT_NEWTEN);
+        } catch (Throwable ex) {
+            Assert.assertEquals(NotFoundException.class, ex.getClass());
+            Assert.assertEquals(
+                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), FavoriteRule.COUNT_RULE_NAME),
+                    ex.getMessage());
+        }
+    }
+
+    public void testGetFavoriteRules() {
+        Map<String, Object> favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Assert.assertEquals(true, favoriteRuleResponse.get("count_enable"));
+        Assert.assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
+        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC"), favoriteRuleResponse.get("users"));
+        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRuleResponse.get("user_groups"));
+        Assert.assertEquals(5L, favoriteRuleResponse.get("min_duration"));
+        Assert.assertEquals(8L, favoriteRuleResponse.get("max_duration"));
+        Assert.assertEquals(true, favoriteRuleResponse.get("duration_enable"));
+    }
+
+    @Test
+    public void testUpdateFavoriteRules() {
+        // update with FavoriteRuleUpdateRequest and assert
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setProject(PROJECT);
+        request.setDurationEnable(false);
+        request.setMinDuration("0");
+        request.setMaxDuration("10");
+        request.setSubmitterEnable(false);
+        request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
+        request.setRecommendationEnable(true);
+        request.setRecommendationsValue("30");
+        projectService.updateRegularRule(PROJECT, request);
+        Map<String, Object> favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Assert.assertEquals(false, favoriteRuleResponse.get("duration_enable"));
+        Assert.assertEquals(false, favoriteRuleResponse.get("submitter_enable"));
+        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
+        Assert.assertEquals(Lists.newArrayList(), favoriteRuleResponse.get("user_groups"));
+        Assert.assertEquals(0L, favoriteRuleResponse.get("min_duration"));
+        Assert.assertEquals(10L, favoriteRuleResponse.get("max_duration"));
+        Assert.assertEquals(true, favoriteRuleResponse.get("recommendation_enable"));
+        Assert.assertEquals(30L, favoriteRuleResponse.get("recommendations_value"));
+
+        // check user_groups
+        request.setUserGroups(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"));
+        projectService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Assert.assertEquals(Lists.newArrayList("userA", "userB", "userC", "ADMIN"), favoriteRuleResponse.get("users"));
+        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN", "USER_GROUP1"), favoriteRuleResponse.get("user_groups"));
+
+        // assert if favorite rules' values are empty
+        request.setFreqEnable(false);
+        request.setFreqValue(null);
+        request.setDurationEnable(false);
+        request.setMinDuration(null);
+        request.setMaxDuration(null);
+        projectService.updateRegularRule(PROJECT, request);
+        favoriteRuleResponse = projectService.getFavoriteRules(PROJECT);
+        Assert.assertNull(favoriteRuleResponse.get("freq_value"));
+        Assert.assertNull(favoriteRuleResponse.get("min_duration"));
+        Assert.assertNull(favoriteRuleResponse.get("max_duration"));
+    }
+
+    @Test
+    public void testResetFavoriteRules() {
+        // reset
+        projectService.resetProjectConfig(PROJECT, "favorite_rule_config");
+        Map<String, Object> favoriteRules = projectService.getFavoriteRules(PROJECT);
+
+        Assert.assertEquals(false, favoriteRules.get("freq_enable"));
+        Assert.assertNull(favoriteRules.get("freq_value"));
+
+        Assert.assertEquals(true, favoriteRules.get("count_enable"));
+        Assert.assertEquals(10.0f, favoriteRules.get("count_value"));
+
+        Assert.assertEquals(true, favoriteRules.get("submitter_enable"));
+        Assert.assertEquals(Lists.newArrayList("ADMIN"), favoriteRules.get("users"));
+        Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN"), favoriteRules.get("user_groups"));
+
+        Assert.assertEquals(false, favoriteRules.get("duration_enable"));
+        Assert.assertNull(favoriteRules.get("min_duration"));
+        Assert.assertNull(favoriteRules.get("max_duration"));
+
+        Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
+        Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
     }
 }

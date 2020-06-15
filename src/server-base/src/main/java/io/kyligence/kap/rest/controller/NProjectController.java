@@ -26,9 +26,13 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_COUNT_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_DURATION_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FREQUENCY_RULE_VALUE;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_REC_RULE_VALUE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NAME_ILLEGAL;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
@@ -39,10 +43,6 @@ import java.util.Random;
 
 import javax.validation.Valid;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
-import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -50,10 +50,11 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.AclPermissionEnum;
+import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -85,6 +90,7 @@ import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
@@ -242,6 +248,46 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("storage_quota_size", storageQuotaRequest.getStorageQuotaSize());
         projectService.updateStorageQuotaConfig(project, storageQuotaRequest.getStorageQuotaSize());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+    }
+
+    @ApiOperation(value = "updateFavoriteRules (update)", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
+    @PutMapping(value = "/{project:.+}/favorite_rules")
+    @ResponseBody
+    public EnvelopeResponse<String> updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) {
+        checkProjectName(request.getProject());
+        checkProjectUnmodifiable(request.getProject());
+        checkUpdateFavoriteRuleArgs(request);
+        projectService.updateRegularRule(request.getProject(), request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
+        // either disabled or arguments not empty
+        if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue())) {
+            throw new KylinException(EMPTY_FREQUENCY_RULE_VALUE,
+                    MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
+        }
+
+        if (request.isDurationEnable()
+                && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration()))) {
+            throw new KylinException(EMPTY_DURATION_RULE_VALUE, MsgPicker.getMsg().getDELAY_THRESHOLD_CAN_NOT_EMPTY());
+        }
+
+        if (request.isCountEnable() && StringUtils.isEmpty(request.getCountValue())) {
+            throw new KylinException(EMPTY_COUNT_RULE_VALUE, MsgPicker.getMsg().getFREQUENCY_THRESHOLD_CAN_NOT_EMPTY());
+        }
+
+        if (request.isRecommendationEnable() && StringUtils.isEmpty(request.getRecommendationsValue().trim())) {
+            throw new KylinException(EMPTY_REC_RULE_VALUE, MsgPicker.getMsg().getRECOMMENDATION_LIMIT_NOT_EMPTY());
+        }
+    }
+
+    @ApiOperation(value = "getFavoriteRules (update)", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
+    @GetMapping(value = "/{project:.+}/favorite_rules")
+    @ResponseBody
+    public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@PathVariable(value = "project") String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
     }
 
     @ApiOperation(value = "updateShardNumConfig (update)", notes = "Add URL: {project}; ")

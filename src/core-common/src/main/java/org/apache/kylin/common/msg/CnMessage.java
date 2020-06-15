@@ -705,6 +705,10 @@ public class CnMessage extends Message {
         return "查询频率阈值不能为空";
     }
 
+    public String getRECOMMENDATION_LIMIT_NOT_EMPTY() {
+        return "新增索引上限不能为空";
+    }
+
     public String getDELAY_THRESHOLD_CAN_NOT_EMPTY() {
         return "查询延迟阈值不能为空";
     }

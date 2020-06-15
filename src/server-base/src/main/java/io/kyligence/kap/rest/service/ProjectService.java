@@ -45,11 +45,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -63,6 +58,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.service.AccessService;
@@ -85,10 +81,15 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
@@ -98,6 +99,7 @@ import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
@@ -128,6 +130,10 @@ public class ProjectService extends BasicService {
     private static final String DEFAULT_VAL = "default";
 
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
+
+    private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
+            FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
+            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.RECOMMENDATION_RULE_NAME);
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = -1)
@@ -416,6 +422,8 @@ public class ProjectService extends BasicService {
         response.setKerberosProjectLevelEnabled(config.getKerberosProjectLevelEnable());
 
         response.setPrincipal(projectInstance.getPrincipal());
+        // return favorite rules
+        response.setFavoriteRules(getFavoriteRules(project));
 
         return response;
     }
@@ -452,7 +460,8 @@ public class ProjectService extends BasicService {
                 String runnerClassName = copyForWrite.getConfig().getPushDownRunnerClassName();
                 if (StringUtils.isEmpty(runnerClassName)) {
                     val defaultPushDownRunner = getConfig().getPushDownRunnerClassNameWithDefaultValue();
-                    copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", defaultPushDownRunner);
+                    copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name",
+                            defaultPushDownRunner);
                 }
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "true");
             } else {
@@ -465,8 +474,10 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updatePushDownProjectConfig(String project, PushDownProjectConfigRequest pushDownProjectConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", pushDownProjectConfigRequest.getRunnerClassName());
-            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.converter-class-names", pushDownProjectConfigRequest.getConverterClassNames());
+            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name",
+                    pushDownProjectConfigRequest.getRunnerClassName());
+            copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.converter-class-names",
+                    pushDownProjectConfigRequest.getConverterClassNames());
         });
     }
 
@@ -554,8 +565,7 @@ public class ProjectService extends BasicService {
 
         val prjManager = getProjectManager();
         val tableManager = getTableManager(project);
-        if (ProjectInstance.DEFAULT_DATABASE.equals(uppderDB)
-                || tableManager.listDatabases().contains(uppderDB)) {
+        if (ProjectInstance.DEFAULT_DATABASE.equals(uppderDB) || tableManager.listDatabases().contains(uppderDB)) {
             final ProjectInstance projectInstance = prjManager.getProject(project);
             if (uppderDB.equals(projectInstance.getDefaultDatabase())) {
                 return;
@@ -605,6 +615,111 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
+    public Map<String, Object> getFavoriteRules(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
+        Map<String, Object> result = Maps.newHashMap();
+
+        for (String ruleName : favoriteRuleNames) {
+            getSingleRule(project, ruleName, result);
+        }
+
+        return result;
+    }
+
+    private void getSingleRule(String project, String ruleName, Map<String, Object> result) {
+        FavoriteRule rule = getFavoriteRule(project, ruleName);
+        List<FavoriteRule.Condition> conds = (List<FavoriteRule.Condition>) (List<?>) rule.getConds();
+
+        switch (ruleName) {
+        case FavoriteRule.FREQUENCY_RULE_NAME:
+            result.put("freq_enable", rule.isEnabled());
+            String frequency = CollectionUtils.isEmpty(conds) ? null : conds.get(0).getRightThreshold();
+            result.put("freq_value", StringUtils.isEmpty(frequency) ? null : Float.valueOf(frequency));
+            break;
+        case FavoriteRule.COUNT_RULE_NAME:
+            result.put("count_enable", rule.isEnabled());
+            String count = conds.get(0).getRightThreshold();
+            result.put("count_value", StringUtils.isEmpty(count) ? null : Float.valueOf(count));
+            break;
+        case FavoriteRule.SUBMITTER_RULE_NAME:
+            List<String> users = Lists.newArrayList();
+            conds.forEach(cond -> users.add(cond.getRightThreshold()));
+            result.put("submitter_enable", rule.isEnabled());
+            result.put("users", users);
+            break;
+        case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
+            List<String> userGroups = Lists.newArrayList();
+            conds.forEach(cond -> userGroups.add(cond.getRightThreshold()));
+            result.put("user_groups", userGroups);
+            break;
+        case FavoriteRule.DURATION_RULE_NAME:
+            result.put("duration_enable", rule.isEnabled());
+            String minDuration = CollectionUtils.isEmpty(conds) ? null : conds.get(0).getLeftThreshold();
+            String maxDuration = CollectionUtils.isEmpty(conds) ? null : conds.get(0).getRightThreshold();
+            result.put("min_duration", StringUtils.isEmpty(minDuration) ? null : Long.valueOf(minDuration));
+            result.put("max_duration", StringUtils.isEmpty(maxDuration) ? null : Long.valueOf(maxDuration));
+            break;
+        case FavoriteRule.RECOMMENDATION_RULE_NAME:
+            result.put("recommendation_enable", rule.isEnabled());
+            String upperBound = conds.get(0).getRightThreshold();
+            result.put("recommendations_value", StringUtils.isEmpty(upperBound) ? null : Long.valueOf(upperBound));
+            break;
+        default:
+            break;
+        }
+    }
+
+    private FavoriteRule getFavoriteRule(String project, String ruleName) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(project));
+        Preconditions.checkArgument(StringUtils.isNotEmpty(ruleName));
+
+        return FavoriteRule.getDefaultRule(getFavoriteRuleManager(project).getByName(ruleName), ruleName);
+    }
+
+    @Transaction(project = 0)
+    public void updateRegularRule(String project, FavoriteRuleUpdateRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
+        favoriteRuleNames.forEach(ruleName -> updateSingleRule(project, ruleName, request));
+    }
+
+    private void updateSingleRule(String project, String ruleName, FavoriteRuleUpdateRequest request) {
+        List<FavoriteRule.Condition> conds = Lists.newArrayList();
+        boolean isEnabled = false;
+
+        switch (ruleName) {
+        case FavoriteRule.FREQUENCY_RULE_NAME:
+            isEnabled = request.isFreqEnable();
+            conds.add(new FavoriteRule.Condition(null, request.getFreqValue()));
+            break;
+        case FavoriteRule.COUNT_RULE_NAME:
+            isEnabled = request.isCountEnable();
+            conds.add(new FavoriteRule.Condition(null, request.getCountValue()));
+            break;
+        case FavoriteRule.SUBMITTER_RULE_NAME:
+            isEnabled = request.isSubmitterEnable();
+            if (CollectionUtils.isNotEmpty(request.getUsers()))
+                request.getUsers().forEach(user -> conds.add(new FavoriteRule.Condition(null, user)));
+            break;
+        case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
+            isEnabled = request.isSubmitterEnable();
+            if (CollectionUtils.isNotEmpty(request.getUserGroups()))
+                request.getUserGroups().forEach(userGroup -> conds.add(new FavoriteRule.Condition(null, userGroup)));
+            break;
+        case FavoriteRule.DURATION_RULE_NAME:
+            isEnabled = request.isDurationEnable();
+            conds.add(new FavoriteRule.Condition(request.getMinDuration(), request.getMaxDuration()));
+            break;
+        case FavoriteRule.RECOMMENDATION_RULE_NAME:
+            isEnabled = request.isRecommendationEnable();
+            conds.add(new FavoriteRule.Condition(null, request.getRecommendationsValue()));
+            break;
+        default:
+            break;
+        }
+
+        getFavoriteRuleManager(project).updateRule(conds, isEnabled, ruleName);
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
@@ -627,6 +742,9 @@ public class ProjectService extends BasicService {
             break;
         case "storage_quota_config":
             resetProjectStorageQuotaConfig(project);
+            break;
+        case "favorite_rule_config":
+            resetProjectRecommendationConfig(project);
             break;
         default:
             throw new KylinException(INVALID_PARAMETER,
@@ -678,6 +796,20 @@ public class ProjectService extends BasicService {
         toBeRemovedProps.add("kylin.favorite.query-accelerate-threshold");
         toBeRemovedProps.add("kylin.favorite.query-accelerate-tips-enable");
         removeProjectOveridedProps(project, toBeRemovedProps);
+    }
+
+    private void resetProjectRecommendationConfig(String project) {
+        val countList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.COUNT_RULE_NAME));
+        val submitterList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_RULE_NAME));
+        val groupList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_GROUP_RULE_NAME));
+        val recList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.RECOMMENDATION_RULE_NAME));
+
+        getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.FREQUENCY_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(countList, true, FavoriteRule.COUNT_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.DURATION_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(submitterList, true, FavoriteRule.SUBMITTER_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(groupList, true, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(recList, true, FavoriteRule.RECOMMENDATION_RULE_NAME);
     }
 
     private void resetGarbageCleanupConfig(String project) {

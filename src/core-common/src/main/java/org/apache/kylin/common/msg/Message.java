@@ -765,6 +765,10 @@ public class Message {
         return "The query frequency threshold cannot be empty";
     }
 
+    public String getRECOMMENDATION_LIMIT_NOT_EMPTY() {
+        return "The limit of recommendations for adding index cannot be empty.";
+    }
+
     public String getDELAY_THRESHOLD_CAN_NOT_EMPTY() {
         return "The query delay threshold cannot be empty";
     }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.response;
 
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -98,6 +99,9 @@ public class ProjectConfigResponse {
 
     @JsonProperty("principal")
     private String principal;
+
+    @JsonProperty("favorite_rules")
+    private Map<String, Object> favoriteRules;
 
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
