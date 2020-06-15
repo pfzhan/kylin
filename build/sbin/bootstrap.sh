@@ -237,7 +237,8 @@ function startKE(){
     CUR_DATE=$(date "+%Y-%m-%d %H:%M:%S")
     echo $CUR_DATE" new KE process pid is "$PID >> ${KYLIN_HOME}/logs/kylin.log
 
-    echo "Kylin is starting, PID:`cat ${KYLIN_HOME}/pid`. Please checkout http://`hostname`:$port/kylin/index.html"
+    echo "Kyligence Enterprise is starting. It may take a while. For status, please visit http://`hostname`:$port/kylin/index.html."
+    echo "You may also check status via: PID:`cat ${KYLIN_HOME}/pid`, or Log: ${KYLIN_HOME}/logs/kylin.log."
     recordKylinStartOrStop "start success" "${START_TIME}"
 }
 
