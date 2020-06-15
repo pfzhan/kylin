@@ -73,6 +73,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -1027,11 +1028,11 @@ public class QueryService extends BasicService {
 
         // case of query like select * from table where 1 <> 1
         if (CollectionUtils.isEmpty(realizations)) {
-            response.setEngineType("CONSTANTS");
+            response.setEngineType(QueryHistory.EngineType.CONSTANTS.name());
             return response;
         }
 
-        response.setEngineType("NATIVE");
+        response.setEngineType(QueryHistory.EngineType.NATIVE.name());
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
         return response;

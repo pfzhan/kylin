@@ -28,21 +28,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecommendationManager;
@@ -54,26 +51,20 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("rawRecommendationService")
-public class RawRecommendationService extends BasicService {
+public class RawRecommendationService {
 
-    public void generateRawRecommendations(String project, Map<Long, String> queries) {
-        if (MapUtils.isEmpty(queries)) {
+    public void generateRawRecommendations(String project, List<QueryHistory> queryHistories) {
+        if (queryHistories == null || queryHistories.isEmpty()) {
             return;
         }
 
         long startTime = System.currentTimeMillis();
-        log.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, queries.size());
-        Map<String, Set<Long>> contentToIDMap = Maps.newHashMap();
-        queries.forEach((queryID, queryContent) -> {
-            contentToIDMap.putIfAbsent(queryContent, Sets.newHashSet());
-            contentToIDMap.get(queryContent).add(queryID);
-        });
-
+        log.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, queryHistories.size());
         List<String> sqlList = Lists.newArrayList();
-        List<Set<Long>> queryIDList = Lists.newArrayList();
-        contentToIDMap.forEach((queryContent, idSet) -> {
-            sqlList.add(queryContent);
-            queryIDList.add(idSet);
+        List<Long> queryIDList = Lists.newArrayList();
+        queryHistories.forEach(queryHistory -> {
+            sqlList.add(queryHistory.getSql());
+            queryIDList.add(queryHistory.getId());
         });
 
         AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
@@ -130,7 +121,7 @@ public class RawRecommendationService extends BasicService {
     }
 
     private List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
-            Map<Integer, Long> savedDimensionAndMeasure, List<Set<Long>> queryIDList) {
+            Map<Integer, Long> savedDimensionAndMeasure, List<Long> queryIDList) {
         //todo manager update already existing items
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {

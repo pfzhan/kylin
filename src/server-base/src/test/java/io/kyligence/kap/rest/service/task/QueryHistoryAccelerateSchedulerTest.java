@@ -22,15 +22,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.candidate;
+package io.kyligence.kap.rest.service.task;
 
-import java.util.List;
+import org.junit.After;
+import org.junit.Before;
 
-public interface RecSelectStrategy {
 
-    List<RawRecItem> getBestRecItem(int topn);
+public class QueryHistoryAccelerateSchedulerTest {
 
-    List<RawRecItem> getBestRecItemByModel(int topn, String project, String model);
+    @Before
+    public void setUp() throws Exception {
+    }
 
-    List<RawRecItem> getBestRecItemByProject(int topn, String project);
+    @After
+    public void tearDown() throws Exception {
+    }
 }

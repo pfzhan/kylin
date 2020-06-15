@@ -54,6 +54,7 @@ public class JDBCResultMapperTest extends NLocalFileMetadataTestCase {
     public void testQueryHistoryResultMapper() {
         List<Map<String, Object>> rdbmsResultBySql = Lists.newArrayList();
         Map<String, Object> rdbmsResult1 = Maps.newHashMap();
+        rdbmsResult1.put(QueryHistory.ID, 5L);
         rdbmsResult1.put(QueryHistory.QUERY_ID, "6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
         rdbmsResult1.put(QueryHistory.SQL_TEXT, "select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
         rdbmsResult1.put(QueryHistory.SQL_PATTERN, "SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
@@ -89,6 +90,7 @@ public class JDBCResultMapperTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, queryHistoryList.get(0).isIndexHit());
         Assert.assertEquals(1584888338274L, queryHistoryList.get(0).getQueryTime());
         Assert.assertEquals("default", queryHistoryList.get(0).getProjectName());
+        Assert.assertEquals(5L, queryHistoryList.get(0).getId());
     }
 
     @Test

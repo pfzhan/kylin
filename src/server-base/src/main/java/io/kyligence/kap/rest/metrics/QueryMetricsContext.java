@@ -29,8 +29,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.TimeZone;
 
-import io.kyligence.kap.common.metric.QueryMetrics;
-import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
@@ -53,8 +51,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
+import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 
 public class QueryMetricsContext extends QueryMetrics {
@@ -158,8 +158,8 @@ public class QueryMetricsContext extends QueryMetrics {
         if (response.getResults() != null)
             this.resultRowCount = response.getResults().size();
 
-        this.isIndexHit =
-                !response.isException() && !response.isQueryPushDown() && !response.getEngineType().equals("CONSTANTS");
+        this.isIndexHit = !response.isException() && !response.isQueryPushDown()
+                && !response.getEngineType().equals(QueryHistory.EngineType.CONSTANTS.name());
         this.projectName = request.getProject();
 
         collectErrorType(context);

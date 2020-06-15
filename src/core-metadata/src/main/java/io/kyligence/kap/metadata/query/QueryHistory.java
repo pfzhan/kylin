@@ -53,6 +53,7 @@ public class QueryHistory {
     public static final String QUERY_MEASUREMENT_SURFIX = "query_history";
     public static final String REALIZATION_MEASUREMENT_SURFIX = "query_history_realization";
 
+    public static final String ID = "id";
     public static final String PROJECT_NAME = "project_name";
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";
@@ -127,6 +128,10 @@ public class QueryHistory {
     @JsonProperty(QUERY_ID)
     @Column(name = QUERY_ID)
     private String queryId;
+
+    @JsonProperty(ID)
+    @Column(name = ID)
+    private long id;
 
     @JsonProperty(TOTAL_SCAN_COUNT)
     @Column(name = TOTAL_SCAN_COUNT)
@@ -220,4 +225,9 @@ public class QueryHistory {
             this.segmentNum = Objects.isNull(segmentNum) ? 0 : segmentNum;
         }
     }
+
+    public enum EngineType {
+        NATIVE, CONSTANTS
+    }
+
 }

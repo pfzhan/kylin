@@ -65,6 +65,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     protected static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
     protected static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
     protected static final String DELETE_QUERY_HISTORY_SQL_FORMAT = "delete from %s where query_time < ? ";
+    protected static final String QUERY_HISTORY_BY_ID_SQL_FORMAT = "SELECT * FROM %s WHERE id > ? and query_time < %s limit %s";
 
     private static final long RETAIN_TIME = 30;
     protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time as time,id FROM %s ORDER BY id DESC limit 1 OFFSET %s";
@@ -158,6 +159,12 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         return JDBCResultMapper.queryHistoryResultMapper(
                 jdbcTemplate.queryForList(String.format(QUERY_HISTORY_BY_TIME_SQL_FORMAT, this.queryMetricMeasurement),
                         startTime, endTime, project));
+    }
+
+    public List<QueryHistory> getQueryHistoriesById(long idOffset, int batchSize) {
+        return JDBCResultMapper
+                .queryHistoryResultMapper(jdbcTemplate.queryForList(String.format(QUERY_HISTORY_BY_ID_SQL_FORMAT,
+                        this.queryMetricMeasurement, System.currentTimeMillis(), batchSize), idOffset));
     }
 
     public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset, String project) {

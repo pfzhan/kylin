@@ -1941,6 +1941,18 @@ public abstract class KylinConfigBase implements Serializable {
                 TimeUnit.SECONDS);
     }
 
+    public int getQueryHistoryAccelerateBatchSize() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-batch-size", "1000"));
+    }
+
+    public int getQueryHistoryAccelerateMaxSize() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-max-size", "100000"));
+    }
+
+    public int getQueryHistoryAccelerateInterval() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-interval-minutes", "60")) * 60;
+    }
+
     public Boolean isSparderAsync() {
         return Boolean.valueOf(this.getOptional("kylin.query.init-sparder-async", TRUE));
     }

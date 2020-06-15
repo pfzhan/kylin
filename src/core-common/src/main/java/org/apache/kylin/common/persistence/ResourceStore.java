@@ -122,6 +122,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String METASTORE_UUID_TAG = "/UUID";
     public static final String METASTORE_TRASH_RECORD = GLOBAL_PROJECT + "/trash_record";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
+    public static final String QUERY_HISTORY_ID_OFFSET = GLOBAL_PROJECT + "/query_history_id_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
     public static final String COMPRESSED_FILE = "/metadata.zip";
 

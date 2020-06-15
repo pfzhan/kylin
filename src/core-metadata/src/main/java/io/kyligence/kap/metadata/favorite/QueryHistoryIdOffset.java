@@ -22,15 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.candidate;
+package io.kyligence.kap.metadata.favorite;
 
-import java.util.List;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 
-public interface RecSelectStrategy {
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-    List<RawRecItem> getBestRecItem(int topn);
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-    List<RawRecItem> getBestRecItemByModel(int topn, String project, String model);
+@Getter
+@Setter
+@NoArgsConstructor
+public class QueryHistoryIdOffset extends RootPersistentEntity {
+    @JsonProperty("query_history_id_offset")
+    private long queryHistoryIdOffset;
 
-    List<RawRecItem> getBestRecItemByProject(int topn, String project);
+    public QueryHistoryIdOffset(long queryHistoryIdOffset) {
+        this.queryHistoryIdOffset = queryHistoryIdOffset;
+    }
 }

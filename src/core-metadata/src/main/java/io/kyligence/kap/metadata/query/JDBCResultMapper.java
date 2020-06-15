@@ -49,6 +49,7 @@ public class JDBCResultMapper {
         List<QueryHistory> queryHistoryList = Lists.newArrayList();
         for (Map<String, Object> rowMap : rdbmsResultBySql) {
             QueryHistory queryHistory = new QueryHistory();
+            queryHistory.setId((Long) rowMap.get(QueryHistory.ID));
             queryHistory.setQueryId((String) rowMap.get(QueryHistory.QUERY_ID));
             queryHistory.setSql((String) rowMap.get(QueryHistory.SQL_TEXT));
             queryHistory.setSqlPattern((String) rowMap.get(QueryHistory.SQL_PATTERN));

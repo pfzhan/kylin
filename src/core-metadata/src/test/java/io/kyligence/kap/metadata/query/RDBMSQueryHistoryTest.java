@@ -515,6 +515,17 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(queryHistoryList.get(2).getRecordInfo().getStatus());
     }
 
+    @Test
+    public void testGetQueryHistoriesById() throws Exception {
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+
+        List<QueryHistory> queryHistories = rdbmsQueryHistoryDAO.getQueryHistoriesById(2, 10);
+        Assert.assertEquals(1, queryHistories.size());
+        Assert.assertEquals(3, queryHistories.get(0).getId());
+    }
+
     JdbcTemplate getJdbcTemplate() throws Exception {
         val url = getTestConfig().getMetadataUrl();
         val props = datasourceParameters(url);
