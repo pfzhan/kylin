@@ -58,7 +58,7 @@ public class FullGCDurationCheckerTest extends NLocalFileMetadataTestCase {
         CheckResult checkResult = checker.check();
         Assert.assertEquals(WARN, checkResult.getCheckState());
 
-        double[] gcTimes = new double[] { 1.0, 1.0, 1.0, 1.0, 1.0, 20.0, 21.0, 40.0, 41.0, 60.0, 80.0, 80.0, 80.0, 80.0,
+        double[] gcTimes = new double[] { 1.0, 1.0, 1.0, 1.0, 1.0, 20.0, 21.0, 40.0, 41.0, 60.0, 95.0, 80.0, 80.0, 80.0,
                 80.0, 99.0 };
         CheckStateEnum[] states = new CheckStateEnum[] { NORMAL, NORMAL, NORMAL, NORMAL, NORMAL, QUERY_UPGRADE, NORMAL,
                 NORMAL, QUERY_DOWNGRADE, QUERY_DOWNGRADE, RESTART, QUERY_DOWNGRADE, QUERY_DOWNGRADE, NORMAL, NORMAL,
