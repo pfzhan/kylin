@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.rest.Broadcaster.BroadcastListener;
+import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;

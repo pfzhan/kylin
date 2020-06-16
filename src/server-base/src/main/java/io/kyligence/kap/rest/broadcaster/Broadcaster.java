@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.Broadcaster;
+package io.kyligence.kap.rest.broadcaster;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
