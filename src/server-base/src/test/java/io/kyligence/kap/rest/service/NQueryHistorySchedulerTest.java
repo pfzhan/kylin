@@ -138,6 +138,6 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
             queryHistoryScheduler.offerQueryHistoryQueue(queryMetrics);
         }
         // lost 500 queryHistory
-        Assert.assertEquals(1000, queryHistoryScheduler.queryMetricsQueue.size());
+        Assert.assertEquals(500, queryHistoryScheduler.queryMetricsQueue.size());
     }
 }

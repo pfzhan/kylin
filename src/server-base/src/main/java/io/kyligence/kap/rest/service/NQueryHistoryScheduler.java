@@ -71,7 +71,9 @@ public class NQueryHistoryScheduler {
     public void init() throws Exception {
         writeQueryHistoryScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("WriteQueryHistoryWorker"));
-        writeQueryHistoryScheduler.scheduleWithFixedDelay(new WriteQueryHistoryRunner(), 1, 5, TimeUnit.SECONDS);
+        KylinConfig kyinConfig = KylinConfig.getInstanceFromEnv();
+        writeQueryHistoryScheduler.scheduleWithFixedDelay(new WriteQueryHistoryRunner(), 1,
+                kyinConfig.getQueryHistorySchedulerInterval(), TimeUnit.SECONDS);
     }
 
     private static volatile NQueryHistoryScheduler INSTANCE;
