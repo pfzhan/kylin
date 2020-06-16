@@ -111,7 +111,7 @@
           </div>
         </div>
         <div class="project-usage-table">
-          <el-input v-model="filterProject" prefix-icon="el-icon-search" :placeholder="$t('projectPlaceholder')" :clearable="true" size="small" @input="changeResult"></el-input>
+          <el-input v-model="filterProject" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="changeResult" :placeholder="$t('projectPlaceholder')" :clearable="true" size="small" @clear="changeResult"></el-input>
           <div class="list">
             <el-table
               :data="projectCapacity.list"
@@ -125,18 +125,18 @@
             >
               <el-table-column prop="name" :label="$t('project')" align="left" show-overflow-tooltip></el-table-column>
               <el-table-column :render-header="renderUsageHeader" prop="capacity_ratio" sortable align="right" width="140">
-                <template slot-scope="scope"><span v-if="scope.row.status !== 'ERROR'">{{(scope.row.capacity_ratio * 100).toFixed(2)}}%</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
+                <template slot-scope="scope"><span v-if="!['ERROR', 'TENTATIVE'].includes(scope.row.status)">{{(scope.row.capacity_ratio * 100).toFixed(2)}}%</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
               </el-table-column>
               <el-table-column :label="$t('usedCapacity')" prop="capacity" sortable align="right" width="120">
-                <template slot-scope="scope"><span v-if="scope.row.status !== 'ERROR'">{{scope.row.capacity | dataSize}}</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
+                <template slot-scope="scope"><span v-if="!['ERROR', 'TENTATIVE'].includes(scope.row.status)">{{scope.row.capacity | dataSize}}</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
               </el-table-column>
               <el-table-column :label="$t('tools')" align="left" class-name="tools-list" width="80">
                 <template slot-scope="scope">
                   <common-tip :content="$t('viewDetail')">
-                    <i :class="['sub-icon', 'el-icon-ksd-desc', {'is-disabled': scope.row.status === 'ERROR'}]" @click="scope.row.status !== 'ERROR' && showDetail(scope.row)"></i>
+                    <i :class="['sub-icon', 'el-icon-ksd-desc', {'is-disabled': ['ERROR'].includes(scope.row.status)}]" @click="!['ERROR'].includes(scope.row.status) && showDetail(scope.row)"></i>
                   </common-tip>
                   <common-tip :content="$t('kylinLang.common.refresh')">
-                    <i class="sub-icon el-icon-ksd-restart" v-if="scope.row.status === 'ERROR'" @click="refreshProjectCapacity(scope.row)"></i>
+                    <i class="sub-icon el-icon-ksd-restart" v-if="['ERROR', 'TENTATIVE'].includes(scope.row.status)" @click="refreshProjectCapacity(scope.row)"></i>
                   </common-tip>
                 </template>
               </el-table-column>
@@ -215,10 +215,16 @@
         >
           <el-table-column prop="name" :label="$t('tableName')" align="left" show-overflow-tooltip></el-table-column>
           <el-table-column :render-header="renderDetailUsageHeader" prop="capacity_ratio" sortable align="right">
-            <template slot-scope="scope"><span>{{scope.row.capacity_ratio * 100 + '%'}}</span></template>
+            <template slot-scope="scope">
+              <span class="font-disabled" v-if="scope.row.status === 'TENTATIVE' || scope.row.capacity === -1">{{$t('failApi')}}</span>
+              <span v-else>{{(scope.row.capacity_ratio * 100).toFixed(2) + '%'}}</span>
+            </template>
           </el-table-column>
           <el-table-column :label="$t('usedCapacity')" prop="capacity" sortable align="right">
-            <template slot-scope="scope">{{scope.row.capacity | dataSize}}</template>
+            <template slot-scope="scope">
+              <span class="font-disabled" v-if="scope.row.status === 'TENTATIVE' || scope.row.capacity === -1">{{$t('failApi')}}</span>
+              <span v-else>{{scope.row.capacity | dataSize}}</span>
+            </template>
           </el-table-column>
         </el-table>
         <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
@@ -324,17 +330,24 @@ export default class SystemCapacity extends Vue {
   created () {
     this.nodes = this.nodeList.length ? this.nodeList : []
     this.getProjectList()
+    this.getTreeMapProjectList()
     // 获取邮箱提醒状态
     // this.getNotifyStatus().then(status => {
     //   this.noticeType = status
     // })
   }
 
+  // 获取全量的项目占比绘制treeMap
+  getTreeMapProjectList () {
+    this.getProjectCapacityList({project_names: this.filterProject, page_offset: 0, page_size: 110, sort_by: this.projectCapacity.sort_by, reverse: this.projectCapacity.reverse}).then(data => {
+      this.initTreeMapCharts(data.capacity_detail)
+    })
+  }
+
   // 获取项目占比
   getProjectList () {
     this.getProjectCapacityList({project_names: this.filterProject, page_offset: this.projectCapacity.currentPage, page_size: this.projectCapacity.pageSize, sort_by: this.projectCapacity.sort_by, reverse: this.projectCapacity.reverse}).then(data => {
       this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
-      !this.filterProject && !this.projectCapacity.currentPage && this.initTreeMapCharts()
     })
   }
 
@@ -407,9 +420,9 @@ export default class SystemCapacity extends Vue {
     }
   }
 
-  initTreeMapCharts () {
-    if (!this.projectCapacity.list.length) return
-    const data = this.projectCapacity.list.filter(item => item.status !== 'ERROR').map(it => ({name: it.name, value: it.capacity_ratio * 100, capacity: filterElements.dataSize(+it.capacity)}))
+  initTreeMapCharts (list) {
+    if (!list.length) return
+    const data = list.filter(item => item.status !== 'ERROR').map(it => ({name: it.name, value: it.capacity_ratio * 100, capacity: filterElements.dataSize(+it.capacity)}))
     const formatUtil = echarts.format
     this.treeMapCharts = echarts.init(this.$el.querySelector('#tree-map'))
     this.treeMapCharts.setOption(charts.treeMap(this, data, formatUtil))
@@ -440,10 +453,7 @@ export default class SystemCapacity extends Vue {
   }
 
   changeResult () {
-    clearTimeout(this.dalyTimer)
-    this.dalyTimer = setTimeout(() => {
-      this.getProjectList()
-    }, 500)
+    this.getProjectList()
   }
 
   pageCurrentChange (page) {
@@ -568,7 +578,7 @@ export default class SystemCapacity extends Vue {
   mounted () {
     this.getCapacityBySystem()
     // this.initCharts()
-    this.initTreeMapCharts()
+    // this.initTreeMapCharts()
     this.lisenceEvent()
   }
 

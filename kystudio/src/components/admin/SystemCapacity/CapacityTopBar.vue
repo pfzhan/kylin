@@ -40,15 +40,15 @@
     </el-popover>
     <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes"><span class="server-status">{{$t('serverStatus')}}</span>
       <i v-if="showLoadingStatus" class="el-icon-loading"></i>
-      <span v-else>
-        <span :class="['flag', getNodesNumColor]" v-if="getDataFails">&bull;</span>
+      <template v-else>
+        <span :class="['flag', getNodesNumColor]" v-if="getDataFails"></span>
         <template v-else>
           <span class="font-disabled">{{$t('failApi')}}</span>
           <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
             <i class="icon el-icon-ksd-restart" v-if="isAdminRole" @click.stop="refreshCapacityOrNodes"></i>
           </el-tooltip>
         </template>
-      </span>
+      </template>
     </p>
   </div>
 </template>
@@ -189,14 +189,25 @@
     min-width: 75px;
     // padding-right: 20px;
     .active-nodes {
+      position: relative;
       .server-status {
         font-weight: bold;
       }
       .flag {
-        font-size: 38px;
-        position: absolute;
-        top: -13px;
-        font-family: -webkit-pictograph;
+        width: 10px;
+        height: 10px;
+        // position: absolute;
+        display: inline-block;
+        border-radius: 100%;
+        &.is-danger {
+          background-color: @error-color-1;
+        }
+        &.is-warning {
+          background-color: @warning-color-1;
+        }
+        &.is-success {
+          background-color: @normal-color-1;
+        }
       }
       .el-icon-ksd-restart {
         color: @base-color;

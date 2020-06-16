@@ -272,7 +272,17 @@ export default {
         } else if (getters.isOnlyQueryNode) {
           return { flag: 0, status: 'noAllNodes', text: 'noJobNodes' }
         } else if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
-          return { flag: 1, status: 'failApi', text: state.systemCapacityInfo.fail && state.systemNodeInfo.fail ? 'bothCapacityAndNodesFail' : state.systemCapacityInfo.fail ? 'capacityFailTip' : 'nodesFailTip' }
+          let times = 30
+          if (state.systemCapacityInfo.fail && state.systemNodeInfo.fail) {
+            times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
+            return { flag: 1, status: 'failApi', text: 'bothCapacityAndNodesFail', query: {times: times < 0 ? 0 : times} }
+          } else if (state.systemCapacityInfo.fail) {
+            times = 30 - Math.ceil((new Date().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+            return { flag: 1, status: 'failApi', text: 'capacityFailTip', query: {times: times < 0 ? 0 : times} }
+          } else {
+            return { flag: 1, status: 'failApi', text: 'nodesFailTip' }
+          }
+          // return { flag: 1, status: 'failApi', text: state.systemCapacityInfo.fail && state.systemNodeInfo.fail ? 'bothCapacityAndNodesFail' : state.systemCapacityInfo.fail ? 'capacityFailTip' : 'nodesFailTip' }
         } else if (state.systemCapacityInfo.current_capacity / state.systemCapacityInfo.capacity > 80) {
           return { flag: 2, status: 'warning', text: 'capacityOverPrecent', query: { capacity } }
         } else {

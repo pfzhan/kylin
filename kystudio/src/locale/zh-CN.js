@@ -500,9 +500,9 @@ exports.default = {
     capacityOverPrecent: '当前已使用数据量 {capacity} 已达许可证上限的80%。为防止容量超额后无法进行构建或数据加载任务，请联系 Kyligence 销售人员，或尝试删除一些 Segment 以解除限制。',
     overThirtyDays: '已使用数据量获取失败已超过 30 天。系统无法进行构建任务和数据加载任务。请联系 Kyligence 销售人员。',
     noJobNodes: '暂无活跃的 Job 节点，构建任务与元数据操作将暂时无法提交',
-    capacityFailTip: '已使用数据量获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员，否则 30 天后系统将无法进行构建或数据加载任务。',
-    nodesFailTip: '已使用节点获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员，否则 30 天后系统将无法进行构建或数据加载任务。',
-    bothCapacityAndNodesFail: '已使用数据量和节点获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员获取帮助，否则 30 天后系统将无法进行构建任务或数据加载任务。'
+    capacityFailTip: '已使用数据量获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员，否则 {times} 天后系统将无法进行构建或数据加载任务。',
+    nodesFailTip: '已使用节点获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员。',
+    bothCapacityAndNodesFail: '已使用数据量和节点获取失败，请尝试在顶栏刷新。若刷新后仍未恢复正常，请尽快联系 Kyligence 销售人员获取帮助，否则 {times} 天后系统将无法进行构建任务或数据加载任务。'
   },
   kybotXY: {
     agreement: `若您（下称“您”或“用户”）代表某公司或者其他机构使用任何产品
