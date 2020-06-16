@@ -443,12 +443,12 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       }
       if (to.params.modelAlias) {
         // vm.currentEditModel = to.params.modelAlias
-        vm.filterArgs.model_name = to.params.modelAlias
+        vm.filterArgs.model_alias_or_owner = to.params.modelAlias
         vm.filterArgs.exact = true
       }
       if (to.query.model_alias) {
         vm.currentEditModel = to.query.model_alias
-        vm.filterArgs.model_name = to.query.model_alias
+        vm.filterArgs.model_alias_or_owner = to.query.model_alias
         vm.filterArgs.exact = true
       }
       // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的
@@ -634,7 +634,7 @@ export default class ModelList extends Vue {
     return 'visible' in row && !row.visible ? 'no-authority-model' : ''
   }
   get emptyText () {
-    return this.filterArgs.model_name ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+    return this.filterArgs.model_alias_or_owner ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
@@ -1063,7 +1063,7 @@ export default class ModelList extends Vue {
   loadModelsList () {
     this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
     return this.loadModels(this.filterArgs).then(() => {
-      if (this.filterArgs.model_name || this.modelsPagerRenderData.list.length) {
+      if (this.filterArgs.model_alias_or_owner || this.modelsPagerRenderData.list.length) {
         this.showSearchResult = true
       } else {
         this.showSearchResult = false
