@@ -21,12 +21,18 @@
  */
 package org.apache.spark.sql.common
 
-import java.util.TimeZone
+import java.io.File
+import java.sql.Types
+import java.util.{List, TimeZone}
 
+import io.kyligence.kap.metadata.query.StructField
+import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.sideBySide
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
 object SparderQueryTest extends Logging {
@@ -177,6 +183,51 @@ object SparderQueryTest extends Logging {
       .load(path)
     val maybeString = checkAnswer(dataFrame, rows)
 
+  }
+
+  private def isCharType(dataType: Integer): Boolean = {
+    if (dataType == Types.CHAR || dataType == Types.VARCHAR) {
+      return true
+    }
+    false
+  }
+
+  private def isIntType(structField: StructField): Boolean = {
+    val intList = scala.collection.immutable.List(Types.TINYINT, Types.SMALLINT, Types.INTEGER, Types.BIGINT)
+    val dataType = structField.getDataType();
+    if (intList.contains(dataType)) {
+      return true
+    }
+    false
+  }
+
+  private def isSameDataType(cubeStructField: StructField, sparkStructField: StructField): Boolean = {
+    if (cubeStructField.getDataType() == sparkStructField.getDataType()) {
+      return true
+    }
+    // calcite dataTypeName = "ANY"
+    if (cubeStructField.getDataType() == 2000) {
+      return true
+    }
+    if (isCharType(cubeStructField.getDataType()) && isCharType(sparkStructField.getDataType())) {
+      return true
+    }
+    if (isIntType(cubeStructField) && isIntType(sparkStructField)) {
+      return true
+    }
+    false
+  }
+
+  def compareColumnTypeWithCalcite(cubeSchema: List[StructField], sparkSchema: StructType): Unit = {
+    val cubeSize = cubeSchema.size
+    val sparkSize = sparkSchema.size
+    assert(cubeSize == sparkSize, s"$cubeSize did not equal $sparkSize")
+    for (i <- 0 to cubeSize - 1) {
+      val cubeStructField = cubeSchema.get(i)
+      val sparkStructField = SparderTypeUtil.convertSparkFieldToJavaField(sparkSchema.apply(i))
+      assert(isSameDataType(cubeStructField, sparkStructField),
+        s"${cubeStructField.getDataTypeName()} did not equal ${sparkSchema.apply(i).dataType.toString()}")
+    }
   }
 
   def castDataType(sparkResult: DataFrame, cubeResult: DataFrame): DataFrame = {

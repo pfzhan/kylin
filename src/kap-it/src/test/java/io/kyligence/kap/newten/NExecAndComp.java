@@ -35,6 +35,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.query.engine.data.QueryResult;
 import lombok.val;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.io.FileUtils;
@@ -150,6 +152,39 @@ public class NExecAndComp {
         execAndCompareNew(transformed, prj, compareLevel, joinType, null);
     }
 
+    // TODO: udf/calcite function return type should be same as sparksql.
+    private static boolean inToDoList(String fullPath) {
+        final String[] toDoList = new String[] {
+                // TODO SIGN()
+                "query/sql_function/query01.sql",
+                // TODO ifnull()
+                "query/sql_function/sql_function_nullHandling/query00.sql",
+                "query/sql_function/sql_function_nullHandling/query01.sql",
+                "query/sql_function/sql_function_nullHandling/query02.sql",
+                "query/sql_function/sql_function_nullHandling/query03.sql",
+                "query/sql_function/sql_function_nullHandling/query04.sql",
+                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query00.sql",
+                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query01.sql",
+                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query02.sql",
+                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query03.sql",
+                // TODO date_part()
+                "query/sql_function/sql_function_DateUDF/query00.sql",
+                "query/sql_function/sql_function_DateUDF/query02.sql",
+                "query/sql_computedcolumn/sql_computedcolumn_DateUDF/query00.sql",
+                // TODO date_trunc()
+                "query/sql_computedcolumn/sql_computedcolumn_DateUDF/query04.sql",
+                "query/sql_function/sql_function_DateUDF/query06.sql",
+                // TODO divde: spark -> 3/2 = 1.5    calcite -> 3/2 = 1
+                "query/sql_timestamp/query27.sql"
+        };
+        String relativePath = fullPath.split("src/kap-it/src/test/resources/")[1];
+        if (Arrays.asList(toDoList).contains(relativePath)) {
+            logger.info("\"{}\" is in TODO List, skipmetadata check.", fullPath);
+            return true;
+        }
+        return false;
+    }
+
     public static void execAndCompareNew(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
             String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {
@@ -159,8 +194,9 @@ public class NExecAndComp {
 
             // Query from Cube
             long startTime = System.currentTimeMillis();
-            Dataset<Row> cubeResult = (recAndQueryResult == null) ? queryWithKap(prj, joinType, Pair.newPair(sql, sql))
-                    : queryWithKap(prj, joinType, Pair.newPair(sql, sql), recAndQueryResult);
+            QueryResult cubeQueryResult = queryWithKapWithMeta(prj, joinType, Pair.newPair(sql, sql), recAndQueryResult);
+            List<StructField> cubeColumns = cubeQueryResult.getColumns();
+            Dataset<Row> cubeResult = SparderEnv.getDF();
             addQueryPath(recAndQueryResult, query, sql);
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(prj, sql, query.getFirst());
@@ -169,6 +205,9 @@ public class NExecAndComp {
                     logger.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType,
                             query, cubeResult.schema().fieldNames(), sparkResult.schema().fieldNames());
                     throw new IllegalStateException("query (" + joinType + ") :" + query + " schema not match");
+                }
+                if (!inToDoList(query.getFirst()) && compareLevel == CompareLevel.SAME) {
+                    SparderQueryTest.compareColumnTypeWithCalcite(cubeColumns, sparkResult.schema());
                 }
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
@@ -264,6 +303,19 @@ public class NExecAndComp {
 
     public static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> sql) {
         return queryFromCube(prj, KylinTestBase.changeJoinType(sql.getSecond(), joinType));
+    }
+
+    public static QueryResult queryWithKapWithMeta(String prj, String joinType, Pair<String, String> pair,
+            Map<String, CompareEntity> compareEntityMap) {
+        if (compareEntityMap == null)
+            return queryFromCubeWithMeta(prj, KylinTestBase.changeJoinType(pair.getSecond(), joinType));
+        compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
+        final CompareEntity entity = compareEntityMap.get(pair.getFirst());
+        entity.setSql(pair.getFirst());
+        QueryResult queryResult = queryFromCubeWithMeta(prj, KylinTestBase.changeJoinType(pair.getSecond(), joinType));
+        entity.setOlapContexts(OLAPContext.getThreadLocalContexts());
+        OLAPContext.clearThreadLocalContexts();
+        return queryResult;
     }
 
     public static Dataset<Row> queryWithSpark(String prj, String originSql, String sqlPath) {
@@ -510,6 +562,26 @@ public class NExecAndComp {
         return sql(prj, sqlText, null);
     }
 
+    public static QueryResult queryFromCubeWithMeta(String prj, String sqlText) {
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(prj), sqlText, prj, 0, 0, "DEFAULT", true);
+        sqlText = QueryUtil.massageSql(queryParams);
+        if (sqlText == null)
+            throw new RuntimeException("Sorry your SQL is null...");
+
+        try {
+            logger.info("Try to query from cube....");
+            long startTs = System.currentTimeMillis();
+            QueryResult queryResult = queryCubeWithMeta(prj, sqlText);
+            logger.info("Cool! This sql hits cube...");
+            logger.info("Duration(ms): {}", (System.currentTimeMillis() - startTs));
+            return queryResult;
+        } catch (Throwable e) {
+            logger.error("There is no cube can be used for query [{}]", sqlText);
+            logger.error("Reasons:", e);
+            throw new RuntimeException("Error in running query [ " + sqlText.trim() + " ]", e);
+        }
+    }
+
     public static Dataset<Row> querySparkSql(String sqlText) {
         logger.info("Fallback this sql to original engine...");
         long startTs = System.currentTimeMillis();
@@ -586,6 +658,23 @@ public class NExecAndComp {
             }
         }
         return SparderEnv.getDF();
+    }
+
+    public static QueryResult queryCubeWithMeta(String prj, String sql) throws SQLException {
+        SparderEnv.setDF(null); // clear last df
+        // if this config is on
+        // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
+        String prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
+        try {
+            QueryExec queryExec = new QueryExec(prj, NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
+            return queryExec.executeQuery(sql);
+        } finally {
+            if (prevRunLocalConf != null) {
+                System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
+            } else {
+                System.clearProperty("kylin.query.engine.run-constant-query-locally");
+            }
+        }
     }
 
     private static String getCompareSql(String originSqlPath) {
