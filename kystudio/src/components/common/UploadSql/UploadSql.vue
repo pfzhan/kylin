@@ -166,7 +166,7 @@
       <div>{{$t('existedAnsweredModels')}}</div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="convertSqlsSubmit(false)" :loading="cancelConvertLoading" size="medium">{{$t('noConvert')}}</el-button>
-        <el-button @click="convertSqlsSubmit(true)" :loading="convertLoading" size="medium">{{$t('convert')}}</el-button>
+        <el-button type="primary" @click="convertSqlsSubmit(true)" :loading="convertLoading" size="medium">{{$t('convert')}}</el-button>
       </span>
     </el-dialog>
   </div>
