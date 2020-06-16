@@ -251,8 +251,13 @@ export default class UserEditModal extends Vue {
 
   // Helper: 给el-form用的验证函数
   validate (type) {
-    // TODO: 这里的this是vue的实例，而data却是class的实例
-    return validate[type].bind(this)
+    // 第三方对接进来的用户名，可能规则不符合我们的用户名的格式限制，所以编辑时，不能走校验
+    if (type === USERNAME && this.editType !== 'new') {
+      return true
+    } else {
+      // TODO: 这里的this是vue的实例，而data却是class的实例
+      return validate[type].bind(this)
+    }
   }
 
   // Helper: 从后台获取用户组
