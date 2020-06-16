@@ -18,7 +18,8 @@ export default {
     projectType2: 'AI Augmented Mode',
     projectType2Desc: 'AI Augmented Mode: Drag source tables to design your own model. The system will provide recommendations based on your query behaviour.',
     projectType4: 'Smart Mode',
-    projectType4Desc: 'Smart Mode: Building index for source table, the system will accelerate your desired SQL statements.'
+    projectType4Desc: 'Smart Mode: Building index for source table, the system will accelerate your desired SQL statements.',
+    aiProjectTips: 'The project will be in AI augmented mode. You could design your own model by adding source tables manually. Meanwhile, recommendations would be generated to optimize your models, based on query histories.'
   },
   'zh-cn': {
     project: '项目',
@@ -39,6 +40,7 @@ export default {
     projectType2: 'AI 增强模式',
     projectType2Desc: 'AI 增强模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。同时，系统将根据您的查询历史提供模型建议。',
     projectType4: '智能模式',
-    projectType4Desc: '智能模式：通过对表创建索引，系统将加速常用的分析查询语句。'
+    projectType4Desc: '智能模式：通过对表创建索引，系统将加速常用的分析查询语句。',
+    aiProjectTips: '添加的项目为 AI 模式。您可以手动从数据源中拖拽表，创建直观的多位分析模型。同时，系统将根据您的查询历史提供模型优化建议。'
   }
 }

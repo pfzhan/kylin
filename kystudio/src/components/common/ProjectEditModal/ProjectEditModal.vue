@@ -7,12 +7,11 @@
     @close="isShow && closeHandler(false)">
     
     <el-form :model="form" @submit.native.prevent label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
-      <div class="el-form-item is-required" v-if="isFieldShow('type')">
+      <!-- 假设智能模式还在，需要显示这个 div begin -->
+      <div class="el-form-item is-required" v-if="isFieldShow('type') && isSmartModeEnabled">
         <label for="name" class="el-form-item__label">{{$t('projectType')}}</label>
         <el-row :gutter="20">
-          <!-- project type 4 -->
           <el-col :span="isSmartModeEnabled ? 12 : 24">
-            <!-- project type 2 -->
             <div class="project-type" :class="{ active: form.type === 'MANUAL_MAINTAIN', 'ksd-fright': isSmartModeEnabled, 'ksd-margin-auto': !isSmartModeEnabled }">
               <div class="project-type-button" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeMunalProjectType>
                 <div class="project-type-icon">
@@ -44,6 +43,18 @@
           </el-col>
         </el-row>
       </div>
+      <!-- 假设智能模式还在，需要显示这个 div end -->
+      <!-- 去除了智能模式的，直接显示下面这个div 即可 begin -->
+      <el-alert
+        v-if="!isSmartModeEnabled"
+        :title="$t('aiProjectTips')"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        show-icon
+        class="ksd-mb-20">
+      </el-alert>
+      <!-- 去除了智能模式的，直接显示下面这个div 即可 end -->
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')" class="js_projectname">
         <el-input v-guide.addProjectInput
