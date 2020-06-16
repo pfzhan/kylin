@@ -24,10 +24,16 @@
 package io.kyligence.kap.engine.spark.source;
 
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
+import lombok.val;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation;
+import org.apache.spark.sql.catalyst.parser.ParseException;
 
 public class SparkSqlUtil {
     public static Dataset<Row> query(SparkSession ss, String sql) {
@@ -41,5 +47,19 @@ public class SparkSqlUtil {
     public static List<Row> queryAll(SparkSession ss, String table){
         String sql = String.format("select * from %s", table);
         return queryForList(ss, sql);
+    }
+
+    public static Set<String> getViewOrignalTables(String viewName) throws ParseException {
+        val spark = SparderEnv.getSparkSession();
+        String viewText = spark.sql("desc formatted " + viewName).where("col_name = 'View Text'").head().getString(1);
+        val logicalPlan = spark.sessionState().sqlParser().parsePlan(viewText);
+        Set<String> viewTables = Sets.newHashSet();
+        scala.collection.JavaConverters.seqAsJavaListConverter(logicalPlan.collectLeaves()).asJava().stream()
+                .forEach(l -> {
+                    if (l instanceof UnresolvedRelation) {
+                        viewTables.add(((UnresolvedRelation) l).tableName());
+                    }
+                });
+        return viewTables;
     }
 }

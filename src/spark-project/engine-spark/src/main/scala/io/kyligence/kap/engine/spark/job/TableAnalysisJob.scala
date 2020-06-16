@@ -27,18 +27,23 @@ package io.kyligence.kap.engine.spark.job
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
+import io.kyligence.kap.engine.spark.source.SparkSqlUtil
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.DataFrameEnhancement._
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, _}
-import org.apache.spark.sql.DataFrameEnhancement._
+
+import scala.collection.JavaConverters._
 
 class TableAnalysisJob(tableDesc: TableDesc,
                        project: String,
                        rowCount: Long,
-                       ss: SparkSession) extends Serializable {
+                       ss: SparkSession) extends Serializable with Logging {
 
   // it's a experimental value recommended by Spark,
   // which used for controlling the TableSampling tasks' count.
@@ -55,6 +60,9 @@ class TableAnalysisJob(tableDesc: TableDesc,
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
       .coalesce(numPartitions)
+
+    calculateViewMetasIfNeeded(tableDesc.getIdentity)
+
     val dat = dataFrame.localLimit(rowsTakenInEachPartition)
     val sampledDataset = CreateFlatTable.changeSchemaToAliasDotName(dat, tableDesc.getIdentity)
     // todo: use sample data to estimate total info
@@ -63,6 +71,26 @@ class TableAnalysisJob(tableDesc: TableDesc,
     val aggData = sampledDataset.agg(count(lit(1)), statsMetrics: _*).collect()
 
     aggData ++ sampledDataset.limit(10).collect()
+  }
+
+  def calculateViewMetasIfNeeded(tableName: String): Unit = {
+    if (ss.conf.get("spark.sql.catalogImplementation") == "hive") {
+      val sparkTable = ss.catalog.getTable(tableName)
+      val tables = SparkSqlUtil.getViewOrignalTables(tableName)
+      if (sparkTable.tableType == CatalogTableType.VIEW.name && tables.asScala.size > 1) {
+        tables.asScala.foreach(t => {
+          var oriTable = t
+          if (!t.contains(".")) {
+            oriTable = sparkTable.database + "." + t
+          }
+          val rowCnt = ss.table(oriTable).count()
+          logInfo(s"Table $oriTable true number of rows is $rowCnt")
+          TableMetaManager.putTableMeta(t, 0L, rowCnt)
+        })
+      } else {
+        logInfo(s"Table type ${sparkTable.tableType}, orignal table num is ${tables.asScala.size}")
+      }
+    }
   }
 
   def buildStatsMetric(sourceTable: Dataset[Row]): List[Column] = {

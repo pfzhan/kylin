@@ -51,9 +51,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalog.Database;
-import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation;
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
-import org.apache.spark.sql.catalyst.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,7 +114,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             val sparkTable = spark.catalog().getTable(tableName);
             Set<String> needCheckTables = Sets.newHashSet();
             if (sparkTable.tableType().equals(CatalogTableType.VIEW().name())) {
-                needCheckTables = getViewTables(tableName);
+                needCheckTables = SparkSqlUtil.getViewOrignalTables(tableName);
             } else {
                 needCheckTables.add(tableName);
             }
@@ -136,20 +134,6 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             }
         }
         return isAccess;
-    }
-
-    private Set<String> getViewTables(String viewName) throws ParseException {
-        val spark = SparderEnv.getSparkSession();
-        String viewText = spark.sql("desc formatted " + viewName).where("col_name = 'View Text'").head().getString(1);
-        val logicalPlan = spark.sessionState().sqlParser().parsePlan(viewText);
-        Set<String> viewTables = Sets.newHashSet();
-        scala.collection.JavaConverters.seqAsJavaListConverter(logicalPlan.collectLeaves()).asJava().stream()
-                .forEach(l -> {
-                    if (l instanceof UnresolvedRelation) {
-                        viewTables.add(((UnresolvedRelation) l).tableName());
-                    }
-                });
-        return viewTables;
     }
 
     @Override
