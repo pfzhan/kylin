@@ -185,8 +185,7 @@ import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
     ...mapGetters([
       'isAdminRole',
       'isProjectAdmin',
-      'currentProjectData',
-      'allNodeNumber'
+      'currentProjectData'
     ])
   },
   methods: {

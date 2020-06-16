@@ -101,7 +101,8 @@ export default {
   },
   // 刷新单个项目数据量
   refreshProjectCapacity: (para) => {
-    return Vue.http.put(apiUrl + 'system/capacity/refresh', para)
+    const data = Object.keys(para).map(it => `${it}=${para[it]}`).join('&')
+    return Vue.http.put(apiUrl + `system/capacity/refresh?${data}`, para)
   },
   // 刷新重构
   refreshAllSystem: () => {

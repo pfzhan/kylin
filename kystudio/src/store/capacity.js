@@ -293,7 +293,7 @@ export default {
       if (JSON.stringify(_flag) === '{}') {
         commit('CAPACITY_ALERT_TYPE', null)
       } else {
-        // if (state.capacityAlert && state.capacityAlert.flag < _flag.flag) return
+        if (JSON.stringify(state.capacityAlert) === JSON.stringify(_flag)) return
         commit('CAPACITY_ALERT_TYPE', _flag)
       }
     },

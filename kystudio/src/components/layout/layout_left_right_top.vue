@@ -868,7 +868,6 @@ export default class LayoutLeftRightTop extends Vue {
     // }
   }
   destroyed () {
-    clearTimeout(this.ST)
   }
   @Watch('currentPathNameGet')
   onCurrentPathNameGetChange (val) {
