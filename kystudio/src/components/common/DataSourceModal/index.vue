@@ -137,7 +137,7 @@ export default class DataSourceModal extends Vue {
       return titleMaps[this.editType]
     }
   }
-  get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : '780px' }
+  get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : (this.editType === editTypes.SELECT_SOURCE ? '480px' : '780px') }
   get confirmText () { return this.$t(confirmMaps[this.editType]) }
   get cancelText () {
     return this.firstEditType === this.editType ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType])

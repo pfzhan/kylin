@@ -7,10 +7,11 @@
         </div>
         <div class="datasource-name">Hive</div>
       </li>
-      <li class="datasouce ksd-center disabled">
+      <!-- <li class="datasouce ksd-center disabled"> -->
         <!-- 暂时屏蔽该功能 -->
         <!-- <li class="datasouce ksd-center disabled" :class="getSourceClass([sourceTypes.CSV])"> -->
         <!-- <div class="datasource-icon" @click="clickHandler(sourceTypes.CSV)"> -->
+        <!--
         <div class="datasource-icon">
           <i class="el-icon-ksd-csv"></i>
         </div>
@@ -18,7 +19,9 @@
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
-      </li>
+        -->
+      <!-- </li> -->
+      <!--
       <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
           <i class="el-icon-ksd-mysql"></i>
@@ -28,6 +31,7 @@
           <span>{{$t('upcoming')}}</span>
         </div>
       </li>
+      -->
       <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
           <i class="el-icon-ksd-kafka"></i>
@@ -38,6 +42,7 @@
         </div>
       </li>
     </ul>
+    <!--
     <ul>
       <li class="datasouce disabled ksd-center">
         <div class="datasource-icon">
@@ -58,6 +63,7 @@
         </div>
       </li>
     </ul>
+    -->
   </div>
 </template>
 
@@ -95,7 +101,7 @@ export default class SourceSelect extends Vue {
     // 设置默认数据源
     // this.clickHandler(this.globalDefaultDatasource)
     // for newten 设置CSV为默认数据源
-    // this.clickHandler(sourceTypes.HIVE)
+    this.clickHandler(sourceTypes.HIVE)
   }
 }
 </script>
@@ -106,7 +112,9 @@ export default class SourceSelect extends Vue {
 .source-new {
   padding: 60px 0;
   margin: 0 auto;
-  width: 472px;
+  /* width: 472px; */
+  width:100%;
+  text-align: center;
   ul {
     margin-bottom: 35px;
     &:last-child {
@@ -119,7 +127,7 @@ export default class SourceSelect extends Vue {
     width: 90px;
     vertical-align: top;
     color: @text-secondary-color;
-    margin-right: 30px;
+    margin-right: 50px;
     border: 1px solid transparent;
     * {
       vertical-align: middle;
