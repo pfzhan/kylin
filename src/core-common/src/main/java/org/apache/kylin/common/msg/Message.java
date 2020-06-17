@@ -1299,4 +1299,64 @@ public class Message {
     public String getWRITE_IN_MAINTENANCE_MODE() {
         return "System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.";
     }
+
+    public String getINVALID_SID_TYPE() {
+        return "Invalid value for parameter ‘sid_type’ which should only be ‘user’ or ‘group’(case-insensitive).";
+    }
+
+    public String getEMPTY_DATABASE_NAME() {
+        return "Invalid value for parameter ‘database_name’ which should not be empty.";
+    }
+
+    public String getEMPTY_TABLE_LIST() {
+        return "Invalid value for parameter ‘tables’ which should not be empty.";
+    }
+
+    public String getEMPTY_TABLE_NAME() {
+        return "Invalid value for parameter ‘table_name’ which should not be empty.";
+    }
+
+    public String getEMPTY_COLUMN_LIST() {
+        return "Invalid value for parameter ‘columns’ which should not be empty.";
+    }
+
+    public String getEMPTY_ROW_LIST() {
+        return "Invalid value for parameter ‘rows’ which should not be empty.";
+    }
+
+    public String getEMPTY_COLUMN_NAME() {
+        return "Invalid value for parameter ‘column_name’ which should not be empty.";
+    }
+
+    public String getEMPTY_ITEMS() {
+        return "Invalid value for parameter ‘items’ which should not be empty.";
+    }
+
+    public String getCOLUMN_NOT_EXIST() {
+        return "Column:[%s] is not exist.";
+    }
+
+    public String getDATABASE_PARAMETER_MISSING() {
+        return "All the databases should be defined and the database below are missing: (%s).";
+    }
+
+    public String getTABLE_PARAMETER_MISSING() {
+        return "All the tables should be defined and the table below are missing: (%s).";
+    }
+
+    public String getCOLUMN_PARAMETER_MISSING() {
+        return "All the columns should be defined and the column below are missing: (%s).";
+    }
+
+    public String getDATABASE_PARAMETER_DUPLICATE() {
+        return "Database [%s] is duplicated in API requests.";
+    }
+
+    public String getTABLE_PARAMETER_DUPLICATE() {
+        return "Table [%s] is duplicated in API requests.";
+    }
+
+    public String getCOLUMN_PARAMETER_DUPLICATE() {
+        return "Column [%s] is duplicated in API requests.";
+    }
 }

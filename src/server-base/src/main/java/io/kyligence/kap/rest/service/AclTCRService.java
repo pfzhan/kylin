@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -36,11 +39,14 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.service.BasicService;
@@ -60,6 +66,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
@@ -129,10 +136,138 @@ public class AclTCRService extends BasicService {
 
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
         aclEvaluate.checkProjectAdminPermission(project);
+        checkAclTCRRequest(project, requests);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             updateAclTCR(project, sid, principal, transformRequests(project, requests));
             return null;
         }, project);
+    }
+
+    private void checkAClTCRRequestParameterValid(Set<String> databases, Set<String> tables, Set<String> columns,
+            List<AclTCRRequest> requests) {
+        Message msg = MsgPicker.getMsg();
+        Set<String> requestDatabases = Sets.newHashSet();
+        Set<String> requestTables = Sets.newHashSet();
+        Set<String> requestColumns = Sets.newHashSet();
+
+        requests.forEach(db -> {
+            if (StringUtils.isEmpty(db.getDatabaseName())) {
+                throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_DATABASE_NAME());
+            }
+            if (requestDatabases.contains(db.getDatabaseName())) {
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(msg.getDATABASE_PARAMETER_DUPLICATE(), db.getDatabaseName()));
+            }
+            requestDatabases.add(db.getDatabaseName());
+            if (CollectionUtils.isEmpty(db.getTables())) {
+                throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_LIST());
+            }
+            db.getTables().forEach(table -> {
+                if (StringUtils.isEmpty(table.getTableName())) {
+                    throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
+                }
+                String tableName = String.format(IDENTIFIER_FORMAT, db.getDatabaseName(), table.getTableName());
+                if (requestTables.contains(tableName)) {
+                    throw new KylinException(INVALID_PARAMETER,
+                            String.format(msg.getTABLE_PARAMETER_DUPLICATE(), tableName));
+                }
+                requestTables.add(tableName);
+                if (table.getRows() == null) {
+                    throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ROW_LIST());
+                }
+                table.getRows().forEach(row -> {
+                    if (StringUtils.isEmpty(row.getColumnName())) {
+                        throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
+                    }
+                    if (CollectionUtils.isEmpty(row.getItems())) {
+                        throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ITEMS());
+                    }
+                });
+                if (CollectionUtils.isEmpty(table.getColumns())) {
+                    throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_LIST());
+                }
+                table.getColumns().forEach(column -> {
+                    String columnName = String.format(IDENTIFIER_FORMAT, tableName, column.getColumnName());
+                    if (StringUtils.isEmpty(column.getColumnName())) {
+                        throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
+                    }
+                    if (requestColumns.contains(columnName)) {
+                        throw new KylinException(INVALID_PARAMETER,
+                                String.format(msg.getCOLUMN_PARAMETER_DUPLICATE(), columnName));
+                    }
+                    requestColumns.add(columnName);
+                });
+            });
+        });
+
+        val notIncludeDatabase = CollectionUtils.removeAll(databases, requestDatabases);
+        if (!notIncludeDatabase.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(msg.getDATABASE_PARAMETER_MISSING(), StringUtils.join(notIncludeDatabase, ",")));
+        }
+        val notIncludeTables = CollectionUtils.removeAll(tables, requestTables);
+        if (!notIncludeTables.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(msg.getTABLE_PARAMETER_MISSING(), StringUtils.join(notIncludeTables, ",")));
+        }
+        val notIncludeColumns = CollectionUtils.removeAll(columns, requestColumns);
+        if (!notIncludeColumns.isEmpty()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(msg.getCOLUMN_PARAMETER_MISSING(), StringUtils.join(notIncludeColumns, ",")));
+        }
+    }
+
+    private void checkAClTCRExist(Set<String> databases, Set<String> tables, Set<String> columns,
+            List<AclTCRRequest> requests) {
+        Message msg = MsgPicker.getMsg();
+        requests.forEach(db -> {
+            if (!databases.contains(db.getDatabaseName())) {
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(msg.getDATABASE_NOT_EXIST(), db.getDatabaseName()));
+            }
+            db.getTables().forEach(table -> {
+                String tableName = String.format(IDENTIFIER_FORMAT, db.getDatabaseName(), table.getTableName());
+                if (!tables.contains(tableName)) {
+                    throw new KylinException(INVALID_PARAMETER, String.format(msg.getTABLE_NOT_FOUND(), tableName));
+                }
+                table.getRows().forEach(row -> {
+                    String columnName = String.format(IDENTIFIER_FORMAT, tableName, row.getColumnName());
+                    if (!columns.contains(columnName)) {
+                        throw new KylinException(INVALID_PARAMETER,
+                                String.format(msg.getCOLUMN_NOT_EXIST(), columnName));
+                    }
+                });
+                table.getColumns().forEach(column -> {
+                    String columnName = String.format(IDENTIFIER_FORMAT, tableName, column.getColumnName());
+                    if (!columns.contains(columnName)) {
+                        throw new KylinException(INVALID_PARAMETER,
+                                String.format(msg.getCOLUMN_NOT_EXIST(), columnName));
+                    }
+                });
+            });
+        });
+
+    }
+
+    private void checkAclTCRRequest(String project, List<AclTCRRequest> requests) {
+        Set<String> databases = Sets.newHashSet();
+        Set<String> tables = Sets.newHashSet();
+        Set<String> columns = Sets.newHashSet();
+
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val all = manager.listAllTables();
+        all.forEach(table -> {
+            String dbName = table.getDatabase();
+            databases.add(dbName);
+            String tbName = table.getIdentity();
+            tables.add(tbName);
+            Arrays.stream(table.getColumns()).forEach(col -> {
+                columns.add(String.format(IDENTIFIER_FORMAT, dbName, col.getIdentity()));
+            });
+        });
+
+        checkAClTCRRequestParameterValid(databases, tables, columns, requests);
+        checkAClTCRExist(databases, tables, columns, requests);
     }
 
     public void updateAclTCR(String uuid, List<AccessRequest> requests) {

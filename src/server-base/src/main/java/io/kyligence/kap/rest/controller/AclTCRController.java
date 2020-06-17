@@ -29,6 +29,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.IOException;
@@ -57,7 +58,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
@@ -99,7 +99,7 @@ public class AclTCRController extends NBasicController {
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             result = getProjectSidTCR(project, sid, false, authorizedOnly);
         } else {
-            result = Lists.newArrayList();
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
@@ -117,6 +117,8 @@ public class AclTCRController extends NBasicController {
             updateSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             updateSidAclTCR(project, sid, false, requests);
+        } else {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

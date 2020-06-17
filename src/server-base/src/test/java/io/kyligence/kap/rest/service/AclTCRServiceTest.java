@@ -24,17 +24,23 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -53,6 +59,7 @@ import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
+import lombok.val;
 
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
@@ -71,6 +78,9 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
     private final String revokeUser = "revoke_user";
     private final String revokeGroup = "revoke_group";
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Mock
     private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
@@ -133,6 +143,81 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(tables.contains("DEFAULT.TEST_COUNTRY"));
     }
 
+    private List<AclTCRRequest.Row> getAclTCRRequestRow(AclTCRRequest acl, String database, String table) {
+        List<AclTCRRequest.Row> result = new ArrayList<>();
+        if (acl.getDatabaseName().equals(database)) {
+            for (val tb : acl.getTables()) {
+                if (tb.getTableName().equals(table) && tb.getRows() != null) {
+                    result = tb.getRows();
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean getTableAuthorized(AclTCRRequest acl, String database, String table) {
+        if (acl.getDatabaseName().equals(database)) {
+            for (val tb : acl.getTables()) {
+                if (tb.getTableName().equals(table)) {
+                    return tb.isAuthorized();
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean getColumnAuthorized(AclTCRRequest acl, String database, String table, String column) {
+        if (acl.getDatabaseName().equals(database)) {
+            for (val tb : acl.getTables()) {
+                if (tb.getTableName().equals(table)) {
+                    if (!tb.isAuthorized())
+                        return false;
+                    for (val cn : tb.getColumns()) {
+                        if (cn.getColumnName().equals(column))
+                            return cn.isAuthorized();
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<AclTCRRequest> fillAclTCRRequest(AclTCRRequest origin) {
+        val allTables = NTableMetadataManager.getInstance(getTestConfig(), projectDefault).listAllTables();
+        Map<String, AclTCRRequest> requests = new HashMap<>();
+        requests.put("DEFAULT", new AclTCRRequest());
+        requests.put("EDW", new AclTCRRequest());
+        requests.put("SSB", new AclTCRRequest());
+        allTables.forEach(table -> {
+            String database = table.getDatabase();
+            val acl = requests.get(database);
+            acl.setDatabaseName(database);
+            AclTCRRequest.Table tb = new AclTCRRequest.Table();
+            tb.setTableName(table.getName());
+            tb.setRows(getAclTCRRequestRow(origin, database, table.getName()));
+            tb.setAuthorized(getTableAuthorized(origin, database, table.getName()));
+            List<AclTCRRequest.Column> columns = new ArrayList<>();
+            Arrays.stream(table.getColumns()).forEach(columnDesc -> {
+                AclTCRRequest.Column column = new AclTCRRequest.Column();
+                column.setAuthorized(getColumnAuthorized(origin, database, table.getName(), column.getColumnName()));
+                column.setColumnName(columnDesc.getName());
+                columns.add(column);
+            });
+            tb.setColumns(columns);
+            List<AclTCRRequest.Table> tbs = new ArrayList<>();
+            if (acl.getTables() != null)
+                tbs.addAll(acl.getTables());
+            tbs.add(tb);
+            acl.setTables(tbs);
+        });
+
+        List<AclTCRRequest> res = new ArrayList<>();
+        res.add(requests.get("DEFAULT"));
+        res.add(requests.get("EDW"));
+        res.add(requests.get("SSB"));
+        return res;
+    }
+
     @Test
     public void testUpdateAclTCRRequest() {
         AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
@@ -182,7 +267,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         request.setTables(Arrays.asList(u1t1, u1t2));
 
         // test update AclTCR
-        aclTCRService.updateAclTCR(projectDefault, user1, true, Arrays.asList(request));
+        aclTCRService.updateAclTCR(projectDefault, user1, true, fillAclTCRRequest(request));
         tables = manager.getAuthorizedTables(user1, null);
         Assert.assertFalse(tables.contains("DEFAULT.TEST_COUNTRY"));
 
@@ -200,7 +285,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(tables.contains("DEFAULT.TEST_COUNTRY"));
 
         // test unload table
-        aclTCRService.updateAclTCR(projectDefault, user1, true, Arrays.asList(request));
+        aclTCRService.updateAclTCR(projectDefault, user1, true, fillAclTCRRequest(request));
         tables = manager.getAuthorizedTables(user1, null);
         Assert.assertTrue(tables.contains("DEFAULT.TEST_ORDER"));
         aclTCRService.unloadTable(projectDefault, "DEFAULT.TEST_ORDER");
@@ -298,4 +383,203 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, aclTCRService.getAuthorizedTables("default", userName, groups).size());
     }
 
+    private List<AclTCRRequest> getFillRequest() {
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        u1t1.setColumns(new ArrayList<>());
+        u1t1.setRows(new ArrayList<>());
+        request.setTables(Arrays.asList(u1t1));
+        return fillAclTCRRequest(request);
+    }
+
+    @Test
+    public void testACLTCRDuplicateDatabaseException() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Database [DEFAULT] is duplicated in API requests");
+        val requests = getFillRequest();
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        requests.add(request);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRDuplicateTableException() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Table [DEFAULT.TEST_ACCOUNT] is duplicated in API requests");
+        val requests = getFillRequest();
+        List<AclTCRRequest.Table> tables = new ArrayList<>(requests.get(0).getTables());
+        requests.get(0).getTables().stream().filter(x -> x.getTableName().equals("TEST_ACCOUNT")).forEach(tables::add);
+        requests.get(0).setTables(tables);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRDuplicateColumnException() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Column [DEFAULT.TEST_ACCOUNT.ACCOUNT_ID] is duplicated in API requests");
+        val requests = getFillRequest();
+        requests.get(0).getTables().forEach(table -> {
+            if (table.getTableName().equals("TEST_ACCOUNT")) {
+                List<AclTCRRequest.Column> columns = table.getColumns();
+                AclTCRRequest.Column add = null;
+                for (val column : columns) {
+                    if (column.getColumnName().equals("ACCOUNT_ID")) {
+                        add = column;
+                    }
+                }
+                columns.add(add);
+            }
+        });
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCREmptyDatabaseName() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Invalid value for parameter ‘database_name’ which should not be empty");
+        val requests = getFillRequest();
+        requests.get(0).setDatabaseName(null);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCREmptyTables() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Invalid value for parameter ‘tables’ which should not be empty");
+        val requests = getFillRequest();
+        requests.get(0).setTables(null);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRDatabaseMiss() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("All the databases should be defined and the database below are missing: (DEFAULT)");
+        val requests = getFillRequest();
+        requests.remove(0);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCREmptyTableName() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Invalid value for parameter ‘table_name’ which should not be empty");
+        val requests = getFillRequest();
+        requests.get(0).getTables().get(0).setTableName(null);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRTableNotExist() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Cannot find table 'DEFAULT.notexist'");
+        val requests = getFillRequest();
+        List<AclTCRRequest.Table> tables = new ArrayList<>(requests.get(0).getTables());
+        AclTCRRequest.Table table = new AclTCRRequest.Table();
+        table.setTableName("notexist");
+        table.setRows(new ArrayList<>());
+        requests.get(0).getTables().stream().filter(x -> x.getTableName().equals("TEST_ACCOUNT"))
+                .forEach(x -> table.setColumns(x.getColumns()));
+        tables.add(table);
+        requests.get(0).setTables(tables);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRColumnNotExist() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Column:[DEFAULT.TEST_ACCOUNT.notexist] is not exist");
+        val requests = getFillRequest();
+        requests.get(0).getTables().forEach(table -> {
+            if (table.getTableName().equals("TEST_ACCOUNT")) {
+                List<AclTCRRequest.Column> columns = table.getColumns();
+                AclTCRRequest.Column add = new AclTCRRequest.Column();
+                add.setColumnName("notexist");
+                columns.add(add);
+            }
+        });
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRDatabaseNotExist() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Database:[notexist] is not exist");
+        val requests = getFillRequest();
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("notexist");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        u1t1.setColumns(Arrays.asList(requests.get(0).getTables().get(0).getColumns().get(0)));
+        u1t1.setRows(new ArrayList<>());
+        request.setTables(Arrays.asList(u1t1));
+        requests.add(request);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCREmptyColumns() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Invalid value for parameter ‘columns’ which should not be empty");
+        val requests = getFillRequest();
+        requests.get(0).getTables().get(0).setColumns(null);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCREmptyRows() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Invalid value for parameter ‘rows’ which should not be empty");
+        val requests = getFillRequest();
+        requests.get(0).getTables().get(0).setRows(null);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCREmptyColumnName() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Invalid value for parameter ‘column_name’ which should not be empty");
+        val requests = getFillRequest();
+        requests.get(0).getTables().get(0).getColumns().get(0).setColumnName(null);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRTableMiss() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                "All the tables should be defined and the table below are missing: (DEFAULT.TEST_ACCOUNT)");
+        val requests = getFillRequest();
+        List<AclTCRRequest.Table> tables = new ArrayList<>(requests.get(0).getTables());
+        requests.get(0).getTables().stream().filter(x -> x.getTableName().equals("TEST_ACCOUNT"))
+                .forEach(tables::remove);
+        requests.get(0).setTables(tables);
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
+
+    @Test
+    public void testACLTCRColumnMiss() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                "All the columns should be defined and the column below are missing: (DEFAULT.TEST_ACCOUNT.ACCOUNT_ID)");
+        val requests = getFillRequest();
+        requests.get(0).getTables().forEach(table -> {
+            if (table.getTableName().equals("TEST_ACCOUNT")) {
+                List<AclTCRRequest.Column> columns = table.getColumns();
+                AclTCRRequest.Column add = null;
+                for (val column : columns) {
+                    if (column.getColumnName().equals("ACCOUNT_ID")) {
+                        add = column;
+                    }
+                }
+                columns.remove(add);
+            }
+        });
+        aclTCRService.updateAclTCR(projectDefault, user1, true, requests);
+    }
 }
