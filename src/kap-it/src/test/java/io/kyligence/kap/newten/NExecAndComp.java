@@ -175,7 +175,9 @@ public class NExecAndComp {
                 "query/sql_computedcolumn/sql_computedcolumn_DateUDF/query04.sql",
                 "query/sql_function/sql_function_DateUDF/query06.sql",
                 // TODO divde: spark -> 3/2 = 1.5    calcite -> 3/2 = 1
-                "query/sql_timestamp/query27.sql"
+                "query/sql_timestamp/query27.sql",
+                // TODO percentile_approx()
+                "semi_auto/measures/query00.sql"
         };
         String[] pathArray = fullPath.split("src/kap-it/src/test/resources/");
         if (pathArray.length < 2)
