@@ -75,20 +75,22 @@ class TableAnalysisJob(tableDesc: TableDesc,
 
   def calculateViewMetasIfNeeded(tableName: String): Unit = {
     if (ss.conf.get("spark.sql.catalogImplementation") == "hive") {
-      val sparkTable = ss.catalog.getTable(tableName)
-      val tables = SparkSqlUtil.getViewOrignalTables(tableName)
-      if (sparkTable.tableType == CatalogTableType.VIEW.name && tables.asScala.size > 1) {
-        tables.asScala.foreach(t => {
-          var oriTable = t
-          if (!t.contains(".")) {
-            oriTable = sparkTable.database + "." + t
-          }
-          val rowCnt = ss.table(oriTable).count()
-          logInfo(s"Table $oriTable true number of rows is $rowCnt")
-          TableMetaManager.putTableMeta(t, 0L, rowCnt)
-        })
-      } else {
-        logInfo(s"Table type ${sparkTable.tableType}, orignal table num is ${tables.asScala.size}")
+      if (ss.catalog.tableExists(tableName)) {
+        val sparkTable = ss.catalog.getTable(tableName)
+        val tables = SparkSqlUtil.getViewOrignalTables(tableName)
+        if (sparkTable.tableType == CatalogTableType.VIEW.name && tables.asScala.size > 1) {
+          tables.asScala.foreach(t => {
+            var oriTable = t
+            if (!t.contains(".")) {
+              oriTable = sparkTable.database + "." + t
+            }
+            val rowCnt = ss.table(oriTable).count()
+            logInfo(s"Table $oriTable true number of rows is $rowCnt")
+            TableMetaManager.putTableMeta(t, 0L, rowCnt)
+          })
+        } else {
+          logInfo(s"Table type ${sparkTable.tableType}, orignal table num is ${tables.asScala.size}")
+        }
       }
     }
   }
