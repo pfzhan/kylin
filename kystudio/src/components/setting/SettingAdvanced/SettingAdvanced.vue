@@ -411,11 +411,16 @@ export default class SettingAdvanced extends Vue {
             type: 'warning'
           }).then(async () => {
             if (await this.$refs['setDefaultDB'].validate()) {
-              const submitData = _getDefaultDBSettings(this.form)
-              await this.updateDefaultDBSettings({project: submitData.project, default_database: submitData.defaultDatabase})
-              successCallback()
-              this.$emit('reload-setting')
-              this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+              try {
+                const submitData = _getDefaultDBSettings(this.form)
+                await this.updateDefaultDBSettings({project: submitData.project, default_database: submitData.defaultDatabase})
+                successCallback()
+                this.$emit('reload-setting')
+                this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+              } catch (e) {
+                errorCallback()
+                handleError(e)
+              }
             } else {
               return errorCallback()
             }
