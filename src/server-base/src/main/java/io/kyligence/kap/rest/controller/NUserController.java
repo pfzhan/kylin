@@ -382,6 +382,9 @@ public class NUserController extends NBasicController {
     }
 
     private void checkUsername(String username) {
+        if (env.acceptsProfiles(PROFILE_CUSTOM))
+            return;
+
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username)) {
             throw new KylinException(EMPTY_USER_NAME, msg.getEMPTY_USER_NAME());
