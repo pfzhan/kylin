@@ -177,7 +177,10 @@ public class NExecAndComp {
                 // TODO divde: spark -> 3/2 = 1.5    calcite -> 3/2 = 1
                 "query/sql_timestamp/query27.sql"
         };
-        String relativePath = fullPath.split("src/kap-it/src/test/resources/")[1];
+        String[] pathArray = fullPath.split("src/kap-it/src/test/resources/");
+        if (pathArray.length < 2)
+            return false;
+        String relativePath = pathArray[1];
         if (Arrays.asList(toDoList).contains(relativePath)) {
             logger.info("\"{}\" is in TODO List, skipmetadata check.", fullPath);
             return true;
