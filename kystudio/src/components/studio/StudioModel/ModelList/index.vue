@@ -114,7 +114,11 @@
                 <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
                 <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes" @tab-click="component => handleTabClick(component, props.row)">
                   <el-tab-pane :label="$t('overview')" name="overview">
-                    <ModelOverview :ref="`$model-overview-${props.row.uuid}`" :data="props.row" />
+                    <ModelOverview
+                      v-if="props.row.tabTypes === 'overview'"
+                      :ref="`$model-overview-${props.row.uuid}`"
+                      :data="props.row"
+                    />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
