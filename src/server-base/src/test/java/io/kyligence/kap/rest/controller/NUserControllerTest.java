@@ -48,9 +48,11 @@ import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultLicense
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultVersionFile;
 import static org.hamcrest.CoreMatchers.containsString;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.license.Constants;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
@@ -60,6 +62,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -79,6 +82,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -117,6 +121,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     private AclTCRService aclTCRService;
 
     @Mock
+    private IUserGroupService userGroupService;
+
+    @Mock
     Environment env;
 
     @Rule
@@ -147,6 +154,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ReflectionTestUtils.setField(nUserController, "licenseInfoService", licenseInfoService);
+        ReflectionTestUtils.setField(nUserController, "userGroupService", userGroupService);
     }
 
     @After
@@ -188,6 +196,10 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         val user = new ManagedUser();
         user.setUsername("azAZ_#");
         user.setPassword("p14532522?");
+        userGroupService.addGroup(Constant.GROUP_ALL_USERS);
+        List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
+        user.setGrantedAuthorities(groups);
+        Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
@@ -198,7 +210,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateUserWithEmptyUsername() {
+    public void testCreateUserWithEmptyUsername() throws IOException {
         val user = new ManagedUser();
         user.setUsername("");
         user.setPassword("p1234sgw$");
@@ -208,7 +220,31 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateUserWithNotEnglishUsername() {
+    public void testCreateUserWithEmptyGroup() throws IOException {
+        val user = new ManagedUser();
+        user.setUsername("test");
+        user.setPassword("p1234sgw$");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("User group name should not be empty.");
+        nUserController.createUser(user);
+    }
+
+    @Test
+    public void testCreateUserWithNotExistGroup() throws IOException {
+        val user = new ManagedUser();
+        user.setUsername("test");
+        user.setPassword("p1234sgw$");
+        userGroupService.addGroup(Constant.GROUP_ALL_USERS);
+        List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
+        user.setGrantedAuthorities(groups);
+        Mockito.doReturn(false).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Operation failed, group:[ALL_USERS] not exists, please add it first");
+        nUserController.createUser(user);
+    }
+
+    @Test
+    public void testCreateUserWithNotEnglishUsername() throws IOException {
         val user = new ManagedUser();
         user.setUsername("中文");
         user.setPassword("p1234sgw$");
@@ -218,7 +254,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test(expected = KylinException.class)
-    public void testCreateUserWithIlegalCharacter() {
+    public void testCreateUserWithIlegalCharacter() throws IOException {
         val user = new ManagedUser();
         user.setUsername("gggg?k");
         user.setPassword("p1234sgw$");
@@ -406,6 +442,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateUser() throws Exception {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
 
+        Mockito.doReturn(true).when(userGroupService).exists("ALL_USERS");
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))

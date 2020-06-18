@@ -71,10 +71,10 @@ public class AclPermissionFactory extends DefaultPermissionFactory {
                 if (Permission.class.isAssignableFrom(fieldValue.getClass())) {
                     Permission perm = (Permission) fieldValue;
                     String permissionName = field.getName();
-                    if (permissionName.equals(AclPermissionType.ADMINISTRATION)
-                            || permissionName.equals(AclPermissionType.MANAGEMENT)
-                            || permissionName.equals(AclPermissionType.OPERATION)
-                            || permissionName.equals(AclPermissionType.READ)) {
+                    if (permissionName.equals(AclPermissionEnum.ADMINISTRATION.name())
+                            || permissionName.equals(AclPermissionEnum.MANAGEMENT.name())
+                            || permissionName.equals(AclPermissionEnum.OPERATION.name())
+                            || permissionName.equals(AclPermissionEnum.READ.name())) {
                         // Found a Permission static field
                         permissions.add(perm);
                     }

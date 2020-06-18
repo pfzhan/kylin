@@ -55,7 +55,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.security.AclPermissionType;
+import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
@@ -157,7 +157,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nProjectController).getProjects("default", 0, 10, false, AclPermissionType.READ);
+        Mockito.verify(nProjectController).getProjects("default", 0, 10, false, AclPermissionEnum.READ.name());
 
     }
 

@@ -53,6 +53,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.security.AclPermissionFactory;
+import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +124,7 @@ public class NProjectController extends NBasicController {
             throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
         List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch,
-                permission);
+                AclPermissionEnum.valueOf(permission));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
     }
 

@@ -43,6 +43,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -68,10 +69,20 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
     @Mock
     private NUserController nUserController;
 
+    @Mock
+    Environment env;
+
     @InjectMocks
     private NUserControllerV2 nUserControllerV2 = Mockito.spy(new NUserControllerV2());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+
+    @Before
+    public void setupResource() {
+        createTestMetadata();
+        getTestConfig().setProperty("kylin.env", "UT");
+        nUserController = Mockito.spy(new NUserController());
+    }
 
     @Before
     public void setup() {
@@ -82,6 +93,7 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
         converter.setObjectMapper(objectMapper);
 
         MockitoAnnotations.initMocks(this);
+        Mockito.doReturn(true).when(env).acceptsProfiles("testing", "custom");
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
         mockMvc = MockMvcBuilders.standaloneSetup(nUserControllerV2).setMessageConverters(converter)
                 .setContentNegotiationManager(contentNegotiationManager).defaultRequest(MockMvcRequestBuilders.get("/"))

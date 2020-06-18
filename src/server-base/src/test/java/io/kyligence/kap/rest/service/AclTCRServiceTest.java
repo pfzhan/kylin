@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,8 @@ import java.util.Set;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -88,12 +91,21 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @Mock
+    private AccessService accessService = Mockito.spy(AccessService.class);
+
+    @Mock
+    private UserService userService = Mockito.spy(UserService.class);
+
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         createTestMetadata();
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
+        ReflectionTestUtils.setField(accessService, "userService", userService);
+
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -294,7 +306,8 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAclTCRResponse() {
+    public void testGetAclTCRResponse() throws IOException {
+        Mockito.doReturn(false).when(accessService).hasGlobalAdminGroup(user1);
         Assert.assertEquals(0, aclTCRService.getAclTCRResponse(projectDefault, user1, true, true).size());
         AclTCRManager manager = aclTCRService.getAclTCRManager(projectDefault);
         manager.updateAclTCR(new AclTCR(), user1, true);
@@ -355,6 +368,18 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
                 .anyMatch(resp -> resp.getTables().stream()
                         .anyMatch(t -> t.getRows().stream().anyMatch(r -> "COUNTRY".equals(r.getColumnName())
                                 && "country_a,country_b".equals(String.join(",", r.getItems()))))));
+    }
+
+    @Test
+    public void testGetAclTCRResponseWithAdmin() throws IOException {
+        Mockito.doReturn(true).when(accessService).hasGlobalAdminGroup(user1);
+        List<AclTCRResponse> responses = aclTCRService.getAclTCRResponse(projectDefault, user1, true, true);
+        Assert.assertEquals(3, responses.size());
+        Assert.assertTrue(responses.stream().anyMatch(resp -> resp.getTables().stream()
+                .anyMatch(t -> t.isAuthorized() && "TEST_ORDER".equals(t.getTableName()))));
+        Assert.assertTrue(responses.stream().anyMatch(res -> "DEFAULT".equals(res.getDatabaseName()) && res.getTables().size() == 9));
+        Assert.assertTrue(responses.stream().anyMatch(res -> "EDW".equals(res.getDatabaseName()) && res.getTables().size() == 3));
+        Assert.assertTrue(responses.stream().anyMatch(res -> "SSB".equals(res.getDatabaseName()) && res.getTables().size() == 6));
     }
 
     @Test

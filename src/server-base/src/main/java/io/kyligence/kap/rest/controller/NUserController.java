@@ -25,15 +25,15 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_PASSWORD;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_USER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PASSWORD;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SHORT_PASSWORD;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_NOT_EXIST;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,6 +41,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -52,6 +53,7 @@ import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -92,7 +94,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/api/user", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+@RequestMapping(value = "/api/user", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NUserController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NUserController.class);
@@ -118,6 +120,10 @@ public class NUserController extends NBasicController {
 
     @Autowired
     private LicenseInfoService licenseInfoService;
+
+    @Autowired
+    @Qualifier("userGroupService")
+    private IUserGroupService userGroupService;
 
     @Autowired
     private Environment env;
@@ -146,7 +152,7 @@ public class NUserController extends NBasicController {
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public EnvelopeResponse<String> createUser(@RequestBody ManagedUser user) {
+    public EnvelopeResponse<String> createUser(@RequestBody ManagedUser user) throws IOException {
         val username = user.getUsername();
         val password = pwdBase64Decode(user.getPassword());
         user.setPassword(password);
@@ -154,6 +160,8 @@ public class NUserController extends NBasicController {
         checkUsername(username);
         checkPasswordLength(password);
         checkPasswordCharacter(password);
+        checkUserGroupNotEmpty(user.getAuthorities());
+        checkUserGroupExists(user.getAuthorities());
 
         return createAdminUser(user);
     }
@@ -203,6 +211,7 @@ public class NUserController extends NBasicController {
         }
 
         user.setPassword(pwdEncode(user.getPassword()));
+        checkUserGroupExists(user.getAuthorities());
         completeAuthorities(user);
 
         boolean noAdminRight = user.getAuthorities().contains(new SimpleGrantedAuthority(ROLE_ADMIN));
@@ -243,19 +252,13 @@ public class NUserController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-        if (StringUtils.isEmpty(project)) {
-            aclEvaluate.checkIsGlobalAdmin();
-        } else {
-            aclEvaluate.checkProjectAdminPermission(project);
-        }
-
         List<ManagedUser> usersByFuzzyMatching = userService.getManagedUsersByFuzzMatching(nameSeg, isCaseSensitive);
         List<ManagedUser> subList = PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize);
         //LDAP users dose not have authorities
         for (ManagedUser u : subList) {
             userService.completeUserInfo(u);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, usersByFuzzyMatching), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, usersByFuzzyMatching, pageOffset, pageSize), "");
     }
 
     @PutMapping(value = "/password")
@@ -423,7 +426,7 @@ public class NUserController extends NBasicController {
         return userName;
     }
 
-    ManagedUser getManagedUser(String userName) {
+    public ManagedUser getManagedUser(String userName) {
         UserDetails details = userService.loadUserByUsername(userName);
         if (details == null)
             return null;
@@ -455,6 +458,23 @@ public class NUserController extends NBasicController {
             return new String(Base64.decodeBase64(password));
         }
         return password;
+    }
+
+    private void checkUserGroupNotEmpty(List<SimpleGrantedAuthority> groups) {
+        boolean hasEmptyGroup = CollectionUtils.isEmpty(groups)
+                || groups.stream().map(SimpleGrantedAuthority::getAuthority).anyMatch(StringUtils::isBlank);
+        if (hasEmptyGroup) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_GROUP_NAME());
+        }
+    }
+
+    private void checkUserGroupExists(List<SimpleGrantedAuthority> groups) throws IOException {
+        for (SimpleGrantedAuthority group : groups) {
+            if (!userGroupService.exists(group.getAuthority())) {
+                throw new KylinException(INVALID_PARAMETER,
+                        String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), group));
+            }
+        }
     }
 
 }

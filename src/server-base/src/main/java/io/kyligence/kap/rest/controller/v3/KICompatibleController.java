@@ -31,7 +31,7 @@ import java.util.Map;
 
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
-import org.apache.kylin.rest.security.AclPermissionType;
+import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -95,7 +95,7 @@ public class KICompatibleController {
     public EnvelopeResponse getProjects(
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size) {
-        val result = projectController.getProjects(null, offset, size, false, AclPermissionType.READ);
+        val result = projectController.getProjects(null, offset, size, false, AclPermissionEnum.READ.name());
         Map<String, Object> response = Maps.newHashMap();
         response.put("projects", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());

@@ -22,19 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
+package org.apache.kylin.rest.response;
 
 import java.util.List;
 
-@Setter
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.rest.response.AclTCRResponse;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 @Getter
-public class UpdateGroupRequest {
-    @JsonProperty(value = "group_name")
-    private String group;
-    @JsonProperty(value = "users")
-    private List<String> users;
+@AllArgsConstructor
+public class SidPermissionWithAclResponse {
+    @JsonProperty("project_name")
+    String projectName;
+
+    @JsonProperty("project_permission")
+    String projectPermission;
+
+    @JsonProperty("acl_info")
+    List<AclTCRResponse> aclTCRResponses;
 }

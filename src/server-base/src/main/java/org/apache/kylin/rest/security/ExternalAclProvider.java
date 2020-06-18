@@ -45,9 +45,15 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
+import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.model.Permission;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 /**
  */
@@ -76,22 +82,57 @@ abstract public class ExternalAclProvider {
     public final static String MANAGEMENT = "MANAGEMENT";
     public final static String OPERATION = "OPERATION";
     public final static String READ = "QUERY";
+    public final static String EMPTY = "EMPTY";
     
     // used by ranger ExternalAclProvider
-    public static String transformPermission(Permission p) {
+    public static String convertToExternalPermission(Permission p) {
         String permString = null;
-        if (AclPermission.ADMINISTRATION.equals(p)) {
+        if (BasePermission.ADMINISTRATION.equals(p)) {
             permString = ADMINISTRATION;
         } else if (AclPermission.MANAGEMENT.equals(p)) {
             permString = MANAGEMENT;
         } else if (AclPermission.OPERATION.equals(p)) {
             permString = OPERATION;
-        } else if (AclPermission.READ.equals(p)) {
+        } else if (BasePermission.READ.equals(p)) {
             permString = READ;
         } else {
             permString = p.getPattern();
         }
         return permString;
+    }
+
+    public static void checkExternalPermission(String permission) {
+        if (StringUtils.isBlank(permission)) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getEMPTY_PERMISSION());
+        }
+        if (ADMINISTRATION.equalsIgnoreCase(permission) || MANAGEMENT.equalsIgnoreCase(permission)
+                || OPERATION.equalsIgnoreCase(permission) || READ.equalsIgnoreCase(permission)) {
+            return;
+        }
+        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_PERMISSION());
+    }
+
+    public static String convertToExternalPermission(int mask) {
+        String permission;
+        switch (mask) {
+            case 16:
+                permission = ADMINISTRATION;
+                break;
+            case 32:
+                permission = MANAGEMENT;
+                break;
+            case 64:
+                permission = OPERATION;
+                break;
+            case 1:
+                permission = READ;
+                break;
+            case 0:
+                return EMPTY;
+            default:
+                throw new KylinException(PERMISSION_DENIED, "Invalid permission state: " + mask);
+        }
+        return permission;
     }
 
     // ============================================================================

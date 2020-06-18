@@ -46,10 +46,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PermissionFactory;
+import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.NotFoundException;
@@ -214,6 +218,21 @@ public class AclRecord extends RootPersistentEntity implements Acl, OwnershipAcl
 
     public AccessControlEntry getAccessControlEntryAt(int entryIndex) {
         return entries.get(entryIndex);
+    }
+
+    public Sid getAceBySidAndPrincipal(String name, boolean principal) {
+        List<Sid> sids = entries.stream().map(AceImpl::getSid).collect(Collectors.toList());
+        for (Sid sid : sids) {
+            if (principal && (sid instanceof PrincipalSid)
+                    && Objects.equals(name, ((PrincipalSid)sid).getPrincipal())) {
+                return sid;
+            }
+            if (!principal && (sid instanceof GrantedAuthoritySid)
+                    && Objects.equals(name, ((GrantedAuthoritySid)sid).getGrantedAuthority())) {
+                return sid;
+            }
+        }
+        return null;
     }
 
     public Permission getPermission(Sid sid) {

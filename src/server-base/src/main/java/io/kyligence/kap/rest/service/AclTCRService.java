@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
+import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -75,6 +77,8 @@ import io.kyligence.kap.rest.response.AclTCRResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+
 @Component("aclTCRService")
 public class AclTCRService extends BasicService {
 
@@ -84,6 +88,9 @@ public class AclTCRService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    private AccessService accessService;
 
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
         // permission already has been checked in AccessService#revokeAcl
@@ -115,9 +122,15 @@ public class AclTCRService extends BasicService {
     }
 
     public List<AclTCRResponse> getAclTCRResponse(String project, String sid, boolean principal,
-            boolean authorizedOnly) {
+            boolean authorizedOnly) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         AclTCRManager aclTCRManager = getAclTCRManager(project);
+
+        boolean userWithGlobalAdminPermission = principal && (accessService.isGlobalAdmin(sid) || accessService.hasGlobalAdminGroup(sid));
+        boolean adminGroup = !principal && ROLE_ADMIN.equals(sid);
+        if (userWithGlobalAdminPermission || adminGroup) {
+            return getAclTCRResponse(aclTCRManager.getAllDbAclTable(project));
+        }
         AclTCR authorized = aclTCRManager.getAclTCR(sid, principal);
         if (Objects.isNull(authorized)) {
             return Lists.newArrayList();

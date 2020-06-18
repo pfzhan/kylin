@@ -25,13 +25,10 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USER_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
@@ -42,9 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -83,7 +78,7 @@ import io.kyligence.kap.rest.service.ProjectService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+@RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NAccessController extends NBasicController {
 
     @Autowired
@@ -111,9 +106,9 @@ public class NAccessController extends NBasicController {
      */
     @GetMapping(value = "/permission/project_permission")
     @ResponseBody
-    public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project) {
+    public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project) throws IOException {
         checkProjectName(project);
-        String grantedPermission = accessService.getUserPermissionInPrj(project);
+        String grantedPermission = accessService.getCurrentUserPermissionInProject(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, grantedPermission, "");
     }
 
@@ -225,10 +220,8 @@ public class NAccessController extends NBasicController {
             @PathVariable("uuid") String uuid, @RequestBody List<BatchAccessRequest> batchAccessRequests)
             throws IOException {
         List<AccessRequest> requests = transform(batchAccessRequests);
-        checkSid(requests);
-        List<String> users = requests.stream().filter(AccessRequest::isPrincipal).map(AccessRequest::getSid)
-                .collect(Collectors.toList());
-        accessService.checkGlobalAdmin(users);
+        accessService.checkAccessRequestList(requests);
+
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.batchGrant(requests, ae);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
@@ -270,7 +263,7 @@ public class NAccessController extends NBasicController {
             @RequestParam("access_entry_id") Integer accessEntryId, //
             @RequestParam("sid") String sid, //
             @RequestParam("principal") boolean principal) throws IOException {
-        checkSid(sid, principal);
+        accessService.checkSid(sid, principal);
         if (principal) {
             accessService.checkGlobalAdmin(sid);
         }
@@ -292,35 +285,7 @@ public class NAccessController extends NBasicController {
     }
 
     private void checkSid(AccessRequest request) throws IOException {
-        checkSid(Lists.newArrayList(request));
-    }
-
-    private void checkSid(List<AccessRequest> requests) throws IOException {
-        if (CollectionUtils.isEmpty(requests)) {
-            return;
-        }
-        for (AccessRequest r : requests) {
-            checkSid(r.getSid(), r.isPrincipal());
-        }
-    }
-
-    private void checkSid(String sid, boolean principal) throws IOException {
-        if (StringUtils.isEmpty(sid)) {
-            if (principal) {
-                throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEMPTY_SID());
-            } else {
-                throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEMPTY_SID());
-            }
-        }
-
-        if (principal && !userService.userExists(sid)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
-        }
-        if (!principal && !userGroupService.exists(sid)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
-        }
+        accessService.checkSid(Lists.newArrayList(request));
     }
 
     private List<AccessRequest> transform(List<BatchAccessRequest> batchAccessRequests) {

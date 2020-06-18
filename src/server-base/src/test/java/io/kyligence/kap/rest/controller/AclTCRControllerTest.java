@@ -28,7 +28,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 
 import java.io.IOException;
 
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
@@ -96,32 +95,6 @@ public class AclTCRControllerTest extends NLocalFileMetadataTestCase {
     @After
     public void teardown() {
         cleanupTestMetadata();
-    }
-
-    @Test
-    public void testEmptySid() throws IOException {
-        thrown.expect(KylinException.class);
-        aclTCRController.checkSid("", true);
-    }
-
-    @Test
-    public void testInvalidSidPattern() throws IOException {
-        thrown.expect(KylinException.class);
-        aclTCRController.checkSid("1#s$", true);
-    }
-
-    @Test
-    public void testInvalidUser() throws IOException {
-        Mockito.doReturn(false).when(userService).userExists(Mockito.anyString());
-        thrown.expect(KylinException.class);
-        aclTCRController.checkSid("uuu", true);
-    }
-
-    @Test
-    public void testInvalidGroup() throws IOException {
-        Mockito.doReturn(false).when(userGroupService).exists(Mockito.anyString());
-        thrown.expect(KylinException.class);
-        aclTCRController.checkSid("ggg", false);
     }
 
     @Test

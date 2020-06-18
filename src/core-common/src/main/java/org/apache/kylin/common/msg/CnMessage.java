@@ -495,6 +495,22 @@ public class CnMessage extends Message {
         return "找不到 Sid";
     }
 
+    public String getEMPTY_PERMISSION() {
+        return "权限不能为空";
+    }
+
+    public String getINVALID_PERMISSION() {
+        return "参数 \"permission\" 的值无效，请使用 \"ADMIN\"、\"MANAGEMENT\"、\"OPERATION\" 或 \"QUERY\"";
+    }
+
+    public String getINVALID_PARAMETER_TYPE() {
+        return "参数 \"type\" 的值无效，请使用 \"user\" 或 \"group\"";
+    }
+
+    public String getUNAUTHORIZED_SID() {
+        return "用户/组没有当前项目访问权限";
+    }
+
     // user group
 
     public String getEMPTY_GROUP_NAME() {

@@ -41,18 +41,31 @@
 */
 package org.apache.kylin.rest.security;
 
-public interface AclPermissionType {
-    static final String MANAGEMENT = "MANAGEMENT";
+import org.apache.kylin.common.exception.KylinException;
 
-    static final String OPERATION = "OPERATION";
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
-    static final String READ = "READ";
+public enum AclPermissionEnum {
+    ADMINISTRATION, MANAGEMENT, OPERATION, READ;
 
-    static final String WRITE = "WRITE";
-
-    static final String CREATE = "CREATE";
-
-    static final String DELETE = "DELETE";
-
-    static final String ADMINISTRATION = "ADMINISTRATION";
+    public static String convertToAclPermission(String externalPermission) {
+        AclPermissionEnum permission;
+        switch (externalPermission) {
+            case ExternalAclProvider.ADMINISTRATION:
+                permission = ADMINISTRATION;
+                break;
+            case ExternalAclProvider.MANAGEMENT:
+                permission = MANAGEMENT;
+                break;
+            case ExternalAclProvider.OPERATION:
+                permission = OPERATION;
+                break;
+            case ExternalAclProvider.READ:
+                permission = READ;
+                break;
+            default:
+                throw new KylinException(PERMISSION_DENIED, "invalid permission state: " + externalPermission);
+        }
+        return permission.name();
+    }
 }

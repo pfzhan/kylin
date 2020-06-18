@@ -91,7 +91,7 @@ public class NAccessControllerV2 extends NBasicController {
     @GetMapping(value = "/{userName:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String username) {
+    public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String username) throws IOException {
         checkUserName(username);
 
         List<Object> dataList = new ArrayList<>();

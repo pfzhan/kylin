@@ -64,7 +64,7 @@ import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.AclManager;
-import org.apache.kylin.rest.security.AclPermissionType;
+import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -157,31 +157,31 @@ public class ProjectService extends BasicService {
     }
 
     public List<ProjectInstance> getReadableProjects() {
-        return getProjectsFilterByExactMatchAndPermission(null, false, AclPermissionType.READ);
+        return getProjectsFilterByExactMatchAndPermission(null, false, AclPermissionEnum.READ);
     }
 
     public List<ProjectInstance> getAdminProjects() {
-        return getProjectsFilterByExactMatchAndPermission(null, false, AclPermissionType.ADMINISTRATION);
+        return getProjectsFilterByExactMatchAndPermission(null, false, AclPermissionEnum.ADMINISTRATION);
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName, boolean exactMatch) {
-        return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionType.READ);
+        return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionEnum.READ);
     }
 
     public List<ProjectInstance> getProjectsFilterByExactMatchAndPermission(final String projectName,
-            boolean exactMatch, String permission) {
+            boolean exactMatch, AclPermissionEnum permission) {
         Predicate<ProjectInstance> filter;
         switch (permission) {
-        case AclPermissionType.READ:
+        case READ:
             filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
             break;
-        case AclPermissionType.OPERATION:
+        case OPERATION:
             filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
             break;
-        case AclPermissionType.MANAGEMENT:
+        case MANAGEMENT:
             filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
             break;
-        case AclPermissionType.ADMINISTRATION:
+        case ADMINISTRATION:
             filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
             break;
         default:

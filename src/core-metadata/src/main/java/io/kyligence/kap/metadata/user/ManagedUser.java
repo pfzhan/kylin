@@ -274,7 +274,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
         return "ManagedUser [username=" + username + ", authorities=" + authorities + "]";
     }
 
-    private static class SimpleGrantedAuthoritySerializer extends JsonSerializer<List<SimpleGrantedAuthority>> {
+    public static class SimpleGrantedAuthoritySerializer extends JsonSerializer<List<SimpleGrantedAuthority>> {
 
         @Override
         public void serialize(List<SimpleGrantedAuthority> value, JsonGenerator gen, SerializerProvider serializers)
@@ -288,7 +288,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
         }
     }
 
-    private static class SimpleGrantedAuthorityDeserializer extends JsonDeserializer<List<SimpleGrantedAuthority>> {
+    public static class SimpleGrantedAuthorityDeserializer extends JsonDeserializer<List<SimpleGrantedAuthority>> {
 
         @Override
         public List<SimpleGrantedAuthority> deserialize(JsonParser p, DeserializationContext ctxt)

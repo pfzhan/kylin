@@ -25,16 +25,21 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 import java.util.List;
 
-@Setter
-@Getter
-public class UpdateGroupRequest {
-    @JsonProperty(value = "group_name")
-    private String group;
-    @JsonProperty(value = "users")
-    private List<String> users;
+@Data
+public class BatchProjectPermissionRequest {
+    @JsonProperty("project")
+    private String project;
+
+    @JsonProperty("type")
+    private String type;
+
+    @JsonProperty("names")
+    private List<String> names;
+
+    @JsonProperty("permission")
+    private String permission;
 }

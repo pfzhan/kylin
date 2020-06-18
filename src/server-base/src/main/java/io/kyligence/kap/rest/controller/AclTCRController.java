@@ -27,15 +27,11 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -56,8 +52,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
@@ -132,13 +126,13 @@ public class AclTCRController extends NBasicController {
 
     private List<AclTCRResponse> getProjectSidTCR(String project, String sid, boolean principal, boolean authorizedOnly)
             throws IOException {
-        checkSid(sid, principal);
+        accessService.checkSid(sid, principal);
         return aclTCRService.getAclTCRResponse(project, sid, principal, authorizedOnly);
     }
 
     private void updateSidAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests)
             throws IOException {
-        checkSid(sid, principal);
+        accessService.checkSid(sid, principal);
         boolean hasProjectPermission = accessService.hasProjectPermission(project, sid, principal);
 
         if (!hasProjectPermission) {
@@ -147,25 +141,5 @@ public class AclTCRController extends NBasicController {
                     String.format(msg.getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION(), sid, project));
         }
         aclTCRService.updateAclTCR(project, sid, principal, requests);
-    }
-
-    @VisibleForTesting
-    void checkSid(String sid, boolean principal) throws IOException {
-        if (StringUtils.isEmpty(sid)) {
-            if (principal) {
-                throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEMPTY_SID());
-            } else {
-                throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEMPTY_SID());
-            }
-        }
-
-        if (principal && !userService.userExists(sid)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
-        }
-        if (!principal && !userGroupService.exists(sid)) {
-            throw new KylinException(PERMISSION_DENIED,
-                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
-        }
     }
 }

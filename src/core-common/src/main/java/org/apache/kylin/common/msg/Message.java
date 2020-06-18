@@ -649,6 +649,22 @@ public class Message {
         return "Ace id required.";
     }
 
+    public String getEMPTY_PERMISSION() {
+        return "Permission should not be empty.";
+    }
+
+    public String getINVALID_PERMISSION() {
+        return "Invalid values in parameter \"permission\". The value should either be \"ADMIN\", \"MANAGEMENT\", \"OPERATION\" or \"QUERY\".";
+    }
+
+    public String getINVALID_PARAMETER_TYPE() {
+        return "Invalid value in parameter \"type\". The value should either be \"user\" or \"group\".";
+    }
+
+    public String getUNAUTHORIZED_SID() {
+        return "The user/group doesn’t have access to this project.";
+    }
+
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
         return "Result for this query is unavailable, please check its status first.";

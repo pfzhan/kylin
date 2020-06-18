@@ -122,7 +122,7 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         ArrayList<AbstractExecutable> jobs = new ArrayList<>();
         Integer[] statusInt = { 4 };
         String[] subjects = {};
-        Mockito.when(accessService.getUserPermissionInPrj("default")).thenReturn("ADMIN");
+        Mockito.when(accessService.getCurrentUserPermissionInProject("default")).thenReturn("ADMIN");
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/access/permission/project_permission")
                         .contentType(MediaType.APPLICATION_JSON).param("project", "default")
@@ -146,13 +146,6 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
-    }
-
-    @Test
-    public void testGrantPermissionForEmptyUser() throws Exception {
-        String sid = "";
-        String expectedErrorMsg = "User/Group name should not be empty.";
-        testGrantPermissionForUser(sid, expectedErrorMsg);
     }
 
     @Test
