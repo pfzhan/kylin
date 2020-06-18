@@ -277,7 +277,7 @@ export default {
             times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
             return { flag: 1, status: 'failApi', text: 'bothCapacityAndNodesFail', query: {times: times < 0 ? 0 : times} }
           } else if (state.systemCapacityInfo.fail) {
-            times = 30 - Math.ceil((new Date().getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+            times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
             return { flag: 1, status: 'failApi', text: 'capacityFailTip', query: {times: times < 0 ? 0 : times} }
           } else {
             return { flag: 1, status: 'failApi', text: 'nodesFailTip' }
