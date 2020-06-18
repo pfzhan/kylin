@@ -86,6 +86,14 @@ public class MailServiceTest {
 
     }
 
+    @Test
+    public void testMailHelper() {
+        System.setProperty("kylin.capacity.notification-enabled", "true");
+        System.setProperty("kylin.capacity.notification-emails", "foobar@foobar.com");
+        boolean sent = MailHelper.notifyUserForOverCapacity(100L, 81L);
+        assert sent;
+    }
+
     private boolean sendTestEmail(MailService mailservice) {
 
         List<String> receivers = new ArrayList<String>(1);

@@ -48,6 +48,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -320,7 +321,6 @@ public class SourceUsageManager {
         logger.info("Updating source usage..");
         try {
             SourceUsageRecord usage = updateSourceUsageInner();
-            logger.info("Updating source usage done: {}", usage);
             return usage;
         } catch (Exception ex) {
             // swallow exception, source usage problem is not as critical as daily operations
@@ -401,8 +401,21 @@ public class SourceUsageManager {
                     record.setCapacityStatus(usageRecord.getCapacityStatus());
                     record.setCheckTime(usageRecord.getCheckTime());
                     record.setCurrentCapacity(usageRecord.getCurrentCapacity());
+                    if (!isOverCapacityThreshold(record) && !record.isCapacityNotification()) {
+                        record.setCapacityNotification(true);
+                        logger.info("Capacity usage is less then threshold, enable notification");
+                    } else if (record.isCapacityNotification() && config.isOverCapacityNotificationEnabled() &&
+                            isOverCapacityThreshold(record)) {
+                        if (MailHelper.notifyUserForOverCapacity(record.getLicenseCapacity(), record.getCurrentCapacity())) {
+                            record.setCapacityNotification(false);
+                            logger.info("Capacity usage is more then threshold, disable notification");
+                        } else {
+                            logger.info("Send mail for Over Capacity failed.");
+                        }
+                    }
                     resourceStore.checkAndPutResource(resPath, record, SOURCE_USAGE_SERIALIZER);
                 }
+                usageRecord.setCapacityNotification(record.isCapacityNotification());
                 return 0;
             }, GLOBAL, 1);
         } catch (Exception e) {
@@ -625,12 +638,11 @@ public class SourceUsageManager {
         }
     }
 
-    public boolean isOverCapacityThreshold() {
+    public boolean isOverCapacityThreshold(SourceUsageRecord sourceUsageRecord) {
         if (Constants.UNLIMITED.equals(System.getProperty(Constants.KE_LICENSE_VOLUME))) {
             logger.info("Current license has unlimited volume.");
             return false;
         }
-        SourceUsageRecord sourceUsageRecord = this.getLatestRecord();
         if (sourceUsageRecord == null) {
             logger.debug("Source usage record is null, ignore...");
             return false;
@@ -638,7 +650,7 @@ public class SourceUsageManager {
         long currentCapacity = sourceUsageRecord.getCurrentCapacity();
         long totalCapacity = sourceUsageRecord.getLicenseCapacity();
         logger.info("Current capacity is: {}, total capacity is: {}", currentCapacity, totalCapacity);
-        return currentCapacity < totalCapacity * 0.8;
+        return currentCapacity > totalCapacity * config.getOverCapacityThreshold();
     }
 
     public <T> T licenseCheckWrap(String project, Callback<T> f) {

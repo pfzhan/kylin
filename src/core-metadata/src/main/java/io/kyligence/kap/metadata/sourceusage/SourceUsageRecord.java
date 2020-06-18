@@ -49,6 +49,9 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
         return logger;
     }
 
+    @JsonProperty("capacity_notification")
+    private boolean capacityNotification = true;
+
     @JsonProperty("check_time")
     private long checkTime;
 

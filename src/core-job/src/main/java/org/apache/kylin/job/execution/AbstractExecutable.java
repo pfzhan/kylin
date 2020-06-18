@@ -58,11 +58,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.MailService;
+import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
@@ -474,11 +473,6 @@ public abstract class AbstractExecutable implements Executable {
                 break;
             }
         }
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
-        if (kylinConfig.isOverCapacityNotificationEnabled() && sourceUsageManager.isOverCapacityThreshold()) {
-            notifyUserJobIssue(JobIssueEnum.OVER_CAPACITY_THRESHOLD);
-        }
         if (hasEmptyLayout) {
             notifyUserJobIssue(JobIssueEnum.LOAD_EMPTY_DATA);
         }
@@ -489,7 +483,6 @@ public abstract class AbstractExecutable implements Executable {
                 (this instanceof DefaultChainedExecutable) || this.getParent() instanceof DefaultChainedExecutable);
         val projectConfig = NProjectManager.getInstance(getConfig()).getProject(project).getConfig();
         boolean needNotification = true;
-        boolean needOverCapacityNotification = false;
         switch (jobIssue) {
         case JOB_ERROR:
             needNotification = projectConfig.getJobErrorNotificationEnabled();
@@ -500,10 +493,6 @@ public abstract class AbstractExecutable implements Executable {
         case SOURCE_RECORDS_CHANGE:
             needNotification = projectConfig.getJobSourceRecordsChangeNotificationEnabled();
             break;
-        case OVER_CAPACITY_THRESHOLD:
-            needNotification = projectConfig.isOverCapacityNotificationEnabled();
-            needOverCapacityNotification = true;
-            break;
         default:
             throw new IllegalArgumentException(String.format("no process for jobIssue: %s.", jobIssue));
         }
@@ -512,15 +501,11 @@ public abstract class AbstractExecutable implements Executable {
         }
         List<String> users;
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (needOverCapacityNotification) {
-            users = getOverCapacityMailingUsers(kylinConfig);
-        } else {
-            users = getAllNotifyUsers(kylinConfig);
-        }
+        users = getAllNotifyUsers(kylinConfig);
         if (this instanceof DefaultChainedExecutable) {
-            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
+            MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this), users);
         } else {
-            notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()), users);
+            MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()), users);
         }
     }
 
@@ -702,31 +687,6 @@ public abstract class AbstractExecutable implements Executable {
                 .toString();
     }
 
-    private final void notifyUser(KylinConfig kylinConfig, EmailNotificationContent content, List<String> users) {
-        try {
-            if (users.isEmpty()) {
-                logger.debug("no need to send email, user list is empty.");
-                return;
-            }
-            final Pair<String, String> email = formatNotifications(content);
-            doSendMail(kylinConfig, users, email);
-        } catch (Exception e) {
-            logger.error("error send email", e);
-        }
-    }
-
-    private void doSendMail(KylinConfig kylinConfig, List<String> users, Pair<String, String> email) {
-        if (email == null) {
-            logger.warn("no need to send email, content is null");
-            return;
-        }
-        logger.info("prepare to send email to:{}", users);
-        logger.info("job name:{}", getDisplayName());
-        logger.info("submitter:{}", getSubmitter());
-        logger.info("notify list:{}", users);
-        new MailService(kylinConfig).sendMail(users, email.getFirst(), email.getSecond());
-    }
-
     protected void sendMail(Pair<String, String> email) {
         try {
             List<String> users = getAllNotifyUsers(getConfig());
@@ -734,7 +694,7 @@ public abstract class AbstractExecutable implements Executable {
                 logger.debug("no need to send email, user list is empty");
                 return;
             }
-            doSendMail(getConfig(), users, email);
+            MailHelper.doSendMail(getConfig(), users, email);
         } catch (Exception e) {
             logger.error("error send email", e);
         }

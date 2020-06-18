@@ -39,7 +39,7 @@ import java.util.Set;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.MailHelper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -98,31 +98,9 @@ public class ExecutableParams {
 
     public List<String> getAllNotifyUsers(KylinConfig kylinConfig) {
         final String[] adminDls = kylinConfig.getAdminDls();
-        List<String> users = getAllNotifyUserList(adminDls);
+        List<String> users = MailHelper.getAllNotifyUserList(adminDls);
         users.addAll(getNotifyList());
         return users;
-    }
-
-    public List<String> getOverCapacityMailingUsers(KylinConfig kylinConfig) {
-        final String[] overCapacityMailingUsers = kylinConfig.getOverCapacityMailingList();
-        return getAllNotifyUserList(overCapacityMailingUsers);
-    }
-
-    public List<String> getAllNotifyUserList(String[] notifyUsers) {
-        List<String> users = Lists.newArrayList();
-        if (null != notifyUsers) {
-            Collections.addAll(users, notifyUsers);
-        }
-        return users;
-    }
-
-    public Pair<String, String> formatNotifications(EmailNotificationContent content) {
-        if (content == null) {
-            return null;
-        }
-        String title = content.getEmailTitle();
-        String body = content.getEmailBody();
-        return Pair.newPair(title, body);
     }
 
     public final String getParentId() {

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -96,8 +97,14 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 metadataManager.mergeAndUpdateTableExt(originTableExt, tableExtDescCopy);
             }
             recordDownJobStats(abstractExecutable, nDataLayouts);
-            SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv()).post(new SourceUsageUpdateNotifier());
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            if (config.isUTEnv()) {
+                SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier());
+            } else {
+                UnitOfWork.get().doAfterUnit(
+                        () -> SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier()));
+            }
         }
     }
 
