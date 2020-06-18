@@ -1110,4 +1110,22 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
     }
 
+    @Test
+    public void testUpdateDataModelOnlySave() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+
+        modelMgr.updateDataModel(MODEL_ID, model -> {
+            val partitionDesc = model.getPartitionDesc();
+            partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
+        });
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null, true);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(0, events.size());
+        val df = dfMgr.getDataflow(MODEL_ID);
+
+        Assert.assertEquals(0, df.getSegments().size());
+    }
 }

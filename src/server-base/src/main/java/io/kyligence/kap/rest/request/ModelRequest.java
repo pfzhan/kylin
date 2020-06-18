@@ -71,6 +71,9 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("index_plan")
     private IndexPlan indexPlan;
 
+    @JsonProperty("save_only")
+    private boolean saveOnly = false;
+
     private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;
 
     public ModelRequest() {

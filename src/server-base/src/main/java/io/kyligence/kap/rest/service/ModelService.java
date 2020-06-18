@@ -1664,14 +1664,16 @@ public class ModelService extends BasicService {
             NDataSegment newSegment = dataflowManager.appendSegment(df,
                     SegmentRange.TimePartitionedSegmentRange.createInfinite());
             return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                    getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddSegmentEvents(newSegment, modelId, getUsername()))));
+                    getSourceUsageManager().licenseCheckWrap(project,
+                            () -> getEventManager(project).postAddSegmentEvents(newSegment, modelId, getUsername()))));
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
         res.addAll(refreshSegmentById(modelId, project,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
                         .toArray(new String[0])));
         res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
+                getSourceUsageManager().licenseCheckWrap(project,
+                        () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
         return res;
     }
 
@@ -1690,8 +1692,8 @@ public class ModelService extends BasicService {
         checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
         saveDateFormatIfNotExist(project, modelId, partionColFormat);
         NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
-        return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())));
+        return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getSourceUsageManager().licenseCheckWrap(
+                project, () -> eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())));
     }
 
     public JobInfoResponse incrementBuildSegmentsManually(String project, String modelId, String start, String end,
@@ -1743,7 +1745,8 @@ public class ModelService extends BasicService {
         }
         res.add(constructIncrementBuild(project, modelId, start, end, format));
         res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
+                getSourceUsageManager().licenseCheckWrap(project,
+                        () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
         return res;
     }
 
@@ -2213,7 +2216,7 @@ public class ModelService extends BasicService {
         checkIndexColumnExist(project, modelId, originModel);
 
         checkFlatTableSql(newModel);
-        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd());
+        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(), request.isSaveOnly());
 
         val projectInstance = NProjectManager.getInstance(getConfig()).getProject(project);
         if (projectInstance.isSemiAutoMode()) {
@@ -2529,7 +2532,8 @@ public class ModelService extends BasicService {
         }
 
         val eventManager = getEventManager(project);
-        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
+        String jobId = getSourceUsageManager().licenseCheckWrap(project,
+                () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
 
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }
@@ -2848,13 +2852,15 @@ public class ModelService extends BasicService {
 
     public String getPartitionColumnFormatById(String project, String modelId) {
         NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(modelId);
-        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null:dataModelDesc.getPartitionDesc().getPartitionDateFormat();
+        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null
+                : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
         return partitionDateFormat;
     }
 
     public String getPartitionColumnFormatByAlias(String project, String modelAlias) {
         NDataModel dataModelDesc = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
-        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null:dataModelDesc.getPartitionDesc().getPartitionDateFormat();
+        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null
+                : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
         return partitionDateFormat;
     }
 }

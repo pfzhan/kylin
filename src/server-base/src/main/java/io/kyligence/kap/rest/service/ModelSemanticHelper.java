@@ -353,6 +353,11 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end) {
+        handleSemanticUpdate(project, model, originModel, start, end, false);
+    }
+
+    public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end,
+            boolean saveOnly) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
@@ -368,7 +373,7 @@ public class ModelSemanticHelper extends BasicService {
             removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimensions().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
-            handleReloadData(newModel, originModel, project, start, end);
+            handleReloadData(newModel, originModel, project, start, end, saveOnly);
             recommendationManager.cleanAll(model);
             return;
         }
@@ -468,7 +473,8 @@ public class ModelSemanticHelper extends BasicService {
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 
-    private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end) {
+    private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end,
+            boolean saveOnly) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         var df = dataflowManager.getDataflow(newModel.getUuid());
@@ -496,6 +502,9 @@ public class ModelSemanticHelper extends BasicService {
             segments.forEach(segment -> segmentRanges.add(segment.getSegRange()));
             dataflowManager.fillDfManually(df, segmentRanges);
         }
+
+        if (saveOnly)
+            return;
 
         EventManager.getInstance(config, project).postAddCuboidEvents(modelId, getUsername());
     }
