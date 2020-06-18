@@ -59,7 +59,7 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
     @Before
     public void setup() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         super.setup();
 
     }

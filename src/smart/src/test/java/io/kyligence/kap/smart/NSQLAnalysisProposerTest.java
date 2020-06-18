@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
-import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 
 public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
@@ -95,9 +94,9 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
                         + "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT=TEST_CAL_DT.CAL_DT\n"
                         + "LEFT JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND\n"
                         + "TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC AND\n" + "TEST_ORDER.BUYER_ID <> 10000000\n" };
-        Boolean enableAutoModelingForNonEquiJoin = SmartConfig.wrap(getTestConfig()).enableAutoModelingForNonEquiJoin();
+        Boolean enableAutoModelingForNonEquiJoin = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled();
         KylinConfig conf = getTestConfig();
-        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        conf.setProperty("kylin.query.non-equi-join-model-enabled", "TRUE");
         NSmartMaster smartMaster = new NSmartMaster(AccelerationContextUtil.newSmartContext(conf, "newten", sqls));
         smartMaster.runWithContext();
 
@@ -106,7 +105,7 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(2, modelContexts.size());
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
         Assert.assertTrue(!accelerateInfoMap.get(sqls[0]).isFailed() && !accelerateInfoMap.get(sqls[0]).isPending());
-        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled",
+        conf.setProperty("kylin.query.non-equi-join-model-enabled",
                 enableAutoModelingForNonEquiJoin.toString());
     }
 }

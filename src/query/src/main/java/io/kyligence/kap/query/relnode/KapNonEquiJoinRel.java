@@ -57,7 +57,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -111,9 +111,12 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     }
 
     private void allocateContext(ContextVisitorState leftState, ContextVisitorState rightState, OLAPContextImplementor olapContextImplementor) {
-        // if auto modeling on non-equi-join is not enabled
+        final boolean queryNonEquiJoinMoldelEnabled = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled();
+
+        // if query on non-equi-join model is not enabled
         // allocate context like runtime join directly
-        if (!Boolean.valueOf(KapConfig.getInstanceFromEnv().getSmartModelingConf("auto-modeling.non-equi-join.enabled"))) {
+        // inner join shouldnt run here with run-time join
+        if (getJoinType() == JoinRelType.LEFT && !queryNonEquiJoinMoldelEnabled) {
             if (leftState.hasFreeTable()) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 leftState.setHasFreeTable(false);
@@ -125,7 +128,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
             return;
         }
 
-        if (rightState.hasFreeTable() && rightState.hasFilter()) {
+        if (getJoinType() == JoinRelType.LEFT && rightState.hasFreeTable() && rightState.hasFilter()) {
             olapContextImplementor.allocateContext((KapRel) right, this);
             rightState.setHasFreeTable(false);
         }

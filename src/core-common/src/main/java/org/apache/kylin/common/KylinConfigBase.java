@@ -65,8 +65,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.common.util.ClusterConstant;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -80,11 +78,13 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
+import io.kyligence.kap.common.util.ClusterConstant;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -1225,6 +1225,16 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isQueryMatchPartialInnerJoinModel() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.match-partial-inner-join-model", FALSE));
+    }
+
+    /**
+     * if FALSE,
+     *     non-equi-inner join will be transformed to inner join and filter
+     *     left join will be transformed runtime-join
+     * @return
+     */
+    public boolean isQueryNonEquiJoinMoldelEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.non-equi-join-model-enabled", FALSE));
     }
 
     public String getQueryAccessController() {

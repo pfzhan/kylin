@@ -39,7 +39,6 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
-import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
@@ -240,10 +239,10 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         String[] sqls = new String[] {
                 "select avg(PRICE), ACCOUNT_ID\n" + "from KYLIN_SALES \n" + "left join KYLIN_ACCOUNT\n"
                         + "ON KYLIN_SALES.BUYER_ID > KYLIN_ACCOUNT.ACCOUNT_ID\n" + "group by price, account_id" };
-        Boolean enableAutoModelingForNonEquiJoin = SmartConfig.wrap(getTestConfig()).enableAutoModelingForNonEquiJoin();
+        Boolean enableAutoModelingForNonEquiJoin = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled();
         KylinConfig conf = getTestConfig();
 
-        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        conf.setProperty("kylin.query.non-equi-join-model-enabled", "TRUE");
         {
             val context = AccelerationContextUtil.newSmartContext(conf, proj, sqls);
             NSmartMaster smartMaster = new NSmartMaster(context);
@@ -253,7 +252,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(1, ctx.getModelContexts().size());
         }
 
-        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "FALSE");
+        conf.setProperty("kylin.query.non-equi-join-model-enabled", "FALSE");
         {
             val context = AccelerationContextUtil.newSmartContext(conf, proj, sqls);
             NSmartMaster smartMaster = new NSmartMaster(context);
@@ -263,7 +262,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(2, ctx.getModelContexts().size());
         }
 
-        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled",
+        conf.setProperty("kylin.query.non-equi-join-model-enabled",
                 enableAutoModelingForNonEquiJoin.toString());
     }
 

@@ -27,7 +27,6 @@ package io.kyligence.kap.query.optrule;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.query.relnode.KapNonEquiJoinRel;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -43,6 +42,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +52,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.query.relnode.KapFilterRel;
 import io.kyligence.kap.query.relnode.KapJoinRel;
+import io.kyligence.kap.query.relnode.KapNonEquiJoinRel;
 import io.kyligence.kap.query.relnode.KapRel;
 
 public class KapJoinRule extends ConverterRule implements IKeep {
@@ -83,7 +84,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
 
         RelNode newRel;
         try {
-            if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
+            if (isNonEquiJoinRelRule(info.isEqui(), join.getJoinType())) {
                 try {
                     return new KapNonEquiJoinRel(join.getCluster(), traitSet, left, right,
                             join.getCondition(), join.getVariablesSet(), join.getJoinType());
@@ -91,7 +92,6 @@ public class KapJoinRule extends ConverterRule implements IKeep {
                     throw new IllegalStateException(e);
                 }
             } else {
-                // if it is an inner equi-join, we can put a filter on top and it will be converted an EnumerableJoinRel in runtime-calculate
                 newRel = new KapJoinRel(join.getCluster(), traitSet, left, right,
                         info.getEquiCondition(left, right, join.getCluster().getRexBuilder()), info.leftKeys,
                         info.rightKeys, join.getVariablesSet(), join.getJoinType());
@@ -106,6 +106,17 @@ public class KapJoinRule extends ConverterRule implements IKeep {
             // LOGGER.fine(e.toString());
         }
         return newRel;
+    }
+
+    private boolean isNonEquiJoinRelRule(boolean isEqui, JoinRelType joinRelType) {
+        final boolean queryNonEquiJoinMoldelEnabled = KylinConfig.getInstanceFromEnv()
+                .isQueryNonEquiJoinMoldelEnabled();
+
+        if (isEqui || (joinRelType == JoinRelType.INNER && !queryNonEquiJoinMoldelEnabled)) {
+            return false;
+        }
+
+        return true;
     }
 
     private Join transformJoinCondition(LogicalJoin join, JoinInfo info, RelTraitSet traitSet, RelNode left,

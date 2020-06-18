@@ -63,7 +63,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testSumExpr() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
 
@@ -75,10 +75,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testAllQueries() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        executeTestScenario(19,
+        executeTestScenario(21,
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql"), //
@@ -155,7 +155,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testSpecialJoin() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
                 new TestScenario(CompareLevel.SAME, "query/sql_special_join"),
@@ -166,16 +166,36 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     public void testNonEqualJoin() throws Exception {
         if ("true".equals(System.getProperty("runDailyUT"))) {
             overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-            overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+            overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
             overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
             executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join"));
         }
     }
 
     @Test
+    public void testNonEqualInnerJoin() throws Exception {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "FALSE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        Assert.assertFalse(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled());
+        executeTestScenario(2, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
+
+        try {
+            overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+            Assert.assertTrue(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled());
+            executeTestScenario(1, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
+
+        } finally {
+            overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "FALSE");
+        }
+
+    }
+
+    @Test
     public void testUDFs() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_function"), //

@@ -26,6 +26,7 @@ package org.apache.kylin.metadata.model;
 
 import java.util.List;
 
+import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Assert;
@@ -66,21 +67,30 @@ public class MockJoinGraphBuilder {
     }
 
     public MockJoinGraphBuilder innerJoin(String[] fkCols, String[] pkCols) {
-        joins.add(mockJoinDesc("INNER", fkCols, pkCols));
+        joins.add(mockJoinDesc(JoinType.INNER.name(), fkCols, pkCols));
         return this;
     }
 
     public MockJoinGraphBuilder leftJoin(String[] fkCols, String[] pkCols) {
-        joins.add(mockJoinDesc("LEFT", fkCols, pkCols));
+        joins.add(mockJoinDesc(JoinType.LEFT.name(), fkCols, pkCols));
         return this;
     }
 
-    // simply add a col=constant condition to make a join cond non-equi
     public MockJoinGraphBuilder nonEquiLeftJoin(String pkTblName, String fkTblName, String nonEquiCol) {
+        return nonEquiJoinByJoinType(JoinType.LEFT, pkTblName, fkTblName, nonEquiCol);
+    }
+
+    public MockJoinGraphBuilder nonEquiInnerJoin(String pkTblName, String fkTblName, String nonEquiCol) {
+        return nonEquiJoinByJoinType(JoinType.INNER, pkTblName, fkTblName, nonEquiCol);
+    }
+
+    // simply add a col=constant condition to make a join cond non-equi
+    private MockJoinGraphBuilder nonEquiJoinByJoinType(JoinType joinType, String pkTblName, String fkTblName,
+            String nonEquiCol) {
         int idxTableEnd = nonEquiCol.indexOf('.');
         TableRef tableRef = modelDesc.findTable(nonEquiCol.substring(0, idxTableEnd));
         TblColRef tblColRef = tableRef.getColumn(nonEquiCol.substring(idxTableEnd + 1));
-        JoinDesc joinDesc = mockJoinDesc("LEFT", new String[0], new String[0]);
+        JoinDesc joinDesc = mockJoinDesc(joinType.name(), new String[0], new String[0]);
         joinDesc.setPrimaryTableRef(modelDesc.findTable(pkTblName));
         joinDesc.setForeignTableRef(modelDesc.findTable(fkTblName));
         joinDesc.setNonEquiJoinCondition(ModelNonEquiCondMock.composite(SqlKind.EQUALS,

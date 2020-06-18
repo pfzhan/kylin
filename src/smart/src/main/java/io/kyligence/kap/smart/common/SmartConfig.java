@@ -104,9 +104,4 @@ public class SmartConfig {
     public boolean needProposeCcIfNoSampling() {
         return getOptional("computed-column.suggestion.enabled-if-no-sampling", false);
     }
-
-    public Boolean enableAutoModelingForNonEquiJoin() {
-        return Boolean.valueOf(getOptional("auto-modeling.non-equi-join.enabled", "FALSE"));
-    }
-
 }

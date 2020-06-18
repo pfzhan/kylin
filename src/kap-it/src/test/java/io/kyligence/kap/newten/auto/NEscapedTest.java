@@ -50,7 +50,7 @@ public class NEscapedTest extends NAutoTestBase {
     @Test
     public void testSimilarTo() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         executeTestScenario(2, new TestScenario(NExecAndComp.CompareLevel.SAME, "query/sql_escaped"));
     }
