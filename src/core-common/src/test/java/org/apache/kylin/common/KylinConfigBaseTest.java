@@ -655,6 +655,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isTrackingUrlIpAddressEnabled",
                 new PropertiesEntity("kylin.job.tracking-url-ip-address-enabled", "true", true));
 
+        map.put("getEpochCheckerEnabled", new PropertiesEntity("kylin.server.leader-race.enabled", "true", true));
+
         map.put("getEpochExpireTimeSecond",
                 new PropertiesEntity("kylin.server.leader-race.heart-beat-timeout", "120", 120L));
 
@@ -700,8 +702,11 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder",
                         "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"));
 
-        map.put("isOverCapacityNotificationEnabled", new PropertiesEntity("kylin.capacity.notification-enabled", "false", false));
-        map.put("getOverCapacityMailingList", new PropertiesEntity("kylin.capacity.notification-emails", "", new String[0]));
+        map.put("isOverCapacityNotificationEnabled",
+                new PropertiesEntity("kylin.capacity.notification-enabled", "false", false));
+
+        map.put("getOverCapacityMailingList",
+                new PropertiesEntity("kylin.capacity.notification-emails", "", new String[0]));
 
         map.put("isGuardianEnabled", new PropertiesEntity("kylin.guardian.enabled", "false", false));
         map.put("getGuardianCheckInterval", new PropertiesEntity("kylin.guardian.check-interval", "1min", 60L));

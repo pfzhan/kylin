@@ -1877,6 +1877,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.valueOf(this.getOptional("kylin.job.tracking-url-ip-address-enabled", TRUE));
     }
 
+    public boolean getEpochCheckerEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.server.leader-race.enabled", "true"));
+    }
+
     public long getEpochExpireTimeSecond() {
         return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-timeout", "120"));
     }

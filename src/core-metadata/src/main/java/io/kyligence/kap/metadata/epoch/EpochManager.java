@@ -249,6 +249,11 @@ public class EpochManager implements IKeep {
 
     private Epoch getNewEpoch(Epoch epoch, boolean force, String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        if (!kylinConfig.getEpochCheckerEnabled()) {
+            return new Epoch(1L, identity, Long.MAX_VALUE, kylinConfig.getServerMode(), false, null);
+        }
+
         if (epoch == null) {
             epoch = new Epoch(1L, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), false, null);
         } else {

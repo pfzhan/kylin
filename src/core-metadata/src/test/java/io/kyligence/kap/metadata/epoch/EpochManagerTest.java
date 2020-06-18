@@ -40,7 +40,6 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-
 @Slf4j
 public class EpochManagerTest extends NLocalFileMetadataTestCase {
 
@@ -67,17 +66,31 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
     }
 
+    @Test
+    public void testKeepGlobalEpoch() throws Exception {
+        System.setProperty("kylin.server.leader-race.enabled", "false");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        EpochManager epochManager = EpochManager.getInstance(config);
+        Assert.assertNull(epochManager.getGlobalEpoch());
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        val globalEpoch = epochManager.getGlobalEpoch();
+        val time1 = globalEpoch.getLastEpochRenewTime();
+        Assert.assertNotNull(globalEpoch);
+        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        Assert.assertEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
+        System.clearProperty("kylin.server.leader-race.enabled");
+    }
 
     @Test
     public void testUpdateProjectEpoch() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
-        for (ProjectInstance prj:prjMgr.listAllProjects()) {
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
             Assert.assertNull(prj.getEpoch());
         }
         epochManager.updateAllEpochs();
-        for (ProjectInstance prj:prjMgr.listAllProjects()) {
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
             Assert.assertNotNull(prj.getEpoch());
         }
     }
@@ -97,7 +110,6 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         }
         System.clearProperty("kylin.server.leader-race.heart-beat-timeout");
     }
-
 
     @Test
     public void testUpdateEpochAtOneTime() throws Exception {
