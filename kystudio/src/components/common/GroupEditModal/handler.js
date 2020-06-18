@@ -18,7 +18,7 @@ export function getSubmitData (that) {
       }
     case 'assign':
       return {
-        group: form.group_name,
+        group_name: form.group_name,
         users: form.selected_users
       }
   }
