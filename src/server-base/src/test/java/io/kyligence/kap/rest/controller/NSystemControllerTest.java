@@ -28,7 +28,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -193,13 +192,23 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
         nSystemController.setAclEvaluate(mockAclEvaluate);
 
-        List<String> validProjectList = nSystemController.getValidProjects(new String[] {});
-        Assert.assertEquals(validProjectList.size(), projectInstanceList.size());
+        List<String> validProjectList = nSystemController.getValidProjects(new String[] {}, false);
+        Assert.assertEquals(projectInstanceList.size(), validProjectList.size());
 
-        nSystemController.getValidProjects(new String[] { "ssb", "SSB" });
+        validProjectList = nSystemController.getValidProjects(new String[] {}, true);
+        Assert.assertEquals(projectInstanceList.size(), validProjectList.size());
 
-        thrown.expect(KylinException.class);
-        nSystemController.getValidProjects(new String[] { "ssb1" });
+        validProjectList = nSystemController.getValidProjects(new String[] { "SSB" }, false);
+        Assert.assertEquals(1, validProjectList.size());
+
+        validProjectList = nSystemController.getValidProjects(new String[] { "SSB" }, true);
+        Assert.assertEquals(0, validProjectList.size());
+
+        validProjectList = nSystemController.getValidProjects(new String[] { "ssb1" }, false);
+        Assert.assertEquals(0, validProjectList.size());
+
+        validProjectList = nSystemController.getValidProjects(new String[] { "ssb1" }, true);
+        Assert.assertEquals(0, validProjectList.size());
 
         nSystemController.setAclEvaluate(sourceValue);
     }

@@ -90,7 +90,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FILE_CONTE
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_EMAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
 
 @Controller
@@ -230,26 +229,27 @@ public class NSystemController extends NBasicController {
     }
 
     @VisibleForTesting
-    public List<String> getValidProjects(String[] projects) {
+    public List<String> getValidProjects(String[] projects, boolean exactMatch) {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<ProjectInstance> availableProjects = projectManager.listAllProjects().stream()
+                .filter(aclEvaluate::hasProjectAdminPermission).collect(Collectors.toList());
 
-        List<ProjectInstance> projectInstanceList = Lists.newArrayList();
+        List<ProjectInstance> projectInstanceList;
         if (0 == projects.length) {
-            projectInstanceList.addAll(projectManager.listAllProjects());
+            projectInstanceList = availableProjects;
         } else {
-            for (String project : projects) {
-                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(project);
-                if (null == projectInstance) {
-                    throw new KylinException(INVALID_PROJECT_NAME,
-                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            projectInstanceList = availableProjects.stream().filter(projectInstance -> {
+                for (String projectName : projects) {
+                    if (exactMatch ? projectInstance.getName().equals(projectName)
+                            : projectInstance.getName().toUpperCase().contains(projectName.toUpperCase())) {
+                        return true;
+                    }
                 }
-
-                projectInstanceList.add(projectInstance);
-            }
+                return false;
+            }).collect(Collectors.toList());
         }
 
-        return projectInstanceList.stream().filter(aclEvaluate::hasProjectAdminPermission).map(ProjectInstance::getName)
-                .collect(Collectors.toList());
+        return projectInstanceList.stream().map(ProjectInstance::getName).collect(Collectors.toList());
     }
 
     @ApiOperation(value = "get license monitor info with detail")
@@ -257,11 +257,12 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<LicenseInfoWithDetailsResponse> getLicenseMonitorInfoWithDetail(
             @RequestParam(value = "project_names", required = false, defaultValue = "") String[] projectNames,
+            @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        List<String> argProjects = getValidProjects(projectNames);
+        List<String> argProjects = getValidProjects(projectNames, exactMatch);
         LicenseInfoWithDetailsResponse result;
         if (CollectionUtils.isEmpty(argProjects)) {
             result = new LicenseInfoWithDetailsResponse(0, Lists.newArrayList());
