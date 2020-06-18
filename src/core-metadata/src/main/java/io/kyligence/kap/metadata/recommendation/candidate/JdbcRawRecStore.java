@@ -238,7 +238,7 @@ public class JdbcRawRecStore {
             save(recItemsToAdd);
         }
         if (!recItemsToUpdate.isEmpty()) {
-            save(recItemsToUpdate);
+            update(recItemsToUpdate);
         }
     }
 

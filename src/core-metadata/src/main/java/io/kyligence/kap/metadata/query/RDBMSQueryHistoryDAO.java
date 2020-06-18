@@ -32,11 +32,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -44,9 +39,14 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.val;
 
 @NoArgsConstructor
 public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
@@ -65,7 +65,9 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     protected static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
     protected static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
     protected static final String DELETE_QUERY_HISTORY_SQL_FORMAT = "delete from %s where query_time < ? ";
-    protected static final String QUERY_HISTORY_BY_ID_SQL_FORMAT = "SELECT * FROM %s WHERE id > ? and query_time < %s limit %s";
+    protected static final String QUERY_HISTORY_BY_ID_SQL_FORMAT = "SELECT * FROM %s WHERE id > ? and query_time < %s and project_name = ? limit %s";
+
+    protected static final String UPDATE_QUERY_HISTORY_INFO_SQL_FORMAT = "update %s set reserved_field_3 = ? where id = ?";
 
     private static final long RETAIN_TIME = 30;
     protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time as time,id FROM %s ORDER BY id DESC limit 1 OFFSET %s";
@@ -141,7 +143,12 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         jdbcTemplate.update(String.format(DELETE_QUERY_HISTORY_SQL_FORMAT,
                 this.realizationMetricMeasurement), retainTime);
     }
-    
+
+    public void batchUpdataQueryHistorieInfo(List<Object[]> batchArgs) {
+        jdbcTemplate.batchUpdate(String.format(UPDATE_QUERY_HISTORY_INFO_SQL_FORMAT, this.queryMetricMeasurement),
+                batchArgs);
+    }
+
     public static long getRetainTime() {
         return new Date(System.currentTimeMillis() - RETAIN_TIME * 86400000L).getTime();
     }
@@ -161,10 +168,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
                         startTime, endTime, project));
     }
 
-    public List<QueryHistory> getQueryHistoriesById(long idOffset, int batchSize) {
+    public List<QueryHistory> getQueryHistoriesById(long idOffset, int batchSize, String project) {
         return JDBCResultMapper
                 .queryHistoryResultMapper(jdbcTemplate.queryForList(String.format(QUERY_HISTORY_BY_ID_SQL_FORMAT,
-                        this.queryMetricMeasurement, System.currentTimeMillis(), batchSize), idOffset));
+                        this.queryMetricMeasurement, System.currentTimeMillis(), batchSize), idOffset, project));
     }
 
     public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset, String project) {

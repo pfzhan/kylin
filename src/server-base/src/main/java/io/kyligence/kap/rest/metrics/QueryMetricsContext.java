@@ -27,8 +27,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
@@ -165,13 +168,14 @@ public class QueryMetricsContext extends QueryMetrics {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        QueryHistory.RecordInfo recordInfo = new QueryHistory.RecordInfo(context.getMetrics().getExactlyMatch(),
-                context.getMetrics().getSegCount());
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().getExactlyMatch(),
+                context.getMetrics().getSegCount(),
+                Objects.nonNull(this.errorType) && this.errorType != QueryHistory.NO_REALIZATION_FOUND_ERROR);
         try {
-            this.recordInfo = JsonUtil.writeValueAsString(recordInfo);
-        } catch (Exception e) {
-            logger.info("Fail to collect query record info");
-            this.recordInfo = "";
+            this.queryHistoryInfo = JsonUtil.writeValueAsString(queryHistoryInfo);
+        } catch (JsonProcessingException e) {
+            logger.error("Fail to collect query history info", e);
+            this.queryHistoryInfo = "";
         }
     }
 

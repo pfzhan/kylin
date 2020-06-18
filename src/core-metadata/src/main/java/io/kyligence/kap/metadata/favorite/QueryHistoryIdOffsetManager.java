@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.favorite;
 
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -31,6 +33,8 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
 public class QueryHistoryIdOffsetManager {
 
@@ -43,32 +47,40 @@ public class QueryHistoryIdOffsetManager {
     private ResourceStore resourceStore;
     private String resourceRootPath;
 
-    private QueryHistoryIdOffsetManager(KylinConfig kylinConfig) {
-        logger.info("Initializing QueryHistoryTimeOffsetManager with KylinConfig Id: {} ",
-                System.identityHashCode(kylinConfig));
+    private QueryHistoryIdOffsetManager(KylinConfig kylinConfig, String project) {
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing QueryHistoryIdOffsetManager with KylinConfig Id: {} for project {}",
+                    System.identityHashCode(kylinConfig), project);
         this.kylinConfig = kylinConfig;
         resourceStore = ResourceStore.getKylinMetaStore(this.kylinConfig);
-        this.resourceRootPath = ResourceStore.QUERY_HISTORY_ID_OFFSET;
+        this.resourceRootPath = "/" + project + ResourceStore.QUERY_HISTORY_ID_OFFSET;
     }
 
-    public static QueryHistoryIdOffsetManager getInstance(KylinConfig kylinConfig) {
-        return kylinConfig.getManager(QueryHistoryIdOffsetManager.class);
+    // called by reflection
+    static QueryHistoryIdOffsetManager newInstance(KylinConfig config, String project) {
+        return new QueryHistoryIdOffsetManager(config, project);
     }
 
-    private String path() {
-        return this.resourceRootPath + MetadataConstants.FILE_SURFIX;
+    public static QueryHistoryIdOffsetManager getInstance(KylinConfig kylinConfig, String project) {
+        return kylinConfig.getManager(project, QueryHistoryIdOffsetManager.class);
+    }
+
+    private String path(String uuid) {
+        return this.resourceRootPath + "/" + uuid + MetadataConstants.FILE_SURFIX;
     }
 
     public void save(QueryHistoryIdOffset idOffset) {
-        resourceStore.checkAndPutResource(path(), idOffset, QUERY_HISTORY_ID_OFFSET_SERIALIZER);
+        resourceStore.checkAndPutResource(path(idOffset.getUuid()), idOffset, QUERY_HISTORY_ID_OFFSET_SERIALIZER);
     }
 
     public QueryHistoryIdOffset get() {
-        QueryHistoryIdOffset queryHistoryIdOffset = resourceStore.getResource(path(), QUERY_HISTORY_ID_OFFSET_SERIALIZER);
-        if (queryHistoryIdOffset == null) {
-            return new QueryHistoryIdOffset(0);
+        List<QueryHistoryIdOffset> queryHistoryIdOffsetList = resourceStore.getAllResources(resourceRootPath,
+                QUERY_HISTORY_ID_OFFSET_SERIALIZER);
+        if (queryHistoryIdOffsetList.isEmpty()) {
+            QueryHistoryIdOffset queryHistoryIdOffset = new QueryHistoryIdOffset(0);
+            return queryHistoryIdOffset;
         }
 
-        return queryHistoryIdOffset;
+        return queryHistoryIdOffsetList.get(0);
     }
 }

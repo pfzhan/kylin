@@ -25,7 +25,6 @@
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -34,7 +33,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @SuppressWarnings("serial")
@@ -207,23 +205,6 @@ public class QueryHistory {
         }
 
         return realizations;
-    }
-
-    RecordInfo recordInfo;
-
-    @Setter
-    @Getter
-    @NoArgsConstructor
-    public static class RecordInfo {
-
-        private Boolean exactMatch;
-        private Integer segmentNum;
-        private String status;
-
-        public RecordInfo(Boolean exactMatch, Integer segmentNum) {
-            this.exactMatch = Objects.isNull(exactMatch) ? true : exactMatch;
-            this.segmentNum = Objects.isNull(segmentNum) ? 0 : segmentNum;
-        }
     }
 
     public enum EngineType {

@@ -95,6 +95,7 @@ public class RealizationChooser {
 
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
+        boolean exactlyMatch = true;
         // try different model for different context
         for (OLAPContext ctx : contexts) {
             if (ctx.isConstantQueryWithAggregations())
@@ -106,9 +107,10 @@ public class RealizationChooser {
 
             if (IndexEntity.isAggIndex(ctx.storageContext.getCandidate().getCuboidLayout().getId())
                     && !ctx.isExactlyAggregate()) {
-                QueryContext.current().getMetrics().setExactlyMatch(false);
+                exactlyMatch = false;
             }
         }
+        QueryContext.current().getMetrics().setExactlyMatch(exactlyMatch);
     }
 
     @VisibleForTesting

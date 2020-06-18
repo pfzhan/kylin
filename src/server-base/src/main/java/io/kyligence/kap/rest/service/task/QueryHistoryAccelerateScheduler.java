@@ -26,38 +26,44 @@ package io.kyligence.kap.rest.service.task;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ArrayListMultimap;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.RawRecommendationService;
 import lombok.Data;
+import lombok.Getter;
 import lombok.val;
 
 public class QueryHistoryAccelerateScheduler {
@@ -65,27 +71,38 @@ public class QueryHistoryAccelerateScheduler {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccelerateScheduler.class);
 
     private ScheduledExecutorService queryHistoryAccelerateScheduler;
-    private ExecutorService projectQueryHistoryAccelerateService;
     private boolean hasStarted;
+    RDBMSQueryHistoryDAO queryHistoryDAO;
+    @Getter
+    private String project;
+    private long epochId;
 
-    public QueryHistoryAccelerateScheduler() {
-        logger.debug("New QueryHistoryAccelerateScheduler created");
+    private static final Map<String, QueryHistoryAccelerateScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
+
+    public QueryHistoryAccelerateScheduler(String project) {
+        this.project = project;
+        logger.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
-    public static QueryHistoryAccelerateScheduler getInstance() {
-        return new QueryHistoryAccelerateScheduler();
+    public static QueryHistoryAccelerateScheduler getInstance(String project) {
+        return INSTANCE_MAP.computeIfAbsent(project, QueryHistoryAccelerateScheduler::new);
     }
 
     public void init() {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            this.epochId = projectInstance.getEpoch().getEpochId();
+        }
+
         queryHistoryAccelerateScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("QueryHistoryAccelerateWorker"));
         queryHistoryAccelerateScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(), 0,
-                KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.SECONDS);
+                KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
 
-        projectQueryHistoryAccelerateService = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<Runnable>(), new NamedThreadFactory("ProjectQueryHistoryAccelerateWorker"));
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
         hasStarted = true;
-        logger.info("Query history accelerate scheduler is started");
+        logger.info("Query history accelerate scheduler is started for [{}] ", project);
     }
 
     public Future scheduleImmediately() {
@@ -105,6 +122,18 @@ public class QueryHistoryAccelerateScheduler {
         }
     }
 
+    public static synchronized void shutdownByProject(String project) {
+        val instance = getInstanceByProject(project);
+        if (instance != null) {
+            INSTANCE_MAP.remove(project);
+            instance.shutdown();
+        }
+    }
+
+    private static synchronized QueryHistoryAccelerateScheduler getInstanceByProject(String project) {
+        return INSTANCE_MAP.get(project);
+    }
+
     public class QueryHistoryAccelerateRunner implements Runnable {
 
         public QueryHistoryAccelerateRunner() {
@@ -113,17 +142,21 @@ public class QueryHistoryAccelerateScheduler {
 
         @Override
         public void run() {
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                shutdownByProject(project);
+                return;
+            }
+
             QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                    .getInstance(KylinConfig.getInstanceFromEnv()).get();
-            RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
 
             int accelerateBatchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
             int accelerateMaxSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
             int acceleratedCounts = 0;
 
             while (true) {
-                List<QueryHistory> queryHistories = queryHistoryDAO
-                        .getQueryHistoriesById(queryHistoryIdOffset.getQueryHistoryIdOffset(), accelerateBatchSize);
+                List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesById(
+                        queryHistoryIdOffset.getQueryHistoryIdOffset(), accelerateBatchSize, project);
                 acceleratedCounts = acceleratedCounts + queryHistories.size();
                 accelerateAndUpdateMetadata(queryHistories);
                 if (queryHistories.size() < accelerateBatchSize || acceleratedCounts >= accelerateMaxSize) {
@@ -133,19 +166,6 @@ public class QueryHistoryAccelerateScheduler {
         }
 
         private void accelerateAndUpdateMetadata(List<QueryHistory> queryHistories) {
-            ArrayListMultimap<String, QueryHistory> queryHistoryMap = ArrayListMultimap.create();
-            for (QueryHistory queryHistory : queryHistories) {
-                queryHistoryMap.put(queryHistory.getProjectName(), queryHistory);
-            }
-
-            for (String project : queryHistoryMap.keySet()) {
-                projectQueryHistoryAccelerateService.execute(() -> {
-                    accelerateAndUpdateMetadata(project, queryHistoryMap.get(project));
-                });
-            }
-        }
-
-        private void accelerateAndUpdateMetadata(String project, List<QueryHistory> queryHistories) {
             if (CollectionUtils.isEmpty(queryHistories)) {
                 return;
             }
@@ -153,29 +173,45 @@ public class QueryHistoryAccelerateScheduler {
             int overallQueryNum = 0;
 
             Map<String, Long> modelsLastQueryTime = Maps.newHashMap();
-            val dfHitCountMap = collectDataflowHitCount(queryHistories, project);
+            val dfHitCountMap = collectDataflowHitCount(queryHistories);
             for (QueryHistory queryHistory : queryHistories) {
                 overallQueryNum++;
                 collectModelLastQueryTime(queryHistory, modelsLastQueryTime);
 
-                if (queryHistory.getEngineType().equals(QueryHistory.EngineType.NATIVE.name())) {
+                String engineType = queryHistory.getEngineType();
+                if (Objects.nonNull(engineType) && engineType.equals(QueryHistory.EngineType.NATIVE.name())) {
                     numOfQueryHitIndex++;
                 }
             }
 
-            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, queryHistories,
-                    project);
+            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, queryHistories);
 
             // accelerate
             AccelerateRuleUtil accelerateRuleUtil = new AccelerateRuleUtil();
-            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories);
+            List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos = Lists.newArrayList();
+            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories, queryHistoryInfos);
+            updateQueryHistoryInfo(queryHistoryInfos);
             RawRecommendationService rawRecommendation = new RawRecommendationService();
             rawRecommendation.generateRawRecommendations(project, matchedCandidate);
         }
 
+        private void updateQueryHistoryInfo(List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos) {
+            List<Object[]> batchArgs = Lists.newArrayList();
+            queryHistoryInfos.forEach(pair -> {
+                String qhInfo = "";
+                try {
+                    qhInfo = JsonUtil.writeValueAsString(pair.getSecond());
+                } catch (JsonProcessingException e) {
+                    logger.error("Fail to parse query history info", e);
+                }
+                batchArgs.add(new Object[] { qhInfo.getBytes(), pair.getFirst(), });
+            });
+            queryHistoryDAO.batchUpdataQueryHistorieInfo(batchArgs);
+        }
+
         private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,
                 Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime,
-                List<QueryHistory> queryHistories, String project) {
+                List<QueryHistory> queryHistories) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -193,16 +229,15 @@ public class QueryHistoryAccelerateScheduler {
 
                 // update id offset
                 QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                        .getInstance(KylinConfig.getInstanceFromEnv()).get();
+                        .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
                 long idOffset = queryHistoryIdOffset.getQueryHistoryIdOffset();
                 queryHistoryIdOffset.setQueryHistoryIdOffset(idOffset + queryHistories.size());
-                QueryHistoryIdOffsetManager.getInstance(config).save(queryHistoryIdOffset);
+                QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
                 return 0;
             }, project);
         }
 
-        private Map<String, DataflowHitCount> collectDataflowHitCount(List<QueryHistory> queryHistories,
-                String project) {
+        private Map<String, DataflowHitCount> collectDataflowHitCount(List<QueryHistory> queryHistories) {
             val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val result = Maps.<String, DataflowHitCount> newHashMap();
             for (QueryHistory queryHistory : queryHistories) {

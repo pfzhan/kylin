@@ -88,7 +88,7 @@ public class QueryMetrics {
 
     protected String defaultServer;
 
-    protected String recordInfo;
+    protected String queryHistoryInfo;
 
     // not a column in query history table,
     protected List<RealizationMetrics> realizationMetrics = new ArrayList<>();

@@ -126,7 +126,7 @@ public class RDBMSWriter implements MetricWriter {
                 metrics.isCacheHit(), metrics.getQueryStatus(), metrics.isIndexHit(), metrics.getQueryTime(),
                 metrics.getMonth(), metrics.getQueryFirstDayOfMonth(), metrics.getQueryFirstDayOfWeek(),
                 metrics.getQueryDay(), metrics.isTableIndexUsed(), metrics.isAggIndexUsed(), metrics.isTableIndexUsed(),
-                metrics.getProjectName(), metrics.getRecordInfo().getBytes());
+                metrics.getProjectName(), metrics.getQueryHistoryInfo().getBytes());
 
         // write to query history realization
         List<QueryMetrics.RealizationMetrics> realizationMetrics = metrics.getRealizationMetrics();
@@ -151,7 +151,7 @@ public class RDBMSWriter implements MetricWriter {
                     queryMetrics.isIndexHit(), queryMetrics.getQueryTime(), queryMetrics.getMonth(),
                     queryMetrics.getQueryFirstDayOfMonth(), queryMetrics.getQueryFirstDayOfWeek(),
                     queryMetrics.getQueryDay(), queryMetrics.isTableIndexUsed(), queryMetrics.isAggIndexUsed(),
-                    queryMetrics.isTableIndexUsed(), queryMetrics.getProjectName(), queryMetrics.getRecordInfo().getBytes() });
+                    queryMetrics.isTableIndexUsed(), queryMetrics.getProjectName(), queryMetrics.getQueryHistoryInfo().getBytes() });
         }
         jdbcTemplate.batchUpdate(String.format(INSERT_HISTORY_SQL, getQueryHistoryTableName()), queryHistoryList);
 

@@ -49,7 +49,7 @@ public class JDBCResultMapper {
         List<QueryHistory> queryHistoryList = Lists.newArrayList();
         for (Map<String, Object> rowMap : rdbmsResultBySql) {
             QueryHistory queryHistory = new QueryHistory();
-            queryHistory.setId((Long) rowMap.get(QueryHistory.ID));
+            queryHistory.setId(Long.parseLong(rowMap.get(QueryHistory.ID).toString()));
             queryHistory.setQueryId((String) rowMap.get(QueryHistory.QUERY_ID));
             queryHistory.setSql((String) rowMap.get(QueryHistory.SQL_TEXT));
             queryHistory.setSqlPattern((String) rowMap.get(QueryHistory.SQL_PATTERN));
@@ -67,7 +67,7 @@ public class JDBCResultMapper {
             queryHistory.setIndexHit((Boolean) rowMap.get(QueryHistory.IS_INDEX_HIT));
             queryHistory.setQueryTime((Long) rowMap.get(QueryHistory.QUERY_TIME));
             queryHistory.setProjectName((String) rowMap.get(QueryHistory.PROJECT_NAME));
-            queryHistory.setRecordInfo(readRecordInfo(rowMap));
+            queryHistory.setQueryHistoryInfo(readRecordInfo(rowMap));
 
             queryHistoryList.add(queryHistory);
         }
@@ -123,11 +123,11 @@ public class JDBCResultMapper {
         return queryStatisticsList;
     }
 
-    public static QueryHistory.RecordInfo readRecordInfo(Map<String, Object> rowMap) {
+    public static QueryHistoryInfo readRecordInfo(Map<String, Object> rowMap) {
         if (rowMap.get(QueryHistory.RESERVED_FIELD_3) != null) {
-            byte[] recordInfo = (byte[]) rowMap.get(QueryHistory.RESERVED_FIELD_3);
+            byte[] queryHistoryInfo = (byte[]) rowMap.get(QueryHistory.RESERVED_FIELD_3);
             try {
-                return JsonUtil.readValue(recordInfo, QueryHistory.RecordInfo.class);
+                return JsonUtil.readValue(queryHistoryInfo, QueryHistoryInfo.class);
             } catch (IOException e) {
                 logger.error("Fail to read query history record info", e);
             }

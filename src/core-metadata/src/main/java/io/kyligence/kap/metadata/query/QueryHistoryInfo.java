@@ -24,15 +24,29 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.util.Objects;
+
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Data
+@Setter
+@Getter
+@NoArgsConstructor
 public class QueryHistoryInfo {
     private boolean exactlyMatch;
-    private String user;
     private int scanSegmentNum;
     private HistoryState state;
     private boolean executionError;
+
+    public QueryHistoryInfo(Boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
+        this.exactlyMatch = Objects.isNull(exactlyMatch) ? false : exactlyMatch;
+        this.scanSegmentNum = Objects.isNull(scanSegmentNum) ? 0 : scanSegmentNum;
+        this.executionError = executionError;
+        this.state = HistoryState.PENDING;
+    }
 
     public enum HistoryState {
         PENDING(0, "pending"), SUCCESS(1, "success"), FAILED(2, "failed");

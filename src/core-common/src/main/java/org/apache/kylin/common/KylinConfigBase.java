@@ -1949,8 +1949,9 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-max-size", "100000"));
     }
 
-    public int getQueryHistoryAccelerateInterval() {
-        return Integer.parseInt(this.getOptional("kylin.favorite.query-history-accelerate-interval-minutes", "60")) * 60;
+    public long getQueryHistoryAccelerateInterval() {
+        return TimeUtil.timeStringAs(this.getOptional("kylin.favorite.query-history-accelerate-interval", "60m"),
+                TimeUnit.MINUTES);
     }
 
     public Boolean isSparderAsync() {

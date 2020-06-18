@@ -27,11 +27,14 @@ package io.kyligence.kap.metadata.favorite;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import lombok.var;
 
@@ -73,9 +76,20 @@ public class AccelerateRuleUtil {
         }
     }
 
-    public List<QueryHistory> findMatchedCandidate(String project, List<QueryHistory> queryHistories) {
-        return queryHistories.stream().filter(qh -> matchCustomerRule(qh, project)).filter(qh -> matchInternalRule(qh))
-                .collect(Collectors.toList());
+    public List<QueryHistory> findMatchedCandidate(String project, List<QueryHistory> queryHistories,
+            List<Pair<Long, QueryHistoryInfo>> batchArgs) {
+        List<QueryHistory> candidate = Lists.newArrayList();
+        for (QueryHistory qh : queryHistories) {
+            QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
+            if (matchCustomerRule(qh, project) && matchInternalRule(qh)) {
+                queryHistoryInfo.setState(QueryHistoryInfo.HistoryState.SUCCESS);
+                candidate.add(qh);
+            } else {
+                queryHistoryInfo.setState(QueryHistoryInfo.HistoryState.FAILED);
+            }
+            batchArgs.add(new Pair<>(qh.getId(), queryHistoryInfo));
+        }
+        return candidate;
     }
 
     private boolean matchInternalRule(QueryHistory queryHistory) {
