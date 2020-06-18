@@ -224,6 +224,10 @@ public abstract class SparkApplication implements Application, IKeep {
         extraInfo.put("yarn_app_id", applicationId);
         try {
             String trackingUrl = getTrackingUrl(cm, applicationId);
+            if (StringUtils.isBlank(trackingUrl)) {
+              logger.warn("Get tracking url of application {}, but empty url found.", applicationId);
+              return extraInfo;
+            }
             if (ipAddressPreferred) {
                 trackingUrl = tryReplaceHostAddress(trackingUrl);
             }

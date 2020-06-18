@@ -45,9 +45,7 @@ class CapacitySchedulerParser extends SchedulerParser {
     var resource = AvailableResource(totalResource.percentage(min), totalResource.percentage(queueMax))
 
     try {
-      val queueStatistics = KylinBuildEnv.get.clusterManager.fetchQueueStatistics(queueName)
-      val queueAvailableRes = ResourceInfo(queueStatistics.getAvailableMemoryMB.toInt,
-        queueStatistics.getAvailableVCores.toInt)
+      val queueAvailableRes = KylinBuildEnv.get.clusterManager.fetchQueueStatistics(queueName)
       resource = AvailableResource(queueAvailableRes, totalResource.percentage(queueMax))
     } catch {
       case e: Error =>

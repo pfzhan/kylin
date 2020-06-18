@@ -24,9 +24,9 @@ package io.kyligence.kap.cluster
 
 import java.util
 
-import org.apache.hadoop.yarn.api.records.{QueueStatistics, Resource}
+import io.kyligence.kap.common.obf.IKeep
 
-trait IClusterManager {
+trait IClusterManager extends IKeep {
   def fetchMaximumResourceAllocation: ResourceInfo
 
   def fetchQueueAvailableResource(queueName: String): AvailableResource
@@ -37,14 +37,11 @@ trait IClusterManager {
 
   def getRunningJobs(queues: util.Set[String]): util.List[String]
 
-  def fetchQueueStatistics(queueName: String): QueueStatistics
+  def fetchQueueStatistics(queueName: String): ResourceInfo
 }
 
 // memory unit is MB
 case class ResourceInfo(memory: Int, vCores: Int) {
-  def this(res: Resource) {
-    this(res.getMemory, res.getVirtualCores)
-  }
 
   def reduceMin(other: ResourceInfo): ResourceInfo = {
     ResourceInfo(Math.min(this.memory, other.memory), Math.min(this.vCores, other.vCores))
