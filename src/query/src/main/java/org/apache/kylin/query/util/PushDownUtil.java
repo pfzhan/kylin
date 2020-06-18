@@ -234,7 +234,7 @@ public class PushDownUtil {
         String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
         Pair<String, String> result = new Pair<>();
         // pushdown
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
+        List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
 
         if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
             throw new BadRequestException(String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
@@ -252,15 +252,22 @@ public class PushDownUtil {
             return false;
     }
 
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql,
-            String project) throws Exception {
+    /**
+     * Use push down engine to select partition column
+     *
+     * @param sql         sql to select partition column
+     * @param project     project name
+     * @return            query results and meta data pair
+     * @throws Exception
+     */
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String project) throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 
         // pushdown
         IPushDownRunner runner = (IPushDownRunner) ClassUtil
-                .newInstance(kylinConfig.getPushDownRunnerClassNameWithDefaultValue());
+                .newInstance(kylinConfig.getPartitionCheckRunnerClassNameWithDefaultValue());
         runner.init(kylinConfig);
         runner.executeQuery(sql, returnRows, returnColumnMeta, project);
 
@@ -279,7 +286,7 @@ public class PushDownUtil {
                 partitionColumn);
 
         // push down
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
+        List<List<String>> returnRows = PushDownUtil.selectPartitionColumn(sql, project).getFirst();
         if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
             throw new KylinException(EMPTY_TABLE, String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 

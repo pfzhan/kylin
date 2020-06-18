@@ -1334,6 +1334,18 @@ public abstract class KylinConfigBase implements Serializable {
                 new String[] { "org.apache.kylin.source.adhocquery.HivePushDownConverter" });
     }
 
+    public String getPartitionCheckRunnerClassName() {
+        return getOptional("kylin.query.pushdown.partition-check.runner-class-name", "");
+    }
+
+    public String getPartitionCheckRunnerClassNameWithDefaultValue() {
+        String partitionCheckRunner = getPartitionCheckRunnerClassName();
+        if (StringUtils.isEmpty(partitionCheckRunner)) {
+            partitionCheckRunner = "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl";
+        }
+        return partitionCheckRunner;
+    }
+
     public boolean isPushdownQueryCacheEnabled() {
         // KAP#12784 disable all push-down caches, even if the pushdown result is cached, it won't be used
         // Thus this config is set to FALSE by default
