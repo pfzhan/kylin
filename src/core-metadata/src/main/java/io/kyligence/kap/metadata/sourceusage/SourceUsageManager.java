@@ -414,8 +414,8 @@ public class SourceUsageManager {
                         }
                     }
                     resourceStore.checkAndPutResource(resPath, record, SOURCE_USAGE_SERIALIZER);
+                    usageRecord.setCapacityNotification(record.isCapacityNotification());
                 }
-                usageRecord.setCapacityNotification(record.isCapacityNotification());
                 return 0;
             }, GLOBAL, 1);
         } catch (Exception e) {
