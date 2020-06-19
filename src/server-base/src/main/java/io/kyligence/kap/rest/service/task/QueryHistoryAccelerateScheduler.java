@@ -61,7 +61,7 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.rest.service.RawRecommendationService;
+import io.kyligence.kap.rest.service.RawRecService;
 import lombok.Data;
 import lombok.Getter;
 import lombok.val;
@@ -142,7 +142,8 @@ public class QueryHistoryAccelerateScheduler {
 
         @Override
         public void run() {
-            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv()
+                    && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
                 shutdownByProject(project);
                 return;
             }
@@ -189,9 +190,10 @@ public class QueryHistoryAccelerateScheduler {
             // accelerate
             AccelerateRuleUtil accelerateRuleUtil = new AccelerateRuleUtil();
             List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos = Lists.newArrayList();
-            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories, queryHistoryInfos);
+            List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
+                    queryHistoryInfos);
             updateQueryHistoryInfo(queryHistoryInfos);
-            RawRecommendationService rawRecommendation = new RawRecommendationService();
+            RawRecService rawRecommendation = new RawRecService();
             rawRecommendation.generateRawRecommendations(project, matchedCandidate);
         }
 

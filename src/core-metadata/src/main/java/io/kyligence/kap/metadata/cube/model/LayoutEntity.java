@@ -353,4 +353,14 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         return isDraft() && this.draftVersion.equals(draftVersion);
     }
 
+    public String genUniqueFlag() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append("colOrder=").append(getColOrder().toString());
+        sb.append(",sortCols=").append(getSortByColumns().toString());
+        sb.append(",shardCols=").append(getShardByColumns().toString());
+        sb.append("}");
+        return sb.toString();
+    }
+
 }

@@ -222,7 +222,7 @@ class IndexSuggester {
         item.setLayout(layout);
         item.setCreateTime(System.currentTimeMillis());
         item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
-        modelContext.getIndexRexItemMap().putIfAbsent(layout.getColOrder(), item);
+        modelContext.getIndexRexItemMap().putIfAbsent(layout.genUniqueFlag(), item);
     }
 
     private boolean isQualifiedSuggestShardBy(OLAPContext context) {

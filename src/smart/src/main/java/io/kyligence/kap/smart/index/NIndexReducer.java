@@ -97,7 +97,7 @@ class NIndexReducer extends NAbstractIndexProposer {
             return;
         }
         redundantToReserveMap.forEach((redundant, reserved) -> {
-            context.getIndexRexItemMap().remove(redundant.getColOrder());
+            context.getIndexRexItemMap().remove(redundant.genUniqueFlag());
         });
     }
 

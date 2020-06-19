@@ -57,7 +57,7 @@ import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -70,7 +70,7 @@ public class OptimizeRecommendationManagerV2 {
     private class CCConflictHandlerV2 extends ComputedColumnUtil.BasicCCConflictHandler {
         @Override
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                             ComputedColumnDesc newCC) {
+                ComputedColumnDesc newCC) {
             //TODO
             // throw kylin exception
             throw new IllegalStateException("cc name " + newCC.getColumnName()
@@ -79,7 +79,7 @@ public class OptimizeRecommendationManagerV2 {
 
         @Override
         public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,
-                                             ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
+                ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
             //TODO
             // throw kylin exception
             throw new IllegalStateException(
@@ -146,7 +146,7 @@ public class OptimizeRecommendationManagerV2 {
     private KylinConfig config;
     private String project;
 
-    private RawRecommendationManager rawRecommendationManager;
+    private RawRecManager rawRecManager;
 
     private CachedCrudAssist<OptimizeRecommendationV2> crud;
 
@@ -158,7 +158,7 @@ public class OptimizeRecommendationManagerV2 {
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION_V2;
-        this.rawRecommendationManager = RawRecommendationManager.getInstance(config, project);
+        this.rawRecManager = RawRecManager.getInstance(config, project);
         this.crud = new CachedCrudAssist<OptimizeRecommendationV2>(getStore(), resourceRootPath,
                 OptimizeRecommendationV2.class) {
             @Override
@@ -392,7 +392,7 @@ public class OptimizeRecommendationManagerV2 {
     }
 
     public RawRecItem getRawRecItem(int rawId) {
-        return rawRecommendationManager.queryById(rawId);
+        return rawRecManager.queryById(rawId);
     }
 
 }

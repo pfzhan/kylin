@@ -61,6 +61,7 @@ public class RawRecStoreUtil {
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String tableName)
             throws IOException, SQLException {
         if (sqlSessionFactory == null) {
+            log.info("Start to build SqlSessionFactory");
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
             Environment environment = new Environment("raw recommendation", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);

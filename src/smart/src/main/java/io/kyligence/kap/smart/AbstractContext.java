@@ -129,7 +129,7 @@ public abstract class AbstractContext {
         @Setter
         private Map<String, MeasureRecItemV2> measureRecItemMap = Maps.newHashMap();
         @Setter
-        private Map<List<Integer>, LayoutRecItemV2> indexRexItemMap = Maps.newHashMap();
+        private Map<String, LayoutRecItemV2> indexRexItemMap = Maps.newHashMap();
 
         @Setter
         private boolean snapshotSelected;

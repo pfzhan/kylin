@@ -38,10 +38,11 @@ public class RawRecSelection {
     private KylinConfig config;
 
     private RawRecSelection(KylinConfig config) {
+        this.config = config;
     }
 
-    public List<RawRecItem> selectBestLayout(int topn, String model, String project, int semanticVersion) {
-        return getStrategy().getBestRecItemByModel(topn, project, model, semanticVersion);
+    public List<RawRecItem> selectBestLayout(int topn, String model, String project) {
+        return getStrategy().getBestRecItemByModel(topn, project, model);
     }
 
     public RecSelectStrategy getStrategy() {

@@ -62,7 +62,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import lombok.val;
 import lombok.var;
 
@@ -73,7 +73,7 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
     protected NDataflowManager dataflowManager;
     protected OptimizeRecommendationManager recommendationManager;
     protected OptimizeRecommendationManagerV2 recommendationManagerV2;
-    protected RawRecommendationManager rawRecommendationManager = Mockito.mock(RawRecommendationManager.class);
+    protected RawRecManager rawRecManager = Mockito.mock(RawRecManager.class);
     protected String projectDefault = "default";
     protected String modelTest = "model_test";
     protected String ownerTest = "owner_test";
@@ -95,9 +95,9 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
         filed.setAccessible(true);
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
                 .get(getTestConfig());
-        managersByPrjCache.put(RawRecommendationManager.class, new ConcurrentHashMap<>());
-        managersByPrjCache.get(RawRecommendationManager.class).put(projectDefault, rawRecommendationManager);
-        Mockito.doAnswer(answer -> mockRawRecItems.get(answer.getArgument(0))).when(rawRecommendationManager)
+        managersByPrjCache.put(RawRecManager.class, new ConcurrentHashMap<>());
+        managersByPrjCache.get(RawRecManager.class).put(projectDefault, rawRecManager);
+        Mockito.doAnswer(answer -> mockRawRecItems.get(answer.getArgument(0))).when(rawRecManager)
                 .queryById(Mockito.anyInt());
         recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(getTestConfig(), projectDefault);
 

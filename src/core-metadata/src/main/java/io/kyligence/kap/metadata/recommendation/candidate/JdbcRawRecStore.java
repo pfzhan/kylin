@@ -24,8 +24,11 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
+import static org.mybatis.dynamic.sql.SqlBuilder.max;
+import static org.mybatis.dynamic.sql.SqlBuilder.min;
 import static org.mybatis.dynamic.sql.SqlBuilder.select;
 
 import java.util.List;
@@ -136,6 +139,7 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
+                    .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
                     .orderBy(table.cost.descending()) //
                     .limit(topN) //
                     .build().render(RenderingStrategies.MYBATIS3);
@@ -256,27 +260,72 @@ public class JdbcRawRecStore {
     }
 
     public void updateAllCost(String project) {
+        final int batchToUpdate = 1000;
+        final int limit = 1000;
+        long currentTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-            SelectStatementProvider selectProvider = select(Lists.newArrayList(table.cost, table.totalLatencyOfLastDay))
-                    .from(table).where(table.project, isEqualTo(project))
-                    .and(table.state, isEqualTo(RawRecItem.RawRecState.INITIAL)).build()
-                    .render(RenderingStrategies.MYBATIS3);
-            List<RawRecItem> rawRecItems = mapper.selectMany(selectProvider);
-            session.commit();
+            int minId = mapper.selectAsInt(getMinIdProvider());
+            int maxId = mapper.selectAsInt(getMaxIdProvider());
+            log.info("The min and max value of id is ({}, {})", minId, maxId);
 
-            long currentTime = System.currentTimeMillis();
-            rawRecItems.forEach(recItem -> {
-                recItem.setCost((recItem.getCost() + recItem.getTotalLatencyOfLastDay()) / Math.E);
-                recItem.setUpdateTime(currentTime);
-            });
+            List<RawRecItem> oneBatch = Lists.newArrayList();
+            int step = 1000;
+            int i = 0;
+            int totalUpdated = 0;
+            while (oneBatch.size() < batchToUpdate) {
 
-            List<UpdateStatementProvider> providers = Lists.newArrayList();
-            rawRecItems.forEach(item -> providers.add(getUpdateProvider(item)));
-            providers.forEach(mapper::update);
-            session.commit();
-            log.info("update {} raw recommendation(s)", rawRecItems.size());
+                SelectStatementProvider selectProvider = getSelectLayoutProvider(project, limit, minId + step * i);
+                List<RawRecItem> rawRecItems = mapper.selectMany(selectProvider);
+                oneBatch.addAll(rawRecItems);
+                i++;
+                if (oneBatch.size() >= batchToUpdate) {
+                    updateCost(currentTime, session, mapper, oneBatch);
+                    totalUpdated += oneBatch.size();
+                }
+
+                if (minId + step * i > maxId) {
+                    break;
+                }
+            }
+            updateCost(currentTime, session, mapper, oneBatch);
+            totalUpdated += oneBatch.size();
+            log.info("Update the cost of all {} raw recommendation takes {} ms", totalUpdated,
+                    System.currentTimeMillis() - currentTime);
         }
+    }
+
+    private void updateCost(long currentTime, SqlSession session, RawRecItemMapper mapper, List<RawRecItem> oneBatch) {
+        oneBatch.forEach(recItem -> {
+            recItem.setCost((recItem.getCost() + recItem.getTotalLatencyOfLastDay()) / Math.E);
+            recItem.setUpdateTime(currentTime);
+        });
+        List<UpdateStatementProvider> providers = Lists.newArrayList();
+        oneBatch.forEach(item -> providers.add(getUpdateProvider(item)));
+        providers.forEach(mapper::update);
+        session.commit();
+        oneBatch.clear();
+    }
+
+    private SelectStatementProvider getSelectLayoutProvider(String project, int limit, int offset) {
+        return select(getSelectFields(table)) //
+                .from(table).where(table.project, isEqualTo(project)) //
+                .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                .and(table.state, isEqualTo(RawRecItem.RawRecState.INITIAL)) //
+                .limit(limit).offset(offset) //
+                .build().render(RenderingStrategies.MYBATIS3);
+    }
+
+    SelectStatementProvider getMinIdProvider() {
+        return select(min(table.id)).from(table).build().render(RenderingStrategies.MYBATIS3);
+    }
+
+    SelectStatementProvider getMaxIdProvider() {
+        return select(max(table.id)).from(table).build().render(RenderingStrategies.MYBATIS3);
+    }
+
+    SelectStatementProvider getContStarProvider() {
+        return select(count(table.id)).from(table).build().render(RenderingStrategies.MYBATIS3);
     }
 
     SelectStatementProvider getSelectByIdStatementProvider(int id) {

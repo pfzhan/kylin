@@ -40,7 +40,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
-public class RawRecommendationManager {
+public class RawRecManager {
 
     private static final int MAX_CACHED_NUM = 20_000;
     private static final int LAG_SEMANTIC_VERSION = 1;
@@ -53,16 +53,16 @@ public class RawRecommendationManager {
     private BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
 
     // CONSTRUCTOR
-    public static RawRecommendationManager getInstance(KylinConfig kylinConfig, String project) {
-        return kylinConfig.getManager(project, RawRecommendationManager.class);
+    public static RawRecManager getInstance(KylinConfig kylinConfig, String project) {
+        return kylinConfig.getManager(project, RawRecManager.class);
     }
 
     // called by reflection
-    static RawRecommendationManager newInstance(KylinConfig config, String project) throws Exception {
-        return new RawRecommendationManager(config, project);
+    static RawRecManager newInstance(KylinConfig config, String project) throws Exception {
+        return new RawRecManager(config, project);
     }
 
-    private RawRecommendationManager(KylinConfig config, String project) throws Exception {
+    private RawRecManager(KylinConfig config, String project) throws Exception {
         this.project = project;
         this.kylinConfig = config;
         this.jdbcRawRecStore = new JdbcRawRecStore(config);
@@ -99,6 +99,14 @@ public class RawRecommendationManager {
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryByRawRecType(project, model, type, state);
         rawRecItems.forEach(this::updateCache);
         return rawRecItems;
+    }
+
+    public Map<String, RawRecItem> queryLayoutRawRecItems(String model) {
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryByRawRecType(project, model, RawRecItem.RawRecType.LAYOUT,
+                RawRecItem.RawRecState.INITIAL);
+        Map<String, RawRecItem> map = Maps.newHashMap();
+        rawRecItems.forEach(recItem -> map.put(recItem.getUniqueFlag(), recItem));
+        return map;
     }
 
     public List<RawRecItem> getCandidatesByModelAndBenefit(String project, String model, int limit) {

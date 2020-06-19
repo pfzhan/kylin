@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -41,11 +39,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -53,7 +49,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.v2.ColumnRef;
 import io.kyligence.kap.metadata.recommendation.v2.DimensionRef;
 import io.kyligence.kap.metadata.recommendation.v2.LayoutRef;
@@ -212,8 +208,7 @@ public class OptRecService extends BasicService {
             handler.complete();
         });
 
-        RawRecommendationManager rawManager = RawRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
+        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         rawManager.applyRecommendations(rawRecItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
     }
 

@@ -208,7 +208,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             item.setColumn(column);
             item.setDataType(tblColRef.getDatatype());
             item.setCreateTime(System.currentTimeMillis());
-            modelContext.getDimensionRecItemMap().putIfAbsent(uniqueName, item);
+            modelContext.getDimensionRecItemMap().putIfAbsent("d__" + uniqueName, item);
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {

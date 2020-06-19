@@ -81,4 +81,7 @@ public interface RawRecItemMapper {
 
     @UpdateProvider(type = SqlProviderAdapter.class, method = "update")
     int update(UpdateStatementProvider updateStatement);
+
+    @SelectProvider(type = SqlProviderAdapter.class, method = "select")
+    int selectAsInt(SelectStatementProvider selectStatement);
 }

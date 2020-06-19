@@ -55,7 +55,7 @@ public class ScheduleService {
     QueryHistoryService queryHistoryService;
 
     @Autowired
-    RawRecommendationService rawRecommendationService;
+    RawRecService rawRecService;
 
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
@@ -76,7 +76,7 @@ public class ScheduleService {
             favoriteQueryService.adjustFalseAcceleratedFQ();
             favoriteQueryService.generateRecommendation();
             queryHistoryService.cleanQueryHistories();
-            rawRecommendationService.updateCostAndSelectTopRec();
+            rawRecService.updateCostAndSelectTopRec();
 
             logger.info("Finish to work");
         } finally {
