@@ -23,43 +23,8 @@
  */
 package io.kyligence.kap.metadata.sourceusage;
 
-import static io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus.OVERCAPACITY;
-import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAPACITY;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.google.common.collect.Lists;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.common.util.MailHelper;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.RealizationEntry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Maps;
-
+import com.google.common.collect.Sets;
 import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -73,6 +38,40 @@ import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.JsonSerializer;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.MailHelper;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.RealizationEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus.OVERCAPACITY;
+import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAPACITY;
 
 public class SourceUsageManager {
 
@@ -103,7 +102,8 @@ public class SourceUsageManager {
         Map<String, Long> columnSourceBytes = Maps.newHashMap();
         Set<TblColRef> allColumns;
         try {
-            allColumns = new HashSet<>(new NCubeJoinedFlatTableDesc(segment).getAllColumns());
+            List<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(segment).getAllColumns();
+            allColumns = columnRefList.stream().filter(col -> !col.getColumnDesc().isComputedColumn()).collect(Collectors.toSet());
         } catch (Exception e) {
             return columnSourceBytes;
         }
@@ -118,7 +118,7 @@ public class SourceUsageManager {
         }
         long perColumnSize = inputRecordsSize / allColumns.size();
         for (TblColRef tblColRef : allColumns) {
-            columnSourceBytes.put(tblColRef.getIdentity(), perColumnSize);
+            columnSourceBytes.put(tblColRef.getCanonicalName(), perColumnSize);
         }
         segment.setColumnSourceBytes(columnSourceBytes);
         return columnSourceBytes;
@@ -127,8 +127,9 @@ public class SourceUsageManager {
     private Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
         Map<String, Long> dataflowSourceMap = new HashMap<>();
         for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
-            Map<String, Long> segmentSourceMap = MapUtils.isEmpty(segment.getColumnSourceBytes()) ?
-                    calcAvgColumnSourceBytes(segment) : segment.getColumnSourceBytes();
+            Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
+            Map<String, Long> segmentSourceMap = MapUtils.isEmpty(columnSourceBytesMap) ?
+                    calcAvgColumnSourceBytes(segment) : columnSourceBytesMap;
             for (Map.Entry<String, Long> sourceMap : segmentSourceMap.entrySet()) {
                 String column = sourceMap.getKey();
                 Long value = dataflowSourceMap.getOrDefault(column, 0L);
@@ -282,24 +283,26 @@ public class SourceUsageManager {
         Map<String, Long> dataflowColumnsBytes = sumDataflowColumnSourceMap(dataflow);
 
         NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY).get(0);
-        List<TblColRef> allColumns = Lists.newArrayList();
+        Set<TblColRef> allColumns = Sets.newHashSet();
         try {
-            allColumns = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
+            List<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
+            allColumns = columnRefList.stream().filter(col -> !col.getColumnDesc().isComputedColumn()).collect(Collectors.toSet());
         } catch (Exception e) {
             logger.error("Failed to get all columns' TblColRef for segment: {}", dataSegment, e);
             projectDetail.setStatus(CapacityStatus.ERROR);
         }
         for (TblColRef column : allColumns) {
             String tableName = column.getTableRef().getTableIdentity();
+            String columnName = column.getCanonicalName();
             TableCapacityDetail tableDetail = projectDetail.getTableByName(tableName) == null
                     ? new TableCapacityDetail(tableName)
                     : projectDetail.getTableByName(tableName);
-            ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(column.getIdentity()) == null
-                    ? new ColumnCapacityDetail(column.getIdentity())
-                    : tableDetail.getColumnByName(column.getIdentity());
-            long sourceBytes = dataflowColumnsBytes.getOrDefault(column.getIdentity(), -1L);
+            ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(columnName) == null
+                    ? new ColumnCapacityDetail(columnName)
+                    : tableDetail.getColumnByName(columnName);
+            long sourceBytes = dataflowColumnsBytes.getOrDefault(columnName, -1L);
             if (sourceBytes == -1L) {
-                logger.debug("Column: {} calculate failed, set table: {} status to TENTATIVE", column.getName(), tableName);
+                logger.debug("Column: {} calculate failed, set table: {} status to TENTATIVE", columnName, tableName);
                 tableDetail.setStatus(CapacityStatus.TENTATIVE);
             }
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
@@ -343,7 +346,7 @@ public class SourceUsageManager {
                 NDataflow dataflow;
                 try {
                     dataflow = NDataflowManager.getInstance(config, projectName).getDataflow(projectDataModel.getRealization());
-                    if (dataflow != null && !dataflow.getSegments(SegmentStatusEnum.READY).isEmpty()) {
+                    if (!isAllSegmentsEmpty(dataflow)) {
                         calculateTableInProject(dataflow, projectDetail);
                     }
                 } catch (Exception e) {
@@ -381,8 +384,26 @@ public class SourceUsageManager {
             }
         }
         createOrUpdate(usage);
-        logger.info("Updating source usage done: {}", usage);
+        logger.info("Update source usage done: {}", usage);
         return usage;
+    }
+
+    private boolean isAllSegmentsEmpty(NDataflow dataflow) {
+        if (dataflow == null) {
+            return true;
+        }
+        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY);
+        if (segments.isEmpty()) {
+            return true;
+        }
+        boolean isAllEmpty = true;
+        for (NDataSegment segment : segments) {
+            if (segment.getSourceBytesSize() > 0) {
+                isAllEmpty = false;
+                break;
+            }
+        }
+        return isAllEmpty;
     }
 
     private void createOrUpdate(SourceUsageRecord usageRecord) {
@@ -581,7 +602,6 @@ public class SourceUsageManager {
                 logger.warn("Failed to fetch data volume usage for over {} days", dayThreshold);
             }
         }
-
         return info;
     }
 
@@ -617,7 +637,6 @@ public class SourceUsageManager {
                         String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
                                 info.getCurrentNode(), info.getNode()));
             }
-
             logger.info("Current capacity status of project: {} is ok", project);
         } else {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
@@ -633,7 +652,6 @@ public class SourceUsageManager {
                         String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
                                 info.getCurrentNode(), info.getNode()));
             }
-
             logger.info("Current capacity status is ok");
         }
     }
