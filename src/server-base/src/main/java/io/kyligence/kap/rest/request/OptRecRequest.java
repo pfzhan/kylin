@@ -35,22 +35,19 @@ import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class OptRecPassRequest implements ProjectInsensitiveRequest {
+public class OptRecRequest implements ProjectInsensitiveRequest {
 
     private String project;
 
     @JsonProperty("model_id")
     private String modelId;
 
-    @JsonProperty("layout_v1_item_ids")
-    private List<Integer> layoutV1ItemIds = Lists.newArrayList();
+    @JsonProperty("legacy_ids")
+    private List<Integer> legacyIds = Lists.newArrayList();
 
-    @JsonProperty("v1_names")
-    private Map<Integer, String> v1Names = Maps.newHashMap();
+    @JsonProperty("ids")
+    private List<Integer> ids = Lists.newArrayList();;
 
-    @JsonProperty("layout_v2_item_ids")
-    private List<Integer> layoutV2ItemIds = Lists.newArrayList();;
-
-    @JsonProperty("v2_names")
-    private Map<Integer, String> v2Names = Maps.newHashMap();;
+    @JsonProperty("names")
+    private Map<Integer, String> names = Maps.newHashMap();;
 }

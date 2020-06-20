@@ -35,12 +35,14 @@ public class ModelColumnRef extends ColumnRef {
 
     private final NDataModel.NamedColumn column;
     private String dataType;
+    private String content;
 
-    public ModelColumnRef(NDataModel.NamedColumn column, String dataType) {
+    public ModelColumnRef(NDataModel.NamedColumn column, String dataType, String content) {
         this.column = column;
         this.dataType = dataType;
         this.id = column.getId();
         this.existed = true;
+        this.content = content;
         init();
     }
 
@@ -60,7 +62,7 @@ public class ModelColumnRef extends ColumnRef {
 
     @Override
     public String getContent() {
-        return getName();
+        return content;
     }
 
     @Override

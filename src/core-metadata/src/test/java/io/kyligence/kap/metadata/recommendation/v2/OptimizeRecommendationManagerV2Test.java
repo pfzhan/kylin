@@ -31,13 +31,16 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,6 +61,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
@@ -99,8 +103,26 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
         managersByPrjCache.get(RawRecManager.class).put(projectDefault, rawRecManager);
         Mockito.doAnswer(answer -> mockRawRecItems.get(answer.getArgument(0))).when(rawRecManager)
                 .queryById(Mockito.anyInt());
-        recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(getTestConfig(), projectDefault);
+        Mockito.doAnswer(answer -> {
+            List<Integer> ids = answer.getArgument(0);
+            mockRawRecItems.forEach((i, r) -> {
+                if (ids.contains(i)) {
+                    r.setState(RawRecItem.RawRecState.APPLIED);
+                }
+            });
+            return null;
+        }).when(rawRecManager).applyRecommendations(Mockito.anyList());
 
+        Mockito.doAnswer(answer -> {
+            List<Integer> ids = answer.getArgument(0);
+            mockRawRecItems.forEach((i, r) -> {
+                if (ids.contains(i)) {
+                    r.setState(RawRecItem.RawRecState.DISCARD);
+                }
+            });
+            return null;
+        }).when(rawRecManager).discardRawRecommendations(Mockito.anyList());
+        recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(getTestConfig(), projectDefault);
         prepare();
     }
 
@@ -149,6 +171,15 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         mockRawRecItems = recommendationManagerV2.convertFromV1(recommendation).stream()
                 .collect(Collectors.toMap(RawRecItem::getId, Function.identity()));
+        mockRawRecItems.forEach((i, r) -> {
+            if (r.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                ComputedColumnDesc cc = RecommendationUtil.getCC(r);
+                cc.setColumnName("");
+            } else if (r.getType() == RawRecItem.RawRecType.MEASURE) {
+                MeasureDesc measureDesc = RecommendationUtil.getMeasure(r);
+                measureDesc.setName("");
+            }
+        });
         recommendationManager.cleanAll(id);
 
         OptimizeRecommendationV2 recommendationV2 = new OptimizeRecommendationV2();
@@ -171,7 +202,7 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
 
     private void prepare() throws IOException {
         prepare(optimizedModelFile, optimizedIndexPlanFile);
-        assertListSize(1, 2, 2, 12);
+        assertListSize(1, 3, 2, 12);
     }
 
     private void updateModelByFile(NDataModel model, String fileName) throws IOException {
@@ -187,13 +218,13 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
     }
 
     @Test
-    public void testInit() throws IOException {
+    public void testInit() {
         Assert.assertNotNull(mockRawRecItems);
         OptimizeRecommendationV2 recommendationV2 = recommendationManagerV2.getOptimizeRecommendationV2(id);
         Assert.assertNotNull(recommendationV2);
         Assert.assertEquals(18, recommendationV2.getColumnRefs().size());
         Assert.assertEquals("decimal(30,4)",
-                RecommendationUtil.getDimensionDataType(recommendationV2.getEffectiveDimensionRawRecItems().get(3)));
+                RecommendationUtil.getDimensionDataType(recommendationV2.getEffectiveDimensionRawRecItems().get(4)));
         Assert.assertTrue(recommendationV2.getEffectiveLayoutRawRecItems().values().stream()
                 .filter(item -> !RecommendationUtil.isAgg(item))
                 .allMatch(item -> RecommendationUtil.getLayout(item) != null));
@@ -208,20 +239,36 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
     }
 
     @Test
-    public void testInit_RemoveCC() throws IOException {
+    public void testInit_RemoveCC() {
         modelManager.updateDataModel(id, copyForWrite -> {
             copyForWrite.setComputedColumnDescs(Lists.newArrayList());
             copyForWrite.getAllNamedColumns().get(16).setStatus(NDataModel.ColumnStatus.TOMB);
         });
 
         var recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
-        assertListSize(1, 1, 2, 10);
+        assertListSize(1, 2, 2, 10);
         Assert.assertTrue(recommendation.getEffectiveLayoutRawRecItems().values().stream()
                 .noneMatch(rawRecItem -> Arrays.stream(rawRecItem.getDependIDs()).anyMatch(id -> id == 16)));
     }
 
     @Test
-    public void testInit_ExistCC() throws IOException {
+    public void testInit_LostCC() {
+        Set<Integer> ccRawItems = mockRawRecItems.entrySet().stream()
+                .filter(e -> e.getValue().getType() == RawRecItem.RawRecType.COMPUTED_COLUMN).map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        for (Integer id : ccRawItems) {
+            mockRawRecItems.remove(id);
+        }
+        var recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        recommendation = recommendationManagerV2.copyForWrite(recommendation);
+        assertListSize(recommendation, 0, 2, 1, 9);
+        Assert.assertTrue(
+                recommendation.getEffectiveLayoutRawRecItems().values().stream().noneMatch(rawRecItem -> Arrays
+                        .stream(rawRecItem.getDependIDs()).anyMatch(id -> id < 0 && ccRawItems.contains(id * -1))));
+    }
+
+    @Test
+    public void testInit_ExistCC() {
         val rawRecItem = recommendationManagerV2.getOptimizeRecommendationV2(id).getEffectiveCCRawRecItems().get(1);
         modelManager.updateDataModel(id, copyForWrite -> {
             val cc = RecommendationUtil.getCC(rawRecItem);
@@ -235,39 +282,71 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
             column.setAliasDotColumn(cc.getFullName());
             copyForWrite.getAllNamedColumns().add(column);
         });
-        assertListSize(0, 2, 2, 12);
+        assertListSize(0, 3, 2, 12);
     }
 
     @Test
-    public void testInit_RemoveDimension() throws IOException {
+    public void testInit_RemoveDimension() {
         modelManager.updateDataModel(id,
                 copyForWrite -> copyForWrite.getAllNamedColumns().get(12).setStatus(NDataModel.ColumnStatus.EXIST));
-        assertListSize(1, 2, 2, 10);
+        assertListSize(1, 3, 2, 10);
         var recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
         Assert.assertTrue(recommendation.getEffectiveLayoutRawRecItems().values().stream()
                 .noneMatch(rawRecItem -> Arrays.stream(rawRecItem.getDependIDs()).anyMatch(id -> id == 12)));
     }
 
     @Test
-    public void testInit_ExistDimension() throws IOException {
-        modelManager.updateDataModel(id,
-                copyForWrite -> copyForWrite.getAllNamedColumns().get(16).setStatus(NDataModel.ColumnStatus.DIMENSION));
-        assertListSize(1, 1, 2, 12);
+    public void testInit_LostDimension() {
+        Set<Integer> dimRawItems = mockRawRecItems.entrySet().stream()
+                .filter(e -> e.getValue().getType() == RawRecItem.RawRecType.DIMENSION).map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        for (Integer id : dimRawItems) {
+            mockRawRecItems.remove(id);
+        }
+        var recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        recommendation = recommendationManagerV2.copyForWrite(recommendation);
+        assertListSize(recommendation, 0, 0, 0, 6);
+        Assert.assertTrue(
+                recommendation.getEffectiveLayoutRawRecItems().values().stream().noneMatch(rawRecItem -> Arrays
+                        .stream(rawRecItem.getDependIDs()).anyMatch(id -> id < 0 && dimRawItems.contains(id * -1))));
     }
 
     @Test
-    public void testInit_RemoveMeasure() throws IOException {
+    public void testInit_ExistDimension() {
+        modelManager.updateDataModel(id,
+                copyForWrite -> copyForWrite.getAllNamedColumns().get(16).setStatus(NDataModel.ColumnStatus.DIMENSION));
+        assertListSize(1, 2, 2, 12);
+    }
+
+    @Test
+    public void testInit_RemoveMeasure() {
         modelManager.updateDataModel(id, copyForWrite -> copyForWrite.getAllMeasures().get(2).setTomb(true));
-        assertListSize(1, 2, 2, 11);
+        assertListSize(1, 3, 2, 11);
         Assert.assertTrue(recommendationManagerV2.getOptimizeRecommendationV2(id).getEffectiveLayoutRawRecItems()
                 .values().stream().noneMatch(rawRecItem -> RecommendationUtil.getLayout(rawRecItem).getColOrder()
                         .stream().anyMatch(i -> i == 100002)));
     }
 
     @Test
-    public void testInit_ExistMeasure() throws IOException {
+    public void testInit_LostMeasure() {
+        Set<Integer> measureRawItems = mockRawRecItems.entrySet().stream()
+                .filter(e -> e.getValue().getType() == RawRecItem.RawRecType.MEASURE).map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        for (Integer id : measureRawItems) {
+            mockRawRecItems.remove(id);
+        }
+        var recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        recommendation = recommendationManagerV2.copyForWrite(recommendation);
+        assertListSize(recommendation, 1, 3, 0, 9);
+        Assert.assertTrue(recommendation.getEffectiveLayoutRawRecItems().values().stream()
+                .noneMatch(rawRecItem -> Arrays.stream(rawRecItem.getDependIDs())
+                        .anyMatch(id -> id < 0 && measureRawItems.contains(id * -1))));
+    }
+
+    @Test
+    public void testInit_ExistMeasure() {
         RawRecItem rawRecItem = recommendationManagerV2.getOptimizeRecommendationV2(id).getEffectiveMeasureRawRecItems()
-                .get(5);
+                .get(findFromOriginMeasure(10100001));
         Assert.assertNotNull(rawRecItem);
         modelManager.updateDataModel(id, copyForWrite -> {
             NDataModel.Measure measure = RecommendationUtil.getMeasure(rawRecItem);
@@ -276,15 +355,37 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
                             + 1);
             copyForWrite.getAllMeasures().add(measure);
         });
-        assertListSize(1, 2, 1, 12);
+        assertListSize(1, 3, 1, 12);
     }
 
     protected void assertListSize(int ccItemsSize, int dimItemSize, int measureItemSize, int layoutItemSize) {
         val recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        assertListSize(recommendation, ccItemsSize, dimItemSize, measureItemSize, layoutItemSize);
+
+    }
+
+    protected void assertListSize(OptimizeRecommendationV2 recommendation, int ccItemsSize, int dimItemSize,
+            int measureItemSize, int layoutItemSize) {
         Assert.assertEquals(ccItemsSize, recommendation.getEffectiveCCRawRecItems().size());
         Assert.assertEquals(dimItemSize, recommendation.getEffectiveDimensionRawRecItems().size());
         Assert.assertEquals(measureItemSize, recommendation.getEffectiveMeasureRawRecItems().size());
         Assert.assertEquals(layoutItemSize, recommendation.getEffectiveLayoutRawRecItems().size());
+    }
+
+    @Test
+    public void testInit_LostLayout() {
+        Set<Integer> layoutRawItems = mockRawRecItems.entrySet().stream()
+                .filter(e -> e.getValue().getType() == RawRecItem.RawRecType.LAYOUT).map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        for (Integer id : layoutRawItems) {
+            mockRawRecItems.remove(id);
+        }
+        var recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        recommendation = recommendationManagerV2.copyForWrite(recommendation);
+        assertListSize(recommendation, 0, 0, 0, 0);
+        Assert.assertTrue(
+                recommendation.getEffectiveLayoutRawRecItems().values().stream().noneMatch(rawRecItem -> Arrays
+                        .stream(rawRecItem.getDependIDs()).anyMatch(id -> id < 0 && layoutRawItems.contains(id * -1))));
     }
 
     @Test
@@ -304,11 +405,13 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
             indexes.add(indexEntity);
             copyForWrite.setIndexes(indexes);
         });
-        assertListSize(1, 2, 2, 11);
+        assertListSize(1, 3, 2, 11);
     }
 
     @Test
     public void testInit_ExistTableLayout() {
+        modelManager.updateDataModel(id, copyForWrite -> copyForWrite.getAllNamedColumns().stream()
+                .filter(c -> c.getId() == 3).forEach(c -> c.setStatus(NDataModel.ColumnStatus.DIMENSION)));
         indexPlanManager.updateIndexPlan(id, copyForWrite -> {
             IndexEntity indexEntity = new IndexEntity();
             indexEntity.setId(copyForWrite.getNextTableIndexId());
@@ -327,7 +430,7 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
     }
 
     @Test
-    public void testInit_ExistAggGroupLayout() throws IOException {
+    public void testInit_ExistAggGroupLayout() {
         indexPlanManager.updateIndexPlan(id, copyForWrite -> {
             val ruleBasedIndex = copyForWrite.getRuleBasedIndex();
             val updatedAgg = new NRuleBasedIndex();
@@ -352,6 +455,19 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
             updatedAgg.setMeasures(measures.stream().sorted().collect(Collectors.toList()));
             copyForWrite.setRuleBasedIndex(updatedAgg);
         });
-        assertListSize(1, 2, 2, 11);
+        assertListSize(1, 3, 2, 11);
     }
+
+    protected int findFromOriginLayout(long id) {
+        return mockRawRecItems.values().stream().filter(item -> item.getType() == RawRecItem.RawRecType.LAYOUT)
+                .filter(item -> RecommendationUtil.getLayout(item).getId() == id).map(RawRecItem::getId).findFirst()
+                .orElse(-1);
+    }
+
+    protected int findFromOriginMeasure(long id) {
+        return mockRawRecItems.values().stream().filter(item -> item.getType() == RawRecItem.RawRecType.MEASURE)
+                .filter(item -> RecommendationUtil.getMeasure(item).getId() == id).map(RawRecItem::getId).findFirst()
+                .orElse(-1);
+    }
+
 }

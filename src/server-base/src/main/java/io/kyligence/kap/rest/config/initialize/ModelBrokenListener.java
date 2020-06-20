@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -119,6 +120,9 @@ public class ModelBrokenListener {
 
             val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
             recommendationManager.cleanAll(model.getId());
+            val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(config, project);
+            recommendationManagerV2.removeAll(model.getId());
+
             return null;
         }, project);
     }

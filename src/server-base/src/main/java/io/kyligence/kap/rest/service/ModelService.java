@@ -24,90 +24,55 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
-import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.metadata.acl.NDataModelAclParams;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
-import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
-import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.OwnerChangeRequest;
-import io.kyligence.kap.rest.request.SegmentTimeRequest;
-import io.kyligence.kap.rest.response.AffectedModelsResponse;
-import io.kyligence.kap.rest.response.AggGroupResponse;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
-import io.kyligence.kap.rest.response.CheckSegmentResponse;
-import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.IndicesResponse;
-import io.kyligence.kap.rest.response.JobInfoResponse;
-import io.kyligence.kap.rest.response.ModelConfigResponse;
-import io.kyligence.kap.rest.response.ModelInfoResponse;
-import io.kyligence.kap.rest.response.NCubeDescResponse;
-import io.kyligence.kap.rest.response.NDataModelOldParams;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
-import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.response.SegmentCheckResponse;
-import io.kyligence.kap.rest.response.SegmentRangeResponse;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.rest.transaction.Transaction;
-import io.kyligence.kap.rest.util.ModelUtils;
-import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiAutoContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
-import io.kyligence.kap.smart.ModelSelectContextOfSemiMode;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
-import lombok.Setter;
-import lombok.val;
-import lombok.var;
+import static java.util.stream.Collectors.groupingBy;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
+import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -154,60 +119,99 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MODEL_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
-import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.acl.NDataModelAclParams;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.SegmentTimeRequest;
+import io.kyligence.kap.rest.response.AffectedModelsResponse;
+import io.kyligence.kap.rest.response.AggGroupResponse;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.CheckSegmentResponse;
+import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.rest.response.ModelInfoResponse;
+import io.kyligence.kap.rest.response.NCubeDescResponse;
+import io.kyligence.kap.rest.response.NDataModelOldParams;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
+import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SegmentCheckResponse;
+import io.kyligence.kap.rest.response.SegmentRangeResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.util.ModelUtils;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractSemiAutoContext;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.ModelSelectContextOfSemiMode;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import lombok.Setter;
+import lombok.val;
+import lombok.var;
 
 @Component("modelService")
 public class ModelService extends BasicService {
@@ -238,6 +242,10 @@ public class ModelService extends BasicService {
 
     @Autowired
     private AccessService accessService;
+
+    @Autowired
+    @Qualifier("optRecService")
+    private OptRecService optRecService;
 
     private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
@@ -501,10 +509,10 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
+        ProjectInstance prj = getProjectManager().getProject(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
         val dfManager = getDataflowManager(projectName);
-        val optRecomManager = getOptRecommendationManager(projectName);
         List<NDataModelResponse> filterModels = new ArrayList<>();
         pairs.forEach(p -> {
             val dataflow = p.getKey();
@@ -521,7 +529,8 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
                         nDataModelResponse.getSource()));
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());
-                nDataModelResponse.setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
+                nDataModelResponse.setRecommendationsCount(!prj.isSemiAutoMode() ? 0
+                        : optRecService.getOptRecLayoutsResponse(projectName, modelDesc.getId()).getSize());
                 nDataModelResponse
                         .setAvailableIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
                                 : getAvailableIndexesCount(projectName, modelDesc.getId()));
@@ -2210,12 +2219,16 @@ public class ModelService extends BasicService {
         checkIndexColumnExist(project, modelId, originModel);
 
         checkFlatTableSql(newModel);
-        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(), request.isSaveOnly());
+        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
+                request.isSaveOnly());
 
         val projectInstance = NProjectManager.getInstance(getConfig()).getProject(project);
         if (projectInstance.isSemiAutoMode()) {
             val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), project);
             recommendationManager.cleanInEffective(modelId);
+            val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(getConfig(), project);
+            recommendationManagerV2.cleanInEffective(modelId);
+
         }
     }
 

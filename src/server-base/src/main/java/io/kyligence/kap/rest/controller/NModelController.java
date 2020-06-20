@@ -40,8 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -75,6 +73,8 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -194,7 +194,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
         validatePartitionDesc(modelRequest.getPartitionDesc());
-        String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null:modelRequest.getPartitionDesc().getPartitionDateFormat();
+        String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null
+                : modelRequest.getPartitionDesc().getPartitionDateFormat();
         validateDataRange(modelRequest.getStart(), modelRequest.getEnd(), partitionDateFormat);
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
@@ -317,7 +318,8 @@ public class NModelController extends NBasicController {
         checkProjectName(segmentsRequest.getProject());
         checkRequiredArg("segment_holes", segmentsRequest.getSegmentHoles());
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(segmentsRequest.getProject(), modelId);
-        segmentsRequest.getSegmentHoles().forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
+        segmentsRequest.getSegmentHoles()
+                .forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
         JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
                 segmentsRequest.getSegmentHoles());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
@@ -329,7 +331,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
+                modelId);
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
@@ -643,7 +646,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
+                modelId);
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
@@ -767,7 +771,8 @@ public class NModelController extends NBasicController {
         request.setProject(project);
         if (cleanAll) {
             request.setCleanAll(true);
-            val optimizeRecommendation = OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(modelId);
+            val optimizeRecommendation = OptimizeRecommendationManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(modelId);
             request.setCcItemIds(getItemIds(optimizeRecommendation.getCcRecommendations()));
             request.setDimensionItemIds(getItemIds(optimizeRecommendation.getDimensionRecommendations()));
             request.setMeasureItemIds(getItemIds(optimizeRecommendation.getMeasureRecommendations()));

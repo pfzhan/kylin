@@ -41,6 +41,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -147,6 +148,8 @@ public class IndexPlanService extends BasicService {
         if (prjInstance.isSemiAutoMode()) {
             val recommendationManager = getOptimizeRecommendationManager(project);
             recommendationManager.cleanInEffective(modelId);
+            val recommendationManagerV2 = getOptimizeRecommendationManagerV2(project);
+            recommendationManagerV2.cleanInEffective(modelId);
         }
     }
 
@@ -325,6 +328,9 @@ public class IndexPlanService extends BasicService {
         });
         val recommendationManager = OptimizeRecommendationManager.getInstance(kylinConfig, project);
         recommendationManager.cleanInEffective(model);
+        val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(kylinConfig, project);
+        recommendationManagerV2.cleanInEffective(model);
+
     }
 
     @Transaction(project = 0)

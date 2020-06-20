@@ -36,18 +36,24 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public abstract class RecommendationRef {
+public class RecommendationRef {
     protected boolean existed;
     protected boolean deleted;
     // id >= 0 column in model
     // id < 0 column in rawRecItem
     protected int id;
 
-    public abstract List<? extends RecommendationRef> getDependencies();
+    public List<? extends RecommendationRef> getDependencies() {
+        return null;
+    }
 
-    public abstract String getContent();
+    public String getContent() {
+        return null;
+    }
 
-    public abstract String getName();
+    public String getName() {
+        return null;
+    }
 
     protected <T extends RecommendationRef> List<RecommendationRef> validate(List<T> refs) {
         if (CollectionUtils.isEmpty(refs)) {

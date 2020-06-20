@@ -48,6 +48,7 @@ import java.util.Comparator;
 import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
@@ -114,6 +115,10 @@ public abstract class BasicService {
 
     public OptimizeRecommendationManager getOptRecommendationManager(String project) {
         return OptimizeRecommendationManager.getInstance(getConfig(), project);
+    }
+
+    public OptimizeRecommendationManagerV2 getOptimizeRecommendationManagerV2(String project) {
+        return OptimizeRecommendationManagerV2.getInstance(getConfig(), project);
     }
 
     public NDataflowManager getDataflowManager(String project) {

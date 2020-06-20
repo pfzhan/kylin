@@ -74,6 +74,9 @@ public class OptimizeRecommendationVerifier {
                 getSize(failDimensionItems), getSize(passMeasureItems), getSize(failMeasureItems),
                 getSize(passLayoutItems), getSize(failLayoutItems));
         val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
+        if (recommendationManager.getOptimizeRecommendation(id) == null) {
+            return;
+        }
         val modelManager = NDataModelManager.getInstance(config, project);
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
 

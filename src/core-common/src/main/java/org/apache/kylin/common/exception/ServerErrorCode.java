@@ -57,6 +57,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     DUPLICATE_PROJECT_NAME("KE-10001004"), //
     PROJECT_NAME_ILLEGAL("KE-10001005"), //
     FAILED_CREATE_PROJECT("KE-10001006"), //
+    INCORRECT_PROJECT_MODE("KE-10001007"), //
 
     // 10002XXX model
     MODEL_NOT_EXIST("KE-10002001"), //

@@ -29,9 +29,13 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -41,9 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -67,23 +69,20 @@ import lombok.val;
 public class OptimizeRecommendationManagerV2 {
     private static final Logger logger = LoggerFactory.getLogger(OptimizeRecommendationManagerV2.class);
 
-    private class CCConflictHandlerV2 extends ComputedColumnUtil.BasicCCConflictHandler {
+    private static class CCConflictHandlerV2 extends ComputedColumnUtil.BasicCCConflictHandler {
         @Override
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
-            //TODO
-            // throw kylin exception
-            throw new IllegalStateException("cc name " + newCC.getColumnName()
-                    + " invalid, cc has already defined in other model with name " + existingCC.getColumnName());
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(newCC.getExpression(), newCC.getColumnName(),
+                            existingCC.getColumnName()));
         }
 
         @Override
         public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,
                 ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
-            //TODO
-            // throw kylin exception
-            throw new IllegalStateException(
-                    "cc name " + newCC.getColumnName() + " invalid, the name has already been used.");
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getCC_NAME_CONFLICT(newCC.getColumnName()));
         }
     }
 
@@ -102,20 +101,16 @@ public class OptimizeRecommendationManagerV2 {
         val contains = model.getComputedColumnDescs().stream()
                 .anyMatch(c -> c.getColumnName().equals(cc.getColumnName()));
         if (contains) {
-            //TODO
-            // throw kylin exception
-            throw new IllegalStateException(
-                    "cc name " + cc.getColumnName() + " invalid, the name has already been used.");
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getCC_NAME_CONFLICT(cc.getColumnName()));
         }
     }
 
     public void checkMeasureName(NDataModel model, NDataModel.Measure measure) {
         val contains = model.getAllMeasures().stream().anyMatch(c -> c.getName().equals(measure.getName()));
         if (contains) {
-            //TODO
-            // throw kylin exception
-            throw new IllegalStateException(
-                    "measure name " + measure.getName() + " invalid, the name has already been used.");
+            throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                    MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
         }
     }
 
@@ -125,10 +120,8 @@ public class OptimizeRecommendationManagerV2 {
                     if (u == v) {
                         return u;
                     }
-                    //TODO
-                    // throw kylin exception
-                    throw new IllegalStateException(
-                            "dimension name " + v.getName() + " invalid, the name has already been used.");
+                    throw new KylinException(ServerErrorCode.FAILED_APPROVE_RECOMMENDATION,
+                            MsgPicker.getMsg().getDIMENSION_CONFLICT(v.getName()));
                 }));
     }
 
@@ -146,7 +139,9 @@ public class OptimizeRecommendationManagerV2 {
     private KylinConfig config;
     private String project;
 
-    private RawRecManager rawRecManager;
+    private RawRecManager getRawRecManager() {
+        return RawRecManager.getInstance(config, project);
+    }
 
     private CachedCrudAssist<OptimizeRecommendationV2> crud;
 
@@ -158,21 +153,12 @@ public class OptimizeRecommendationManagerV2 {
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION_V2;
-        this.rawRecManager = RawRecManager.getInstance(config, project);
         this.crud = new CachedCrudAssist<OptimizeRecommendationV2>(getStore(), resourceRootPath,
                 OptimizeRecommendationV2.class) {
             @Override
             protected OptimizeRecommendationV2 initEntityAfterReload(OptimizeRecommendationV2 entity,
                     String resourceName) {
                 entity.init(config, project);
-                if (UnitOfWork.isAlreadyInTransaction() && !UnitOfWork.get().isReadonly()) {
-                    List<Integer> deleted = entity.validate();
-                    //TODO
-                    // rawRecommendationManager.deleteAll(entity.validate());
-                    entity.setRawIds(Sets.intersection(Sets.newHashSet(entity.getRawIds()), Sets.newHashSet(deleted))
-                            .stream().sorted().collect(Collectors.toList()));
-                    return save(entity);
-                }
                 return entity;
             }
         };
@@ -218,6 +204,28 @@ public class OptimizeRecommendationManagerV2 {
         }
         recommendationV2.setRawIds(rawIds);
         return updateOptimizeRecommendationV2(recommendationV2);
+    }
+
+    public void removeAll(String modelId) {
+        OptimizeRecommendationV2 recommendationV2 = getOptimizeRecommendationV2(modelId);
+        if (recommendationV2 == null) {
+            return;
+        }
+        List<Integer> rawIds = recommendationV2.getRawIds();
+        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        rawManager.discardRawRecommendations(rawIds);
+        createOrUpdate(modelId, Lists.newArrayList());
+    }
+
+    public void discardAll(String modelId) {
+        OptimizeRecommendationV2 recommendationV2 = getOptimizeRecommendationV2(modelId);
+        if (recommendationV2 == null) {
+            return;
+        }
+        List<Integer> rawIds = recommendationV2.getRawIds();
+        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        rawManager.discardRawRecommendations(rawIds);
+        createOrUpdate(modelId, Lists.newArrayList());
     }
 
     public OptimizeRecommendationV2 updateOptimizeRecommendationV2(OptimizeRecommendationV2 recommendation) {
@@ -355,10 +363,10 @@ public class OptimizeRecommendationManagerV2 {
         List<Integer> sortBy = Lists.newArrayList(layout.getLayout().getSortByColumns());
         List<Integer> shardBy = Lists.newArrayList(layout.getLayout().getShardByColumns());
         List<Integer> partitionBy = Lists.newArrayList(layout.getLayout().getPartitionByColumns());
-        translate(colOrder, layout.isAggIndex() ? dimensionIdMap : columnIdMap, measureIdMap);
-        translate(sortBy, layout.isAggIndex() ? dimensionIdMap : columnIdMap, measureIdMap);
-        translate(shardBy, layout.isAggIndex() ? dimensionIdMap : columnIdMap, measureIdMap);
-        translate(partitionBy, layout.isAggIndex() ? dimensionIdMap : columnIdMap, measureIdMap);
+        translate(colOrder, dimensionIdMap, measureIdMap);
+        translate(sortBy, dimensionIdMap, measureIdMap);
+        translate(shardBy, dimensionIdMap, measureIdMap);
+        translate(partitionBy, dimensionIdMap, measureIdMap);
         LayoutEntity layoutEntity = JsonUtil.deepCopyQuietly(layout.getLayout(), LayoutEntity.class);
         layoutEntity.setColOrder(colOrder);
         layoutEntity.setSortByColumns(sortBy);
@@ -392,7 +400,22 @@ public class OptimizeRecommendationManagerV2 {
     }
 
     public RawRecItem getRawRecItem(int rawId) {
-        return rawRecManager.queryById(rawId);
+        return getRawRecManager().queryById(rawId);
     }
 
+    public void cleanInEffective(String id) {
+        OptimizeRecommendationV2 recommendation = getOptimizeRecommendationV2(id);
+        if (recommendation == null) {
+            return;
+        }
+
+        List<Integer> inEffective = recommendation.validate();
+        getRawRecManager().removeRecommendations(inEffective);
+        createOrUpdate(id, difference(recommendation.getRawIds(), inEffective));
+    }
+
+    private static List<Integer> difference(List<Integer> list1, List<Integer> list2) {
+        return Sets.difference(Sets.newHashSet(list1), Sets.newHashSet(list2)).stream().sorted()
+                .collect(Collectors.toList());
+    }
 }

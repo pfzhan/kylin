@@ -45,9 +45,13 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -63,7 +67,12 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class OptimizeRecommendationV2 extends RootPersistentEntity {
+
+    private static final Logger logger = LoggerFactory.getLogger(OptimizeRecommendationV2.class);
+
+    private static final int CONSTANT_COLUMN_ID = Integer.MAX_VALUE;
 
     @Getter
     @Setter
@@ -129,13 +138,26 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         return OptimizeRecommendationManagerV2.getInstance(config, project);
     }
 
+    private static class CCNameCheckerHandler extends ComputedColumnUtil.BasicCCConflictHandler {
+        @Override
+        public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            newCC.setColumnName(existingCC.getColumnName());
+        }
+    }
+
     public void init(KylinConfig config, String project) {
+        logger.debug("Project {} recommendation {} init start", project, getId());
+
         this.config = config;
         this.project = project;
         NDataModel model = getModel();
         // init model column ref
+        Map<String, String> ccNames = model.getComputedColumnDescs().stream()
+                .collect(Collectors.toMap(ComputedColumnDesc::getFullName, ComputedColumnDesc::getExpression));
         model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist).forEach(c -> {
-            ColumnRef columnRef = new ModelColumnRef(c, model.getEffectiveCols().get(c.getId()).getDatatype());
+            ColumnRef columnRef = new ModelColumnRef(c, model.getEffectiveCols().get(c.getId()).getDatatype(),
+                    ccNames.getOrDefault(c.getAliasDotColumn(), c.getAliasDotColumn()));
             columnRefs.put(columnRef.getId(), columnRef);
             if (c.isDimension()) {
                 dimensionRefs.put(columnRef.getId(), new DimensionRef(columnRef, c.getId(), true));
@@ -159,18 +181,12 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         //generate default cc name
         List<Map.Entry<Integer, ColumnRef>> allCCRefs = getEffectiveCCRef();
         val maxCCIndex = new AtomicInteger(ComputedColumnUtil.getBiggestCCIndex(getModel(), getOtherModels()));
-        ComputedColumnUtil.BasicCCConflictHandler handler = new ComputedColumnUtil.BasicCCConflictHandler() {
-            @Override
-            public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                    ComputedColumnDesc newCC) {
-                newCC.setColumnName(existingCC.getColumnName());
-            }
-        };
+        CCNameCheckerHandler handler = new CCNameCheckerHandler();
         for (Map.Entry<Integer, ColumnRef> entry : allCCRefs) {
+            val ccRef = (CCRef) entry.getValue();
+            ccRef.getCc().setColumnName(ComputedColumnUtil.CC_NAME_PREFIX + maxCCIndex.incrementAndGet());
             for (NDataModel otherModel : getOtherModels()) {
                 for (ComputedColumnDesc existCC : otherModel.getComputedColumnDescs()) {
-                    val ccRef = (CCRef) entry.getValue();
-                    ccRef.getCc().setColumnName(ComputedColumnUtil.CC_NAME_PREFIX + maxCCIndex.incrementAndGet());
                     ComputedColumnUtil.singleCCConflictCheck(otherModel, getModel(), existCC, ccRef.getCc(), handler);
                 }
             }
@@ -216,6 +232,16 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
     private void init(int rawId) {
         RawRecItem rawRecItem = getOptimizeRecommendationManagerV2().getRawRecItem(rawId);
+        // handle null
+        if (rawRecItem == null) {
+            logger.warn("Project {} recommendation {} raw item {} is null", project, getId(), rawId);
+            columnRefs.put(rawId * -1, new ColumnRef.DeleteColumnRef(rawId * -1));
+            dimensionRefs.put(rawId * -1, new DimensionRef.DeleteDimensionRef(rawId * -1));
+            measureRefs.put(rawId * -1, new MeasureRef.DeleteMeasureRef(rawId * -1));
+            layoutRefs.put(rawId * -1, new LayoutRef.DeleteLayoutRef(rawId * -1));
+            rawRecItemMap.put(rawId, null);
+            return;
+        }
         switch (rawRecItem.getType()) {
         case LAYOUT:
             initLayout(rawRecItem);
@@ -236,8 +262,8 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void initLayout(RawRecItem layoutRaw) {
-        LayoutRef ref = RecommendationUtil.isAgg(layoutRaw) ? convertToAggLayout(layoutRaw)
-                : convertToTableLayout(layoutRaw);
+        logger.debug("Project {} recommendation {} init layout raw item {}", project, getId(), layoutRaw.getId());
+        LayoutRef ref = convertToLayout(layoutRaw);
         layoutRefs.put(layoutRaw.getId() * -1, ref);
         if (ref.isDeleted()) {
             return;
@@ -253,12 +279,11 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         List<Integer> sortBy = new ArrayList<>(layout.getSortByColumns().size());
         List<Integer> partitionBy = new ArrayList<>(layout.getPartitionByColumns().size());
         List<Integer> shaderBy = new ArrayList<>(layout.getShardByColumns().size());
-        boolean isAgg = layoutRef instanceof AggLayoutRef;
-        boolean containNotExistsColumn = translate(isAgg, colOrder, layout.getColOrder());
+        boolean containNotExistsColumn = translate(colOrder, layout.getColOrder());
         if (!containNotExistsColumn) {
-            translate(isAgg, sortBy, layout.getSortByColumns());
-            translate(isAgg, shaderBy, layout.getShardByColumns());
-            translate(isAgg, partitionBy, layout.getPartitionByColumns());
+            translate(sortBy, layout.getSortByColumns());
+            translate(shaderBy, layout.getShardByColumns());
+            translate(partitionBy, layout.getPartitionByColumns());
             layout.setColOrder(colOrder);
             layout.setShardByColumns(shaderBy);
             layout.setSortByColumns(sortBy);
@@ -288,11 +313,10 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     // Change exist column from raw item to column in model.
     // Return true if there is a not exist column/measure in cols,
     // so we can skip check with layout in index.
-    private boolean translate(boolean isAgg, List<Integer> changed, List<Integer> cols) {
-        Map<Integer, ? extends RecommendationRef> refs = isAgg ? dimensionRefs : columnRefs;
+    private boolean translate(List<Integer> changed, List<Integer> cols) {
         for (Integer i : cols) {
-            if (refs.containsKey(i)) {
-                val ref = refs.get(i);
+            if (dimensionRefs.containsKey(i)) {
+                val ref = dimensionRefs.get(i);
                 if (!ref.isExisted()) {
                     return true;
                 }
@@ -309,65 +333,58 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         return false;
     }
 
-    private AggLayoutRef convertToAggLayout(RawRecItem layoutRaw) {
-        AggLayoutRef layoutRef = new AggLayoutRef(RecommendationUtil.getLayout(layoutRaw), layoutRaw.getId() * -1);
+    private void logSemanticNotMatch(RawRecItem rawRecItem) {
+        logger.warn("Project {} recommendation {} raw item {} semantic version {} is less than model {}", project,
+                getId(), rawRecItem.getId(), rawRecItem.getSemanticVersion(), getModel().getSemanticVersion());
+    }
+
+    private void logDepLost(RawRecItem rawRecItem, int dep) {
+        logger.warn("Project {} recommendation {} raw item {} set deleted, {} not found. {}", project, getId(),
+                rawRecItem.getId(), dep, rawRecItem);
+    }
+
+    private void logDepDeleted(RawRecItem rawRecItem, int dep) {
+        logger.warn("Project {} recommendation {} raw item {} set deleted, {} is deleted. [{}]", project, getId(),
+                rawRecItem.getId(), dep, rawRecItem);
+    }
+
+    private LayoutRef convertToLayout(RawRecItem layoutRaw) {
+        LayoutRef layoutRef = new LayoutRef(RecommendationUtil.getLayout(layoutRaw), layoutRaw.getId() * -1,
+                RecommendationUtil.isAgg(layoutRaw));
         if (getModel().getSemanticVersion() > layoutRaw.getSemanticVersion()) {
+            logSemanticNotMatch(layoutRaw);
             layoutRef.setDeleted(true);
             return layoutRef;
         }
         int[] colOrder = layoutRaw.getDependIDs();
         for (int value : colOrder) {
-            if (layoutRef.isDeleted()) {
-                return layoutRef;
-            }
             if (value < 0 && !rawRecItemMap.containsKey(value * -1)) {
                 // dep is not init, init it first.
                 init(value * -1);
             }
             if (dimensionRefs.containsKey(value)) {
                 val ref = dimensionRefs.get(value);
+                if (ref.isDeleted()) {
+                    logDepDeleted(layoutRaw, value);
+                    layoutRef.setDeleted(true);
+                    return layoutRef;
+                }
                 layoutRef.getDimensionRefs().add(ref);
-                layoutRef.setDeleted(ref.isDeleted());
                 continue;
             }
             if (measureRefs.containsKey(value)) {
                 val ref = measureRefs.get(value);
+                if (ref.isDeleted()) {
+                    logDepDeleted(layoutRaw, value);
+                    layoutRef.setDeleted(true);
+                    return layoutRef;
+                }
                 layoutRef.getMeasureRefs().add(ref);
-                layoutRef.setDeleted(ref.isDeleted());
                 continue;
             }
             // column deleted in model, mark this ref to deleted.
             if (value > 0) {
-                layoutRef.setDeleted(true);
-            }
-
-        }
-        return layoutRef;
-    }
-
-    private TableLayoutRef convertToTableLayout(RawRecItem layoutRaw) {
-        TableLayoutRef layoutRef = new TableLayoutRef(RecommendationUtil.getLayout(layoutRaw), layoutRaw.getId() * -1);
-        if (getModel().getSemanticVersion() > layoutRaw.getSemanticVersion()) {
-            layoutRef.setDeleted(true);
-            return layoutRef;
-        }
-        int[] colOrder = layoutRaw.getDependIDs();
-        for (int value : colOrder) {
-            if (layoutRef.isDeleted()) {
-                return layoutRef;
-            }
-            if (value < 0 && !rawRecItemMap.containsKey(value * -1)) {
-                // dep is not init, init it first.
-                init(value * -1);
-            }
-            if (columnRefs.containsKey(value)) {
-                val ref = columnRefs.get(value);
-                layoutRef.getColumnRefs().add(ref);
-                layoutRef.setDeleted(ref.isDeleted());
-                continue;
-            }
-            // column deleted in model, mark this ref to deleted.
-            if (value > 0) {
+                logDepLost(layoutRaw, value);
                 layoutRef.setDeleted(true);
             }
 
@@ -376,15 +393,18 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void initCC(RawRecItem rawRecItem) {
+        logger.debug("Project {} recommendation {} init cc raw item {}", project, getId(), rawRecItem.getId());
         CCRef ccRef = new CCRef(RecommendationUtil.getCC(rawRecItem), rawRecItem.getId() * -1);
         columnRefs.put(rawRecItem.getId() * -1, ccRef);
         if (getModel().getSemanticVersion() > rawRecItem.getSemanticVersion()) {
+            logSemanticNotMatch(rawRecItem);
             ccRef.setDeleted(true);
             return;
         }
         int[] dependId = rawRecItem.getDependIDs();
         for (int id : dependId) {
             if (!columnRefs.containsKey(id)) {
+                logDepLost(rawRecItem, id);
                 ccRef.setDeleted(true);
                 return;
             }
@@ -474,10 +494,12 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void initDimension(RawRecItem rawRecItem) {
+        logger.debug("Project {} recommendation {} init dimension raw item {}", project, getId(), rawRecItem.getId());
         int colId = rawRecItem.getDependIDs()[0];
         DimensionRef ref = new DimensionRef(rawRecItem.getId() * -1);
         dimensionRefs.put(rawRecItem.getId() * -1, ref);
         if (getModel().getSemanticVersion() > rawRecItem.getSemanticVersion()) {
+            logSemanticNotMatch(rawRecItem);
             ref.setDeleted(true);
             return;
         }
@@ -485,13 +507,15 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             init(colId * -1);
         }
         if (!columnRefs.containsKey(colId)) {
+            logDepLost(rawRecItem, colId);
             ref.setDeleted(true);
             return;
         }
         val colRef = columnRefs.get(colId);
         ref.setColumnRef(colRef);
         if (colRef.isDeleted()) {
-            colRef.setDeleted(true);
+            logDepDeleted(rawRecItem, colId);
+            ref.setDeleted(true);
             return;
         }
         checkDimensionExist(rawRecItem.getId());
@@ -502,7 +526,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         // check in model.
         if (ref.getColId() >= 0 && dimensionRefs.containsKey(ref.getColId())) {
             ref.setExisted(true);
-            dimensionRefs.put(ref.getColId(), dimensionRefs.get(rawId * -1));
+            dimensionRefs.put(rawId * -1, dimensionRefs.get(ref.getColId()));
             return;
         }
         // check in other raw items.
@@ -519,21 +543,18 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void initMeasure(RawRecItem rawRecItem) {
+        logger.debug("Project {} recommendation {} init measure raw item {}", project, getId(), rawRecItem.getId());
         MeasureDesc measure = RecommendationUtil.getMeasure(rawRecItem);
         int[] colOrder = rawRecItem.getDependIDs();
         MeasureRef measureRef = new MeasureRef(measure, rawRecItem.getId() * -1);
         measureRefs.put(rawRecItem.getId() * -1, measureRef);
         if (getModel().getSemanticVersion() > rawRecItem.getSemanticVersion()) {
+            logSemanticNotMatch(rawRecItem);
             measureRef.setDeleted(true);
             return;
         }
         for (int value : colOrder) {
-            if (measureRef.isDeleted()) {
-                return;
-            }
-
-            //TODO skip constant
-            if (value == Integer.MAX_VALUE) {
+            if (value == CONSTANT_COLUMN_ID) {
                 continue;
             }
 
@@ -543,12 +564,17 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
             if (columnRefs.containsKey(value)) {
                 val depRef = columnRefs.get(value);
+                if (depRef.isDeleted()) {
+                    logDepLost(rawRecItem, value);
+                    measureRef.setDeleted(true);
+                    return;
+                }
                 measureRef.getColumnRefs().add(depRef);
-                measureRef.setDeleted(depRef.isDeleted());
                 continue;
             }
             // column deleted in model, mark this ref to deleted.
             if (value > 0) {
+                logDepLost(rawRecItem, value);
                 measureRef.setDeleted(true);
             }
 
@@ -579,22 +605,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         if (ref2 == null) {
             return false;
         }
-        if (ref1 instanceof AggLayoutRef) {
-            if (!(ref2 instanceof AggLayoutRef)) {
-                return false;
-            }
-            return equals((AggLayoutRef) ref1, (AggLayoutRef) ref2);
-        }
-        if (ref1 instanceof TableLayoutRef) {
-            if (!(ref2 instanceof TableLayoutRef)) {
-                return false;
-            }
-            return equals((TableLayoutRef) ref1, (TableLayoutRef) ref2);
-        }
-        return false;
-    }
 
-    private boolean equals(AggLayoutRef ref1, AggLayoutRef ref2) {
         if (ref1.getDimensionRefs().size() != ref2.getDimensionRefs().size()
                 || ref1.getMeasureRefs().size() != ref2.getMeasureRefs().size()) {
             return false;
@@ -603,13 +614,6 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             return false;
         }
         if (!refListEquality(ref1.getMeasureRefs(), ref2.getMeasureRefs(), measureRefs)) {
-            return false;
-        }
-        return equalsExtra(ref1, ref2);
-    }
-
-    private boolean equals(TableLayoutRef ref1, TableLayoutRef ref2) {
-        if (!refListEquality(ref1.getColumnRefs(), ref2.getColumnRefs(), columnRefs)) {
             return false;
         }
         return equalsExtra(ref1, ref2);
@@ -711,7 +715,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
                 .collect(Collectors.toList()));
         res.addAll(layoutRefs.entrySet().stream().filter(entry -> entry.getValue().isDeleted()).map(Map.Entry::getKey)
                 .collect(Collectors.toList()));
-        return res;
+        return res.stream().filter(i -> i < 0).map(i -> i * -1).collect(Collectors.toList());
     }
 
     public List<RawRecItem> getAllRawItems(List<Integer> layoutIds) {
@@ -722,6 +726,26 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             }
         });
         return set.stream().sorted(Comparator.comparingLong(RawRecItem::getId)).collect(Collectors.toList());
+    }
+
+    public Map<Integer, Integer> getExistMap() {
+        val res = Maps.<Integer, Integer> newHashMap();
+        columnRefs.forEach((id, ref) -> {
+            if (id < 0 && ref.isExisted()) {
+                res.put(id, ref.getId());
+            }
+        });
+        dimensionRefs.forEach((id, ref) -> {
+            if (id < 0 && ref.isExisted()) {
+                res.put(id, ref.getId());
+            }
+        });
+        measureRefs.forEach((id, ref) -> {
+            if (id < 0 && ref.isExisted()) {
+                res.put(id, ref.getId());
+            }
+        });
+        return res;
     }
 
     private void collect(Set<RawRecItem> set, RecommendationRef ref) {

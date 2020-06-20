@@ -1408,4 +1408,8 @@ public class Message {
     public String getLICENSE_ERROR_SUFF() {
         return "\nPlease upload a new license, or contact Kyligence.";
     }
+
+    public String getUNSUPPORTED_RECOMMENDATION_MODE() {
+        return "Model recommendation is not supported in current project, please enable recommendation mode and try again.";
+    }
 }

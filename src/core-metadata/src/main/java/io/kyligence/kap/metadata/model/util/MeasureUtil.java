@@ -40,7 +40,7 @@ public class MeasureUtil {
         for (String name : dataModel.getAllMeasures().stream().filter(m -> !m.isTomb()).map(MeasureDesc::getName)
                 .collect(Collectors.toList())) {
             if (name.startsWith(MEASURE_NAME_PREFIX)) {
-                String idxStr = name.substring(name.length());
+                String idxStr = name.substring(MEASURE_NAME_PREFIX.length());
                 int idx;
                 try {
                     idx = Integer.parseInt(idxStr);

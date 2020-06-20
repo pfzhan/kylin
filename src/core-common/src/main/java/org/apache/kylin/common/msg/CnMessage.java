@@ -1310,4 +1310,8 @@ public class CnMessage extends Message {
     public String getLICENSE_ERROR_SUFF() {
         return "\n请上传新的许可证或联系 Kyligence 销售人员。";
     }
+
+    public String getUNSUPPORTED_RECOMMENDATION_MODE() {
+        return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
+    }
 }

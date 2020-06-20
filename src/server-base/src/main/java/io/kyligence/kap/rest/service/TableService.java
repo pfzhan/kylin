@@ -1141,6 +1141,7 @@ public class TableService extends BasicService {
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
+        getOptimizeRecommendationManagerV2(projectName).removeAll(model.getId());
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);
         modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumns());
@@ -1166,6 +1167,7 @@ public class TableService extends BasicService {
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
+        getOptimizeRecommendationManagerV2(projectName).removeAll(model.getId());
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);

@@ -24,12 +24,56 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public abstract class LayoutRef extends RecommendationRef {
+public class LayoutRef extends RecommendationRef {
+    private List<DimensionRef> dimensionRefs;
+    private List<MeasureRef> measureRefs;
+    private boolean agg;
     protected LayoutEntity layout;
+
+    public LayoutRef(LayoutEntity layout, int id, boolean agg) {
+        this.layout = layout;
+        this.dimensionRefs = Lists.newArrayList();
+        this.measureRefs = Lists.newArrayList();
+        this.id = id;
+        this.agg = agg;
+    }
+
+    private LayoutRef() {
+
+    }
+
+    @Override
+    public List<RecommendationRef> getDependencies() {
+        List<RecommendationRef> res = Lists.newArrayList();
+        res.addAll(dimensionRefs);
+        res.addAll(measureRefs);
+        return res;
+    }
+
+    @Override
+    public String getContent() {
+        return null;
+    }
+
+    @Override
+    public String getName() {
+        return null;
+    }
+
+    public static class DeleteLayoutRef extends LayoutRef {
+        public DeleteLayoutRef(int id) {
+            this.id = id;
+            this.deleted = true;
+        }
+    }
 }

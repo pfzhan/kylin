@@ -38,6 +38,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -362,6 +363,7 @@ public class ModelSemanticHelper extends BasicService {
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
         val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
+        val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(config, project);
 
         val indexPlan = indePlanManager.getIndexPlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
@@ -375,6 +377,7 @@ public class ModelSemanticHelper extends BasicService {
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, project, start, end, saveOnly);
             recommendationManager.cleanAll(model);
+            recommendationManagerV2.removeAll(model);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimensions().keySet()

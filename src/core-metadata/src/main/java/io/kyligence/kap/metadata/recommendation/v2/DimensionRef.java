@@ -78,4 +78,12 @@ public class DimensionRef extends RecommendationRef {
         @JsonProperty("data_type")
         private String dataType;
     }
+
+    public static class DeleteDimensionRef extends DimensionRef {
+
+        public DeleteDimensionRef(int id) {
+            super(id);
+            this.deleted = true;
+        }
+    }
 }

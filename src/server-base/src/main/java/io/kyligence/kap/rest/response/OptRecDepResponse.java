@@ -36,8 +36,8 @@ public class OptRecDepResponse {
     @JsonProperty("version")
     private int version;
 
-    @JsonProperty("expression")
-    private String expression;
+    @JsonProperty("content")
+    private String content;
 
     @JsonProperty("name")
     private String name;

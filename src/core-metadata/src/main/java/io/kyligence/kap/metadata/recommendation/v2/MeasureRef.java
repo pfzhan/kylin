@@ -46,6 +46,11 @@ public class MeasureRef extends RecommendationRef {
         this.columnRefs = Lists.newArrayList();
     }
 
+    protected MeasureRef(int id) {
+        this.id = id;
+        this.deleted = true;
+    }
+
     @Override
     public List<ColumnRef> getDependencies() {
         return columnRefs;
@@ -59,5 +64,12 @@ public class MeasureRef extends RecommendationRef {
     @Override
     public String getName() {
         return measure.getName();
+    }
+
+    public static class DeleteMeasureRef extends MeasureRef {
+
+        public DeleteMeasureRef(int id) {
+            super(id);
+        }
     }
 }
