@@ -121,7 +121,7 @@ public class QueryHistoryService extends BasicService {
             request.setAdmin(true);
         }
 
-        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset, request.getProject()).stream()
+        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream()
                 .forEach(query -> {
                     if (StringUtils.isEmpty(query.getQueryRealizations())) {
                         queryHistories.add(query);

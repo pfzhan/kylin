@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.recommendation.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -85,7 +84,7 @@ public class RawRecStoreUtil {
             return;
         }
 
-        Properties properties = getProperties(dataSource);
+        Properties properties = JdbcUtil.getProperties(dataSource);
         String createTableStmt = String.format(properties.getProperty(CREATE_REC_TABLE), tableName);
         String crateIndexStmt = String.format(properties.getProperty(CREATE_INDEX), tableName, tableName);
         try (Connection connection = dataSource.getConnection()) {
@@ -94,26 +93,4 @@ public class RawRecStoreUtil {
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(crateIndexStmt.getBytes())));
         }
     }
-
-    private static Properties getProperties(BasicDataSource dataSource) throws IOException {
-        String fileName;
-        switch (dataSource.getDriverClassName()) {
-        case "org.postgresql.Driver":
-            fileName = "metadata-jdbc-postgresql.properties";
-            break;
-        case "com.mysql.jdbc.Driver":
-            fileName = "metadata-jdbc-mysql.properties";
-            break;
-        case "org.h2.Driver":
-            fileName = "metadata-jdbc-h2.properties";
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported jdbc driver");
-        }
-        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
-        Properties properties = new Properties();
-        properties.load(is);
-        return properties;
-    }
-
 }

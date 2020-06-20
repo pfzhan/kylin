@@ -23,11 +23,16 @@
  */
 package io.kyligence.kap.common.persistence.metadata.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.StorageURL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -39,6 +44,8 @@ import io.kyligence.kap.common.util.EncryptUtil;
 import lombok.val;
 
 public class JdbcUtil implements IKeep {
+
+    private static final Logger logger = LoggerFactory.getLogger(JdbcUtil.class);
 
     public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer) {
         return withTransaction(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ);
@@ -65,9 +72,13 @@ public class JdbcUtil implements IKeep {
         try {
             val resultSet = conn.getMetaData().getTables(null, null, table, null);
             return resultSet.next();
+        } catch (Exception e) {
+            logger.error("Fail to know if table {} exists", table, e);
         } finally {
-            if (!conn.isClosed()) conn.close();
+            if (!conn.isClosed())
+                conn.close();
         }
+        return false;
     }
 
     public static Properties datasourceParameters(StorageURL url) {
@@ -83,6 +94,27 @@ public class JdbcUtil implements IKeep {
         }
         props.put("password", password);
         return props;
+    }
+
+    public static Properties getProperties(BasicDataSource dataSource) throws IOException {
+        String fileName;
+        switch (dataSource.getDriverClassName()) {
+            case "org.postgresql.Driver":
+                fileName = "metadata-jdbc-postgresql.properties";
+                break;
+            case "com.mysql.jdbc.Driver":
+                fileName = "metadata-jdbc-mysql.properties";
+                break;
+            case "org.h2.Driver":
+                fileName = "metadata-jdbc-h2.properties";
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported jdbc driver");
+        }
+        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
+        Properties properties = new Properties();
+        properties.load(is);
+        return properties;
     }
 
     public interface Callback<T> {

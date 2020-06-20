@@ -22,35 +22,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.common.metric;
+package io.kyligence.kap.metadata.query;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.kylin.common.util.JsonUtil;
+import java.sql.JDBCType;
 
-import java.util.List;
-import java.util.Map;
+import org.mybatis.dynamic.sql.SqlColumn;
+import org.mybatis.dynamic.sql.SqlTable;
 
-public enum ConsoleWriter implements MetricWriter {
-    INSTANCE;
+import io.kyligence.kap.common.obf.IKeep;
 
-    @Override
-    public void write(String measurement, QueryMetrics metrics, long timestamp) throws Throwable {
-        System.out.println("=============:::" + measurement + ":::=============");
-        Map<String, String> metricsMap = JsonUtil.convert(metrics, new TypeReference<Map<String, String>>() {
-        });
-        for (String metric : metricsMap.keySet()) {
-            System.out.println("Metric:" + metric + ", value:" + metricsMap.get(metric));
-        }
-        System.out.println("=============:::END:::=============");
-    }
+public class QueryHistoryRealizationTable extends SqlTable implements IKeep {
 
-    @Override
-    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){
-        // TODO
-    }
+    public final SqlColumn<Long> queryTime = column("query_time", JDBCType.BIGINT);
+    public final SqlColumn<Long> duration = column("duration", JDBCType.BIGINT);
+    public final SqlColumn<String> queryId = column("query_id", JDBCType.VARCHAR);
+    public final SqlColumn<String> projectName = column("project_name", JDBCType.BIGINT);
+    public final SqlColumn<String> model = column("model", JDBCType.VARCHAR);
+    public final SqlColumn<String> layoutId = column("layout_id", JDBCType.VARCHAR);
+    public final SqlColumn<String> indexType = column("index_type", JDBCType.VARCHAR);
 
-    @Override
-    public String getType() {
-        return Type.CONSOLE.name();
+    public QueryHistoryRealizationTable(String tableName) {
+        super(tableName);
     }
 }

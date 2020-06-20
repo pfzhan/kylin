@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.metric.QueryMetrics;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {

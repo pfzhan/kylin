@@ -38,7 +38,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
@@ -50,14 +49,13 @@ import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 
@@ -173,12 +171,7 @@ public class QueryMetricsContext extends QueryMetrics {
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().isExactlyMatch(),
                 context.getMetrics().getSegCount(),
                 Objects.nonNull(this.errorType) && this.errorType != QueryHistory.NO_REALIZATION_FOUND_ERROR);
-        try {
-            this.queryHistoryInfo = JsonUtil.writeValueAsString(queryHistoryInfo);
-        } catch (JsonProcessingException e) {
-            logger.error("Fail to collect query history info", e);
-            this.queryHistoryInfo = "";
-        }
+        this.queryHistoryInfo = queryHistoryInfo;
     }
 
     private void collectErrorType(final QueryContext context) {

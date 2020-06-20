@@ -21,16 +21,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.metric;
+package io.kyligence.kap.metadata.query;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.kylin.common.KapConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -51,6 +52,7 @@ public class QueryMetrics {
     protected static final ThreadLocal<QueryMetrics> contexts = new ThreadLocal<>();
 
     // fields below are columns in InfluxDB table which records down query history
+    protected long id;
     protected final String queryId;
     protected long queryTime;
     protected String projectName;
@@ -88,7 +90,7 @@ public class QueryMetrics {
 
     protected String defaultServer;
 
-    protected String queryHistoryInfo;
+    protected QueryHistoryInfo queryHistoryInfo;
 
     // not a column in query history table,
     protected List<RealizationMetrics> realizationMetrics = new ArrayList<>();

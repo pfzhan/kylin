@@ -48,6 +48,8 @@ public class ProjectDropListenerTest {
     public void setup() {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
+        KylinConfig.getInstanceFromEnv().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
     }

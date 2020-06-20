@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -39,7 +40,7 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class QueryHistoryInfo {
+public class QueryHistoryInfo implements Serializable {
     @JsonProperty("exactly_match")
     private boolean exactlyMatch;
     @JsonProperty("scan_segment_num")

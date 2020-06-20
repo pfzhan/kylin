@@ -42,18 +42,17 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.metadata.query.QueryStatistics;
-import lombok.Setter;
-import lombok.var;
-import org.apache.kylin.common.KylinConfig;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import lombok.Setter;
 
 public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
     // current time is 2018-01-02 00:00:00
@@ -98,26 +97,6 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
             queryHistoryForUpdate.setEngineType("HIVE");
             overallQueryHistories.add(queryHistoryForUpdate);
         }
-    }
-
-    @Override
-    public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime, String project) {
-        List<QueryHistory> queryHistories = Lists.newArrayList();
-
-        for (int i = 0; i < overallQueryHistories.size(); i++) {
-            QueryHistory queryHistory = overallQueryHistories.get(i);
-            if (queryHistory.getInsertTime() >= startTime && queryHistory.getInsertTime() < endTime)
-                queryHistories.add(queryHistory);
-        }
-
-        return queryHistories;
-    }
-
-    @Override
-    public List<QueryStatistics> getFirstQH(long minTime, long maxTime, String project) {
-        var queryStatistics = new QueryStatistics();
-        queryStatistics.setTime(Instant.ofEpochMilli(minTime));
-        return Lists.newArrayList(queryStatistics);
     }
 
     public void insert(QueryHistory queryHistory) {

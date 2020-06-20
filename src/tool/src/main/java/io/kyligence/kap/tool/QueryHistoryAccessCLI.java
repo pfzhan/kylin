@@ -24,37 +24,31 @@
 
 package io.kyligence.kap.tool;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
-
 import java.util.List;
 
-import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.metric.QueryMetrics;
-import io.kyligence.kap.common.metric.RDBMSWriter;
-import lombok.val;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 
 public class QueryHistoryAccessCLI {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccessCLI.class);
     private static final String PROJECT = "test_project";
     private static final String FAIL_LOG = "query history access test failed.";
-    private JdbcTemplate jdbcTemplate;
+    private RDBMSQueryHistoryDAO queryHistoryDAO;
 
-    public QueryHistoryAccessCLI(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public QueryHistoryAccessCLI() {
+        this.queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     public boolean testAccessQueryHistory() {
         try {
-            RDBMSWriter rdbmsWriter = RDBMSWriter.getInstance();
-
             QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
             queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
             queryMetrics.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
@@ -69,8 +63,8 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setIndexHit(true);
             queryMetrics.setQueryTime(1584888338274L);
             queryMetrics.setProjectName(PROJECT);
-            queryMetrics.setQueryHistoryInfo(
-                    "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":null,\"executionError\":true}");
+            QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
+            queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
             QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                     "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");
@@ -83,13 +77,11 @@ public class QueryHistoryAccessCLI {
             realizationMetricsList.add(realizationMetrics);
             realizationMetricsList.add(realizationMetrics);
             queryMetrics.setRealizationMetrics(realizationMetricsList);
-            rdbmsWriter.write(null, queryMetrics, 0L);
+            queryHistoryDAO.insert(queryMetrics);
 
             // clean test data
-            jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryTableName() + " where project_name = '"
-                    + PROJECT + "'");
-            jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryRealizationTableName()
-                    + " where project_name = '" + PROJECT + "'");
+            queryHistoryDAO.deleteAllQueryHistory();
+            queryHistoryDAO.deleteAllQueryHistoryRealization();
         } catch (Exception e) {
             logger.error(FAIL_LOG, e);
             return false;
@@ -97,17 +89,10 @@ public class QueryHistoryAccessCLI {
         return true;
     }
 
-    static JdbcTemplate getJdbcTemplate() throws Exception {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        val props = datasourceParameters(kylinConfig.getMetadataUrl());
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
-        return new JdbcTemplate(dataSource);
-    }
-
     public static void main(String[] args) {
         QueryHistoryAccessCLI cli = null;
         try {
-            cli = new QueryHistoryAccessCLI(getJdbcTemplate());
+            cli = new QueryHistoryAccessCLI();
         } catch (Exception e) {
             logger.error("Test failed.");
             System.exit(1);

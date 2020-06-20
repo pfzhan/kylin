@@ -159,7 +159,7 @@ public class InfluxDBQueryHistoryDAO implements QueryHistoryDAO {
                 this.queryMetricMeasurement);
     }
 
-    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset, String project) {
+    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset) {
         String sql = getQueryHistoriesSql(getQueryHistoryFilterSql(request), limit, offset);
         return getResultBySql(sql, QueryHistory.class, this.queryMetricMeasurement);
     }

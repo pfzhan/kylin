@@ -28,7 +28,7 @@ import java.util.List;
 
 public interface QueryHistoryDAO {
 
-    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset, String project);
+    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset);
 
     public QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime, String project);
 
@@ -47,8 +47,6 @@ public interface QueryHistoryDAO {
     public void deleteQueryHistoriesIfProjectMaxSizeReached(String project);
 
     public void deleteQueryHistoriesIfRetainTimeReached();
-
-    public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime, String project);
 
     public long getQueryHistoriesSize(QueryHistoryRequest request, String project);
 

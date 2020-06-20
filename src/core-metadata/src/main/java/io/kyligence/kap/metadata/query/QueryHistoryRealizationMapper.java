@@ -22,26 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.common.metric;
+package io.kyligence.kap.metadata.query;
 
-import java.util.List;
+import org.apache.ibatis.annotations.DeleteProvider;
+import org.apache.ibatis.annotations.InsertProvider;
+import org.mybatis.dynamic.sql.delete.render.DeleteStatementProvider;
+import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
+import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
-public enum BlackHoleWriter implements MetricWriter {
-    INSTANCE;
+public interface QueryHistoryRealizationMapper {
 
-    @Override
-    public void write(String measurement, QueryMetrics metrics,
-                      long timestamp) throws Throwable {
-        // TODO
-    }
+    @DeleteProvider(type = SqlProviderAdapter.class, method = "delete")
+    int delete(DeleteStatementProvider deleteStatement);
 
-    @Override
-    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){
-        // TODO
-    }
+    @InsertProvider(type = SqlProviderAdapter.class, method = "insert")
+    int insert(InsertStatementProvider<QueryMetrics.RealizationMetrics> insertStatement);
 
-    @Override
-    public String getType() {
-        return Type.BLACK_HOLE.name();
-    }
 }

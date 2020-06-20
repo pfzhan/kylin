@@ -49,9 +49,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.metric.MetricWriter;
-import io.kyligence.kap.common.metric.MetricWriterFactory;
-import io.kyligence.kap.common.metric.QueryMetrics;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -60,6 +57,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 
 public class NQueryHistoryScheduler {
 
@@ -103,19 +103,18 @@ public class NQueryHistoryScheduler {
 
     public class WriteQueryHistoryRunner implements Runnable {
 
-        MetricWriter writer;
+        RDBMSQueryHistoryDAO queryHistoryDAO;
 
         WriteQueryHistoryRunner() throws Exception {
-            writer = MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name());
+            queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
         }
 
         @Override
         public void run() {
             try {
-                List<QueryMetrics> queryHistoryList = Lists.newArrayList();
-                queryMetricsQueue.drainTo(queryHistoryList);
-                logger.info("write {} query history", queryHistoryList.size());
-                writer.batchWrite(null, queryHistoryList, 0);
+                List<QueryMetrics> QueryMetricsList = Lists.newArrayList();
+                queryMetricsQueue.drainTo(QueryMetricsList);
+                queryHistoryDAO.insert(QueryMetricsList);
             } catch (Throwable th) {
                 logger.error("Error when write query history", th);
             }

@@ -35,14 +35,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -161,7 +159,7 @@ public class QueryHistoryAccelerateScheduler {
                 int acceleratedCounts = 0;
 
                 while (true) {
-                    List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesById(
+                    List<QueryHistory> queryHistories = queryHistoryDAO.queryQueryHistoriesByIdOffset(
                             queryHistoryIdOffset.getQueryHistoryIdOffset(), accelerateBatchSize, project);
                     acceleratedCounts = acceleratedCounts + queryHistories.size();
                     accelerateAndUpdateMetadata(queryHistories);
@@ -198,28 +196,14 @@ public class QueryHistoryAccelerateScheduler {
             }
 
             // accelerate
-            List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos = Lists.newArrayList();
+            List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
             List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
-                    queryHistoryInfos);
-            updateQueryHistoryInfo(queryHistoryInfos);
+                    idToQHInfoList);
+            queryHistoryDAO.batchUpdataQueryHistorieInfo(idToQHInfoList);
             rawRecommendation.generateRawRecommendations(project, matchedCandidate);
 
             // update metadata
             updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId);
-        }
-
-        private void updateQueryHistoryInfo(List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos) {
-            List<Object[]> batchArgs = Lists.newArrayList();
-            queryHistoryInfos.forEach(pair -> {
-                String qhInfo = "";
-                try {
-                    qhInfo = JsonUtil.writeValueAsString(pair.getSecond());
-                } catch (JsonProcessingException e) {
-                    logger.error("Fail to parse query history info", e);
-                }
-                batchArgs.add(new Object[] { qhInfo.getBytes(), pair.getFirst(), });
-            });
-            queryHistoryDAO.batchUpdataQueryHistorieInfo(batchArgs);
         }
 
         private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,

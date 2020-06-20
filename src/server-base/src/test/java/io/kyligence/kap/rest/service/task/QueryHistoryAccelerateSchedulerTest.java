@@ -77,7 +77,7 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
         qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
         qhAccelerateScheduler.rawRecommendation = Mockito.mock(RawRecService.class);
-        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.getQueryHistoriesById(Mockito.anyLong(), Mockito.anyInt(),
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(), Mockito.anyInt(),
                 Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
         Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
                 Mockito.anyList(), Mockito.anyList())).thenReturn(queryHistories());

@@ -121,31 +121,6 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetQueryHistoriesByTime() {
-        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
-        long startTime = 0;
-        long endTime = 1000;
-
-        String expectedSql = String.format("SELECT * FROM %s WHERE time >= 0ms AND time < 1000ms", queryMeasurement);
-        String actualSql = queryHistoryDAO.getQueryHistoriesByTimeSql(startTime, endTime);
-
-        Assert.assertEquals(expectedSql, actualSql);
-
-        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByTime(startTime, endTime, "default");
-        Assert.assertEquals(2, queryHistories.size());
-        QueryHistory queryHistory1 = queryHistories.get(0);
-        QueryHistory queryHistory2 = queryHistories.get(1);
-        Assert.assertEquals(mockedSql1, queryHistory1.getSql());
-        Assert.assertEquals(mockedSql2, queryHistory2.getSql());
-        Assert.assertEquals(mockedSqlPattern1, queryHistory1.getSqlPattern());
-        Assert.assertEquals(mockedSqlPattern2, queryHistory2.getSqlPattern());
-        Assert.assertEquals(mockedSubmitter, queryHistory1.getQuerySubmitter());
-        Assert.assertEquals(mockedSubmitter, queryHistory2.getQuerySubmitter());
-        Assert.assertEquals(mockedHostname, queryHistory1.getHostName());
-        Assert.assertEquals(mockedHostname, queryHistory2.getHostName());
-    }
-
-    @Test
     public void testDatabaseNotExist() {
         InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(SHOW_DATABASES_NOT_EXIST);
         final String testSql = String.format("select * from %s", queryMeasurement);
@@ -170,7 +145,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         request.setLatencyFrom("0");
         request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
 
-        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset, "default");
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset);
         Assert.assertEquals(2, queryHistories.size());
 
         InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getMockedZeroSize());

@@ -143,7 +143,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO)
-                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyString());
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
         Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
 

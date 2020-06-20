@@ -21,10 +21,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.metric;
+package io.kyligence.kap.common.util;
+
+import org.apache.kylin.common.KylinConfig;
 
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 import oshi.software.os.OperatingSystem;
