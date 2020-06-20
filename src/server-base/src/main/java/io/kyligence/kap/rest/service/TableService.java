@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_CATALOG_CACHE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -691,9 +692,12 @@ public class TableService extends BasicService {
             throw new KylinException(COLUMN_NOT_EXIST, String
                     .format("Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
-
-        String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
-        return DateFormat.proposeDateFormat(cell);
+        try {
+            String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
+            return DateFormat.proposeDateFormat(cell);
+        } catch (Exception e) {
+            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPUSHDOWN_PARTITIONFORMAT_ERROR());
+        }
     }
 
     public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)

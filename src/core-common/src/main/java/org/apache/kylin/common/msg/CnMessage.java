@@ -793,6 +793,11 @@ public class CnMessage extends Message {
         return "模型 [%s] 保存失败，请确保模型中使用的列 [%s] 在源表 [%s] 中存在";
     }
 
+    // Async push down get date format
+    public String getPUSHDOWN_PARTITIONFORMAT_ERROR() {
+        return "获取失败，请手动选择分区格式";
+    }
+
     // Async push down get data range
     public String getPUSHDOWN_DATARANGE_ERROR() {
         return "获取失败，请手动选择数据范围";

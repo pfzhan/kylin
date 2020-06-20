@@ -852,6 +852,11 @@ public class Message {
         return "Failed to save model [%s]. Please ensure the columns used in model [%s] must be existed in source table [%s]";
     }
 
+    // Async push down get date format
+    public String getPUSHDOWN_PARTITIONFORMAT_ERROR() {
+        return "Detect failed, please set the partition format manually.";
+    }
+
     // Async push down get data range
     public String getPUSHDOWN_DATARANGE_ERROR() {
         return "Detect failed, please set the data range manually.";
