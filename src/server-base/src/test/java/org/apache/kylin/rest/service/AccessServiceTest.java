@@ -423,4 +423,10 @@ public class AccessServiceTest extends ServiceTestBase {
         result = accessService.isGlobalAdmin("ANALYST");
         Assert.assertFalse(result);
     }
+
+    @Test
+    public void testGetGroupsOfCurrentUser() {
+        List<String> result = accessService.getGroupsOfCurrentUser();
+        Assert.assertEquals(4, result.size());
+    }
 }

@@ -125,7 +125,7 @@ public class OpenUserControllerTest extends NLocalFileMetadataTestCase {
                 .when(userController).listAllUsers(null, "ADMIN", false, 0, 10);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .param("username", "ADMIN").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .param("name", "ADMIN").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(openUserController).listAllUsers("ADMIN", false, 0, 10);

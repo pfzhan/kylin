@@ -30,8 +30,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.constant.Constant;
@@ -39,6 +37,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.UserInfoResponse;
 import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -68,6 +67,9 @@ public class OpenUserGroupController extends NBasicController {
     @Autowired
     private NUserGroupController userGroupController;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping(value = "/groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -95,12 +97,16 @@ public class OpenUserGroupController extends NBasicController {
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) throws IOException {
-        EnvelopeResponse<DataResult<List<ManagedUser>>> resultEnvelopeResponse = userGroupController
-                .getUsersByGroup(groupName, username, pageOffset, pageSize);
-        List<ManagedUser> managedUsers = resultEnvelopeResponse.getData().getValue();
-
-        List<UserInfoResponse> userInfoResponses = CollectionUtils.isEmpty(managedUsers) ? Lists.newArrayList()
-                : managedUsers.stream().map(UserInfoResponse::new).collect(Collectors.toList());
+        List<ManagedUser> members = userGroupService.getGroupMembersByName(groupName);
+        if (StringUtils.isNotBlank(username)) {
+            members = members.stream().filter(user -> StringUtils.containsIgnoreCase(user.getUsername(), username))
+                    .collect(Collectors.toList());
+        }
+        //LDAP users dose not have authorities
+        for (ManagedUser user : members) {
+            userService.completeUserInfo(user);
+        }
+        List<UserInfoResponse> userInfoResponses = members.stream().map(UserInfoResponse::new).collect(Collectors.toList());
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }

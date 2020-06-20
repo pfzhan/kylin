@@ -63,6 +63,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -640,6 +641,14 @@ public class AccessService extends BasicService {
                         || AclPermissionUtil.isSpecificPermissionInProject(user, project, AclPermission.MANAGEMENT))
                 .map(ManagedUser::getUsername)
                 .collect(Collectors.toSet());
+    }
+
+    public List<String> getGroupsOfCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (Objects.nonNull(authentication)) {
+            return getGroupsOfUser(authentication.getName());
+        }
+        return Lists.newArrayList();
     }
 
     private List<String> getGroupsOfUser(String username) {

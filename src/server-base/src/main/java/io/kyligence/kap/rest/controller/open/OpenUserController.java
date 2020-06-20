@@ -30,12 +30,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.UserInfoResponse;
+import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -49,8 +49,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserController;
@@ -62,20 +60,25 @@ public class OpenUserController extends NBasicController {
     @Autowired
     private NUserController userController;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<UserInfoResponse>>> listAllUsers(
-            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-        EnvelopeResponse<DataResult<List<ManagedUser>>> resultEnvelopeResponse = userController
-                .listAllUsers(null, username, isCaseSensitive, pageOffset, pageSize);
-        List<ManagedUser> managedUsers = resultEnvelopeResponse.getData().getValue();
-        List<UserInfoResponse> userInfoResponses = CollectionUtils.isEmpty(managedUsers) ? Lists.newArrayList()
-                : managedUsers.stream().map(UserInfoResponse::new).collect(Collectors.toList());
+        List<ManagedUser> usersByFuzzyMatching = userService.getManagedUsersByFuzzMatching(name, isCaseSensitive);
+        //LDAP users dose not have authorities
+        for (ManagedUser u : usersByFuzzyMatching) {
+            userService.completeUserInfo(u);
+        }
+        List<UserInfoResponse> userInfoResponses = usersByFuzzyMatching.stream().map(UserInfoResponse::new).collect(Collectors.toList());
+
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }
 

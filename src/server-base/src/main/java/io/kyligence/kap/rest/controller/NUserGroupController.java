@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
 
@@ -121,7 +122,7 @@ public class NUserGroupController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
-    @GetMapping(value = "/users_with_group")
+    @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<Pair<String, Set<String>>>>> getUsersWithGroup(

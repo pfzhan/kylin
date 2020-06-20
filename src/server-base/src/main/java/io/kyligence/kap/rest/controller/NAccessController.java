@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -47,6 +48,7 @@ import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.security.AclEntityType;
+import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -104,12 +106,15 @@ public class NAccessController extends NBasicController {
     /**
      * Get current user's permission in the project
      */
-    @GetMapping(value = "/permission/project_permission")
+    @GetMapping(value = "/permission/project_permission", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project) throws IOException {
         checkProjectName(project);
-        String grantedPermission = accessService.getCurrentUserPermissionInProject(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, grantedPermission, "");
+        List<String> groups = accessService.getGroupsOfCurrentUser();
+        String permission = groups.contains(ROLE_ADMIN) ? "GLOBAL_ADMIN"
+                : AclPermissionEnum.convertToAclPermission(accessService.getCurrentUserPermissionInProject(project));
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, permission, "");
     }
 
     @ApiOperation(value = "getAvailableSids (update)", notes = "Update Param: sid_type, is_case_sensitive, page_offset, page_size; Update Response: total_size")
@@ -175,7 +180,7 @@ public class NAccessController extends NBasicController {
     }
 
     @ApiOperation(value = "getAccessEntities (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/{type:.+}/{uuid:.+}")
+    @GetMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<DataResult<List<AccessEntryResponse>>> getAccessEntities(@PathVariable("type") String type,
             @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
@@ -214,7 +219,7 @@ public class NAccessController extends NBasicController {
     }
 
     @ApiOperation(value = "batchGrant (update)", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
-    @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}")
+    @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> batchGrant(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, @RequestBody List<BatchAccessRequest> batchAccessRequests)
@@ -236,7 +241,7 @@ public class NAccessController extends NBasicController {
      * @param accessRequest
      */
     @ApiOperation(value = "batchGrant (update)", notes = "Update Body: access_entry_id")
-    @PutMapping(value = "/{type:.+}/{uuid:.+}")
+    @PutMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<Boolean> updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) throws IOException {
