@@ -528,10 +528,6 @@ public class AclTCRService extends BasicService {
 
     @VisibleForTesting
     List<TableDesc> getAuthorizedTables(String project, String user, Set<String> groups) {
-        if (canUseACLGreenChannel(project)) {
-            return getTableMetadataManager(project).listAllTables();
-        }
-
         List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(user, groups);
         return getTableMetadataManager(project).listAllTables().stream()
                 .filter(tableDesc -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity())))
