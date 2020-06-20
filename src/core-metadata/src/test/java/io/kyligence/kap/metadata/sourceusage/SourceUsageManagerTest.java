@@ -30,11 +30,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        System.setProperty(Constants.KE_LICENSE_VOLUME, "1024 * 1024 * 1024 * 1024");
+        System.setProperty(Constants.KE_LICENSE_VOLUME, Constants.UNLIMITED);
     }
 
     @After
@@ -49,9 +53,44 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(sourceUsageRecord);
         sourceUsageManager.updateSourceUsage();
         SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
+        Assert.assertEquals(735780L, usage.getCurrentCapacity());
+        // -1 means UNLIMITED
+        Assert.assertEquals(-1L, usage.getLicenseCapacity());
         SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail = usage.getProjectCapacity("default");
-        long capacity = projectCapacityDetail.getTableByName("DEFAULT.TEST_MEASURE").getCapacity();
-        Assert.assertEquals(100L, capacity);
+        Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, projectCapacityDetail.getStatus());
+
+        SourceUsageRecord.TableCapacityDetail testMeasureTableDetail = projectCapacityDetail.getTableByName("DEFAULT.TEST_MEASURE");
+        Assert.assertEquals(SourceUsageRecord.TableKind.FACT, testMeasureTableDetail.getTableKind());
+        Assert.assertEquals(100L, testMeasureTableDetail.getCapacity());
+
+        SourceUsageRecord.TableCapacityDetail testCountryTableDetail = projectCapacityDetail.getTableByName("DEFAULT.TEST_COUNTRY");
+        Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, testCountryTableDetail.getTableKind());
+    }
+
+    class TestSourceUsage implements Runnable {
+        @Override
+        public void run() {
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
+            sourceUsageManager.updateSourceUsage();
+        }
+    }
+
+    @Test
+    public void testUpdateSourceUsageInTheSameTime() throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(50);
+        for (int i = 0; i < 50; i++) {
+            executorService.execute(new TestSourceUsage());
+        }
+        executorService.shutdown();
+        while (true) {
+            if (executorService.isTerminated()) {
+                break;
+            }
+            Thread.sleep(200);
+        }
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
+        List<SourceUsageRecord> sourceUsageRecords = sourceUsageManager.getLatestRecordByHours(1);
+        Assert.assertEquals(1, sourceUsageRecords.size());
     }
 
 }

@@ -573,7 +573,9 @@ public class LicenseInfoService extends BasicService {
             nodeMonitorInfoResponse.setEvaluation(true);
         }
         String serviceNodes = System.getProperty(Constants.KE_LICENSE_NODES);
-        if (!StringUtils.isEmpty(serviceNodes) && !UNLIMITED.equals(serviceNodes)) {
+        if (UNLIMITED.equals(serviceNodes)) {
+            nodeMonitorInfoResponse.setNode(-1);
+        } else if (!StringUtils.isEmpty(serviceNodes)) {
             try {
                 int maximumNodeNums = Integer.parseInt(serviceNodes);
                 nodeMonitorInfoResponse.setNode(maximumNodeNums);

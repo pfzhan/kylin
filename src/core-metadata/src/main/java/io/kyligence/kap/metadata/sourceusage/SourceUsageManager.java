@@ -371,7 +371,9 @@ public class SourceUsageManager {
         usage.setCheckTime(System.currentTimeMillis());
 
         String capacity = System.getProperty(Constants.KE_LICENSE_VOLUME);
-        if (!StringUtils.isEmpty(capacity) && !Constants.UNLIMITED.equals(capacity)) {
+        if (Constants.UNLIMITED.equals(capacity)) {
+            usage.setLicenseCapacity(-1L);
+        } else if (!StringUtils.isEmpty(capacity)) {
             try {
                 long licenseCapacity = Long.parseLong(capacity);
                 usage.setLicenseCapacity(licenseCapacity);
@@ -424,12 +426,12 @@ public class SourceUsageManager {
                     record.setCurrentCapacity(usageRecord.getCurrentCapacity());
                     if (!isOverCapacityThreshold(record) && !record.isCapacityNotification()) {
                         record.setCapacityNotification(true);
-                        logger.info("Capacity usage is less then threshold, enable notification");
+                        logger.info("Capacity usage is less than threshold, enable notification");
                     } else if (record.isCapacityNotification() && config.isOverCapacityNotificationEnabled() &&
                             isOverCapacityThreshold(record)) {
                         if (MailHelper.notifyUserForOverCapacity(record.getLicenseCapacity(), record.getCurrentCapacity())) {
                             record.setCapacityNotification(false);
-                            logger.info("Capacity usage is more then threshold, disable notification");
+                            logger.info("Capacity usage is more than threshold, disable notification");
                         } else {
                             logger.info("Send mail for Over Capacity failed.");
                         }
@@ -544,7 +546,9 @@ public class SourceUsageManager {
         info.setCurrentNode(currentNodes);
 
         String licenseNodes = System.getProperty(Constants.KE_LICENSE_NODES);
-        if (!StringUtils.isEmpty(licenseNodes) && !Constants.UNLIMITED.equals(licenseNodes)) {
+        if (Constants.UNLIMITED.equals(licenseNodes)) {
+            info.setNode(-1);
+        } else if (!StringUtils.isEmpty(licenseNodes)) {
             try {
                 int maximumNodeNums = Integer.parseInt(licenseNodes);
                 info.setNode(maximumNodeNums);
