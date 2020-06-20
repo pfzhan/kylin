@@ -45,6 +45,7 @@ package org.apache.kylin.common.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -222,6 +223,14 @@ public class StringUtil {
 
     public static boolean equals(String a, String b) {
         return a == null ? b == null : a.equals(b);
+    }
+
+    public static boolean validateNumber(String s) {
+        return Pattern.compile("^(0|[1-9]\\d*)$").matcher(s).matches();
+    }
+
+    public static boolean validateBoolean(String s) {
+        return "true".equals(s) || "false".equals(s);
     }
 
 }

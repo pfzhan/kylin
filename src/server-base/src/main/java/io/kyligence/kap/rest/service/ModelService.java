@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,6 +88,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -157,6 +159,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -164,6 +167,8 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
@@ -1912,6 +1917,10 @@ public class ModelService extends BasicService {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
                 || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase())) {
             throw new KylinException(INVALID_NAME,
+                    String.format(MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD(), name));
+        }
+        if (!Pattern.compile("^[a-zA-Z]+\\w*$").matcher(name).matches()) {
+            throw new KylinException(INVALID_NAME,
                     String.format(MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME(), name));
         }
     }
@@ -2459,6 +2468,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void updateModelConfig(String project, String modelId, ModelConfigRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
+        checkModelConfigParameters(request);
         val dataModelManager = getDataModelManager(project);
         dataModelManager.updateDataModel(modelId, copyForWrite -> {
             val segmentConfig = copyForWrite.getSegmentConfig();
@@ -2484,6 +2494,46 @@ public class ModelService extends BasicService {
                 copyForWrite.setRuleBasedIndex(newRule);
             }
         });
+    }
+
+    private void checkModelConfigParameters(ModelConfigRequest request) {
+        Boolean autoMergeEnabled = request.getAutoMergeEnabled();
+        List<AutoMergeTimeEnum> timeRanges = request.getAutoMergeTimeRanges();
+        VolatileRange volatileRange = request.getVolatileRange();
+        RetentionRange retentionRange = request.getRetentionRange();
+        LinkedHashMap<String, String> props = request.getOverrideProps();
+        String cores = props.get("kylin.engine.spark-conf.spark.executor.cores");
+        String instances = props.get("kylin.engine.spark-conf.spark.executor.instances");
+        String pattitions = props.get("kylin.engine.spark-conf.spark.sql.shuffle.partitions");
+        String memory = props.get("kylin.engine.spark-conf.spark.executor.memory");
+        String baseCuboidAllowed = props.get("kylin.cube.aggrgroup.is-base-cuboid-always-valid");
+
+        if (Boolean.TRUE.equals(autoMergeEnabled) && (null == timeRanges || timeRanges.isEmpty())) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_AUTO_MERGE_CONFIG()));
+        }
+        if (null != volatileRange && volatileRange.isVolatileRangeEnabled() &&
+                (volatileRange.getVolatileRangeNumber() < 0 || null == volatileRange.getVolatileRangeType())) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_VOLATILE_RANGE_CONFIG()));
+        }
+        if (null != retentionRange && retentionRange.isRetentionRangeEnabled() && (null == autoMergeEnabled || !autoMergeEnabled
+                || retentionRange.getRetentionRangeNumber() < 0 || !retentionRange.getRetentionRangeType().equals(Collections.max(timeRanges)))) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_RETENTION_RANGE_CONFIG()));
+        }
+        if (null != cores && !StringUtil.validateNumber(cores)) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.cores"));
+        }
+        if (null != instances && !StringUtil.validateNumber(instances)) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.executor.instances"));
+        }
+        if (null != pattitions && !StringUtil.validateNumber(pattitions)) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_INTEGER_FORMAT(), "spark.sql.shuffle.partitions"));
+        }
+        if (null != memory && (!memory.endsWith("g") || !StringUtil.validateNumber(memory.substring(0, memory.length() - 1)))) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_MEMORY_SIZE(), "spark.executor.memory"));
+        }
+        if (null != baseCuboidAllowed && !StringUtil.validateBoolean(baseCuboidAllowed)) {
+            throw new KylinException(INVALID_PARAMETER, String.format(MsgPicker.getMsg().getINVALID_BOOLEAN_FORMAT(), "is-base-cuboid-always-valid"));
+        }
     }
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String modelId, PartitionDesc desc)

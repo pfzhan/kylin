@@ -717,6 +717,10 @@ public class CnMessage extends Message {
         return "最多可同时导入 1000 条 SQL";
     }
 
+    public String getSQL_FILE_TYPE_MISMATCH() {
+        return "sql文件的后缀必须是 'txt' 或 'sql'";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB() {
@@ -857,6 +861,14 @@ public class CnMessage extends Message {
     }
 
     //Kerberos
+    public String getPRINCIPAL_EMPTY() {
+        return "Principal 名称不能为空.";
+    }
+
+    public String getKEYTAB_FILE_TYPE_MISMATCH() {
+        return "keytab 文件后缀必须是 'keytab'";
+    }
+
     public String getKERBEROS_INFO_ERROR() {
         return "无效的 Principle 名称或者 Keytab 文件，请检查后重试.";
     }
@@ -1050,8 +1062,12 @@ public class CnMessage extends Message {
         return "用户名, 公司只支持中英文、数字、空格";
     }
 
-    public String getINVALID_COMPUTER_COLUMN_NAME() {
+    public String getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD() {
         return "计算列[%s]的名称是 SQL 关键字，请使用其他名称。";
+    }
+
+    public String getINVALID_COMPUTER_COLUMN_NAME() {
+        return "计算列[%s]的名称不能为空，或以字母以外的符号开头，或包含字母、数字、下划线以外的符号，请使用其他名称。";
     }
 
     public String getMODEL_ALIAS_DUPLICATED() {
@@ -1285,6 +1301,30 @@ public class CnMessage extends Message {
     public String getFAILED_INIT_PASSWORD_ENCODER() {
         return "PASSWORD ENCODER 初始化失败，请检查配置项kylin.security.user-password-encoder";
 
+    }
+
+    public String getINVALID_INTEGER_FORMAT() {
+        return "重写模型设置失败，%s 参数值必须为非负整数.";
+    }
+
+    public String getINVALID_MEMORY_SIZE() {
+        return "重写模型设置失败，spark-conf.spark.executor.memory 参数值必须为非负整数与单位 g 的组合.";
+    }
+
+    public String getINVALID_BOOLEAN_FORMAT() {
+        return "重写模型设置失败，%s 参数值必须为 true 或 false.";
+    }
+
+    public String getINVALID_AUTO_MERGE_CONFIG() {
+        return "重写模型设置失败，自动合并范围不能为空.";
+    }
+
+    public String getINVALID_VOLATILE_RANGE_CONFIG() {
+        return "重写模型设置失败，动态区间参数单位必须为天、周、月、年其中一个,且值必须为非负整数.";
+    }
+
+    public String getINVALID_RETENTION_RANGE_CONFIG() {
+        return "重写模型设置失败，留存设置值必须为非负整数，单位必须为自动合并选中单位中的最粗粒度单位.";
     }
 
     public String getINSUFFICIENT_AUTHENTICATION() {

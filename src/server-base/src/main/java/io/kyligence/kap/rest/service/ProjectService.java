@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXI
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_TYPE_MISMATCH;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
@@ -877,6 +878,13 @@ public class ProjectService extends BasicService {
     }
 
     public File generateTempKeytab(String principal, MultipartFile keytabFile) throws Exception {
+        Message msg = MsgPicker.getMsg();
+        if (null == principal || principal.isEmpty()) {
+            throw new KylinException(EMPTY_PARAMETER, msg.getPRINCIPAL_EMPTY());
+        }
+        if (!keytabFile.getOriginalFilename().endsWith(".keytab")) {
+            throw new KylinException(FILE_TYPE_MISMATCH, msg.getKEYTAB_FILE_TYPE_MISMATCH());
+        }
         String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
         File kFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);
         FileUtils.copyInputStreamToFile(keytabFile.getInputStream(), kFile);

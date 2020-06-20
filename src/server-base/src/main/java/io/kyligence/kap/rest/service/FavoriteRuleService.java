@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_TYPE_MISMATCH;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 
@@ -133,6 +134,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     public Map<String, Object> importSqls(MultipartFile[] files, String project) {
+        Message msg = MsgPicker.getMsg();
         aclEvaluate.checkProjectWritePermission(project);
         Map<String, Object> result = Maps.newHashMap();
         List<String> sqls = Lists.newArrayList();
@@ -143,6 +145,10 @@ public class FavoriteRuleService extends BasicService {
         context.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
         // parse file to sqls
         for (MultipartFile file : files) {
+            String fileName = file.getOriginalFilename();
+            if (!fileName.endsWith(".sql") && !fileName.endsWith(".txt")) {
+                throw new KylinException(FILE_TYPE_MISMATCH, msg.getSQL_FILE_TYPE_MISMATCH());
+            }
             try {
                 sqls.addAll(transformFileToSqls(file, project));
             } catch (Exception ex) {
@@ -152,7 +158,6 @@ public class FavoriteRuleService extends BasicService {
             }
         }
         if (sqls.size() > getConfig().getFavoriteImportSqlMaxSize()) {
-            Message msg = MsgPicker.getMsg();
             throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, msg.getSQL_NUMBER_EXCEEDS_LIMIT());
         }
 

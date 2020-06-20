@@ -777,6 +777,10 @@ public class Message {
         return "Up to 1000 SQLs could be imported at a time";
     }
 
+    public String getSQL_FILE_TYPE_MISMATCH() {
+        return "The suffix of sql files must be 'txt' or 'sql'.";
+    }
+
     // Query statistics
 
     public String getNOT_SET_INFLUXDB() {
@@ -937,6 +941,14 @@ public class Message {
     }
 
     //Kerberos
+    public String getPRINCIPAL_EMPTY() {
+        return "Principal name cannot be null.";
+    }
+
+    public String getKEYTAB_FILE_TYPE_MISMATCH() {
+        return "The suffix of keytab file must be 'keytab'.";
+    }
+
     public String getKERBEROS_INFO_ERROR() {
         return "Invalid principle name or keytab file, please check and submit again.";
     }
@@ -1098,8 +1110,13 @@ public class Message {
         return "Username, company only supports Chinese, English, numbers, spaces";
     }
 
-    public String getINVALID_COMPUTER_COLUMN_NAME() {
+    public String getINVALID_COMPUTER_COLUMN_NAME_WITH_KEYWORD() {
         return "The computed column's name:[%s] is a sql keyword, please choose another name.";
+    }
+
+    public String getINVALID_COMPUTER_COLUMN_NAME() {
+        return "The computed column's name:[%s] is invalid (null, start with number or underline, include symbol except char, " +
+                "number and underline), please choose another name.";
     }
 
     public String getMODEL_ALIAS_DUPLICATED() {
@@ -1331,6 +1348,32 @@ public class Message {
 
     public String getFAILED_INIT_PASSWORD_ENCODER() {
         return "PASSWORD ENCODER init failed, please check configuration item kylin.security.user-password-encoder";
+    }
+    public String getINVALID_INTEGER_FORMAT() {
+        return "Failed to rewrite the model settings, %s parameter value must be non-negative integer.";
+    }
+
+    public String getINVALID_MEMORY_SIZE() {
+        return "Failed to rewrite the model settings, spark-conf.spark.executor.instances parameter " +
+                "value must be a combination of non-negative integer and unit g.";
+    }
+
+    public String getINVALID_BOOLEAN_FORMAT() {
+        return "Failed to rewrite the model settings, %s parameter value must be true or false.";
+    }
+
+    public String getINVALID_AUTO_MERGE_CONFIG() {
+        return "Failed to rewrite model settings, automatic merge range cannot be empty.";
+    }
+
+    public String getINVALID_VOLATILE_RANGE_CONFIG() {
+        return "Failed to rewrite the model setting, the unit of the dynamic interval parameter must be " +
+                "one of day, week, month, and year and the value must be non-negative integer.";
+    }
+
+    public String getINVALID_RETENTION_RANGE_CONFIG() {
+        return "Failed to rewrite the model settings, parameter value must be non-negative integer and the " +
+                "unit of parameter must be the coarsest granularity unit in the unit selected for automatic merge.";
     }
 
     public String getINSUFFICIENT_AUTHENTICATION() {
