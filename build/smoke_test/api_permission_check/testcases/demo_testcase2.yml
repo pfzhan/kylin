@@ -1133,3 +1133,10 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/update_epoch.yml
+    name: 更新epoch
+    validate:
+      - eq:
+          - status_code
+          - 200

@@ -26,10 +26,13 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
@@ -39,8 +42,19 @@ public class EpochService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochService.class);
 
+    @Autowired
+    public AclEvaluate aclEvaluate;
+
     public void updateEpoch(List<String> projects, boolean force) throws Exception {
+        aclEvaluate.checkIsGlobalAdmin();
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+
+        NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        if (projects.isEmpty()) {
+            projects.add(EpochManager.GLOBAL);
+            projectMgr.listAllProjects().stream().map(p -> projects.add(p.getName()));
+        }
+
         for (String project : projects) {
             logger.info("update epoch {}", project);
             if (force)
