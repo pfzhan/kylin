@@ -26,7 +26,6 @@ package io.kyligence.kap.tool.garbage;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -39,6 +38,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +47,12 @@ import lombok.extern.slf4j.Slf4j;
 public class DataflowCleanerCLI {
 
     public static void main(String[] args) {
+        execute();
+        System.out.println("Cleanup dataflow finished.");
+        System.exit(0);
+    }
+
+    public static void execute() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val projectManager = NProjectManager.getInstance(config);
         for (ProjectInstance project : projectManager.listAllProjects()) {
@@ -54,7 +60,7 @@ public class DataflowCleanerCLI {
             try {
                 cleanupRedundantIndex(project);
             } catch (Exception e) {
-                log.warn("clean dataflow for project<" + project.getName() + "> failed", e);
+                log.warn(String.format("Clean dataflow for project<%s> failed", project.getName()), e);
             }
             log.info("Dataflow cleanup for project<{}> finished", project.getName());
         }

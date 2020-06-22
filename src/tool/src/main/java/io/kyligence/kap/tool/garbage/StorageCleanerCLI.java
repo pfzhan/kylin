@@ -32,11 +32,13 @@ public class StorageCleanerCLI {
     public static void main(String[] args) {
         try {
             val storageCleaner = new StorageCleaner();
-            log.info("Start cleanup HDFS");
+            log.info("Start cleanup HDFS.");
             storageCleaner.execute();
         } catch (Exception e) {
-            log.warn("cleanup HDFS failed", e);
+            log.warn("cleanup HDFS failed.", e);
         }
-        log.info("cleanup HDFS finished");
+        log.info("cleanup HDFS finished.");
+        System.out.println("cleanup HDFS finished.");
+        System.exit(0);
     }
 }

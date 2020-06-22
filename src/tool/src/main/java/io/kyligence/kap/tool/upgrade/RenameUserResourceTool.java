@@ -157,6 +157,8 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
     public static void main(String[] args) {
         val tool = new RenameUserResourceTool();
         tool.execute(args);
+        System.out.println("Rename user resource finished.");
+        System.exit(0);
     }
 
     @Override

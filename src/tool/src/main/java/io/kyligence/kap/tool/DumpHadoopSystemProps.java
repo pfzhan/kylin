@@ -69,6 +69,7 @@ public class DumpHadoopSystemProps implements IKeep {
         output(propsDiff, envsDiff, tmp);
 
         System.out.println(tmp.getAbsolutePath());
+        System.exit(0);
     }
 
     private static void output(TreeMap<String, String> propsDiff, TreeMap<String, String> envsDiff, File tmp)

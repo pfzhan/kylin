@@ -24,7 +24,15 @@
 
 package io.kyligence.kap.tool;
 
+import java.util.stream.Collectors;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -33,12 +41,6 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.tool.garbage.DataflowCleanerCLI;
 import lombok.val;
 import lombok.var;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.stream.Collectors;
 
 public class DataflowCleanerCLITest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -60,20 +62,21 @@ public class DataflowCleanerCLITest extends NLocalFileMetadataTestCase {
         var dataflow = dataflowManager.getDataflow(MODEL_ID);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var indexPlan = dataflow.getIndexPlan();
-        indexPlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), true,
-                false));
+        indexPlanManager.updateIndexPlan(indexPlan.getId(),
+                copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), true, false));
 
         for (NDataSegment segment : dataflow.getSegments()) {
-            var layouts = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId).collect(Collectors.toList());
+            var layouts = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
+                    .collect(Collectors.toList());
             Assert.assertTrue(layouts.contains(10001L));
             Assert.assertTrue(layouts.contains(10002L));
         }
-
-        DataflowCleanerCLI.main(new String[0]);
+        DataflowCleanerCLI.execute();
 
         dataflow = dataflowManager.getDataflow(MODEL_ID);
         for (NDataSegment segment : dataflow.getSegments()) {
-            var layouts = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId).collect(Collectors.toList());
+            var layouts = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
+                    .collect(Collectors.toList());
             Assert.assertFalse(layouts.contains(10001L));
             Assert.assertFalse(layouts.contains(10002L));
         }

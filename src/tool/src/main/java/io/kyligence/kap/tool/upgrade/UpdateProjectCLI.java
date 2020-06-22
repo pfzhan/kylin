@@ -65,6 +65,8 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
     public static void main(String[] args) throws Exception {
         val tool = new UpdateProjectCLI();
         tool.execute(args);
+        System.out.println("Update project finished.");
+        System.exit(0);
     }
 
     void updateAllProjects(KylinConfig kylinConfig) {

@@ -121,6 +121,8 @@ public class AuditLogTool extends ExecutableApplication {
     public static void main(String[] args) {
         val tool = new AuditLogTool();
         tool.execute(args);
+        System.out.println("Audit log task finished.");
+        System.exit(0);
     }
 
     @Override

@@ -65,6 +65,7 @@ public class CryptTool extends ExecutableApplication {
     public static void main(String[] args) {
         val tool = new CryptTool();
         tool.execute(args);
+        System.exit(0);
     }
 
     @Override

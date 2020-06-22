@@ -45,12 +45,12 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import lombok.val;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class YarnApplicationTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -87,6 +87,8 @@ public class YarnApplicationTool extends ExecutableApplication {
     public static void main(String[] args) {
         val tool = new YarnApplicationTool();
         tool.execute(args);
+        System.out.println("Yarn application task finished.");
+        System.exit(0);
     }
 
     @Override
@@ -150,11 +152,10 @@ public class YarnApplicationTool extends ExecutableApplication {
             String cmd = "yarn logs -applicationId %s";
             for (String applicationId : applicationIdList) {
                 try {
-                    if(!applicationId.startsWith("application")){
+                    if (!applicationId.startsWith("application")) {
                         continue;
                     }
-                   val result = cmdExecutor.execute(String.format(cmd, applicationId),
-                            null);
+                    val result = cmdExecutor.execute(String.format(cmd, applicationId), null);
 
                     if (result.getCode() != 0) {
                         logger.error("Failed to execute the yarn cmd: {}", cmd);
@@ -165,7 +166,8 @@ public class YarnApplicationTool extends ExecutableApplication {
                     }
                 } catch (ShellException se) {
                     logger.error("Failed to extract log by yarn job: {}", applicationId, se);
-                    String detailMessage = se.getMessage() + "\n For detailed error information, please see logs/diag.log or logs/kylin.log";
+                    String detailMessage = se.getMessage()
+                            + "\n For detailed error information, please see logs/diag.log or logs/kylin.log";
                     FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), detailMessage);
                 }
             }

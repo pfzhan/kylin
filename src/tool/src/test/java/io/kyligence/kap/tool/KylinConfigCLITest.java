@@ -67,7 +67,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         File f = File.createTempFile("cfg", ".tmp");
         PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
         System.setOut(tmpOut);
-        KylinConfigCLI.main(new String[] { "kylin.env" });
+        KylinConfigCLI.execute(new String[] { "kylin.env" });
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         assertEquals("UT", val);
@@ -85,7 +85,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         File f = File.createTempFile("cfg", ".tmp");
         PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
         System.setOut(tmpOut);
-        KylinConfigCLI.main(new String[] { property, EncryptUtil.DEC_FLAG});
+        KylinConfigCLI.execute(new String[] { property, EncryptUtil.DEC_FLAG});
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         assertEquals("kylin", val);
@@ -103,7 +103,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         File f = File.createTempFile("cfg", ".tmp");
         PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
         System.setOut(tmpOut);
-        KylinConfigCLI.main(new String[] { property, EncryptUtil.DEC_FLAG});
+        KylinConfigCLI.execute(new String[] { property, EncryptUtil.DEC_FLAG});
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         assertEquals("kylin", val);
@@ -118,7 +118,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
         File f = File.createTempFile("cfg", ".tmp");
         PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
         System.setOut(tmpOut);
-        KylinConfigCLI.main(new String[] { "kylin.engine.mr.config-override." });
+        KylinConfigCLI.execute(new String[] { "kylin.engine.mr.config-override." });
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         Assertions.assertThat(val).contains("test1=test1").contains("test2=test2");

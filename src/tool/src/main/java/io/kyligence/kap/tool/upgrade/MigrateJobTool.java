@@ -97,6 +97,8 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
     public static void main(String[] args) {
         val tool = new MigrateJobTool();
         tool.execute(args);
+        System.out.println("Migrate job finished.");
+        System.exit(0);
     }
 
     @Override

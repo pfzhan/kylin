@@ -68,12 +68,13 @@ public class AdminUserInitCLI {
             boolean randomPasswordEnabled = KylinConfig.getInstanceFromEnv().getRandomAdminPasswordEnabled();
             if (randomPasswordEnabled) {
                 initAdminUser();
-                System.exit(0);
             }
         } catch (Exception e) {
             logger.error("Create Admin user failed.", e);
             System.exit(1);
         }
+        System.out.println("Create admin user finished.");
+        System.exit(0);
     }
 
     public static void initAdminUser() throws Exception {

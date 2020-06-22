@@ -76,6 +76,8 @@ public class UpdateSessionTableCLI {
             tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
             tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_TABLE_SQL, tableName);
         }
+        System.out.println("Update session table finished.");
+        System.exit(0);
     }
 
     private static void tryUpdateSessionTable(String replaceName, String sql, String sessionTableName) {

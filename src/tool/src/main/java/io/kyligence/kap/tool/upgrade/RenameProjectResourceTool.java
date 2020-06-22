@@ -189,6 +189,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     public static void main(String[] args) {
         val tool = new RenameProjectResourceTool();
         tool.execute(args);
+        System.out.println("Rename project resource finished.");
+        System.exit(0);
     }
 
     @Override

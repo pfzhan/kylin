@@ -32,9 +32,10 @@ import org.apache.hadoop.fs.Path;
 public class KapGetPathWithoutSchemeAndAuthorityCLI {
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("Usage: KapGetPathWithoutSchemeAndAuthorityCLI <path>");
+            System.out.println("Usage: KapGetPathWithoutSchemeAndAuthorityCLI <path>");
             System.exit(1);
         }
         System.out.println(Path.getPathWithoutSchemeAndAuthority(new Path(args[0])));
+        System.exit(0);
     }
 }

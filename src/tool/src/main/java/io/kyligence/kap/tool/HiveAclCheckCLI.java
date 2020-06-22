@@ -44,12 +44,13 @@ public class HiveAclCheckCLI {
             Path whPath = new Path(whDir);
             if (fs.exists(whPath)) {
                 fs.listStatus(whPath);
-                System.exit(0);
             } else {
                 logger.error("hive.metastore.warehouse.dir :{} not exists", whDir);
             }
         } catch (IOException e) {
             System.exit(1);
         }
+        System.out.println("Hive acl check finished.");
+        System.exit(0);
     }
 }

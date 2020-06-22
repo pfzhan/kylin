@@ -46,21 +46,26 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
-import io.kyligence.kap.common.util.EncryptUtil;
 import org.apache.kylin.common.BackwardCompatibilityConfig;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.EncryptUtil;
 
 public class KylinConfigCLI implements IKeep {
     public static void main(String[] args) {
+        execute(args);
+        System.exit(0);
+    }
+
+    public static void execute(String[] args) {
         boolean needDec = false;
         if (args.length != 1) {
             if (args.length < 2 || !Objects.equals(EncryptUtil.DEC_FLAG, args[1])) {
-                System.err.println("Usage: KylinConfigCLI conf_name");
-                System.err.println("Example: KylinConfigCLI kylin.server.mode");
+                System.out.println("Usage: KylinConfigCLI conf_name");
+                System.out.println("Example: KylinConfigCLI kylin.server.mode");
                 System.exit(1);
             } else {
                 needDec = true;
@@ -89,7 +94,7 @@ public class KylinConfigCLI implements IKeep {
         }
     }
 
-    static private Map<String, String> getPropertiesByPrefix(Properties props, String prefix) {
+    private static Map<String, String> getPropertiesByPrefix(Properties props, String prefix) {
         Map<String, String> result = Maps.newLinkedHashMap();
         for (Map.Entry<Object, Object> entry : props.entrySet()) {
             String entryKey = (String) entry.getKey();
