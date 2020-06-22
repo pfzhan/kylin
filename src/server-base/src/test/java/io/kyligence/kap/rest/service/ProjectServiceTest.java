@@ -572,7 +572,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertNull(prjManager.getProject(project));
         Assert.assertNull(eventOrchestratorManager.getEventOrchestratorByProject(project));
         Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
-        Assert.assertNull(NFavoriteScheduler.getInstanceByProject(project));
     }
 
     @Test

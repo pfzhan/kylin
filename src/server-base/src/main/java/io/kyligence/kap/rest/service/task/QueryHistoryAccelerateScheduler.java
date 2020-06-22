@@ -96,7 +96,7 @@ public class QueryHistoryAccelerateScheduler {
         }
 
         queryHistoryAccelerateScheduler = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("QueryHistoryAccelerateWorker"));
+                new NamedThreadFactory("QueryHistoryAccelerateWorker(project:" + project + ")"));
         queryHistoryAccelerateScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(), 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
 
@@ -105,7 +105,7 @@ public class QueryHistoryAccelerateScheduler {
         logger.info("Query history accelerate scheduler is started for [{}] ", project);
     }
 
-    public Future scheduleImmediately() {
+    public Future<?> scheduleImmediately() {
         ScheduledFuture<?> future = queryHistoryAccelerateScheduler.schedule(new QueryHistoryAccelerateRunner(), 10L,
                 TimeUnit.SECONDS);
         return future;
@@ -172,6 +172,7 @@ public class QueryHistoryAccelerateScheduler {
             }
             int numOfQueryHitIndex = 0;
             int overallQueryNum = 0;
+            long maxId = 0;
 
             Map<String, Long> modelsLastQueryTime = Maps.newHashMap();
             val dfHitCountMap = collectDataflowHitCount(queryHistories);
@@ -183,9 +184,12 @@ public class QueryHistoryAccelerateScheduler {
                 if (Objects.nonNull(engineType) && engineType.equals(QueryHistory.EngineType.NATIVE.name())) {
                     numOfQueryHitIndex++;
                 }
+                if (queryHistory.getId() > maxId) {
+                    maxId = queryHistory.getId();
+                }
             }
 
-            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, queryHistories);
+            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId);
 
             // accelerate
             AccelerateRuleUtil accelerateRuleUtil = new AccelerateRuleUtil();
@@ -212,8 +216,7 @@ public class QueryHistoryAccelerateScheduler {
         }
 
         private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,
-                Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime,
-                List<QueryHistory> queryHistories) {
+                Map<String, DataflowHitCount> dfHitCountMap, Map<String, Long> modelsLastQueryTime, Long maxId) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -232,8 +235,7 @@ public class QueryHistoryAccelerateScheduler {
                 // update id offset
                 QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
                         .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-                long idOffset = queryHistoryIdOffset.getQueryHistoryIdOffset();
-                queryHistoryIdOffset.setQueryHistoryIdOffset(idOffset + queryHistories.size());
+                queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
                 QueryHistoryIdOffsetManager.getInstance(config, project).save(queryHistoryIdOffset);
                 return 0;
             }, project);

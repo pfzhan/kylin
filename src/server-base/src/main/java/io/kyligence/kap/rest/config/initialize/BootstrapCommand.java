@@ -71,14 +71,6 @@ public class BootstrapCommand implements Runnable {
                 throw new RuntimeException("Scheduler for " + project.getName() + " has not been started");
             }
 
-            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project.getName());
-            favoriteScheduler.init();
-
-            if (!favoriteScheduler.hasStarted()) {
-                throw new RuntimeException(
-                        "Auto favorite scheduler for " + project.getName() + " has not been started");
-            }
-
             return 0;
         }, project.getName(), 1, UnitOfWork.DEFAULT_EPOCH_ID);
 

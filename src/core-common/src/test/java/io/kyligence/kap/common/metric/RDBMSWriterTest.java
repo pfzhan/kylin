@@ -70,6 +70,8 @@ public class RDBMSWriterTest extends NLocalFileMetadataTestCase {
         queryMetrics.setIndexHit(true);
         queryMetrics.setQueryTime(1584888338274L);
         queryMetrics.setProjectName("default");
+        queryMetrics.setQueryHistoryInfo(
+                "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":null,\"executionError\":true}");
 
         QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                 "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");
@@ -105,6 +107,8 @@ public class RDBMSWriterTest extends NLocalFileMetadataTestCase {
         queryMetrics.setIndexHit(true);
         queryMetrics.setQueryTime(1584888338274L);
         queryMetrics.setProjectName("default");
+        queryMetrics.setQueryHistoryInfo(
+                "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":null,\"executionError\":true}");
 
         QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                 "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");

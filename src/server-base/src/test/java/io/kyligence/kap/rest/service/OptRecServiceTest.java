@@ -389,7 +389,6 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
 
         List<NDataModel.Measure> diffMeasures = difference(afterMeasures, beforeMeasures).stream()
                 .sorted(Comparator.comparingInt(NDataModel.Measure::getId)).collect(Collectors.toList());
-        ;
         Assert.assertEquals(2, diffMeasures.size());
         Assert.assertEquals(100003, diffMeasures.get(0).getId());
         Assert.assertEquals("MEASURE_AUTO_1", diffMeasures.get(0).getName());

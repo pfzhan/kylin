@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -37,17 +38,20 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
@@ -56,6 +60,7 @@ import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManager
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -72,10 +77,10 @@ public class RawRecService {
         long startTime = System.currentTimeMillis();
         log.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, queryHistories.size());
         List<String> sqlList = Lists.newArrayList();
-        List<Long> queryIDList = Lists.newArrayList();
+        ArrayListMultimap<String, QueryHistory> queryHistoryMap = ArrayListMultimap.create();
         queryHistories.forEach(queryHistory -> {
             sqlList.add(queryHistory.getSql());
-            queryIDList.add(queryHistory.getId());
+            queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
 
         AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
@@ -88,7 +93,15 @@ public class RawRecService {
         List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContextV2);
         saveDimensionAndMeasure(dimensionRecItems, measureRecItems, project);
 
-        List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, queryIDList);
+        ArrayListMultimap<Long, QueryHistory> layoutToQHMap = ArrayListMultimap.create();
+        for (AccelerateInfo accelerateInfo : semiContextV2.getAccelerateInfoMap().values()) {
+            for (AccelerateInfo.QueryLayoutRelation layout : accelerateInfo.getRelatedLayouts()) {
+                List<QueryHistory> queryHistoryList = queryHistoryMap.get(layout.getSql());
+                layoutToQHMap.putAll(layout.getLayoutId(), queryHistoryList);
+            }
+        }
+
+        List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap);
         saveLayoutRawRecItems(layoutRecItems, project);
 
         log.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
@@ -127,7 +140,8 @@ public class RawRecService {
         }
     }
 
-    private List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2, List<Long> queryIDList) {
+    private List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
+            ArrayListMultimap<Long, QueryHistory> layoutToQHMap) {
         val mgr = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), semiContextV2.getProject());
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -140,7 +154,7 @@ public class RawRecService {
                 if (layoutRecommendations.containsKey(uniqueFlag)) {
                     recItem = layoutRecommendations.get(uniqueFlag);
                     recItem.setUpdateTime(System.currentTimeMillis());
-                    // update statistics
+                    updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout().getId());
                 } else {
                     recItem = new RawRecItem(semiContextV2.getProject(), //
                             targetModel.getUuid(), //
@@ -152,12 +166,52 @@ public class RawRecService {
                     recItem.setState(RawRecItem.RawRecState.INITIAL);
                     recItem.setUniqueFlag(uniqueFlag);
                     recItem.setDependIDs(getColOrderArray(layoutItem.getLayout().getColOrder()));
-                    //todo: add other statistics
+                    updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout().getId());
                 }
                 rawRecItems.add(recItem);
             });
         }
         return rawRecItems;
+    }
+
+    private void updateLayoutStatistic(RawRecItem recItem, ArrayListMultimap<Long, QueryHistory> layoutToQHMap,
+            long layoutId) {
+        List<QueryHistory> queryHistories = layoutToQHMap.get(layoutId);
+        if (CollectionUtils.isEmpty(queryHistories)) {
+            return;
+        }
+        LayoutMetric layoutMetric = recItem.getLayoutMetric();
+        if (layoutMetric == null) {
+            layoutMetric = new LayoutMetric(new FrequencyMap(), new LayoutMetric.LatencyMap());
+        }
+
+        LayoutMetric.LatencyMap latencyMap = layoutMetric.getLatencyMap();
+        FrequencyMap frequencyMap = layoutMetric.getFrequencyMap();
+        double totalTime = recItem.getTotalTime();
+        double maxTime = recItem.getMaxTime();
+        long minTime = Long.MAX_VALUE;
+        int hitCount = recItem.getHitCount();
+        for (QueryHistory qh : queryHistories) {
+            hitCount++;
+            long duration = qh.getDuration();
+            totalTime = totalTime + duration;
+            if (duration > maxTime) {
+                maxTime = duration;
+            }
+            if (duration < minTime) {
+                minTime = duration;
+            }
+
+            latencyMap.incLatency(qh.getQueryTime(), duration);
+            frequencyMap.incFrequency(qh.getQueryTime());
+        }
+        recItem.setTotalTime(totalTime);
+        recItem.setMaxTime(maxTime);
+        recItem.setMinTime(minTime);
+
+        recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - 1000 * 60 * 60 * 24));
+        recItem.setLayoutMetric(layoutMetric);
+        recItem.setHitCount(hitCount);
     }
 
     public int[] getColOrderArray(List<Integer> colOrder) {

@@ -168,7 +168,7 @@ public class QueryMetricsContext extends QueryMetrics {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().getExactlyMatch(),
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().isExactlyMatch(),
                 context.getMetrics().getSegCount(),
                 Objects.nonNull(this.errorType) && this.errorType != QueryHistory.NO_REALIZATION_FOUND_ERROR);
         try {

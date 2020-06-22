@@ -41,8 +41,8 @@ public class QueryHistoryInfo {
     private HistoryState state;
     private boolean executionError;
 
-    public QueryHistoryInfo(Boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
-        this.exactlyMatch = Objects.isNull(exactlyMatch) ? false : exactlyMatch;
+    public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
+        this.exactlyMatch = exactlyMatch;
         this.scanSegmentNum = Objects.isNull(scanSegmentNum) ? 0 : scanSegmentNum;
         this.executionError = executionError;
         this.state = HistoryState.PENDING;

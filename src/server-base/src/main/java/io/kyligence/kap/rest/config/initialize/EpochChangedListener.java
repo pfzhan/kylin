@@ -25,8 +25,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -45,13 +43,15 @@ import com.google.common.eventbus.Subscribe;
 
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.service.NFavoriteScheduler;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -88,11 +88,13 @@ public class EpochChangedListener implements IKeep {
                     throw new RuntimeException("Scheduler for " + project + " has not been started");
                 }
 
-                NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-                favoriteScheduler.init();
+                QueryHistoryAccelerateScheduler qhAccelerateScheduler = QueryHistoryAccelerateScheduler
+                        .getInstance(project);
+                qhAccelerateScheduler.init();
 
-                if (!favoriteScheduler.hasStarted()) {
-                    throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
+                if (!qhAccelerateScheduler.hasStarted()) {
+                    throw new RuntimeException(
+                            "Query history accelerate scheduler for " + project + " has not been started");
                 }
                 return 0;
             }, project, 1);
@@ -125,7 +127,7 @@ public class EpochChangedListener implements IKeep {
             logger.info("Shutdown related thread: {}", project);
             try {
                 NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
-                NFavoriteScheduler.shutdownByProject(project);
+                QueryHistoryAccelerateScheduler.shutdownByProject(project);
                 NDefaultScheduler.shutdownByProject(project);
             } catch (Exception e) {
                 logger.warn("error when shutdown " + project + " thread", e);

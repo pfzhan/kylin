@@ -24,19 +24,21 @@
 
 package io.kyligence.kap.tool;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.metric.QueryMetrics;
-import io.kyligence.kap.common.metric.RDBMSWriter;
-import lombok.val;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+
+import java.util.List;
+
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+import io.kyligence.kap.common.metric.QueryMetrics;
+import io.kyligence.kap.common.metric.RDBMSWriter;
+import lombok.val;
 
 public class QueryHistoryAccessCLI {
 
@@ -67,6 +69,8 @@ public class QueryHistoryAccessCLI {
             queryMetrics.setIndexHit(true);
             queryMetrics.setQueryTime(1584888338274L);
             queryMetrics.setProjectName(PROJECT);
+            queryMetrics.setQueryHistoryInfo(
+                    "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":null,\"executionError\":true}");
 
             QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
                     "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");

@@ -106,6 +106,7 @@ import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
+import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
@@ -293,15 +294,13 @@ public class ProjectService extends BasicService {
     }
 
     public void updateProjectRegularRule(String project) {
-        NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-        if (favoriteScheduler.hasStarted()) {
-            List<Future> futures = favoriteScheduler.scheduleImmediately();
-            for (val future : futures) {
-                try {
-                    future.get();
-                } catch (Exception e) {
-                    logger.error("msg", e);
-                }
+        QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
+        if (scheduler.hasStarted()) {
+            Future<?> future = scheduler.scheduleImmediately();
+            try {
+                future.get();
+            } catch (Exception e) {
+                logger.error("msg", e);
             }
         }
     }

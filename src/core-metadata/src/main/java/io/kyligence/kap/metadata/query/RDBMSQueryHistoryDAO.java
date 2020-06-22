@@ -65,7 +65,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     protected static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
     protected static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
     protected static final String DELETE_QUERY_HISTORY_SQL_FORMAT = "delete from %s where query_time < ? ";
-    protected static final String QUERY_HISTORY_BY_ID_SQL_FORMAT = "SELECT * FROM %s WHERE id > ? and query_time < %s and project_name = ? limit %s";
+    protected static final String QUERY_HISTORY_BY_ID_SQL_FORMAT = "SELECT * FROM %s WHERE id > ? and query_time < %s and project_name = ? order by id asc limit %s";
 
     protected static final String UPDATE_QUERY_HISTORY_INFO_SQL_FORMAT = "update %s set reserved_field_3 = ? where id = ?";
 

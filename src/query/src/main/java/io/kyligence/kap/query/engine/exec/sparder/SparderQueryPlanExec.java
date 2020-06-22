@@ -25,20 +25,24 @@
 package io.kyligence.kap.query.engine.exec.sparder;
 
 import java.util.List;
+import java.util.Objects;
 
-import io.kyligence.kap.query.engine.meta.MutableDataContext;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
+import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapContext;
 import io.kyligence.kap.query.relnode.KapRel;
 import io.kyligence.kap.query.util.QueryContextCutter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * implement and execute a physical plan with Sparder
@@ -62,7 +66,8 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         // create SparkEngine with reflection since kap-sparder is dependent on kap-query
         // so that kap-query cannot reference classes from kap-sparder normally
         // TODO refactor to remove cyclical dependency between kap-query and kap-sparder
-        String queryEngineClazz = System.getProperty("kylin-query-engine", "io.kyligence.kap.query.runtime.SparkEngine");
+        String queryEngineClazz = System.getProperty("kylin-query-engine",
+                "io.kyligence.kap.query.runtime.SparkEngine");
         try {
             QueryEngine queryEngine = (QueryEngine) Class.forName(queryEngineClazz).newInstance();
             return queryEngine.compute(dataContext, rel.getInput(0));
@@ -90,6 +95,18 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", rel, log);
 
         QueryContext.current().getQueryTagInfo().setSparderUsed(true);
+
+        boolean exactlyMatch = true;
+        for (OLAPContext ctx : ContextUtil.listContextsHavingScan()) {
+            NLayoutCandidate candidate = ctx.storageContext.getCandidate();
+            if (Objects.nonNull(candidate) && IndexEntity.isAggIndex(candidate.getCuboidLayout().getId())
+                    && !ctx.isExactlyAggregate()) {
+                exactlyMatch = false;
+                break;
+            }
+        }
+        QueryContext.current().getMetrics().setExactlyMatch(exactlyMatch);
+
         KapContext.setKapRel((KapRel) rel.getInput(0));
         KapContext.setRowType(rel.getRowType());
 

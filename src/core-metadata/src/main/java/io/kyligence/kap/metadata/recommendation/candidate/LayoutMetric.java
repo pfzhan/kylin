@@ -52,26 +52,30 @@ public class LayoutMetric {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    static class LatencyMap {
+    public static class LatencyMap {
+        /**
+         *
+         */
         @JsonIgnore
-        private NavigableMap<Long, Double> totalLatencyMapPerDay = new TreeMap<>();
+        private NavigableMap<Long, Long> totalLatencyMapPerDay = new TreeMap<>();
 
         @JsonAnySetter
-        public void add(String key, Double value) {
-            totalLatencyMapPerDay.put(Long.parseLong(key), value);
+        public void incLatency(long queryTime, long value) {
+            long totalLatency = totalLatencyMapPerDay.getOrDefault(getDateInMillis(queryTime), 0L);
+            totalLatencyMapPerDay.put(getDateInMillis(queryTime), totalLatency + value);
         }
 
         @JsonAnyGetter
-        public Map<Long, Double> getMap() {
+        public Map<Long, Long> getMap() {
             return totalLatencyMapPerDay;
         }
 
         public LatencyMap merge(LatencyMap other) {
-            other.getTotalLatencyMapPerDay().forEach((k, v) -> this.totalLatencyMapPerDay.merge(k, v, Double::sum));
+            other.getTotalLatencyMapPerDay().forEach((k, v) -> this.totalLatencyMapPerDay.merge(k, v, Long::sum));
             return this;
         }
 
-        double getLatencyByDate(long queryTime) {
+        public double getLatencyByDate(long queryTime) {
             return totalLatencyMapPerDay.get(getDateInMillis(queryTime)) == null ? 0
                     : totalLatencyMapPerDay.get(getDateInMillis(queryTime));
         }

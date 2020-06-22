@@ -23,11 +23,8 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.rest.broadcaster.BroadcastListener;
-import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
-import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
-import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
-import io.kyligence.kap.tool.daemon.KapGuardianHATask;
+import java.util.Date;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -46,23 +43,24 @@ import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.NMetricsRegistry;
+import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
+import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
-import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
+import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.util.JStackDumpTask;
+import io.kyligence.kap.tool.daemon.KapGuardianHATask;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Date;
 
 @Slf4j
 @Configuration
@@ -99,11 +97,8 @@ public class AppInitializer {
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
-            EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
-
             // register scheduler listener
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new EventSchedulerListener());
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(epochChangedListener);

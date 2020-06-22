@@ -84,7 +84,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
 
-    private final FavoriteSchedulerListener favoriteSchedulerListener = new FavoriteSchedulerListener();
     private final JobSchedulerListener jobSchedulerListener = new JobSchedulerListener();
     private final EventSchedulerListener eventSchedulerListener = new EventSchedulerListener();
 
@@ -120,7 +119,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
 
-        SchedulerEventBusFactory.getInstance(getTestConfig()).register(favoriteSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(jobSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(eventSchedulerListener);
     }
@@ -128,14 +126,12 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     @After
     public void cleanup() {
         logger.info("SchedulerEventBusTest cleanup");
-        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(favoriteSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(jobSchedulerListener);
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(eventSchedulerListener);
         SchedulerEventBusFactory.restart();
 
         EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).shutdownByProject(PROJECT_NEWTEN);
         EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).shutdownByProject(PROJECT);
-        favoriteSchedulerListener.setNotifiedCount(0);
         eventSchedulerListener.setEventCreatedNotified(false);
         eventSchedulerListener.setEventFinishedNotified(false);
         jobSchedulerListener.setJobReadyNotified(false);
@@ -152,23 +148,19 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         // only allow 10 permits per second
         System.setProperty("kylin.scheduler.schedule-limit-per-minute", "600");
 
-        Assert.assertEquals(0, favoriteSchedulerListener.getNotifiedCount());
 
         // request 10 permits per second
         for (int i = 0; i < 10; i++) {
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
             Thread.sleep(100);
         }
-        Assert.assertEquals(10, favoriteSchedulerListener.getNotifiedCount());
 
         // request 100 permits per second
-        favoriteSchedulerListener.setNotifiedCount(0);
         for (int i = 0; i < 10; i++) {
             Thread.sleep(10);
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
         }
 
-        Assert.assertTrue(favoriteSchedulerListener.getNotifiedCount() < 10);
 
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
