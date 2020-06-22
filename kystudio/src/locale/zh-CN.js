@@ -157,6 +157,7 @@ exports.default = {
     streamingConnectHiveError: '尚不支持 Hive 表与 Streaming 表关联。',
     seeDetail: '详情',
     notConnectServer: '目前无法连接到 Kyligence Enterprise, 请检查您的网络连接状况和 Kyligence Enterprise 服务器运行状态。',
+    notConnectServerIframe: '目前无法连接到 Kyligence, 请检查您的网络连接状况和 Kyligence 服务器运行状态。',
     timeOut: '请求超时！',
     willClose: '未保存的信息可能丢失，您是否继续关闭?',
     overwriteWarnTip: '当前操作将覆盖之前的结果，您确认要继续吗？',

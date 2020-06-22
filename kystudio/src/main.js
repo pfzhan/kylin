@@ -10,7 +10,6 @@ import store from './store'
 // import {introJs} from 'intro.js'
 import fullLayout from 'components/layout/layout_full'
 import router from './router'
-import mock from '../mock'
 import filters from './filter'
 import directive from './directive'
 import { sync } from './util/vuex-router-sync'
@@ -63,12 +62,6 @@ import { getQueryString, cacheSessionStorage, cacheLocalStorage } from './util'
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''
-if (process.env.NODE_ENV === 'development') {
-  if (process.mock) {
-    console.log('api proxy into mock')
-    mock()
-  }
-}
 
 // 第三方参数控制
 // cloud 模式下弹窗通知父窗口
@@ -139,6 +132,12 @@ Vue.http.interceptors.push(function (request, next) {
       isProgressVisiable && nprogress.done()
     }
     if (response.status === 401 && router.history.current.name !== 'login') {
+      if (store.state.config.platform === 'iframe') {
+        window.parent.postMessage('keLogout', '*')
+      } else {
+        router.replace({name: 'Login', params: { ignoreIntercept: true }})
+      }
+    } else if ((!store.state.user.currentUser || !store.state.user.currentUser.username) && router.history.current.name !== 'login') {
       router.replace({name: 'Login', params: { ignoreIntercept: true }})
     }
   })
@@ -150,7 +149,6 @@ window.kapVm = new Vue({
   el: '#app',
   router,
   store,
-  mock,
   directive,
   filters,
   // introJs,

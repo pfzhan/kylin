@@ -27,7 +27,11 @@ export function handleError (res, errorcallback) {
       return
     }
     window.kapVm.$store.state.config.errorMsgBox.isShow = true
-    window.kapVm.$store.state.config.errorMsgBox.msg = res.message || window.kapVm.$t('kylinLang.common.notConnectServer')
+    if (window.kapVm.$store.state.config.platform === 'iframe') {
+      window.kapVm.$store.state.config.errorMsgBox.msg = res.message || window.kapVm.$t('kylinLang.common.notConnectServerIframe')
+    } else {
+      window.kapVm.$store.state.config.errorMsgBox.msg = res.message || window.kapVm.$t('kylinLang.common.notConnectServer')
+    }
     window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || res.stack || JSON.stringify(res)
   } else {
     var msg = responseData ? (responseData.msg || responseData.message || window.kapVm.$t('kylinLang.common.unknownError')) : window.kapVm.$t('kylinLang.common.unknownError')

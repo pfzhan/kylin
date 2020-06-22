@@ -158,6 +158,7 @@ exports.default = {
     streamingConnectHiveError: 'Join hive table with streaming table is not supported.',
     seeDetail: 'Details',
     notConnectServer: 'Cannot connect the Kyligence Enterprise server. Please check your network or Kyligence Enterprise server status.',
+    notConnectServerIframe: 'Cannot connect the Kyligence server. Please check your network or Kyligence server status.',
     timeOut: 'Request timed out!',
     willClose: 'Are you sure to continue closing the window?',
     overwriteWarnTip: 'Current action will overwrite existed results, are you sure you want to continue?',
