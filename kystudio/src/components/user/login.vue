@@ -155,7 +155,7 @@ export default {
         // } else {
         //   this.$router.push('/overview')
         // }
-        this.$router.push('/overview')
+        this.$router.push('/dashboard')
       } else {
         this.showLicenseCheck = false
       }

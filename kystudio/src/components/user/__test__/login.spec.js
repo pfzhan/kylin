@@ -269,7 +269,7 @@ describe('Component Login', () => {
     await wrapper.update()
     wrapper.find('.license-msg').findAll('button').at(1).trigger('click')
     expect(wrapper.vm.$data.showLicenseCheck).toBe(false)
-    expect(wrapper.vm.$route).toEqual({'fullPath': '/overview', 'hash': '', 'matched': [], 'meta': {}, 'name': null, 'params': {}, 'path': '/overview', 'query': {}})
+    expect(wrapper.vm.$route).toEqual({'fullPath': '/dashboard', 'hash': '', 'matched': [], 'meta': {}, 'name': null, 'params': {}, 'path': '/dashboard', 'query': {}})
     wrapper.destroy()
   })
   it('apply license', async () => {
