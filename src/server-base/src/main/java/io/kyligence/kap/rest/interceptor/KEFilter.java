@@ -25,44 +25,32 @@
 package io.kyligence.kap.rest.interceptor;
 
 import java.io.IOException;
+import java.util.Objects;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
-@Order(-600)
-public class KEFilter implements Filter {
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class KEFilter extends OncePerRequestFilter {
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-        // just override it
-    }
-
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         String lang = "en";
-        if (request instanceof HttpServletRequest) {
-            HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-            lang = httpServletRequest.getHeader("Accept-Language");
+        if (Objects.nonNull(request)) {
+            lang = request.getHeader("Accept-Language");
         }
         MsgPicker.setMsg(lang);
         ErrorCode.setMsg(lang);
-        chain.doFilter(request, response);
-    }
-
-    @Override
-    public void destroy() {
-        // just override it
+        filterChain.doFilter(request, response);
     }
 
 }

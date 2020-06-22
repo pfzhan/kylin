@@ -40,7 +40,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.metadata.project.NProjectLoader;
 
 @Component
-@Order(2)
+@Order(1)
 public class RepeatableRequestBodyFilter implements Filter {
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {

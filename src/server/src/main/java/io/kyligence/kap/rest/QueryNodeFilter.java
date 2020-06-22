@@ -78,7 +78,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE+1)
+@Order(Ordered.HIGHEST_PRECEDENCE+3)
 public class QueryNodeFilter implements Filter {
 
     private static final String API_PREFIX = "/kylin/api";

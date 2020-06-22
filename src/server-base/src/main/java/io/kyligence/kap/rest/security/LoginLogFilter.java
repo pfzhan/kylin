@@ -45,7 +45,7 @@ import java.io.IOException;
 
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE+1)
 public class LoginLogFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(LoginLogFilter.class);
 
