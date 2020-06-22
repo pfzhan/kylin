@@ -465,6 +465,49 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGenCuboidsOfNewSortingSet() throws IOException {
+        val indexPlanManager = getIndexPlanManager();
+        var indexPlan = getTmpTestIndexPlan("/ncube_rule_different_measure_2.json");
+        val id = indexPlan.getId();
+        indexPlan.setLastModified(0L);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), indexPlan);
+        indexPlan = indexPlanManager.createIndexPlan(indexPlan);
+
+        int i = 10;
+        while (i >= 0) {
+            indexPlan.initAfterReload(getTestConfig(), "default");
+            assertCuboidIdMapping(id, 1, Lists.newArrayList(0, 100000));
+            assertCuboidIdMapping(id, 10001, Lists.newArrayList(0, 100001));
+            assertCuboidIdMapping(id, 20001, Lists.newArrayList(0, 100002));
+            assertCuboidIdMapping(id, 30001, Lists.newArrayList(0, 100003));
+            assertCuboidIdMapping(id, 40001, Lists.newArrayList(0, 100004));
+            assertCuboidIdMapping(id, 50001, Lists.newArrayList(0, 100005));
+            assertCuboidIdMapping(id, 60001, Lists.newArrayList(0, 100007));
+            assertCuboidIdMapping(id, 70001, Lists.newArrayList(0, 100008));
+            assertCuboidIdMapping(id, 80001, Lists.newArrayList(0, 100009));
+            assertCuboidIdMapping(id, 90001, Lists.newArrayList(0, 100010));
+            assertCuboidIdMapping(id, 100001, Lists.newArrayList(0, 100011));
+            assertCuboidIdMapping(id, 110001, Lists.newArrayList(0, 100012));
+            assertCuboidIdMapping(id, 120001, Lists.newArrayList(0, 100013));
+            assertCuboidIdMapping(id, 130001, Lists.newArrayList(0, 100014));
+            assertCuboidIdMapping(id, 140001, Lists.newArrayList(0, 100015));
+            assertCuboidIdMapping(id, 150001, Lists.newArrayList(0, 100016));
+            assertCuboidIdMapping(id, 160001, Lists.newArrayList(0, 100000, 100001,
+                    100002, 100003, 100004, 100005, 100007, 100008, 100009, 100010, 100011,
+                    100012, 100013, 100014, 100015, 100016));
+            i--;
+        }
+    }
+
+    private void assertCuboidIdMapping(String indexPlanId, long layoutId, List<Integer> expectedColOrder) {
+        val indexPlan = getIndexPlanManager().getIndexPlan(indexPlanId);
+        val layoutEntity = indexPlan.getCuboidLayout(layoutId);
+        val actualColOrder = layoutEntity.getColOrder();
+        Assert.assertArrayEquals(actualColOrder.toArray(), expectedColOrder.toArray());
+    }
+
+    @Test
     public void testGenCuboidsForDifferentAggMeasures() throws IOException {
         val indexPlanManager = getIndexPlanManager();
         var indexPlan = getTmpTestIndexPlan("/ncube_rule_different_measure.json");

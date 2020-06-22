@@ -329,12 +329,12 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             compareTuples1.put(1020001L, new Long[] { 302L, 9163L });
             compareTuples1.put(1030001L, new Long[] { 44L, 210L });
             compareTuples1.put(1040001L, new Long[] { 9163L, 9896L });
-            compareTuples1.put(1050001L, new Long[] { 105L, 276L });
-            compareTuples1.put(1060001L, new Long[] { 138L, 286L });
-            compareTuples1.put(1070001L, new Long[] { 9880L, 9896L });
-            compareTuples1.put(1080001L, new Long[] { 9833L, 9896L });
-            compareTuples1.put(1090001L, new Long[] { 9421L, 9896L });
-            compareTuples1.put(1100001L, new Long[] { 143L, 9421L });
+            compareTuples1.put(1050001L, new Long[] { 9421L, 9896L });
+            compareTuples1.put(1060001L, new Long[] { 105L, 276L });
+            compareTuples1.put(1070001L, new Long[] { 143L, 9421L });
+            compareTuples1.put(1080001L, new Long[] { 138L, 286L });
+            compareTuples1.put(1090001L, new Long[] { 9880L, 9896L });
+            compareTuples1.put(1100001L, new Long[] { 9833L, 9896L });
             compareTuples1.put(20000000001L, new Long[] { 9896L, 9896L });
             compareTuples1.put(20000010001L, new Long[] { 9896L, 9896L });
             compareTuples1.put(20000020001L, new Long[] { 9896L, 9896L });

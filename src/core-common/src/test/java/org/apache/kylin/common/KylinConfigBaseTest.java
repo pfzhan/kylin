@@ -746,7 +746,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(356, methodsCount);
+        Assert.assertEquals(357, methodsCount);
     }
 
     @Test

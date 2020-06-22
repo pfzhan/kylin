@@ -662,6 +662,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.cube.aggrgroup.is-base-cuboid-always-valid", TRUE));
     }
 
+    public boolean skipRulebasedLayoutsOrderComparsion() {
+        return Boolean.parseBoolean(this.getOptional("kylin.cube.skip-rule-based-layouts-order-comparison", FALSE));
+    }
+
     // ============================================================================
     // JOB
     // ============================================================================
