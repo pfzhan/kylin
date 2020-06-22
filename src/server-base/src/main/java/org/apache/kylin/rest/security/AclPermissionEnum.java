@@ -46,7 +46,7 @@ import org.apache.kylin.common.exception.KylinException;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 public enum AclPermissionEnum {
-    ADMINISTRATION, MANAGEMENT, OPERATION, READ;
+    ADMINISTRATION, MANAGEMENT, OPERATION, READ, EMPTY;
 
     public static String convertToAclPermission(String externalPermission) {
         AclPermissionEnum permission;
@@ -62,6 +62,9 @@ public enum AclPermissionEnum {
                 break;
             case ExternalAclProvider.READ:
                 permission = READ;
+                break;
+            case ExternalAclProvider.EMPTY:
+                permission = EMPTY;
                 break;
             default:
                 throw new KylinException(PERMISSION_DENIED, "invalid permission state: " + externalPermission);
