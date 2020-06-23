@@ -104,7 +104,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
             long survivalTimeThreshold = timeMachineEnabled ? segmentConf.getStorageResourceSurvivalTimeThreshold()
                     : segmentConf.getSnapshotVersionTTL();
-            String workingDirectory = KapConfig.wrap(segmentConf).getReadHdfsWorkingDirectory();
+            String workingDirectory = KapConfig.wrap(segmentConf).getMetadataWorkingDirectory();
             for (Map.Entry<String, String> entry : snapshots.entrySet()) {
                 log.info("Update snapshot table {}", entry.getKey());
                 TableDesc tableDesc = manager.getTableDesc(entry.getKey());

@@ -143,7 +143,7 @@ trait JobSupport
     val manager = NDataflowManager.getInstance(conf, project)
     val segment = manager.getDataflow(dfId).getSegment(id)
     val snapShotManager = NTableMetadataManager.getInstance(conf, project)
-    val workingDirectory = KapConfig.wrap(conf).getReadHdfsWorkingDirectory
+    val workingDirectory = KapConfig.wrap(conf).getMetadataWorkingDirectory
     segment.getSnapshots.asScala.foreach {
       tp =>
         val desc = snapShotManager.getTableDesc(tp._1)

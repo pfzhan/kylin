@@ -72,7 +72,7 @@ public class SnapshotCleaner implements MetadataCleaner {
             return false;
         }
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        String baseDir = KapConfig.wrap(segment.getConfig()).getReadHdfsWorkingDirectory();
+        String baseDir = KapConfig.wrap(segment.getConfig()).getMetadataWorkingDirectory();
         String resourcePath = baseDir + "/" + snapshotPath;
         try {
             return fs.exists(new Path(resourcePath));

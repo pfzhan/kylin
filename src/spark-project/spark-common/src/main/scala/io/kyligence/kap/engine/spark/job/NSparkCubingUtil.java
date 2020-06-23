@@ -132,7 +132,7 @@ public class NSparkCubingUtil {
     }
 
     public static String getStoragePath(NDataSegment nDataSegment, Long layoutId) {
-        String hdfsWorkingDir = KapConfig.wrap(nDataSegment.getConfig()).getReadHdfsWorkingDirectory();
+        String hdfsWorkingDir = KapConfig.wrap(nDataSegment.getConfig()).getMetadataWorkingDirectory();
         return hdfsWorkingDir + getStoragePathWithoutPrefix(nDataSegment.getProject(),
                 nDataSegment.getDataflow().getId(), nDataSegment.getId(), layoutId);
     }

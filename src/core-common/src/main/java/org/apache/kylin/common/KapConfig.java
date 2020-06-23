@@ -103,6 +103,13 @@ public class KapConfig {
         return getWriteHdfsWorkingDirectory();
     }
 
+    public String getMetadataWorkingDirectory() {
+        if (isCloud()) {
+            return getWriteHdfsWorkingDirectory();
+        }
+        return getReadHdfsWorkingDirectory();
+    }
+
     public String getParquetReadFileSystem() {
         return config.getOptional("kylin.storage.columnar.file-system", "");
     }
@@ -214,6 +221,10 @@ public class KapConfig {
 
     public String getChannelUser() {
         return config.getOptional("kylin.env.channel", "on-premises");
+    }
+
+    public boolean isCloud() {
+        return getChannelUser().equals("cloud");
     }
 
     /**
