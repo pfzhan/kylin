@@ -45,6 +45,7 @@ import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NModelOptProposer;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
@@ -87,6 +88,9 @@ public class NModelMaster {
                 Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
                 return dataModel;
             }
+        } else if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
+            Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
+            return dataModel;
         }
 
         log.info("Start proposing join relations.");

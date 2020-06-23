@@ -50,6 +50,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.index.NIndexMaster;
 import io.kyligence.kap.smart.util.EntityBuilder;
+import io.kyligence.kap.smart.util.RawRecGenUtil;
 import lombok.val;
 
 public class NIndexPlanShrinkProposer extends NAbstractProposer {
@@ -70,7 +71,7 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
                 continue;
             }
 
-            mergeIndexPlan(modelCtx.getTargetIndexPlan());
+            mergeIndexPlan(modelCtx);
             NIndexMaster indexMaster = new NIndexMaster(modelCtx);
             IndexPlan indexPlan = projectInstance.isSemiAutoMode()
                     ? indexMaster.reduceCuboids(modelCtx.getTargetIndexPlan())
@@ -84,20 +85,21 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         return "IndexPlanShrinkProposer";
     }
 
-    private void mergeIndexPlan(IndexPlan indexPlan) {
+    private void mergeIndexPlan(AbstractContext.NModelContext modelContext) {
+        IndexPlan indexPlan = modelContext.getTargetIndexPlan();
         if (indexPlan == null || CollectionUtils.isEmpty(indexPlan.getIndexes())) {
             return;
         }
 
         val dim2Indices = recognizeAggIndexGroupOfSameDims(indexPlan);
         List<IndexEntity> existedTableIndicesOrReadyIndices = collectTableOrReadyIndices(indexPlan);
-        mergeIndicesGroupOfSameDim(indexPlan, dim2Indices, existedTableIndicesOrReadyIndices);
+        mergeIndicesGroupOfSameDim(modelContext, dim2Indices, existedTableIndicesOrReadyIndices);
     }
 
-    private void mergeIndicesGroupOfSameDim(IndexPlan indexPlan,
+    private void mergeIndicesGroupOfSameDim(AbstractContext.NModelContext modelContext,
             Map<ImmutableBitSet, List<IndexEntity>> sameDimIndicesGroup,
             List<IndexEntity> existedTableIndicesOrReadyIndices) {
-
+        IndexPlan indexPlan = modelContext.getTargetIndexPlan();
         val newDim2Index = new HashMap<ImmutableBitSet, List<IndexEntity>>();
         sameDimIndicesGroup.entrySet().stream().filter(indices -> CollectionUtils.isNotEmpty(indices.getValue()))
                 .forEach(indices -> {
@@ -134,6 +136,9 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
 
         dropDuplicateIndex(existedTableIndicesOrReadyIndices.stream().map(IndexEntity::getLayouts).flatMap(List::stream)
                 .collect(Collectors.toList()), newDim2Index);
+        newDim2Index.forEach((k, v) -> v.forEach(index -> {
+            index.getLayouts().forEach(layout -> RawRecGenUtil.gatherLayoutRecItem(layout, modelContext));
+        }));
 
         // update new merged indices to the origin index_plan
         indexPlan.getIndexes().clear();

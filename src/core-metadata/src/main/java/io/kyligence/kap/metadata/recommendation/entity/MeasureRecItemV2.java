@@ -25,11 +25,13 @@
 package io.kyligence.kap.metadata.recommendation.entity;
 
 import java.io.Serializable;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -41,4 +43,26 @@ public class MeasureRecItemV2 extends RecItemV2 implements Serializable {
     private NDataModel.Measure measure;
     @JsonProperty("param_order")
     private long[] paramOrder;
+
+    public int[] genDependIds(Map<String, RawRecItem> uniqueRecItemMap, String name) {
+        String[] params = name.split("__");
+        int[] dependIDs = new int[params.length - 1];
+        for (int i = 1; i < params.length; i++) {
+            if (uniqueRecItemMap.containsKey(params[i])) {
+                dependIDs[i - 1] = -1 * uniqueRecItemMap.get(params[i]).getId();
+            } else {
+                String[] splits = params[i].split("\\$");
+                if (splits.length == 2) {
+                    try {
+                        dependIDs[i - 1] = Integer.parseInt(splits[1]);
+                    } catch (NumberFormatException e) {
+                        dependIDs[i - 1] = Integer.MAX_VALUE;
+                    }
+                } else {
+                    dependIDs[i - 1] = Integer.MAX_VALUE;
+                }
+            }
+        }
+        return dependIDs;
+    }
 }

@@ -22,32 +22,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.entity;
+package io.kyligence.kap.smart.util;
 
-import java.io.Serializable;
-import java.util.Map;
+import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.smart.AbstractContext;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import lombok.Getter;
-import lombok.Setter;
+public class RawRecGenUtil {
 
-@Getter
-@Setter
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class DimensionRecItemV2 extends RecItemV2 implements Serializable {
-    @JsonProperty("column")
-    private NDataModel.NamedColumn column;
-    private String dataType;
-
-    public int[] genDependIds(Map<String, RawRecItem> uniqueRecItemMap, String uniqueFlag) {
-        if (uniqueRecItemMap.containsKey(uniqueFlag)) {
-            return new int[] { -1 * uniqueRecItemMap.get(uniqueFlag).getId() };
-        } else {
-            return new int[] { getColumn().getId() };
+    public static void gatherLayoutRecItem(LayoutEntity layout, AbstractContext.NModelContext modelContext) {
+        if (!modelContext.getProposeContext().needCollectRecommendations()) {
+            return;
         }
+        LayoutRecItemV2 item = new LayoutRecItemV2();
+        item.setLayout(layout);
+        item.setCreateTime(System.currentTimeMillis());
+        item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
+        item.setUuid(UUID.randomUUID().toString());
+        modelContext.getIndexRexItemMap().putIfAbsent(layout.genUniqueFlag(), item);
     }
 }

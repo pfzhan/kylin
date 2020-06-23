@@ -27,28 +27,22 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
@@ -68,6 +62,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component("rawRecService")
 public class RawRecService {
+    private static final long MILLIS_PER_DAY = 1000 * 60 * 60 * 24L;
 
     public void generateRawRecommendations(String project, List<QueryHistory> queryHistories) {
         if (queryHistories == null || queryHistories.isEmpty()) {
@@ -115,17 +110,23 @@ public class RawRecService {
 
     private void updateCost() {
 
-        for (ProjectInstance projectInstance : NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listAllProjects()) {
+        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listAllProjects().stream().filter(projectInstance -> !projectInstance.isExpertMode())
+                .collect(Collectors.toList());
+        for (ProjectInstance projectInstance : projectInstances) {
+            log.info("Running update cost for {}", projectInstance.getName());
             RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
                     .updateAllCost(projectInstance.getName());
         }
     }
 
     private void selectTopRec() {
-        for (ProjectInstance projectInstance : NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listAllProjects()) {
+        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listAllProjects().stream().filter(projectInstance -> !projectInstance.isExpertMode())
+                .collect(Collectors.toList());
+        for (ProjectInstance projectInstance : projectInstances) {
             for (String model : projectInstance.getModels()) {
+                log.info("Running select topN recommendation for {}/({}).", projectInstance.getName(), model);
                 var recLimitRule = FavoriteRule.getDefaultRule(
                         FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
                                 .getByName(FavoriteRule.RECOMMENDATION_RULE_NAME),
@@ -140,21 +141,30 @@ public class RawRecService {
         }
     }
 
-    private List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
+    List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
             ArrayListMultimap<Long, QueryHistory> layoutToQHMap) {
         val mgr = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), semiContextV2.getProject());
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
             Map<String, RawRecItem> layoutRecommendations = mgr.queryLayoutRawRecItems(targetModel.getUuid());
+            Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
+            layoutRecommendations.forEach((k, v) -> {
+                LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
+                uniqueFlagToUuid.put(recEntity.getLayout().genUniqueFlag(), k);
+            });
+
             modelContext.getIndexRexItemMap().forEach((colOrder, layoutItem) -> {
-                updateLayoutInfo(layoutItem, targetModel);
-                String uniqueFlag = layoutItem.getLayout().genUniqueFlag();
+                layoutItem.updateLayoutInfo(targetModel);
+                String uniqueString = layoutItem.getLayout().genUniqueFlag();
+                String uuid = uniqueFlagToUuid.get(uniqueString);
                 RawRecItem recItem;
-                if (layoutRecommendations.containsKey(uniqueFlag)) {
-                    recItem = layoutRecommendations.get(uniqueFlag);
+                if (uniqueFlagToUuid.containsKey(uniqueString)) {
+                    recItem = layoutRecommendations.get(uuid);
                     recItem.setUpdateTime(System.currentTimeMillis());
-                    updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout().getId());
+                    if (recItem.getState() == RawRecItem.RawRecState.DISCARD) {
+                        recItem.setState(RawRecItem.RawRecState.INITIAL);
+                    }
                 } else {
                     recItem = new RawRecItem(semiContextV2.getProject(), //
                             targetModel.getUuid(), //
@@ -164,11 +174,13 @@ public class RawRecService {
                     recItem.setCreateTime(layoutItem.getCreateTime());
                     recItem.setUpdateTime(layoutItem.getCreateTime());
                     recItem.setState(RawRecItem.RawRecState.INITIAL);
-                    recItem.setUniqueFlag(uniqueFlag);
-                    recItem.setDependIDs(getColOrderArray(layoutItem.getLayout().getColOrder()));
-                    updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout().getId());
+                    recItem.setUniqueFlag(layoutItem.getUuid());
+                    recItem.setDependIDs(layoutItem.genDependIds());
                 }
-                rawRecItems.add(recItem);
+                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout().getId());
+                if (recItem.getLayoutMetric() != null) {
+                    rawRecItems.add(recItem);
+                }
             });
         }
         return rawRecItems;
@@ -209,87 +221,9 @@ public class RawRecService {
         recItem.setMaxTime(maxTime);
         recItem.setMinTime(minTime);
 
-        recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - 1000 * 60 * 60 * 24));
+        recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - MILLIS_PER_DAY));
         recItem.setLayoutMetric(layoutMetric);
         recItem.setHitCount(hitCount);
-    }
-
-    public int[] getColOrderArray(List<Integer> colOrder) {
-        int[] arr = new int[colOrder.size()];
-        for (int i = 0; i < colOrder.size(); i++) {
-            arr[i] = colOrder.get(i);
-        }
-        return arr;
-    }
-
-    private void updateLayoutInfo(LayoutRecItemV2 item, NDataModel dataModel) {
-        LayoutEntity layout = item.getLayout();
-        Map<String, ComputedColumnDesc> ccMap = getCcOnModels(dataModel);
-        List<Integer> colOrderInDB = getColIDInDB(ccMap, dataModel, layout.getColOrder());
-        List<Integer> shardColsInDB = getColIDInDB(ccMap, dataModel, layout.getShardByColumns());
-        List<Integer> sortColsInDB = getColIDInDB(ccMap, dataModel, layout.getSortByColumns());
-        List<Integer> partitionColsInDB = getColIDInDB(ccMap, dataModel, layout.getPartitionByColumns());
-        layout.setColOrder(colOrderInDB);
-        layout.setShardByColumns(shardColsInDB);
-        layout.setSortByColumns(sortColsInDB);
-        layout.setPartitionByColumns(partitionColsInDB);
-    }
-
-    private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccMap, NDataModel model,
-            List<Integer> columnIDs) {
-        val uniqueRecItemMap = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
-                .listAll();
-        List<Integer> colOrderInDB = Lists.newArrayList(columnIDs.size());
-        columnIDs.forEach(colId -> {
-            String key;
-            if (colId < NDataModel.MEASURE_ID_BASE) {
-                final TblColRef tblColRef = model.getEffectiveDimensions().get(colId);
-                if (tblColRef.getColumnDesc().isComputedColumn()) {
-                    key = tblColRef.getColumnDesc().getComputedColumnExpr();
-                } else {
-                    key = "d__" + tblColRef.getIdentity();
-                }
-            } else {
-                final NDataModel.Measure measure = model.getEffectiveMeasures().get(colId);
-                key = uniqueMeasureName(measure, ccMap);
-                System.out.println(key);
-            }
-            if (uniqueRecItemMap.containsKey(key)) {
-                colOrderInDB.add(-1 * uniqueRecItemMap.get(key).getId());
-            } else {
-                colOrderInDB.add(colId);
-            }
-        });
-        return colOrderInDB;
-    }
-
-    private Map<String, ComputedColumnDesc> getCcOnModels(NDataModel model) {
-        Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
-        model.getComputedColumnDescs().forEach(cc -> {
-            String aliasDotName = cc.getTableAlias() + "." + cc.getColumnName();
-            ccMap.putIfAbsent(aliasDotName, cc);
-        });
-        return ccMap;
-    }
-
-    private String uniqueMeasureName(NDataModel.Measure measure, Map<String, ComputedColumnDesc> ccMap) {
-        Set<String> paramNames = Sets.newHashSet();
-        List<ParameterDesc> parameters = measure.getFunction().getParameters();
-        parameters.forEach(param -> {
-            if (param.getColRef() == null) {
-                paramNames.add(String.valueOf(Integer.MAX_VALUE));
-                return;
-            }
-            ColumnDesc column = param.getColRef().getColumnDesc();
-            if (column.isComputedColumn()) {
-                paramNames.add(ccMap.get(column.getIdentity()).getUuid());
-            } else {
-                String tableAlias = param.getColRef().getTableRef().getAlias();
-                String columnID = param.getColRef().getColumnDesc().getId();
-                paramNames.add(tableAlias + "$" + columnID);
-            }
-        });
-        return String.format("%s__%s", measure.getFunction().getExpression(), String.join("__", paramNames));
     }
 
     private List<RawRecItem> transferToMeasureRecItems(AbstractSemiContextV2 semiContextV2) {
@@ -297,30 +231,22 @@ public class RawRecService {
         Map<String, RawRecItem> uniqueRecItemMap = mgr.listAll();
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
-            modelContext.getMeasureRecItemMap().forEach((name, measureItem) -> {
+            modelContext.getMeasureRecItemMap().forEach((uniqueFlag, measureItem) -> {
                 RawRecItem item;
-                if (uniqueRecItemMap.containsKey(name)) {
-                    item = uniqueRecItemMap.get(name);
+                if (uniqueRecItemMap.containsKey(uniqueFlag)) {
+                    item = uniqueRecItemMap.get(uniqueFlag);
                     item.setUpdateTime(System.currentTimeMillis());
                 } else {
                     item = new RawRecItem(semiContextV2.getProject(), //
                             modelContext.getTargetModel().getUuid(), //
                             modelContext.getTargetModel().getSemanticVersion(), //
                             RawRecItem.RawRecType.MEASURE);
-                    item.setUniqueFlag(name);
+                    item.setUniqueFlag(uniqueFlag);
                     item.setState(RawRecItem.RawRecState.INITIAL);
                     item.setCreateTime(measureItem.getCreateTime());
                     item.setUpdateTime(measureItem.getCreateTime());
                     item.setRecEntity(measureItem);
-                    String[] params = name.split("__");
-                    int[] dependIDs = new int[params.length - 1];
-                    for (int i = 1; i < params.length; i++) {
-                        dependIDs[i - 1] = uniqueRecItemMap.containsKey(params[i]) //
-                                ? -1 * uniqueRecItemMap.get(params[i]).getId()
-                                : Integer.parseInt(params[i].split("\\$")[1]);
-
-                    }
-                    item.setDependIDs(dependIDs);
+                    item.setDependIDs(measureItem.genDependIds(uniqueRecItemMap, uniqueFlag));
                 }
                 rawRecItems.add(item);
             });
@@ -333,27 +259,22 @@ public class RawRecService {
         Map<String, RawRecItem> uniqueRecItemMap = rcMgr.listAll();
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
-            modelContext.getDimensionRecItemMap().forEach((name, dimItem) -> {
+            modelContext.getDimensionRecItemMap().forEach((uniqueFlag, dimItem) -> {
                 RawRecItem item;
-                if (uniqueRecItemMap.containsKey(name)) {
-                    item = uniqueRecItemMap.get(name);
+                if (uniqueRecItemMap.containsKey(uniqueFlag)) {
+                    item = uniqueRecItemMap.get(uniqueFlag);
                     item.setUpdateTime(System.currentTimeMillis());
                 } else {
                     item = new RawRecItem(semiContextV2.getProject(), //
                             modelContext.getTargetModel().getUuid(), //
                             modelContext.getTargetModel().getSemanticVersion(), //
                             RawRecItem.RawRecType.DIMENSION);
-                    item.setUniqueFlag(name);
+                    item.setUniqueFlag(uniqueFlag);
                     item.setCreateTime(dimItem.getCreateTime());
                     item.setUpdateTime(dimItem.getCreateTime());
                     item.setState(RawRecItem.RawRecState.INITIAL);
                     item.setRecEntity(dimItem);
-                    String col = name.split("__")[1];
-                    if (uniqueRecItemMap.containsKey(col)) {
-                        item.setDependIDs(new int[] { -1 * uniqueRecItemMap.get(name).getId() });
-                    } else {
-                        item.setDependIDs(new int[] { dimItem.getColumn().getId() });
-                    }
+                    item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, uniqueFlag.split("__")[1]));
                 }
                 rawRecItems.add(item);
             });
@@ -366,10 +287,10 @@ public class RawRecService {
         Map<String, RawRecItem> uniqueRecItemMap = rcMgr.listAll();
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
-            modelContext.getCcRecItemMap().forEach((innerExp, ccItem) -> {
+            modelContext.getCcRecItemMap().forEach((uniqueFlag, ccItem) -> {
                 RawRecItem item;
-                if (uniqueRecItemMap.containsKey(innerExp)) {
-                    item = uniqueRecItemMap.get(innerExp);
+                if (uniqueRecItemMap.containsKey(uniqueFlag)) {
+                    item = uniqueRecItemMap.get(uniqueFlag);
                     item.setUpdateTime(System.currentTimeMillis());
                 } else {
                     item = new RawRecItem(semiContextV2.getProject(), //
@@ -378,10 +299,10 @@ public class RawRecService {
                             RawRecItem.RawRecType.COMPUTED_COLUMN);
                     item.setCreateTime(ccItem.getCreateTime());
                     item.setUpdateTime(ccItem.getCreateTime());
-                    item.setUniqueFlag(innerExp);
+                    item.setUniqueFlag(uniqueFlag);
                     item.setRecEntity(ccItem);
                     item.setState(RawRecItem.RawRecState.INITIAL);
-                    item.setDependIDs(new int[] { 1 });// todo
+                    item.setDependIDs(ccItem.genDependIds(modelContext.getTargetModel()));
                 }
 
                 rawRecItems.add(item);
@@ -400,7 +321,6 @@ public class RawRecService {
         recItems.addAll(dimensionRecItems);
         recItems.addAll(measureRecItems);
         RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project).saveOrUpdate(recItems);
-
     }
 
     private void saveLayoutRawRecItems(List<RawRecItem> layoutRecItems, String project) {
@@ -408,9 +328,30 @@ public class RawRecService {
     }
 
     private void updateRecommendationV2(String project, String id, List<Integer> rawIds) {
-        OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
-        managerV2.createOrUpdate(id, rawIds);
+        try {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
+                        .getInstance(KylinConfig.getInstanceFromEnv(), project);
+                managerV2.createOrUpdate(id, rawIds);
+                return null;
+            }, project);
+        } catch (Exception e) {
+            log.error("project<" + project + "> failed to update RecommendationV2 file.", e);
+        }
     }
 
+    public void deleteRawRecItems() {
+        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listAllProjects().stream().filter(projectInstance -> !projectInstance.isExpertMode())
+                .collect(Collectors.toList());
+        Thread.currentThread().setName("DeleteRawRecItemsInDB");
+        for (ProjectInstance instance : projectInstances) {
+            try {
+                RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), instance.getName())
+                        .deleteAllOutDatedRecommendations(instance.getName());
+            } catch (Exception e) {
+                log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
+            }
+        }
+    }
 }

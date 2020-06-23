@@ -176,16 +176,16 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             // set status for all columns and put them into candidate named columns
             allColumns.forEach(tblColRef -> {
                 ColumnStatus status;
-                boolean isDimension = canTblColRefTreatAsDimension(ctx, tblColRef);
-                boolean isNewDimension = isDimension;
+                boolean canTreatAsDim = canTblColRefTreatAsDimension(ctx, tblColRef);
+                boolean isNewDimension = canTreatAsDim;
                 if (candidateNamedColumns.containsKey(tblColRef.getIdentity())) {
                     NamedColumn namedColumn = candidateNamedColumns.get(tblColRef.getIdentity());
-                    isNewDimension = isDimension && namedColumn.isExist();
-                    isDimension = namedColumn.isDimension() || isDimension;
-                    status = isDimension ? ColumnStatus.DIMENSION : ColumnStatus.EXIST;
+                    boolean existingDimension = namedColumn.isDimension();
+                    status = existingDimension || canTreatAsDim ? ColumnStatus.DIMENSION : ColumnStatus.EXIST;
+                    isNewDimension = !existingDimension && canTreatAsDim;
                     namedColumn.setStatus(status);
                 } else {
-                    status = isDimension ? ColumnStatus.DIMENSION : ColumnStatus.EXIST;
+                    status = canTreatAsDim ? ColumnStatus.DIMENSION : ColumnStatus.EXIST;
                     final NamedColumn column = transferToNamedColumn(tblColRef, status);
                     candidateNamedColumns.put(tblColRef.getIdentity(), column);
                 }
@@ -200,10 +200,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             if (!modelContext.getProposeContext().needCollectRecommendations()) {
                 return;
             }
-            String uniqueName = column.getAliasDotColumn();
-            if (tblColRef.getColumnDesc().isComputedColumn()) {
-                uniqueName = computedColumnDescMap.get(uniqueName).getUuid();
-            }
+            String uniqueName = getUniqueName(tblColRef);
             DimensionRecItemV2 item = new DimensionRecItemV2();
             item.setColumn(column);
             item.setDataType(tblColRef.getDatatype());
@@ -258,16 +255,26 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             Set<String> paramNames = Sets.newHashSet();
             List<ParameterDesc> parameters = measure.getFunction().getParameters();
             parameters.forEach(param -> {
-                final ColumnDesc column = param.getColRef().getColumnDesc();
-                if (column.isComputedColumn()) {
-                    paramNames.add(computedColumnDescMap.get(column.getIdentity()).getUuid());
-                } else {
-                    String tableAlias = param.getColRef().getTableRef().getAlias();
-                    String columnID = param.getColRef().getColumnDesc().getId();
-                    paramNames.add(tableAlias + "$" + columnID);
-                }
+                TblColRef colRef = param.getColRef();
+                paramNames.add(getUniqueName(colRef));
             });
             return String.format("%s__%s", measure.getFunction().getExpression(), String.join("__", paramNames));
+        }
+
+        private String getUniqueName(TblColRef tblColRef) {
+            final ColumnDesc columnDesc = tblColRef.getColumnDesc();
+            String uniqueName;
+            if (columnDesc.isComputedColumn()) {
+                ComputedColumnDesc cc = computedColumnDescMap.get(columnDesc.getIdentity());
+                if (cc.getUuid() != null) {
+                    uniqueName = cc.getUuid();
+                } else {
+                    uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getId();
+                }
+            } else {
+                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getId();
+            }
+            return uniqueName;
         }
 
         private void build() {

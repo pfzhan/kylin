@@ -60,7 +60,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -68,6 +67,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.exception.PendingException;
 import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.util.EntityBuilder;
+import io.kyligence.kap.smart.util.RawRecGenUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -209,20 +209,9 @@ class IndexSuggester {
 
         indexEntity.getLayouts().add(layout);
         cuboidLayoutIds.add(layout.getId());
-        gatherLayoutRecItems(layout);
+        RawRecGenUtil.gatherLayoutRecItem(layout, modelContext);
 
         return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
-    }
-
-    public void gatherLayoutRecItems(LayoutEntity layout) {
-        if (!proposeContext.needCollectRecommendations()) {
-            return;
-        }
-        LayoutRecItemV2 item = new LayoutRecItemV2();
-        item.setLayout(layout);
-        item.setCreateTime(System.currentTimeMillis());
-        item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
-        modelContext.getIndexRexItemMap().putIfAbsent(layout.genUniqueFlag(), item);
     }
 
     private boolean isQualifiedSuggestShardBy(OLAPContext context) {

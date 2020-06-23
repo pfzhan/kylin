@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -40,6 +41,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class LayoutMetric {
     private FrequencyMap frequencyMap;
     private LatencyMap latencyMap;
@@ -52,7 +54,7 @@ public class LayoutMetric {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class LatencyMap {
+    public static class LatencyMap implements Serializable {
         /**
          *
          */
@@ -60,6 +62,10 @@ public class LayoutMetric {
         private NavigableMap<Long, Long> totalLatencyMapPerDay = new TreeMap<>();
 
         @JsonAnySetter
+        public void add(String key, long value) {
+            totalLatencyMapPerDay.put(Long.parseLong(key), value);
+        }
+
         public void incLatency(long queryTime, long value) {
             long totalLatency = totalLatencyMapPerDay.getOrDefault(getDateInMillis(queryTime), 0L);
             totalLatencyMapPerDay.put(getDateInMillis(queryTime), totalLatency + value);
@@ -75,6 +81,7 @@ public class LayoutMetric {
             return this;
         }
 
+        @JsonIgnore
         public double getLatencyByDate(long queryTime) {
             return totalLatencyMapPerDay.get(getDateInMillis(queryTime)) == null ? 0
                     : totalLatencyMapPerDay.get(getDateInMillis(queryTime));

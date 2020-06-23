@@ -39,7 +39,9 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class RawRecManager {
 
     private static final int MAX_CACHED_NUM = 20_000;
@@ -96,14 +98,13 @@ public class RawRecManager {
     }
 
     private List<RawRecItem> queryByRawRecType(String model, RawRecItem.RawRecType type, RawRecItem.RawRecState state) {
-        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryByRawRecType(project, model, type, state);
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryByRecTypeAndState(project, model, type, state);
         rawRecItems.forEach(this::updateCache);
         return rawRecItems;
     }
 
     public Map<String, RawRecItem> queryLayoutRawRecItems(String model) {
-        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryByRawRecType(project, model, RawRecItem.RawRecType.LAYOUT,
-                RawRecItem.RawRecState.INITIAL);
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryLayoutRawRecItems(project, model);
         Map<String, RawRecItem> map = Maps.newHashMap();
         rawRecItems.forEach(recItem -> map.put(recItem.getUniqueFlag(), recItem));
         return map;
@@ -145,7 +146,9 @@ public class RawRecManager {
             return cachedRecItems.getIfPresent(key);
         }
         RawRecItem recItem = jdbcRawRecStore.queryById(id);
-        updateCache(recItem);
+        if (recItem != null) {
+            updateCache(recItem);
+        }
         return recItem;
     }
 
@@ -163,7 +166,7 @@ public class RawRecManager {
     }
 
     public void removeRecommendations(List<Integer> idList) {
-        jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.DELETED);
+        jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.BROKEN);
         removeFromCache(idList);
     }
 
@@ -192,6 +195,7 @@ public class RawRecManager {
 
     private void updateCache(RawRecItem recItem) {
         if (recItem.needCache()) {
+            log.debug("Add `{}` to raw recommendation cache", recItem.getUniqueFlag());
             uniqueFlagToId.put(recItem.getUniqueFlag(), recItem.getId());
             cachedRecItems.put(recItem.getUniqueFlag(), recItem);
         } else {
@@ -206,6 +210,7 @@ public class RawRecManager {
     private void removeFromCache(int id) {
         String uniqueFlag = uniqueFlagToId.inverse().get(id);
         if (uniqueFlag != null) {
+            log.debug("remove `{}` from raw recommendation cache", uniqueFlag);
             uniqueFlagToId.remove(uniqueFlag);
             cachedRecItems.invalidate(uniqueFlag);
         }

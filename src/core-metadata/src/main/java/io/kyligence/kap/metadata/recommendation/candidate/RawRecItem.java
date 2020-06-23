@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import java.io.IOException;
 
-import lombok.ToString;
 import org.apache.kylin.common.util.JsonUtil;
 
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
@@ -36,6 +35,7 @@ import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.RecItemV2;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
@@ -107,7 +107,7 @@ public class RawRecItem {
      * Raw recommendation state
      */
     public enum RawRecState {
-        INITIAL(0), RECOMMENDED(1), APPLIED(2), DISCARD(3), DELETED(4);
+        INITIAL(0), RECOMMENDED(1), APPLIED(2), DISCARD(3), BROKEN(4);
 
         private int id;
 
@@ -154,7 +154,7 @@ public class RawRecItem {
         case 3:
             return RawRecItem.RawRecState.DISCARD;
         case 4:
-            return RawRecItem.RawRecState.DELETED;
+            return RawRecItem.RawRecState.BROKEN;
         default:
             throw new IllegalStateException(String.format(RawRecItem.STATE_ERROR_FORMAT, stateType));
         }

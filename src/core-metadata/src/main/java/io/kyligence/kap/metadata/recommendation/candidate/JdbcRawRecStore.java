@@ -26,7 +26,9 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
+import static org.mybatis.dynamic.sql.SqlBuilder.isNotEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.max;
 import static org.mybatis.dynamic.sql.SqlBuilder.min;
 import static org.mybatis.dynamic.sql.SqlBuilder.select;
@@ -79,13 +81,16 @@ public class JdbcRawRecStore {
     }
 
     public void save(RawRecItem recItem) {
-        long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             InsertStatementProvider<RawRecItem> insertStatement = getInsertProvider(recItem);
             int rows = mapper.insert(insertStatement);
             session.commit();
-            log.info("insert {} raw recommendation takes {} ms.", rows, System.currentTimeMillis() - startTime);
+            if (rows > 0) {
+                log.debug("Insert one raw recommendation({}) into database.", recItem.getUniqueFlag());
+            } else {
+                log.debug("No raw recommendation has been inserted into database.");
+            }
         }
     }
 
@@ -97,7 +102,7 @@ public class JdbcRawRecStore {
             recItems.forEach(recItem -> providers.add(getInsertProvider(recItem)));
             providers.forEach(mapper::insert);
             session.commit();
-            log.info("this batch save {} raw recommendations takes {} ms", recItems.size(),
+            log.info("Insert {} raw recommendations into database takes {} ms", recItems.size(),
                     System.currentTimeMillis() - startTime);
         }
     }
@@ -122,7 +127,7 @@ public class JdbcRawRecStore {
                     .limit(limit) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
-            log.info("List all recommendations on project({})-model({}, {}) takes {} ms.", project, model,
+            log.info("List all recommendations on project({})/model({}, {}) takes {} ms.", project, model,
                     semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
@@ -140,18 +145,41 @@ public class JdbcRawRecStore {
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.state, isIn(RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED))
                     .orderBy(table.cost.descending()) //
                     .limit(topN) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
-            log.info("List all recommendations on project({})-model({}, {}) takes {} ms.", project, model,
+            log.info("List topN({}) recommendations on project({})/model({}, {}) takes {} ms.", topN, project, model,
                     semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
     }
 
-    public List<RawRecItem> queryByRawRecType(String project, String model, RawRecItem.RawRecType type,
+    public List<RawRecItem> queryLayoutRawRecItems(String project, String model) {
+        long start = System.currentTimeMillis();
+        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDesc(model).getSemanticVersion();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+                    .from(table) //
+                    .where(table.project, isEqualTo(project)) //
+                    .and(table.semanticVersion, isEqualTo(semanticVersion)) //
+                    .and(table.modelID, isEqualTo(model)) //
+                    .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.state, isNotEqualTo(RawRecItem.RawRecState.APPLIED)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            List<RawRecItem> recItems = mapper.selectMany(statementProvider);
+            log.info("Query by raw recommendation type, state takes {} ms", System.currentTimeMillis() - start);
+            return recItems;
+        }
+
+    }
+
+    public List<RawRecItem> queryByRecTypeAndState(String project, String model, RawRecItem.RawRecType type,
             RawRecItem.RawRecState state) {
+        long start = System.currentTimeMillis();
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         try (SqlSession session = sqlSessionFactory.openSession()) {
@@ -164,11 +192,14 @@ public class JdbcRawRecStore {
                     .and(table.type, isEqualTo(type)) //
                     .and(table.state, isEqualTo(state)) //
                     .build().render(RenderingStrategies.MYBATIS3);
-            return mapper.selectMany(statementProvider);
+            List<RawRecItem> recItems = mapper.selectMany(statementProvider);
+            log.info("Query by raw recommendation type, state takes {} ms", System.currentTimeMillis() - start);
+            return recItems;
         }
     }
 
     public void updateState(List<Integer> idList, RawRecItem.RawRecState state) {
+        long start = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             List<UpdateStatementProvider> providers = Lists.newArrayList();
@@ -176,7 +207,8 @@ public class JdbcRawRecStore {
             idList.forEach(id -> providers.add(changeRecStateProvider(id, state, updateTime)));
             providers.forEach(mapper::update);
             session.commit();
-            log.info("update state {} raw recommendation(s) to {}", idList.size(), state.name());
+            log.info("Update {} raw recommendation(s) to state({}) takes {} ms", idList.size(), state.name(),
+                    System.currentTimeMillis() - start);
         }
     }
 
@@ -185,24 +217,27 @@ public class JdbcRawRecStore {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             UpdateStatementProvider updateStatement = getUpdateProvider(recItem);
-            int rows = mapper.update(updateStatement);
+            mapper.update(updateStatement);
             session.commit();
-            log.info("update {} raw recommendation", rows);
+            log.debug("Update one raw recommendation({})", recItem.getUniqueFlag());
         }
     }
 
     public void update(List<RawRecItem> recItems) {
         if (recItems == null || recItems.isEmpty()) {
+            log.info("No raw recommendations need to update.");
             return;
         }
 
+        long start = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             List<UpdateStatementProvider> providers = Lists.newArrayList();
             recItems.forEach(item -> providers.add(getUpdateProvider(item)));
             providers.forEach(mapper::update);
             session.commit();
-            log.info("update {} raw recommendation(s)", recItems.size());
+            log.info("Update {} raw recommendation(s) takes {} ms", recItems.size(),
+                    System.currentTimeMillis() - start);
         }
     }
 
@@ -210,6 +245,7 @@ public class JdbcRawRecStore {
         if (recItem.getId() == 0) {
             save(recItem);
         } else {
+            long start = System.currentTimeMillis();
             try (SqlSession session = sqlSessionFactory.openSession()) {
                 RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
                 SelectStatementProvider statementProvider = getSelectByIdStatementProvider(recItem.getId());
@@ -218,7 +254,7 @@ public class JdbcRawRecStore {
                 UpdateStatementProvider updateStatement = getUpdateProvider(recItem);
                 int rows = mapper.update(updateStatement);
                 session.commit();
-                log.info("update {} raw recommendation", rows);
+                log.info("Update {} raw recommendation(s) takes {} ms", rows, System.currentTimeMillis() - start);
             }
         }
     }
@@ -247,15 +283,16 @@ public class JdbcRawRecStore {
     }
 
     public void deleteBySemanticVersion(int semanticVersion, String model) {
+        long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
                     .where(table.semanticVersion, isLessThan(semanticVersion)) //
-                    .where(table.modelID, isEqualTo(model)) //
+                    .and(table.modelID, isEqualTo(model)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             int rows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("delete {} row(s) raw recommendation", rows);
+            log.info("Delete {} row(s) raw recommendation takes {} ms", rows, System.currentTimeMillis() - startTime);
         }
     }
 

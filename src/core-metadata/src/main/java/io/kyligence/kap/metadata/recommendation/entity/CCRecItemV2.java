@@ -25,13 +25,23 @@
 package io.kyligence.kap.metadata.recommendation.entity;
 
 import java.io.Serializable;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
 @Getter
 @Setter
@@ -39,4 +49,21 @@ import lombok.Setter;
 public class CCRecItemV2 extends RecItemV2 implements Serializable {
     @JsonProperty("cc")
     private ComputedColumnDesc cc;
+
+    public int[] genDependIds(NDataModel dataModel) {
+        Preconditions.checkArgument(cc != null, "CCRecItemV2 without computed column object.");
+        Preconditions.checkArgument(StringUtils.isEmpty(cc.getExpression()), "cc expression cannot be null.");
+        val exprIdentifiers = ComputedColumnUtil.ExprIdentifierFinder.getExprIdentifiers(cc.getExpression());
+        int[] arr = new int[exprIdentifiers.size()];
+        ImmutableBiMap<Integer, TblColRef> effectiveCols = dataModel.getEffectiveCols();
+        Map<String, Integer> map = Maps.newHashMap();
+        effectiveCols.forEach((k, v) -> map.put(v.getIdentity(), k));
+        for (int i = 0; i < exprIdentifiers.size(); i++) {
+            String columnName = exprIdentifiers.get(i).getFirst() + "." + exprIdentifiers.get(i).getSecond();
+            Integer integer = map.get(columnName);
+            Preconditions.checkArgument(integer != null, "Computed column referred to a column not on model.");
+            arr[i] = integer;
+        }
+        return arr;
+    }
 }

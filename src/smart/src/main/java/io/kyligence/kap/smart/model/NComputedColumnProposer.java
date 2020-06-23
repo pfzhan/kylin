@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,7 +42,6 @@ import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.apache.kylin.query.routing.RealizationChooser;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -51,8 +49,6 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.AbstractContext;
@@ -114,7 +110,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             return validCCs;
         }
 
-        Map<String, String> ccInnerExpToUniqueFlag = getInnerExpToUniqueFlag();
+        Map<String, String> ccInnerExpToUniqueFlag = modelContext.getProposeContext().getInnerExpToUniqueFlag();
         List<NDataModel> otherModels = getOtherModels(dataModel);
         int maxUsedComputedColumnIndex = ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels);
         for (String ccSuggestion : ccSuggestions) {
@@ -137,12 +133,14 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             } else {
                 ccDesc.setColumnName(ComputedColumnUtil.CC_NAME_PREFIX + (++maxUsedComputedColumnIndex));
             }
+
             String innerExpression = KapQueryUtil.massageComputedColumn(dataModel, project, ccDesc, null);
             ccDesc.setInnerExpression(innerExpression);
             if (ccInnerExpToUniqueFlag.containsKey(innerExpression)) {
                 ccDesc.setUuid(ccInnerExpToUniqueFlag.get(innerExpression));
             } else {
-                ccDesc.setUuid(UUID.randomUUID().toString());
+                long uniqueId = maxUsedComputedColumnIndex + System.currentTimeMillis();
+                ccDesc.setUuid("tmp" + uniqueId);
             }
             dataModel.getComputedColumnDescs().add(ccDesc);
 
@@ -160,19 +158,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
         }
         return validCCs;
-    }
-
-    private Map<String, String> getInnerExpToUniqueFlag() {
-        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .listAll();
-        Map<String, String> ccInnerExpToUniqueFlag = Maps.newHashMap();
-        recItemMap.forEach((k, v) -> {
-            if (v.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                final CCRecItemV2 recEntity = (CCRecItemV2) v.getRecEntity();
-                ccInnerExpToUniqueFlag.put(recEntity.getCc().getInnerExpression(), k);
-            }
-        });
-        return ccInnerExpToUniqueFlag;
     }
 
     /**

@@ -24,9 +24,16 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 
 public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
@@ -55,6 +62,20 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public void saveMetadata() {
+        // do nothing
+    }
 
+    @Override
+    public Map<String, String> getInnerExpToUniqueFlag() {
+        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .listAll();
+        Map<String, String> ccInnerExpToUniqueFlag = Maps.newHashMap();
+        recItemMap.forEach((k, v) -> {
+            if (v.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                final CCRecItemV2 recEntity = (CCRecItemV2) v.getRecEntity();
+                ccInnerExpToUniqueFlag.put(recEntity.getCc().getInnerExpression(), k);
+            }
+        });
+        return ccInnerExpToUniqueFlag;
     }
 }

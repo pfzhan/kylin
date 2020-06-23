@@ -77,6 +77,7 @@ public class ScheduleService {
             favoriteQueryService.generateRecommendation();
             queryHistoryService.cleanQueryHistories();
             rawRecService.updateCostAndSelectTopRec();
+            rawRecService.deleteRawRecItems();
 
             logger.info("Finish to work");
         } finally {

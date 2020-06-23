@@ -54,7 +54,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
-@EqualsAndHashCode(exclude = "comment")
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ComputedColumnDesc implements Serializable {
@@ -79,7 +78,9 @@ public class ComputedColumnDesc implements Serializable {
     @JsonProperty
     private String datatype;
     @JsonProperty
+    @EqualsAndHashCode.Exclude
     private String comment;
+    @EqualsAndHashCode.Exclude
     private String uuid;
 
     public void init(NDataModel model, String rootFactTableName) {

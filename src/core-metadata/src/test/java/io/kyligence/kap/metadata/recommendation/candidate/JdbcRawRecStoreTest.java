@@ -32,6 +32,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 
@@ -85,6 +86,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Ignore
     @Test
     public void testSave() {
         RawRecItem recItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);

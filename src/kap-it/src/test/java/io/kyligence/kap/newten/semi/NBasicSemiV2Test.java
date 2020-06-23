@@ -26,14 +26,28 @@ package io.kyligence.kap.newten.semi;
 
 import java.util.List;
 
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
 public class NBasicSemiV2Test extends SemiAutoTestBase {
+
+    private JdbcRawRecStore jdbcRawRecStore;
+
+    @Before
+    public void setup() throws Exception {
+        super.setup();
+        getTestConfig().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+    }
 
     @Override
     public String getProject() {
@@ -44,6 +58,15 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
     public void testBasic() {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
+        // prepare initial model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact" });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runWithContext();
+
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        // test
         String[] sqls = { "select sum(item_count*price), sum(price), lstg_format_name, price * 5 "
                 + "from test_kylin_fact group by lstg_format_name, price *  5" };
 

@@ -194,7 +194,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
             try {
                 ps.setString(i, parameter == null ? null : JsonUtil.writeValueAsString(parameter));
             } catch (JsonProcessingException e) {
-                throw new SerializationException("cannot serialize freqMap", e);
+                throw new SerializationException("cannot serialize layoutMetric", e);
             }
         }
 
@@ -220,7 +220,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
             try {
                 return JsonUtil.readValue(jsonString, LayoutMetric.class);
             } catch (IOException e) {
-                throw new IllegalStateException("cannot deserialize frequency map correctly", e);
+                throw new IllegalStateException("cannot deserialize layout metric correctly", e);
             }
         }
     }

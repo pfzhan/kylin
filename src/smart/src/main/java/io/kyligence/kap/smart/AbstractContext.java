@@ -90,6 +90,10 @@ public abstract class AbstractContext {
 
     public abstract String getIdentifier();
 
+    public Map<String, String> getInnerExpToUniqueFlag() {
+        return Maps.newHashMap();
+    }
+
     public void recordException(AbstractContext.NModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
             String sql = olapCtx.sql;
