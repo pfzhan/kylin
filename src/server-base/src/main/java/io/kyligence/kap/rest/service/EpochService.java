@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
@@ -52,7 +53,7 @@ public class EpochService extends BasicService {
         NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (projects.isEmpty()) {
             projects.add(EpochManager.GLOBAL);
-            projectMgr.listAllProjects().stream().map(p -> projects.add(p.getName()));
+            projects.addAll(projectMgr.listAllProjects().stream().map(p -> p.getName()).collect(Collectors.toList()));
         }
 
         for (String project : projects) {
