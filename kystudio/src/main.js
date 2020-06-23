@@ -137,8 +137,6 @@ Vue.http.interceptors.push(function (request, next) {
       } else {
         router.replace({name: 'Login', params: { ignoreIntercept: true }})
       }
-    } else if ((!store.state.user.currentUser || !store.state.user.currentUser.username) && router.history.current.name !== 'login') {
-      router.replace({name: 'Login', params: { ignoreIntercept: true }})
     }
   })
 })
