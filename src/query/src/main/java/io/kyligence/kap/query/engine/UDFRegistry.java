@@ -24,15 +24,31 @@
 
 package io.kyligence.kap.query.engine;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.schema.AggregateFunction;
+import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.ScalarFunction;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.udf.UdfDef;
+import org.apache.calcite.sql.fun.udf.UdfEmptyImplementor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.measure.MeasureTypeFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.HashMultimap;
 
 /**
  * Registry for all UDFs.
@@ -43,6 +59,8 @@ public class UDFRegistry {
 
     private KylinConfig kylinConfig;
     private Map<String, UDFDefinition> udfDefinitions = new HashMap<>();
+
+    private static final Logger logger = LoggerFactory.getLogger(UDFRegistry.class);
 
     public static UDFRegistry getInstance(KylinConfig config, String project) {
         return config.getManager(project, UDFRegistry.class);
@@ -59,6 +77,8 @@ public class UDFRegistry {
             throw new RuntimeException("Failed to init DataModelManager from " + conf, e);
         }
     }
+
+    static HashMultimap<String, Function> allUdfMap = genAllUdf();
 
     public UDFRegistry(KylinConfig kylinConfig, String project) {
         this.kylinConfig = kylinConfig;
@@ -108,6 +128,69 @@ public class UDFRegistry {
         public List<String> getPaths() {
             return paths;
         }
+    }
+
+    private static HashMultimap<String, Function> genAllUdf() {
+        HashMultimap<String, Function> allUdfMap = HashMultimap.create();
+
+        //udf
+        Map<String, UDFDefinition> udfDefinitions = new HashMap<>();
+        for (Map.Entry<String, String> entry : KylinConfig.getInstanceFromEnv().getUDFs().entrySet()) {
+            udfDefinitions.put(entry.getKey(),
+                    new UDFDefinition(entry.getKey().trim().toUpperCase(), entry.getValue().trim()));
+        }
+        for (UDFRegistry.UDFDefinition udfDef : Collections.unmodifiableCollection(udfDefinitions.values())) {
+            try {
+                Class<?> clazz = Class.forName(udfDef.getClassName());
+                if (UdfDef.class.isAssignableFrom(clazz)) {
+                    SqlOperator udfOp;
+                    try {
+                        udfOp = (SqlOperator) clazz.getField("OPERATOR").get(null);
+                    } catch (IllegalAccessException | NoSuchFieldException e) {
+                        throw new IllegalStateException("Invalid UdfDef " + udfDef.getClassName(), e);
+                    }
+
+                    CallImplementor udfImpl = UdfEmptyImplementor.INSTANCE;
+                    try {
+                        udfImpl = (CallImplementor) clazz.getField("IMPLEMENTOR").get(null);
+                    } catch (IllegalAccessException e) {
+                        logger.error("UDF class {} illegal access", udfDef.getClassName(), e);
+                    } catch (NoSuchFieldException e) {
+                        logger.error("UDF class {} have no IMPLEMENTOR field", udfDef.getClassName(), e);
+                    }
+
+                    SqlStdOperatorTable.instance().register(udfOp);
+                    RexImpTable.INSTANCE.defineImplementor(udfOp, udfImpl);
+                    continue;
+                }
+                for (Method method : clazz.getMethods()) {
+                    if (method.getDeclaringClass() == Object.class) {
+                        continue;
+                    }
+                    final ScalarFunction function = ScalarFunctionImpl.create(method);
+                    allUdfMap.put(method.getName(), function);
+                }
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("UDF class '" + udfDef.getClassName() + "' not found", e);
+            }
+        }
+
+        //udaf
+        Map<String, UDFDefinition> udafDefinitions = new HashMap<>();
+        for (Map.Entry<String, Class<?>> entry : MeasureTypeFactory.getUDAFs().entrySet()) {
+            udafDefinitions.put(entry.getKey(),
+                    new UDFDefinition(entry.getKey().trim().toUpperCase(), entry.getValue().getName().trim(), null));
+        }
+        for (UDFRegistry.UDFDefinition udfDef : Collections.unmodifiableCollection(udafDefinitions.values())) {
+            try {
+                final AggregateFunction aggFunction = AggregateFunctionImpl.create(Class.forName(udfDef.getClassName()));
+                allUdfMap.put(udfDef.getName(), aggFunction);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("UDAF class '" + udfDef.getClassName() + "' not found");
+            }
+        }
+
+        return allUdfMap;
     }
 }
 

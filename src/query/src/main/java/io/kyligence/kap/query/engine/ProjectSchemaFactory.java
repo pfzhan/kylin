@@ -25,26 +25,27 @@
 package io.kyligence.kap.query.engine;
 
 
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModel;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.model.ModelHandler;
+import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.schema.KapOLAPSchema;
 import org.apache.kylin.rest.constant.Constant;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.schema.KapOLAPSchema;
 
 /**
  * factory that create and construct schemas within a project
@@ -111,9 +112,8 @@ public class ProjectSchemaFactory {
     }
 
     private void addUDFs(CalciteSchema calciteSchema) {
-        for (UDFRegistry.UDFDefinition udfDef : UDFRegistry.getInstance(kylinConfig, projectName).getUdfDefinitions()) {
-            // TODO move add functions here if necessary
-            ModelHandler.addFunctions(calciteSchema.plus(), udfDef.getName(), udfDef.getPaths(), udfDef.getClassName(), udfDef.getMethodName(), false);
+        for (Map.Entry<String, Function> entry : UDFRegistry.allUdfMap.entries()) {
+            calciteSchema.plus().add(entry.getKey().toUpperCase(Locale.ROOT), entry.getValue());
         }
     }
 }
