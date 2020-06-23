@@ -410,6 +410,7 @@ public class ModelSemanticHelper extends BasicService {
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
+                || !Objects.equals(originModel.getRootFactTable(), newModel.getRootFactTable())
                 || !originModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap())
                 || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition());
     }
