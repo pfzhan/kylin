@@ -52,6 +52,10 @@ let routerOptions = {
         path: 'noAuthority',
         component: () => import('../components/noAuthority/index.vue')
       }, {
+        path: '/404',
+        name: '404',
+        component: () => import('../components/noAuthority/index.vue')
+      }, {
         name: 'Setting',
         path: '/setting',
         component: () => import('../components/setting/setting.vue')
@@ -119,6 +123,10 @@ let routerOptions = {
         name: 'QueryHistory',
         path: 'query/queryhistory',
         component: queryHistory
+      },
+      {
+        path: '*',
+        redirect: '/404'
       }]
     }
   ]

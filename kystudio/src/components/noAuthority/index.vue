@@ -1,13 +1,34 @@
 <template>
   <div class="user-no-authority">
     <div class="content">
-      <template v-if="!tipType">
+      <template v-if="tipType === 'isNoAuthority'">
         <i class="el-icon-ksd-lock"></i>
-        <p class="text"><span>{{$t('noAuthorityText', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a></p>
+        <template v-if="$lang === 'en'">
+          <p class="text"><span>{{$t('noAuthorityText')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('noAuthorityText1', {time: jumpTimer})}}</span></p>
+        </template>
+        <template v-else>
+          <p class="text"><span>{{$t('noAuthorityText', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a></p>
+        </template>
+      </template>
+      <template v-else-if="tipType === 'isNotSemiAuto'">
+        <i class="el-icon-ksd-sad"></i>
+        <template v-if="$lang === 'en'">
+          <p class="text"><span>{{$t('noModalAuthorityText1')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('noModalAuthorityText2', {time: jumpTimer})}}</span></p>
+        </template>
+        <template v-else>
+          <p class="text"><span>{{$t('noModalAuthorityText1', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a></p>
+        </template>
       </template>
       <template v-else>
         <i class="el-icon-ksd-sad"></i>
-        <p class="text"><span>{{$t('noAuthorityText1', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a></p>
+        <p class="text">
+          <template v-if="$lang === 'en'">
+            <span>{{$t('is404Tip')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('is404Tip1', {time: jumpTimer})}}</span>
+          </template>
+          <template v-else>
+            <span>{{$t('is404Tip', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a>
+          </template>
+        </p>
       </template>
     </div>
   </div>
@@ -30,13 +51,18 @@ import { Component } from 'vue-property-decorator'
   },
   locales: {
     'en': {
-      noAuthorityText: 'Sorry, you do not have permission to access this page, After {time} seconds, the system will jump to ',
-      noAuthorityText1: 'Recommendation mode is not supported in the current project, please open the mode in Setting and try again. After {time} seconds, the system will automatically jump to ',
-      dashboard: 'the dashboard page'
+      noAuthorityText: 'Sorry, you don`t have permission to access this page. Will automatically redirect to ',
+      noAuthorityText1: ' in {time} seconds.',
+      noModalAuthorityText1: 'Recommendation mode is not supported in the current project. Please turn on the mode in Setting and try again. Will automatically redirect to ',
+      noModalAuthorityText2: ' in {time} seconds.',
+      is404Tip: 'Sorry, the page doesn‘t exist. Will automatically redirect to ',
+      is404Tip1: ' in {time} seconds.',
+      dashboard: 'Dashboard'
     },
     'zh-cn': {
-      noAuthorityText: '抱歉，您无权访问该页面，{time} 秒后系统将跳转到',
-      noAuthorityText1: '当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。{time} 秒后系统将跳转到',
+      noAuthorityText: '抱歉，您无权访问该页面。{time} 秒后系统将跳转到',
+      noModalAuthorityText1: '当前项目未开启模型推荐及优化。请在设置中开启智能推荐后再试。{time} 秒后系统将跳转到',
+      is404Tip: '抱歉，您访问的页面不存在。{time} 秒后将自动跳转至',
       dashboard: '仪表盘页面'
     }
   }
@@ -58,7 +84,7 @@ export default class NoAuthority extends Vue {
       this.jumpTimer -= 1
       if (this.jumpTimer === 0) {
         clearInterval(this.timer)
-        if (this.$route.name !== 'noAuthority') return
+        if (this.$route.name !== 'noAuthority' && this.$route.name !== '404') return
         this.jumpToDashboard()
       }
     }, 1000)

@@ -57,8 +57,8 @@ export function bindRouterGuard (router) {
         let auth = to.name && availableMenus.includes(to.name.toLowerCase())
 
         // 判断是否有路由权限，无权限或没有打开智能推荐跳至 /noAuthority 页面
-        if (!['noauthority', 'refresh'].includes(to.name.toLowerCase()) && !auth) {
-          next('/noAuthority')
+        if (!['noauthority', 'refresh', '404'].includes(to.name.toLowerCase()) && !auth) {
+          next({path: '/noAuthority', query: {resouce: 'isNoAuthority'}})
         } else if (to.name.toLowerCase() === 'acceleration') {
           if (!store.getters.isAutoProject && !store.state.project.isSemiAutomatic) {
             next({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
@@ -69,6 +69,7 @@ export function bindRouterGuard (router) {
           next()
         }
       }
+
       // 如果是从登陆过来的，所有信息都要重新获取
       if (from.name === 'Login' && (to.name !== 'access' && to.name !== 'Login')) {
         prepositionRequest()
