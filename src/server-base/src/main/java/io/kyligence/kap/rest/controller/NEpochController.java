@@ -51,7 +51,7 @@ public class NEpochController extends NBasicController {
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> updateEpochOwner(@RequestBody EpochRequest epochRequest) throws Exception {
-        epochService.updateEpoch(epochRequest.getProjects(), epochRequest.isForce());
+        epochService.updateEpoch(epochRequest.getProjects(), epochRequest.isForce(), epochRequest.isClient());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

@@ -46,8 +46,10 @@ public class EpochService extends BasicService {
     @Autowired
     public AclEvaluate aclEvaluate;
 
-    public void updateEpoch(List<String> projects, boolean force) throws Exception {
-        aclEvaluate.checkIsGlobalAdmin();
+    public void updateEpoch(List<String> projects, boolean force, boolean client) throws Exception {
+        if (!client)
+          aclEvaluate.checkIsGlobalAdmin();
+
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
 
         NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());

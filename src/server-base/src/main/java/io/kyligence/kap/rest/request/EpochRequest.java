@@ -40,4 +40,7 @@ public class EpochRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("force")
     private boolean force;
+
+    @JsonProperty("client")
+    private boolean client = false;
 }

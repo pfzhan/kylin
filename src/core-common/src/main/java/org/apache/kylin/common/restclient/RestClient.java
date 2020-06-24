@@ -325,6 +325,7 @@ public class RestClient {
         HashMap<String, Object> paraMap = new HashMap<String, Object>();
         paraMap.put("projects", Lists.newArrayList(project));
         paraMap.put("force", "false");
+        paraMap.put("client", "true");
         String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
         post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
         HttpResponse response = client.execute(post);
