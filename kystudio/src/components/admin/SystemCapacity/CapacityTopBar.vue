@@ -8,20 +8,20 @@
           <p class="label">
             <span>{{$t('usedData')}}：
               <i v-if="systemCapacityInfo.isLoading" class="el-icon-loading"></i>
-              <span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.fail">{{!systemCapacityInfo.evaluation ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span>
+              <span :class="['font-medium', getValueColor]" v-else-if="!systemCapacityInfo.fail">{{!systemCapacityInfo.unlimited ? getCapacityPrecent + '%' : filterElements.dataSize(systemCapacityInfo.current_capacity)}}</span>
             </span>
             <template v-if="!systemCapacityInfo.isLoading">
               <span class="font-disabled" v-if="systemCapacityInfo.fail">{{$t('failApi')}}</span>
-              <span v-if="systemCapacityInfo.error_over_thirty_days">
+              <!-- <span v-if="systemCapacityInfo.error_over_thirty_days">
                 <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
                   <el-tag class="over-thirty-days" size="mini" type="danger">{{$t('failApi')}}<i class="is-danger el-icon-ksd-what ksd-ml-5"></i></el-tag>
                 </el-tooltip>
-              </span>
+              </span> -->
               <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
             </template>
           </p>
           <p :class="['label', 'node-item', {'is-disabled': systemNodeInfo.isLoading || systemNodeInfo.fail}]" @mouseenter="showNodeDetails = true" @mouseleave="showNodeDetails = false">
-            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.evaluation}]" v-else-if="!systemNodeInfo.fail">{{!systemNodeInfo.evaluation ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
+            <span>{{$t('usedNodes')}}：<i v-if="systemNodeInfo.isLoading" class="el-icon-loading"></i><span :class="['font-medium', {'is-danger': systemNodeInfo.current_node > systemNodeInfo.node && !systemNodeInfo.unlimited}]" v-else-if="!systemNodeInfo.fail">{{!systemNodeInfo.unlimited ? `${systemNodeInfo.current_node}/${systemNodeInfo.node}` : systemNodeInfo.current_node}}</span></span>
             <template v-if="!systemNodeInfo.isLoading && isNodeLoadingSuccess">
               <span class="font-disabled" v-if="systemNodeInfo.fail">{{$t('failApi')}}</span>
               <!-- <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
@@ -41,7 +41,12 @@
     <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes"><span class="server-status">{{$t('serverStatus')}}</span>
       <i v-if="showLoadingStatus" class="el-icon-loading"></i>
       <template v-else>
-        <span :class="['flag', getNodesNumColor]" v-if="getDataFails"></span>
+        <template v-if="getDataFails">
+          <span :class="['flag', getNodesNumColor]"></span>
+          <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
+            <i class="icon el-icon-ksd-restart" v-if="isAdminRole && (systemCapacityInfo.fail || this.systemNodeInfo.fail)" @click.stop="refreshCapacityOrNodes"></i>
+          </el-tooltip>
+        </template>
         <template v-else>
           <span class="font-disabled">{{$t('failApi')}}</span>
           <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
@@ -93,11 +98,11 @@
     nodesTimer = null
 
     get getDataFails () {
-      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || this.isOnlyQueryNode || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
+      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
     }
 
     get getNodesNumColor () {
-      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemCapacityInfo.error_over_thirty_days || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode) {
+      if (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode) {
         return 'is-danger'
       } else if (this.getCapacityPrecent >= 80) {
         return 'is-warning'
@@ -118,11 +123,11 @@
     }
 
     get getCapacityPrecent () {
-      return this.systemCapacityInfo.capacity === 0 || this.systemCapacityInfo.evaluation ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
+      return this.systemCapacityInfo.capacity === 0 || this.systemCapacityInfo.unlimited ? 0 : (this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity * 100).toFixed(2)
     }
 
     get showLoadingStatus () {
-      return this.systemCapacityInfo.capacity_status !== 'OVERCAPACITY' && !this.systemCapacityInfo.error_over_thirty_days && this.systemNodeInfo.node_status !== 'OVERCAPACITY' && this.getCapacityPrecent < 80 && (this.systemCapacityInfo.isLoading || this.systemNodeInfo.isLoading || this.isNodeLoading)
+      return this.systemCapacityInfo.capacity_status !== 'OVERCAPACITY' && this.systemNodeInfo.node_status !== 'OVERCAPACITY' && this.getCapacityPrecent < 80 && (this.systemCapacityInfo.isLoading || this.systemNodeInfo.isLoading || this.isNodeLoading)
     }
 
     created () {
@@ -165,14 +170,11 @@
 
     // 刷新获取失败的接口
     async refreshCapacityOrNodes () {
-      this.isNodeLoading = true
       if (this.systemCapacityInfo.fail) {
         await this.refreshAll()
-        this.isNodeLoading = false
       }
       if (this.systemNodeInfo.fail) {
         await this.getNodesInfo()
-        this.isNodeLoading = false
       }
     }
 

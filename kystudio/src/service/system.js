@@ -84,12 +84,12 @@ export default {
     return Vue.resource(apiUrl + `system/capacity_info`).get(para)
   },
   // 节点使用情况
-  getNodesInfo: () => {
-    return Vue.resource(apiUrl + 'system/license/nodes').get()
+  getNodesInfo: (para) => {
+    return Vue.resource(apiUrl + 'system/license/nodes').get(para)
   },
   // 获取系统容量
-  getSystemCapacityInfo: () => {
-    return Vue.resource(apiUrl + 'system/license/capacity').get()
+  getSystemCapacityInfo: (para) => {
+    return Vue.resource(apiUrl + 'system/license/capacity').get(para)
   },
   // 单个项目下面表的数据量
   getProjectCapacityDetails: (para) => {

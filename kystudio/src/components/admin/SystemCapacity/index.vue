@@ -13,7 +13,7 @@
       <template v-else>
         <span :class="['used-data-number', getValueColor]">
           <span v-if="!systemCapacityInfo.isLoading && !systemCapacityInfo.fail">
-            <template v-if="systemCapacityInfo.evaluation">
+            <template v-if="systemCapacityInfo.unlimited">
               {{systemCapacityInfo.current_capacity | dataSize}}
             </template>
             <template v-else>
@@ -22,16 +22,18 @@
           </span>
         </span>
         <span>
-          <span class="font-disabled" v-if="systemCapacityInfo.fail">{{$t('failApi')}}</span>
-          <span v-if="systemCapacityInfo.error_over_thirty_days">
+          <span class="font-disabled" v-if="systemCapacityInfo.fail">
+            {{$t('failApi')}}
+            <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
+              <i class="icon el-icon-ksd-restart" @click="refreshSystemBuildJob"></i>
+            </el-tooltip>
+          </span>
+          <!-- <span v-if="systemCapacityInfo.error_over_thirty_days">
             <el-tooltip :content="$t('failedTagTip')" effect="dark" placement="top">
               <el-tag class="over-thirty-days" size="mini" type="danger">{{$t('failApi')}}<i class="icon el-icon-ksd-what"></i></el-tag>
             </el-tooltip>
-          </span>
+          </span> -->
           <el-tag size="mini" type="danger" v-if="systemCapacityInfo.capacity_status === 'OVERCAPACITY'">{{$t('excess')}}</el-tag>
-          <el-tooltip :content="$t('refresh')" effect="dark" placement="top">
-            <i class="icon el-icon-ksd-restart" v-if="systemCapacityInfo.fail" @click="refreshSystemBuildJob"></i>
-          </el-tooltip>
         </span>
       </template>
       <span class="line">|</span>
@@ -40,7 +42,7 @@
         <i class="icon el-icon-loading" v-if="systemNodeInfo.isLoading"></i>
         <span v-else :class="['num', systemNodeInfo.node_status === 'OVERCAPACITY' && 'is-error']">
           <template v-if="!systemNodeInfo.isLoading && !systemNodeInfo.fail">
-            <template v-if="systemNodeInfo.evaluation">
+            <template v-if="systemNodeInfo.unlimited">
               {{systemNodeInfo.current_node}}
             </template>
             <span v-else>
@@ -346,7 +348,13 @@ export default class SystemCapacity extends Vue {
 
   // 获取项目占比
   getProjectList () {
-    this.getProjectCapacityList({project_names: this.filterProject, page_offset: this.projectCapacity.currentPage, page_size: this.projectCapacity.pageSize, sort_by: this.projectCapacity.sort_by, reverse: this.projectCapacity.reverse}).then(data => {
+    this.getProjectCapacityList({
+      project_names: this.filterProject,
+      page_offset: this.projectCapacity.currentPage,
+      page_size: this.projectCapacity.pageSize,
+      sort_by: this.projectCapacity.sort_by,
+      reverse: this.projectCapacity.reverse
+    }).then(data => {
       this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
     })
   }
@@ -374,7 +382,7 @@ export default class SystemCapacity extends Vue {
   }
 
   get getCapacityPrecent () {
-    return this.systemCapacityInfo.evaluation ? 0 : (((this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity) || 0) * 100.00).toFixed(2)
+    return this.systemCapacityInfo.unlimited ? 0 : (((this.systemCapacityInfo.current_capacity / this.systemCapacityInfo.capacity) || 0) * 100.00).toFixed(2)
   }
 
   // 邮箱规则

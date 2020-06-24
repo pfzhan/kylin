@@ -15,7 +15,8 @@ export default {
       node: 0,
       error: false,
       isLoading: false,
-      fail: false
+      fail: false,
+      unlimited: false
     },
     systemCapacityInfo: {
       current_capacity: 0,
@@ -23,7 +24,8 @@ export default {
       error: false,
       isLoading: false,
       error_over_thirty_days: false,
-      fail: false
+      fail: false,
+      unlimited: false
     },
     latestUpdateTime: 0,
     isRefresh: false,
@@ -106,14 +108,16 @@ export default {
     },
     // 获取节点使用信息
     [types.GET_NODES_INFO] ({commit, dispatch}) {
-      nodeTimer && clearTimeout(nodeTimer)
+      const data = {}
+      nodeTimer && (data.isAuto = true, clearTimeout(nodeTimer))
       commit('SET_NODES_INFOS', {isLoading: true})
       return new Promise((resolve, reject) => {
-        api.system.getNodesInfo().then(res => {
+        api.system.getNodesInfo(data).then(res => {
           const { code, data } = res.body
           if (code === '000') {
             const fail = ['TENTATIVE', 'ERROR'].includes(data.node_status)
-            commit('SET_NODES_INFOS', {...data, fail, isLoading: false})
+            const unlimited = data.node === -1
+            commit('SET_NODES_INFOS', {...data, fail, unlimited, isLoading: false})
             commit('LATEST_UPDATE_TIME')
             dispatch('globalAlertNotice')
           } else {
@@ -131,13 +135,16 @@ export default {
     },
     // 获取系统数据量
     [types.GET_SYSTEM_CAPACITY_INFO] ({commit, dispatch}) {
+      const data = {}
+      capacityTimer && (data.isAuto = true)
       commit('SET_SYSTEM_CAPACITY_INFO', {isLoading: true})
       return new Promise((resolve, reject) => {
-        api.system.getSystemCapacityInfo().then(res => {
+        api.system.getSystemCapacityInfo(data).then(res => {
           const { code, data } = res.body
           if (code === '000') {
             const fail = ['TENTATIVE', 'ERROR'].includes(data.capacity_status)
-            commit('SET_SYSTEM_CAPACITY_INFO', {...data, fail, isLoading: false})
+            const unlimited = data.capacity === -1
+            commit('SET_SYSTEM_CAPACITY_INFO', {...data, fail, unlimited, isLoading: false})
             commit('LATEST_UPDATE_TIME')
             dispatch('globalAlertNotice')
           } else {
