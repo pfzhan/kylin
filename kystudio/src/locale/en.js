@@ -505,9 +505,9 @@ exports.default = {
     capacityOverPrecent: 'The amount of data volume used {capacity} has reached 80% of the license limit. To ensure the availability of build index and data load, please contact Kyligence, or try deleting some segments.',
     overThirtyDays: 'Failed to fetch data volume used for over 30 days. Build index and load data is unavailable. Please contact Kyligence for support.',
     noJobNodes: 'There is no active Job node. The build jobs and metadata operations cannot be submitted temporarily. ',
-    capacityFailTip: 'Failed to fetch data volume used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence. Otherwise, build index and load data will be unavailable after {times} days.',
+    capacityFailTip: 'Failed to fetch data volume used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence.',
     nodesFailTip: 'Failed to fetch nodes used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence.',
-    bothCapacityAndNodesFail: 'Failed to fetch data volume used and nodes used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence. Otherwise, build index and load data will be unavailable after {times} days.'
+    bothCapacityAndNodesFail: 'Failed to fetch data volume used and nodes used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence.'
   },
   kybotXY: {
     agreement: `

@@ -269,9 +269,10 @@ export default {
       const capacity = `${filterElements.dataSize(state.systemCapacityInfo.current_capacity)}/${filterElements.dataSize(state.systemCapacityInfo.capacity)}`
       const nodes = `${state.systemNodeInfo.current_node}/${state.systemNodeInfo.node}`
       let alertType = () => {
-        if (state.systemCapacityInfo.error_over_thirty_days) {
-          return { flag: 0, status: 'overThirtyDays', text: 'overThirtyDays', query: { capacity } }
-        } else if (state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || state.systemNodeInfo.node_status === 'OVERCAPACITY') {
+        // if (state.systemCapacityInfo.error_over_thirty_days) {
+        //   return { flag: 0, status: 'overThirtyDays', text: 'overThirtyDays', query: { capacity } }
+        // }
+        if (state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || state.systemNodeInfo.node_status === 'OVERCAPACITY') {
           const _types = []
           state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' && _types.push('systemCapacity')
           state.systemNodeInfo.node_status === 'OVERCAPACITY' && _types.push('nodes')
@@ -279,13 +280,13 @@ export default {
         } else if (getters.isOnlyQueryNode) {
           return { flag: 0, status: 'noAllNodes', text: 'noJobNodes' }
         } else if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
-          let times = 30
+          // let times = 30
           if (state.systemCapacityInfo.fail && state.systemNodeInfo.fail) {
-            times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
-            return { flag: 1, status: 'failApi', text: 'bothCapacityAndNodesFail', query: {times: times < 0 ? 0 : times} }
+            // times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
+            return { flag: 1, status: 'failApi', text: 'bothCapacityAndNodesFail' }
           } else if (state.systemCapacityInfo.fail) {
-            times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
-            return { flag: 1, status: 'failApi', text: 'capacityFailTip', query: {times: times < 0 ? 0 : times} }
+            // times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
+            return { flag: 1, status: 'failApi', text: 'capacityFailTip' }
           } else {
             return { flag: 1, status: 'failApi', text: 'nodesFailTip' }
           }
