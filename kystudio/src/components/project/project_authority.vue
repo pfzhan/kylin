@@ -140,9 +140,9 @@
         <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium">
           <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
         </el-select>
-        <span class="ky-no-br-space ksd-ml-10" v-if="!isEditAuthor">
-          <el-button type="primary" icon="el-icon-ksd-add_2" plain circle size="mini" @click="addAccessMetas" v-if="index==0"></el-button>
-          <el-button icon="el-icon-minus" class="ksd-ml-5" plain circle size="mini" :disabled="index==0&&accessMetas.length==1" @click="removeAccessMetas(index)"></el-button>
+        <span class="ky-no-br-space ksd-ml-10 repeatBtn" v-if="!isEditAuthor">
+          <el-button type="primary" icon="el-icon-ksd-add_2" class="ksd-mr-5" plain circle size="mini" @click="addAccessMetas" v-if="index==0"></el-button>
+          <el-button icon="el-icon-minus" class="minus" plain circle size="mini" :disabled="index==0&&accessMetas.length==1" @click="removeAccessMetas(index)"></el-button>
         </span>
       </div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
@@ -641,7 +641,7 @@ export default class ProjectAuthority extends Vue {
         width: 128px;
       }
       .name-select {
-        width: 570px;
+        width: 550px;
         margin-left: 5px;
         .el-select__tags-text {
           max-width: 480px;
@@ -659,6 +659,11 @@ export default class ProjectAuthority extends Vue {
           input {
             margin-left: 30px;
           }
+        }
+      }
+      .repeatBtn{
+        .minus{
+          margin-left:0;
         }
       }
     }
