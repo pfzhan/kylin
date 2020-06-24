@@ -149,6 +149,14 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/public_get_project_access_permission.yml
+    name: public获取项目级访问权限
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/create_model.yml
     name: 创建 model
     validate:
@@ -315,17 +323,6 @@ teststeps:
           - 200
     extract:
         job_id: content.data.jobs.0.job_id
-
-  - api: api/get_segments.yml
-    name: 获取segment
-    variables:
-      model: $model_name
-    extract:
-      refresh_segment_id: content.data.value.0.id
-    validate:
-      - eq:
-          - status_code
-          - 200
 
 #  - api: api/refresh_segment.yml
 #    name: 刷新segment
@@ -697,6 +694,46 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/public_create_user.yml
+    name: public创建用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_update_user.yml
+    name: public修改用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_update_user_password.yml
+    name: public修改密码
+    setup_hooks:
+      - ${create_user($change_pwd_user, $password)}
+    teardown_hooks:
+      - ${delete_user($change_pwd_user)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_delete_user.yml
+    name: public删除用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_list_all_users.yml
+    name: public返回用户列表
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/user_login.yml
     name: 用户登录
     validate:
@@ -721,6 +758,21 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/public_list_groups.yml
+    name: public返回用户组列表
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_get_users_by_group.yml
+    name: public返回指定用户组的用户列表
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/get_users_in_group.yml
     name: 获取用户组里的用户
     validate:
@@ -745,6 +797,28 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/public_add_user_group.yml
+    name: public增加用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_delete_user_group.yml
+    name: public删除用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_update_user_group.yml
+    name: public更新用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/reset_table.yml
     name: 置顶table
     validate:
@@ -973,6 +1047,16 @@ teststeps:
           - status_code
           - 200
 
+  - api: api/public_update_project_permission.yml
+    name: public更新项目级访问权限
+    variables:
+      permission: OPERATION
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/delete_user_permission_in_project.yml
     name: 删除用户的项目级权限
     variables:
@@ -986,6 +1070,44 @@ teststeps:
     name: 添加单个项目用户的项目级权限
     variables:
       permission: READ
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_revoke_project_permission.yml
+    name: public删除项目级访问权限
+    variables:
+      user: $resident_user
+    validate:
+        - eq:
+            - status_code
+            - 200
+
+  - api: api/grant_project_permission_to_single_user.yml
+    name: 添加单个项目用户的项目级权限
+    variables:
+      permission: READ
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_grant_project_permission.yml
+    name: public授予项目级访问权限
+    variables:
+      permission: QUERY
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_get_user_or_group_acl_permission.yml
+    name: public获取一个用户或用户组的所有权限
+    variables:
       user: $resident_user
     validate:
       - eq:

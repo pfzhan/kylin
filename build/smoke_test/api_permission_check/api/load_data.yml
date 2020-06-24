@@ -5,8 +5,8 @@ request:
     accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   json:
-    start: ${get_data_range(start)}
-    end: ${get_data_range(end)}
+    start: ${get_data_range(start, $resident_model, $project_name)}
+    end: ${get_data_range(end, $resident_model, $project_name)}
     partition_desc:
       partition_date_column: SSB.P_LINEORDER.LO_ORDERDATE
       partition_date_format: ${get_partition_column_format($project_name)}

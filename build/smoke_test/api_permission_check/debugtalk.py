@@ -67,11 +67,12 @@ def get_project_uuid(project_name):
             return project['uuid']
 
 
-def get_data_range(tmp_str):
+def get_data_range(tmp_str, model_name, project_name):
+    date_range = get_model_latest_date(model_name, project_name)
     if tmp_str == 'start':
-        ts = int(round(time.time() * 1000))
+        ts = int(date_range['start_time'])
     else:
-        ts = int(round((time.time() + 1 * 1 * 60) * 1000))
+        ts = int(date_range['start_time']) + 86400000
 
     return ts
 
@@ -258,3 +259,14 @@ def create_agg(model_id, project_name):
     }
 
     response = requests.request("PUT", url, json=payload, headers=headers).json()
+
+
+def get_model_latest_date(model_name, project_name):
+    url = "{base_url}/models/{model_id}/data_range/latest_data".format(base_url=base_url, model_id=get_model_uuid(model_name, project_name))
+
+    params = {
+                'project': project_name,
+            }
+
+    response = requests.request("GET", url, headers=headers, params=params).json()
+    return response['data']
