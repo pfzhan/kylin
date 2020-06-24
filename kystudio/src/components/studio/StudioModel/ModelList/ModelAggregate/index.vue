@@ -495,8 +495,9 @@ export default class ModelAggregate extends Vue {
   }
   showDetail (row) {
     this.cuboidData = row
+    let idStr = (row.id !== undefined) && (row.id !== null) && (row.id !== '') ? ' [' + row.id + ']' : ''
     this.detailType = row.source.indexOf('AGG') >= 0 ? 'aggDetail' : 'tabelIndexDetail'
-    this.indexDetailTitle = row.source.indexOf('AGG') >= 0 ? this.$t('aggDetailTitle') : this.$t('tabelDetailTitle')
+    this.indexDetailTitle = row.source.indexOf('AGG') >= 0 ? this.$t('aggDetailTitle') + idStr : this.$t('tabelDetailTitle') + idStr
     this.indexDetailShow = true
   }
   async removeIndex (row) {
