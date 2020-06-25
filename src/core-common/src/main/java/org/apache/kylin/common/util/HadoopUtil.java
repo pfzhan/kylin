@@ -127,18 +127,15 @@ public class HadoopUtil {
         return getFileSystem(path);
     }
 
-    //package-private spark
-    private static FileSystem getFileSystem(String path) {
+    public static FileSystem getFileSystem(String path) {
         return getFileSystem(new Path(makeURI(path)));
     }
 
-    //package-private spark
     private static FileSystem getFileSystem(Path path) {
         Configuration conf = getCurrentConfiguration();
         return getFileSystem(path, conf);
     }
 
-    //package-private spark
     private static FileSystem getFileSystem(Path path, Configuration conf) {
         try {
             return path.getFileSystem(conf);

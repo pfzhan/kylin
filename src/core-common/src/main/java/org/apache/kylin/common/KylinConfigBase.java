@@ -1942,7 +1942,8 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getQueryHistorySchedulerInterval() {
-        return TimeUtil.timeStringAs(getOptional("kylin.query.queryhistory.scheduler-interval", "3s"), TimeUnit.SECONDS);
+        return TimeUtil.timeStringAs(getOptional("kylin.query.queryhistory.scheduler-interval", "3s"),
+                TimeUnit.SECONDS);
     }
 
     public Boolean isSparderAsync() {
@@ -2102,5 +2103,25 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Integer getGuardianSlowQueryKillFailedThreshold() {
         return getConfigItemIntValue("kylin.guardian.kill-slow-query-fail-threshold", 3, 1, 100);
+    }
+
+    public Long getLightningClusterId() {
+        return Long.parseLong(getOptional("kylin.lightning.cluster-id", "0"));
+    }
+
+    public String getLightningServerZkNode() {
+        return getOptional("kylin.lightning.server.zookeeper-node", "/kyligence_cloud/services/management");
+    }
+
+    public String getSparkLogExtractor() {
+        return getOptional("kylin.tool.spark-log-extractor", "io.kyligence.kap.tool.YarnSparkLogExtractor");
+    }
+
+    public String getMountSparkLogDir() {
+        return getOptional("kylin.tool.mount-spark-log-dir", "");
+    }
+
+    public boolean cleanDiagTmpFile() {
+        return Boolean.parseBoolean(getOptional("kylin.tool.clean-diag-tmp-file", FALSE));
     }
 }

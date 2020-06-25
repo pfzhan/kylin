@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Set;
 
 public class ConfTool {
@@ -79,7 +80,7 @@ public class ConfTool {
                     for (File binFile : binFiles) {
                         String binFileName = binFile.getName();
                         if (KYLIN_BIN_INCLUSION.contains(binFileName)) {
-                            FileUtils.copyFileToDirectory(binFile, destBinDir);
+                            Files.copy(binFile.toPath(), new File(destBinDir, binFile.getName()).toPath());
                             logger.info("copy file: {} {}", binFiles, destBinDir);
                         }
                     }

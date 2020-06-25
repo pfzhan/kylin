@@ -25,6 +25,7 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -231,7 +232,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             for (String commitSHA1File : COMMIT_SHA1_FILES) {
                 File commitFile = new File(kylinHome, commitSHA1File);
                 if (commitFile.exists()) {
-                    FileUtils.copyFileToDirectory(commitFile, exportDir);
+                    Files.copy(commitFile.toPath(), new File(exportDir, commitFile.getName()).toPath());
                 }
             }
         } catch (IOException e) {

@@ -105,6 +105,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeConf = getBooleanOption(optionsHelper, OPTION_INCLUDE_CONF, true);
         final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_META, true);
+        final boolean isCloud = getKapConfig().isCloud();
 
         logger.info("Start diagnosis job info extraction in {} threads.", threadsNum);
         executorService = Executors.newScheduledThreadPool(threadsNum);
@@ -158,7 +159,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
         });
         // extract yarn log
-        if (includeYarnLogs) {
+        if (includeYarnLogs && !isCloud) {
             Future future = executorService.submit(() -> {
                 logger.info("Start to dump yarn logs...");
                 new YarnApplicationTool().extractYarnLogs(exportDir, project, jobId);
@@ -192,8 +193,9 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         exportSparkLog(exportDir, start, recordTime, project, jobId, job);
 
         exportKgLogs(exportDir, startTime, endTime, start, recordTime);
-
-        exportMetrics(exportDir, start, recordTime, project);
+        if(!isCloud) {
+            exportMetrics(exportDir, start, recordTime, project);
+        }
 
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());

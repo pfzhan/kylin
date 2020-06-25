@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
@@ -45,6 +46,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -95,7 +97,7 @@ public class KylinLogTool {
         for (File logFile : logFiles) {
             for (String includeLog : allIncludeLogs) {
                 if (logFile.getName().startsWith(includeLog)) {
-                    FileUtils.copyFileToDirectory(logFile, destDir);
+                    Files.copy(logFile.toPath(), new File(destDir, logFile.getName()).toPath());
                 }
             }
         }
@@ -109,7 +111,7 @@ public class KylinLogTool {
                 if (logFile.getName().startsWith(includeLog)) {
                     String date = logFile.getName().split("\\.")[1];
                     if (date.compareTo(startDate) >= 0 && date.compareTo(endDate) <= 0) {
-                        FileUtils.copyFileToDirectory(logFile, destDir);
+                        Files.copy(logFile.toPath(), new File(destDir, logFile.getName()).toPath());
                     }
                 }
             }
@@ -124,7 +126,7 @@ public class KylinLogTool {
                 if (logFile.getName().startsWith(includeLog)) {
                     long time = Long.parseLong(logFile.getName().split("\\.")[3]);
                     if (time >= start && time <= end) {
-                        FileUtils.copyFileToDirectory(logFile, destDir);
+                        Files.copy(logFile.toPath(), new File(destDir, logFile.getName()).toPath());
                     }
                 }
             }
@@ -362,12 +364,12 @@ public class KylinLogTool {
      */
     public static void extractSparkLog(File exportDir, String project, String jobId) {
         File sparkLogsDir = new File(exportDir, "spark_logs");
-
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         try {
             FileUtils.forceMkdir(sparkLogsDir);
-            String hdfsPath = ToolUtil.getSparkLogsDir(project);
-            FileSystem fs = HadoopUtil.getWorkingFileSystem();
-            String jobPath = hdfsPath + "/*/" + jobId;
+            String sourceLogsPath = SparkLogExtractorFactory.create(kylinConfig).getSparkLogsDir(project, kylinConfig);
+            FileSystem fs = HadoopUtil.getFileSystem(sourceLogsPath);
+            String jobPath = sourceLogsPath + "/*/" + jobId;
             FileStatus[] fileStatuses = fs.globStatus(new Path(jobPath));
             if (null == fileStatuses || fileStatuses.length == 0) {
                 logger.error("Can not find the spark logs: {}", jobPath);
@@ -379,6 +381,10 @@ public class KylinLogTool {
                     throw new InterruptedException("spark log task is interrupt");
                 }
                 fs.copyToLocalFile(false, fileStatus.getPath(), new Path(sparkLogsDir.getAbsolutePath()), true);
+            }
+            if (kylinConfig.cleanDiagTmpFile()) {
+                logger.info("Clean tmp spark logs {}", sourceLogsPath);
+                fs.delete(new Path(sourceLogsPath), true);
             }
         } catch (Exception e) {
             logger.error("Failed to extract spark log, ", e);
@@ -401,7 +407,7 @@ public class KylinLogTool {
 
             File sparkLogsDir = new File(exportDir, "sparder_history");
             FileUtils.forceMkdir(sparkLogsDir);
-            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            FileSystem fs = HadoopUtil.getFileSystem(logDir);
             FileStatus[] fileStatuses = fs.listStatus(new Path(logDir));
             if (null == fileStatuses || fileStatuses.length == 0) {
                 logger.error("Can not find the sparder history event log: {}", logDir);
@@ -474,7 +480,7 @@ public class KylinLogTool {
 
             File jobLogsDir = new File(exportDir, "job_history");
             FileUtils.forceMkdir(jobLogsDir);
-            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            FileSystem fs = HadoopUtil.getFileSystem(logDir);
             for (AbstractExecutable task : tasks) {
                 Map<String, String> info = task.getOutput().getExtra();
                 if (info != null) {
@@ -538,7 +544,7 @@ public class KylinLogTool {
      */
     public static void extractSparderLog(File exportDir, long startTime, long endTime) {
         File sparkLogsDir = new File(exportDir, "spark_logs");
-
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         try {
             FileUtils.forceMkdir(sparkLogsDir);
             if (endTime < startTime) {
@@ -557,12 +563,16 @@ public class KylinLogTool {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("sparder log task is interrupt");
                 }
-                String hdfsPath = ToolUtil.getSparderLogsDir() + '/' + date.toString("yyyy-MM-dd");
-                FileSystem fs = HadoopUtil.getWorkingFileSystem();
-                if (fs.exists(new Path(hdfsPath))) {
-                    fs.copyToLocalFile(false, new Path(hdfsPath), new Path(sparkLogsDir.getAbsolutePath()), true);
+                String sourceLogsPath = SparkLogExtractorFactory.create(kylinConfig).getSparderLogsDir(kylinConfig)
+                        + File.separator + date.toString("yyyy-MM-dd");
+                FileSystem fs = HadoopUtil.getFileSystem(sourceLogsPath);
+                if (fs.exists(new Path(sourceLogsPath))) {
+                    fs.copyToLocalFile(false, new Path(sourceLogsPath), new Path(sparkLogsDir.getAbsolutePath()), true);
                 }
-
+                if (kylinConfig.cleanDiagTmpFile()) {
+                    fs.delete(new Path(sourceLogsPath), true);
+                    logger.info("Clean tmp spark logs {}", sourceLogsPath);
+                }
                 date = date.plusDays(1);
             }
 
@@ -584,7 +594,7 @@ public class KylinLogTool {
         }
 
         if (logFirstTime.compareTo(timeRange.getFirst()) >= 0 && lastDate.compareTo(timeRange.getSecond()) <= 0) {
-            FileUtils.copyFileToDirectory(logFile, destLogDir);
+            Files.copy(logFile.toPath(), new File(destLogDir, logFile.getName()).toPath());
         } else {
             extractLogByTimeRange(logFile, timeRange, new File(destLogDir, logFile.getName()));
         }

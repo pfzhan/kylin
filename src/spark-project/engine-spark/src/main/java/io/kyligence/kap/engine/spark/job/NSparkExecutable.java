@@ -306,6 +306,9 @@ public class NSparkExecutable extends AbstractExecutable {
         val parentId = getParentId();
         jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
         jobOverrides.put("job.project", project);
+        if (StringUtils.isNotBlank(originalConfig.getMountSparkLogDir())) {
+            jobOverrides.put("job.mountDir", originalConfig.getMountSparkLogDir());
+        }
         if (StringUtils.isNotBlank(parentId)) {
             jobOverrides.put("job.stepId", getId());
         }
@@ -323,7 +326,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-                                         String kylinJobJar, String appArgs, String jobId) {
+            String kylinJobJar, String appArgs, String jobId) {
         PatternedLogger patternedLogger;
         if (config.isJobLogPrintEnabled()) {
             patternedLogger = new PatternedLogger(logger);
@@ -341,7 +344,8 @@ public class NSparkExecutable extends AbstractExecutable {
                     Map<String, String> updateInfo = Maps.newHashMap();
                     updateInfo.put("process_id", r.getProcessId());
                     EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(jobId, this.getStatus(), updateInfo, null, null);
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(jobId,
+                                this.getStatus(), updateInfo, null, null);
                         return null;
                     }, project);
                 } catch (Exception e) {

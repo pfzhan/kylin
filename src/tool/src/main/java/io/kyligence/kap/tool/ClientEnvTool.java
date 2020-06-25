@@ -56,13 +56,16 @@ public class ClientEnvTool extends AbstractInfoExtractorTool {
         addShellOutput("top -b -n 1 | head -n 30", linuxDir, "top");
         addShellOutput("ps aux|grep kylin", linuxDir, "kylin_processes");
 
-        // dump hadoop env
-        addShellOutput("hadoop version", new File(exportDir, "hadoop"), CLI_VERSION);
-        addShellOutput("hive --version", new File(exportDir, "hive"), CLI_VERSION, false, true);
-        addShellOutput("beeline -n1 -p1 -e\"select 1\"", new File(exportDir, "hive"), "beeline_version", false, true);
+        if (!getKapConfig().isCloud()) {
+            // dump hadoop env
+            addShellOutput("hadoop version", new File(exportDir, "hadoop"), CLI_VERSION);
+            addShellOutput("hive --version", new File(exportDir, "hive"), CLI_VERSION, false, true);
+            addShellOutput("beeline -n1 -p1 -e\"select 1\"", new File(exportDir, "hive"), "beeline_version", false,
+                    true);
 
-        // include klist command output
-        addShellOutput("klist", new File(exportDir, "kerberos"), "klist", false, true);
+            // include klist command output
+            addShellOutput("klist", new File(exportDir, "kerberos"), "klist", false, true);
+        }
     }
 
     protected void extractInfoByCmd(String cmd, File destFile) {
