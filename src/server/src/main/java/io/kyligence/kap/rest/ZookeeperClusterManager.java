@@ -138,6 +138,7 @@ public class ZookeeperClusterManager implements ClusterManager {
 
     @Override
     public List<ServerInfoResponse> getServers() {
+        // please take care of this method when you want to add or remove a server mode
         return getServerByMode(ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
     }
 

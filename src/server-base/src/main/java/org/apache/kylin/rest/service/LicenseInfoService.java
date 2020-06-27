@@ -609,7 +609,7 @@ public class LicenseInfoService extends BasicService {
 
     private int getCurrentNodesNums() {
         //get current nodes
-        List<ServerInfoResponse> servers = clusterManager.getQueryServers();
+        List<ServerInfoResponse> servers = clusterManager.getServers();
         return CollectionUtils.isEmpty(servers) ? 0 : servers.size();
     }
 
