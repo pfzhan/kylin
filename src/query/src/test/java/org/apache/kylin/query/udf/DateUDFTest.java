@@ -46,77 +46,16 @@ import io.kyligence.kap.junit.TimeZoneTestRunner;
 import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
 import org.apache.kylin.query.udf.dateUdf.DatePartUDF;
 import org.apache.kylin.query.udf.dateUdf.DateDiffUDF;
-import org.apache.kylin.query.udf.dateUdf.AddMonthsUDF;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 
 @RunWith(TimeZoneTestRunner.class)
 public class DateUDFTest extends HotLoadKylinPropertiesTestCase {
-
-    /**
-     * test AddMonth on different timeZone, Meanwhile data come from different timeZone too.
-     * @throws Exception
-     */
-    @Test
-    public void testAddMonthsUDF() throws Exception {
-        AddMonthsUDF addMonthsUDF = new AddMonthsUDF();
-
-        //test normal case ADD_MONTHS(date)
-        Date beforeDateAddMonth = Date.valueOf("2011-01-31");
-        Date afterDateAddMonth = addMonthsUDF.ADD_MONTHS(beforeDateAddMonth, 2);
-        assertEquals("2011-03-31", afterDateAddMonth.toString());
-
-        //test special case ADD_MONTHS(date)
-        beforeDateAddMonth = Date.valueOf("2012-01-31");
-        afterDateAddMonth = addMonthsUDF.ADD_MONTHS(beforeDateAddMonth, 1);
-        assertEquals("2012-02-29", afterDateAddMonth.toString());
-
-        //test ADD_MONTHS(date). data come from different timeZone.  
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd Z", Locale.US);
-        beforeDateAddMonth = new Date(simpleDateFormat.parse("2011-01-31 +0900").getTime());
-        afterDateAddMonth = addMonthsUDF.ADD_MONTHS(beforeDateAddMonth, 2);
-        Date expectAfterDateAddMonth = new Date(simpleDateFormat.parse("2011-03-31 +0900").getTime());
-        assertEquals(expectAfterDateAddMonth.toString(), afterDateAddMonth.toString());
-
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd Z", Locale.US);
-        beforeDateAddMonth = new Date(simpleDateFormat.parse("2011-01-31 +0800").getTime());
-        afterDateAddMonth = addMonthsUDF.ADD_MONTHS(beforeDateAddMonth, 2);
-        expectAfterDateAddMonth = new Date(simpleDateFormat.parse("2011-03-31 +0800").getTime());
-        assertEquals(expectAfterDateAddMonth.toString(), afterDateAddMonth.toString());
-
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd Z", Locale.US);
-        beforeDateAddMonth = new Date(simpleDateFormat.parse("2011-01-31 +0700").getTime());
-        afterDateAddMonth = addMonthsUDF.ADD_MONTHS(beforeDateAddMonth, 2);
-        expectAfterDateAddMonth = new Date(simpleDateFormat.parse("2011-03-31 +0700").getTime());
-        assertEquals(expectAfterDateAddMonth.toString(), afterDateAddMonth.toString());
-
-        //test ADD_MONTHS(timestamp). data come from different timeZone
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
-        Timestamp beforeTimestampAddMonth = new Timestamp(simpleDateFormat.parse("2011-01-31 11:49:45.256+1100").getTime());
-        Timestamp expectAfterTimestampAddMonth = new Timestamp(simpleDateFormat.parse("2011-03-31 11:49:45.256+1100").getTime());
-        Timestamp afterTimestampAddMonth = addMonthsUDF.ADD_MONTHS(beforeTimestampAddMonth, 2);
-        assertEquals(expectAfterTimestampAddMonth.toString(), afterTimestampAddMonth.toString());
-
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
-        beforeTimestampAddMonth = new Timestamp(simpleDateFormat.parse("2011-01-31 11:49:45.256+0800").getTime());
-        afterTimestampAddMonth = addMonthsUDF.ADD_MONTHS(beforeTimestampAddMonth, 2);
-        expectAfterTimestampAddMonth = new Timestamp(simpleDateFormat.parse("2011-03-31 11:49:45.256+0800").getTime());
-        assertEquals(expectAfterTimestampAddMonth.toString(), afterTimestampAddMonth.toString());
-
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
-        beforeTimestampAddMonth = new Timestamp(simpleDateFormat.parse("2011-01-31 11:49:45.256+0700").getTime());
-        afterTimestampAddMonth = addMonthsUDF.ADD_MONTHS(beforeTimestampAddMonth, 2);
-        expectAfterTimestampAddMonth = new Timestamp(simpleDateFormat.parse("2011-03-31 11:49:45.256+0700").getTime());
-        assertEquals(expectAfterTimestampAddMonth.toString(), afterTimestampAddMonth.toString());
-
-    }
 
     @Test
     public void testDateDiffUDF() throws Exception {

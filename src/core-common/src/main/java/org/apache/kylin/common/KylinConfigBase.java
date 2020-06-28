@@ -1273,7 +1273,6 @@ public abstract class KylinConfigBase implements Serializable {
         udfMap.put("initcapb", "org.apache.kylin.query.udf.stringUdf.InitCapbUDF");
         udfMap.put("substr", "org.apache.kylin.query.udf.stringUdf.SubStrUDF");
         udfMap.put("left", "org.apache.kylin.query.udf.stringUdf.LeftUDF");
-        udfMap.put("add_months", "org.apache.kylin.query.udf.dateUdf.AddMonthsUDF");
         udfMap.put("date_part", "org.apache.kylin.query.udf.dateUdf.DatePartUDF");
         udfMap.put("date_trunc", "org.apache.kylin.query.udf.dateUdf.DateTruncUDF");
         udfMap.put("datediff", "org.apache.kylin.query.udf.dateUdf.DateDiffUDF");
