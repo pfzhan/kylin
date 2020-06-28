@@ -205,7 +205,7 @@ object SparderEnv extends Logging {
 
       try {
         UserGroupInformation.getLoginUser.doAs(new PrivilegedAction[Unit] {
-          override def run(): Unit = spark.catalog.listDatabases().show()
+          override def run(): Unit = spark.sql("show databases").show()
         })
       } catch {
         case throwable: Throwable =>
