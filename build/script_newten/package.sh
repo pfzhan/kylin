@@ -26,6 +26,77 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.1.4 release note
+
+**Enhancement**
+
+- Improve product usability
+  - When major editors of models that need to rebuild indexes are submitted, optimize the prompt information, and add a second confirmation operation and guidance
+  - Improve index optimization prompt information
+  - When saving model, optimize whether to add index button information
+  - Optimize startup script log information
+  - Improve the color contrast between the disabled state and the normal state of the component to facilitate the user to distinguish
+  - Optimized the display structure of the project page
+- Rest API
+  - Provide a public API for project-level authentication management
+  - Provide public API for data authentication management
+  - Provide public API for user and user group management
+- Others
+  - When there is only one ALL node, provide a switch to support selective shutdown of the multi-active feature of the construction node
+  - Decouple the checksum of the partition format and the pushdown query
+
+**Bugfix**
+
+- When logging in with integrated third-party authentication, the error message is incorrect
+- Jump from the task interface to the model page, the reset button is invalid
+- When the number of projects exceeds 100, the error message contains the "Unknown Error Code" field
+- View table sampling causes memory overflow
+- The ER diagram of the model occasionally appears after switching tabs and cannot be displayed
+- The system enters maintenance mode, modify the advanced settings of the model interface, no pop-up reminder
+- In cancel the read-only mode API,  when the user name and password are incorrect, it can be cancelled too
+- In project-level authentication managemen API, when there is no project, the error message is mixed in Chinese and English
+- In Return to user list API, the is_case_sensitive and page_offset parameter cannot take effect
+- Change the fact table, choose to save and build the index, no new build task is generated
+
+#### Kyligence Enterprise 4.1.3 release note
+
+**Enhancement**
+
+- Add support for yyyy-MM, yyyyMM  time partition format in incremental build
+- When executing the check_env.sh script, before creating the metadata table, check whether the metadata table length meets the standard
+- Improve product stability
+  - When the build task includes high base column topN measure, there is a high probability of memory overflow
+- Improve product usability
+  - In the model selection filter, the last month is changed to the last 30 days to eliminate ambiguity
+  - Before importing SQL modeling files, clearly indicate the format requirements
+  - When editing the aggregation group, confirm the popup before cancelling or page jump
+
+**Bugfix**
+
+- Computed columns in the model are used as a detailed index, query including computed columns cannot hit the model
+- In SQL modeling model recommendation, the display of recommended indexesnumber does not correct
+- The incremental build selection time range is one day, and the end time includes hours. After the build is completed, the model is broken
+- There are problems with the TopN construction data, so some queries with Limit cannot display some columns
+- When the check quota is stuck in the cloud environment, the build task cannot be scheduled
+- For query result line maximum configuration, boundary value processing error
+- For project item maximum value configuration, boundary value check error
+- Improve product stability
+  - On searching the dimension page, when you enter a space, the page keeps flashing
+  - On model optimization suggestion interface, when there are too many suggestions, the browser is stuck or even crashes
+  - When generating the diagnostic package on the interface, if diagnostic package is too large and the memory is insufficient, an error of Out of Memory is reported
+  - Zookeeper service is unstable when the job node is multi-active, resulting in inaccessible front-end pages
+  - When the build task failed, continuous retry resulted in a large number of temporary files
+  - When SQL modeling, too much SQL statements are imported at one time, the process crashes
+- Rest API
+  - In return to the model list API, the create_time in the returned information is not accurate
+  - In return to the user list, the project parameter does not take effect
+  - In return model list  and return model description information API,  last_modified time is inconsistent with metabase
+- When there are no project items, there will be two pop-ups indicating that there are no items
+- On task interface, unknown error is reported in select all operation
+- Error occurs when directly reloading the table without sampling
+- The loading status of  incremental load button is displayed incorrectly
+- The action of modifying the default database cannot be saved
+
 #### Kyligence Enterprise 4.1.2 release note
 
 **Feature**
