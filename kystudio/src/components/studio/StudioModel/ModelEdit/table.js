@@ -167,19 +167,21 @@ class NTable {
     }
   }
   changeJoinAlias (modelInstance) {
-    let joinInfo = this.joinInfo[this.guid]
-    if (joinInfo && joinInfo.table && joinInfo.join) {
-      let fguid = joinInfo.foreignTable.guid
-      let fntable = modelInstance.getTableByGuid(fguid)
-      joinInfo.join.foreign_key = joinInfo.join.foreign_key.map((x) => {
-        return this._replaceAlias(fntable.alias, x)
-      })
-      let pguid = joinInfo.table.guid
-      let pntable = modelInstance.getTableByGuid(pguid)
-      joinInfo.join.primary_key = joinInfo.join.primary_key.map((x) => {
-        return this._replaceAlias(pntable.alias, x)
-      })
-      joinInfo.table.alias = pntable.alias
+    for (let j in this.joinInfo) {
+      let joinInfo = this.joinInfo[j]
+      if (joinInfo && joinInfo.table && joinInfo.join) {
+        let fguid = joinInfo.foreignTable.guid
+        let fntable = modelInstance.getTableByGuid(fguid)
+        joinInfo.join.foreign_key = joinInfo.join.foreign_key.map((x) => {
+          return this._replaceAlias(fntable.alias, x)
+        })
+        let pguid = joinInfo.table.guid
+        let pntable = modelInstance.getTableByGuid(pguid)
+        joinInfo.join.primary_key = joinInfo.join.primary_key.map((x) => {
+          return this._replaceAlias(pntable.alias, x)
+        })
+        joinInfo.table.alias = pntable.alias
+      }
     }
   }
   // 获取符合元数据格式的模型坐标位置信息

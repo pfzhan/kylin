@@ -815,7 +815,7 @@ export default class ModelEdit extends Vue {
       }
     }, () => {
       this.delTipVisible = false
-      kapMessage(this.$t('delTableTip'), {type: 'warning'})
+      // kapMessage(this.$t('delTableTip'), {type: 'warning'})
     })
   }
   // 编辑table

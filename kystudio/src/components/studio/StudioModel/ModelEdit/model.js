@@ -215,7 +215,9 @@ class NModel {
         let alias = nameList[0]
         let columnName = nameList[1]
         let ntable = this.getTableByAlias(alias)
-        ntable.changeColumnProperty(columnName, 'isPFK', false, this)
+        if (ntable) {
+          ntable.changeColumnProperty(columnName, 'isPFK', false, this)
+        }
       })
     }
   }
@@ -226,7 +228,9 @@ class NModel {
         let alias = nameList[0]
         let columnName = nameList[1]
         let ntable = this.getTableByAlias(alias)
-        ntable.changeColumnProperty(columnName, 'isPFK', true, this)
+        if (ntable) {
+          ntable.changeColumnProperty(columnName, 'isPFK', true, this)
+        }
       })
     }
   }
@@ -611,8 +615,10 @@ class NModel {
       if (t.alias !== this.fact_table) {
         var joinInfo = t.getJoinInfo()
         if (joinInfo) {
-          let nptable = this.getTableByGuid(joinInfo.table.guid)
-          let nftable = this.getTableByGuid(joinInfo.foreignTable.guid)
+          let pid = joinInfo.table.guid
+          let fid = joinInfo.foreignTable.guid
+          let nptable = this.getTableByGuid(pid)
+          let nftable = this.getTableByGuid(fid)
           joinInfo.table.alias = nptable.alias
           joinInfo.foreignTable.alias = nftable.alias
           joinInfo.join.primary_key = joinInfo.join.primary_key.map((x) => {
@@ -621,6 +627,7 @@ class NModel {
           joinInfo.join.foreign_key = joinInfo.join.foreign_key.map((x) => {
             return x.replace(/^.*?\./, nftable.alias + '.')
           })
+          this.linkUsedColumns[pid + fid] = [...joinInfo.join.primary_key, ...joinInfo.join.foreign_key]
         }
       }
     }
@@ -628,9 +635,10 @@ class NModel {
   // 重新调整alias导致数据改变
   _changeAliasRelation () {
     // 更新join信息
-    Object.values(this.tables).forEach((t) => {
-      t.changeJoinAlias(this)
-    })
+    // 跟 _updateLinkColumnAliasInfo 重复
+    // Object.values(this.tables).forEach((t) => {
+    //   t.changeJoinAlias(this)
+    // })
     let replaceFuc = (x, key) => {
       let guid = x.table_guid
       let ntable = this.getTableByGuid(guid)
