@@ -136,6 +136,13 @@ export default {
       hasLicenseMsg: false
     }
   },
+  watch: {
+    '$store.state.system.lang' (val) {
+      if (val) {
+        this.checkLicense()
+      }
+    }
+  },
   methods: {
     ...mapActions({
       login: 'LOGIN',
