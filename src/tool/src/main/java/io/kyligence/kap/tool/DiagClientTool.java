@@ -147,7 +147,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
                 String[] auditLogToolArgs = { "-startTime", String.valueOf(startTime), "-endTime",
                         String.valueOf(endTime), OPT_DIR, auditLogDir.getAbsolutePath() };
-                new AuditLogTool().execute(auditLogToolArgs);
+                new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
             } catch (Exception e) {
                 logger.warn("Failed to extract audit log.", e);
             }

@@ -152,7 +152,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
                 String[] auditLogToolArgs = { OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR,
                         auditLogDir.getAbsolutePath() };
-                new AuditLogTool().execute(auditLogToolArgs);
+                new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
             } catch (Exception e) {
                 logger.warn("Failed to extract audit log.", e);
             }

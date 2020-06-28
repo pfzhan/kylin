@@ -83,7 +83,7 @@ public class SystemService extends BasicService {
     private Cache<String, DiagInfo> diagMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build();
     private Cache<String, DiagStatusResponse> exceptionMap = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.DAYS).build();
-    private ExecutorService executorService = Executors.newFixedThreadPool(3);
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     //used in io.kyligence.kap.tool.MetadataTool.remoteBackup , do not use aclEvalute
     public void backup(BackupRequest backupRequest) throws Exception {
