@@ -81,7 +81,7 @@ object ExceptionTerminator extends Logging {
     val proportion = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
     val maxResourceMemory = (env.clusterManager.fetchMaximumResourceAllocation.memory * proportion).toInt
     val overheadMem = Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
-    val maxMemory = maxResourceMemory - overheadMem
+    val maxMemory = (maxResourceMemory/(overheadGradient + 1)).toInt
     val maxOverheadMem = (maxMemory * overheadGradient).toInt
     val overrideConf = Maps.newHashMap[String, String]()
     if (prevMemory == maxMemory) {
@@ -96,13 +96,18 @@ object ExceptionTerminator extends Logging {
           s" $EXECUTOR_CORES=$retryCore, $EXECUTOR_MEMORY=$prevMemory.", new RuntimeException)
       }
     } else if (retryMemory > maxMemory) {
-      conf.set(EXECUTOR_MEMORY, maxMemory + "MB")
-      conf.set(EXECUTOR_OVERHEAD, maxOverheadMem + "MB")
-      logInfo(s"Retry with maximum memory, set $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)}, " +
-        s"$EXECUTOR_OVERHEAD=${conf.get(EXECUTOR_OVERHEAD)}.")
-      overrideConf.put(EXECUTOR_MEMORY, maxMemory + "MB")
-      overrideConf.put(EXECUTOR_OVERHEAD, maxOverheadMem + "MB")
-      Success(overrideConf)
+      if (maxMemory > prevMemory) {
+        conf.set(EXECUTOR_MEMORY, maxMemory + "MB")
+        conf.set(EXECUTOR_OVERHEAD, maxOverheadMem + "MB")
+        logInfo(s"Retry with maximum memory, set $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)}, " +
+          s"$EXECUTOR_OVERHEAD=${conf.get(EXECUTOR_OVERHEAD)}.")
+        overrideConf.put(EXECUTOR_MEMORY, maxMemory + "MB")
+        overrideConf.put(EXECUTOR_OVERHEAD, maxOverheadMem + "MB")
+        Success(overrideConf)
+      } else {
+        Failed(s"Memory retried is too small due to lack of resource memory." +
+          s" Retried memory $EXECUTOR_MEMORY=$maxMemory MB, prevMemory $EXECUTOR_MEMORY=$prevMemory MB", new RuntimeException)
+      }
     } else {
       conf.set(EXECUTOR_MEMORY, retryMemory + "MB")
       conf.set(EXECUTOR_OVERHEAD, retryOverhead + "MB")

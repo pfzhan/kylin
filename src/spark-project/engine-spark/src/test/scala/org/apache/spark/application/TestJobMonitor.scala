@@ -155,8 +155,8 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     }
   }
 
-  test("rest spark.executor.memory to (maxAllocation - overhead) when receive ResourceLack event and retryMemory gt " +
-    "(maxAllocation - overhead) and prevMemory le (maxAllocation - overhead)") {
+  test("rest spark.executor.memory to maxAllocation/(overheadGradient + 1) when receive ResourceLack event " +
+    "and retryMemory gt maxAllocation/(overheadGradient + 1) and prevMemory le maxAllocation/(overheadGradient + 1)") {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
@@ -177,13 +177,15 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       eventLoop.post(ResourceLack(new Exception()))
       // receive ResourceLack and RunJob
       countDownLatch.await()
-      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(overhead) + "MB")
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == (maxAllocation / (overheadGradient + 1)).toInt + "MB")
+      assert(env.sparkConf.get(EXECUTOR_OVERHEAD) == (maxAllocation / (overheadGradient + 1) * overheadGradient).toInt + "MB")
       assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
       eventLoop.unregisterListener(listener)
     }
   }
 
-  test("rest spark.executor.memory") {
+  test("rest spark.executor.memory failed when receive ResourceLack event " +
+    "and retryMemory gt maxAllocation/(overheadGradient + 1) and prevMemory gt maxAllocation/(overheadGradient + 1)") {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
       val env = KylinBuildEnv.getOrCreate(config)
@@ -194,9 +196,13 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
+      val receiveJobFailed = new AtomicBoolean(false)
       val countDownLatch = new CountDownLatch(2)
       val listener = new KylinJobListener {
         override def onReceive(event: KylinJobEvent): Unit = {
+          if (event.isInstanceOf[JobFailed]) {
+            receiveJobFailed.getAndSet(true)
+          }
           countDownLatch.countDown()
         }
       }
@@ -204,7 +210,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       eventLoop.post(ResourceLack(new Exception()))
       // receive ResourceLack and RunJob
       countDownLatch.await()
-      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(overhead) + "MB")
+      assert(receiveJobFailed.get())
       assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
       eventLoop.unregisterListener(listener)
     }
