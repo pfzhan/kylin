@@ -151,6 +151,9 @@ export default class UserEditModal extends Vue {
     password: [{
       validator: this.validate(PASSWORD), trigger: 'blur', required: true
     }],
+    oldPassword: [{
+      validator: this.validate(PASSWORD), trigger: 'blur', required: true
+    }],
     newPassword: [{
       validator: this.validate(PASSWORD), trigger: 'blur', required: true
     }],
@@ -219,7 +222,7 @@ export default class UserEditModal extends Vue {
       // 获取Form格式化后的递交数据
       const data = getSubmitData(this)
       // Base64加密密码
-      if (this.editType === 'password') {
+      if (this.editType === 'password' || this.editType === 'resetUserPassword') {
         data.new_password = Base64.encode(data.new_password)
         data.password = Base64.encode(data.password)
       }
@@ -232,7 +235,9 @@ export default class UserEditModal extends Vue {
       this.editType === 'new' && await this.saveUser(data)
       this.editType === 'edit' && await this.editRole(data)
       this.editType === 'group' && await this.addGroupToUsers(data)
-      this.editType === 'password' && await this.resetPassword(data)
+      if (this.editType === 'password' || this.editType === 'resetUserPassword') {
+        await this.resetPassword(data)
+      }
       // 成功提示
       this.$message({
         type: 'success',

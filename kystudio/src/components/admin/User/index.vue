@@ -71,7 +71,7 @@
       <el-table-column v-if="isActionShow" :label="$t('action')" :width="87">
         <template slot-scope="scope">
           <el-tooltip :content="$t('resetPassword')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser('password', scope.row)"></i>
+            <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser(scope.row.uuid === currentUser.uuid ? 'password' : 'resetUserPassword', scope.row)"></i>
           </el-tooltip><span>
           </span><el-tooltip :content="$t('groupMembership')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_group ksd-fs-14 ksd-mr-10" v-show="userActions.includes('assignGroup')" @click="editUser('group', scope.row)"></i>

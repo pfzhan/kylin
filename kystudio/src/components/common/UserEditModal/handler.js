@@ -1,6 +1,7 @@
 export const fieldVisiableMaps = {
   'new': ['username', 'password', 'confirmPassword', 'admin'],
   'password': ['username', 'oldPassword', 'newPassword', 'confirmPassword'],
+  'resetUserPassword': ['username', 'newPassword', 'confirmPassword'],
   'edit': ['username', 'admin'],
   'group': ['group']
 }
@@ -8,6 +9,7 @@ export const fieldVisiableMaps = {
 export const titleMaps = {
   'new': 'addUser',
   'password': 'resetPassword',
+  'resetUserPassword': 'resetPassword',
   'edit': 'editRole',
   'group': 'groupMembership'
 }
@@ -29,6 +31,7 @@ export function getSubmitData (that) {
         }
       }
     case 'password':
+    case 'resetUserPassword':
       return {
         username: form.username,
         password: form.oldPassword,
