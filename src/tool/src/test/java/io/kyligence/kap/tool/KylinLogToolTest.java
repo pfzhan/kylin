@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
@@ -217,9 +218,10 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
         String project = "expert_01";
         String jobId = "2e3be2a5-3d96-4797-a39f-3cfa88383efa";
-        String hdfsPath = ToolUtil.getSparkLogsDir(project);
+        String sourceLogsPath = SparkLogExtractorFactory.create(getTestConfig()).getSparkLogsDir(project,
+                getTestConfig());
 
-        String normPath = hdfsPath.startsWith("file://") ? hdfsPath.substring(7) : hdfsPath;
+        String normPath = sourceLogsPath.startsWith("file://") ? sourceLogsPath.substring(7) : sourceLogsPath;
         File sparkLogDir = new File(new File(normPath, DateTime.now().toString("yyyy-MM-dd")), jobId);
         FileUtils.forceMkdir(sparkLogDir);
 
@@ -227,8 +229,30 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.writeStringToFile(tFile, "111");
 
         KylinLogTool.extractSparkLog(mainDir, project, jobId);
+        FileUtils.deleteQuietly(new File(sourceLogsPath));
+        Assert.assertTrue(new File(mainDir, "spark_logs/" + jobId + "/a.txt").exists());
+    }
 
-        FileUtils.deleteQuietly(new File(hdfsPath));
+    @Test
+    public void testMountSparkLogExtractor() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        String project = "expert_01";
+        String jobId = "2e3be2a5-3d96-4797-a39f-3cfa88383efa";
+        File sparkLogDir = new File(new File(mainDir, "expert_01/spark_logs/" + DateTime.now().toString("yyyy-MM-dd")),
+                jobId);
+        FileUtils.forceMkdir(sparkLogDir);
+
+        File tFile = new File(sparkLogDir, "a.txt");
+        FileUtils.writeStringToFile(tFile, "111");
+        try (SetAndUnsetSystemProp extractor = new SetAndUnsetSystemProp("kylin.tool.spark-log-extractor",
+                "io.kyligence.kap.tool.MountSparkLogExtractor");
+                SetAndUnsetSystemProp diagTmpDir = new SetAndUnsetSystemProp("kylin.tool.mount-spark-log-dir",
+                        mainDir.getAbsolutePath());
+                SetAndUnsetSystemProp clearTmp = new SetAndUnsetSystemProp("kylin.tool.clean-diag-tmp-file", "true")) {
+            KylinLogTool.extractSparkLog(mainDir, project, jobId);
+        }
+        Assert.assertFalse(sparkLogDir.exists());
         Assert.assertTrue(new File(mainDir, "spark_logs/" + jobId + "/a.txt").exists());
     }
 
@@ -257,8 +281,8 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
 
-        String hdfsPath = ToolUtil.getSparderLogsDir();
-        String normPath = hdfsPath.startsWith("file://") ? hdfsPath.substring(7) : hdfsPath;
+        String sourceLogsPath = SparkLogExtractorFactory.create(getTestConfig()).getSparderLogsDir(getTestConfig());
+        String normPath = sourceLogsPath.startsWith("file://") ? sourceLogsPath.substring(7) : sourceLogsPath;
 
         String[] childDirs = { "2019-08-29/application_1563861406192_0139", "2019-08-30/application_1563861406192_0139",
                 "2019-08-31/application_1563861406192_0144" };
@@ -275,7 +299,38 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
         KylinLogTool.extractSparderLog(mainDir, startTime, endTime);
 
-        FileUtils.deleteQuietly(new File(hdfsPath));
+        FileUtils.deleteQuietly(new File(sourceLogsPath));
+
+        for (String childDir : childDirs) {
+            Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
+        }
+    }
+
+    @Test
+    public void testMountSparderLog() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        String[] childDirs = { "2019-08-29/application_1563861406192_0139", "2019-08-30/application_1563861406192_0139",
+                "2019-08-31/application_1563861406192_0144" };
+        try (SetAndUnsetSystemProp extractor = new SetAndUnsetSystemProp("kylin.tool.spark-log-extractor",
+                "io.kyligence.kap.tool.MountSparkLogExtractor");
+                SetAndUnsetSystemProp diagTmpDir = new SetAndUnsetSystemProp("kylin.tool.mount-spark-log-dir",
+                        mainDir.getAbsolutePath());
+                SetAndUnsetSystemProp clearTmp = new SetAndUnsetSystemProp("kylin.tool.clean-diag-tmp-file", "true")) {
+            File sparkLogDir = new File(mainDir, "_sparder_logs");
+            for (String childDir : childDirs) {
+                File sparderLogDir = new File(sparkLogDir, childDir);
+                FileUtils.forceMkdir(sparderLogDir);
+
+                File tFile = new File(sparderLogDir, "executor-1.log");
+                FileUtils.writeStringToFile(tFile, "111");
+            }
+
+            long startTime = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
+            long endTime = DateTime.parse("2019-08-30").withTimeAtStartOfDay().getMillis() + 3600_000L;
+
+            KylinLogTool.extractSparderLog(mainDir, startTime, endTime);
+        }
 
         for (String childDir : childDirs) {
             Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
@@ -301,8 +356,8 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.deleteQuietly(kgLog);
         FileUtils.deleteQuietly(kgLog1);
 
-        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/guardian.log"))
-                .contains("2020-06-08 05:24:22,410"));
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/guardian.log")).contains("2020-06-08 05:24:22,410"));
         Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/guardian.log.1"))
                 .contains("2020-06-08 05:25:22,838"));
         Assert.assertFalse(

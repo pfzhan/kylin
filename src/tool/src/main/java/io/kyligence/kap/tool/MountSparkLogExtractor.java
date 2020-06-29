@@ -33,21 +33,22 @@ public class MountSparkLogExtractor implements ISparkLogExtractor, IKeep {
 
     @Override
     public String getSparkLogsDir(String project, KylinConfig kylinConfig) {
-        String prefix = kylinConfig.getMountSparkLogDir();
-        if (!prefix.startsWith("file://")) {
-            prefix = "file://" + prefix;
-        }
+        String prefix = fixPrefix(kylinConfig.getMountSparkLogDir());
         final String SPARK_LOG = "spark_logs";
         return prefix + File.separator + project + File.separator + SPARK_LOG;
     }
 
     @Override
     public String getSparderLogsDir(KylinConfig kylinConfig) {
-        String prefix = kylinConfig.getMountSparkLogDir();
+        String prefix = fixPrefix(kylinConfig.getMountSparkLogDir());
+        final String SPARDER_LOG = "_sparder_logs";
+        return prefix + File.separator + SPARDER_LOG;
+    }
+
+    private String fixPrefix(String prefix) {
         if (!prefix.startsWith("file://")) {
             prefix = "file://" + prefix;
         }
-        final String SPARDER_LOG = "_sparder_logs";
-        return prefix + File.separator + SPARDER_LOG;
+        return prefix;
     }
 }
