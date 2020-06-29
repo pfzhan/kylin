@@ -178,7 +178,7 @@ export default {
     exportMetadataSuccess: '正在生成模型元数据包。生成后将开始下载，请稍后。',
     exportMetadataFailed: '导出失败，请重试。',
     importModels: '导入模型',
-    guideToAcceptRecom: '您可以点击模型左侧的提示符来接受系统根据查询历史生成的模型优化建议。',
+    guideToAcceptRecom: '您可以点击模型右侧的提示符来接受系统根据查询历史生成的模型优化建议。',
     overview: '总览',
     changeModelOwner: '变更所有者',
     change: '变更',
