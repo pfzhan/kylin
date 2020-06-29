@@ -152,7 +152,7 @@ export default class UserEditModal extends Vue {
       validator: this.validate(PASSWORD), trigger: 'blur', required: true
     }],
     oldPassword: [{
-      validator: this.validate(PASSWORD), trigger: 'blur', required: true
+      message: this.$t('kylinLang.common.passwordEmpty'), trigger: 'blur', required: true
     }],
     newPassword: [{
       validator: this.validate(PASSWORD), trigger: 'blur', required: true
