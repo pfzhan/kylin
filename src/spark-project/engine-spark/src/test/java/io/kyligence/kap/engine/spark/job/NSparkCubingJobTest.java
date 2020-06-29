@@ -586,6 +586,24 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertFalse(job2.safetyIfDiscard());
 
         Assert.assertTrue(refreshJob.safetyIfDiscard());
+
+        // drop data flow, and check suicide
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflow df2 = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NDataSegment singleSeg = dsMgr.appendSegment(df2, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        List<LayoutEntity> layouts2 = df.getIndexPlan().getAllLayouts();
+        List<LayoutEntity> round2 = new ArrayList<>();
+        round2.add(layouts2.get(0));
+
+        NSparkCubingJob job4 = NSparkCubingJob.create(Sets.newHashSet(singleSeg), Sets.newLinkedHashSet(round2),
+                "ADMIN", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
+        execMgr.addJob(job4);
+        execMgr.updateJobOutput(job4.getId(), ExecutableState.RUNNING);
+
+        dsMgr.dropDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertTrue(job4.checkSuicide());
+        Assert.assertTrue(job4.safetyIfDiscard());
     }
 
     @Test

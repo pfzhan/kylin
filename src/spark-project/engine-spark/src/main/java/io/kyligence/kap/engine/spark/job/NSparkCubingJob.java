@@ -143,7 +143,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
     @Override
     public boolean safetyIfDiscard() {
-        if (this.getStatus().isFinalState() || this.getJobType() != JobTypeEnum.INC_BUILD) {
+        if (checkSuicide() || this.getStatus().isFinalState() || this.getJobType() != JobTypeEnum.INC_BUILD) {
             return true;
         }
 
