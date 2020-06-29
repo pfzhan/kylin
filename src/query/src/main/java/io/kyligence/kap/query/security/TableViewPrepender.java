@@ -39,6 +39,7 @@ import lombok.var;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWithItem;
@@ -403,6 +404,14 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
         return tableName + "_" + RandomStringUtils.random(5, true, true);
     }
 
+    // only for test
+    public Pair<List<SqlIdentifier>, Map<String, List<SqlIdentifier>>> getTableIdentifiers(String sql) {
+        val tableIdentifierFinder = new TableIdentifierFinder(sql);
+        val allTableIdentifiers = tableIdentifierFinder.getTableIdentifiers();
+        val withClauses = tableIdentifierFinder.getWithClauses();
+        return Pair.newPair(allTableIdentifiers, withClauses);
+    }
+
     private static class TableIdentifierFinder extends SqlBasicVisitor<SqlNode> {
         private SqlNode basicNode;
         private List<SqlIdentifier> tableIdentifiers = Lists.newArrayList();
@@ -433,41 +442,68 @@ public class TableViewPrepender implements QueryUtil.IQueryTransformer, IPushDow
         @Override
         public SqlNode visit(SqlCall sqlCall) {
             if (sqlCall instanceof SqlSelect) {
-                SqlNode sqlFrom = ((SqlSelect) sqlCall).getFrom();
+                SqlSelect sqlSelect = (SqlSelect) sqlCall;
+                SqlNode sqlFrom = sqlSelect.getFrom();
                 if (sqlFrom == null)
                     return null;
 
                 switch (sqlFrom.getKind()) {
                     case AS:
-                        val sqlFromOperand = ((SqlCall) sqlFrom).operand(0);
-                        sqlFromOperand.accept(this);
+                        visitSqlFrom(sqlFrom);
                         break;
                     case JOIN:
                         val sqlJoin = (SqlJoin) sqlFrom;
-                        sqlJoin.getLeft().accept(this);
-                        sqlJoin.getRight().accept(this);
+                        visitSqlFrom(sqlJoin.getLeft());
+                        visitSqlFrom(sqlJoin.getRight());
                         break;
                     case VALUES:
                     case OVER:
                         break;
                     default:
-                        sqlFrom.accept(this);
+                        visitSqlFrom(sqlFrom);
                         break;
                 }
-                return null;
+
+                val sqlWhere = sqlSelect.getWhere();
+                if (sqlWhere != null) {
+                    sqlWhere.accept(this);
+                }
+                val sqlHaving = sqlSelect.getHaving();
+                if (sqlHaving != null) {
+                    sqlSelect.getHaving().accept(this);
+                }
+                val sqlGroup = sqlSelect.getGroup();
+                if (sqlGroup != null && !sqlGroup.getList().isEmpty()) {
+                    sqlSelect.getGroup().accept(this);
+                }
             } else if (sqlCall instanceof SqlWithItem) {
                 val sqlWithItem = (SqlWithItem) sqlCall;
                 withClauses.put(sqlWithItem.name.toString(), new TableIdentifierFinder(sqlWithItem.query).getTableIdentifiers());
-                return null;
             } else {
-                return sqlCall.getOperator().acceptCall(this, sqlCall);
+                sqlCall.getOperator().acceptCall(this, sqlCall);
             }
+
+            return null;
         }
 
-        @Override
-        public SqlNode visit(SqlIdentifier sqlIdentifier) {
-            tableIdentifiers.add(sqlIdentifier);
-            return null;
+        private void visitSqlFrom(SqlNode sqlNode) {
+            if (sqlNode instanceof SqlIdentifier) {
+                tableIdentifiers.add((SqlIdentifier) sqlNode);
+                return;
+            } else if (sqlNode instanceof SqlJoin) {
+                val sqlJoin = (SqlJoin) sqlNode;
+                visitSqlFrom(sqlJoin.getLeft());
+                visitSqlFrom(sqlJoin.getRight());
+                return;
+            } else if (sqlNode instanceof SqlCall) {
+                val sqlCall = (SqlCall) sqlNode;
+                if (sqlCall.getKind() == SqlKind.AS && sqlCall.operand(0) instanceof SqlIdentifier) {
+                    tableIdentifiers.add(sqlCall.operand(0));
+                    return;
+                }
+            }
+
+            sqlNode.accept(this);
         }
     }
 }
