@@ -76,6 +76,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
+import lombok.Getter;
 import lombok.val;
 import lombok.var;
 
@@ -117,8 +118,11 @@ public class MetadataTool extends ExecutableApplication {
 
     private ResourceStore resourceStore;
 
+    @Getter
+    private String backupPath;
+
     MetadataTool() {
-        kylinConfig = KylinConfig.newKylinConfig();
+        kylinConfig = KylinConfig.getInstanceFromEnv();
         this.options = new Options();
         initOptions();
     }
@@ -162,18 +166,16 @@ public class MetadataTool extends ExecutableApplication {
         tool.execute(new String[] { "-restore", "-dir", folder });
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         val tool = new MetadataTool(KylinConfig.getInstanceFromEnv());
-
+        val optionsHelper = new OptionsHelper();
+        optionsHelper.parseOptions(tool.getOptions(), args);
+        boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
         int retFlag = runWithCurator((isLocal, address) -> {
-            val optionsHelper = new OptionsHelper();
-            optionsHelper.parseOptions(tool.getOptions(), args);
-            boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
             if (isLocal || isBackup) {
                 tool.execute(args);
                 return 0;
             }
-
             if (!isBackup) {
                 logger.warn("Fail to restore, please stop all job nodes first");
                 return 1;
@@ -191,6 +193,9 @@ public class MetadataTool extends ExecutableApplication {
                 return 1;
             }
         });
+        if (isBackup && StringUtils.isNotEmpty(tool.getBackupPath())) {
+            System.out.println(String.format("The metadata backup path is %s.", tool.getBackupPath()));
+        }
         System.exit(retFlag);
     }
 
@@ -268,7 +273,7 @@ public class MetadataTool extends ExecutableApplication {
         if (StringUtils.isEmpty(folder)) {
             folder = LocalDateTime.now().format(DATE_TIME_FORMATTER) + "_backup";
         }
-        val backupPath = StringUtils.appendIfMissing(path, "/") + folder;
+        backupPath = StringUtils.appendIfMissing(path, "/") + folder;
         val backupMetadataUrl = getMetadataUrl(backupPath, compress);
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
         backupConfig.setMetadataUrl(backupMetadataUrl);
@@ -329,7 +334,7 @@ public class MetadataTool extends ExecutableApplication {
         }
         backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
         backupMetadataStore.dump(backupResourceStore);
-        logger.info("backup successfully at {}", path);
+        logger.info("backup successfully at {}", backupPath);
     }
 
     private Map remoteBackup(String address, String backupPath, String project, boolean compress) throws Exception {

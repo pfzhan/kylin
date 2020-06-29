@@ -26,9 +26,9 @@ function printBackupResult() {
         fi
 
         if [[ $local == 0 ]]; then
-            echo -e "${YELLOW}Backup at local disk succeed. The backup path is ${path}.${RESTORE}"
+            echo -e "${YELLOW}Backup at local disk succeed.${RESTORE}"
         else
-            echo -e "${YELLOW}Backup succeed. The backup path is ${path}.${RESTORE}"
+            echo -e "${YELLOW}Backup succeed.${RESTORE}"
         fi
     else
         echo -e "${YELLOW}Backup failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
