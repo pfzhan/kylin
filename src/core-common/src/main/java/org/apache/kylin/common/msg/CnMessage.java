@@ -1199,7 +1199,7 @@ public class CnMessage extends Message {
     }
 
     public String getQUERY_ROW_NUM_OVER_THRESHOLD() {
-        return "查询失败。查询结果行数超过最大值:{%s}。请添加过滤条件或联系管理员调整最大查询结果行数";
+        return "查询失败。查询结果行数超过最大值:{%s}。请添加过滤条件或联系管理员调整最大查询结果行数。";
     }
 
     public String getAGG_INDEX_LOST_DIMENSION() {

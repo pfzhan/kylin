@@ -42,11 +42,11 @@
 
 package org.apache.kylin.rest.service;
 
-import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
 import java.io.DataInputStream;
@@ -411,10 +411,10 @@ public class QueryService extends BasicService {
         }
         String traceUrl = getTraceUrl(scope);
 
+        SQLResponse sqlResponse = null;
         try {
             long startTime = System.currentTimeMillis();
 
-            SQLResponse sqlResponse = null;
             String userSQL = sqlRequest.getSql();
             String project = sqlRequest.getProject();
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
@@ -467,6 +467,15 @@ public class QueryService extends BasicService {
 
             return sqlResponse;
 
+        } catch (Exception e) {
+            logger.error("Query error", e);
+            if (sqlResponse != null) {
+                sqlResponse.setException(true);
+                sqlResponse.setExceptionMessage(e.getMessage());
+                return sqlResponse;
+            } else {
+                return new SQLResponse(null, null, 0, true, e.getMessage());
+            }
         } finally {
             BackdoorToggles.cleanToggles();
             if (QueryMetricsContext.isStarted()) {
@@ -1250,7 +1259,8 @@ public class QueryService extends BasicService {
                     + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine + O2N.get(TIMEOUT) + get(TIMEOUT) + newLine
                     + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA)
                     + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG) + get(ERROR_MSG)
-                    + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED) + get(PUSH_DOWN_FORCED) + newLine
+                    + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED)
+                    + get(PUSH_DOWN_FORCED) + newLine
                     + "==========================[QUERY]===============================" + newLine;
         }
 

@@ -960,8 +960,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         try {
             getTestConfig().setProperty("kylin.server.mode", "query");
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
-            thrown.expect(KylinException.class);
-            queryService.queryWithCache(request, false);
+            val queryWithCache = queryService.queryWithCache(request, false);
+            Assert.assertTrue(queryWithCache.isException());
+        } catch (Exception e) {
+            Assert.fail();
         } finally {
             NCircuitBreaker.stop();
         }
