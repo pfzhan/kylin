@@ -41,7 +41,7 @@ public class GarbageCleaner {
     }
 
     /**
-     * Clean up metadat manually
+     * Clean up metadata manually
      * Note that this is not a cluster safe method
      * and should only be used in command line tools while KE is shutdown.
      * For a safe metadata clean up,
@@ -60,6 +60,8 @@ public class GarbageCleaner {
             doCleanupMetadataManually(project, snapshotCleaner);
             return 0;
         }, project);
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+        sourceUsageManager.updateSourceUsage();
 
         NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }

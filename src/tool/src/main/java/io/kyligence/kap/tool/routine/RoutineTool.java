@@ -49,7 +49,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
 
     private static final Option OPTION_CLEANUP_METADATA = new Option("m", "metadata", false, "cleanup metadata garbage after check.");
     private static final Option OPTION_CLEANUP = new Option("c", "cleanup", false, "cleanup hdfs garbage after check.");
-    private static final Option OPTION_PROJECTS = new Option("p", "projects", true, "specify projects to clearup.");
+    private static final Option OPTION_PROJECTS = new Option("p", "projects", true, "specify projects to cleanup.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
 
     @Override
@@ -71,7 +71,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
 
         if (metadataCleanup) {
             try {
-                System.out.println("Start Cleanup MetaData");
+                System.out.println("Start to cleanup metadata");
                 List<String> projectsToCleanup = Arrays.asList(projects);
                 if (projectsToCleanup.isEmpty()) {
                     projectsToCleanup = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
@@ -84,18 +84,18 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
                         log.error("Project[{}] cleanup Metadata failed", projName, e);
                     }
                 }
-                System.out.println("Cleanup MetaData Finished");
+                System.out.println("Metadata cleanup finished");
             } catch (Exception e) {
-                log.error("cleanup Metadata failed", e);
+                log.error("Metadata cleanup failed", e);
                 System.out.println(StorageCleaner.ANSI_RED
-                        + "cleanup Metadata failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
+                        + "Metadata cleanup failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                         + StorageCleaner.ANSI_RESET);
             }
         }
 
         try {
             StorageCleaner storageCleaner = new StorageCleaner(storageCleanup, Arrays.asList(projects));
-            System.out.println("Start cleanup HDFS");
+            System.out.println("Start to cleanup HDFS");
             storageCleaner.execute();
             System.out.println("cleanup HDFS finished");
         } catch (Exception e) {
