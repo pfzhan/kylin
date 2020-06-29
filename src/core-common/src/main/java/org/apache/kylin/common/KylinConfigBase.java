@@ -2109,7 +2109,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getLightningServerZkNode() {
-        return getOptional("kylin.lightning.server.zookeeper-node", "/kyligence_cloud/services/management");
+        return getOptional("kylin.lightning.server.zookeeper-node", "/kylin/management");
     }
 
     public String getSparkLogExtractor() {
