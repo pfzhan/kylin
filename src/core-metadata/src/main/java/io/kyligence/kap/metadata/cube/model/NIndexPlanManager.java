@@ -46,6 +46,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.cuboid.NCuboidScheduler;
 import io.kyligence.kap.metadata.cube.model.validation.NIndexPlanValidator;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
@@ -212,8 +213,7 @@ public class NIndexPlanManager implements IKeepNames {
         validatePlan(indexPlan);
         indexPlan.setIndexes(indexPlan.getIndexes().stream()
                 .peek(cuboid -> cuboid.setLayouts(cuboid.getLayouts().stream()
-                        .filter(l -> l.isAuto() || IndexEntity.isTableIndex(l.getId()))
-                        .collect(Collectors.toList())))
+                        .filter(l -> l.isAuto() || IndexEntity.isTableIndex(l.getId())).collect(Collectors.toList())))
                 .filter(cuboid -> cuboid.getLayouts().size() > 0).collect(Collectors.toList()));
 
         val dataflowManager = NDataflowManager.getInstance(config, project);
@@ -267,6 +267,11 @@ public class NIndexPlanManager implements IKeepNames {
                 .map(index -> index.getMeasureBitset().or(index.getDimensionBitset())).distinct().count();
         Preconditions.checkState(tableIndexSize + aggIndexSize == allIndexes.size(),
                 "there are duplicate indexes in index_plan");
+
+        if (indexPlan.getRuleBasedIndex() != null) {
+            val scheduler = NCuboidScheduler.getInstance(indexPlan, indexPlan.getRuleBasedIndex());
+            scheduler.updateOrder();
+        }
     }
 
 }

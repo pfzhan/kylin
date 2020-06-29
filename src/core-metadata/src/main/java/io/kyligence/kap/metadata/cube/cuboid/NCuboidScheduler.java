@@ -62,7 +62,11 @@ abstract public class NCuboidScheduler implements Serializable {
     /**
      * Returns the number of all cuboids.
      */
-    abstract public int getCuboidCount();
+    public abstract int getCuboidCount();
+
+    public abstract void validateOrder();
+
+    public abstract void updateOrder();
 
     /**
      * optional

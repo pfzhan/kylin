@@ -60,4 +60,10 @@ public class CuboidBigInteger implements Serializable {
 
         return this.dimMeas.equals(that.dimMeas);
     }
+
+    @Override
+    public String toString() {
+        return dimMeas.toString();
+    }
+
 }

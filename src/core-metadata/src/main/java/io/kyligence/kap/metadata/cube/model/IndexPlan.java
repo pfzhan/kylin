@@ -205,9 +205,13 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     private void initAllCuboids() {
-        if (ruleBasedIndex != null) {
-            ruleBasedIndex.init();
-            ruleBasedLayouts.addAll(ruleBasedIndex.genCuboidLayouts());
+        if (ruleBasedIndex == null) {
+            return;
+        }
+        ruleBasedIndex.init();
+        ruleBasedLayouts.addAll(ruleBasedIndex.genCuboidLayouts());
+        if (config.base().isSystemConfig() && isCachedAndShared) {
+            ruleBasedIndex.getInitialCuboidScheduler().validateOrder();
         }
     }
 
