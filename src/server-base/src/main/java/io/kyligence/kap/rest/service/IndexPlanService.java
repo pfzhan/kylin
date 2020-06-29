@@ -46,6 +46,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -54,7 +55,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -262,7 +262,8 @@ public class IndexPlanService extends BasicService {
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(indexPlan.getUuid(), getUsername()));
+                getSourceUsageManager().licenseCheckWrap(project,
+                        () -> eventManager.postAddCuboidEvents(indexPlan.getUuid(), getUsername()));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -479,7 +480,8 @@ public class IndexPlanService extends BasicService {
         });
         if (request.isLoadData()) {
             val eventManager = getEventManager(project);
-            getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
+            getSourceUsageManager().licenseCheckWrap(project,
+                    () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
         }
     }
 
@@ -520,10 +522,10 @@ public class IndexPlanService extends BasicService {
         Preconditions.checkState(indexPlan != null);
         val model = indexPlan.getModel();
         val layouts = indexPlan.getAllLayouts();
+        Set<Long> layoutsByRunningJobs = getLayoutsByRunningJobs(project, modelId);
         if (StringUtils.isBlank(key)) {
             return sortAndFilterLayouts(layouts.stream()
-                    .map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(),
-                            getLayoutsByRunningJobs(project, modelId)))
+                    .map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(), layoutsByRunningJobs))
                     .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())),
                     orderBy, desc, sources);
         }
@@ -548,8 +550,7 @@ public class IndexPlanService extends BasicService {
             return String.valueOf(index.getId()).equals(trimmedKey)
                     || !Sets.intersection(matchDimensions, cols).isEmpty()
                     || !Sets.intersection(matchMeasures, cols).isEmpty();
-        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(),
-                getLayoutsByRunningJobs(project, modelId)))
+        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(), layoutsByRunningJobs))
                 .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())), orderBy,
                 desc, sources);
     }
