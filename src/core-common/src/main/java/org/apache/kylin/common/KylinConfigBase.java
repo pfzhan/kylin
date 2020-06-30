@@ -334,7 +334,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getDeployEnv() {
-        return getOptional("kylin.env", "DEV");
+        return getOptional("kylin.env", "PROD");
     }
 
     private String cachedHdfsWorkingDirectory;
@@ -868,7 +868,7 @@ public abstract class KylinConfigBase implements Serializable {
         //        r.put(0, "org.apache.kylin.source.hive.HiveSource");
         //        r.put(1, "org.apache.kylin.source.kafka.KafkaSource");
         //        r.put(8, "org.apache.kylin.source.jdbc.JdbcSource");
-
+        r.put(1, "io.kyligence.kap.engine.spark.source.kafka.NSparkKafkaSource");
         r.put(9, "io.kyligence.kap.engine.spark.source.NSparkDataSource");
         r.put(13, "io.kyligence.kap.source.file.FileSource");
 
@@ -1165,8 +1165,8 @@ public abstract class KylinConfigBase implements Serializable {
      */
     public List<String> getCalciteAddRule() {
         String rules = getOptional("kylin.query.calcite.add-rule");
-        if (rules == null) {
-            return Lists.newArrayList();
+        if (StringUtils.isEmpty(rules)) {
+            return Lists.newArrayList("io.kyligence.kap.query.optrule.ExtensionOlapJoinRule#INSTANCE");
         }
         return Lists.newArrayList(rules.split(","));
     }
@@ -1177,8 +1177,8 @@ public abstract class KylinConfigBase implements Serializable {
      */
     public List<String> getCalciteRemoveRule() {
         String rules = getOptional("kylin.query.calcite.remove-rule");
-        if (rules == null) {
-            return Lists.newArrayList();
+        if (StringUtils.isEmpty(rules)) {
+            return Lists.newArrayList("org.apache.kylin.query.optrule.OLAPJoinRule#INSTANCE");
         }
         return Lists.newArrayList(rules.split(","));
     }
@@ -1208,7 +1208,13 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String[] getQueryTransformers() {
-        return getOptionalStringArray("kylin.query.transformers", new String[0]);
+        String value = getOptional("kylin.query.transformers");
+        return value == null ? new String[] { "org.apache.kylin.query.util.PowerBIConverter",
+                "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
+                "io.kyligence.kap.query.util.ConvertToComputedColumn",
+                "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
+                "io.kyligence.kap.query.security.TableViewPrepender" }
+                : getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
 
     public String[] getQueryInterceptors() {
