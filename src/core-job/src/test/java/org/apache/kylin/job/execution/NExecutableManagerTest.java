@@ -34,12 +34,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -53,11 +51,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
-import org.junit.rules.TemporaryFolder;
 
 /**
  *
@@ -231,10 +233,9 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Thread.sleep(3000);
         Assert.assertEquals(duration, executable.getDuration());
 
-        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
         manager.deleteJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
-        Assert.assertTrue(!executables.contains(executable));
+        Assert.assertFalse(executables.contains(executable));
     }
 
     @Test
@@ -286,6 +287,85 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         job = manager.getJob(executable.getId());
         Assert.assertEquals(job.getStatus(), ExecutableState.READY);
         Assert.assertFalse(job.getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
+    }
+
+    @Test
+    public void testResumeRunningJobs() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        manager.resumeJob(job.getId());
+    }
+
+    @Test
+    public void testResumeReadyJobs() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.READY);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        manager.resumeJob(job.getId());
+    }
+
+    @Test
+    public void testResumeDiscardedJobs() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.DISCARDED);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        manager.resumeJob(job.getId());
+    }
+
+    @Test
+    public void testResumeErrorJobs() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.ERROR);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.ERROR);
+        manager.resumeJob(job.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+    }
+
+    @Test
+    public void testResumeSuicidalJobs() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.SUICIDAL);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        manager.resumeJob(job.getId());
+    }
+
+    @Test
+    public void testResumeSucceedJobs() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.SUCCEED);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        manager.resumeJob(job.getId());
     }
 
     @Test

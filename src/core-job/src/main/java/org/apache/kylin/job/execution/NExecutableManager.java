@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.execution;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.BufferedReader;
@@ -55,6 +56,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -445,8 +447,11 @@ public class NExecutableManager {
 
     public void resumeJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
-        if (job == null) {
+        if (Objects.isNull(job)) {
             return;
+        }
+        if (!job.getStatus().isNotProgressing()) {
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, "Only error or paused jobs could be resumed.");
         }
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();

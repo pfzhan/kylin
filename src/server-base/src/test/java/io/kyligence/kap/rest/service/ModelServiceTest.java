@@ -3915,12 +3915,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result = modelService.getCubes0(null, getProject());
         Assert.assertEquals(6, result.size());
 
-        Assert.assertFalse(result.get(0).isModelBroken());
-        Assert.assertFalse(result.get(0).isBroken());
+        boolean notBrokenModel = result.stream()
+                .filter(model -> "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94".equals(model.getUuid()))
+                .allMatch(NDataModelResponse::isModelBroken);
+        Assert.assertFalse(notBrokenModel);
 
-        Assert.assertTrue(result.get(3).isModelBroken());
-        Assert.assertTrue(result.get(3).isBroken());
-        Assert.assertEquals(1, result.get(1).getOldParams().getJoinTables().size());
+        boolean brokenModel = result.stream()
+                .filter(model -> "82fa7671-a935-45f5-8779-85703601f49a".equals(model.getUuid()))
+                .allMatch(NDataModelResponse::isModelBroken);
+        Assert.assertTrue(brokenModel);
+
+        int joinTablesSize = result.stream()
+                .filter(model -> "cb596712-3a09-46f8-aea1-988b43fe9b6c".equals(model.getUuid()))
+                .findFirst()
+                .get()
+                .getOldParams()
+                .getJoinTables()
+                .size();
+        Assert.assertEquals(1, joinTablesSize);
     }
 
     @Test

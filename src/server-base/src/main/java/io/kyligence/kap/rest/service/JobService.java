@@ -464,7 +464,7 @@ public class JobService extends BasicService {
         }
 
         updateJobStatus(job.getId(), project, action);
-        return job;
+        return getJobInstance(job.getId());
     }
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
