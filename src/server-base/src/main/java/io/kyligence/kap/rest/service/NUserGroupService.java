@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -175,6 +179,8 @@ public class NUserGroupService implements IUserGroupService {
     @Transaction
     public void modifyGroupUsers(String groupName, List<String> users) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
+        checkGroupNameExist(groupName);
+
         List<String> groupUsers = new ArrayList<>();
         for (ManagedUser user : getGroupMembersByName(groupName)) {
             groupUsers.add(user.getUsername());
@@ -225,6 +231,14 @@ public class NUserGroupService implements IUserGroupService {
             aclEvaluate.checkIsGlobalAdmin();
         } else {
             aclEvaluate.checkProjectAdminPermission(project);
+        }
+    }
+
+    private void checkGroupNameExist(String groupName) throws IOException {
+        val groups = getAllUserGroups();
+        if (!groups.contains(groupName)) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
         }
     }
 

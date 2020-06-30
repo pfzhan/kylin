@@ -325,6 +325,10 @@ public class Message {
         return "User '%s' does not exist. Please make sure the user exists.";
     }
 
+    public String getUSERGROUP_NOT_EXIST() {
+        return "Invalid values in parameter “group_name“. The value %s doesn’t exist.";
+    }
+
     // user group
     public String getEMPTY_GROUP_NAME() {
         return "User group name should not be empty.";

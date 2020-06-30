@@ -190,6 +190,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val archiveFolder = junitFolder.listFiles()[0];
         Assertions.assertThat(archiveFolder).exists();
         Assertions.assertThat(archiveFolder.list()).isNotEmpty().contains(COMPRESSED_FILE);
+        Assert.assertNotNull(tool.getBackupPath());
     }
 
     private boolean assertProjectFolder(File projectFolder, File archiveFolder) {

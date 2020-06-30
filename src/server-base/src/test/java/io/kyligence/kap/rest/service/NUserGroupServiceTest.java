@@ -28,10 +28,12 @@ import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
@@ -43,6 +45,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.user.ManagedUser;
 
 public class NUserGroupServiceTest extends ServiceTestBase {
@@ -126,5 +129,18 @@ public class NUserGroupServiceTest extends ServiceTestBase {
             users.add(u.getUsername());
         }
         return users;
+    }
+
+    @Test
+    public void testAddUserToNotExistGroup() throws Exception {
+        try {
+            userGroupService.modifyGroupUsers("UNKNOWN", Arrays.asList("ADMIN"));
+        } catch (TransactionException e) {
+            Assert.assertTrue(e.getCause().getCause() instanceof KylinException);
+            Assert.assertTrue(
+                    StringUtils.equals(e.getCause().getCause().getMessage(), "Invalid values in parameter “group_name“. The value UNKNOWN doesn’t exist."));
+        } catch (Exception e) {
+            Assert.fail();
+        }
     }
 }
