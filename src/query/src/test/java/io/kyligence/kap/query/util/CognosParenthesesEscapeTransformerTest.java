@@ -137,7 +137,8 @@ public class CognosParenthesesEscapeTransformerTest {
                 new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query05.sql.expected"),
                 Charset.defaultCharset());
         sql2 = QueryUtil.removeCommentInSql(sql2);
-        String transform2 = convertTransformer.completion(sql2);
+        String transform2 = convertTransformer.completion(sql2).replaceAll("[\n]+", "");
+        expectedSql2 = expectedSql2.replaceAll("[\n]+", "");
         Assert.assertEquals(expectedSql2, transform2);
     }
 
@@ -152,7 +153,8 @@ public class CognosParenthesesEscapeTransformerTest {
                 new File("../../src/kap-it/src/test/resources/query/sql_parentheses_escape/query06.sql.expected"),
                 Charset.defaultCharset());
         originalSql = QueryUtil.removeCommentInSql(originalSql);
-        String transformed = convertTransformer.completion(originalSql);
+        String transformed = convertTransformer.completion(originalSql).replaceAll("[\n]+", "");
+        expectedSql = expectedSql.replaceAll("[\n]+", "");
         Assert.assertEquals(expectedSql, transformed);
     }
 }

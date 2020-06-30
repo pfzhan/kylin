@@ -289,7 +289,8 @@ public class EscapeTransformerTest {
         String expectedSql = FileUtils.readFileToString(
                 new File("src/test/resources/query/cpic/big_query1.sql.expected"), Charset.defaultCharset());
 
-        String transformedSQL = transformer.transform(originSql);
+        String transformedSQL = transformer.transform(originSql).replaceAll("\n+", "");
+        expectedSql = expectedSql.replaceAll("\n+", "");
         Assert.assertEquals(expectedSql, transformedSQL);
 
     }

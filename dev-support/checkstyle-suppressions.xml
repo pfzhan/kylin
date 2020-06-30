@@ -1,10 +1,7 @@
 <?xml version="1.0"?>
-<!DOCTYPE suppressions PUBLIC
-        "-//Puppy Crawl//DTD Suppressions 1.0//EN"
-        "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
 <!--
 /**
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ * Copyright (C) 2020 Kyligence Inc. All rights reserved.
  *
  * http://kyligence.io
  *
@@ -27,6 +24,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 -->
+<!DOCTYPE suppressions PUBLIC
+        "-//Puppy Crawl//DTD Suppressions 1.0//EN"
+        "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
 <suppressions>
     <suppress checks="." files=".*[/\\]generated[/\\].*\.java"/>
     <suppress checks="." files=".*[/\\]org[/\\]apache[/\\]calcite[/\\].*\.java"/>

@@ -1,5 +1,5 @@
 --
--- Copyright (C) 2016 Kyligence Inc. All rights reserved.
+-- Copyright (C) 2020 Kyligence Inc. All rights reserved.
 --
 -- http://kyligence.io
 --
@@ -21,7 +21,6 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
--- ISSUE #7041
 select cast(null as double) NULL0,
 cast(2+2 as double) NUM4,
 YEAR(CURRENT_DATE) - 1 YEAR0,
