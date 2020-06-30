@@ -1803,10 +1803,12 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSchedulerShutdown() throws InterruptedException {
+    public void testSchedulerShutdown() throws Exception {
         System.setProperty("kylin.env", "dev");
         Assert.assertTrue(NDefaultScheduler.getInstance(project).hasStarted());
-        EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).forceUpdateEpoch(project);
+        EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        manager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        manager.forceUpdateEpoch(project);
         NDefaultScheduler.getInstance(project).fetchJobsImmediately();
         Thread.sleep(2000);
         Assert.assertFalse(NDefaultScheduler.getInstance(project).hasStarted());

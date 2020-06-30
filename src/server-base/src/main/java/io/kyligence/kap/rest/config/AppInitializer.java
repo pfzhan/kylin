@@ -49,6 +49,7 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
+import io.kyligence.kap.rest.config.initialize.MaintenanceListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.NMetricsRegistry;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
@@ -125,6 +126,7 @@ public class AppInitializer {
         }
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
+        EventListenerRegistry.getInstance(kylinConfig).register(new MaintenanceListener(), "maintenance");
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();

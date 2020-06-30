@@ -282,12 +282,14 @@ public class EpochManager implements IKeep {
         logger.info("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
         Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
         Collection<String> escapedProjects = CollectionUtils.removeAll(oriEpochs, retainPrjs);
-        for (String prj : newEpochs) {
-            schedulerEventBusFactory.post(new ProjectControlledNotifier(prj));
-        }
+        if (!getGlobalEpoch().isMaintenanceMode()) {
+            for (String prj : newEpochs) {
+                schedulerEventBusFactory.post(new ProjectControlledNotifier(prj));
+            }
 
-        for (String prj : escapedProjects) {
-            schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj));
+            for (String prj : escapedProjects) {
+                schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj));
+            }
         }
 
         if (!started) {
@@ -321,7 +323,9 @@ public class EpochManager implements IKeep {
         if (project.equals(GLOBAL)) {
             if (tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet(), false)) {
                 currentEpochs.add(project);
-                schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                if (!getGlobalEpoch().isMaintenanceMode()) {
+                    schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                }
             }
         }
         ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
@@ -330,7 +334,9 @@ public class EpochManager implements IKeep {
         }
         if (updateProjectEpoch(prj)) {
             currentEpochs.add(project);
-            schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+            if (!getGlobalEpoch().isMaintenanceMode()) {
+                schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+            }
         }
     }
 
@@ -401,7 +407,9 @@ public class EpochManager implements IKeep {
             try {
                 if (tryUpdateGlobalEpoch(Sets.newHashSet(), true)) {
                     currentEpochs.add(project);
-                    schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                    if (!getGlobalEpoch().isMaintenanceMode()) {
+                        schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                    }
                 }
             } catch (Exception e) {
                 logger.error("failed to update global epoch forcelly", e);
@@ -411,7 +419,9 @@ public class EpochManager implements IKeep {
             Preconditions.checkNotNull(prj);
             if (updateProjectEpoch(prj, true)) {
                 currentEpochs.add(project);
-                schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                if (!getGlobalEpoch().isMaintenanceMode()) {
+                    schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                }
             }
         }
     }
@@ -419,6 +429,25 @@ public class EpochManager implements IKeep {
     private void checkPrj(String project) {
         if (StringUtils.isEmpty(project)) {
             throw new IllegalStateException("Project should not be empty");
+        }
+    }
+
+    public List<ProjectInstance> getOwnedProjects() {
+        return NProjectManager.getInstance(config).listAllProjects().stream()
+                .filter(p -> p.getEpoch().getCurrentEpochOwner().equals(identity)).collect(Collectors.toList());
+    }
+
+    public void shutdownOwnedProjects() {
+        List<ProjectInstance> prjs = getOwnedProjects();
+        for (ProjectInstance prj : prjs) {
+            schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj.getName()));
+        }
+    }
+
+    public void startOwnedProjects() {
+        List<ProjectInstance> prjs = getOwnedProjects();
+        for (ProjectInstance prj : prjs) {
+            schedulerEventBusFactory.post(new ProjectControlledNotifier(prj.getName()));
         }
     }
 }

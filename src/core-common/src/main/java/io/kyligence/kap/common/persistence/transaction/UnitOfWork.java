@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.SystemErrorCode;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -159,6 +161,10 @@ public class UnitOfWork {
 
             result = Pair.newPair(ret, true);
         } catch (Throwable throwable) {
+            if (throwable instanceof KylinException
+                    && ((KylinException) throwable).getErrorCode().equals(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE.toErrorCode())) {
+                retry = params.getMaxRetry();
+            }
             if (throwable instanceof QuitTxnRightNow) {
                 retry = params.getMaxRetry();
             }

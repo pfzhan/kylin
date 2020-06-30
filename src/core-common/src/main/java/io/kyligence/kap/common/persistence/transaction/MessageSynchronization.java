@@ -40,6 +40,7 @@ public class MessageSynchronization {
     private final EventListenerRegistry eventListener;
     @Setter
     private ResourceStore.Callback<Boolean> checker;
+
     public static MessageSynchronization getInstance(KylinConfig config) {
         return config.getManager(MessageSynchronization.class);
     }
@@ -70,6 +71,7 @@ public class MessageSynchronization {
         UnitOfWork.replaying.set(true);
         messages.getMessages().forEach(event -> {
             if (event instanceof ResourceCreateOrUpdateEvent) {
+                eventListener.onBeforeUpdate((ResourceCreateOrUpdateEvent) event);
                 replayUpdate((ResourceCreateOrUpdateEvent) event);
                 eventListener.onUpdate((ResourceCreateOrUpdateEvent) event);
             } else if (event instanceof ResourceDeleteEvent) {
@@ -89,19 +91,22 @@ public class MessageSynchronization {
     private void replayUpdate(ResourceCreateOrUpdateEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         log.trace("replay update for res {}, with new version: {}", event.getResPath(),
-            event.getCreatedOrUpdated().getMvcc());
+                event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
         if (!config.isJobNode()) {
             resourceStore.deleteResource(raw.getResPath());
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
+                    raw.getMvcc());
             return;
         }
 
         if (oldRaw == null) {
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
+                    raw.getMvcc());
         } else {
-            resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(), raw.getMvcc() - 1);
+            resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
+                    raw.getMvcc() - 1);
         }
     }
 
