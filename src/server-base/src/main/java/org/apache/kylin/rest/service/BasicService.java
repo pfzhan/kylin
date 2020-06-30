@@ -82,7 +82,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
@@ -179,10 +178,6 @@ public abstract class BasicService {
 
     public FavoriteQueryManager getFavoriteQueryManager(String project) {
         return FavoriteQueryManager.getInstance(getConfig(), project);
-    }
-
-    public NFavoriteScheduler getFavoriteScheduler(String project) {
-        return NFavoriteScheduler.getInstance(project);
     }
 
     public AccelerateRatioManager getAccelerateRatioManager(String project) {

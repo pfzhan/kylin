@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -44,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -72,7 +72,10 @@ public class QueryHistoryAccelerateScheduler {
 
     private ScheduledExecutorService queryHistoryAccelerateScheduler;
     private boolean hasStarted;
+    @VisibleForTesting
     RDBMSQueryHistoryDAO queryHistoryDAO;
+    AccelerateRuleUtil accelerateRuleUtil;
+    RawRecService rawRecommendation;
     @Getter
     private String project;
     private long epochId;
@@ -81,6 +84,9 @@ public class QueryHistoryAccelerateScheduler {
 
     public QueryHistoryAccelerateScheduler(String project) {
         this.project = project;
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+        accelerateRuleUtil = new AccelerateRuleUtil();
+        rawRecommendation = new RawRecService();
         logger.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
@@ -100,15 +106,12 @@ public class QueryHistoryAccelerateScheduler {
         queryHistoryAccelerateScheduler.scheduleWithFixedDelay(new QueryHistoryAccelerateRunner(), 0,
                 KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
 
-        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
         hasStarted = true;
         logger.info("Query history accelerate scheduler is started for [{}] ", project);
     }
 
     public Future<?> scheduleImmediately() {
-        ScheduledFuture<?> future = queryHistoryAccelerateScheduler.schedule(new QueryHistoryAccelerateRunner(), 10L,
-                TimeUnit.SECONDS);
-        return future;
+        return queryHistoryAccelerateScheduler.schedule(new QueryHistoryAccelerateRunner(), 10L, TimeUnit.SECONDS);
     }
 
     public boolean hasStarted() {
@@ -142,6 +145,9 @@ public class QueryHistoryAccelerateScheduler {
 
         @Override
         public void run() {
+            if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
+                return;
+            }
             if (!KylinConfig.getInstanceFromEnv().isUTEnv()
                     && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
                 shutdownByProject(project);
@@ -189,16 +195,15 @@ public class QueryHistoryAccelerateScheduler {
                 }
             }
 
-            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId);
-
             // accelerate
-            AccelerateRuleUtil accelerateRuleUtil = new AccelerateRuleUtil();
             List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos = Lists.newArrayList();
             List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
                     queryHistoryInfos);
             updateQueryHistoryInfo(queryHistoryInfos);
-            RawRecService rawRecommendation = new RawRecService();
             rawRecommendation.generateRawRecommendations(project, matchedCandidate);
+
+            // update metadata
+            updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId);
         }
 
         private void updateQueryHistoryInfo(List<Pair<Long, QueryHistoryInfo>> queryHistoryInfos) {

@@ -24,17 +24,103 @@
 
 package io.kyligence.kap.rest.service.task;
 
+import java.util.List;
+
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
 
+import com.google.common.collect.Lists;
 
-public class QueryHistoryAccelerateSchedulerTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
+import io.kyligence.kap.metadata.query.AccelerateRatio;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.rest.service.RawRecService;
+
+@RunWith(TimeZoneTestRunner.class)
+public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestCase {
+    private static final String PROJECT = "default";
+
+    @InjectMocks
+    private QueryHistoryAccelerateScheduler qhAccelerateScheduler;
 
     @Before
     public void setUp() throws Exception {
+        createTestMetadata();
+        qhAccelerateScheduler = Mockito.spy(new QueryHistoryAccelerateScheduler(PROJECT));
     }
 
     @After
     public void tearDown() throws Exception {
+        cleanupTestMetadata();
     }
+
+    @Test
+    public void testUpdateMetadata() {
+        qhAccelerateScheduler.queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        qhAccelerateScheduler.rawRecommendation = Mockito.mock(RawRecService.class);
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.getQueryHistoriesById(Mockito.anyLong(), Mockito.anyInt(),
+                Mockito.anyString())).thenReturn(queryHistories()).thenReturn(null);
+        Mockito.when(qhAccelerateScheduler.accelerateRuleUtil.findMatchedCandidate(Mockito.anyString(),
+                Mockito.anyList(), Mockito.anyList())).thenReturn(queryHistories());
+
+        QueryHistoryAccelerateScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
+                qhAccelerateScheduler.new QueryHistoryAccelerateRunner();
+        queryHistoryAccelerateRunner.run();
+
+        // test update accelerate ratio
+        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
+        AccelerateRatio accelerateRatio = accelerateRatioManager.get();
+        Assert.assertEquals(1, accelerateRatio.getNumOfQueryHitIndex());
+        Assert.assertEquals(4, accelerateRatio.getOverallQueryNum());
+
+        // test update id offset
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
+        QueryHistoryIdOffset queryHistoryIdOffset = idOffsetManager.get();
+        Assert.assertEquals(0, queryHistoryIdOffset.getQueryHistoryIdOffset());
+    }
+
+    private List<QueryHistory> queryHistories() {
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSqlPattern("select * from sql1");
+        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory1.setDuration(1000L);
+        queryHistory1.setQueryTime(1001);
+        queryHistory1.setEngineType("CONSTANTS");
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSqlPattern("select * from sql2");
+        queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory2.setDuration(1000L);
+        queryHistory2.setQueryTime(1002);
+        queryHistory2.setEngineType("HIVE");
+
+        QueryHistory queryHistory3 = new QueryHistory();
+        queryHistory3.setSqlPattern("select * from sql3");
+        queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory3.setDuration(1000L);
+        queryHistory3.setQueryTime(1003);
+        queryHistory3.setEngineType("NATIVE");
+
+        QueryHistory queryHistory4 = new QueryHistory();
+        queryHistory4.setSqlPattern("select * from sql3");
+        queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
+        queryHistory4.setDuration(1000L);
+        queryHistory4.setQueryTime(1004);
+        queryHistory4.setEngineType("HIVE");
+
+        return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4);
+    }
+
 }

@@ -110,7 +110,6 @@ import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
-import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
@@ -567,7 +566,6 @@ public class ProjectServiceTest extends ServiceTestBase {
             projectService.dropProject(project);
             return null;
         }, project);
-        new BootstrapCommand().run();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
         Assert.assertNull(eventOrchestratorManager.getEventOrchestratorByProject(project));

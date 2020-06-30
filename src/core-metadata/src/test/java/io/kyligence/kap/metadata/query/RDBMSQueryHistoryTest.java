@@ -446,16 +446,20 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
                 .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
 
         Assert.assertEquals(1, queryHistoryList.get(2).getId());
-        Assert.assertEquals(QueryHistoryInfo.HistoryState.SUCCESS, queryHistoryList.get(2).getQueryHistoryInfo().getState());
+        Assert.assertEquals(QueryHistoryInfo.HistoryState.SUCCESS,
+                queryHistoryList.get(2).getQueryHistoryInfo().getState());
 
         Assert.assertEquals(2, queryHistoryList.get(3).getId());
-        Assert.assertEquals(QueryHistoryInfo.HistoryState.FAILED, queryHistoryList.get(3).getQueryHistoryInfo().getState());
+        Assert.assertEquals(QueryHistoryInfo.HistoryState.FAILED,
+                queryHistoryList.get(3).getQueryHistoryInfo().getState());
 
         Assert.assertEquals(3, queryHistoryList.get(0).getId());
-        Assert.assertEquals(QueryHistoryInfo.HistoryState.PENDING, queryHistoryList.get(0).getQueryHistoryInfo().getState());
+        Assert.assertEquals(QueryHistoryInfo.HistoryState.PENDING,
+                queryHistoryList.get(0).getQueryHistoryInfo().getState());
 
         Assert.assertEquals(4, queryHistoryList.get(1).getId());
-        Assert.assertEquals(QueryHistoryInfo.HistoryState.PENDING, queryHistoryList.get(1).getQueryHistoryInfo().getState());
+        Assert.assertEquals(QueryHistoryInfo.HistoryState.PENDING,
+                queryHistoryList.get(1).getQueryHistoryInfo().getState());
     }
 
     @Test
@@ -498,17 +502,18 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         getJdbcTemplate().execute(String.format(createQueryHistorSql, getQueryHistoryTableName()));
         String sql = "INSERT INTO " + getQueryHistoryTableName() + " ("
                 + Joiner.on(",").join(QueryHistory.QUERY_ID, QueryHistory.SQL_TEXT, QueryHistory.SQL_PATTERN,
-                QueryHistory.QUERY_DURATION, QueryHistory.TOTAL_SCAN_BYTES, QueryHistory.TOTAL_SCAN_COUNT,
-                QueryHistory.RESULT_ROW_COUNT, QueryHistory.SUBMITTER, QueryHistory.REALIZATIONS,
-                QueryHistory.QUERY_SERVER, QueryHistory.ERROR_TYPE, QueryHistory.ENGINE_TYPE,
-                QueryHistory.IS_CACHE_HIT, QueryHistory.QUERY_STATUS, QueryHistory.IS_INDEX_HIT,
-                QueryHistory.QUERY_TIME, QueryHistory.MONTH, QueryHistory.QUERY_FIRST_DAY_OF_MONTH,
-                QueryHistory.QUERY_FIRST_DAY_OF_WEEK, QueryHistory.QUERY_DAY, QueryHistory.IS_TABLE_INDEX_USED,
-                QueryHistory.IS_AGG_INDEX_USED, QueryHistory.IS_TABLE_SNAPSHOT_USED, QueryHistory.PROJECT_NAME,
-                QueryHistory.RESERVED_FIELD_3)
+                        QueryHistory.QUERY_DURATION, QueryHistory.TOTAL_SCAN_BYTES, QueryHistory.TOTAL_SCAN_COUNT,
+                        QueryHistory.RESULT_ROW_COUNT, QueryHistory.SUBMITTER, QueryHistory.REALIZATIONS,
+                        QueryHistory.QUERY_SERVER, QueryHistory.ERROR_TYPE, QueryHistory.ENGINE_TYPE,
+                        QueryHistory.IS_CACHE_HIT, QueryHistory.QUERY_STATUS, QueryHistory.IS_INDEX_HIT,
+                        QueryHistory.QUERY_TIME, QueryHistory.MONTH, QueryHistory.QUERY_FIRST_DAY_OF_MONTH,
+                        QueryHistory.QUERY_FIRST_DAY_OF_WEEK, QueryHistory.QUERY_DAY, QueryHistory.IS_TABLE_INDEX_USED,
+                        QueryHistory.IS_AGG_INDEX_USED, QueryHistory.IS_TABLE_SNAPSHOT_USED, QueryHistory.PROJECT_NAME,
+                        QueryHistory.RESERVED_FIELD_3)
                 + ")  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String project = "test_json";
+
         // happy pass - normal json
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 3, true);
         String recordInfo1 = JsonUtil.writeValueAsString(queryHistoryInfo);
@@ -516,18 +521,21 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
                 500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
                 TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
                 TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo1.getBytes());
+
         // happy pass - normal json
-        String recordInfo2 = "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":null,\"executionError\":true}";
+        String recordInfo2 = "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":\"PENDING\",\"executionError\":true}";
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
                 500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
                 TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
                 TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo2.getBytes());
+
         // compatible - json add new fields
-        String recordInfo3 = "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":null,\"executionError\":true,\"testFields\":12.34}";
+        String recordInfo3 = "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":\"PENDING\",\"executionError\":true,\"testFields\":12.34}";
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
                 500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
                 TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
                 TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo3.getBytes());
+
         // compatible - json delete fields
         String recordInfo4 = "{\"exactMatch\":true,\"testFields\":12.34}";
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
@@ -546,18 +554,22 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
                 10, 0, project);
 
         Assert.assertEquals(4, queryHistoryList.size());
+
         Assert.assertEquals(true, queryHistoryList.get(0).getQueryHistoryInfo().isExactlyMatch());
         Assert.assertEquals(3, queryHistoryList.get(0).getQueryHistoryInfo().getScanSegmentNum());
-        Assert.assertNull(queryHistoryList.get(0).getQueryHistoryInfo().getState());
+        Assert.assertEquals("PENDING", queryHistoryList.get(0).getQueryHistoryInfo().getState().toString());
+
         Assert.assertEquals(false, queryHistoryList.get(1).getQueryHistoryInfo().isExactlyMatch());
         Assert.assertEquals(0, queryHistoryList.get(1).getQueryHistoryInfo().getScanSegmentNum());
         Assert.assertNull(queryHistoryList.get(1).getQueryHistoryInfo().getState());
+
         Assert.assertEquals(true, queryHistoryList.get(2).getQueryHistoryInfo().isExactlyMatch());
         Assert.assertEquals(3, queryHistoryList.get(2).getQueryHistoryInfo().getScanSegmentNum());
-        Assert.assertNull(queryHistoryList.get(2).getQueryHistoryInfo().getState());
-        Assert.assertEquals(true, queryHistoryList.get(2).getQueryHistoryInfo().isExactlyMatch());
-        Assert.assertEquals(3, queryHistoryList.get(2).getQueryHistoryInfo().getScanSegmentNum());
-        Assert.assertNull(queryHistoryList.get(2).getQueryHistoryInfo().getState());
+        Assert.assertEquals("PENDING", queryHistoryList.get(2).getQueryHistoryInfo().getState().toString());
+
+        Assert.assertEquals(true, queryHistoryList.get(3).getQueryHistoryInfo().isExactlyMatch());
+        Assert.assertEquals(3, queryHistoryList.get(3).getQueryHistoryInfo().getScanSegmentNum());
+        Assert.assertEquals("PENDING", queryHistoryList.get(3).getQueryHistoryInfo().getState().toString());
     }
 
     @Test
