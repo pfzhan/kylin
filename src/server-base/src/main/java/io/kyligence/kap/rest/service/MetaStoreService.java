@@ -29,7 +29,9 @@ import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ModelMet
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.persistence.ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -192,7 +194,17 @@ public class MetaStoreService extends BasicService {
 
     public ModelMetadataCheckResponse checkModelMetadata(String targetProject, MultipartFile uploadFile)
             throws Exception {
+        return checkModelMetadata(targetProject, uploadFile, Lists.newArrayList());
+    }
+
+    public ModelMetadataCheckResponse checkModelMetadata(String targetProject, MultipartFile uploadFile, List<String> modelNames)
+            throws Exception {
         aclEvaluate.checkProjectWritePermission(targetProject);
+        // see KE-15185, only for public api
+        if (CollectionUtils.isNotEmpty(modelNames)) {
+            checkImportModelNames(uploadFile, modelNames);
+        }
+
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
         KylinConfig modelConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
         ResourceStore modelResourceStore = new InMemResourceStore(modelConfig);
@@ -204,7 +216,7 @@ public class MetaStoreService extends BasicService {
         checkModelMetadataFile(MetadataStore.createMetadataStore(modelConfig), resourcePathList);
         String srcProjectName = getModelMetadataProjectName(resourcePathList);
 
-        return getModelMetadataCheckResponse(NDataModelManager.getInstance(modelConfig, srcProjectName), targetProject);
+        return getModelMetadataCheckResponse(NDataModelManager.getInstance(modelConfig, srcProjectName), targetProject, modelNames);
     }
 
     private void checkModelMetadataFile(MetadataStore srcModelMetaStore, Set<String> rawResourceList) {
@@ -217,12 +229,21 @@ public class MetaStoreService extends BasicService {
     }
 
     private ModelMetadataCheckResponse getModelMetadataCheckResponse(NDataModelManager srcModelManager,
-            String targetProject) {
+            String targetProject, List<String> modelNames) {
         ModelMetadataCheckResponse modelMetadataCheckResponse = new ModelMetadataCheckResponse();
         List<ModelMetadataConflict> conflictList = new ArrayList<>();
         List<ModelPreviewResponse> modelPreviewResponseList = new ArrayList<>();
+        List<NDataModel> filteredModels = srcModelManager.listAllModels();
 
-        for (NDataModel srcModelDesc : srcModelManager.listAllModels()) {
+        // see KE-15185, only for public api
+        if (CollectionUtils.isNotEmpty(modelNames)) {
+            filteredModels = srcModelManager.listAllModels()
+                    .stream()
+                    .filter(model -> modelNames.contains(model.getAlias()))
+                    .collect(Collectors.toList());
+        }
+
+        for (NDataModel srcModelDesc : filteredModels) {
             ModelPreviewResponse modelPreviewResponse = getSimplifiedModelResponse(srcModelDesc);
             modelPreviewResponseList.add(modelPreviewResponse);
 
@@ -367,9 +388,47 @@ public class MetaStoreService extends BasicService {
         return anyPath.split(File.separator)[1];
     }
 
+    @Transaction(project = 0)
+    public void importModelMetadataWithModelNames(String project, MultipartFile metadataFile, List<String> importModelNames)
+            throws IOException {
+        Set<String> modelIds = convertImportModelNamesToModelIds(metadataFile, importModelNames);
+        importModelMetadata(project, metadataFile, Lists.newArrayList(modelIds));
+    }
+
+    private void checkImportModelNames(MultipartFile metadataFile, List<String> importModelNames) throws IOException {
+        if (CollectionUtils.isEmpty(importModelNames)) {
+            return;
+        }
+        Map<String, NDataModel> modelsWithName = getModelsWithNameFromFile(metadataFile);
+        Set<String> notExistsModelNames = Sets.difference(Sets.newHashSet(importModelNames), modelsWithName.keySet());
+        if (CollectionUtils.isNotEmpty(notExistsModelNames)) {
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format("The models are not exist. Models name: [%s].", StringUtils.join(notExistsModelNames, ",")));
+        }
+    }
+
+    private Map<String, NDataModel> getModelsWithNameFromFile(MultipartFile metadataFile) throws IOException {
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(metadataFile);
+        Map<String, NDataModel> modelsWithName = Maps.newHashMap();
+        for (Map.Entry<String, RawResource> entry : rawResourceMap.entrySet()) {
+            if (entry.getKey().contains(DATA_MODEL_DESC_RESOURCE_ROOT)) {
+                NDataModel dataModel = JsonUtil.readValue(entry.getValue().getByteSource().read(), NDataModel.class);
+                modelsWithName.put(dataModel.getAlias(), dataModel);
+            }
+        }
+        return modelsWithName;
+    }
+
+    private Set<String> convertImportModelNamesToModelIds(MultipartFile metadataFile, List<String> importModelNames) throws IOException {
+        Map<String, NDataModel> modelsWithName = getModelsWithNameFromFile(metadataFile);
+        return importModelNames.stream()
+                .map(modelName -> modelsWithName.get(modelName).getUuid())
+                .collect(Collectors.toSet());
+    }
+
     @Transaction(project = 0, retry = 1)
     public void importModelMetadata(String project, MultipartFile metadataFile, List<String> importModelIds)
-            throws IOException, RuntimeException {
+            throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(metadataFile);
         String srcProjectName = getModelMetadataProjectName(rawResourceMap.keySet());

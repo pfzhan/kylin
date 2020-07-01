@@ -303,6 +303,10 @@ public class CnMessage extends Message {
         return "模型 '%s' 导入失败：模型中的事实表在其他模型中已经作为维度表存在。";
     }
 
+    public String getMODEL_METADATA_CHECK_FAILED() {
+        return "压缩包中包含的模型元数据与系统已有的模型元数据存在冲突，请查看详细冲突信息，修正后重新导入。";
+    }
+
     public String getMODEL_CHANGE_PERMISSION() {
         return "仅系统管理员和项目管理员可以更改模型的所有者。";
     }

@@ -197,6 +197,27 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCheckModelMetadataWithModelNames() throws Exception {
+        File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
+        MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
+        ModelMetadataCheckResponse metadataCheckResponse = metaStoreService.checkModelMetadata("default",
+                multipartFile, Lists.newArrayList("nmodel_basic", "tablenotfoundmodel"));
+        List<ModelMetadataConflict> conflictList = metadataCheckResponse.getModelMetadataConflictList();
+        Assert.assertEquals(conflictList.size(), 3);
+        Assert.assertEquals(metadataCheckResponse.getModelPreviewResponsesList().size(), 2);
+    }
+
+    @Test
+    public void testCheckModelMetadataWithModelNamesNotExistException() throws Exception {
+        File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
+        MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("The models are not exist. Models name: [notexistmodel].");
+        metaStoreService.checkModelMetadata("default",
+                multipartFile, Lists.newArrayList("nmodel_basic", "notexistmodel"));
+    }
+
+    @Test
     public void testImportModelMetadata() throws Exception {
         String importedModelUuid = "442ce965-e7d8-4096-a9aa-bcdcd93dd187";
         File file = new File(
@@ -215,7 +236,7 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
         File file = new File(
                 "src/test/resources/ut_model_metadata/ut_model_matadata.zip");
         MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
-         thrown.expect(KylinException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model 'cc_name_existed' import failed: Computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' of this model has the same name as computed column in model 'nmodel_basic_inner'.");
         metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(duplicatedCcNameModelUuid));
 
@@ -241,6 +262,16 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
                 "the user dir exist : false\n" +
                 "the acl dir exist : false\n";
         Assert.assertEquals(messageResult, verifyResult.getResultMessage());
+    }
+
+    @Test
+    public void testImportModelMetadataWithModelNames() throws IOException {
+        String importedModelName = "warningmodel1";
+        File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
+        MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
+        metaStoreService.importModelMetadataWithModelNames("default", multipartFile, Lists.newArrayList(importedModelName));
+        NModelDescResponse modelDescResponse = modelService.getModelDesc("warningmodel1", "default");
+        Assert.assertNotNull(modelDescResponse);
     }
 
     private Map<String, RawResource> getRawResourceFromUploadFile(MultipartFile uploadFile) throws IOException {

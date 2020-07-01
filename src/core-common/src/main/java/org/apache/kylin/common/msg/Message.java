@@ -295,6 +295,10 @@ public class Message {
         return "Model '%s' import failed: the fact table in the model already exists as a dimension table in other models.";
     }
 
+    public String getMODEL_METADATA_CHECK_FAILED() {
+        return "The model metadata contained in the compressed package conflicts with the existing model metadata of the system. Please check the detailed conflict information and import again after correction.";
+    }
+
     public String getMODEL_CHANGE_PERMISSION() {
         return "Only the system administrator or the project administrator can change the owner of the model.";
     }

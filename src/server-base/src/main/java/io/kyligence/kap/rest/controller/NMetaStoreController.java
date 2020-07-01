@@ -148,6 +148,5 @@ public class NMetaStoreController extends NBasicController {
         if (!ZipFileUtil.validateZipFilename(uploadFile.getOriginalFilename())) {
             throw new KylinException(FILE_FORMAT_ERROR, "upload file must end with .zip");
         }
-
     }
 }
