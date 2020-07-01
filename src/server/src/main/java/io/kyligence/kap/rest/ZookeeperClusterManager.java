@@ -51,7 +51,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -100,14 +99,12 @@ public class ZookeeperClusterManager implements ClusterManager {
         checkServerMode(serverMode);
         val list = submitWithTimeOut(() -> discoveryClient.getInstances(serverMode), 3);
         if (CollectionUtils.isEmpty(list)) {
+            log.warn("Failed to get servers info from zk");
             return Lists.newArrayList();
+        } else {
+            return list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
+                    .collect(Collectors.toList());
         }
-        List<String> hosts = list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
-                .collect(Collectors.toList());
-        if (!Objects.equals(serverMode, ClusterConstant.QUERY)) {
-            mergeJobNodeWithEpoch(hosts, serverMode);
-        }
-        return hosts;
     }
 
     private void checkServerMode(String serverMode) {
