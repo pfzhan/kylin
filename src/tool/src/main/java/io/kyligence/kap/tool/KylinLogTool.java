@@ -57,7 +57,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.query.util.SparderAppUtil;
 import io.kyligence.kap.tool.util.ToolUtil;
+import lombok.val;
+import scala.collection.JavaConversions;
 
 public class KylinLogTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -72,8 +75,6 @@ public class KylinLogTool {
     private static final String LOG_PATTERN = "([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3}) ([^ ]*)[ ]+\\[(.*)\\] ([^: ]*) :([\\n\\r. ]*)";
 
     private static final int EXTRA_LINES = 100;
-
-    private static final String ROLL_LOG_DIR_NAME_PREFIX = "eventlog_v2_";
 
     private static final String ROLL_LOG_FILE_NAME_PREFIX = "events";
 
@@ -396,45 +397,23 @@ public class KylinLogTool {
      * otherwise it always increases.
      */
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
-            Map<String, String> sparderConf, String appId) {
-        try {
-            if (StringUtils.isBlank(appId)) {
-                logger.warn("Failed to extract sparder eventLog because sparder Appid is empty.");
-                return;
-            }
-            String logDir = sparderConf.get("spark.eventLog.dir");
-            boolean rollEnabled = Boolean.parseBoolean(sparderConf.get("spark.eventLog.rolling.enabled").trim());
-
-            File sparkLogsDir = new File(exportDir, "sparder_history");
-            FileUtils.forceMkdir(sparkLogsDir);
-            FileSystem fs = HadoopUtil.getFileSystem(logDir);
-            FileStatus[] fileStatuses = fs.listStatus(new Path(logDir));
-            if (null == fileStatuses || fileStatuses.length == 0) {
-                logger.error("Can not find the sparder history event log: {}", logDir);
-                return;
-            }
-
-            if (!rollEnabled) {
-                for (FileStatus fileStatus : fileStatuses) {
-                    if (fileStatus.getPath().getName().contains(appId)) {
-                        fs.copyToLocalFile(false, fileStatus.getPath(), new Path(sparkLogsDir.getAbsolutePath()), true);
+                                              Map<String, String> sparderConf) {
+        val sparkLogsDir = new File(exportDir, "sparder_history");
+        val fs = HadoopUtil.getFileSystem(SparderAppUtil.getSparderEvenLogDir());
+        val validApps = SparderAppUtil.getValidSparderApps(startTime, endTime);
+        JavaConversions.asJavaCollection(validApps)
+                .forEach(app -> {
+                    try {
+                        if (!sparkLogsDir.exists()) {
+                            FileUtils.forceMkdir(sparkLogsDir);
+                        }
+                        String fileAppId = app.getPath().getName().split("#")[0].replace(SparderAppUtil.ROLL_LOG_DIR_NAME_PREFIX(), "");
+                        File localFile = new File(sparkLogsDir, fileAppId);
+                        copyValidLog(fileAppId, startTime, endTime, app, fs, localFile);
+                    } catch (IOException e) {
+                        logger.error("Failed to extract sparder eventLog.", e);
                     }
-                }
-                return;
-            }
-
-            for (FileStatus fileStatus : fileStatuses) {
-                String fileAppId = fileStatus.getPath().getName().replace(ROLL_LOG_DIR_NAME_PREFIX, "");
-                File localFile = new File(sparkLogsDir, fileAppId);
-                if (appId.equals(fileAppId)) {
-                    copyValidLog(appId, startTime, endTime, fileStatus, fs, localFile);
-                    break;
-                }
-            }
-
-        } catch (Exception e) {
-            logger.error("Failed to extract spark log,please check if set spark.eventLog.rolling.enabled=true ", e);
-        }
+                });
     }
 
     private static void copyValidLog(String appId, long startTime, long endTime, FileStatus fileStatus, FileSystem fs,

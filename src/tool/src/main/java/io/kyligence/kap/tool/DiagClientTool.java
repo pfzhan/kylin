@@ -24,17 +24,26 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.spark.sql.SparderEnv;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.query.util.SparderAppUtil;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 
 public class DiagClientTool extends AbstractInfoExtractorTool {
@@ -205,8 +214,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         // sparder history rolling eventlog
         executorService.execute(() -> {
             logger.info("Start to extract sparder history logs.");
-            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
-                    getSparderAppId());
+            waitForSparderRollUp();
+            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf());
             DiagnosticFilesChecker.writeMsgToFile("SPARDER_HISTORY", System.currentTimeMillis() - start, recordTime);
         });
     }
@@ -274,5 +283,35 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
     public long getDefaultEndTime() {
         return DateTime.now().plusDays(1).minus(1).withTimeAtStartOfDay().getMillis();
+    }
+
+    private void waitForSparderRollUp() {
+        if(!getKapConfig().isCloud()){
+            return;
+        }
+        String check = SparderEnv.rollUpEventLog();
+        if (StringUtils.isBlank(check)) {
+            return;
+        }
+        String logDir = SparderAppUtil.getSparderEvenLogDir();
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        FileSystem fs = HadoopUtil.getFileSystem(logDir);
+        try {
+            Future<Boolean> task = es.submit(() -> {
+                while (true) {
+                    if (fs.exists(new Path(logDir, check))) {
+                        return true;
+                    }
+                    Thread.sleep(1000);
+                }
+            });
+            if (task.get(10, TimeUnit.SECONDS)) {
+                fs.delete(new Path(logDir, check), false);
+            }
+        } catch (Exception e) {
+            logger.warn("Sparder eventLog rollUp failed.", e);
+        } finally {
+            es.shutdown();
+        }
     }
 }

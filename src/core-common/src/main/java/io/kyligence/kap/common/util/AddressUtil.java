@@ -55,4 +55,15 @@ public class AddressUtil implements IKeep {
         }
         return hostArr;
     }
+
+    public static String getLocalServerInfo() {
+        String hostName = "localhost";
+        try {
+            hostName = InetAddress.getLocalHost().getHostName();
+        }catch (UnknownHostException e){
+            log.warn("use the InetAddress get host name failed!", e);
+        }
+        String host = hostName + "_" + KylinConfig.getInstanceFromEnv().getServerPort();
+        return host.replaceAll("[^(_a-zA-Z0-9)]", "");
+    }
 }

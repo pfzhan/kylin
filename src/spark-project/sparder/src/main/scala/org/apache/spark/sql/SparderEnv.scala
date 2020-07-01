@@ -33,7 +33,7 @@ import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
-import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
+import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
 import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
@@ -67,6 +67,15 @@ object SparderEnv extends Logging {
       initSpark()
     }
     spark
+  }
+
+  def rollUpEventLog(): String = {
+    if (spark != null && !spark.sparkContext.isStopped) {
+      val check ="CHECK_ROLLUP_" + System.currentTimeMillis()
+      spark.sparkContext.listenerBus.post(SparkListenerLogRollUp(check))
+      return check
+    }
+    ""
   }
 
   def setSparkSession(sparkSession: SparkSession): Unit = {

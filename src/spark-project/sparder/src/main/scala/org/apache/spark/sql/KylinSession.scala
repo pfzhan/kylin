@@ -27,8 +27,10 @@ import java.net.URI
 import java.nio.file.Paths
 import java.sql.SQLException
 
+import io.kyligence.kap.common.util.AddressUtil
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
+import io.kyligence.kap.query.util.SparderAppUtil
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.util.HadoopUtil
@@ -262,8 +264,10 @@ object KylinSession extends Logging {
       }
 
       val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", false)
-      val logDir = sparkConf.get("spark.eventLog.dir", "")
+      var logDir = sparkConf.get("spark.eventLog.dir", "")
       if (eventLogEnabled && !logDir.isEmpty) {
+        logDir = SparderAppUtil.getSparderEvenLogDir
+        sparkConf.set("spark.eventLog.dir", logDir)
         val logPath = new Path(new URI(logDir).getPath)
         val fs = HadoopUtil.getWorkingFileSystem()
         if (!fs.exists(logPath)) {
