@@ -33,7 +33,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +40,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import lombok.val;
 
 abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
@@ -88,65 +84,6 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
      * createJob is wrapped by UnitOfWork
      */
     protected abstract AbstractExecutable createJob(Event event, String project);
-
-    protected void handleFavoriteQuery(EventContext eventContext) {
-        val project = eventContext.getProject();
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val fqManager = FavoriteQueryManager.getInstance(kylinConfig, project);
-
-        for (val fq : fqManager.getAll()) {
-            int finishedCount = 0;
-
-            for (val fqr : fq.getRealizations()) {
-                String fqrModelId = fqr.getModelId();
-                long layoutId = fqr.getLayoutId();
-                val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(fqrModelId);
-                if (df == null || df.checkBrokenWithRelatedInfo()) {
-                    logger.info("Model {} is broken or deleted", fqrModelId);
-                    fqManager.rollBackToInitialStatus(fq.getSqlPattern(), SUBJECT_NOT_EXIST_COMMENT);
-                    break;
-                }
-
-                val readySegs = df.getSegments(SegmentStatusEnum.READY);
-                if (readySegs.isEmpty()) {
-                    logger.info("no ready segment exists in target index plan {}", fqrModelId);
-                    break;
-                }
-
-                if (df.getIndexPlan().getCuboidLayout(layoutId) == null) {
-                    logger.info(
-                            "Layout {} does not exist in target index plan {}, gonna put Favorite Query {} status back to TO-BE-ACCELERATED",
-                            layoutId, fqrModelId, fq.getId());
-                    fqManager.rollBackToInitialStatus(fq.getSqlPattern(), "Layout does not exist");
-                    break;
-                }
-
-                val lastReadySeg = readySegs.getLatestReadySegment();
-                val dataLayout = lastReadySeg.getLayout(layoutId);
-
-                finishedCount += dataLayout == null ? 0 : 1;
-            }
-
-            if (finishedCount > 0 && finishedCount == fq.getRealizations().size()
-                    && fq.getStatus() != FavoriteQueryStatusEnum.ACCELERATED)
-                fqManager.updateStatus(fq.getSqlPattern(), FavoriteQueryStatusEnum.ACCELERATED, null);
-        }
-    }
-
-    protected void rollFQBackToInitialStatus(EventContext eventContext, String comment) {
-        val project = eventContext.getProject();
-        val model = eventContext.getEvent().getModelId();
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val fqManager = FavoriteQueryManager.getInstance(kylinConfig, project);
-
-        for (val fq : fqManager.getAll()) {
-            if (!fq.getStatus().equals(FavoriteQueryStatusEnum.ACCELERATING))
-                continue;
-
-            if (fq.getRealizations().stream().anyMatch(fqr -> fqr.getModelId().equals(model)))
-                fqManager.rollBackToInitialStatus(fq.getSqlPattern(), comment);
-        }
-    }
 
     protected void doHandleWithNullJob(EventContext eventContext) {
 

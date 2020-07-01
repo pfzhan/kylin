@@ -93,14 +93,12 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
         String project = eventContext.getProject();
 
         if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
-            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
             finishEvent(project, event.getId());
             return;
         }
 
         makeSegmentReady(project, event);
 
-        handleFavoriteQuery(eventContext);
         finishEvent(project, event.getId());
     }
 

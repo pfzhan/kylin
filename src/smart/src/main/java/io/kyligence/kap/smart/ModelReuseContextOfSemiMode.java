@@ -37,8 +37,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
@@ -159,17 +157,10 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
                 .getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         try {
             long layoutItemId = pair.getSecond();
-            boolean isQueryHistory = getAccelerateInfoMap().entrySet().stream().noneMatch(entry -> {
-                String sql = entry.getKey();
-                FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-                return favoriteQueryManager.get(sql) == null
-                        || favoriteQueryManager.get(sql).getChannel().equals(FavoriteQuery.CHANNEL_FROM_IMPORTED);
-            });
+
             optRecMgr.updateOptimizeRecommendation(model.getId(), recommendation -> {
                 recommendation.getLayoutRecommendations().stream().filter(item -> item.getItemId() >= layoutItemId)
-                        .forEach(item -> item.setSource(isQueryHistory ? LayoutRecommendationItem.QUERY_HISTORY
-                                : LayoutRecommendationItem.IMPORTED));
+                        .forEach(item -> item.setSource(LayoutRecommendationItem.QUERY_HISTORY));
             });
             optRecMgr.logOptimizeRecommendation(model.getId(), pair.getFirst());
         } catch (Exception e) {

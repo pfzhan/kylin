@@ -300,9 +300,6 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
         // data loading
         results.addAll(updateDataLoadingRange(originProjectName, destProjectName));
 
-        //favorite query
-        results.addAll(updateFavoriteQuery(originProjectName, destProjectName));
-
         // query_history_time_offset
         results.addAll(updateQueryHistoryTimeOffset(originProjectName, destProjectName));
 

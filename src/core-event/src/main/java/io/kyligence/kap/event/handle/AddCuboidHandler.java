@@ -96,15 +96,7 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
     }
 
     protected void doHandleWithNullJob(EventContext eventContext) {
-        AddCuboidEvent event = (AddCuboidEvent) eventContext.getEvent();
-        String project = eventContext.getProject();
-
-        if (!checkSubjectExists(project, event.getModelId(), null, event)) {
-            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
-            return;
-        }
-
-        handleFavoriteQuery(eventContext);
+        // delete fq
     }
 
 }

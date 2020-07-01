@@ -61,7 +61,6 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
         val executable = getExecutable();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
         if (!checkSubjectExists(project, modelId, null)) {
-            rollFQBackToInitialStatus(SUBJECT_NOT_EXIST_COMMENT);
             return;
         }
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -84,8 +83,6 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
                         copyForWrite -> copyForWrite.removeLayouts(toBeDeletedLayoutIds, true, true));
             }
         });
-
-        handleFavoriteQuery();
     }
 
     @Override

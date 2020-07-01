@@ -69,13 +69,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.service.KapQueryService;
-import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -157,13 +155,6 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
         queryService.doQueryWithCache(request, false);
 
         countDown.await(1000, TimeUnit.MILLISECONDS);
-
-
-        NFavoriteScheduler favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
-        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
-        Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
-                Mockito.anyLong(), Mockito.anyString());
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
     }
 
 }

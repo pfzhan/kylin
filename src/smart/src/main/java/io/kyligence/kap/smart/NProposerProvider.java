@@ -67,10 +67,6 @@ public class NProposerProvider {
         return new NModelShrinkProposer(proposeContext);
     }
 
-    public NAbstractProposer getIndexPlanRefreshProposer() {
-        return new NIndexPlanRefreshProposer(proposeContext);
-    }
-
     public NAbstractProposer getModelRenameProposer() {
         return new NModelRenameProposer(proposeContext);
     }

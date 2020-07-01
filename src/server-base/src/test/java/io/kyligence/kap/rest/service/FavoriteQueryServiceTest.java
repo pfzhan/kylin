@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -60,7 +59,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -127,11 +125,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(favoriteQueryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
-        for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
-            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(projectInstance.getName());
-            favoriteScheduler.init();
-            Assert.assertTrue(favoriteScheduler.hasStarted());
-        }
     }
 
     @After

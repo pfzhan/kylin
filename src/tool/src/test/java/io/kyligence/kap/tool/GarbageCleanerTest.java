@@ -270,7 +270,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testcleanupMetadataManually_ChangeConfig() {
+    public void testCleanupMetadataManually_ChangeConfig() {
         long currentTime = System.currentTimeMillis();
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
@@ -302,7 +302,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         GarbageCleaner.cleanupMetadataManually(PROJECT);
         //only fq1 cleaned
-        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
 
         overrideKylinProps.put("kylin.cube.low-frequency-threshold", "9");
         overrideKylinProps.put("kylin.cube.frequency-time-window", "7");
@@ -319,9 +318,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
                 .size();
         Assert.assertEquals(2, remainSize);
 
-        //only newFq remain
-        Assert.assertEquals(1, favoriteQueryManager.getAll().size());
-
         overrideKylinProps.put("kylin.cube.low-frequency-threshold", "30");
         overrideKylinProps.put("kylin.cube.frequency-time-window", "30");
         prjManager.updateProject(PROJECT, copyForWrite -> {
@@ -330,11 +326,11 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         GarbageCleaner.cleanupMetadataManually(PROJECT);
         //all fqs cleaned
-        Assert.assertEquals(0, favoriteQueryManager.getAll().size());
+        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
     }
 
     @Test
-    public void testcleanupMetadataManually() {
+    public void testCleanupMetadataManually() {
         /**
          * clean up a project that has broken models
          */
@@ -383,9 +379,9 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 30001));
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
 
-        Assert.assertEquals(2, favoriteQueryManager.getAll().size());
+        Assert.assertEquals(3, favoriteQueryManager.getAll().size());
         val sqls = favoriteQueryManager.getAll().stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toSet());
-        Assert.assertFalse(sqls.contains("sql1"));
+        Assert.assertTrue(sqls.contains("sql1"));
         Assert.assertTrue(sqls.contains("sql2"));
         Assert.assertTrue(sqls.contains("sql3"));
     }

@@ -57,8 +57,4 @@ public class NIndexMaster {
     public IndexPlan reduceCuboids(final IndexPlan indexPlan) {
         return proposerProvider.getCuboidReducer().execute(indexPlan);
     }
-
-    public IndexPlan refreshCuboids(final IndexPlan indexPlan) {
-        return proposerProvider.getCuboidRefresher().execute(indexPlan);
-    }
 }

@@ -26,13 +26,10 @@ package io.kyligence.kap.rest.service.task;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
@@ -41,11 +38,9 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Data;
@@ -67,7 +62,7 @@ public class UpdateUsageStatisticsRunner implements Runnable {
     public void run() {
         long startTime = System.currentTimeMillis();
         try {
-            updateFavoriteStatistics();
+            updateQueryHistoryStatistics();
             log.info("update favorite stats runner takes {}ms", System.currentTimeMillis() - startTime);
         } catch (Exception ex) {
             NMetricsGroup.counterInc(NMetricsName.FQ_FAILED_UPDATE_USAGE, NMetricsCategory.PROJECT, project);
@@ -79,7 +74,7 @@ public class UpdateUsageStatisticsRunner implements Runnable {
         }
     }
 
-    private void updateFavoriteStatistics() {
+    private void updateQueryHistoryStatistics() {
         QueryHistoryTimeOffset timeOffset = QueryHistoryTimeOffsetManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
         long startTime = timeOffset.getFavoriteQueryUpdateTimeOffset();
@@ -108,20 +103,10 @@ public class UpdateUsageStatisticsRunner implements Runnable {
     }
 
     private void updateRelatedMetadata(List<QueryHistory> queryHistories, long scannedOffset) {
-        Map<String, FavoriteQuery> favoritesAboutToUpdate = Maps.newHashMap();
         Map<String, Long> modelsLastQueryTime = Maps.newHashMap();
-        ProjectInstance instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
         val dfHitCountMap = collectDataflowHitCount(queryHistories);
         for (QueryHistory queryHistory : queryHistories) {
-            if (!instance.isExpertMode()) {
-                updateFavoriteQuery(queryHistory, favoritesAboutToUpdate);
-            }
             setLastQueryTime(queryHistory, modelsLastQueryTime);
-        }
-
-        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
-        for (Map.Entry<String, FavoriteQuery> favoritesInProj : favoritesAboutToUpdate.entrySet()) {
-            favoriteQueries.add(favoritesInProj.getValue());
         }
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -130,8 +115,6 @@ public class UpdateUsageStatisticsRunner implements Runnable {
             incQueryHitCount(dfHitCountMap);
             // update model last query time
             updateLastQueryTime(modelsLastQueryTime);
-            // update favorite query statistics
-            FavoriteQueryManager.getInstance(config, project).updateStatistics(favoriteQueries);
             QueryHistoryTimeOffset timeOffset = QueryHistoryTimeOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
             timeOffset.setFavoriteQueryUpdateTimeOffset(scannedOffset);
@@ -172,21 +155,6 @@ public class UpdateUsageStatisticsRunner implements Runnable {
                 }
             });
         }
-    }
-
-    private void updateFavoriteQuery(QueryHistory queryHistory, Map<String, FavoriteQuery> favoritesAboutToUpdate) {
-        String sqlPattern = queryHistory.getSqlPattern();
-
-        if (!FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern))
-            return;
-
-        FavoriteQuery favoriteQuery = favoritesAboutToUpdate.get(sqlPattern);
-        if (favoriteQuery == null) {
-            favoriteQuery = new FavoriteQuery(sqlPattern);
-        }
-
-        favoriteQuery.incStats(queryHistory);
-        favoritesAboutToUpdate.put(sqlPattern, favoriteQuery);
     }
 
     private Map<String, DataflowHitCount> collectDataflowHitCount(List<QueryHistory> queryHistories) {

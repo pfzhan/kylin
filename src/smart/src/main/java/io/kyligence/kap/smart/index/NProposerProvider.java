@@ -45,8 +45,4 @@ public class NProposerProvider {
     NAbstractIndexProposer getCuboidReducer() {
         return new NIndexReducer(context);
     }
-
-    NAbstractIndexProposer getCuboidRefresher() {
-        return new NIndexRefresher(context);
-    }
 }

@@ -61,7 +61,6 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         val jobId = executable.getId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
         if (!checkSubjectExists(project, getModelId(), getSegmentId())) {
-            rollFQBackToInitialStatus(SUBJECT_NOT_EXIST_COMMENT);
             return;
         }
         val buildTask = executable.getTask(NSparkCubingStep.class);
@@ -76,7 +75,6 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         handleRetention(project, getModelId());
         //TODO: take care of this
         autoMergeSegments(project, getModelId(), getOwner());
-        handleFavoriteQuery();
     }
 
     @Override

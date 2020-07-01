@@ -23,17 +23,31 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
+import static java.util.stream.Collectors.toSet;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.util.SpringContext;
+
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -44,25 +58,9 @@ import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.util.SpringContext;
-
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
-import java.util.List;
-import java.util.Set;
-
-import static java.util.stream.Collectors.toSet;
 
 public class NMetricsRegistry {
     private static final String GLOBAL = "global";
-
 
     protected static void registerGlobalMetrics(KylinConfig config) {
 
@@ -123,35 +121,6 @@ public class NMetricsRegistry {
 
     }
 
-    static void registerFavoriteQueryMetrics(KylinConfig config, String project) {
-        final FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.FQ_TO_BE_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0
-                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.TO_BE_ACCELERATED).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATED, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0
-                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATED).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_FAILED, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0
-                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.FAILED).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_ACCELERATING, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0
-                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.ACCELERATING).count();
-        });
-        NMetricsGroup.newGauge(NMetricsName.FQ_PENDING, NMetricsCategory.PROJECT, project, () -> {
-            final List<FavoriteQuery> list = favoriteQueryManager.getAll();
-            return list == null ? 0
-                    : list.stream().filter(fq -> fq.getStatus() == FavoriteQueryStatusEnum.PENDING).count();
-        });
-    }
-
     static void registerJobMetrics(KylinConfig config, String project) {
         final NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.JOB_ERROR_GAUGE, NMetricsCategory.PROJECT, project, () -> {
@@ -208,8 +177,6 @@ public class NMetricsRegistry {
 
         registerJobMetrics(config, project);
 
-        registerFavoriteQueryMetrics(config, project);
-
         final FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.FQ_BLACKLIST, NMetricsCategory.PROJECT, project, () -> {
             final Set<String> list = favoriteRuleManager.getBlacklistSqls();
@@ -229,11 +196,9 @@ public class NMetricsRegistry {
         registerModelMetrics(config, project);
     }
 
-     static void registerModelMetrics(KylinConfig config, String project) {
+    static void registerModelMetrics(KylinConfig config, String project) {
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
-        modelManager.listAllModels().forEach(model ->
-                registerModelMetrics(project, model.getId(), model.getAlias())
-        );
+        modelManager.listAllModels().forEach(model -> registerModelMetrics(project, model.getId(), model.getAlias()));
     }
 
     static void registerModelMetrics(String project, String modelId, String modelAlias) {

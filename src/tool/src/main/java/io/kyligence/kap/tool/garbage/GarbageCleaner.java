@@ -24,15 +24,15 @@
 
 package io.kyligence.kap.tool.garbage;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 
 public class GarbageCleaner {
@@ -89,13 +89,11 @@ public class GarbageCleaner {
         }
 
         if (!instance.isExpertMode()) {
-            new FavoriteQueryCleaner().cleanup(project);
             new IndexCleaner().cleanup(project);
         }
         new ExecutableCleaner().cleanup(project);
         snapshotCleaner.cleanup(project);
     }
-
 
     /**
      * trigger by a scheduler that is scheduled at 12:00 am every day

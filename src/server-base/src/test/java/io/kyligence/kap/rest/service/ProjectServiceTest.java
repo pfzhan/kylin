@@ -559,9 +559,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         Assert.assertTrue(scheduler.hasStarted());
 
-        NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-        favoriteScheduler.init();
-        Assert.assertTrue(favoriteScheduler.hasStarted());
         UnitOfWork.doInTransactionWithRetry(() -> {
             projectService.dropProject(project);
             return null;

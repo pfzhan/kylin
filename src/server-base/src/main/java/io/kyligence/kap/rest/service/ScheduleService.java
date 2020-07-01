@@ -73,8 +73,6 @@ public class ScheduleService {
                 backupService.backupAll();
             }
             projectService.garbageCleanup();
-            favoriteQueryService.adjustFalseAcceleratedFQ();
-            favoriteQueryService.generateRecommendation();
             queryHistoryService.cleanQueryHistories();
             rawRecService.updateCostAndSelectTopRec();
             rawRecService.deleteRawRecItems();
