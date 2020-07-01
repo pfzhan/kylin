@@ -204,9 +204,7 @@ public class ComputedColumnUtil {
     public static void singleCCConflictCheck(NDataModel existingModel, NDataModel newModel,
             ComputedColumnDesc existingCC, ComputedColumnDesc newCC, CCConflictHandler handler) {
         AliasMapping aliasMapping = getCCAliasMapping(existingModel, newModel, existingCC, newCC);
-        boolean sameName = StringUtils.equalsIgnoreCase(
-                existingCC.getTableIdentity() + "." + existingCC.getColumnName(),
-                newCC.getTableIdentity() + "." + newCC.getColumnName());
+        boolean sameName = isSameName(existingCC, newCC);
         boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
 
         if (sameName) {
@@ -277,6 +275,12 @@ public class ComputedColumnUtil {
 
         sqlNode.accept(sqlVisitor);
         return s;
+    }
+
+    public static boolean isSameName(ComputedColumnDesc col1, ComputedColumnDesc col2) {
+        return StringUtils.equalsIgnoreCase(
+                col1.getTableIdentity() + "." + col1.getColumnName(),
+                col2.getTableIdentity() + "." + col2.getColumnName());
     }
 
     public static boolean isLiteralSameCCExpr(ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {

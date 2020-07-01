@@ -25,8 +25,11 @@
 package io.kyligence.kap.common.util;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class CollectionUtil {
@@ -54,4 +57,10 @@ public class CollectionUtil {
         }
         return Optional.empty();
     }
+
+    public static <T, V> void distinct(Collection<T> collection, Function<T, V> distinctBy) {
+        Set<V> values = new HashSet<>();
+        collection.removeIf(el -> !values.add(distinctBy.apply(el)));
+    }
+
 }

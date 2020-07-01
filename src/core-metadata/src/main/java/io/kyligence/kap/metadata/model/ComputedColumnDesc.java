@@ -206,6 +206,10 @@ public class ComputedColumnDesc implements Serializable {
         return tableAlias + "." + columnName;
     }
 
+    public String getIdentName() {
+        return tableIdentity + "." + columnName;
+    }
+
     public void setInnerExpression(String innerExpression) {
         this.innerExpression = innerExpression;
     }

@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.common.util.CollectionUtil;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -285,13 +286,21 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         return allColumns;
     }
 
+    // since computed columns are either of different expr and different names,
+    // or of same expr and same names
+    // so we need only the filter out duplicated named cols to avoid duplication of names and exprs
+    private List<ComputedColumnDesc> removeDuplicatedNamedComputedCols(List<ComputedColumnDesc> computedColumnDescs) {
+        // remove duplicated named computed cols
+        CollectionUtil.distinct(computedColumnDescs, cc -> cc.getIdentName().toUpperCase());
+        return computedColumnDescs;
+    }
+
     private List<ComputedColumnDesc> getAuthorizedCC() {
         if (isACLDisabledOrAdmin()) {
-            return modelsMap.get(sourceTable.getIdentity()).stream()
+            return removeDuplicatedNamedComputedCols(modelsMap.get(sourceTable.getIdentity()).stream()
                     .map(NDataModel::getComputedColumnDescs)
                     .flatMap(List::stream)
-                    .distinct()
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()));
         }
 
         val authorizedCC = Lists.<ComputedColumnDesc>newArrayList();
@@ -318,7 +327,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             }
         }
 
-        return authorizedCC;
+        return removeDuplicatedNamedComputedCols(authorizedCC);
     }
 
     private void collectCCUsedSourceCols(String ccColName, Map<String, Set<String>> ccUsedColsMap, Set<String> ccUsedSourceCols) {
