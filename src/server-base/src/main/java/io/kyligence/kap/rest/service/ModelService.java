@@ -2145,10 +2145,7 @@ public class ModelService extends BasicService {
         mergeEvent.setSegmentId(mergeSeg.getId());
         mergeEvent.setJobId(UUID.randomUUID().toString());
         mergeEvent.setOwner(getUsername());
-        getSourceUsageManager().licenseCheckWrap(project, () -> {
-            eventManager.post(mergeEvent);
-            return null;
-        });
+        eventManager.post(mergeEvent);
 
         return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), mergeEvent.getJobId());
     }
@@ -2181,10 +2178,7 @@ public class ModelService extends BasicService {
             event.setModelId(modelId);
             event.setOwner(getUsername());
             event.setJobId(UUID.randomUUID().toString());
-            getSourceUsageManager().licenseCheckWrap(project, () -> {
-                eventManager.post(event);
-                return null;
-            });
+            eventManager.post(event);
 
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), event.getJobId()));
         }

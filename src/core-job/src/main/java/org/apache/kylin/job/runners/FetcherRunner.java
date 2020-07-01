@@ -39,7 +39,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.kylin.job.execution.JobTypeEnum.TABLE_SAMPLING;
+import static org.apache.kylin.job.execution.JobTypeEnum.INC_BUILD;
+import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_BUILD;
 
 public class FetcherRunner extends AbstractDefaultSchedulerRunner {
 
@@ -119,9 +120,10 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                             break;
                         }
 
+                        // allow table sampling job, refresh job, merge job running, when license overCapacity
                         if (context.isLicenseOverCapacity()
                                 && executableManager.getJob(id) != null
-                                && TABLE_SAMPLING != executableManager.getJob(id).getJobType()) {
+                                && (INC_BUILD == executableManager.getJob(id).getJobType() || INDEX_BUILD == executableManager.getJob(id).getJobType())) {
                             break;
                         }
 
