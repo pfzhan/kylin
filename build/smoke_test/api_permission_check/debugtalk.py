@@ -21,10 +21,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+import os
+
 import requests
 import time
 import uuid
 import base64
+
+from requests_toolbelt import MultipartEncoder
 
 base_url = 'http://localhost:17071/kylin/api'
 project = "project_api_check"
@@ -293,3 +297,31 @@ def get_model_latest_date(model_name, project_name):
 
     response = requests.request("GET", url, headers=headers, params=params).json()
     return response['data']
+
+
+def export_models_metadata(project_name, model_name):
+    url = "{base_url}/metastore/backup/models?project={project_name}".format(base_url=base_url, project_name=project_name)
+
+    headers = {
+        'accept': "application/vnd.apache.kylin-v4-public+json",
+        'accept-language': "en",
+        'Content-Type': 'application/json;charset=utf-8',
+        'authorization': 'Basic QURNSU46S1lMSU4='
+    }
+
+    payload = {
+        'names': [model_name]
+    }
+
+    export_model_content = requests.request("POST", url, json=payload, headers=headers).content
+    model_zip = os.path.join("/tmp", "temp_model.zip")
+    with open(model_zip, 'wb') as f:
+        f.write(export_model_content)
+
+
+def multipart_encoder(filename, model_name):
+    fields = {
+        'file': (filename, open(filename, mode='rb+'), 'text/plain'),
+        'names': model_name
+    }
+    return MultipartEncoder(fields)

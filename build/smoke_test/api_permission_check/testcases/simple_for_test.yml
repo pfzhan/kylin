@@ -37,8 +37,24 @@ config:
   base_url: http://localhost:8080/kylin/api/
 
 teststeps:
-  - api: api/load_data.yml
-    name: 加载数据
+  - api: api/public_preview_export_models.yml
+    name: public获取批量可导出的模型
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_export_model_metadata.yml
+    name: public模型元数据导出
+    teardown_hooks:
+      - ${export_models_metadata($project_name, $resident_model)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_import_model_metadata.yml
+    name: public模型元数据导入
     validate:
       - eq:
           - status_code

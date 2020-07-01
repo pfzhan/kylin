@@ -1285,3 +1285,27 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/public_preview_export_models.yml
+    name: public获取批量可导出的模型
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_export_model_metadata.yml
+    name: public模型元数据导出
+    # Can't add setup_hooks on next: public模型元数据导入, because execute multipart_encoder in public_import_model_metadata.yml before execute setup_hooks
+    teardown_hooks:
+      - ${export_models_metadata($project_name, $resident_model)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/public_import_model_metadata.yml
+    name: public模型元数据导入
+    validate:
+      - eq:
+          - status_code
+          - 200
