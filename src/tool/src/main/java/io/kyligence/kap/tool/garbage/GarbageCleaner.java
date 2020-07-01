@@ -60,8 +60,6 @@ public class GarbageCleaner {
             doCleanupMetadataManually(project, snapshotCleaner);
             return 0;
         }, project);
-        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-        sourceUsageManager.updateSourceUsage();
 
         NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }
