@@ -55,6 +55,7 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
@@ -277,7 +278,41 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
                 extendedOperands.add(extendedOperand);
             }
 
+            if (extendedOperands.size() > 1 && extendedOperands.get(0) instanceof RexInputRef) {
+                val rexInputRefOfIn = (RexInputRef) extendedOperands.get(0);
+                val operator = call.getOperator();
+                if (operator.equals(SqlStdOperatorTable.IN)) {
+                    return convertIn(rexInputRefOfIn, extendedOperands.subList(1, extendedOperands.size()), true);
+                } else if (operator.equals(SqlStdOperatorTable.NOT_IN)) {
+                    return convertIn(rexInputRefOfIn, extendedOperands.subList(1, extendedOperands.size()), false);
+                }
+            }
+
             return call.clone(call.getType(), transformDateTimestampLiteral(extendedOperands));
+        }
+
+        private RexNode convertIn(RexInputRef rexInputRef, List<RexNode> extendedOperands, boolean isIn) {
+            val rexBuilder = getCluster().getRexBuilder();
+            val transformedOperands = Lists.<RexNode>newArrayList();
+            for (RexNode operand : extendedOperands) {
+                RexNode transformedOperand;
+                if (operand instanceof RexLiteral && ((RexLiteral) operand).getValue() instanceof NlsString) {
+                    val transformedList = transformRexLiteral(rexInputRef, (RexLiteral) operand);
+                    transformedOperand = transformedList == null ? operand : transformedList.get(1);
+                } else {
+                    transformedOperand = operand;
+                }
+
+                val operator = isIn ? SqlStdOperatorTable.EQUALS : SqlStdOperatorTable.NOT_EQUALS;
+                transformedOperands.add(rexBuilder.makeCall(operator, rexInputRef, transformedOperand));
+            }
+
+            if (transformedOperands.size() == 1) {
+                return transformedOperands.get(0);
+            }
+
+            val operator = isIn ? SqlStdOperatorTable.OR : SqlStdOperatorTable.AND;
+            return rexBuilder.makeCall(operator, transformedOperands);
         }
 
         private List<RexNode> transformDateTimestampLiteral(List<RexNode> rexNodes) {
