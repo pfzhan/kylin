@@ -25,10 +25,13 @@ package io.kyligence.kap.metadata.sourceusage;
 
 import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -39,12 +42,18 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         this.createTestMetadata();
         System.setProperty(Constants.KE_LICENSE_VOLUME, Constants.UNLIMITED);
+        System.setProperty("kylin.env", "DEV");
     }
 
     @After
     public void tearDown() throws Exception {
+        this.cleanupTestMetadata();
         System.clearProperty(Constants.KE_LICENSE_VOLUME);
+        System.clearProperty("kylin.env");
     }
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testUpdateSourceUsage() {
@@ -65,6 +74,33 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
 
         SourceUsageRecord.TableCapacityDetail testCountryTableDetail = projectCapacityDetail.getTableByName("DEFAULT.TEST_COUNTRY");
         Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, testCountryTableDetail.getTableKind());
+    }
+
+    @Test
+    public void testCheckIsNotOverCapacity() {
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
+        SourceUsageRecord sourceUsageRecord = new SourceUsageRecord();
+
+        sourceUsageRecord.setCapacityStatus(SourceUsageRecord.CapacityStatus.ERROR);
+        sourceUsageManager.updateSourceUsage(sourceUsageRecord);
+        // test won't throw exception
+        sourceUsageManager.checkIsOverCapacity("default");
+
+        sourceUsageRecord.setCapacityStatus(SourceUsageRecord.CapacityStatus.TENTATIVE);
+        sourceUsageManager.updateSourceUsage(sourceUsageRecord);
+        sourceUsageManager.checkIsOverCapacity("default");
+    }
+
+    @Test
+    public void testCheckIsOverCapacityThrowException() {
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
+        SourceUsageRecord sourceUsageRecord = new SourceUsageRecord();
+        sourceUsageRecord.setCapacityStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
+        sourceUsageManager.updateSourceUsage(sourceUsageRecord);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("The amount of data volume used（0/0) exceeds the license’s limit. Build index and load data is unavailable.\n" +
+                "Please contact Kyligence, or try deleting some segments.");
+        sourceUsageManager.checkIsOverCapacity("default");
     }
 
     class TestSourceUsage implements Runnable {

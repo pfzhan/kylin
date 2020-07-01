@@ -332,6 +332,12 @@ public class SourceUsageManager {
         }
     }
 
+    // For UT only
+    public SourceUsageRecord updateSourceUsage(SourceUsageRecord sourceUsageRecord) {
+        createOrUpdate(sourceUsageRecord);
+        return sourceUsageRecord;
+    }
+
     private SourceUsageRecord updateSourceUsageInner() {
         SourceUsageRecord usage = new SourceUsageRecord();
         logger.info("Start to calculate source usage...");
@@ -626,7 +632,11 @@ public class SourceUsageManager {
         }
 
         LicenseInfo info = getLicenseInfo(checkProject ? project : null);
-
+        CapacityStatus capacityStatus = info.getCapacityStatus();
+        if (isNotOk(capacityStatus)) {
+            logger.warn("Capacity status is not ok: {}, will not block build job", capacityStatus);
+            return;
+        }
         if (checkProject) {
             if (info.getCapacityStatus() == OVERCAPACITY && info.getNodeStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
