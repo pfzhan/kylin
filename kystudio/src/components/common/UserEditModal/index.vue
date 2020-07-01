@@ -143,24 +143,6 @@ export default class UserEditModal extends Vue {
   // Data: 用来销毁el-form
   isFormShow = false
   isLoading = false
-  // Data: el-form表单验证规则
-  rules = {
-    username: [{
-      validator: this.validate(USERNAME), trigger: 'blur', required: true
-    }],
-    password: [{
-      validator: this.validate(PASSWORD), trigger: 'blur', required: true
-    }],
-    oldPassword: [{
-      message: this.$t('kylinLang.common.passwordEmpty'), trigger: 'blur', required: true
-    }],
-    newPassword: [{
-      validator: this.validate(PASSWORD), trigger: 'blur', required: true
-    }],
-    confirmPassword: [{
-      validator: this.validate(CONFIRM_PASSWORD), trigger: 'blur', required: true
-    }]
-  }
 
   // Computed: Modal宽度
   get modalWidth () {
@@ -172,6 +154,27 @@ export default class UserEditModal extends Vue {
   // Computed: Modal标题
   get modalTitle () {
     return titleMaps[this.editType]
+  }
+
+  get rules () {
+    return {
+      // Data: el-form表单验证规则
+      username: [{
+        validator: this.validate(USERNAME), trigger: 'blur', required: true
+      }],
+      password: [{
+        validator: this.validate(PASSWORD), trigger: 'blur', required: true
+      }],
+      oldPassword: [{
+        message: this.$t('kylinLang.common.passwordEmpty'), trigger: 'blur', required: true
+      }],
+      newPassword: [{
+        validator: this.validate(PASSWORD), trigger: 'blur', required: true
+      }],
+      confirmPassword: [{
+        validator: this.validate(CONFIRM_PASSWORD), trigger: 'blur', required: true
+      }]
+    }
   }
 
   // Computed Method: 计算每个Form的field是否显示

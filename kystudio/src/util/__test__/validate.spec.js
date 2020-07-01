@@ -16,7 +16,7 @@ describe('validate', () => {
   const { GROUP_NAME, USERNAME, PASSWORD, CONFIRM_PASSWORD, PROJECT_NAME } = validateTypes
   it('validate-groupname', () => {
     validate[GROUP_NAME].bind(vm)(null, '', callback)
-    expect(callback.args[0][0].message).toBe(vm.$t('kylinLang.common.usernameEmpty'))
+    expect(callback.args[0][0].message).toBe(vm.$t('kylinLang.common.userGroupNameEmpty'))
     validate[GROUP_NAME].bind(vm)(null, '.abc123', callback)
     expect(callback.args[1][0].message).toBe(vm.$t('kylinLang.user.noStartWithPeriod'))
     validate[GROUP_NAME].bind(vm)(null, ' abc123 ', callback)

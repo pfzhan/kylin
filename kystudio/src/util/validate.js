@@ -8,7 +8,7 @@ export const PROJECT_NAME = 'project-name'
 export default {
   [GROUP_NAME] (rule, value, callback) {
     if (!value) {
-      callback(new Error(this.$t('kylinLang.common.usernameEmpty')))
+      callback(new Error(this.$t('kylinLang.common.userGroupNameEmpty')))
     } else if (/^\./.test(value)) {  // 不能以.开头
       callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
     } else if (/^\s+|\s+$/.test(value)) {  // 首尾不能有空字符
