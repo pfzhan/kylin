@@ -789,6 +789,14 @@ public class Message {
         return "The number of nodes which you are using is higher than the allowable number. Please contact your Kyligence account manager.";
     }
 
+    public String getLICENSE_NODES_NOT_MATCH() {
+        return "The cluster imformation dose not match the license. Please upload a new license or contact the Kyligence salse staff.";
+    }
+
+    public String getLICENSE_OVER_VOLUME() {
+        return "The current used system capacity exceeds the license’s limit. Please upload a new license, or contact Kyligence.";
+    }
+
     public String getLICENSE_WRONG_CATEGORY() {
         return "The current version of Kyligence Enterprise does not match the license. Please upload a new license or contact the Kyligence sales staff.";
     }
@@ -1387,5 +1395,13 @@ public class Message {
 
     public String getCOLUMN_PARAMETER_DUPLICATE() {
         return "Column [%s] is duplicated in API requests.";
+    }
+
+    public String getLICENSE_ERROR_PRE() {
+        return "The license couldn’t be updated:\n";
+    }
+
+    public String getLICENSE_ERROR_SUFF() {
+        return "\nPlease upload a new license, or contact Kyligence.";
     }
 }

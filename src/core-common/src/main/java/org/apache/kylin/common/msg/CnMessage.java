@@ -729,6 +729,10 @@ public class CnMessage extends Message {
         return "您使用的节点数已超过许可证范围，请联系您的客户经理。";
     }
 
+    public String getLICENSE_NODES_NOT_MATCH() {
+        return "当前许可证的节点数与集群信息不匹配，请重新上传新的许可证或联系 Kyligence 销售人员。";
+    }
+
     public String getLICENSE_WRONG_CATEGORY() {
         return "当前许可证的版本与产品不匹配，请重新上传新的许可证或联系 Kyligence 销售人员。";
     }
@@ -1289,5 +1293,17 @@ public class CnMessage extends Message {
 
     public String getWRITE_IN_MAINTENANCE_MODE() {
         return "系统已进入维护模式，元数据相关操作暂不可用。请稍后再试。";
+    }
+
+    public String getLICENSE_OVER_VOLUME() {
+        return "当前系统已使用容量超过该许可证允许的容量。请上传新的许可证或联系 Kyligence 销售人员。";
+    }
+
+    public String getLICENSE_ERROR_PRE() {
+        return "该许可证存在以下问题：\n";
+    }
+
+    public String getLICENSE_ERROR_SUFF() {
+        return "\n请上传新的许可证或联系 Kyligence 销售人员。";
     }
 }
