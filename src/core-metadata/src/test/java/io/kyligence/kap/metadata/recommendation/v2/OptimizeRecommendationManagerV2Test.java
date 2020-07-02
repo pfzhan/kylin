@@ -178,6 +178,8 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
             } else if (r.getType() == RawRecItem.RawRecType.MEASURE) {
                 MeasureDesc measureDesc = RecommendationUtil.getMeasure(r);
                 measureDesc.setName("");
+            } else if (r.getType() == RawRecItem.RawRecType.LAYOUT) {
+                r.setHitCount(r.getId());
             }
         });
         recommendationManager.cleanAll(id);

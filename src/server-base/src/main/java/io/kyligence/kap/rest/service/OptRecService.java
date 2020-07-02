@@ -413,6 +413,7 @@ public class OptRecService extends BasicService {
         val response = new OptRecLayoutResponse();
         response.setItemId(raw.getId());
         response.setCreateTime(raw.getCreateTime());
+        response.setUsage(raw.getHitCount());
         val layout = RecommendationUtil.getLayout(raw);
         response.setColumnsAndMeasuresSize(layout.getColOrder().size());
         if (RecommendationUtil.isAgg(raw)) {

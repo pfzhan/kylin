@@ -61,6 +61,8 @@ import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManager
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecommendationResponse;
 import io.kyligence.kap.rest.response.OptRecDepResponse;
+import io.kyligence.kap.rest.response.OptRecLayoutResponse;
+import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import lombok.val;
 import lombok.var;
 
@@ -626,6 +628,22 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         service.delete(projectDefault, request);
         val recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
         Assert.assertEquals(7, recommendation.getRawIds().size());
+    }
+
+    @Test
+    public void testGetRecommendations() {
+        OptRecLayoutsResponse response = service.getOptRecLayoutsResponse(projectDefault, id);
+        List<OptRecLayoutResponse> layoutResponses = response.getLayouts().stream()
+                .filter(optRecLayoutResponse -> optRecLayoutResponse.getType().isAdd()).collect(Collectors.toList());
+        Assert.assertTrue(layoutResponses.size() > 0);
+        Assert.assertTrue(layoutResponses.stream()
+                .allMatch(layoutResponse -> layoutResponse.getUsage() > 0));
+        Assert.assertTrue(layoutResponses.stream()
+                .allMatch(layoutResponse -> layoutResponse.getLastModifyTime() > 0));
+        Assert.assertTrue(layoutResponses.stream()
+                .allMatch(layoutResponse -> layoutResponse.getColumnsAndMeasuresSize() > 0));
+        Assert.assertTrue(layoutResponses.stream()
+                .allMatch(layoutResponse -> layoutResponse.getCreateTime() > 0));
     }
 
 }
