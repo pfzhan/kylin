@@ -688,6 +688,7 @@ public class QueryService extends BasicService {
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
 
         List<TableMeta> tableMetas = new LinkedList<>();
+        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             TableMeta tblMeta = new TableMeta(tableSchema.getCatalog(), tableSchema.getSchema(), tableSchema.getTable(),
                     tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null, null);
@@ -703,7 +704,7 @@ public class QueryService extends BasicService {
                 ColumnMeta colmnMeta = constructColumnMeta(tableSchema, field, columnOrdinal);
                 columnOrdinal++;
 
-                if (!shouldExposeColumn(projectInstance, colmnMeta)) {
+                if (!shouldExposeColumn(projectInstance, colmnMeta, tbl2ccNames)) {
                     continue;
                 }
 
@@ -765,6 +766,7 @@ public class QueryService extends BasicService {
         LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
+        SetMultimap<String, String> tbl2ccNames = collectComputedColumns(project);
 
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             int columnOrdinal = 1;
@@ -773,7 +775,7 @@ public class QueryService extends BasicService {
                         .ofColumnMeta(constructColumnMeta(tableSchema, field, columnOrdinal));
                 columnOrdinal++;
 
-                if (!shouldExposeColumn(projectInstance, columnMeta)) {
+                if (!shouldExposeColumn(projectInstance, columnMeta, tbl2ccNames)) {
                     continue;
                 }
 
@@ -811,13 +813,29 @@ public class QueryService extends BasicService {
                 columnOrdinal, isNullable, null, null, null, sourceDataType, "");
     }
 
-    private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta) {
+    private SetMultimap<String, String> collectComputedColumns(String project) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
+        projectManager.listAllRealizations(project).forEach(rea -> {
+            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream().map(String::toUpperCase)
+                    .collect(Collectors.toList());
+            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(), upperCaseCcNames);
+            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(), upperCaseCcNames);
+        });
+        return tbl2ccNames;
+    }
+
+    private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta, SetMultimap<String, String> tbl2ccNames) {
         // check for cc exposing
-        if (isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(),
-                columnMeta.getTABLE_NAME())) {
-            return projectInstance.getConfig().exposeComputedColumn();
+        // exposeComputedColumn=True, expose columns anyway
+        if (projectInstance.getConfig().exposeComputedColumn()) {
+            return true;
         }
-        return true;
+
+        // only check cc expose when exposeComputedColumn=False
+        // do not expose column if it is a computed column
+        return !isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(),
+                columnMeta.getTABLE_NAME(), tbl2ccNames);
     }
 
     /**
@@ -827,15 +845,7 @@ public class QueryService extends BasicService {
      * @param table only support table alias like "TEST_COUNT" or table indentity "default.TEST_COUNT"
      * @return
      */
-    private boolean isComputedColumn(String project, String ccName, String table) {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
-        projectManager.listAllRealizations(project).forEach(rea -> {
-            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream().map(String::toUpperCase)
-                    .collect(Collectors.toList());
-            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(), upperCaseCcNames);
-            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(), upperCaseCcNames);
-        });
+    private boolean isComputedColumn(String project, String ccName, String table, SetMultimap<String, String> tbl2ccNames) {
 
         return CollectionUtils.isNotEmpty(tbl2ccNames.get(table.toUpperCase()))
                 && tbl2ccNames.get(table.toUpperCase()).contains(ccName.toUpperCase());
