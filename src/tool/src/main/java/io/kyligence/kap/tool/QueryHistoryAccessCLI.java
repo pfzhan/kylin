@@ -91,7 +91,7 @@ public class QueryHistoryAccessCLI {
             jdbcTemplate.update("delete from " + RDBMSWriter.getQueryHistoryRealizationTableName()
                     + " where project_name = '" + PROJECT + "'");
         } catch (Exception e) {
-            logger.error(FAIL_LOG, e.getMessage());
+            logger.error(FAIL_LOG, e);
             return false;
         }
         return true;
