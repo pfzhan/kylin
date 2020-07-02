@@ -31,9 +31,9 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-2.4.1-r36"
+spark_pkg_name="spark-newten-2.4.1-r37"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="c9510b17852c527a2ade7dbaf7b34195"
+spark_pkg_md5="d03ca086ab2bef037c8abc95eaa0612d"
 
 if [ ! -f "build/${spark_pkg_file_name}" ]
 then

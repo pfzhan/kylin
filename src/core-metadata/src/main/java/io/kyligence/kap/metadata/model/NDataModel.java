@@ -240,7 +240,7 @@ public class NDataModel extends RootPersistentEntity {
     private Canvas canvas;
 
     @JsonProperty("broken_reason")
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = BrokenReasonFilter.class)
     private BrokenReason brokenReason = BrokenReason.NULL;
 
     @JsonProperty("handled_after_broken")
@@ -307,7 +307,7 @@ public class NDataModel extends RootPersistentEntity {
 
         // logical delete symbol
         @JsonProperty("status")
-        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = ColumnStatusFilter.class)
         private ColumnStatus status = ColumnStatus.EXIST;
 
         public boolean isExist() {

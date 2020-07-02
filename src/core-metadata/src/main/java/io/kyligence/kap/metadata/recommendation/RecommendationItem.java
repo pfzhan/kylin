@@ -23,15 +23,15 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import org.apache.calcite.sql.SqlIdentifier;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.calcite.sql.SqlIdentifier;
-
 import com.google.common.collect.ImmutableList;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 public abstract class RecommendationItem<T extends RecommendationItem> {
@@ -55,7 +55,8 @@ public abstract class RecommendationItem<T extends RecommendationItem> {
     @Getter
     @Setter
     @JsonProperty("is_auto_change_name")
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    // https://github.com/FasterXML/jackson-databind/issues/1331
+    @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = AutoChangeNameFilter.class)
     protected boolean isAutoChangeName = true;
 
     @Getter
