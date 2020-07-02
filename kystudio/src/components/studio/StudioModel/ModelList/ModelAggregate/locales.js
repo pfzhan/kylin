@@ -46,7 +46,9 @@ export default {
     fixSegmentTitle: 'Fix Segment',
     ignore: 'Ignore',
     fixAndBuild: 'Fix and Build',
-    index: 'Index'
+    index: 'Index',
+    indexListBtn: 'Index List',
+    recommendationsBtn: 'Recommendations'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -95,6 +97,8 @@ export default {
     fixSegmentTitle: '修复 Segment',
     ignore: '忽略',
     fixAndBuild: '修复并构建',
-    index: '索引'
+    index: '索引',
+    indexListBtn: '索引列表',
+    recommendationsBtn: '优化建议'
   }
 }

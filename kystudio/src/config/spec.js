@@ -9,7 +9,7 @@ export default {
       { "id": "query", "value": "query", "title": "Query" },
       { "id": "insight", "value": "insight", "title": "Insight" },
       { "id": "queryHistory", "value": "queryhistory", "title": "Query History" },
-      { "id": "acceleration", "value": "acceleration", "title": "Favorite Query" },
+      // { "id": "acceleration", "value": "acceleration", "title": "Favorite Query" },
       { "id": "studio", "value": "studio", "title": "Studio" },
       { "id": "setting", "value": "setting", "title": "setting" },
       { "id": "source", "value": "source", "title": "Source" },

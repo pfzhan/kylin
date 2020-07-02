@@ -48,7 +48,19 @@ export default {
     enableSemiAutomatic: 'Recommendation Mode:',
     enableSemiAutomaticDesc: 'After enabling this mode, the system will provide some recommendations for existing models by analyzing the query history and model usage.',
     confirmClose: 'Turn Off',
-    turnOffTips: 'After disabling this mode, the following changes will happen:<br/>* This project will not be able to <b>recommend and optimize indexes</b> and <b>create model by SQL</b>. <br/>* The existing recommendations will be <b>temporarily hidden</b> and those indexes which are <b>built successfully</b> can still serve the query.<br/>* For the recommendations, if the model definition changes, such as <b>join relationship</b> and <b>partition column</b>, all the recommendations will be <b>cleared</b> to ensure the accuracy.'
+    turnOffTips: 'After disabling this mode, the following changes will happen:<br/>* This project will not be able to <b>recommend and optimize indexes</b> and <b>create model by SQL</b>. <br/>* The existing recommendations will be <b>temporarily hidden</b> and those indexes which are <b>built successfully</b> can still serve the query.<br/>* For the recommendations, if the model definition changes, such as <b>join relationship</b> and <b>partition column</b>, all the recommendations will be <b>cleared</b> to ensure the accuracy.',
+    queryFrequency: 'Frequency Rule',
+    querySubmitter: 'User Rule',
+    queryDuration: 'Latency Rule',
+    AccQueryStart: 'Generate recommendations for queries used for more than ',
+    AccQueryEnd: ' times',
+    from: 'Generate recommendations for queries of which the latency is between',
+    to: 'to',
+    secondes: 'second(s)',
+    acclerationRuleSettings: 'Generate Recommendations',
+    optimizationSuggestions: 'Limit of Recommendations for Adding Index',
+    suggestionTip1: 'Up to',
+    suggestionTip2: 'recommendations for adding indexes would be generated.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -99,6 +111,18 @@ export default {
     enableSemiAutomatic: '智能推荐模式：',
     enableSemiAutomaticDesc: '开启智能推荐模式后，系统将根据您的查询历史及使用情况对已有模型进行优化建议。',
     confirmClose: '确认关闭',
-    turnOffTips: '关闭智能推荐后:<br/>* 当前项目将不具备<b>任何索引推荐和优化能力</b>，以及<b>SQL建模</b>等。<br/>* 当前已存在的建议将<b>暂时隐藏</b>，已<b>构建完成</b>的索引仍可以服务于查询。<br/>* 对于优化建议，当模型的定义如<b>关联关系</b>，<b>分区列</b>等发生变化时，为了保证优化建议的准确性此时会<b>清空</b>掉所有的优化建议。'
+    turnOffTips: '关闭智能推荐后:<br/>* 当前项目将不具备<b>任何索引推荐和优化能力</b>，以及<b>SQL建模</b>等。<br/>* 当前已存在的建议将<b>暂时隐藏</b>，已<b>构建完成</b>的索引仍可以服务于查询。<br/>* 对于优化建议，当模型的定义如<b>关联关系</b>，<b>分区列</b>等发生变化时，为了保证优化建议的准确性此时会<b>清空</b>掉所有的优化建议。',
+    queryFrequency: '查询频率',
+    querySubmitter: '查询用户',
+    queryDuration: '查询延迟',
+    AccQueryStart: '对使用次数大于',
+    AccQueryEnd: '的查询生成优化建议。',
+    from: '对延迟的范围在',
+    to: '秒到',
+    secondes: '秒的查询生成优化建议。',
+    acclerationRuleSettings: '优化建议规则',
+    optimizationSuggestions: '新增索引上限',
+    suggestionTip1: '最多生成',
+    suggestionTip2: '条新增索引的优化建议。'
   }
 }

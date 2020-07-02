@@ -1,0 +1,667 @@
+<template>
+  <el-card class="recommendations-card">
+    <div slot="header">
+      <p>{{$t('recommendations')}}</p>
+    </div>
+    <div class="detail-content">
+      <p class="title-tip">{{$t('recommendationsTip1')}}<a href="javascript:void();" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en'">{{$t('recommendationsTip2')}}</span></p>
+      <div class="ksd-mb-10 ksd-mt-10 ksd-fs-12" >
+        <el-button size="mini" :disabled="!selectedList.length" type="primary" @click="betchAccept" icon="el-icon-ksd-accept">{{$t('accept')}}</el-button><el-button plain size="mini" :disabled="!selectedList.length" @click="betchDelete" icon="el-icon-ksd-table_delete">{{$t('delete')}}</el-button>
+      </div>
+      <el-table
+        nested
+        border
+        :data="getRecommendData"
+        class="recommendations-table"
+        size="medium"
+        :empty-text="emptyText"
+        @sort-change="onSortChange"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="44"></el-table-column>
+        <el-table-column
+          width="160"
+          :label="$t('th_recommendType')"
+          :filters="typeList.map(item => ({text: $t(item), value: item}))"
+          :filtered-value="checkedStatus"
+          filter-icon="el-icon-ksd-filter"
+          :show-multiple-footer="false"
+          :filter-change="(v) => filterType(v, 'checkedStatus')"
+          prop="type"
+          show-overflow-tooltip>
+          <template slot-scope="scope">
+            {{$t(scope.row.type.split('_')[1])}}
+          </template>
+        </el-table-column>
+        <el-table-column
+          width="120"
+          prop="id"
+          label="Index ID">
+          <template slot-scope="scope">
+            <span v-if="scope.row.type !== 'ADD_AGG' && scope.row.type !== 'ADD_TABLE'">{{$t(scope.row.id)}}</span>
+          </template>
+        </el-table-column>
+        <!-- <el-table-column
+          width="110"
+          :label="$t('th_source')"
+          :filters="source.map(item => ({text: $t(item), value: item}))"
+          :filtered-value="sourceCheckedStatus"
+          filter-icon="el-icon-ksd-filter"
+          :show-multiple-footer="false"
+          :filter-change="(v) => filterType(v, 'sourceCheckedStatus')">
+          <template slot-scope="scope">
+            {{$t(scope.row.source)}}
+          </template>
+        </el-table-column> -->
+        <el-table-column
+          width="110"
+          prop="data_size"
+          :label="$t('th_dataSize')"
+          sortable>
+          <template slot-scope="scope">
+            {{scope.row.data_size || 0 | dataSize}}
+          </template>
+        </el-table-column>
+        <el-table-column
+          width="120"
+          prop="usage"
+          :label="$t('th_useCount')"
+          :render-header="renderHeaderCol"
+          sortable>
+        </el-table-column>
+        <el-table-column
+          width="175"
+          prop="create_time"
+          :label="$t('th_updateDate')"
+          sortable
+          show-overflow-tooltip>
+          <template slot-scope="scope">
+            {{transToGmtTime(scope.row.create_time)}}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('th_note')">
+          <div slot-scope="scope" class="col-tab-note">
+            <template v-if="('remove_reason' in scope.row.info)">
+              <el-tooltip class="item" effect="dark" :content="removeReasonTip(scope)" placement="top">
+                <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.info.remove_reason)}}</el-tag>
+              </el-tooltip>
+            </template>
+          </div> 
+        </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.action')" width="83" fixed="right">
+          <template slot-scope="scope">
+            <common-tip :content="$t('viewDetail')">
+              <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+            </common-tip>
+            <common-tip :content="$t('accept')">
+              <i class="el-icon-ksd-accept ksd-ml-5" @click="confrim([scope.row.item_id])"></i>
+            </common-tip>
+            <common-tip :content="$t('delete')">
+              <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
+            </common-tip>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="recommendationsList.totalSize" :curPage="recommendationsList.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager> -->
+    </div>
+    <!-- 索引详情 -->
+    <el-dialog
+      class="layout-details"
+      :title="indexDetailTitle"
+      width="480px"
+      :append-to-body="true"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      @close="showIndexDetail = false"
+      :visible="true"
+      v-if="showIndexDetail"
+    >
+      <el-table
+        nested
+        border
+        :data="detailData"
+        class="index-details-table"
+        size="medium"
+        :empty-text="emptyText"
+      >
+        <el-table-column width="34" type="expand">
+          <template slot-scope="scope">
+            <template v-if="scope.row.type === 'cc'">
+              <p><span>{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
+            </template>
+            <template v-if="scope.row.type === 'dimension'">
+              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).column}}</p>
+              <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p>
+            </template>
+            <template v-if="scope.row.type === 'measure'">
+              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).name}}</p>
+              <p><span>{{$t('th_function')}}：</span>{{JSON.parse(scope.row.content).function.expression}}</p>
+              <p><span>{{$t('th_parameter')}}：</span>{{JSON.parse(scope.row.content).function.parameters}}</p>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column type="index" :label="$t('order')"></el-table-column>
+        <el-table-column :label="$t('th_name')" show-overflow-tooltip>
+          <template slot-scope="scope">
+            <span>{{scope.row.name}}</span>
+            <el-tag size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="type" :label="$t('th_type')" show-overflow-tooltip>
+          <template slot-scope="scope">
+            {{$t(scope.row.type)}}
+          </template>
+        </el-table-column>
+      </el-table>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain size="medium" @click="showIndexDetail = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" icon="el-icon-ksd-accept" @click="acceptLayout" :loading="accessLoading">{{$t('accept')}}</el-button>
+      </div>
+    </el-dialog>
+    <!-- cc/度量/维度更名 -->
+    <el-dialog
+      class="layout-details"
+      :title="$t('validateTitle')"
+      width="480px"
+      :append-to-body="true"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      @close="showValidate = false"
+      :visible="true"
+      v-if="showValidate"
+    >
+      <p>{{$t('validateModalTip')}}</p>
+      <el-table
+        nested
+        border
+        :data="validateData.list"
+        class="index-details-table"
+        size="medium"
+        :empty-text="emptyText"
+      >
+        <el-table-column width="34" type="expand">
+          <template slot-scope="scope">
+            <template v-if="scope.row.type === 'cc'">
+              <p><span>{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
+            </template>
+            <template v-if="scope.row.type === 'dimension'">
+              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).column}}</p>
+              <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p>
+            </template>
+            <template v-if="scope.row.type === 'measure'">
+              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).name}}</p>
+              <p><span>{{$t('th_function')}}：</span>{{JSON.parse(scope.row.content).function.expression}}</p>
+              <p><span>{{$t('th_parameter')}}：</span>{{JSON.parse(scope.row.content).function.parameters}}</p>
+            </template>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('th_name')" width="300" show-overflow-tooltip>
+          <template slot-scope="scope">
+            <el-form :model="scope.row" :rules="rules">
+              <el-form-item prop="name">
+                <el-input v-model="scope.row.name" size="mini"></el-input>
+              </el-form-item>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column prop="type" :label="$t('th_type')" show-overflow-tooltip>
+          <template slot-scope="scope">
+            {{$t(scope.row.type)}}
+          </template>
+        </el-table-column>
+      </el-table>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain size="medium" @click="showValidate = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" icon="" @click="addLayout" :loading="isLoading">{{$t('add')}}</el-button>
+      </div>
+    </el-dialog>
+  </el-card>
+</template>
+
+<script>
+import Vue from 'vue'
+import { Component } from 'vue-property-decorator'
+import { transToGmtTime } from 'util/business'
+import { mapActions, mapState } from 'vuex'
+import { handleSuccessAsync, handleError } from '../../../../../../util'
+
+@Component({
+  props: {
+    modelDesc: {
+      type: Object,
+      default: () => {
+        return {}
+      }
+    }
+  },
+  computed: {
+    ...mapState({
+      currentProject: state => state.project.selected_project
+    })
+  },
+  methods: {
+    ...mapActions({
+      getAllRecommendations: 'GET_ALL_RECOMMENDATIONS',
+      deleteRecommendations: 'DELETE_RECOMMENDATIONS',
+      accessRecommendations: 'ACCESS_RECOMMENDATIONS',
+      getRecommendDetails: 'GET_RECOMMEND_DETAILS',
+      validateRecommend: 'VALIDATE_RECOMMEND'
+    })
+  },
+  locales: {
+    'en': {
+      recommendations: 'Recommendations',
+      recommendationsTip1: 'Recommendations are generated by analyzing the query history and model usage.',
+      recommendationsTip2: 'in project settings.',
+      modifyRules: ' Modify rules ',
+      odifyRules: 'Modify Rules ',
+      th_recommendType: 'Type',
+      th_name: 'Name',
+      th_table: 'Table',
+      th_column: 'Column',
+      th_dataType: 'Data Type',
+      th_function: 'Function',
+      th_parameter: 'Function Parameter',
+      th_expression: 'Expression',
+      th_dataSize: 'Data Size',
+      th_useCount: 'Usage',
+      th_column_count: 'Column Totals',
+      th_updateDate: 'Last Modified Time',
+      th_note: 'Note',
+      th_source: 'Source',
+      th_type: 'Type',
+      imported: 'Import',
+      query_history: 'Query History',
+      AGG: 'Aggregate Index',
+      TABLE: 'Table Index',
+      ADD_AGG: 'Add Aggregate Index',
+      REMOVE_AGG: 'Delete Aggregate Index',
+      ADD_TABLE: 'Add Table Index',
+      REMOVE_TABLE: 'Delete Table Index',
+      usage_time_tip: 'The usage of this index in the past {date} is lower than {time} times.',
+      exist_index_tip: 'There already exists one index or more who could include this index.',
+      similar_index_tip: 'There already exists one index or more who has a high similarity with this index.',
+      LOW_FREQUENCY: 'Low Frequency',
+      INCLUDED: 'Inclusion Relation',
+      SIMILAR: 'High Similarity',
+      accept: 'Accept',
+      delete: 'Delete',
+      usedCountTip: 'For adding indexes, it means how many historical queries could be optimized;  for deleting indexes, it means how many times the index has been used.',
+      viewDetail: 'Details',
+      deleteRecommendTip: 'Selected recommendations would be permanently deleted. Do you want to continue?',
+      deleteTitle: 'Delete Recommendations',
+      deleteSuccess: 'Deleted successfully',
+      aggDetailTitle: 'Aggregate Index Details',
+      tableDetailTitle: 'Table Index Details',
+      order: 'Order',
+      cc: 'Computed Columns',
+      dimension: 'Dimension',
+      measure: 'Measure',
+      newAdd: 'New',
+      validateTitle: 'Add Items to Model',
+      validateModalTip: 'To accept the selected recommendations, the following items have to be added to the model:',
+      add: 'Add',
+      requiredName: 'Please input alias',
+      sameName: 'The same name',
+      bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es).',
+      onlyAcceptAdd: 'Successfully added {addLength} index(es).',
+      onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
+      buildIndex: ' Build Index'
+    },
+    'zh-cn': {
+      recommendations: '优化建议',
+      recommendationsTip1: '以下为系统根据您的查询历史及使用情况对模型生成的优化建议。可在项目设置中',
+      modifyRules: '配置规则',
+      th_recommendType: '建议类型',
+      th_name: '名称',
+      th_table: '表',
+      th_column: '列',
+      th_dataType: '数据类型',
+      th_function: '函数',
+      th_parameter: '函数参数',
+      th_expression: '表达式',
+      th_dataSize: '数据大小',
+      th_useCount: '使用次数',
+      th_column_count: '列数总计',
+      th_updateDate: '最后修改时间',
+      th_note: '备注',
+      th_source: '来源',
+      th_type: '类型',
+      imported: '导入',
+      query_history: '查询历史',
+      AGG: '聚合索引',
+      TABLE: '明细索引',
+      ADD_AGG: '新增聚合索引',
+      REMOVE_AGG: '删除聚合索引',
+      ADD_TABLE: '新增明细索引',
+      REMOVE_TABLE: '删除明细索引',
+      usage_time_tip: '该索引在过去{date}内使用频率低于{time}次。',
+      exist_index_tip: '已有索引可以包含该索引。',
+      similar_index_tip: '存在与该索引相似的索引。',
+      LOW_FREQUENCY: '低频使用',
+      INCLUDED: '包含关系',
+      SIMILAR: '高相似度',
+      accept: '通过',
+      delete: '删除',
+      usedCountTip: '若为新增索引，表示该索引可优化多少条历史查询；若为删除索引，表示该索引被使用的次数。',
+      viewDetail: '查看详情',
+      deleteRecommendTip: '所选优化建议删除后不可恢复。确定要删除吗？',
+      deleteTitle: '删除优化建议',
+      deleteSuccess: '已删除',
+      aggDetailTitle: '聚合索引详情',
+      tableDetailTitle: '明细索引详情',
+      order: '顺序',
+      cc: '可计算列',
+      dimension: '维度',
+      measure: '度量',
+      newAdd: '新增',
+      validateTitle: '添加以下内容至模型',
+      validateModalTip: '通过所选优化建议需要添加以下内容至模型：',
+      add: '添加',
+      requiredName: '请输入别名',
+      sameName: '已存在同名项',
+      bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引。',
+      onlyAcceptAdd: '成功新增 {addLength} 条索引。',
+      onlyAcceptDelete: '成功删除 {delLength} 条索引。',
+      buildIndex: '立即构建索引'
+    }
+  }
+})
+export default class IndexList extends Vue {
+  transToGmtTime = transToGmtTime
+  recommendationsList = {
+    list: [],
+    page_offset: 0,
+    totalSize: 0,
+    page_size: 10
+  }
+  typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE', 'REMOVE_TABLE']
+  source = ['imported', 'query_history']
+  lowFrequency = {
+    frequency_time_window: '',
+    low_frequency_threshold: 0
+  }
+  checkedStatus = []
+  sourceCheckedStatus = []
+  selectedList = []
+  showIndexDetail = false
+  detailData = []
+  currentIndex = null
+  accessLoading = false
+  validateData = {}
+  showValidate = false
+  isLoading = false
+  rules = {
+    name: [{validator: this.validateName, trigger: 'blur'}]
+  }
+
+  get emptyText () {
+    return this.$t('kylinLang.common.noData')
+  }
+
+  get getRecommendData () {
+    let data = this.recommendationsList.list
+    if (this.checkedStatus.length) {
+      data = data.filter(it => this.checkedStatus.includes(it.type))
+    }
+    if (this.sourceCheckedStatus.length) {
+      data = data.filter(it => this.sourceCheckedStatus.includes(it.source))
+    }
+    return data
+  }
+
+  get indexDetailTitle () {
+    return this.currentIndex ? this.currentIndex.type.split('_')[1] === 'AGG' ? this.$t('aggDetailTitle') : this.$t('tableDetailTitle') : ''
+  }
+
+  created () {
+    this.getRecommendations()
+  }
+
+  mounted () {
+  }
+
+  validateName (rule, value, callback) {
+    const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
+    if (!value) {
+      callback(new Error(this.$t('requiredName')))
+    } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 1) {
+      callback(new Error(this.$t('sameName')))
+    }
+  }
+
+  renderHeaderCol (h, { column, index }) {
+    return <span class="used-count">
+      {this.$t('th_useCount')}
+      <el-tooltip content={ this.$t('usedCountTip') } effect="dark" placement="top">
+        <span class="icon el-icon-ksd-what ksd-ml-5"></span>
+      </el-tooltip>
+    </span>
+  }
+
+  onSortChange () {
+
+  }
+
+  async acceptLayout () {
+    this.showIndexDetail = false
+    await this.confrim([this.currentIndex.item_id])
+  }
+
+  handleSelectionChange (val) {
+    this.selectedList = val
+  }
+
+  // 展示优化建议详情
+  showDetail (row) {
+    this.showIndexDetail = true
+    this.currentIndex = row
+    this.getRecommendDetails({
+      project: this.currentProject,
+      modelId: this.modelDesc.uuid,
+      id: row.item_id
+    }).then(async (res) => {
+      let data = await handleSuccessAsync(res)
+      this.detailData = [...data.column_items.map(it => ({...it, type: 'cc'})), ...data.dimension_items.map(it => ({...it, type: 'dimension'})), ...data.measure_items.map(it => ({...it, type: 'measure'}))]
+    }).catch(e => {
+      handleError(e)
+    })
+  }
+
+  // 获取优化建议
+  getRecommendations () {
+    this.getAllRecommendations({project: this.currentProject, modelId: this.modelDesc.uuid}).then(async (res) => {
+      const data = await handleSuccessAsync(res)
+      this.recommendationsList.list = data.layouts
+    }).catch(e => {
+      handleError(e)
+    })
+  }
+
+  // 批量删除
+  betchDelete () {
+    let ids = []
+    let legacy_ids = []
+    this.selectedList.forEach(item => {
+      if (item.type.split('_')[0] === 'ADD') {
+        ids.push(item.item_id)
+      } else {
+        legacy_ids.push(item.item_id)
+      }
+    })
+    this.removeApi(ids, legacy_ids)
+  }
+
+  // 删除优化建议
+  removeIndex (row) {
+    let ids = []
+    let legacy_ids = []
+    row.type.split('_')[0] === 'ADD' ? ids.push(row.item_id) : legacy_ids.push(row.item_id)
+    this.removeApi(ids, legacy_ids)
+  }
+
+  async removeApi (ids, legacy_ids) {
+    await this.$confirm(this.$t('deleteRecommendTip'), this.$t('deleteTitle'), {
+      confirmButtonText: this.$t('delete')
+    })
+    this.deleteRecommendations({
+      project: this.currentProject,
+      modelId: this.modelDesc.uuid,
+      ids: ids.join(','),
+      legacy_ids: legacy_ids.join(',')
+    }).then(async (res) => {
+      await handleSuccessAsync(res)
+      this.$message({
+        type: 'success',
+        message: this.$t('deleteSuccess')
+      })
+      this.getRecommendations()
+    }).catch(e => {
+      handleError(e)
+    })
+  }
+
+  // 批量通过
+  betchAccept () {
+    this.confrim(this.selectedList.map(it => it.item_id))
+  }
+
+  // 通过优化建议
+  confrim (ids) {
+    this.validateRecommend({
+      project: this.currentProject,
+      modelId: this.modelDesc.uuid,
+      ids
+    }).then(async (res) => {
+      let data = await handleSuccessAsync(res)
+      let { layout_item_ids, column_items, dimension_items, measure_items } = data
+      if (column_items.length + dimension_items.length + measure_items.length > 0) {
+        this.showValidate = true
+        this.validateData = {
+          layout_item_ids,
+          list: [...column_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, type: 'dimension'})), ...measure_items.map(it => ({...it, type: 'measure'}))]
+        }
+      } else {
+        this.validateData = {layout_item_ids, list: []}
+        const ids = this.recommendationsList.list.filter(it => ids.includes(it.item_id) && it.version === 2)
+        const legacy_ids = this.recommendationsList.list.filter(it => ids.includes(it.item_id) && it.version === 1)
+        this.accessApi(ids, legacy_ids)
+      }
+    }).catch((e) => {
+      handleError(e)
+    })
+  }
+
+  // 添加更名后的layout
+  addLayout () {
+    let names = {}
+    const ids = this.recommendationsList.list.filter(it => this.validateData.layout_item_ids.includes(it.item_id) && it.version === 2)
+    const legacy_ids = this.recommendationsList.list.filter(it => this.validateData.layout_item_ids.includes(it.item_id) && it.version === 1)
+    this.isLoading = true
+    this.validateData.list.forEach(item => {
+      names[item.item_id] = item.name
+    })
+    this.accessApi(ids, legacy_ids, names).then(() => {
+      this.isLoading = false
+      this.showValidate = false
+    })
+  }
+
+  async accessApi (ids, legacy_ids, names) {
+    return new Promise((resolve, reject) => {
+      this.accessRecommendations({
+        project: this.currentProject,
+        modelId: this.modelDesc.uuid,
+        ids: ids.map(item => item.item_id),
+        legacy_ids: legacy_ids.map(item => item.item_id),
+        names
+      }).then(async (res) => {
+        try {
+          await handleSuccessAsync(res)
+          let acceptIndexs = () => {
+            return {
+              add: [...ids, ...legacy_ids].filter(item => item.type.split('_')[0] === 'ADD').length,
+              del: [...ids, ...legacy_ids].filter(item => item.type.split('_')[0] === 'REMOVE').length
+            }
+          }
+          this.$message({
+            type: 'success',
+            message: <span>{acceptIndexs().add > 0 && acceptIndexs().del > 0
+             ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs().add, delLength: acceptIndexs().del})
+              : acceptIndexs().add > 0 ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs().add})
+               : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a>{
+                 (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.$t('buildIndex')
+               }</a></span>
+          })
+          this.getRecommendations()
+          resolve()
+        } catch (e) {
+          reject()
+        }
+      }).catch(e => {
+        handleError(e)
+        reject()
+      })
+    })
+  }
+
+  // 删除索引备注hover提示
+  removeReasonTip (data) {
+    const timeMap = {
+      'MONTH': {'zh-cn': '一个月', 'en': 'month'},
+      'DAY': {'zh-cn': '一天', 'en': 'day'},
+      'WEEK': {'zh-cn': '一周', 'en': 'week'}
+    }
+    const reason = {
+      'LOW_FREQUENCY': this.$t('usage_time_tip', {date: this.lowFrequency.frequency_time_window && timeMap[this.lowFrequency.frequency_time_window][this.$store.state.system.lang], time: this.lowFrequency.low_frequency_threshold}),
+      'INCLUDED': this.$t('exist_index_tip'),
+      'SIMILAR': this.$t('similar_index_tip')
+    }
+    return reason[data.row.info.remove_reason]
+  }
+
+  // 筛选类型来源
+  filterType (v, type) {
+    type === 'checkedStatus' ? (this.checkedStatus = v) : (this.sourceCheckedStatus = v)
+  }
+
+  pageCurrentChange (val) {
+    this.recommendationsList.page_offset = val
+  }
+
+  jumpToSetting () {
+    this.$router.push({path: '/setting', query: {moveTo: 'index-suggest-setting'}})
+  }
+}
+</script>
+
+<style lang="less">
+.el-card.recommendations-card {
+  border: none;
+
+  .el-card__header {
+    background: none;
+    border-bottom: none;
+    height: 24px;
+    font-size: 14px;
+    padding: 0px;
+    margin-bottom: 5px;
+  }
+  .el-card__body {
+    padding: 0 !important;
+  }
+  .title-tip {
+    color: #5C5C5C;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+  }
+}
+.layout-details {
+  .el-dialog__body {
+    max-height: 400px;
+    overflow: auto;
+  }
+}
+</style>

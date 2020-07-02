@@ -1,109 +1,126 @@
 <template>
   <div class="model-aggregate ksd-mb-15" v-if="model" v-loading="isLoading">
     <div class="aggregate-view">
-      <el-row :gutter="10">
-        <el-col :span="12">
-          <el-card class="agg-detail-card agg_index">
-            <div slot="header" class="clearfix">
-              <div class="left font-medium">
-                <span>{{$t('aggregateIndexTree')}}</span>
-                <el-tooltip :content="$t('treemapTips')" placement="left">
-                  <i class="el-icon-ksd-what"></i>
-                </el-tooltip>
-              </div>
+      <div class="aggregate-tree-map" :style="{width: `${moveEvent.w}%`}">
+        <el-card class="agg-detail-card agg_index">
+          <div slot="header" class="clearfix">
+            <div class="left font-medium">
+              <span>{{$t('aggregateIndexTree')}}</span>
+              <el-tooltip :content="$t('treemapTips')" placement="left">
+                <i class="el-icon-ksd-what"></i>
+              </el-tooltip>
             </div>
-            <div class="agg-counter ksd-fs-12">
-              <div>
-                <span>{{$t('aggregateAmount')}}</span>
-                <span>{{cuboidCount}}</span>
-                <span class="divide"></span>
-                <span>{{$t('emptyAggregate')}}</span>
-                <span>{{emptyCuboidCount}}</span>
-              </div>
+          </div>
+          <div class="agg-counter ksd-fs-12">
+            <div>
+              <span>{{$t('aggregateAmount')}}</span>
+              <span>{{cuboidCount}}</span>
+              <span class="divide"></span>
+              <span>{{$t('emptyAggregate')}}</span>
+              <span>{{emptyCuboidCount}}</span>
             </div>
-            <kap-empty-data v-if="cuboidCount === 0 || noDataNum === 0" size="small"></kap-empty-data>
-            <TreemapChart
-              v-else
-              :data="cuboids"
-              :search-id="filterArgs.key"
-              :idTag="model.uuid"
-              @searchId="handleClickNode"/>
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card class="agg-detail-card agg-detail">
-            <div slot="header" class="clearfix">
-              <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
-              <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
-                <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
-                <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
-                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
-              <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
-              </div>
+          </div>
+          <kap-empty-data v-if="cuboidCount === 0 || noDataNum === 0" size="small"></kap-empty-data>
+          <TreemapChart
+            v-else
+            :data="cuboids"
+            :search-id="filterArgs.key"
+            :idTag="model.uuid"
+            ref="indexTreeMap"
+            @searchId="handleClickNode"/>
+        </el-card>
+        <div class="drag-bar ky-drag-layout-bar" @mousedown="handlerDownEvent">||</div>
+      </div>
+      <div class="index-group" :style="{width: `calc(${100 - moveEvent.w}% - 10px)`}">
+        <div class="btn-groups">
+          <el-button-group>
+            <el-button plain size="mini" icon="el-icon-ksd-login_intro" @click="switchIndexValue = 0" :class="{'active': switchIndexValue === 0}">{{$t('indexListBtn')}}</el-button>
+            <el-button plain size="mini" icon="el-icon-ksd-status" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" @click="switchIndexValue = 1" :class="{'active': switchIndexValue === 1}">{{$t('recommendationsBtn')}}</el-button>
+          </el-button-group>
+        </div>
+        <el-card class="agg-detail-card agg-detail" v-if="switchIndexValue === 0">
+          <div slot="header" class="clearfix">
+            <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
+            <!-- <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
+              <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
+                <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+            <div class="right fix">
+              <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+            </div> -->
+          </div>
+          <div class="detail-content" v-loading="indexLoading">
+            <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
+              {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
             </div>
-            <div class="detail-content" v-loading="indexLoading">
-              <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
-                {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
-              </div>
-              <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
-                {{$t('dataRange')}}: {{getDataRange}}
-              </div>
-              <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button>
-              <div class="filter-tags-agg" v-show="filterTags.length">
-                <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
-                <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
-              </div>
-              <el-table
-                nested
-                border
-                :data="indexDatas"
-                class="indexes-table"
-                size="medium"
-                :empty-text="emptyText"
-                @sort-change="onSortChange"
-                @selection-change="handleSelectionChange"
-                :row-class-name="tableRowClassName">
-                <el-table-column type="selection" width="44"></el-table-column>
-                <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
-                <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
-                  <template slot-scope="scope">
-                    {{scope.row.data_size | dataSize}}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="usage" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
-                <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
-                  <template slot-scope="scope">
-                    <span>{{$t(scope.row.source)}}</span>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
-                  <template slot-scope="scope">
-                    <span>{{$t(scope.row.status)}}</span>
-                  </template>
-                </el-table-column>
-                <el-table-column :label="$t('kylinLang.common.action')" width="83">
-                  <template slot-scope="scope">
-                    <common-tip :content="$t('viewDetail')">
-                      <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
-                    </common-tip>
-                    <common-tip :content="$t('editIndex')" v-if="datasourceActions.includes('editAggGroup')">
-                      <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
-                    </common-tip>
-                    <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
-                      <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
-                    </common-tip>
-                  </template>
-                </el-table-column>
-              </el-table>
-              <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+            <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
+              {{$t('dataRange')}}: {{getDataRange}}
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+            <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button>
+            <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
+              <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
+                <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+            <div class="right fix">
+              <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+            </div>
+            <div class="filter-tags-agg" v-show="filterTags.length">
+              <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
+              <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
+            </div>
+            <el-table
+              nested
+              border
+              :data="indexDatas"
+              class="indexes-table"
+              size="medium"
+              :empty-text="emptyText"
+              @sort-change="onSortChange"
+              @selection-change="handleSelectionChange"
+              :row-class-name="tableRowClassName">
+              <el-table-column type="selection" width="44"></el-table-column>
+              <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
+              <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
+                <template slot-scope="scope">
+                  {{scope.row.data_size | dataSize}}
+                </template>
+              </el-table-column>
+              <el-table-column prop="usage" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
+              <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
+                <template slot-scope="scope">
+                  <span>{{$t(scope.row.source)}}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
+                <template slot-scope="scope">
+                  <span>{{$t(scope.row.status)}}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('kylinLang.common.action')" width="83">
+                <template slot-scope="scope">
+                  <common-tip :content="$t('viewDetail')">
+                    <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                  </common-tip>
+                  <common-tip :content="$t('editIndex')" v-if="datasourceActions.includes('editAggGroup')">
+                    <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
+                  </common-tip>
+                  <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
+                    <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
+                  </common-tip>
+                </template>
+              </el-table-column>
+            </el-table>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          </div>
+        </el-card>
+        <recommendations :modelDesc="model" v-else/>
+      </div>
     </div>
 
     <el-dialog class="lincense-result-box"
@@ -192,6 +209,7 @@ import { BuildIndexStatus } from '../../../../../config/model'
 // import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
 import { formatGraphData } from './handler'
 import NModel from '../../ModelEdit/model.js'
+import Recommendations from './sub/recommendations'
 
 @Component({
   props: {
@@ -258,7 +276,8 @@ import NModel from '../../ModelEdit/model.js'
   },
   components: {
     FlowerChart,
-    TreemapChart
+    TreemapChart,
+    Recommendations
     // AggregateModal
     // AggAdvancedModal,
     // TableIndexEdit
@@ -300,6 +319,11 @@ export default class ModelAggregate extends Vue {
   filterTags = []
   checkedList = []
   removeLoading = false
+  moveEvent = {
+    w: 50,
+    curW: 50
+  }
+  switchIndexValue = 0
   // 打开高级设置
   // openAggAdvancedModal () {
   //   this.callAggAdvancedModal({
@@ -565,6 +589,7 @@ export default class ModelAggregate extends Vue {
     return { modifiedTime, cuboidContent }
   }
   async handleClickNode (id) {
+    this.switchIndexValue = 0
     this.filterArgs.key = id
     this.indexLoading = true
     await this.loadAggIndices()
@@ -677,6 +702,25 @@ export default class ModelAggregate extends Vue {
     this.filterTags = []
     this.filterSouces()
   }
+
+  handlerDownEvent (e) {
+    this.moveEvent.downX = e.clientX
+    document.addEventListener('mousemove', this.handlerMoveEvent)
+    document.addEventListener('mouseup', this.handlerUpEvent)
+  }
+
+  handlerMoveEvent (e) {
+    let tarX = e.clientX
+    let viewParent = this.$el.querySelector('.aggregate-view').getBoundingClientRect()
+    this.moveEvent.w = (this.moveEvent.curW / 100 * viewParent.width + tarX - this.moveEvent.downX) / viewParent.width * 100
+    this.$refs.indexTreeMap && this.$refs.indexTreeMap.myChart.resize()
+  }
+
+  handlerUpEvent () {
+    this.moveEvent.curW = this.moveEvent.w
+    document.removeEventListener('mousemove', this.handlerMoveEvent)
+    document.removeEventListener('mouseup', this.handlerUpEvent)
+  }
 }
 </script>
 
@@ -686,8 +730,31 @@ export default class ModelAggregate extends Vue {
 .model-aggregate {
   .aggregate-view {
     background-color: @fff;
-    padding: 10px;
+    // padding: 10px;
     border: 1px solid @line-border-color4;
+    // display: flex;
+    .aggregate-tree-map {
+      position: relative;
+      display: inline-block;
+      vertical-align: top;
+    }
+    .index-group {
+      padding: 15px 20px;
+      box-sizing: border-box;
+      position: relative;
+      display: inline-block;
+      vertical-align: top;
+      .btn-groups {
+        position: absolute;
+        right: 20px;
+        .active {
+          color: #5C5C5C;
+          // box-shadow:1px 1px 2px 0px rgba(204,204,204,1);
+          background:rgba(244,244,244,1);
+          border:1px solid rgba(204,204,204,1);
+        }
+      }
+    }
   }
   .el-button-group .el-button--primary:last-child {
     border-left-color: @base-color;
@@ -757,6 +824,12 @@ export default class ModelAggregate extends Vue {
   .align-left {
     text-align: left;
   }
+  .drag-bar {
+    right: 0;
+    top: 50%;
+    transform: translate(50%, -50%);
+    cursor: ew-resize;
+  }
   .agg-detail-card {
     height: 496px;
     border: none;
@@ -767,11 +840,12 @@ export default class ModelAggregate extends Vue {
       height: 24px;
       font-size: 14px;
       padding: 0px;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     &.agg_index {
       border-right: 1px solid @line-border-color;
-      padding-right: 10px;
+      padding-right: 20px;
+      padding: 15px 20px;
       .el-card__body {
         overflow: hidden;
       }
@@ -802,7 +876,7 @@ export default class ModelAggregate extends Vue {
       display: block;
       float: left;
       position: relative;
-      top: 8px;
+      // top: 8px;
       &.fix {
         width: 130px;
       }

@@ -139,6 +139,7 @@
                       :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
                       :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
                       @loadModels="loadModelsList"
+                      ref="modelAggregateItem"
                       v-if="props.row.tabTypes === 'second'" />
                   </el-tab-pane>
                   <el-tab-pane v-if="datasourceActions.includes('editAggGroup')" :label="$t('aggregateGroup')" name="third">
@@ -208,12 +209,12 @@
               :disabled="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">
               <div class="recommend" slot="reference">
                 <i class="el-icon-ksd-status" />
-                <span class="recommend-count" @click="openRecommendDialog(scope.row)">
+                <span class="recommend-count" @click="openRecommendDialog(scope)">
                   <b>{{scope.row.recommendations_count || 0}}</b>
                 </span>
               </div>
               <span>{{$t('recommendations_c')}}</span>
-              <span class="recommend-link" @click="openRecommendDialog(scope.row)">{{$t('clickToView')}}</span>
+              <span class="recommend-link" @click="openRecommendDialog(scope)">{{$t('clickToView')}}</span>
             </el-popover>
           </template>
         </el-table-column>
@@ -303,7 +304,7 @@
                 <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge')">
-                <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
+                <el-dropdown @command="(command) => {handleCommand(command, scope.row, scope)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-14"></i>
                   </span>
@@ -634,8 +635,8 @@ export default class ModelList extends Vue {
     localStorage.setItem('hideBuildTips', true)
   }
   setRowClass (res) {
-    const {row} = res
-    return 'visible' in row && !row.visible ? 'no-authority-model' : ''
+    const {row, rowIndex} = res
+    return 'visible' in row && !row.visible ? `model_list_row_${rowIndex} no-authority-model` : `model_list_row_${rowIndex}`
   }
   get emptyText () {
     return this.filterArgs.model_alias_or_owner ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -790,13 +791,23 @@ export default class ModelList extends Vue {
       this.$refs.modelListTable.toggleRowExpansion(item)
     })
   }
-  async openRecommendDialog (modelDesc) {
+  async openRecommendDialog (scope) {
+    const modelDesc = scope.row
     if (modelDesc.status !== 'BROKEN' && ('visible' in modelDesc && modelDesc.visible)) {
-      const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
-      isSubmit && this.loadModelsList()
+      // const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
+      // isSubmit && this.loadModelsList()
+      this.$refs.modelListTable.toggleRowExpansion(modelDesc, true)
+      modelDesc.tabTypes = 'second'
+      this.$nextTick(() => {
+        // this.$set(this, 'showRecommand', true)
+        this.$refs.modelAggregateItem.switchIndexValue = 1
+        setTimeout(() => {
+          this.scrollViewArea(scope.$index)
+        }, 200)
+      })
     }
   }
-  async handleCommand (command, modelDesc) {
+  async handleCommand (command, modelDesc, scope) {
     if (command === 'dataCheck') {
       this.checkModelData({
         modelDesc: modelDesc
@@ -806,7 +817,16 @@ export default class ModelList extends Vue {
         }
       })
     } else if (command === 'recommendations') {
-      this.openRecommendDialog(modelDesc)
+      // this.openRecommendDialog(modelDesc)
+      this.$refs.modelListTable.toggleRowExpansion(modelDesc, true)
+      modelDesc.tabTypes = 'second'
+      this.$nextTick(() => {
+        // this.$set(this, 'showRecommand', true)
+        this.$refs.modelAggregateItem.switchIndexValue = 1
+        setTimeout(() => {
+          this.scrollViewArea(scope.$index)
+        }, 200)
+      })
     } else if (command === 'dataLoad') {
       this.getModelByModelName({model_name: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
@@ -1155,6 +1175,12 @@ export default class ModelList extends Vue {
       <i class={['filter-status', value]} />,
       <span>{value}</span>
     ]
+  }
+
+  // 模型展开自动滚动到可视区域
+  scrollViewArea (index) {
+    const scrollDom = this.$el.querySelector(`.model_list_row_${index}`)
+    scrollDom.nextSibling.querySelector('.aggregate-view').scrollIntoView({block: 'center', inline: 'nearest', behavior: 'smooth'})
   }
 }
 </script>

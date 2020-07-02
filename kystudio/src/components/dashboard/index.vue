@@ -92,7 +92,8 @@
             <empty-data :showImage="false" v-show="!projectCapacity" />
           </div>
         </el-col>
-        <el-col :span="8">
+        <!-- 新版优化建议去除加速引擎相关内容 -->
+        <!-- <el-col :span="8">
           <div class="dash-card">
             <div class="cart-title clearfix">
               <span>{{$t('acceImpact')}}
@@ -105,7 +106,7 @@
             </div>
             <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
           </div>
-        </el-col>
+        </el-col> -->
       </el-row>
       <div class="clearfix ksd-mb-10 ksd-mt-20">
         <div class="ksd-fleft">

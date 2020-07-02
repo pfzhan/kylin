@@ -276,5 +276,24 @@ export default {
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
     const responseType = 'blob' || 'arraybuffer'
     return window.kapVm.$http.post(`/kylin/api/metastore/backup/models?project=${para.project}`, body, { emulateJSON: true }, { headers }, { responseType })
+  },
+  // 获取所有优化建议
+  getRecommendations (para) {
+    return Vue.resource(apiUrl + `recommendations/${para.modelId}`).get(para)
+  },
+  // 删除优化建议
+  deleteRecommendations (para) {
+    return Vue.resource(apiUrl + `recommendations/${para.modelId}`).delete(para)
+  },
+  // 通过优化建议
+  accectRecommendations (para) {
+    return window.kapVm.$http.post(apiUrl + `recommendations/${para.modelId}`, para)
+  },
+  // 获取优化建议详情
+  getRecommendDetails (para) {
+    return Vue.resource(apiUrl + `recommendations/${para.modelId}/${para.id}`).get(para)
+  },
+  validateRecommend (para) {
+    return window.kapVm.$http.post(apiUrl + `recommendations/${para.modelId}/validation`, para)
   }
 }

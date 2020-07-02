@@ -234,6 +234,12 @@ export default {
     },
     [types.UPDATE_INDEX_OPTIMIZATION]: function ({ commit }, para) {
       return api.project.updateIndexOptimization(para)
+    },
+    [types.GET_FAVORITE_RULES]: function (_, para) {
+      return api.project.getFavoriteRules(para)
+    },
+    [types.UPDATE_FAVORITE_RULES]: function (_, para) {
+      return api.project.updateFavoriteRules(para)
     }
   },
   getters: {

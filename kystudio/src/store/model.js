@@ -334,6 +334,21 @@ export default {
     },
     [types.UPDATE_MODEL_OWNER] ({ commit }, params) {
       return api.model.updateModelOwner(params)
+    },
+    [types.GET_ALL_RECOMMENDATIONS] (_, params) {
+      return api.model.getRecommendations(params)
+    },
+    [types.DELETE_RECOMMENDATIONS] (_, params) {
+      return api.model.deleteRecommendations(params)
+    },
+    [types.ACCESS_RECOMMENDATIONS] (_, params) {
+      return api.model.accectRecommendations(params)
+    },
+    [types.GET_RECOMMEND_DETAILS] (_, params) {
+      return api.model.getRecommendDetails(params)
+    },
+    [types.VALIDATE_RECOMMEND] (_, params) {
+      return api.model.validateRecommend(params)
     }
   },
   getters: {

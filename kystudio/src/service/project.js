@@ -115,5 +115,13 @@ export default {
   },
   updateIndexOptimization (data) {
     return Vue.resource(apiUrl + 'projects/' + data.project + '/garbage_cleanup_config').update(data)
+  },
+  // 获取加速规则
+  getFavoriteRules (data) {
+    return Vue.resource(apiUrl + `projects/${data.project}/favorite_rules`).get(data)
+  },
+  // 更新加速规则
+  updateFavoriteRules (data) {
+    return Vue.resource(apiUrl + `projects/${data.project}/favorite_rules`).update(data)
   }
 }
