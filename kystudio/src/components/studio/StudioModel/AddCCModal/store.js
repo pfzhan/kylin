@@ -10,8 +10,10 @@ const initialState = JSON.stringify({
   isShow: false,
   callback: null,
   form: {
-    modelInstance: null
-  }
+    modelInstance: null,
+    currentCCForm: null
+  },
+  editCC: false
 })
 export default {
   // state深拷贝
@@ -27,7 +29,11 @@ export default {
     },
     [types.SET_MODAL_FORM]: (state, payload) => {
       state.callback = payload.callback
-      state.form.modelInstance = payload.modelInstance
+      state.form = {
+        modelInstance: payload.modelInstance,
+        currentCCForm: payload.ccForm
+      }
+      state.editCC = payload.editCC
     },
     [types.RESET_MODAL_FORM]: state => {
       state.form = JSON.parse(initialState).form
@@ -36,7 +42,7 @@ export default {
   actions: {
     [types.CALL_MODAL] ({ commit }, data) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL_FORM, {callback: resolve, modelInstance: data.modelInstance})
+        commit(types.SET_MODAL_FORM, {callback: resolve, modelInstance: data.modelInstance, ccForm: data.ccForm || null, editCC: data.editCC || false})
         commit(types.SHOW_MODAL)
       })
     }

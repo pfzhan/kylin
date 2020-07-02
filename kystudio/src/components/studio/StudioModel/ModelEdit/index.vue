@@ -309,7 +309,7 @@
                     <span v-else>{{m.columnName}}</span>
                     <span class="icon-group">
                       <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(m.columnName)"></i></span>
-                      <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
+                      <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editCC(m)"></i></span>
                       <span class="li-type ky-option-sub-info">{{m.datatype && m.datatype.toLocaleLowerCase()}}</span>
                     </span>
                   </span>
@@ -1018,9 +1018,14 @@ export default class ModelEdit extends Vue {
   delCC (name) {
     this.modelInstance.delCC(name)
   }
-  showCCDetail (cc) {
-    this.showCCDetailDialog({
-      ccDetail: cc
+  editCC (cc) {
+    // this.showCCDetailDialog({
+    //   ccDetail: cc
+    // })
+    this.showAddCCDialog({
+      modelInstance: this.modelInstance,
+      ccForm: cc,
+      editCC: true
     })
   }
   toggleCheckAllCC () {

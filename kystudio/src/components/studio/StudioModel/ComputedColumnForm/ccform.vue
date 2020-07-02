@@ -4,7 +4,7 @@
   <el-form :model="ccObject" :class="{'editCC': !isEdit, 'cc-block': !isPureForm}" label-position="top" :rules="ccRules" ref="ccForm">
     <el-form-item prop="columnName" class="ksd-mb-10 ksd-mt-10">
       <span slot="label">{{$t('columnName')}}: <el-tooltip :content="ccObject.columnName" effect="dark" placement="top"><span v-show="!isEdit" class="column-name">{{ccObject.columnName}}</span></el-tooltip></span>
-      <el-input class="measures-width" size="medium" v-model="ccObject.columnName" v-if="isEdit" @blur="upperCaseCCName"></el-input>
+      <el-input class="measures-width" size="medium" v-model="ccObject.columnName" :disabled="isEdited" v-if="isEdit" @blur="upperCaseCCName"></el-input>
     </el-form-item>
     <el-form-item prop="datatype" class="ksd-mb-10" v-if="!isEdit">
       <span slot="label">{{$t('returnType')}}<span>: {{ccObject.datatype}}</span></span>
@@ -15,7 +15,7 @@
       </kap-editor>
     </el-form-item>
     <div class="ky-sql-check-msg" v-if="errorMsg">
-      <div class="ky-error-title">Error Messgae:</div>
+      <div class="ky-error-title">Error Message:</div>
       <div class="ky-error-content">{{errorMsg}}</div>
     </div>
     <div class="btn-group clearfix ksd-mt-6">
@@ -36,7 +36,7 @@ import { objectClone } from 'util/index'
 import { modelErrorMsg } from '../ModelEdit/config'
 import { NamedRegex } from 'config'
 @Component({
-  props: ['isShow', 'ccDesc', 'modelInstance', 'isPureForm'],
+  props: ['isShow', 'ccDesc', 'modelInstance', 'isPureForm', 'currentCCForm', 'isEdited'],
   computed: {
     ...mapGetters([
       'currentSelectedProject'
@@ -79,7 +79,7 @@ export default class CCForm extends Vue {
     if (/^\d|^_+/.test(value) || !NamedRegex.test(value.toUpperCase())) {
       return callback(new Error(this.$t('numberNameFormatValidTip')))
     }
-    if (!this.modelInstance.checkSameCCName(value.toUpperCase())) {
+    if (!this.isEdited && !this.modelInstance.checkSameCCName(value.toUpperCase())) {
       return callback(new Error(this.$t('sameName')))
     }
     callback()
@@ -141,28 +141,37 @@ export default class CCForm extends Vue {
           kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
           return
         }
-        this.checkRemoteCC((data) => {
-          this.ccObject.table_guid = factTable.guid
-          // 由后台推荐的datatype
-          this.ccObject.datatype = data.datatype
-          if (this.ccObject.guid) {
-            this.modelInstance.editCC(this.ccObject).then((cc) => {
-              this.$emit('saveSuccess', cc)
-              this.isEdit = false
-            }, () => {
-              this.$emit('saveError')
-              kapMessage(this.$t('sameName'), { type: 'warning' })
-            })
-          } else {
-            this.modelInstance.addCC(this.ccObject).then((cc) => {
-              this.$emit('saveSuccess', cc)
-              this.isEdit = false
-            }, () => {
-              this.$emit('saveError')
-              kapMessage(this.$t('sameName'), { type: 'warning' })
-            })
-          }
-        })
+        if (this.isEdited) {
+          this.modelInstance.editCC(this.ccObject).then((cc) => {
+            this.$emit('saveSuccess', cc)
+            this.isEdit = false
+          }, () => {
+            this.$emit('saveError')
+          })
+        } else {
+          this.checkRemoteCC((data) => {
+            this.ccObject.table_guid = factTable.guid
+            // 由后台推荐的datatype
+            this.ccObject.datatype = data.datatype
+            if (this.ccObject.guid) {
+              this.modelInstance.editCC(this.ccObject).then((cc) => {
+                this.$emit('saveSuccess', cc)
+                this.isEdit = false
+              }, () => {
+                this.$emit('saveError')
+                kapMessage(this.$t('sameName'), { type: 'warning' })
+              })
+            } else {
+              this.modelInstance.addCC(this.ccObject).then((cc) => {
+                this.$emit('saveSuccess', cc)
+                this.isEdit = false
+              }, () => {
+                this.$emit('saveError')
+                kapMessage(this.$t('sameName'), { type: 'warning' })
+              })
+            }
+          })
+        }
       } else {
         this.$emit('saveError')
       }
@@ -202,6 +211,9 @@ export default class CCForm extends Vue {
     this.initCCDesc()
     let data = this.modelInstance.getTableColumns()
     this.setAutoCompleteData(data)
+    if (this.currentCCForm) {
+      this.ccObject = {...this.ccObject, ...this.currentCCForm}
+    }
   }
 }
 </script>

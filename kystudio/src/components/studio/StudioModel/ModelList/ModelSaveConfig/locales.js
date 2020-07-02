@@ -34,7 +34,9 @@ export default {
     fullLoad: 'Full Load',
     incrementalTips: 'The system can incrementally load data based on the partition column you choose.',
     fullLoadTips: 'The system will load all data.',
-    changeBuildTypeTips: 'Please note that modifying the load method will clear all segments'
+    changeBuildTypeTips: 'Please note that modifying the load method will clear all segments',
+    editCCBuildTip: 'The modified expression of computed column would be effective until all the related indexes have been built. Do you want to save and build index now? ',
+    saveAndBuild: 'Save and Build'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -71,6 +73,8 @@ export default {
     fullLoad: '全量加载',
     incrementalTips: '系统可以根据您选择的分区列，增量加载数据。',
     fullLoadTips: '系统会全量加载所有数据。',
-    changeBuildTypeTips: '请注意，修改加载方式，会清空所有 Segment'
+    changeBuildTypeTips: '请注意，修改加载方式，会清空所有 Segment',
+    editCCBuildTip: '修改的可计算列表达式需待索引构建完成后生效。是否继续保存并构建索引？',
+    saveAndBuild: '保存并构建'
   }
 }

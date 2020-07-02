@@ -440,11 +440,29 @@ export default class ModelPartitionModal extends Vue {
         checkData.partition_desc = null
       }
       this.checkFilterConditon(checkData).then((res) => {
-        handleSuccess(res, async () => {
+        handleSuccess(res, async (data) => {
           // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
           // await handleWaiting()
-          this.handleClose(true)
-          this.isLoadingSave = false
+          if ('rebuild_index' in data && data.rebuild_index) {
+            this.$confirm(this.$t('editCCBuildTip'), this.$t('kylinLang.common.notice'), {
+              confirmButtonText: this.$t('saveAndBuild'),
+              cancelButtonText: this.$t('modelSaveSet'),
+              showClose: false,
+              closeOnClickModal: false,
+              closeOnPressEscape: false,
+              type: 'warning'
+            }).then(() => {
+              this.handleClose(true)
+              this.isLoadingSave = false
+            }).catch(() => {
+              this.modelDesc.save_only = true
+              this.handleClose(true)
+              this.isLoadingSave = false
+            })
+          } else {
+            this.handleClose(true)
+            this.isLoadingSave = false
+          }
         })
       }, (errorRes) => {
         this.filterErrorMsg = errorRes.data.msg

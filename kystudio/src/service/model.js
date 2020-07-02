@@ -245,7 +245,7 @@ export default {
     return Vue.resource(apiUrl + 'models/can_answered_by_existed_model').save(para)
   },
   checkFilterConditon: (para) => {
-    return Vue.resource(apiUrl + 'models/filter_condition/check').save(para)
+    return Vue.resource(apiUrl + 'models/model_save/check').save(para)
   },
   getIndexDiff: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap) => {
     return Vue.resource(apiUrl + 'index_plans/rule_based_index_diff').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap })

@@ -259,6 +259,7 @@ exports.default = {
     computedLinkLimit: '可计算列不能作为连接条件。',
     columnName: '列名',
     addCC: '添加可计算列',
+    editCC: '编辑可计算列',
     ccRules: '可计算列的规则：',
     ccRules1: '1. 同一项目下，可计算列的名字与表达式唯一对应；',
     ccRules2: '2. 不同模型间，可在相同的模型结构上复用已有的可计算列；',
