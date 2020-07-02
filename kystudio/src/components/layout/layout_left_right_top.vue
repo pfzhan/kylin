@@ -416,7 +416,7 @@ export default class LayoutLeftRightTop extends Vue {
     this.setGlobalMask(this.isAdminView ? 'leaveAdmin' : 'enterAdmin')
     await delayMs(1700)
     if (this.isAdminView) {
-      const nextLocation = this.cachedHistory ? this.cachedHistory : '/'
+      const nextLocation = this.cachedHistory ? this.cachedHistory : '/dashboard'
       this.isAnimation = true
       this.$router.push(nextLocation)
       setTimeout(() => {

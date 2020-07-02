@@ -126,7 +126,11 @@ let routerOptions = {
       },
       {
         path: '*',
-        redirect: '/404'
+        // redirect: '/404',
+        beforeEnter: (to, from, next) => {
+          if (to.path === '/') next('/dashboard')
+          else next('/404')
+        }
       }]
     }
   ]

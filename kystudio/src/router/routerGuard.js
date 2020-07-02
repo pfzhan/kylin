@@ -21,11 +21,11 @@ export function bindRouterGuard (router) {
       store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashboard'
       // 确保在非点击菜单的路由跳转下还能够正确定位到指定的active name
       menusData.forEach((menu) => {
-        if (menu.name.toLowerCase() === to.name.toLowerCase()) {
+        if (to.name && menu.name.toLowerCase() === to.name.toLowerCase()) {
           store.state.config.routerConfig.currentPathName = menu.path
         } else if (menu.children) {
           menu.children.forEach((subMenu) => {
-            if (subMenu.name.toLowerCase() === to.name.toLowerCase()) {
+            if (to.name && subMenu.name.toLowerCase() === to.name.toLowerCase()) {
               store.state.config.routerConfig.currentPathName = subMenu.path
             }
           })
@@ -57,9 +57,9 @@ export function bindRouterGuard (router) {
         let auth = to.name && availableMenus.includes(to.name.toLowerCase())
 
         // 判断是否有路由权限，无权限或没有打开智能推荐跳至 /noAuthority 页面
-        if (!['noauthority', 'refresh', '404'].includes(to.name.toLowerCase()) && !auth) {
+        if (to.name && !['noauthority', 'refresh', '404'].includes(to.name.toLowerCase()) && !auth) {
           next({path: '/noAuthority', query: {resouce: 'isNoAuthority'}})
-        } else if (to.name.toLowerCase() === 'acceleration') {
+        } else if (to.name && to.name.toLowerCase() === 'acceleration') {
           if (!store.getters.isAutoProject && !store.state.project.isSemiAutomatic) {
             next({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
           } else {
