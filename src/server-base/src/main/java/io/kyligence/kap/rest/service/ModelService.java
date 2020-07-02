@@ -188,6 +188,7 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
@@ -251,6 +252,10 @@ public class ModelService extends BasicService {
     @Autowired
     @Qualifier("optRecService")
     private OptRecService optRecService;
+
+    @Setter
+    @Autowired
+    private IndexPlanService indexPlanService;
 
     private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
@@ -2214,7 +2219,7 @@ public class ModelService extends BasicService {
         val originModel = modelManager.getDataModelDesc(modelId);
 
         val copyModel = modelManager.copyForWrite(originModel);
-        semanticUpdater.updateModelColumns(copyModel, request, true);
+        Set<Integer> modifiedSet = semanticUpdater.updateModelColumns(copyModel, request, true);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
@@ -2223,13 +2228,16 @@ public class ModelService extends BasicService {
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
 
+        val affectedLayoutSet = getAffectedLayouts(project, modelId, modifiedSet);
+        indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
+
         var newModel = modelManager.getDataModelDesc(modelId);
 
         checkIndexColumnExist(project, modelId, originModel);
 
         checkFlatTableSql(newModel);
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
-                request.isSaveOnly());
+                request.isSaveOnly(), affectedLayoutSet.size()>0);
 
         val projectInstance = NProjectManager.getInstance(getConfig()).getProject(project);
         if (projectInstance.isSemiAutoMode()) {
@@ -2239,6 +2247,18 @@ public class ModelService extends BasicService {
             recommendationManagerV2.cleanInEffective(modelId);
 
         }
+    }
+
+    private Set<Long> getAffectedLayouts(String project, String modelId, Set<Integer> modifiedSet) {
+        var affectedLayoutSet = new HashSet<Long>();
+        val indePlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val indexPlan = indePlanManager.getIndexPlan(modelId);
+        for (LayoutEntity layoutEntity : indexPlan.getAllLayouts()) {
+            if (layoutEntity.getColOrder().stream().anyMatch(layout -> modifiedSet.contains(layout))) {
+                affectedLayoutSet.add(layoutEntity.getId());
+            }
+        }
+        return affectedLayoutSet;
     }
 
     private void checkIndexColumnExist(String project, String modelId, NDataModel originModel) {
@@ -2254,7 +2274,7 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
                         indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
             }
 
@@ -2263,7 +2283,7 @@ public class ModelService extends BasicService {
                     val measureNames = Arrays.stream(agg.getMeasures())
                             .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                    throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
+                    throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
                             indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));
                 }
             }
@@ -2277,7 +2297,7 @@ public class ModelService extends BasicService {
         if (!allNamedColumns.containsAll(tableIndexColumns)) {
             val columnNames = tableIndexColumns.stream().filter(x -> !allNamedColumns.contains(x))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-            throw new IllegalStateException(String.format(MsgPicker.getMsg().getTABLEINDEX_COLUMN_NOTFOUND(),
+            throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getTABLEINDEX_COLUMN_NOTFOUND(),
                     indexPlan.getModel().getUuid(), StringUtils.join(columnNames, ",")));
         }
 
@@ -2290,7 +2310,7 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
                         indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
             }
 
@@ -2298,7 +2318,7 @@ public class ModelService extends BasicService {
                 val measureNames = aggIndex.getMeasures().stream()
                         .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                         .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
                         indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));
 
             }
@@ -2605,13 +2625,16 @@ public class ModelService extends BasicService {
         return response;
     }
 
-    public void checkFilterCondition(ModelRequest modelRequest) {
+    public ModelSaveCheckResponse checkBeforeModelSave(ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(modelRequest.getProject());
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
         NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
+        Set<Long> affectedLayouts = Sets.newHashSet();
         if (oldDataModel != null && !oldDataModel.isBroken()) {
             model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
-            semanticUpdater.updateModelColumns(model, modelRequest, false);
+            Set<Integer> modifiedSet = semanticUpdater.updateModelColumns(model, modelRequest, false);
+            affectedLayouts = getAffectedLayouts(oldDataModel.getProject(), oldDataModel.getId(), modifiedSet);
+            checkNestedComputedColumn(oldDataModel, modifiedSet);
         }
         String originFilterCondition = model.getFilterCondition();
         try {
@@ -2621,6 +2644,23 @@ public class ModelService extends BasicService {
             }
         } catch (Exception e) {
             throw new KylinException(INVALID_FILTER_CONDITION, e);
+        }
+        if (affectedLayouts.size() > 0)
+            return new ModelSaveCheckResponse(true);
+        return new ModelSaveCheckResponse();
+    }
+
+    private void checkNestedComputedColumn(NDataModel dataModel, Set<Integer> modifiedSet) {
+        for (Integer colId : modifiedSet) {
+            if (colId >= IndexEntity.INDEX_ID_STEP)
+                continue;
+            val colName = dataModel.getColumnNameByColumnId(colId);
+            for (val cc : dataModel.getComputedColumnDescs()) {
+                if (cc.getExpression().toUpperCase().contains(colName))
+                    throw new KylinException(FAILED_UPDATE_MODEL,
+                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(),
+                            dataModel.getUuid(), cc.getTableAlias() + "." + cc.getColumnName(), colName));
+            }
         }
     }
 

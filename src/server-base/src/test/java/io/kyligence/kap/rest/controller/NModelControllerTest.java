@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.UUID;
 
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -1033,12 +1034,12 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCheckFilterCondition() {
+    public void testCheckBeforeModelSave() {
         ModelRequest modelRequest = new ModelRequest();
         modelRequest.setProject("default");
-        Mockito.doNothing().when(modelService).checkFilterCondition(Mockito.any());
-        nModelController.checkFilterCondition(modelRequest);
-        Mockito.verify(nModelController).checkFilterCondition(modelRequest);
+        Mockito.doReturn(new ModelSaveCheckResponse()).when(modelService).checkBeforeModelSave(Mockito.any());
+        nModelController.checkBeforeModelSave(modelRequest);
+        Mockito.verify(nModelController).checkBeforeModelSave(modelRequest);
     }
 
     @Test

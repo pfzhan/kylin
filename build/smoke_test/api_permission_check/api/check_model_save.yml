@@ -21,7 +21,7 @@
 ## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
-name: check model 的过滤语句是否符合sql语法
+name: check model 的过滤语句是否符合sql语法，以及是否有 CC 表达式修改引发的索引重构
 request:
   headers:
     Content-Type: application/json;charset=utf-8
@@ -63,4 +63,4 @@ request:
       zoom: 9
     available_indexes_count: 0
   method: POST
-  url: /models/filter_condition/check
+  url: /models/model_save/check

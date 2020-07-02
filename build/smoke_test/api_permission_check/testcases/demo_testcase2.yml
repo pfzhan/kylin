@@ -1237,7 +1237,7 @@ teststeps:
           - status_code
           - 200
 
-  - api: api/check_model_filter_condition.yml
+  - api: api/check_model_save.yml
     name: check model 的过滤语句是否符合sql语法
     validate:
       - eq:

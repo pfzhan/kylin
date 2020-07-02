@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -844,13 +845,13 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "checkFilterCondition (check)")
-    @PostMapping(value = "/filter_condition/check")
+    @ApiOperation(value = "checkBeforeModelSave (check)")
+    @PostMapping(value = "/model_save/check")
     @ResponseBody
-    public EnvelopeResponse<String> checkFilterCondition(@RequestBody ModelRequest modelRequest) {
+    public EnvelopeResponse<ModelSaveCheckResponse> checkBeforeModelSave(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
-        modelService.checkFilterCondition(modelRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        ModelSaveCheckResponse response = modelService.checkBeforeModelSave(modelRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @PutMapping(value = "/{model:.+}/owner")

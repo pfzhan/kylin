@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASUR
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -196,7 +197,7 @@ public class ModelSemanticHelper extends BasicService {
         return matchAlias;
     }
 
-    public void updateModelColumns(NDataModel originModel, ModelRequest request, boolean updateRecommendationColumn) {
+    public Set<Integer> updateModelColumns(NDataModel originModel, ModelRequest request, boolean updateRecommendationColumn) {
         val expectedModel = convertToDataModel(request);
 
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
@@ -261,11 +262,22 @@ public class ModelSemanticHelper extends BasicService {
                 toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
                 oldMeasure -> oldMeasure.setTomb(true),
                 (oldMeasure, newMeasure) -> oldMeasure.setName(newMeasure.getName()));
+        // record modified CC's column id
+        val modifiedSet = new HashSet<Integer>();
         // one measure in expectedModel but not in originModel then add one
+        // one in expectedModel, is also a TOMB one in originModel, set status to not TOMB
         for (NDataModel.Measure measure : newMeasures) {
-            maxMeasureId++;
-            measure.setId(maxMeasureId);
-            originModel.getAllMeasures().add(measure);
+            val modifiedMeasure = originModel.getAllMeasures().stream()
+                    .filter(m -> SimplifiedMeasure.fromMeasure(measure).equals(SimplifiedMeasure.fromMeasure(m)))
+                    .findFirst().orElse(null);
+            if (modifiedMeasure != null) {
+                modifiedMeasure.setTomb(false);
+                modifiedSet.add(Integer.valueOf(modifiedMeasure.getId()));
+            } else {
+                maxMeasureId++;
+                measure.setId(maxMeasureId);
+                originModel.getAllMeasures().add(measure);
+            }
         }
 
         Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toExistMap = allCols -> allCols
@@ -279,10 +291,19 @@ public class ModelSemanticHelper extends BasicService {
                 oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
                 (olCol, newCol) -> olCol.setName(newCol.getName()));
         int maxId = originModel.getAllNamedColumns().stream().map(NamedColumn::getId).mapToInt(i -> i).max().orElse(-1);
+        // one in expectedModel, is also a TOMB one in originModel, set status as the expected's
         for (NDataModel.NamedColumn newCol : newCols) {
-            maxId++;
-            newCol.setId(maxId);
-            originModel.getAllNamedColumns().add(newCol);
+            val modifiedColumn = originModel.getAllNamedColumns().stream()
+                    .filter(c -> newCol.getAliasDotColumn().equals(c.getAliasDotColumn()))
+                    .findFirst().orElse(null);
+            if (modifiedColumn != null) {
+                modifiedColumn.setStatus(newCol.getStatus());
+                modifiedSet.add(Integer.valueOf(modifiedColumn.getId()));
+            } else {
+                maxId++;
+                newCol.setId(maxId);
+                originModel.getAllNamedColumns().add(newCol);
+            }
         }
 
         // compare originModel and expectedModel's dimensions
@@ -300,6 +321,8 @@ public class ModelSemanticHelper extends BasicService {
                 .filter(column -> request.getSimplifiedDimensions().stream()
                         .noneMatch(dimension -> dimension.getAliasDotColumn().equals(column.getAliasDotColumn())))
                 .forEach(c -> c.setStatus(NDataModel.ColumnStatus.EXIST));
+
+        return modifiedSet;
     }
 
     private <K, T> void compareAndUpdateColumns(Map<K, T> origin, Map<K, T> target, Consumer<T> onlyInTarget,
@@ -354,11 +377,11 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end) {
-        handleSemanticUpdate(project, model, originModel, start, end, false);
+        handleSemanticUpdate(project, model, originModel, start, end, false, false);
     }
 
     public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end,
-            boolean saveOnly) {
+            boolean saveOnly, boolean layoutRebuilt) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
@@ -368,7 +391,7 @@ public class ModelSemanticHelper extends BasicService {
         val indexPlan = indePlanManager.getIndexPlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
 
-        if (isSignificantChange(originModel, newModel)) {
+        if (isSignificantChange(originModel, newModel) || layoutRebuilt) {
             log.info("model { " + originModel.getAlias() + " } reload data from datasource");
             val savedIndexPlan = handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasures().keySet(),
                     indePlanManager);

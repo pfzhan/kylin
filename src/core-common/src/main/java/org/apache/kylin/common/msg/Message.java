@@ -902,6 +902,10 @@ public class Message {
         return "model %s's agg group still contains measure(s) %s";
     }
 
+    public String getNESTEDCC_CC_NOTFOUND() {
+        return "model %s's nested computed column %s still contains computed column %s";
+    }
+
     public String getDOWNLOAD_FAILED() {
         return "Failed to download file.";
     }

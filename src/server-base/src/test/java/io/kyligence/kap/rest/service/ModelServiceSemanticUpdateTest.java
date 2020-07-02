@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -101,6 +102,12 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
+    @InjectMocks
+    private TableService tableService = Mockito.spy(new TableService());
+
+    @InjectMocks
+    private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
+
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
@@ -112,6 +119,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
         modelService.setSemanticUpdater(semanticService);
+        indexPlanService.setSemanticUpater(semanticService);
+        modelService.setIndexPlanService(indexPlanService);
         val projectManager = NProjectManager.getInstance(getTestConfig());
         val projectInstance = projectManager.copyForWrite(projectManager.getProject("default"));
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
@@ -124,6 +133,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelMgr.updateDataModel("741ca86a-1f13-46da-a59f-95fb68615e3a", model -> {
             model.setManagementType(ManagementType.MODEL_BASED);
         });
+
+        ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
     }
 
     @Before
@@ -226,9 +237,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("TEST_KYLIN_FACT.TEST_CC_1", measure.getFunction().getParameters().get(0).getValue());
         }
 
-        // Update TEST_CC_1's definition, named column and measure will be recreated
-        int newColIdOfCC;
-        int newMeasureIdOfCC;
+        // Update TEST_CC_1's definition, named column and measure will be updated
         {
             ModelRequest request = newSemanticRequest();
             ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
@@ -242,24 +251,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     .findFirst().get();
             Assert.assertNotNull(originalColumn);
             Assert.assertEquals("TEST_DIM_WITH_CC", originalColumn.getName());
-            Assert.assertEquals(ColumnStatus.TOMB, originalColumn.getStatus());
-            NamedColumn newColumn = model.getAllNamedColumns().stream().filter(NamedColumn::isExist)
-                    .filter(col -> col.getAliasDotColumn().equals("TEST_KYLIN_FACT.TEST_CC_1")).findFirst().get();
-            Assert.assertNotNull(newColumn);
-            Assert.assertEquals("TEST_DIM_WITH_CC", newColumn.getName());
-            Assert.assertEquals(ColumnStatus.DIMENSION, newColumn.getStatus());
-            newColIdOfCC = newColumn.getId();
+            Assert.assertEquals(ColumnStatus.DIMENSION, originalColumn.getStatus());
 
             Measure originalMeasure = model.getAllMeasures().stream().filter(m -> m.getId() == measureIdOfCC)
                     .findFirst().get();
             Assert.assertNotNull(originalMeasure);
             Assert.assertEquals("TEST_MEASURE_WITH_CC", originalMeasure.getName());
-            Assert.assertTrue(originalMeasure.isTomb());
-            Measure newMeasure = model.getEffectiveMeasures().values().stream()
-                    .filter(m -> m.getName().equals("TEST_MEASURE_WITH_CC")).findFirst().get();
-            Assert.assertNotNull(newMeasure);
-            Assert.assertFalse(newMeasure.isTomb());
-            newMeasureIdOfCC = newMeasure.getId();
+            Assert.assertFalse(originalMeasure.isTomb());
         }
 
         // Remove TEST_CC_1, all related should be moved to tomb
@@ -281,9 +279,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();
-            Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == newColIdOfCC).findFirst()
+            Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == colIdOfCC).findFirst()
                     .get().isExist());
-            Assert.assertTrue(model.getAllMeasures().stream().filter(m -> m.getId() == newMeasureIdOfCC).findFirst()
+            Assert.assertTrue(model.getAllMeasures().stream().filter(m -> m.getId() == measureIdOfCC).findFirst()
                     .get().isTomb());
         }
     }
@@ -481,7 +479,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
                 .orElse(null);
         Assert.assertNotNull(newCcCol);
-        Assert.assertNotEquals(ccColId, newCcCol.getId());
+        Assert.assertEquals(ccColId, newCcCol.getId());
     }
 
     @Test
@@ -502,7 +500,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(ccCol);
         request.getComputedColumnDescs().remove(ccDesc);
 
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("table index still contains column(s) TEST_KYLIN_FACT.DEAL_YEAR");
         modelService.updateDataModelSemantic("default", request);
     }
@@ -517,7 +515,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .filter(cc -> "LSTG_FORMAT_NAME".equals(cc.getName())).findFirst().orElse(null);
         Assert.assertNotNull(dimDesc);
         request.getSimplifiedDimensions().remove(dimDesc);
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("agg group still contains dimension(s) TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
         modelService.updateDataModelSemantic("default", request);
     }
@@ -527,9 +525,103 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         String modelId = "82fa7671-a935-45f5-8779-85703601f49a";
         val request = newSemanticRequest(modelId);
         request.getSimplifiedMeasures().remove(1);
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("agg group still contains measure(s) GMV_SUM");
         modelService.updateDataModelSemantic("default", request);
+    }
+
+    @Test
+    public void testModifyCCExistInTableIndex() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        var request = newSemanticRequest(modelId);
+        val originPlan = indexPlanManager.getIndexPlan(modelId);
+        val nest5 = request.getColumnIdByColumnName("TEST_KYLIN_FACT.NEST5");
+        val transId = request.getColumnIdByColumnName("TEST_KYLIN_FACT.TRANS_ID");
+        val siteName = request.getColumnIdByColumnName("TEST_SITES.SITE_NAME");
+        val indexCol = Arrays.asList(nest5, transId, siteName);
+        // old indexes
+        val oldIndexId = originPlan.getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
+                .findFirst().map(LayoutEntity::getId).orElse(-1L);
+        // modify expression of cc TEST_KYLIN_FACT.NEST5
+        val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
+                .findFirst().orElse(null);
+        originCC.setExpression(originCC.getExpression()+"+1");
+        modelService.updateDataModelSemantic("default", request);
+        // new indexes
+        val newPlan = indexPlanManager.getIndexPlan(modelId);
+        val newIndexId = newPlan.getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
+                .findFirst().map(LayoutEntity::getId).orElse(-2L);
+        Assert.assertTrue(newIndexId > oldIndexId);
+    }
+
+    @Test
+    public void testModifyCCExistInAggIndex() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        // create measure
+        var request = newSemanticRequest(modelId);
+        val newMeasure1 = new SimplifiedMeasure();
+        newMeasure1.setName("NEST5_SUM");
+        newMeasure1.setExpression("SUM");
+        val param = new ParameterResponse();
+        param.setType("column");
+        param.setValue("TEST_KYLIN_FACT.NEST5");
+        newMeasure1.setParameterValue(Lists.newArrayList(param));
+        request.getSimplifiedMeasures().add(newMeasure1);
+        newMeasure1.setReturnType("decimal");
+        modelService.updateDataModelSemantic("default", request);
+        // get dim and measure id
+        request = newSemanticRequest(modelId);
+        val transId = request.getColumnIdByColumnName("TEST_KYLIN_FACT.TRANS_ID");
+        val nest5SumId = request.getSimplifiedMeasures().stream().filter(m -> "NEST5_SUM".equals(m.getName()))
+                .mapToInt(SimplifiedMeasure::getId).findFirst().orElse(-1);
+        // create agg group
+        NAggregationGroup newAggregationGroup = new NAggregationGroup();
+        newAggregationGroup.setIncludes(new Integer[] { transId });
+        newAggregationGroup.setMeasures(new Integer[] { nest5SumId });
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        newAggregationGroup.setSelectRule(selectRule);
+        indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default")
+                        .modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
+        // old indexes
+        val indexCol = Arrays.asList(transId, nest5SumId);
+        val oldIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
+                .findFirst().map(LayoutEntity::getId).orElse(-1L);
+        // modify expression of cc TEST_KYLIN_FACT.NEST5
+        val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
+                .findFirst().orElse(null);
+        originCC.setExpression(originCC.getExpression()+"+1");
+        modelService.updateDataModelSemantic("default", request);
+        // new indexes
+        val newIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
+                .findFirst().map(LayoutEntity::getId).orElse(-2L);
+        Assert.assertTrue(newIndexId > oldIndexId);
+    }
+
+    @Test
+    public void testModifyCCExistInNestedCC() throws Exception {
+        // add nested cc
+        var request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        ComputedColumnDesc newCC = new ComputedColumnDesc();
+        newCC.setColumnName("NEST6");
+        newCC.setExpression("TEST_KYLIN_FACT.NEST5+1");
+        newCC.setDatatype("decimal(34,0)");
+        newCC.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        newCC.setTableAlias("TEST_KYLIN_FACT");
+        request.getComputedColumnDescs().add(newCC);
+        modelService.updateDataModelSemantic("default", request);
+        // expect a KylinException when modify cc used by a nested cc
+        request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.getComputedColumnDescs().get(10).setExpression(request.getComputedColumnDescs().get(10).getExpression()+"+1");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("nested computed column TEST_KYLIN_FACT.NEST6 still contains computed column TEST_KYLIN_FACT.NEST5");
+        modelService.checkBeforeModelSave(request);
     }
 
     @Test
@@ -546,7 +638,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRemoveDimensionsWithCubePlanRule() throws Exception {
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains dimension(s) TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
@@ -1120,7 +1212,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             val partitionDesc = model.getPartitionDesc();
             partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
         });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null, true);
+        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null, true, false);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         Assert.assertEquals(0, events.size());

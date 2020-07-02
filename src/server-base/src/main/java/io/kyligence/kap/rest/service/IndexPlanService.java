@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -49,6 +50,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -784,6 +786,49 @@ public class IndexPlanService extends BasicService {
             result.add(id);
         }
         return result;
+    }
+
+    public void reloadLayouts(String project, String modelId, Set<Long> changedLayouts) {
+        getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
+            val indexes = changedLayouts.stream()
+                    .map(layout -> (layout / IndexEntity.INDEX_ID_STEP) * IndexEntity.INDEX_ID_STEP)
+                    .collect(Collectors.toSet());
+            val originAgg = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), NRuleBasedIndex.class);
+            copy.addRuleBasedBlackList(
+                    copy.getRuleBaseLayouts().stream().filter(l -> changedLayouts.contains(l.getId()))
+                            .map(LayoutEntity::getId).collect(Collectors.toList()));
+            val changedIndexes = copy.getIndexes().stream().filter(i -> indexes.contains(i.getId()))
+                    .collect(Collectors.toList());
+            copy.setIndexes(
+                    copy.getIndexes().stream().filter(i -> !indexes.contains(i.getId())).collect(Collectors.toList()));
+            var nextAggIndexId = copy.getNextAggregationIndexId();
+            var nextTableIndexId = copy.getNextTableIndexId();
+            for (IndexEntity indexEntity : changedIndexes) {
+                var nextLayoutOffset = 1L;
+                var nextIndexId = indexEntity.isTableIndex() ? nextTableIndexId : nextAggIndexId;
+                indexEntity.setId(nextIndexId);
+                if (indexEntity.isTableIndex()) {
+                    nextTableIndexId = nextIndexId + IndexEntity.INDEX_ID_STEP;
+                } else {
+                    nextAggIndexId = nextIndexId + IndexEntity.INDEX_ID_STEP;
+                }
+                for (LayoutEntity layoutEntity : indexEntity.getLayouts()) {
+                    layoutEntity.setId(indexEntity.getId() + (nextLayoutOffset++));
+                }
+                indexEntity.setNextLayoutOffset(nextLayoutOffset);
+            }
+            val indexList = copy.getIndexes();
+            indexList.addAll(changedIndexes);
+            copy.setIndexes(indexList);
+            if (originAgg != null) {
+                val updatedAgg = new NRuleBasedIndex();
+                updatedAgg.setAggregationGroups(originAgg.getAggregationGroups());
+                updatedAgg.setGlobalDimCap(originAgg.getGlobalDimCap());
+                updatedAgg.setDimensions(originAgg.getDimensions());
+                updatedAgg.setLastModifiedTime(System.currentTimeMillis());
+                copy.setRuleBasedIndex(updatedAgg, false, false);
+            }
+        });
     }
 
 }

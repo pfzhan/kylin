@@ -216,7 +216,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
     @Autowired
-    private TableService tableService;
+    private TableService tableService = Mockito.spy(new TableService());
+
+    @Autowired
+    private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @InjectMocks
     private SegmentHelper segmentHelper = new SegmentHelper();
@@ -254,6 +257,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 Mockito.anyString());
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
+        modelService.setIndexPlanService(indexPlanService);
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
@@ -3595,7 +3599,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testRemoveRecommendAggIndexDimensionColumn() throws Exception {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("agg group still contains dimension(s) TEST_SITES.SITE_NAME");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
@@ -3606,13 +3610,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setSimplifiedMeasures(
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100005)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("agg group still contains measure(s) ITEM_COUNT_MAX");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
     @Test
-    public void testCheckFilterCondition() {
+    public void testCheckBeforeModelSave() {
         String project = "default";
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataModel okModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -3620,7 +3624,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest okModelRequest = new ModelRequest(okModel);
         okModelRequest.setProject(project);
         Mockito.when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
-        modelService.checkFilterCondition(okModelRequest);
+        modelService.checkBeforeModelSave(okModelRequest);
     }
 
     @Test

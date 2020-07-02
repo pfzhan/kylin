@@ -835,6 +835,10 @@ public class CnMessage extends Message {
         return "模型[%s]的聚合索引已经包含度量[%s]";
     }
 
+    public String getNESTEDCC_CC_NOTFOUND() {
+        return "模型[%s]的嵌套可计算列[%s]已经包含可计算列[%s]";
+    }
+
     public String getCHANGE_GLOBALADMIN() {
         return "您不可以添加，修改，删除系统管理员的权限。";
     }
