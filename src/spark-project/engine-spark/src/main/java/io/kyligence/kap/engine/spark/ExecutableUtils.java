@@ -32,6 +32,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
 
@@ -58,5 +60,11 @@ public class ExecutableUtils {
         return Stream.of(StringUtils.split(buildTask.getParam(NBatchConstants.P_LAYOUT_IDS), ","))
                 .map(Long::parseLong).collect(Collectors.toSet());
 
+    }
+
+    public static void initJobFactory() {
+        // register jobFactory in static function
+        new NSparkCubingJob();
+        new NSparkMergingJob();
     }
 }

@@ -41,9 +41,6 @@ public class ExecutableMergeOrRefreshHandler extends ExecutableHandler {
     public void handleFinished() {
         String project = getProject();
         val executable = getExecutable();
-        if (!checkSubjectExists(project, getModelId(), getSegmentId())) {
-            return;
-        }
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
         executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)

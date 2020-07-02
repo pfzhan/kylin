@@ -222,7 +222,7 @@ NSuggestTestBase extends NLocalWithSparkSessionTest {
 
         for (IRealization realization : projectManager.listAllRealizations(proj)) {
             NDataflow df = (NDataflow) realization;
-            Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
+            Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
             NDataSegment oneSeg;
             List<LayoutEntity> layouts;
             boolean isAppend = false;

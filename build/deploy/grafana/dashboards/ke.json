@@ -16,7 +16,7 @@
     "gnetId": null,
     "graphTooltip": 0,
     "id": 1,
-    "iteration": 1588248308755,
+    "iteration": 1591773223915,
     "links": [],
     "panels": [
         {
@@ -11931,270 +11931,6 @@
             ],
             "title": "Transactions",
             "type": "row"
-        },
-        {
-            "collapsed": true,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 56
-            },
-            "id": 82,
-            "panels": [
-                {
-                    "aliasColors": {},
-                    "bars": false,
-                    "dashLength": 10,
-                    "dashes": false,
-                    "datasource": "KylinInfluxDB",
-                    "fill": 1,
-                    "gridPos": {
-                        "h": 8,
-                        "w": 12,
-                        "x": 0,
-                        "y": 57
-                    },
-                    "id": 44,
-                    "interval": "$granularity",
-                    "legend": {
-                        "alignAsTable": true,
-                        "avg": false,
-                        "current": false,
-                        "max": false,
-                        "min": false,
-                        "rightSide": true,
-                        "show": true,
-                        "total": false,
-                        "values": false
-                    },
-                    "lines": true,
-                    "linewidth": 1,
-                    "links": [],
-                    "nullPointMode": "null",
-                    "options": {},
-                    "percentage": false,
-                    "pointradius": 2,
-                    "points": false,
-                    "renderer": "flot",
-                    "seriesOverrides": [],
-                    "spaceLength": 10,
-                    "stack": false,
-                    "steppedLine": false,
-                    "targets": [
-                        {
-                            "alias": "$tag_entity",
-                            "groupBy": [
-                                {
-                                    "params": [
-                                        "$__interval"
-                                    ],
-                                    "type": "time"
-                                },
-                                {
-                                    "params": [
-                                        "entity"
-                                    ],
-                                    "type": "tag"
-                                }
-                            ],
-                            "measurement": "system_metric",
-                            "orderByTime": "ASC",
-                            "policy": "KE_METRICS_RP",
-                            "refId": "A",
-                            "resultFormat": "time_series",
-                            "select": [
-                                [
-                                    {
-                                        "params": [
-                                            "event_created_total_num"
-                                        ],
-                                        "type": "field"
-                                    },
-                                    {
-                                        "params": [],
-                                        "type": "last"
-                                    }
-                                ]
-                            ],
-                            "tags": [
-                                {
-                                    "key": "entity",
-                                    "operator": "=~",
-                                    "value": "/^$project$/"
-                                }
-                            ]
-                        }
-                    ],
-                    "thresholds": [],
-                    "timeFrom": null,
-                    "timeRegions": [],
-                    "timeShift": null,
-                    "title": "event_created_total_num",
-                    "tooltip": {
-                        "shared": true,
-                        "sort": 0,
-                        "value_type": "individual"
-                    },
-                    "type": "graph",
-                    "xaxis": {
-                        "buckets": null,
-                        "mode": "time",
-                        "name": null,
-                        "show": true,
-                        "values": []
-                    },
-                    "yaxes": [
-                        {
-                            "format": "short",
-                            "label": null,
-                            "logBase": 1,
-                            "max": null,
-                            "min": null,
-                            "show": true
-                        },
-                        {
-                            "format": "short",
-                            "label": null,
-                            "logBase": 1,
-                            "max": null,
-                            "min": null,
-                            "show": true
-                        }
-                    ],
-                    "yaxis": {
-                        "align": false,
-                        "alignLevel": null
-                    }
-                },
-                {
-                    "aliasColors": {},
-                    "bars": false,
-                    "dashLength": 10,
-                    "dashes": false,
-                    "datasource": "KylinInfluxDB",
-                    "fill": 1,
-                    "gridPos": {
-                        "h": 8,
-                        "w": 12,
-                        "x": 12,
-                        "y": 57
-                    },
-                    "id": 42,
-                    "interval": "$granularity",
-                    "legend": {
-                        "alignAsTable": true,
-                        "avg": false,
-                        "current": false,
-                        "max": false,
-                        "min": false,
-                        "rightSide": true,
-                        "show": true,
-                        "total": false,
-                        "values": false
-                    },
-                    "lines": true,
-                    "linewidth": 1,
-                    "links": [],
-                    "nullPointMode": "null",
-                    "options": {},
-                    "percentage": false,
-                    "pointradius": 2,
-                    "points": false,
-                    "renderer": "flot",
-                    "seriesOverrides": [],
-                    "spaceLength": 10,
-                    "stack": false,
-                    "steppedLine": false,
-                    "targets": [
-                        {
-                            "alias": "$tag_entity",
-                            "groupBy": [
-                                {
-                                    "params": [
-                                        "$__interval"
-                                    ],
-                                    "type": "time"
-                                },
-                                {
-                                    "params": [
-                                        "entity"
-                                    ],
-                                    "type": "tag"
-                                }
-                            ],
-                            "measurement": "system_metric",
-                            "orderByTime": "ASC",
-                            "policy": "KE_METRICS_RP",
-                            "refId": "A",
-                            "resultFormat": "time_series",
-                            "select": [
-                                [
-                                    {
-                                        "params": [
-                                            "event_num_gauge"
-                                        ],
-                                        "type": "field"
-                                    },
-                                    {
-                                        "params": [],
-                                        "type": "last"
-                                    }
-                                ]
-                            ],
-                            "tags": [
-                                {
-                                    "key": "entity",
-                                    "operator": "=~",
-                                    "value": "/^$project$/"
-                                }
-                            ]
-                        }
-                    ],
-                    "thresholds": [],
-                    "timeFrom": null,
-                    "timeRegions": [],
-                    "timeShift": null,
-                    "title": "event_num_gauge",
-                    "tooltip": {
-                        "shared": true,
-                        "sort": 0,
-                        "value_type": "individual"
-                    },
-                    "type": "graph",
-                    "xaxis": {
-                        "buckets": null,
-                        "mode": "time",
-                        "name": null,
-                        "show": true,
-                        "values": []
-                    },
-                    "yaxes": [
-                        {
-                            "format": "short",
-                            "label": null,
-                            "logBase": 1,
-                            "max": null,
-                            "min": null,
-                            "show": true
-                        },
-                        {
-                            "format": "short",
-                            "label": null,
-                            "logBase": 1,
-                            "max": null,
-                            "min": null,
-                            "show": false
-                        }
-                    ],
-                    "yaxis": {
-                        "align": false,
-                        "alignLevel": null
-                    }
-                }
-            ],
-            "title": "Events",
-            "type": "row"
         }
     ],
     "refresh": false,
@@ -12208,7 +11944,6 @@
                 "auto_count": 5,
                 "auto_min": "1m",
                 "current": {
-                    "selected": true,
                     "text": "5m",
                     "value": "5m"
                 },
@@ -12285,8 +12020,6 @@
             {
                 "allValue": null,
                 "current": {
-                    "selected": false,
-                    "tags": [],
                     "text": "All",
                     "value": "$__all"
                 },
@@ -12343,5 +12076,5 @@
     "timezone": "",
     "title": "Kyligence Enterprise",
     "uid": "rUE4Q44Zk",
-    "version": 2
+    "version": 1
 }

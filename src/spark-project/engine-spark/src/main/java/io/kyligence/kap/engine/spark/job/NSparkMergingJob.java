@@ -24,31 +24,51 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.spark_project.guava.base.Preconditions;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spark_project.guava.base.Preconditions;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
 
 public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSparkMergingJob.class);
+
+    static {
+        JobFactory.register(MERGE_JOB_FACTORY, new MergingJobFactory());
+    }
+
+    static class MergingJobFactory extends JobFactory {
+
+        private MergingJobFactory() {
+        }
+
+        @Override
+        protected NSparkMergingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
+                                          JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+            if (segments == null || segments.size() != 1) {
+                return null;
+            }
+            return merge(segments.iterator().next(), layouts, submitter, jobId);
+        }
+    }
 
     /**
      * Merge the segments that are contained in the given mergedSegment
@@ -58,7 +78,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
      *                       the ready cuboids in the segments.
      */
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
-            String jobId) {
+                                         String jobId) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
@@ -75,7 +95,6 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setTargetSegments(Lists.newArrayList(String.valueOf(mergedSegment.getId())));
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
-
 
 
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
@@ -122,7 +141,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkMergingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
-            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)) {
+            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY) && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
                 toRemovedSegments.add(segment);
             }
         }

@@ -813,7 +813,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
         //in case hdfs write is not finished yet
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(
-                () -> Assert.assertEquals(ExecutableState.SUICIDAL, executableManager.getJob(job.getId()).getStatus()));
+                () -> Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getJob(job.getId()).getStatus()));
 
     }
 

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.query.engine.exec.calcite;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,8 +52,6 @@ import io.kyligence.kap.query.relnode.KapRel;
  * this exec is only used for constants queries
  */
 public class CalciteQueryPlanExec implements QueryPlanExec {
-
-    public static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {

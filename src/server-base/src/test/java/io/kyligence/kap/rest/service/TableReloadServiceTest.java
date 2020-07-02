@@ -69,7 +69,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -714,12 +713,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     index.getDimensions().contains(15));
         });
 
-        val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        var events = eventDao.getJobRelatedEventsByModel(model.getId());
-        Assert.assertEquals(1, events.size());
-
-        events = eventDao.getJobRelatedEventsByModel(model2.getId());
-        Assert.assertEquals(0, events.size());
+        var executables = getRunningExecutables(PROJECT, model2.getId());
+        Assert.assertEquals(0, executables.size());
+        executables = getRunningExecutables(PROJECT, model.getId());
+        Assert.assertEquals(1, executables.size());
 
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
@@ -736,6 +733,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(model.getAllNamedColumns().get(11).isExist());
         Assert.assertTrue(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
+        deleteJobByForce(executables.get(0));
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
         Assert.assertFalse(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
     }
@@ -910,9 +908,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                         * diff.stream().filter(IndexEntity::isTableIndex).count(),
                 indexPlan2.getNextTableIndexId());
 
-        val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        var events = eventDao.getJobRelatedEventsByModel(model.getId());
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables(PROJECT, model.getId());
+        Assert.assertEquals(1, executables.size());
+
 
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getOrCreateTableExt(tableIdentity);
@@ -929,7 +927,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testReload_ChangeTypeAndRemoveDimension() throws Exception {
+     public void testReload_ChangeTypeAndRemoveDimension() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
 
@@ -946,7 +944,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 put("PRICE", "string");
             }
         }, false);
-
         tableService.innerReloadTable(PROJECT, tableIdentity, true);
 
         val df = dfManager.getDataflowByModelAlias("nmodel_basic_inner");
@@ -962,10 +959,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         }
         Assert.assertFalse(model.getEffectiveCols().containsKey(3));
         Assert.assertFalse(model.getEffectiveMeasures().containsKey(100008));
-
-        val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        var events = eventDao.getJobRelatedEventsByModel(model.getId());
-        Assert.assertEquals(1, events.size());
     }
 
     @Test

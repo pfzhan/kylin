@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 import lombok.Getter;
@@ -240,6 +241,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public Map<Long, NDataLayout> getLayoutsMap() {
         return layoutsMap;
+    }
+
+    public Set<Long> getLayoutIds() {
+        return layoutsMap.keySet();
     }
 
     public IndexPlan getIndexPlan() {

@@ -40,8 +40,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -63,7 +61,6 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -90,24 +87,17 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.EventModelResponse;
-import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableSortBean;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
+import javax.servlet.http.HttpServletResponse;
 import lombok.val;
-import lombok.var;
 
 @Component("jobService")
 public class JobService extends BasicService {
@@ -128,6 +118,7 @@ public class JobService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
     private static final Map<String, String> jobTypeMap = Maps.newHashMap();
+
     static {
         jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
         jobTypeMap.put("INDEX_MERGE", "Merge Data");
@@ -144,7 +135,7 @@ public class JobService extends BasicService {
     }
 
     private DataResult<List<ExecutableResponse>> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs,
-            int offset, int limit) {
+                                                               int offset, int limit) {
         Preconditions.checkNotNull(jobFilter);
         Preconditions.checkNotNull(jobs);
 
@@ -304,65 +295,65 @@ public class JobService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         switch (timeFilter) {
-        case LAST_ONE_DAY:
-            calendar.add(Calendar.DAY_OF_MONTH, -1);
-            return calendar.getTimeInMillis();
-        case LAST_ONE_WEEK:
-            calendar.add(Calendar.WEEK_OF_MONTH, -1);
-            return calendar.getTimeInMillis();
-        case LAST_ONE_MONTH:
-            calendar.add(Calendar.MONTH, -1);
-            return calendar.getTimeInMillis();
-        case LAST_ONE_YEAR:
-            calendar.add(Calendar.YEAR, -1);
-            return calendar.getTimeInMillis();
-        case ALL:
-            return 0;
-        default:
-            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
+            case LAST_ONE_DAY:
+                calendar.add(Calendar.DAY_OF_MONTH, -1);
+                return calendar.getTimeInMillis();
+            case LAST_ONE_WEEK:
+                calendar.add(Calendar.WEEK_OF_MONTH, -1);
+                return calendar.getTimeInMillis();
+            case LAST_ONE_MONTH:
+                calendar.add(Calendar.MONTH, -1);
+                return calendar.getTimeInMillis();
+            case LAST_ONE_YEAR:
+                calendar.add(Calendar.YEAR, -1);
+                return calendar.getTimeInMillis();
+            case ALL:
+                return 0;
+            default:
+                throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
         }
     }
 
     private ExecutableState parseToExecutableState(JobStatusEnum status) {
         Message msg = MsgPicker.getMsg();
         switch (status) {
-        case SUICIDAL:
-        case DISCARDED:
-            return ExecutableState.SUICIDAL;
-        case ERROR:
-            return ExecutableState.ERROR;
-        case FINISHED:
-            return ExecutableState.SUCCEED;
-        case NEW:
-            return ExecutableState.READY;
-        case PENDING:
-            return ExecutableState.READY;
-        case RUNNING:
-            return ExecutableState.RUNNING;
-        case STOPPED:
-            return ExecutableState.PAUSED;
-        default:
-            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
+            case SUICIDAL:
+            case DISCARDED:
+                return ExecutableState.SUICIDAL;
+            case ERROR:
+                return ExecutableState.ERROR;
+            case FINISHED:
+                return ExecutableState.SUCCEED;
+            case NEW:
+                return ExecutableState.READY;
+            case PENDING:
+                return ExecutableState.READY;
+            case RUNNING:
+                return ExecutableState.RUNNING;
+            case STOPPED:
+                return ExecutableState.PAUSED;
+            default:
+                throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
     }
 
     private JobStatusEnum parseToJobStatus(ExecutableState state) {
         switch (state) {
-        case READY:
-            return JobStatusEnum.PENDING;
-        case RUNNING:
-            return JobStatusEnum.RUNNING;
-        case ERROR:
-            return JobStatusEnum.ERROR;
-        case SUCCEED:
-            return JobStatusEnum.FINISHED;
-        case PAUSED:
-            return JobStatusEnum.STOPPED;
-        case SUICIDAL:
-        case DISCARDED:
-            return JobStatusEnum.DISCARDED;
-        default:
-            throw new RuntimeException("invalid state:" + state);
+            case READY:
+                return JobStatusEnum.PENDING;
+            case RUNNING:
+                return JobStatusEnum.RUNNING;
+            case ERROR:
+                return JobStatusEnum.ERROR;
+            case SUCCEED:
+                return JobStatusEnum.FINISHED;
+            case PAUSED:
+                return JobStatusEnum.STOPPED;
+            case SUICIDAL:
+            case DISCARDED:
+                return JobStatusEnum.DISCARDED;
+            default:
+                throw new RuntimeException("invalid state:" + state);
         }
     }
 
@@ -378,24 +369,24 @@ public class JobService extends BasicService {
         UnitOfWorkContext.AfterUnitTask afterUnitTask = () -> SchedulerEventBusFactory
                 .getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobReadyNotifier(project));
         switch (JobActionEnum.valueOf(action)) {
-        case RESUME:
-            executableManager.resumeJob(jobId);
-            UnitOfWork.get().doAfterUnit(afterUnitTask);
-            NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
-            break;
-        case RESTART:
-            executableManager.restartJob(jobId);
-            UnitOfWork.get().doAfterUnit(afterUnitTask);
-            break;
-        case DISCARD:
-            discardJob(project, jobId);
-            NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
-            break;
-        case PAUSE:
-            executableManager.pauseJob(jobId);
-            break;
-        default:
-            throw new IllegalStateException("This job can not do this action: " + action);
+            case RESUME:
+                executableManager.resumeJob(jobId);
+                UnitOfWork.get().doAfterUnit(afterUnitTask);
+                NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
+                break;
+            case RESTART:
+                executableManager.restartJob(jobId);
+                UnitOfWork.get().doAfterUnit(afterUnitTask);
+                break;
+            case DISCARD:
+                discardJob(project, jobId);
+                NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
+                break;
+            case PAUSE:
+                executableManager.pauseJob(jobId);
+                break;
+            default:
+                throw new IllegalStateException("This job can not do this action: " + action);
         }
 
     }
@@ -414,6 +405,7 @@ public class JobService extends BasicService {
 
     /**
      * for 3x api, jobId is unique.
+     *
      * @param jobId
      * @return
      */
@@ -431,6 +423,7 @@ public class JobService extends BasicService {
 
     /**
      * for 3x api
+     *
      * @param jobId
      * @return
      */
@@ -447,6 +440,7 @@ public class JobService extends BasicService {
 
     /**
      * for 3x api
+     *
      * @param project
      * @param job
      * @param action
@@ -613,28 +607,8 @@ public class JobService extends BasicService {
     public Map<String, Object> getEventsInfoGroupByModel(String project) {
         aclEvaluate.checkProjectOperationPermission(project);
         Map<String, Object> result = Maps.newHashMap();
-        Map<String, EventModelResponse> models = Maps.newHashMap();
-        List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEvents();
-        int jobSize = 0;
-
-        for (var event : jobRelatedEvents) {
-            String modelId = event.getModelId();
-            EventModelResponse eventModelResponse = models.get(modelId);
-
-            if (eventModelResponse == null) {
-                val model = getDataModelManager(project).getDataModelDesc(modelId);
-                if (model == null)
-                    continue;
-                eventModelResponse = new EventModelResponse(0, model.getAlias());
-            }
-
-            eventModelResponse.updateSize();
-            models.put(modelId, eventModelResponse);
-            jobSize++;
-        }
-
-        result.put("data", models);
-        result.put("size", jobSize);
+        result.put("data", null);
+        result.put("size", 0);
         return result;
     }
 
@@ -717,30 +691,6 @@ public class JobService extends BasicService {
         return false;
     }
 
-    public List<EventResponse> getWaitingJobsByModel(String project, String modelId) {
-        aclEvaluate.checkProjectOperationPermission(project);
-        List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelId);
-
-        jobRelatedEvents.sort(Comparator.comparingLong(Event::getSequenceId).reversed());
-        return jobRelatedEvents.stream().map(event -> new EventResponse(getJobType(event), event.getLastModified()))
-                .collect(Collectors.toList());
-    }
-
-    private String getJobType(Event event) {
-        if (event instanceof AddCuboidEvent)
-            return JobTypeEnum.INDEX_BUILD.toString();
-
-        if (event instanceof AddSegmentEvent)
-            return JobTypeEnum.INC_BUILD.toString();
-
-        if (event instanceof MergeSegmentEvent)
-            return JobTypeEnum.INDEX_MERGE.toString();
-
-        if (event instanceof RefreshSegmentEvent)
-            return JobTypeEnum.INDEX_REFRESH.toString();
-
-        throw new IllegalStateException(String.format("Illegal type of event %s", event.getId()));
-    }
 
     /**
      * update the spark job info, such as yarnAppId, yarnAppUrl.

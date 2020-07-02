@@ -1358,4 +1358,28 @@ public class CnMessage extends Message {
     public String getUNSUPPORTED_RECOMMENDATION_MODE() {
         return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
     }
+
+    public String getADD_JOB_CHECK_FAIL(){
+        return "添加job失败，并发处理时间冲突";
+    }
+
+    public String getADD_JOB_EXCEPTION(){
+        return "没有可执行的任务生成";
+    }
+
+    public String getADD_JOB_ABANDON() {
+        return "添加job失败，该节点不是构建节点";
+    }
+
+    public String getADD_JOB_CHECK_SEGMENT_FAIL() {
+        return "添加任务失败，segment的索引未对齐";
+    }
+
+    public String getADD_JOB_CHECK_SEGMENT_READY_FAIL() {
+        return "添加任务失败，没有ready状态的Segment.";
+    }
+
+    public String getADD_JOB_CHECK_LAYOUT_FAIL() {
+        return "添加任务失败，没有需要构建的layout";
+    }
 }

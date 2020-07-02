@@ -511,7 +511,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
-        NDataSegment segment = df.getSegments(SegmentStatusEnum.READY).get(0);
+        NDataSegment segment = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).get(0);
 
         NDataSegment newSegment = mgr.refreshSegment(df, segment.getSegRange());
 

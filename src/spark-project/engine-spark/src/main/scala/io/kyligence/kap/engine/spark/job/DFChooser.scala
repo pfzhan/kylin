@@ -34,7 +34,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
-import org.apache.kylin.metadata.model.TblColRef
+import org.apache.kylin.metadata.model.{SegmentStatusEnum, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql._
@@ -133,6 +133,7 @@ class DFChooser(toBuildTree: NSpanningTree,
       logInfo(s"to build cuboid columns are $toBuildCuboidColumns")
       if (df.schema.nonEmpty) {
         val selectedColumns = flatTableDesc.getIndices.asScala.sorted.map(_.toString)
+        val builtFaltTableBefore = seg.isFlatTableReady
         path = s"${config.getFlatTableDir(seg.getProject, seg.getDataflow.getId, seg.getId)}"
         if (!shouldUpdateFlatTable(new Path(path), selectedColumns)) {
           logInfo(s"Skip already persisted flat table, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
@@ -147,6 +148,10 @@ class DFChooser(toBuildTree: NSpanningTree,
           DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
             copied.setFlatTableReady(true)
             copied.setSelectedColumns(selectedColumns.toList.asJava)
+            if (builtFaltTableBefore) {
+              // if flat table is updated, there might be some data inconsistency across indexes
+              copied.setStatus(SegmentStatusEnum.WARNING)
+            }
           })
         }
         flatTableSource.setParentStorageDF(ss.read.parquet(path))

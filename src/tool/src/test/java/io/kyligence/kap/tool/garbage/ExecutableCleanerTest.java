@@ -36,7 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
 
 public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
@@ -44,14 +43,12 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
     private NExecutableManager manager;
     private NExecutableDao dao;
-    private EventDao eventDao;
 
     @Before
     public void init() {
         createTestMetadata();
         manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         dao = NExecutableDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
     }
 
     @After
@@ -77,24 +74,6 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, manager.getJobs().size());
     }
 
-    @Test
-    public void testCleanupWithReferencedJob() {
-        MockJobEvent event = new MockJobEvent();
-        eventDao.addEvent(event);
-
-        createExpiredJob(event.getJobId());
-        Assert.assertEquals(1, manager.getAllExecutables().size());
-
-        manager.discardJob(event.getJobId());
-
-        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
-        Assert.assertEquals(1, manager.getJobs().size());
-
-        eventDao.deleteEvent(event.getId());
-
-        new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
-        Assert.assertEquals(0, manager.getJobs().size());
-    }
 
     @Test
     public void testCleanupWithCleanableJob() {

@@ -186,7 +186,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
             OLAPContext context = getOlapContext(nameAndQueryPair.getSecond()).get(0);
             Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
             context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-            val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow.getLatestReadySegment(), context.getSQLDigest());
+            val pair = NQueryLayoutChooser.selectCuboidLayout(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
             Assert.assertNotNull(pair);
             Assert.assertEquals(1, pair.getSecond().size());
             Assert.assertFalse(pair.getSecond().get(0) instanceof CapabilityResult.DimensionAsMeasure);

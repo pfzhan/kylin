@@ -494,7 +494,7 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(0, recommendation.getCcRecommendations().size());
         Assert.assertEquals(0, recommendation.getLayoutRecommendations().size());
-        Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals(0, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(2, recommendation.getMeasureRecommendations().size());
     }
 

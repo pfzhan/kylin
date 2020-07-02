@@ -188,6 +188,7 @@ public class QueryExec {
     private List<List<String>> executeQueryPlan(RelNode rel) {
         QueryPlanExec planExec;
 
+        dataContext.setContentQuery(isConstantQuery(rel));
         if (!KapConfig.wrap(kylinConfig).isSparderEnabled()
                 || (KapConfig.wrap(kylinConfig).runConstantQueryLocally() && isConstantQuery(rel))) {
             planExec = new CalciteQueryPlanExec(); // if sparder is not enabled, or the sql can run locally, use the calcite engine

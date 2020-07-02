@@ -60,6 +60,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -411,6 +412,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         mockLayout1.setIndex(mockIndexEntity1);
         aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
         aggMock.storageContext.setCuboidLayoutId(1L);
+        aggMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(aggMock);
 
         // mock table index realization
@@ -428,6 +430,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         mockLayout2.setIndex(mockIndexEntity2);
         tableMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout2));
         tableMock.storageContext.setCuboidLayoutId(1L);
+        tableMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(tableMock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
@@ -449,6 +452,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         mockLayout.setIndex(mockIndexEntity);
         mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
         mock.storageContext.setCuboidLayoutId(layoutId);
+        mock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
 
         OLAPContext.registerContext(mock);
 

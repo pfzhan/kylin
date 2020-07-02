@@ -24,21 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.spark_project.guava.base.Preconditions;
-
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -46,13 +31,47 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spark_project.guava.base.Preconditions;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 /**
+ *
  */
 public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingJob.class);
+
+    static {
+        JobFactory.register(CUBE_JOB_FACTORY, new CubingJobFactory());
+    }
+
+    static class CubingJobFactory extends JobFactory {
+
+        private CubingJobFactory() {
+        }
+
+        @Override
+        protected NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
+                                         JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+            return NSparkCubingJob.create(segments, layouts, submitter, jobType, jobId, toBeDeletedLayouts);
+        }
+    }
 
     // for test use only
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter) {
@@ -60,7 +79,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+                                         JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
 
         NSparkCubingJob sparkCubingJob = create(segments, layouts, submitter, jobType, jobId);
         if (CollectionUtils.isNotEmpty(toBeDeletedLayouts)) {
@@ -71,10 +90,12 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId) {
+                                         JobTypeEnum jobType, String jobId) {
         Preconditions.checkArgument(!segments.isEmpty());
-        Preconditions.checkArgument(!layouts.isEmpty());
         Preconditions.checkArgument(submitter != null);
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            Preconditions.checkArgument(!layouts.isEmpty());
+        }
         NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
         long startTime = Long.MAX_VALUE - 1;
@@ -131,7 +152,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkCubingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
-            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)) {
+            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY) && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
                 toRemovedSegments.add(segment);
             }
         }

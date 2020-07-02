@@ -49,5 +49,7 @@ import java.io.Serializable;
  * 
  */
 public enum SegmentStatusEnum implements Serializable {
-    NEW, READY
+    NEW,
+    READY,
+    WARNING // indicate that data might be inconsistent across indexes
 }

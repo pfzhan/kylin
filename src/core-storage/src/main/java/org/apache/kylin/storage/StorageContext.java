@@ -42,9 +42,11 @@
 
 package org.apache.kylin.storage;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -135,6 +137,14 @@ public class StorageContext {
     @Getter
     @Setter
     private boolean useSnapshot = false;
+
+    @Getter
+    @Setter
+    private List<NDataSegment> prunedSegments;
+
+    @Getter
+    @Setter
+    private boolean isEmptyLayout;
 
     public StorageContext() {
     }

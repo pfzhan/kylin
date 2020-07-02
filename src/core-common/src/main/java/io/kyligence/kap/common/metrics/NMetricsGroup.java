@@ -293,8 +293,6 @@ public class NMetricsGroup {
             newCounter(NMetricsName.FQ_UPDATE_USAGE, NMetricsCategory.PROJECT, projectName);
             newCounter(NMetricsName.FQ_UPDATE_USAGE_DURATION, NMetricsCategory.PROJECT, projectName);
             newCounter(NMetricsName.FQ_FAILED_UPDATE_USAGE, NMetricsCategory.PROJECT, projectName);
-            // event statistics
-            newCounter(NMetricsName.EVENT_COUNTER, NMetricsCategory.PROJECT, projectName);
 
             newHistogram(NMetricsName.QUERY_SCAN_BYTES, NMetricsCategory.PROJECT, projectName);
 

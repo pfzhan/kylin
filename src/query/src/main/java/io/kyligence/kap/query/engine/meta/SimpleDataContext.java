@@ -42,6 +42,7 @@ public class SimpleDataContext implements MutableDataContext {
     private final JavaTypeFactory javaTypeFactory;
     private final KylinConfig kylinConfig;
     private final Map<String, Object> contextVars = new HashMap<>();
+    private boolean isContentQuery = false;
 
     public SimpleDataContext(SchemaPlus rootSchema, JavaTypeFactory javaTypeFactory, KylinConfig kylinConfig) {
         this.rootSchema = rootSchema;
@@ -85,5 +86,17 @@ public class SimpleDataContext implements MutableDataContext {
 
     private String prepareParamName(int idx) {
         return String.format("?%d", idx);
+    }
+
+    public KylinConfig getKylinConfig() {
+        return kylinConfig;
+    }
+
+    public boolean isContentQuery() {
+        return isContentQuery;
+    }
+
+    public void setContentQuery(boolean contentQuery) {
+        isContentQuery = contentQuery;
     }
 }

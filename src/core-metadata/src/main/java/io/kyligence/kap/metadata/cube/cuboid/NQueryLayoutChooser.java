@@ -73,20 +73,20 @@ public class NQueryLayoutChooser {
     private NQueryLayoutChooser() {
     }
 
-    public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectCuboidLayout(
-            NDataSegment segment, SQLDigest sqlDigest) {
+    public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectCuboidLayout(NDataflow dataflow, List<NDataSegment> prunedSegments, SQLDigest sqlDigest) {
 
         logger.info("Starting matching sql {}", sqlDigest);
-        if (segment == null) {
-            logger.info("Exclude this segments because there are no ready segments");
-            return null;
+        if (CollectionUtils.isEmpty(prunedSegments)) {
+            logger.info("there is no segment to answer sql");
+            return Pair.newPair(NLayoutCandidate.EMPTY, Lists.newArrayList());
         }
         List<NLayoutCandidate> candidates = new ArrayList<>();
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
-        for (NDataLayout cuboid : segment.getSegDetails().getLayouts()) {
+        val commonLayouts = getCommonLayouts(prunedSegments);
+        for (NDataLayout cuboid : commonLayouts) {
             CapabilityResult tempResult = new CapabilityResult();
             // check indexEntity
-            IndexEntity indexEntity = segment.getIndexPlan().getIndexEntity(cuboid.getIndexId());
+            IndexEntity indexEntity = dataflow.getIndexPlan().getIndexEntity(cuboid.getIndexId());
 
             Set<TblColRef> unmatchedCols = Sets.newHashSet();
             Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
@@ -95,7 +95,7 @@ public class NQueryLayoutChooser {
             if (indexEntity.isTableIndex() && (sqlDigest.isRawQuery
                     || KylinConfig.getInstanceFromEnv().isUseTableIndexAnswerNonRawQuery())) {
                 unmatchedCols.addAll(sqlDigest.allColumns);
-                matched = matchTableIndex(cuboid.getLayout(), segment.getDataflow(), unmatchedCols, needDerive,
+                matched = matchTableIndex(cuboid.getLayout(), dataflow, unmatchedCols, needDerive,
                         tempResult);
                 if (!matched) {
                     logger.debug("Table index {} with unmatched columns {}", cuboid, unmatchedCols);
@@ -104,7 +104,7 @@ public class NQueryLayoutChooser {
             if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
-                matched = matchAggIndex(sqlDigest, cuboid.getLayout(), segment.getDataflow(), unmatchedCols,
+                matched = matchAggIndex(sqlDigest, cuboid.getLayout(), dataflow, unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
                 if (!matched) {
                     logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", cuboid,
@@ -128,28 +128,47 @@ public class NQueryLayoutChooser {
         if (candidates.isEmpty()) {
             return null;
         }
-        sortCandidates(candidates, segment, sqlDigest);
+        sortCandidates(candidates, dataflow, sqlDigest);
         NLayoutCandidate chosenCandidate = candidates.get(0);
         return new Pair<>(chosenCandidate, candidateCapabilityResultMap.get(chosenCandidate).influences);
     }
 
-    private static void sortCandidates(List<NLayoutCandidate> candidates, NDataSegment segment, SQLDigest sqlDigest) {
-        final KylinConfig config = segment.getConfig();
+    private static Collection<NDataLayout> getCommonLayouts(List<NDataSegment> segments) {
+        val commonLayouts = Maps.<Long, NDataLayout>newHashMap();
+        if (CollectionUtils.isEmpty(segments)) {
+            return commonLayouts.values();
+        }
+
+        for (int i = 0; i < segments.size(); i++) {
+            val dataSegment = segments.get(i);
+            val layoutIdMapToDataLayout = dataSegment.getLayoutsMap();
+            if (i == 0) {
+                commonLayouts.putAll(layoutIdMapToDataLayout);
+            } else {
+                commonLayouts.keySet().retainAll(layoutIdMapToDataLayout.keySet());
+            }
+        }
+
+        return commonLayouts.values();
+    }
+
+    private static void sortCandidates(List<NLayoutCandidate> candidates, NDataflow dataflow, SQLDigest sqlDigest) {
+        final KylinConfig config = dataflow.getConfig();
         final Set<TblColRef> filterColSet = ImmutableSet.copyOf(sqlDigest.filterColumns);
         final List<TblColRef> filterCols = Lists.newArrayList(filterColSet);
-        filterCols.sort(ComparatorUtils.filterColComparator(config, segment.getProject()));
+        filterCols.sort(ComparatorUtils.filterColComparator(config, dataflow.getProject()));
 
         final Set<TblColRef> nonFilterColSet = sqlDigest.isRawQuery ? sqlDigest.allColumns.stream()
                 .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE).collect(Collectors.toSet())
                 : sqlDigest.groupbyColumns.stream()
-                        .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
-                        .collect(Collectors.toSet());
+                .filter(colRef -> colRef.getFilterLevel() == TblColRef.FilterColEnum.NONE)
+                .collect(Collectors.toSet());
         final List<TblColRef> nonFilterColumns = Lists.newArrayList(nonFilterColSet);
         nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
 
         Ordering<NLayoutCandidate> ordering = Ordering //
                 .from(derivedLayoutComparator()).compound(rowSizeComparator()) // L1 comparator, compare cuboid rows
-                .compound(filterColumnComparator(filterCols, config, segment.getProject())) // L2 comparator, order filter columns
+                .compound(filterColumnComparator(filterCols, config, dataflow.getProject())) // L2 comparator, order filter columns
                 .compound(dimensionSizeComparator()) // the lower dimension the best
                 .compound(measureSizeComparator()) // L3 comparator, order size of cuboid columns
                 .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
@@ -174,8 +193,8 @@ public class NQueryLayoutChooser {
     }
 
     private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout, final NDataflow dataFlow,
-            Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
-            Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+                                         Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
+                                         Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
         goThruDerivedDims(cuboidLayout.getIndex(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());
         unmatchedAggregations(unmatchedMetrics, cuboidLayout);
@@ -191,7 +210,7 @@ public class NQueryLayoutChooser {
     }
 
     private static boolean matchTableIndex(final LayoutEntity cuboidLayout, final NDataflow dataflow,
-            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+                                           Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
         goThruDerivedDims(cuboidLayout.getIndex(), dataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
         if (!unmatchedCols.isEmpty()) {
@@ -240,7 +259,7 @@ public class NQueryLayoutChooser {
     }
 
     private static void applyAdvanceMeasureStrategy(IndexEntity indexEntity, SQLDigest digest,
-            Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
+                                                    Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
         List<String> influencingMeasures = Lists.newArrayList();
         for (MeasureDesc measure : indexEntity.getMeasureSet()) {
             MeasureType measureType = measure.getFunction().getMeasureType();
@@ -286,12 +305,12 @@ public class NQueryLayoutChooser {
     }
 
     private static Comparator<NLayoutCandidate> filterColumnComparator(List<TblColRef> sortedFilters,
-            KylinConfig config, String project) {
+                                                                       KylinConfig config, String project) {
         return Ordering.from(colComparator(sortedFilters, config)).compound(shardByComparator(sortedFilters, config));
     }
 
     private static Comparator<NLayoutCandidate> nonFilterColumnComparator(List<TblColRef> sortedNonFilters,
-            KylinConfig config) {
+                                                                          KylinConfig config) {
         return colComparator(sortedNonFilters, config);
     }
 
@@ -348,7 +367,7 @@ public class NQueryLayoutChooser {
     }
 
     private static List<Integer> getColumnsPos(final NLayoutCandidate candidate, KylinConfig config,
-            List<TblColRef> sortedColumns) {
+                                               List<TblColRef> sortedColumns) {
 
         List<Integer> positions = Lists.newArrayList();
         for (TblColRef col : sortedColumns) {
@@ -372,7 +391,7 @@ public class NQueryLayoutChooser {
     }
 
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
-            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
+                                          Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
@@ -386,7 +405,7 @@ public class NQueryLayoutChooser {
                     TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
                     if (indexEntity.dimensionsDerive(relatedCol)) {
                         needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide,
-                                new TblColRef[] { relatedCol }, true));
+                                new TblColRef[]{relatedCol}, true));
                         unmatchedDimItr.remove();
                         continue;
                     }
@@ -409,7 +428,7 @@ public class NQueryLayoutChooser {
                 JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
                 Preconditions.checkNotNull(joinByPKSide);
                 needDeriveCollector.put(unmatchedDim,
-                        new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[] { pk }, true));
+                        new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[]{pk}, true));
                 unmatchedDimItr.remove();
             }
         }

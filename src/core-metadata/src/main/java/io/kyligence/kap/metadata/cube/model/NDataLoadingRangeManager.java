@@ -223,7 +223,7 @@ public class NDataLoadingRangeManager {
     }
 
     private SegmentRange getOverlapRange(NDataflow dataflow, SegmentRange querableRange) {
-        val readySegments = dataflow.getSegments(SegmentStatusEnum.READY);
+        val readySegments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         if (CollectionUtils.isEmpty(readySegments)) {
             return null;
         }

@@ -757,7 +757,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getMaxConcurrentJobLimit() {
-        return Integer.parseInt(getOptional("kylin.job.max-concurrent-jobs", "10"));
+        return Integer.parseInt(getOptional("kylin.job.max-project-concurrent-jobs", "10"));
     }
 
     public Boolean getAutoSetConcurrentJob() {
@@ -1142,6 +1142,10 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
     // QUERY
     // ============================================================================
+
+    public boolean isHeterogeneousSegmentEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.heterogeneous-segment-enabled", TRUE));
+    }
 
     public boolean isUseTableIndexAnswerNonRawQuery() {
         return Boolean.parseBoolean(getOptional("kylin.query.use-tableindex-answer-non-raw-query", FALSE));

@@ -24,7 +24,9 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -291,6 +293,9 @@ public class DFMergeJob extends SparkApplication {
         final NDataflow dataFlow = dfMgr.getDataflow(dataFlowId);
         final NDataSegment mergedSeg = dataFlow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = getMergingSegments(dataFlow, mergedSeg);
+        if (mergingSegments.size() < 1) {
+            return;
+        }
 
         Collections.sort(mergingSegments);
 
@@ -300,11 +305,15 @@ public class DFMergeJob extends SparkApplication {
             return;
         }
 
-        // check flat table selected columns
-        List<String> selectedColumns = getSelectedColumns(mergingSegments);
-        if (CollectionUtils.isEmpty(selectedColumns)) {
-            return;
+        // selected cols must be all the same
+        Set<String> selectedCols = new HashSet<>(mergingSegments.get(0).getSelectedColumns());
+        for(int i = 1; i < mergingSegments.size(); i++) {
+            if (selectedCols.size() != mergingSegments.get(i).getSelectedColumns().size() ||
+                    !selectedCols.containsAll(mergingSegments.get(i).getSelectedColumns())) {
+                return;
+            }
         }
+        List<String> selectedColumns = new ArrayList<>(mergingSegments.get(0).getSelectedColumns());
 
         Dataset<Row> flatTableDs = null;
         for (Path p : flatTables) {

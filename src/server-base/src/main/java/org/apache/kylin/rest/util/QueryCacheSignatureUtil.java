@@ -97,7 +97,7 @@ public class QueryCacheSignatureUtil {
                 return "";
             }
             List<Long> allLayoutTimes = Lists.newLinkedList();
-            for (NDataSegment seg : dataflow.getSegments(SegmentStatusEnum.READY)) {
+            for (NDataSegment seg : dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
                 long now = System.currentTimeMillis();
                 long latestTime = seg.getSegDetails().getLastModified();
                 if (latestTime <= now && latestTime >= (now - sqlDuration)) {

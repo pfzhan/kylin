@@ -44,7 +44,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.SegmentUtils;
+import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -111,18 +111,15 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
     public NDataLayout[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds,
             ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
-        val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), getProject());
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
 
         val dfUpdate = new NDataflowUpdate(flowName);
-        val availableLayoutIds = intersectionWithLastSegment(localDataflow, layoutIds);
         val theSeg = remoteDataflow.getSegment(segmentId);
         updateSnapshotTableIfNeed(theSeg);
         theSeg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(theSeg);
-        dfUpdate.setToAddOrUpdateLayouts(theSeg.getSegDetails().getLayouts().stream()
-                .filter(c -> availableLayoutIds.contains(c.getLayoutId())).toArray(NDataLayout[]::new));
+        dfUpdate.setToAddOrUpdateLayouts(theSeg.getSegDetails().getLayouts().toArray(new NDataLayout[0]));
 
         localDataflowManager.updateDataflow(dfUpdate);
         IndexPlan remoteIndexPlan = remoteDataflowManager.getDataflow(flowName).getIndexPlan();

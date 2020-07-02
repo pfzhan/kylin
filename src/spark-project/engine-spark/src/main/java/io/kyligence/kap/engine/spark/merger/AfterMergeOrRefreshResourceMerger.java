@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.engine.spark.merger;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
@@ -100,11 +100,12 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
                 mergedSegment.setSourceBytesSize(totalSourceSize);
                 mergedSegment.setLastBuildTime(System.currentTimeMillis());
             }
+
+            if (toRemoveSegments.stream().anyMatch(seg -> seg.getStatus() == SegmentStatusEnum.WARNING)) {
+                mergedSegment.setStatus(SegmentStatusEnum.WARNING);
+            }
         }
-        val livedLayouts = mgr.getDataflow(dataflowId).getLatestReadySegment().getLayoutsMap().values().stream()
-                .map(NDataLayout::getLayoutId).collect(Collectors.toSet());
-        toUpdateCuboids.addAll(mergedSegment.getSegDetails().getLayouts().stream()
-                .filter(c -> livedLayouts.contains(c.getLayoutId())).collect(Collectors.toList()));
+        toUpdateCuboids.addAll(new ArrayList<>(mergedSegment.getSegDetails().getLayouts()));
 
         update.setToAddOrUpdateLayouts(toUpdateCuboids.toArray(new NDataLayout[0]));
         update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));

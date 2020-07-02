@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.engine.exec;
 
+import java.util.Collections;
 import java.util.List;
 
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
@@ -33,6 +34,7 @@ import org.apache.calcite.rel.RelNode;
  * implement and execute a physical plan
  */
 public interface QueryPlanExec {
+    List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     List<List<String>> execute(RelNode rel, MutableDataContext dataContext);
 

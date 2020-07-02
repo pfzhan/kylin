@@ -170,7 +170,7 @@ public class IndexPlanService extends BasicService {
             NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getDataflow(request.getModelId());
 
-            val readySegs = df.getSegments(SegmentStatusEnum.READY);
+            val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
             if (readySegs.isEmpty()) {
                 removeIndex(project, request.getModelId(), request.getId());
             } else {
@@ -223,7 +223,7 @@ public class IndexPlanService extends BasicService {
     public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         val indexPlanManager = getIndexPlanManager(project);
-        val eventManager = getEventManager(project);
+        val jobManager = getJobManager(project);
         val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
         val newLayout = parseToLayout(project, request);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
@@ -267,8 +267,7 @@ public class IndexPlanService extends BasicService {
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                getSourceUsageManager().licenseCheckWrap(project,
-                        () -> eventManager.postAddCuboidEvents(indexPlan.getUuid(), getUsername()));
+                getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addFullIndexJob(indexPlan.getUuid(), getUsername()));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -487,9 +486,8 @@ public class IndexPlanService extends BasicService {
                     .collect(Collectors.toList()));
         });
         if (request.isLoadData()) {
-            val eventManager = getEventManager(project);
-            getSourceUsageManager().licenseCheckWrap(project,
-                    () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
+            val jobManager = getJobManager(project);
+            getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addFullIndexJob(modelId, getUsername()));
         }
     }
 

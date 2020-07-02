@@ -24,8 +24,9 @@ package org.apache.spark.sql.execution.datasource
 
 import java.sql.{Date, Timestamp}
 
-import io.kyligence.kap.engine.spark.utils.{LogUtils, LogEx}
+import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.project.NProjectManager
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
@@ -39,6 +40,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
+
 import scala.collection.JavaConverters._
 
 case class SegmentDirectory(segmentID: String, files: Seq[FileStatus])
@@ -106,8 +108,13 @@ class FilePruner(val session: SparkSession,
     }
   }
 
-  private lazy val segmentDirs: Seq[SegmentDirectory] = {
+  private lazy val allSegmentDirs: Seq[SegmentDirectory] = {
     dataflow.getQueryableSegments.asScala.map(seg => SegmentDirectory(seg.getId, null))
+  }
+
+  private lazy val prunedSegmentDirs: Seq[SegmentDirectory] = {
+    val prunedSegments = options.getOrElse("prunedSegments", sys.error("prunedSegments option is required")).split(",")
+    prunedSegments.map(segId => SegmentDirectory(segId, null))
   }
 
   override lazy val partitionSchema: StructType = {
@@ -204,11 +211,19 @@ class FilePruner(val session: SparkSession,
     val fsc = ShardFileStatusCache.getFileStatusCache(session)
 
     // segment pruning
+    val project = dataflow.getProject
+    val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig
+    var segmentDirs = if (projectKylinConfig.isHeterogeneousSegmentEnabled) {
+      prunedSegmentDirs
+    } else {
+      allSegmentDirs
+    }
     var selected = afterPruning("pruning segment", timePartitionFilters, segmentDirs) {
       pruneSegments
     }
     QueryContext.current().record("seg_pruning")
     QueryContext.current().getMetrics.setSegCount(selected.size)
+
     selected = selected.par.map { e =>
       val path = new Path(toPath(e.segmentID))
       val maybeStatuses = fsc.getLeafFiles(path)
@@ -424,9 +439,9 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
   }
 
   /**
-   * Recursively fold provided filters to trivial,
-   * blocks are always non-empty.
-   */
+    * Recursively fold provided filters to trivial,
+    * blocks are always non-empty.
+    */
   def foldFilter(filter: Filter): Filter = {
     filter match {
       case EqualTo(_, value: Any) =>

@@ -44,6 +44,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
@@ -64,6 +65,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,6 +94,7 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -138,11 +141,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -153,6 +151,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -191,6 +190,7 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
@@ -223,10 +223,6 @@ import lombok.var;
 public class ModelService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
-
-    private static final String SEGMENT_PATH = "segment_path";
-
-    private static final String FILE_COUNT = "file_count";
 
     private static final String LAST_MODIFY = "last_modify";
 
@@ -282,7 +278,7 @@ public class ModelService extends BasicService {
 
             if (!model.isBroken()) {
                 List<NDataSegmentResponse> segments = getSegmentsResponse(model.getId(), model.getProject(), "1",
-                        String.valueOf(Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
+                        String.valueOf(Long.MAX_VALUE - 1), null, LAST_MODIFY, true);
                 for (NDataSegmentResponse segment : segments) {
                     long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
                             .max(Long::compareTo).orElse(0L);
@@ -477,7 +473,7 @@ public class ModelService extends BasicService {
             long inputRecordSizeBytes = 0L;
             if (!modelResponse.isModelBroken()) {
                 List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
-                        String.valueOf(Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
+                        String.valueOf(Long.MAX_VALUE - 1), null, LAST_MODIFY, true);
                 for (NDataSegmentResponse segment : segments) {
                     long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
                             .max(Long::compareTo).orElse(0L);
@@ -527,7 +523,8 @@ public class ModelService extends BasicService {
         pairs.forEach(p -> {
             val dataflow = p.getKey();
             val modelDesc = p.getValue();
-            ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName);
+            long inconsistentSegmentCount = dfManager.getDataflow(modelDesc.getId()).getSegments(SegmentStatusEnum.WARNING).size();
+            ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName, inconsistentSegmentCount);
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
@@ -548,6 +545,7 @@ public class ModelService extends BasicService {
                         : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
                 nDataModelResponse.setEmptyIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
                         : getEmptyIndexesCount(projectName, modelDesc.getId()));
+                nDataModelResponse.setInconsistentSegmentCount(inconsistentSegmentCount);
                 filterModels.add(nDataModelResponse);
             }
         });
@@ -575,7 +573,7 @@ public class ModelService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    private ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName) {
+    private ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName, long inconsistentSegmentCount) {
         RealizationStatusEnum modelStatus = modelDesc.isBroken() ? RealizationStatusEnum.BROKEN
                 : getModelStatus(modelDesc.getUuid(), projectName);
         ModelStatusToDisplayEnum modelResponseStatus = ModelStatusToDisplayEnum.convert(modelStatus);
@@ -583,6 +581,9 @@ public class ModelService extends BasicService {
         if (modelResponseStatus == ModelStatusToDisplayEnum.ONLINE
                 && (getEmptyIndexesCount(projectName, modelDesc.getId()) > 0
                         || CollectionUtils.isNotEmpty(segmentHoles))) {
+            modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
+        }
+        if (inconsistentSegmentCount > 0) {
             modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
         }
         return modelResponseStatus;
@@ -669,32 +670,73 @@ public class ModelService extends BasicService {
         }
     }
 
+    public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String status) {
+        return getSegmentsResponse(modelId, project, "0", String.valueOf(Long.MAX_VALUE - 1), status, null, null, false, "last_modify", true);
+    }
+
+    public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end, String status,
+                                                          String sortBy, boolean reverse) {
+        return getSegmentsResponse(modelId, project, start, end, status, null, null, false, sortBy, reverse);
+    }
+
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
-            String sortBy, boolean reverse, String status) {
+                                                          String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        List<NDataSegmentResponse> segmentResponse = Lists.newArrayList();
+        List<NDataSegmentResponse> segmentResponseList = Lists.newArrayList();
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         val segs = getSegmentsByRange(modelId, project, start, end);
-        for (NDataSegment segment : segs) {
+
+        // filtering on index
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getIndexPlan(modelId);
+        Set<Long> allIndexes = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
+            for (Long idx : withAllIndexes) {
+                if (!allIndexes.contains(idx)) {
+                    throw new KylinException(INVALID_SEGMENT_PARAMETER, "Invalid index id " + idx);
+                }
+            }
+        }
+        if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
+            for (Long idx : withoutAnyIndexes) {
+                if (!allIndexes.contains(idx)) {
+                    throw new KylinException(INVALID_SEGMENT_PARAMETER, "Invalid index id " + idx);
+                }
+            }
+        }
+        List<NDataSegment> indexFiltered = new LinkedList<>();
+        for (NDataSegment segment: segs) {
+            if (allToComplement) {
+                // find seg that does not have all indexes
+                if (segment.getSegDetails().getLayouts().size() != allIndexes.size()) {
+                    indexFiltered.add(segment);
+                }
+            } else if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
+                // find seg that has all required indexes
+                if (segment.getLayoutIds().containsAll(withAllIndexes)) {
+                    indexFiltered.add(segment);
+                }
+            } else if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
+                // find seg that miss any of the indexes
+                if (!segment.getLayoutIds().containsAll(withoutAnyIndexes)) {
+                    indexFiltered.add(segment);
+                }
+            } else {
+                indexFiltered.add(segment);
+            }
+        }
+
+        for (NDataSegment segment : indexFiltered) {
             if (StringUtils.isNotEmpty(status)
                     && !status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
                 continue;
             }
-            NDataSegmentResponse nDataSegmentResponse = new NDataSegmentResponse(segment);
-            nDataSegmentResponse.setBytesSize(segment.getStorageBytesSize());
-            nDataSegmentResponse.getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
-            nDataSegmentResponse.getAdditionalInfo().put(FILE_COUNT, segment.getStorageFileCount() + "");
-            nDataSegmentResponse.setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
-            nDataSegmentResponse.setSourceBytesSize(segment.getSourceBytesSize());
-            nDataSegmentResponse.setLastBuildTime(segment.getLastBuildTime());
-            nDataSegmentResponse.setSegDetails(segment.getSegDetails());
-            segmentResponse.add(nDataSegmentResponse);
+            segmentResponseList.add(new NDataSegmentResponse(dataflow, segment));
         }
         Comparator<NDataSegmentResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "create_time" : sortBy, reverse);
-        segmentResponse.sort(comparator);
-        return segmentResponse;
+        segmentResponseList.sort(comparator);
+        return segmentResponseList;
     }
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
@@ -889,8 +931,6 @@ public class ModelService extends BasicService {
         dataflowManager.dropDataflow(modelId);
         indexPlanManager.dropIndexPlan(modelId);
         dataModelManager.dropModel(dataModelDesc);
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        eventDao.getEventsByModel(modelId).stream().map(Event::getId).forEach(eventDao::deleteEvent);
     }
 
     @Transaction(project = 1)
@@ -1094,7 +1134,7 @@ public class ModelService extends BasicService {
             val dataflow = dfManager.getDataflow(model.getId());
             Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, start, end);
             if (!dataflow.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
-                if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY))) {
+                if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING))) {
                     if (loadingRange == null) {
                         //full build
                         logger.info("No segment to refresh, full build.");
@@ -1647,28 +1687,33 @@ public class ModelService extends BasicService {
 
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end)
             throws Exception {
+        return buildSegmentsManually(project, modelId, start, end, true);
+    }
+
+    public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end, boolean needBuild)
+            throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
-            return fullBuildSegmentsManually(project, modelId);
+            return fullBuildSegmentsManually(project, modelId, needBuild);
         } else {
             return incrementBuildSegmentsManually(project, modelId, start, end, modelDesc.getPartitionDesc(),
-                    Lists.newArrayList());
+                    Lists.newArrayList(), needBuild);
         }
     }
 
-    public JobInfoResponse fullBuildSegmentsManually(String project, String modelId) {
+    public JobInfoResponse fullBuildSegmentsManually(String project, String modelId, boolean needBuild) {
         aclEvaluate.checkProjectOperationPermission(project);
 
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
-                .doInTransactionWithCheckAndRetry(() -> constructFullBuild(project, modelId), project);
+                .doInTransactionWithCheckAndRetry(() -> constructFullBuild(project, modelId, needBuild), project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
     }
 
-    private List<JobInfoResponse.JobInfo> constructFullBuild(String project, String modelId) {
-        checkModelAndIndexManually(project, modelId);
+    private List<JobInfoResponse.JobInfo> constructFullBuild(String project, String modelId, boolean needBuild) {
+        checkModelAndIndexManually(project, modelId, needBuild);
         NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
         if (model.getPartitionDesc() != null
                 && !StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
@@ -1681,25 +1726,35 @@ public class ModelService extends BasicService {
         val seg = df.getFirstSegment();
         if (Objects.isNull(seg)) {
             NDataSegment newSegment = dataflowManager.appendSegment(df,
-                    SegmentRange.TimePartitionedSegmentRange.createInfinite());
+                    SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                    needBuild ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY);
+            if (!needBuild) {
+                return new LinkedList<>();
+            }
             return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                    getSourceUsageManager().licenseCheckWrap(project,
-                            () -> getEventManager(project).postAddSegmentEvents(newSegment, modelId, getUsername()))));
+                    getSourceUsageManager().licenseCheckWrap(project, () -> getJobManager(project).addSegmentJob(newSegment, modelId, getUsername()))));
+        }
+        if (!needBuild) {
+            return new LinkedList<>();
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
         res.addAll(refreshSegmentById(modelId, project,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
                         .toArray(new String[0])));
         res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                getSourceUsageManager().licenseCheckWrap(project,
-                        () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
+                getSourceUsageManager().licenseCheckWrap(project, () -> getJobManager(project).addFullIndexJob(modelId, getUsername()))));
         return res;
     }
 
     private JobInfoResponse.JobInfo constructIncrementBuild(String project, String modelId, String start, String end,
-            String partionColFormat) throws Exception {
+                                                            String partionColFormat) throws Exception {
+        return constructIncrementBuild(project, modelId, start, end, partionColFormat, true);
+    }
+
+    private JobInfoResponse.JobInfo constructIncrementBuild(String project, String modelId, String start, String end,
+            String partionColFormat, boolean needBuild) throws Exception {
         NDataModel modelDescInTransaction = getDataModelManager(project).getDataModelDesc(modelId);
-        EventManager eventManager = getEventManager(project);
+        JobManager jobManager = getJobManager(project);
         TableDesc table = getTableManager(project).getTableDesc(modelDescInTransaction.getRootFactTableName());
         val df = getDataflowManager(project).getDataflow(modelId);
         if (modelDescInTransaction.getPartitionDesc() == null
@@ -1710,13 +1765,68 @@ public class ModelService extends BasicService {
         val segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
         checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
         saveDateFormatIfNotExist(project, modelId, partionColFormat);
-        NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
-        return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getSourceUsageManager().licenseCheckWrap(
-                project, () -> eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())));
+        NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild, needBuild ? SegmentStatusEnum.NEW : SegmentStatusEnum.READY);
+        if (!needBuild) {
+            return null;
+        }
+        return new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
+                getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(newSegment, modelId, getUsername())));
     }
 
     public JobInfoResponse incrementBuildSegmentsManually(String project, String modelId, String start, String end,
-            PartitionDesc partitionDesc, List<SegmentTimeRequest> segmentHoles) throws Exception {
+                                                          PartitionDesc partitionDesc, List<SegmentTimeRequest> segmentHoles) throws Exception {
+        return incrementBuildSegmentsManually(project, modelId, start, end, partitionDesc, segmentHoles, true);
+    }
+
+    public JobInfoResponseWithFailure addIndexesToSegments(String project,
+                                                String modelId,
+                                                List<String> segmentIds,
+                                                List<Long> indexIds) throws Exception {
+        aclEvaluate.checkProjectOperationPermission(project);
+        val jobManager = getJobManager(project);
+        val dfManger = getDataflowManager(project);
+
+        NDataflow dataflow = dfManger.getDataflow(modelId);
+        JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
+        List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
+        for (String segmentId : segmentIds) {
+            try {
+                JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(
+                        JobTypeEnum.INDEX_BUILD.toString(),
+                        getSourceUsageManager().licenseCheckWrap(project,
+                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentId), indexIds == null ? null : new HashSet<>(indexIds)))
+                );
+                jobs.add(jobInfo);
+            } catch (KylinException e) {
+                result.addFailedSeg(dataflow, dataflow.getSegment(segmentId), e);
+            }
+        }
+        result.setJobs(jobs);
+        return result;
+    }
+
+    public void removeIndexesFromSegments(String project,
+                                          String modelId,
+                                          List<String> segmentIds,
+                                          List<Long> indexIds) {
+        aclEvaluate.checkProjectOperationPermission(project);
+
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val dfManger = getDataflowManager(project);
+            NDataflow dataflow = dfManger.getDataflow(modelId);
+            for (String segmentId : segmentIds) {
+                NDataSegment seg = dataflow.getSegment(segmentId);
+                NDataSegDetails segDetails = seg.getSegDetails();
+                List<NDataLayout> layouts = new LinkedList<>(segDetails.getLayouts());
+                layouts.removeIf(layout -> indexIds.contains(layout.getLayoutId()));
+                dfManger.updateDataflowDetailsLayouts(seg, layouts);
+            }
+            return null;
+        }, project);
+    }
+
+    public JobInfoResponse incrementBuildSegmentsManually(String project, String modelId, String start, String end,
+            PartitionDesc partitionDesc, List<SegmentTimeRequest> segmentHoles, boolean needBuild) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
         val modelManager = getDataModelManager(project);
         if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
@@ -1735,15 +1845,15 @@ public class ModelService extends BasicService {
 
         List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
                 .doInTransactionWithCheckAndRetry(() -> innerIncrementBuild(project, modelId, startFormat, endFormat,
-                        partitionDesc, format, segmentHoles), project);
+                        partitionDesc, format, segmentHoles, needBuild), project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
     }
 
     private List<JobInfoResponse.JobInfo> innerIncrementBuild(String project, String modelId, String start, String end,
-            PartitionDesc partitionDesc, String format, List<SegmentTimeRequest> segmentHoles) throws Exception {
-        checkModelAndIndexManually(project, modelId);
+            PartitionDesc partitionDesc, String format, List<SegmentTimeRequest> segmentHoles, boolean needBuild) throws Exception {
+        checkModelAndIndexManually(project, modelId, needBuild);
         if (CollectionUtils.isEmpty(segmentHoles)) {
             segmentHoles = Lists.newArrayList();
         }
@@ -1760,12 +1870,12 @@ public class ModelService extends BasicService {
         }
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(segmentHoles.size() + 2);
         for (SegmentTimeRequest hole : segmentHoles) {
-            res.add(constructIncrementBuild(project, modelId, hole.getStart(), hole.getEnd(), format));
+            res.add(constructIncrementBuild(project, modelId, hole.getStart(), hole.getEnd(), format, needBuild));
         }
-        res.add(constructIncrementBuild(project, modelId, start, end, format));
-        res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                getSourceUsageManager().licenseCheckWrap(project,
-                        () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
+        res.add(constructIncrementBuild(project, modelId, start, end, format, needBuild));
+        //TODO need to index build?
+//        res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
+//                getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
         return res;
     }
 
@@ -1798,15 +1908,21 @@ public class ModelService extends BasicService {
     }
 
     private void checkModelAndIndexManually(String project, String modelId) {
+        checkModelAndIndexManually(project, modelId, true);
+    }
+
+    private void checkModelAndIndexManually(String project, String modelId, boolean needBuild) {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT_MANUALLY(), modelDesc.getAlias()));
         }
 
-        val indexPlan = getIndexPlan(modelId, project);
-        if (indexPlan == null || indexPlan.getAllLayouts().isEmpty()) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
+        if (needBuild) {
+            val indexPlan = getIndexPlan(modelId, project);
+            if (indexPlan == null || indexPlan.getAllLayouts().isEmpty()) {
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
+            }
         }
     }
 
@@ -2126,7 +2242,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
 
         val dfManager = getDataflowManager(project);
-        val eventManager = getEventManager(project);
+        val jobManager = getJobManager(project);
         val indexPlan = getIndexPlan(modelId, project);
         val df = dfManager.getDataflow(indexPlan.getUuid());
 
@@ -2146,7 +2262,7 @@ public class ModelService extends BasicService {
                         String.format(MsgPicker.getMsg().getSEG_NOT_FOUND(), id, df.getModelAlias()));
             }
 
-            if (!segment.getStatus().equals(SegmentStatusEnum.READY)) {
+            if (!segment.getStatus().equals(SegmentStatusEnum.READY) && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
                 throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT());
             }
 
@@ -2163,14 +2279,10 @@ public class ModelService extends BasicService {
         NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(start, end), true);
 
-        val mergeEvent = new MergeSegmentEvent();
-        mergeEvent.setModelId(modelId);
-        mergeEvent.setSegmentId(mergeSeg.getId());
-        mergeEvent.setJobId(UUID.randomUUID().toString());
-        mergeEvent.setOwner(getUsername());
-        eventManager.post(mergeEvent);
+        String jobId = getSourceUsageManager().licenseCheckWrap(project,
+                () -> jobManager.mergeSegmentJob(mergeSeg, modelId, getUsername()));
 
-        return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), mergeEvent.getJobId());
+        return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), jobId);
     }
 
     @Transaction(project = 1)
@@ -2183,7 +2295,7 @@ public class ModelService extends BasicService {
 
         List<JobInfoResponse.JobInfo> jobIds = new ArrayList<>();
         NDataflowManager dfMgr = getDataflowManager(project);
-        EventManager eventManager = getEventManager(project);
+        val jobManager = getJobManager(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
         NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
 
@@ -2196,14 +2308,10 @@ public class ModelService extends BasicService {
 
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
 
-            val event = new RefreshSegmentEvent();
-            event.setSegmentId(newSeg.getId());
-            event.setModelId(modelId);
-            event.setOwner(getUsername());
-            event.setJobId(UUID.randomUUID().toString());
-            eventManager.post(event);
+            String jobId = getSourceUsageManager().licenseCheckWrap(project,
+                    () -> jobManager.refreshSegmentJob(newSeg, modelId, getUsername()));
 
-            jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), event.getJobId()));
+            jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), jobId));
         }
         return jobIds;
     }
@@ -2292,7 +2400,7 @@ public class ModelService extends BasicService {
         //check table index contains removed columns
         val tableIndexColumns = indexPlan.getIndexes().stream().filter(IndexEntity::isTableIndex)
                 .map(IndexEntity::getDimensions).flatMap(List::stream).collect(Collectors.toSet());
-        val allNamedColumns = newModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+        val allNamedColumns = newModel.getAllSelectedColumns().stream()
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toList());
         if (!allNamedColumns.containsAll(tableIndexColumns)) {
             val columnNames = tableIndexColumns.stream().filter(x -> !allNamedColumns.contains(x))
@@ -2608,9 +2716,7 @@ public class ModelService extends BasicService {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
         }
 
-        val eventManager = getEventManager(project);
-        String jobId = getSourceUsageManager().licenseCheckWrap(project,
-                () -> eventManager.postAddCuboidEvents(modelId, getUsername()));
+        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> getJobManager(project).addFullIndexJob(modelId, getUsername()));
 
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }

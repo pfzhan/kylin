@@ -154,11 +154,11 @@ public class NMetaStoreControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .param("project", "default")
                 .param("ids", request.getIds().get(0))
-                .param("signature", "C3873AEC6DA1BFAC11138425096886AC")
+                .param("signature", "FDD6D2B53BDFAEA6F17509B4DAEC4071")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nModelController).importModelMetadata("default", "C3873AEC6DA1BFAC11138425096886AC", multipartFile, request);
+        Mockito.verify(nModelController).importModelMetadata("default", "FDD6D2B53BDFAEA6F17509B4DAEC4071", multipartFile, request);
     }
 
     private ModelPreviewRequest mockModelPreviewRequest() {

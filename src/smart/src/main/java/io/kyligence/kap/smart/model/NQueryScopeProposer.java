@@ -332,11 +332,13 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         }
 
         private boolean canTblColRefTreatAsDimension(OLAPContext ctx, TblColRef tblColRef) {
-
-            return !ctx.getSQLDigest().isRawQuery
-                    && (ctx.filterColumns.contains(tblColRef) || ctx.getGroupByColumns().contains(tblColRef)
-                            || ctx.getSubqueryJoinParticipants().contains(tblColRef)
-                            || dimensionAsMeasureColumns.contains(tblColRef));
+            if (ctx.getSQLDigest().isRawQuery) {
+                return ctx.allColumns.contains(tblColRef);
+            } else {
+                return ctx.filterColumns.contains(tblColRef) || ctx.getGroupByColumns().contains(tblColRef)
+                        || ctx.getSubqueryJoinParticipants().contains(tblColRef)
+                        || dimensionAsMeasureColumns.contains(tblColRef);
+            }
         }
 
         protected NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {

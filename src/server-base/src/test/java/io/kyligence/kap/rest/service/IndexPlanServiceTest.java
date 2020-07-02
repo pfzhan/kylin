@@ -60,10 +60,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -84,9 +82,9 @@ import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class IndexPlanServiceTest extends CSVSourceTestCase {
@@ -141,6 +139,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         return clean;
     }
 
+
     @Test
     public void testUpdateSingleRuleBasedCuboid() throws NoSuchFieldException, IllegalAccessException {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -148,7 +147,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan(modelId);
         NAggregationGroup aggregationGroup = new NAggregationGroup();
-        aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
@@ -158,7 +157,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .updateRuleBasedCuboid("default",
                         UpdateRuleBasedCuboidRequest.builder().project("default")
                                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                                .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup)).build())
                 .getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
@@ -170,7 +169,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testUpdateRuleBasedSortDimension() {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val aggregationGroup1 = new NAggregationGroup();
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
@@ -178,12 +177,12 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         aggregationGroup1.setSelectRule(selectRule);
 
         val aggregationGroup2 = new NAggregationGroup();
-        aggregationGroup2.setIncludes(new Integer[] { 4, 3, 5 });
+        aggregationGroup2.setIncludes(new Integer[]{4, 3, 5});
         aggregationGroup2.setSelectRule(selectRule);
 
         UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
                 .modelId(modelId)
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup1, aggregationGroup2))
                 .build();
         val diff1 = indexPlanService.calculateDiffRuleBasedIndex(request);
         Assert.assertTrue(diff1.getIncreaseLayouts() > 0);
@@ -193,15 +192,15 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 3, 4, 5]", saved.getRuleBasedIndex().getDimensions().toString());
 
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3 });
-        aggregationGroup2.setIncludes(new Integer[] { 4, 3 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3});
+        aggregationGroup2.setIncludes(new Integer[]{4, 3});
 
         val aggregationGroup3 = new NAggregationGroup();
-        aggregationGroup3.setIncludes(new Integer[] { 2, 4 });
+        aggregationGroup3.setIncludes(new Integer[]{2, 4});
         aggregationGroup3.setSelectRule(selectRule);
 
         val aggregationGroup4 = new NAggregationGroup();
-        aggregationGroup4.setIncludes(new Integer[] { 5, 4 });
+        aggregationGroup4.setIncludes(new Integer[]{5, 4});
         aggregationGroup4.setSelectRule(selectRule);
 
         request = UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
@@ -216,9 +215,9 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 5, 4, 3]", saved.getRuleBasedIndex().getDimensions().toString());
 
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
-        aggregationGroup2.setIncludes(new Integer[] { 2, 5, 6, 4 });
-        aggregationGroup3.setIncludes(new Integer[] { 5, 3 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup2.setIncludes(new Integer[]{2, 5, 6, 4});
+        aggregationGroup3.setIncludes(new Integer[]{5, 3});
 
         saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
@@ -229,10 +228,10 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(6, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 5, 6, 3, 4]", saved.getRuleBasedIndex().getDimensions().toString());
 
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3 });
-        aggregationGroup2.setIncludes(new Integer[] { 2, 4 });
-        aggregationGroup3.setIncludes(new Integer[] { 4, 3 });
-        aggregationGroup4.setIncludes(new Integer[] { 3, 2 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3});
+        aggregationGroup2.setIncludes(new Integer[]{2, 4});
+        aggregationGroup3.setIncludes(new Integer[]{4, 3});
+        aggregationGroup4.setIncludes(new Integer[]{3, 2});
 
         saved = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId).aggregationGroups(
@@ -249,7 +248,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NAggregationGroup aggregationGroup = new NAggregationGroup();
-        aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
@@ -259,7 +258,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .updateRuleBasedCuboid("default",
                         UpdateRuleBasedCuboidRequest.builder().project("default")
                                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
-                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                                .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup)).build())
                 .getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
@@ -270,7 +269,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val res = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default")
                         .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build());
+                        .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup)).build());
         long lastModifiedTime2 = res.getFirst().getRuleBasedIndex().getLastModifiedTime();
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, res.getSecond().getType());
         Assert.assertTrue(lastModifiedTime2 > lastModifiedTime);
@@ -281,26 +280,26 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val aggregationGroup1 = new NAggregationGroup();
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
-        aggregationGroup1.setMeasures(new Integer[] { 100000, 100001, 100002, 100003 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup1.setMeasures(new Integer[]{100000, 100001, 100002, 100003});
         val selectRule1 = new SelectRule();
-        selectRule1.mandatoryDims = new Integer[] { 1 };
-        selectRule1.hierarchyDims = new Integer[][] { { 2, 3 } };
+        selectRule1.mandatoryDims = new Integer[]{1};
+        selectRule1.hierarchyDims = new Integer[][]{{2, 3}};
         selectRule1.jointDims = new Integer[0][0];
         aggregationGroup1.setSelectRule(selectRule1);
         val aggregationGroup2 = new NAggregationGroup();
-        aggregationGroup2.setIncludes(new Integer[] { 1, 3, 4, 5 });
-        aggregationGroup2.setMeasures(new Integer[] { 100001, 100003, 100004, 100005 });
+        aggregationGroup2.setIncludes(new Integer[]{1, 3, 4, 5});
+        aggregationGroup2.setMeasures(new Integer[]{100001, 100003, 100004, 100005});
         val selectRule2 = new SelectRule();
-        selectRule2.mandatoryDims = new Integer[] { 3 };
+        selectRule2.mandatoryDims = new Integer[]{3};
         selectRule2.hierarchyDims = new Integer[0][0];
-        selectRule2.jointDims = new Integer[][] { { 4, 5 } };
+        selectRule2.jointDims = new Integer[][]{{4, 5}};
         aggregationGroup2.setSelectRule(selectRule2);
 
         val revertedBefore = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default")
                         .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                        .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup1, aggregationGroup2))
                         .build())
                 .getFirst();
         Assert.assertNotNull(revertedBefore.getRuleBasedIndex());
@@ -312,7 +311,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val reverted = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default")
                         .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup2, aggregationGroup1))
+                        .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup2, aggregationGroup1))
                         .build())
                 .getFirst();
 
@@ -335,7 +334,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NAggregationGroup aggregationGroup = new NAggregationGroup();
-        aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup.setIncludes(new Integer[]{1, 2, 3, 4});
         val selectRule = new SelectRule();
         selectRule.mandatoryDims = new Integer[0];
         selectRule.hierarchyDims = new Integer[0][0];
@@ -345,7 +344,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val res = indexPlanService.updateRuleBasedCuboid("default",
                 UpdateRuleBasedCuboidRequest.builder().project("default")
                         .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build());
+                        .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup)).build());
         val saved = res.getFirst();
         val response = res.getSecond();
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
@@ -388,14 +387,11 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(1)));
         Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(2)));
 
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        val allEvents = eventDao.getEvents();
-        allEvents.sort(Event::compareTo);
-
-        Assert.assertEquals(1, allEvents.size());
-        val newLayoutEvent = allEvents.get(0);
-        Assert.assertTrue(newLayoutEvent instanceof AddCuboidEvent);
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
         Assert.assertTrue(clean.get());
+        deleteJobByForce(executables.get(0));
 
         int before = origin.getIndexes().size();
         response = indexPlanService.createTableIndex("default",
@@ -409,6 +405,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                             }
                         }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
+
         int after = origin.getIndexes().size();
         Assert.assertTrue(before == after);
 
@@ -430,9 +427,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(layout.isManual());
         Assert.assertTrue(layout.isAuto());
 
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        val allEvents = eventDao.getEvents();
-        Assert.assertEquals(0, allEvents.size());
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, executables.size());
 
         indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000000001L);
         saved = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -494,6 +490,9 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        var executables = getRunningExecutables("default", modelId);
+        Assert.assertEquals(1, executables.size());
+        deleteJobByForce(executables.get(0));
         val response = indexPlanService.updateTableIndex("default",
                 CreateTableIndexRequest.builder().id(prevMaxId).project("default")
                         .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -508,11 +507,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(
                 indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getAllLayouts().stream().anyMatch(l -> l.getId() == prevMaxId + IndexEntity.INDEX_ID_STEP));
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        val allEvents = eventDao.getEvents();
-        allEvents.sort(Event::compareTo);
-
-        Assert.assertEquals(2, allEvents.size());
+        executables = getRunningExecutables("default", modelId);
+        Assert.assertEquals(1, executables.size());
         Assert.assertTrue(clean.get());
     }
 
@@ -698,10 +694,9 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertArrayEquals(request.getShardByColumns().toArray(new String[0]),
                 response.getShardByColumns().toArray(new String[0]));
 
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(1, events.size());
-        Assert.assertEquals(AddCuboidEvent.class, events.get(0).getClass());
+        val executables = getRunningExecutables("default", modelId);
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
         // change shard by columns
         request.setShardByColumns(Lists.newArrayList("TEST_KYLIN_FACT.LSTG_FORMAT_NAME"));
@@ -719,7 +714,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 Assert.assertEquals(1, layout.getId() % IndexEntity.INDEX_ID_STEP);
             }
         }
-        Assert.assertEquals(1, events.size());
     }
 
     @Test
@@ -759,12 +753,12 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getAllIndexes().stream()
                 .flatMap(indexEntity -> indexEntity.getLayouts().stream()).filter(LayoutEntity::isManual)
                 .filter(layoutEntity -> !layoutEntity.isAuto()).forEach(layoutEntity -> {
-                    if (layoutEntity.getOrderedDimensions().keySet().containsAll(partitionColumns)) {
-                        if (!ListUtils.isEqualList(layoutEntity.getPartitionByColumns(), partitionColumns)) {
-                            throw new RuntimeException("Partition column is not match.");
-                        }
-                    }
-                });
+            if (layoutEntity.getOrderedDimensions().keySet().containsAll(partitionColumns)) {
+                if (!ListUtils.isEqualList(layoutEntity.getPartitionByColumns(), partitionColumns)) {
+                    throw new RuntimeException("Partition column is not match.");
+                }
+            }
+        });
     }
 
     private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups) {
@@ -859,7 +853,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         // test default order by
         indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), null, false,
                 null);
-        Assert.assertSame(indexResponses.get(0).getStatus(), IndexResponse.Status.EMPTY);
+        Assert.assertSame(indexResponses.get(0).getStatus(), IndexResponse.Status.BUILDING);
         IndexResponse prev = null;
         for (IndexResponse current : indexResponses) {
             if (prev == null) {
@@ -980,25 +974,25 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testUpdateIndexPlanWithMDC() throws Exception {
         // aggregationGroup1 will generate [1,2,10000] [1,3,10000] [1,4,10000] [1,10000] total 4 layout
         NAggregationGroup aggregationGroup1 = new NAggregationGroup();
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
-        aggregationGroup1.setMeasures(new Integer[] { 10000 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4});
+        aggregationGroup1.setMeasures(new Integer[]{10000});
         SelectRule selectRule1 = new SelectRule();
-        selectRule1.setMandatoryDims(new Integer[] { 1 });
+        selectRule1.setMandatoryDims(new Integer[]{1});
         selectRule1.setDimCap(1);
         aggregationGroup1.setSelectRule(selectRule1);
 
         // aggregationGroup2 will generate [5,10000,10001] [5,6,7,10000,10001] total 2 layout
         NAggregationGroup aggregationGroup2 = new NAggregationGroup();
-        aggregationGroup2.setIncludes(new Integer[] { 5, 6, 7 });
-        aggregationGroup2.setMeasures(new Integer[] { 10000, 10001 });
+        aggregationGroup2.setIncludes(new Integer[]{5, 6, 7});
+        aggregationGroup2.setMeasures(new Integer[]{10000, 10001});
         SelectRule selectRule2 = new SelectRule();
-        selectRule2.setMandatoryDims(new Integer[] { 5 });
-        selectRule2.setJointDims(new Integer[][] { { 6, 7 } });
+        selectRule2.setMandatoryDims(new Integer[]{5});
+        selectRule2.setJointDims(new Integer[][]{{6, 7}});
         aggregationGroup2.setSelectRule(selectRule2);
 
         UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup1, aggregationGroup2))
                 .build();
         request.setGlobalDimCap(2);
 
@@ -1014,12 +1008,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         IndexPlan indexPlan = indexPlanService.updateRuleBasedCuboid("default", request).getFirst();
         Assert.assertEquals(7, indexPlan.getRuleBaseLayouts().size());
-
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        List<Event> events = eventDao.getEvents();
-        Event event = events.get(0);
-        EventContext eventContext = new EventContext(event, KylinConfig.getInstanceFromEnv(), "default");
-        event.getEventHandler().handle(eventContext);
 
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<LayoutEntity> ruleBaseLayouts = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -1038,24 +1026,24 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testCalculateAggIndexCountWhenOutOfMaxComb() throws Exception {
         // agg group1 over 4096
         NAggregationGroup aggregationGroup1 = new NAggregationGroup();
-        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18 });
-        aggregationGroup1.setMeasures(new Integer[] { 10000 });
+        aggregationGroup1.setIncludes(new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 15, 16, 17, 18});
+        aggregationGroup1.setMeasures(new Integer[]{10000});
         SelectRule selectRule1 = new SelectRule();
-        selectRule1.setMandatoryDims(new Integer[] {});
+        selectRule1.setMandatoryDims(new Integer[]{});
         selectRule1.setDimCap(100);
         aggregationGroup1.setSelectRule(selectRule1);
 
         // agg group2 is normal
         NAggregationGroup aggregationGroup2 = new NAggregationGroup();
-        aggregationGroup2.setIncludes(new Integer[] { 5, 6, 7 });
-        aggregationGroup2.setMeasures(new Integer[] { 10000, 10001 });
+        aggregationGroup2.setIncludes(new Integer[]{5, 6, 7});
+        aggregationGroup2.setMeasures(new Integer[]{10000, 10001});
         SelectRule selectRule2 = new SelectRule();
-        selectRule2.setMandatoryDims(new Integer[] {});
+        selectRule2.setMandatoryDims(new Integer[]{});
         aggregationGroup2.setSelectRule(selectRule2);
 
         UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup1, aggregationGroup2))
                 .build();
         request.setGlobalDimCap(2);
 
@@ -1069,23 +1057,23 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     @Test
     public void testCalculateAggIndexCountWhenDimensionsNotExist() throws Exception {
         NAggregationGroup aggregationGroup1 = new NAggregationGroup();
-        aggregationGroup1.setIncludes(new Integer[] { 6, 7, 8, 9, 10, 11, 12, 13});
-        aggregationGroup1.setMeasures(new Integer[] { 10000 });
+        aggregationGroup1.setIncludes(new Integer[]{6, 7, 8, 9, 10, 11, 12, 13});
+        aggregationGroup1.setMeasures(new Integer[]{10000});
         SelectRule selectRule1 = new SelectRule();
-        selectRule1.setMandatoryDims(new Integer[] {});
+        selectRule1.setMandatoryDims(new Integer[]{});
         selectRule1.setDimCap(100);
         aggregationGroup1.setSelectRule(selectRule1);
 
         NAggregationGroup aggregationGroup2 = new NAggregationGroup();
-        aggregationGroup2.setIncludes(new Integer[] { 5, 6, 7 });
-        aggregationGroup2.setMeasures(new Integer[] { 10000, 10001 });
+        aggregationGroup2.setIncludes(new Integer[]{5, 6, 7});
+        aggregationGroup2.setMeasures(new Integer[]{10000, 10001});
         SelectRule selectRule2 = new SelectRule();
-        selectRule2.setMandatoryDims(new Integer[] {});
+        selectRule2.setMandatoryDims(new Integer[]{});
         aggregationGroup2.setSelectRule(selectRule2);
 
         UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .aggregationGroups(Lists.<NAggregationGroup>newArrayList(aggregationGroup1, aggregationGroup2))
                 .build();
 
         thrown.expect(KylinException.class);

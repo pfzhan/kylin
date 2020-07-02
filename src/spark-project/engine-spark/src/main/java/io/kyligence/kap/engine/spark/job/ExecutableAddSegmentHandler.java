@@ -60,9 +60,6 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         val executable = getExecutable();
         val jobId = executable.getId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        if (!checkSubjectExists(project, getModelId(), getSegmentId())) {
-            return;
-        }
         val buildTask = executable.getTask(NSparkCubingStep.class);
         val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -119,7 +116,7 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         } else {
             NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .mergeSegments(df, rangeToMerge, true);
-            postEvent(MERGE_SEGMENT_EVENT_CLASS, mergeSeg.getId());
+            addJob(mergeSeg.getId(), JobTypeEnum.INDEX_MERGE);
         }
 
     }

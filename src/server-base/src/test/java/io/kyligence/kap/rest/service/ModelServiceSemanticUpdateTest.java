@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -58,12 +60,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -92,7 +91,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
+public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
@@ -139,6 +138,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
+        super.setup();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
@@ -390,8 +390,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER")).filter(nc -> !nc.isExist()).count();
         Assert.assertEquals(1, otherTombCount);
         Assert.assertEquals(202, model.getAllNamedColumns().size());
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        Assert.assertEquals(0, eventDao.getEvents().size());
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, executables.size());
     }
 
     @Test
@@ -500,8 +500,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(ccCol);
         request.getComputedColumnDescs().remove(ccDesc);
 
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("table index still contains column(s) TEST_KYLIN_FACT.DEAL_YEAR");
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("table index 20000020000 contains invalid column 25. table index can only contain columns added to model.");
         modelService.updateDataModelSemantic("default", request);
     }
 
@@ -666,11 +666,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob)executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
-        log.debug("events are {}", events);
-        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         Assert.assertEquals(tableIndexCount,
                 cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
     }
@@ -690,8 +689,6 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -712,8 +709,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables("default", MODEL_ID);
+        Assert.assertEquals(1, executables.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(1, df.getSegments().size());
@@ -739,8 +736,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(1, executables.size());
 
         val df = dfMgr.getDataflow(MODEL_ID);
 
@@ -769,8 +766,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(0, executables.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -794,8 +791,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, executables.size());
         df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -819,8 +816,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(1, executables.size());
         df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(1, df.getSegments().size());
@@ -842,11 +839,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     c.setStatus(NDataModel.ColumnStatus.DIMENSION);
                 }).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
-
-        Assert.assertEquals(0, events.size());
-
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, executables.size());
     }
 
     @Test
@@ -861,8 +855,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         }).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
 
-        var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(0, events.size());
+        var executables = getRunningExecutables("default", null);
+        Assert.assertEquals(0, executables.size());
 
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             val rule = new NRuleBasedIndex();
@@ -880,8 +874,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             copyForWrite.setRuleBasedIndex(rule);
         });
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
-        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(0, events.size());
+
+        executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, executables.size());
 
         val cube = indePlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         for (LayoutEntity layout : cube.getWhitelistLayouts()) {
@@ -940,11 +935,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 }).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
-
-        Assert.assertEquals(1, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob)executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
         val cube = indePlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         for (LayoutEntity layout : cube.getWhitelistLayouts()) {
@@ -979,11 +972,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleIndexPlanUpdateRule("default", df.getModel().getUuid(), cube.getRuleBasedIndex(),
                 newCube.getRuleBasedIndex(), false);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
+        val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob)executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
-        Assert.assertEquals(1, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(df.getUuid());
         Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getLayoutsMap().size());
     }
@@ -995,6 +987,14 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val originModel = getTestInnerModel();
+
+        NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
+                    .filter(layoutEntity -> 20000020001L == layoutEntity.getId()).collect(Collectors.toSet());
+            copyForWrite.markIndexesToBeDeleted(copyForWrite.getUuid(), toBeDeletedSet);
+            copyForWrite.removeLayouts(Sets.newHashSet(20000020001L), true, true);
+                });
+
         modelManager.updateDataModel(originModel.getUuid(), model -> model.setAllNamedColumns(
                 model.getAllNamedColumns().stream().filter(m -> m.getId() != 25).collect(Collectors.toList())));
 
@@ -1048,9 +1048,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                         .collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Event::compareTo);
-        Assert.assertEquals(1, events.size());
+        val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
+        Assert.assertEquals(1, executables.size());
 
         val newCube = indexPlanManager.getIndexPlan(indexPlan.getUuid());
         Assert.assertNotEquals(indexPlan.getRuleBasedIndex().getLayoutIdMapping().toString(),
@@ -1187,37 +1186,22 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelParatitionDescRequest.setPartitionDesc(null);
         PartitionDesc partitionDesc = model.getPartitionDesc();
 
-        var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(0, events.size());
+        var executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, executables.size());
+
         modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNull(model.getPartitionDesc());
-        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(1, events.size());
+        executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(1, executables.size());
         modelParatitionDescRequest.setPartitionDesc(partitionDesc);
+
+        deleteJobByForce(executables.get(0));
         modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(partitionDesc, model.getPartitionDesc());
-        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(1, executables.size());
     }
 
-    @Test
-    public void testUpdateDataModelOnlySave() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        val originModel = getTestBasicModel();
-
-        modelMgr.updateDataModel(MODEL_ID, model -> {
-            val partitionDesc = model.getPartitionDesc();
-            partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
-        });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null, true, false);
-
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(0, events.size());
-        val df = dfMgr.getDataflow(MODEL_ID);
-
-        Assert.assertEquals(0, df.getSegments().size());
-    }
 }

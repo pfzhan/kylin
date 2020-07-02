@@ -27,11 +27,15 @@ package io.kyligence.kap.rest.service;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -134,6 +138,18 @@ public class CSVSourceTestCase extends ServiceTestBase {
     public NDataflowManager spyNDataflowManager() throws NoSuchFieldException, IllegalAccessException {
         return spyManagerByProject(NDataflowManager.getInstance(getTestConfig(), getProject()), NDataflowManager.class);
     }
+
+    protected List<AbstractExecutable> getRunningExecutables(String project, String model){
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getRunningExecutables(project, model);
+    }
+
+    protected void deleteJobByForce(AbstractExecutable executable){
+        val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
+        exManager.deleteJob(executable.getId());
+    }
+
 
     <T> T spyManagerByProject(T t, Class<T> tClass) throws NoSuchFieldException, IllegalAccessException {
         T manager = Mockito.spy(t);

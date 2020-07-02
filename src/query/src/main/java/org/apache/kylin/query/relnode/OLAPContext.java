@@ -55,6 +55,7 @@ import java.util.Set;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -204,6 +205,7 @@ public class OLAPContext {
     @Getter
     private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
+    public List<RexNode> expandedFilterConditions = new LinkedList<>();
     public List<JoinDesc> joins = new LinkedList<>();
     @Getter
     @Setter

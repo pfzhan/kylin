@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -208,9 +209,9 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     @Override
-    public CapabilityResult isCapable(SQLDigest digest) {
+    public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments) {
 
-        return NDataflowCapabilityChecker.check(this, digest);
+        return NDataflowCapabilityChecker.check(this, prunedSegments, digest);
     }
 
     @Override
@@ -313,15 +314,15 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         val loadingRangeManager = NDataLoadingRangeManager.getInstance(config, project);
         val loadingRange = loadingRangeManager.getDataLoadingRange(getModel().getRootFactTableName());
         if (loadingRange == null) {
-            return getSegments(SegmentStatusEnum.READY);
+            return getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         } else {
             val querableRange = loadingRangeManager.getQuerableSegmentRange(loadingRange);
-            return segments.getSegments(SegmentStatusEnum.READY).getSegmentsByRange(querableRange);
+            return segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).getSegmentsByRange(querableRange);
         }
     }
 
-    public Segments<NDataSegment> getSegments(SegmentStatusEnum status) {
-        return segments.getSegments(status);
+    public Segments<NDataSegment> getSegments(SegmentStatusEnum... statusLst) {
+        return segments.getSegments(statusLst);
     }
 
     public Segments<NDataSegment> getFlatSegments() {
@@ -346,7 +347,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     public NDataSegment getLatestReadySegment() {
-        Segments<NDataSegment> readySegment = getSegments(SegmentStatusEnum.READY);
+        Segments<NDataSegment> readySegment = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         if (readySegment.isEmpty()) {
             return null;
         } else {
@@ -536,7 +537,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public long getStorageBytesSize() {
         long bytesSize = 0L;
-        for (val segment : getSegments(SegmentStatusEnum.READY)) {
+        for (val segment : getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
             bytesSize += segment.getStorageBytesSize();
         }
         return bytesSize;
@@ -544,7 +545,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public long getSourceBytesSize() {
         long bytesSize = 0L;
-        for (val segment : getSegments(SegmentStatusEnum.READY)) {
+        for (val segment : getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
             bytesSize += segment.getSourceBytesSize() == -1 ? 0 : segment.getSourceBytesSize();
         }
         return bytesSize;
@@ -567,5 +568,9 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
             dataSize += dataCuboid.getByteSize();
         }
         return dataSize;
+    }
+
+    public boolean hasReadySegments() {
+        return isReady() && CollectionUtils.isNotEmpty(getQueryableSegments());
     }
 }

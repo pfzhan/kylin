@@ -102,6 +102,10 @@ public enum ExecutableState {
         return this == SUCCEED || this == DISCARDED || this == SUICIDAL;
     }
 
+    public boolean isRunning() {
+        return !isFinalState();
+    }
+
     public boolean isNotProgressing() {
         return this == ERROR || this == PAUSED;
     }

@@ -25,9 +25,11 @@
 package io.kyligence.kap.rest.response;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -49,6 +51,7 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("status")
     private ModelStatusToDisplayEnum status;
+
     @JsonProperty("last_build_end")
     private String lastBuildEnd;
 
@@ -81,6 +84,9 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("segment_holes")
     private List<SegmentRange> segmentHoles;
+
+    @JsonProperty("inconsistent_segment_count")
+    private long inconsistentSegmentCount;
 
     @JsonProperty("total_indexes")
     private long totalIndexes;
@@ -173,4 +179,9 @@ public class NDataModelResponse extends NDataModel {
     @Getter
     @Setter
     private NDataModelAclParams aclParams;
+
+    @JsonGetter("selected_columns")
+    public Collection<NamedColumn> getSelectedColumns() {
+        return getAllSelectedColumns();
+    }
 }

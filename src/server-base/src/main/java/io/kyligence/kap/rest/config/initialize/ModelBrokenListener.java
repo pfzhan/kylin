@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManager
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
@@ -39,9 +40,6 @@ import org.springframework.util.CollectionUtils;
 import com.google.common.collect.Lists;
 import com.google.common.eventbus.Subscribe;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
@@ -115,8 +113,6 @@ public class ModelBrokenListener {
             }
             model.setHandledAfterBroken(true);
             modelManager.updateDataBrokenModelDesc(model);
-            EventDao eventDao = EventDao.getInstance(config, project);
-            eventDao.getEventsByModel(modelId).stream().map(Event::getId).forEach(eventDao::deleteEvent);
 
             val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
             recommendationManager.cleanAll(model.getId());
@@ -171,10 +167,9 @@ public class ModelBrokenListener {
                 } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
                     dataflowManager.fillDf(dataflow);
                 }
-                val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                val jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 val sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-
-                sourceUsageManager.licenseCheckWrap(project, () -> eventManager.postAddCuboidEvents(model.getId(), "ADMIN"));
+                sourceUsageManager.licenseCheckWrap(project, () -> jobManager.checkAndAddIndexJob(model.getId(), "ADMIN"));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

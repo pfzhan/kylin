@@ -53,7 +53,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(sourceUsageRecord);
         sourceUsageManager.updateSourceUsage();
         SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-        Assert.assertEquals(735780L, usage.getCurrentCapacity());
+        Assert.assertEquals(739275L, usage.getCurrentCapacity());
         // -1 means UNLIMITED
         Assert.assertEquals(-1L, usage.getLicenseCapacity());
         SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail = usage.getProjectCapacity("default");

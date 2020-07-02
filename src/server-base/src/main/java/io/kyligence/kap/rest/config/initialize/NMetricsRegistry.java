@@ -45,8 +45,6 @@ import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -155,12 +153,6 @@ public class NMetricsRegistry {
         NMetricsGroup.registerProjectMetrics(project);
 
         //for gauges
-        final EventDao eventDao = EventDao.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.EVENT_GAUGE, NMetricsCategory.PROJECT, project, () -> {
-            List<Event> list = eventDao.getEvents();
-            return list == null ? 0 : list.size();
-        });
-
         final NDataModelManager dataModelManager = NDataModelManager.getInstance(config, project);
         NMetricsGroup.newGauge(NMetricsName.MODEL_GAUGE, NMetricsCategory.PROJECT, project, () -> {
             List<NDataModel> list = dataModelManager.listAllModels();

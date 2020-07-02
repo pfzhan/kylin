@@ -45,7 +45,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
 public class NDataflowCapabilityChecker {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowCapabilityChecker.class);
 
-    public static CapabilityResult check(NDataflow dataflow, SQLDigest digest) {
+    public static CapabilityResult check(NDataflow dataflow, List<NDataSegment> prunedSegments, SQLDigest digest) {
         logger.debug("Matching Layout in dataflow {}, SQL digest {}", dataflow, digest);
         CapabilityResult result = new CapabilityResult();
         if (digest.limitPrecedesAggr) {
@@ -66,8 +66,7 @@ public class NDataflowCapabilityChecker {
         } else {
             // for query-on-facttable
             Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> candidateAndInfluence = NQueryLayoutChooser
-                    .selectCuboidLayout(//
-                            dataflow.getLatestReadySegment(), digest);
+                    .selectCuboidLayout(dataflow, prunedSegments, digest);
             if (candidateAndInfluence != null) {
                 chosenCandidate = candidateAndInfluence.getFirst();
                 result.influences.addAll(candidateAndInfluence.getSecond());

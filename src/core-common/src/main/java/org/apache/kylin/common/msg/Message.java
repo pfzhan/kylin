@@ -1459,4 +1459,28 @@ public class Message {
     public String getUNSUPPORTED_RECOMMENDATION_MODE() {
         return "Model recommendation is not supported in current project, please enable recommendation mode and try again.";
     }
+
+    public String getADD_JOB_CHECK_FAIL() {
+        return "Add Job failed due to processing time conflict";
+    }
+
+    public String getADD_JOB_EXCEPTION() {
+        return "No executable job is generated";
+    }
+
+    public String getADD_JOB_ABANDON() {
+        return "Create Job failed due to only job node is allowed";
+    }
+
+    public String getADD_JOB_CHECK_SEGMENT_FAIL() {
+        return "Add Job failed due to segment indexes are not aligned";
+    }
+
+    public String getADD_JOB_CHECK_SEGMENT_READY_FAIL() {
+        return "Add Job failed due to no segment is ready";
+    }
+
+    public String getADD_JOB_CHECK_LAYOUT_FAIL() {
+        return "Add Job failed due to no layout is to be built.";
+    }
 }

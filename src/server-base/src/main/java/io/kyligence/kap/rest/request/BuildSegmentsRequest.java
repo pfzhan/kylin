@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
@@ -36,4 +37,6 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
 
     private String end;
 
+    @JsonProperty("build_all_indexes")
+    private boolean buildAllIndexes;
 }

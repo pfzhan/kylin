@@ -227,7 +227,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final NDataModel targetModel = mdCtx.getTargetModel();
-        Assert.assertEquals(0, targetModel.getEffectiveDimensions().size());
+        Assert.assertEquals(1, targetModel.getEffectiveDimensions().size());
         Assert.assertEquals(3, targetModel.getEffectiveMeasures().size());
         Assert.assertEquals(12, targetModel.getEffectiveCols().size());
 

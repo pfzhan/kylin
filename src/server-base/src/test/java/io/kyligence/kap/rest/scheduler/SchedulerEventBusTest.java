@@ -27,17 +27,14 @@ package io.kyligence.kap.rest.scheduler;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -65,14 +62,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.handle.AddCuboidHandler;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
@@ -85,7 +76,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT_NEWTEN = "newten";
 
     private final JobSchedulerListener jobSchedulerListener = new JobSchedulerListener();
-    private final EventSchedulerListener eventSchedulerListener = new EventSchedulerListener();
 
     private final String[] sqls = new String[] { //
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
@@ -120,20 +110,14 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
 
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(jobSchedulerListener);
-        SchedulerEventBusFactory.getInstance(getTestConfig()).register(eventSchedulerListener);
     }
 
     @After
     public void cleanup() {
         logger.info("SchedulerEventBusTest cleanup");
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(jobSchedulerListener);
-        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(eventSchedulerListener);
         SchedulerEventBusFactory.restart();
 
-        EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).shutdownByProject(PROJECT_NEWTEN);
-        EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).shutdownByProject(PROJECT);
-        eventSchedulerListener.setEventCreatedNotified(false);
-        eventSchedulerListener.setEventFinishedNotified(false);
         jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);
         cleanupTestMetadata();
@@ -163,40 +147,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
 
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
-    }
-
-    private void prepareFavoriteQuery() {
-        FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.doReturn(Lists.newArrayList(sqls)).when(favoriteQueryManager).getAccelerableSqlPattern();
-        Mockito.doReturn(favoriteQueryManager).when(favoriteQueryService).getFavoriteQueryManager(PROJECT_NEWTEN);
-    }
-
-    @Test
-    public void testEventSchedulerListener() {
-        logger.info("SchedulerEventBusTest testEventSchedulerListener");
-
-        // prepare favorite queries
-        prepareFavoriteQuery();
-
-        Assert.assertFalse(eventSchedulerListener.isEventCreatedNotified());
-
-        // event created message got dispatched
-        favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, 4);
-        Assert.assertTrue(eventSchedulerListener.isEventCreatedNotified());
-
-        AddCuboidEvent event = new AddCuboidEvent();
-        event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        event.setOwner("ADMIN");
-        EventContext eventContext = new EventContext(event, getTestConfig(), PROJECT);
-        val handler = Mockito.spy(new AddCuboidHandler());
-        handler.handle(eventContext);
-
-        List<Event> events = EventDao.getInstance(getTestConfig(), PROJECT).getEvents();
-        Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 0);
-
-        // got event-finished message
-        await().atMost(1000, TimeUnit.MILLISECONDS).until(() -> eventSchedulerListener.isEventFinishedNotified());
     }
 
     @Test

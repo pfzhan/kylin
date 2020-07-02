@@ -22,6 +22,8 @@
 
 package org.apache.spark.sql.execution
 
+import java.util
+
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.rdd.RDD
@@ -35,6 +37,7 @@ import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.ArrayBuffer
 
+// scalastyle:off
 class KylinFileSourceScanExec(
     @transient override val relation: HadoopFsRelation,
     override val output: Seq[Attribute],
@@ -83,7 +86,6 @@ class KylinFileSourceScanExec(
   override def inputRDDs(): Seq[RDD[InternalRow]] = {
     inputRDD :: Nil
   }
-
 
   override lazy val (outputPartitioning, outputOrdering): (Partitioning, Seq[SortOrder]) = {
     val shardSpec = if (KylinConfig.getInstanceFromEnv.isShardingJoinOptEnabled) {
@@ -221,7 +223,6 @@ class KylinFileSourceScanExec(
       currentFiles += file
     }
     closePartition()
-
     new FileScanRDD(fsRelation.sparkSession, readFile, partitions)
   }
 

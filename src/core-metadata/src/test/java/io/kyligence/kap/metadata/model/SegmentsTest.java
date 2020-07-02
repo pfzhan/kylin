@@ -285,7 +285,7 @@ public class SegmentsTest {
         sourceSegments.add(newReadySegment(1561824000000L, 1564502400000L));
         sourceSegments.add(newReadySegment(1564502400000L, 1567180800000L));
 
-        Segments segmentsYear = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        Segments segmentsYear = sourceSegments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         VolatileRange volatileRange = new VolatileRange();
         volatileRange.setVolatileRangeEnabled(true);
         volatileRange.setVolatileRangeNumber(1);
@@ -293,7 +293,7 @@ public class SegmentsTest {
         segmentsYear.removeSegmentsByVolatileRange(segmentsYear, volatileRange);
         Assert.assertEquals(0, segmentsYear.size());
 
-        Segments segmentsMonth = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        Segments segmentsMonth = sourceSegments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         VolatileRange volatileRangeMonth = new VolatileRange();
         volatileRangeMonth.setVolatileRangeEnabled(true);
         volatileRangeMonth.setVolatileRangeNumber(2);
@@ -301,7 +301,7 @@ public class SegmentsTest {
         segmentsMonth.removeSegmentsByVolatileRange(segmentsMonth, volatileRangeMonth);
         Assert.assertEquals(1, segmentsMonth.size());
 
-        Segments segmentsWeek = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        Segments segmentsWeek = sourceSegments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         VolatileRange volatileRangeWeek = new VolatileRange();
         volatileRangeWeek.setVolatileRangeEnabled(true);
         volatileRangeWeek.setVolatileRangeNumber(3);
@@ -309,7 +309,7 @@ public class SegmentsTest {
         segmentsWeek.removeSegmentsByVolatileRange(segmentsWeek, volatileRangeWeek);
         Assert.assertEquals(2, segmentsWeek.size());
 
-        Segments segmentsDay = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        Segments segmentsDay = sourceSegments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         VolatileRange volatileRangeDay = new VolatileRange();
         volatileRangeDay.setVolatileRangeEnabled(true);
         volatileRangeDay.setVolatileRangeNumber(3);

@@ -293,8 +293,13 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment appendSegment(NDataflow df, SegmentRange segRange) {
+        return appendSegment(df, segRange, SegmentStatusEnum.NEW);
+    }
+
+    public NDataSegment appendSegment(NDataflow df, SegmentRange segRange, SegmentStatusEnum status) {
 
         NDataSegment newSegment = newSegment(df, segRange);
+        newSegment.setStatus(status);
         validateNewSegments(df, newSegment);
 
         NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
@@ -535,6 +540,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     public long getDataflowSourceSize(String modelId) {
         return getDataflow(modelId).getSourceBytesSize();
+    }
+
+    public void updateDataflowDetailsLayouts(final NDataSegment seg, final List<NDataLayout> layouts) {
+        NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataSegDetails details = segDetailsManager.getForSegment(seg);
+        details.setLayouts(layouts);
+        NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(), project).upsertForSegment(details);
+        updateDataflow(seg.getDataflow().getId(), copyForWrite -> {
+        });
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {

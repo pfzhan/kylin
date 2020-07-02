@@ -34,6 +34,8 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -46,9 +48,7 @@ import org.junit.runner.RunWith;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -128,12 +128,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        //clear all events
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(0, events.size());
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(0, executables.size());
     }
 
     @Test
@@ -159,17 +157,15 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         //clear all events
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(0, events.size());
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(0, executables.size());
     }
 
     @Test
     public void testAutoMergeSegmentsByWeek_WithoutVolatileRange_Merge() throws Exception {
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -193,19 +189,21 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         //clear all events
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 //merge 2010/01/01 00:00 - 2010/01/04 00:00
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"),
                         dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
+                                .getSegment(segId).getSegRange().getStart());
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
                         dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
+                                .getSegment(segId).getSegRange().getEnd());
             }
         }
     }
@@ -246,19 +244,19 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"),
                         dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
+                                .getSegment(segId).getSegRange().getStart());
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
                         dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
+                                .getSegment(segId).getSegRange().getEnd());
             }
         }
     }
@@ -299,20 +297,20 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
         //merge 1/4/-1/10
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
                         dataflowManager.getDataflowByModelAlias("nmodel_basic")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
+                                .getSegment(segId).getSegRange().getStart());
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"),
                         dataflowManager.getDataflowByModelAlias("nmodel_basic")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
+                                .getSegment(segId).getSegRange().getEnd());
             }
         }
     }
@@ -347,20 +345,20 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         update = new NDataflowUpdate(df.getUuid());
         //remove 2010-01-02
-        update.setToRemoveSegs(new NDataSegment[] { df.getSegments().get(1) });
+        update.setToRemoveSegs(new NDataSegment[]{df.getSegments().get(1)});
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
+                        .getSegment(segId).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
+                        .getSegment(segId).getSegRange().getEnd().toString());
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), start);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), end);
             }
@@ -396,17 +394,17 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
+                        .getSegment(segId).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
+                        .getSegment(segId).getSegRange().getEnd().toString());
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), start);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), end);
             }
@@ -446,17 +444,17 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
+                        .getSegment(segId).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
+                        .getSegment(segId).getSegRange().getEnd().toString());
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"), start);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-03 00:00:00"), end);
             }
@@ -489,17 +487,17 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
+                        .getSegment(segId).getSegRange().getStart().toString());
                 end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
+                        .getSegment(segId).getSegRange().getEnd().toString());
                 //2010/1/3 sunday - 2010/1/10 sunday
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-03 00:00:00"), start);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-10 00:00:00"), end);
@@ -540,20 +538,20 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart()
+                                .getSegment(segId).getSegRange().getStart()
                                 .toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2010-01-01 00:52:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd()
+                                .getSegment(segId).getSegRange().getEnd()
                                 .toString()));
             }
         }
@@ -604,20 +602,20 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         //clear all events
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-12-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart()
+                                .getSegment(segId).getSegRange().getStart()
                                 .toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2011-01-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd()
+                                .getSegment(segId).getSegRange().getEnd()
                                 .toString()));
             }
         }
@@ -656,20 +654,20 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart()
+                                .getSegment(segId).getSegRange().getStart()
                                 .toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2010-12-30 00:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd()
+                                .getSegment(segId).getSegRange().getEnd()
                                 .toString()));
             }
         }
@@ -707,21 +705,21 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
 
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-        for (val event : events) {
-            if (event instanceof MergeSegmentEvent) {
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(1, executables.size());
+        for (val executable : executables) {
+            if (executable instanceof NSparkMergingJob) {
+                val segId = executable.getTargetSegments().get(0);
                 Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 08:00:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart()
+                                .getSegment(segId).getSegRange().getStart()
                                 .toString()));
                 Assert.assertEquals(DateFormat.stringToMillis("2010-10-01 23:45:00"),
                         Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd()
+                                .getSegment(segId).getSegRange().getEnd()
                                 .toString()));
             }
         }
@@ -772,12 +770,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
 
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(0, events.size());
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(0, executables.size());
 
     }
 
@@ -811,12 +808,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        eventDao.deleteAllEvents();
+        deleteAllJobs(DEFAULT_PROJECT);
 
         mockAddSegmentSuccess();
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(0, events.size());
+        val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+        Assert.assertEquals(0, executables.size());
 
     }
 
@@ -853,7 +849,6 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         int i = 0;
         long mergeStart;
         long mergeEnd;
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         while (end <= 1328835600000L) {
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
             NDataSegment newSegment = new NDataSegment();
@@ -863,16 +858,17 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             field.set(df, false);
             df.setSegments(segments);
-            eventDao.deleteAllEvents();
+            deleteAllJobs(DEFAULT_PROJECT);
             mockAddSegmentSuccess();
-            if (eventDao.getEvents().size() > 0) {
+            val executables = getRunningExecutables(DEFAULT_PROJECT, df.getModel().getId());
+            if (executables.size() > 0) {
                 allEvent++;
-                val events = eventDao.getEvents();
-                for (val event : events) {
-                    if (event instanceof MergeSegmentEvent) {
-                        mergeStart = Long.parseLong(df.getSegment(((MergeSegmentEvent) event).getSegmentId())
+                for (val executable : executables) {
+                    if (executable instanceof NSparkMergingJob) {
+                        val segId = executable.getTargetSegments().get(0);
+                        mergeStart = Long.parseLong(df.getSegment(segId)
                                 .getSegRange().getStart().toString());
-                        mergeEnd = Long.parseLong(df.getSegment(((MergeSegmentEvent) event).getSegmentId())
+                        mergeEnd = Long.parseLong(df.getSegment(segId)
                                 .getSegRange().getEnd().toString());
 
                         if (mergeEnd - mergeStart > 2678400000L) {
@@ -888,7 +884,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
                         mockMergeSegments(i,
                                 dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                                        .getSegment(((MergeSegmentEvent) eventDao.getEvents().get(0)).getSegmentId())
+                                        .getSegment((executables.get(0)).getTargetSegments().get(0))
                                         .getSegRange());
                     }
                 }
@@ -960,5 +956,14 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         calendar.setTimeInMillis(SegmentRange.dateToLong(base));
         calendar.add(Calendar.DAY_OF_MONTH, inc);
         return calendar.getTimeInMillis();
+    }
+
+    private List<AbstractExecutable> getRunningExecutables(String project, String model) {
+        return NExecutableManager.getInstance(getTestConfig(), project)
+                .getRunningExecutables(project, model);
+    }
+
+    private void deleteAllJobs(String project) {
+        NExecutableManager.getInstance(getTestConfig(), project).deleteAllJob();
     }
 }

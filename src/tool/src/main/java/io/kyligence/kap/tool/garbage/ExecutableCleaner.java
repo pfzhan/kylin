@@ -32,8 +32,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.JobRelatedEvent;
 
 public class ExecutableCleaner implements MetadataCleaner {
 
@@ -45,21 +43,14 @@ public class ExecutableCleaner implements MetadataCleaner {
         long expirationTime = config.getExecutableSurvivalTimeThreshold();
 
         NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
-        EventDao eventDao = EventDao.getInstance(config, project);
 
         List<AbstractExecutable> executables = executableManager.getAllExecutables();
-        List<String> referencedJobIds = eventDao.getEvents().stream()
-                .filter(event -> (event instanceof JobRelatedEvent)).map(event -> ((JobRelatedEvent) event).getJobId())
-                .collect(Collectors.toList());
         List<AbstractExecutable> filteredExecutables = executables.stream().filter(job -> {
             if ((System.currentTimeMillis() - job.getCreateTime()) < expirationTime) {
                 return false;
             }
             ExecutableState state = job.getStatus();
             if (!state.isFinalState()) {
-                return false;
-            }
-            if (referencedJobIds.contains(job.getId())) {
                 return false;
             }
             return true;

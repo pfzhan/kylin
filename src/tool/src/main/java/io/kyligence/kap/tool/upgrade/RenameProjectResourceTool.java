@@ -77,8 +77,6 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -275,9 +273,6 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
 
         // dataflow
         results.addAll(updateDataflow(originProjectName, destProjectName));
-
-        // event
-        results.addAll(updateEvent(originProjectName, destProjectName));
 
         // execute
         results.addAll(updateExecute(originProjectName, destProjectName));
@@ -659,28 +654,6 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
                 }
                 results.add(new RenameEntity(savedQuery, destResourcePath, rs));
             }
-        }
-        return results;
-    }
-
-    /**
-     * update /{project_name}/event/{event_uuid}
-     *
-     * @param originProjectName
-     * @param destProjectName
-     * @return
-     */
-    private List<RenameEntity> updateEvent(String originProjectName, String destProjectName) {
-        // event
-        List<RenameEntity> results = new ArrayList<>();
-        EventDao eventDao = EventDao.getInstance(fileSystemConfig, originProjectName);
-        List<Event> events = eventDao.getEvents();
-        for (Event event : events) {
-            String srcResourcePath = eventDao.pathOfEvent(event.getUuid());
-            String destResourcePath = srcResourcePath.replace("/" + originProjectName + "/",
-                    "/" + destProjectName + "/");
-            results.add(new RenameEntity(srcResourcePath, destResourcePath));
-
         }
         return results;
     }

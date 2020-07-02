@@ -25,7 +25,6 @@
 package io.kyligence.kap.tool.upgrade;
 
 import java.util.List;
-import java.util.NavigableSet;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -56,15 +55,7 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test() {
-        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
-
-        // event before
-        NavigableSet<String> eventPaths = resourceStore.listResources("/version40" + ResourceStore.EVENT_RESOURCE_ROOT);
-
-        Assert.assertEquals(3, eventPaths.size());
-
         // execute before
-
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), "version40");
 
         List<AbstractExecutable> executeJobs = executableManager.getAllExecutables().stream()
@@ -86,11 +77,6 @@ public class MigrateJobToolTest extends NLocalFileMetadataTestCase {
         getTestConfig().clearManagersByProject("version40");
         getTestConfig().clearManagers();
         ResourceStore.clearCache();
-        resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
-
-        // event after
-        eventPaths = resourceStore.listResources("/version40" + ResourceStore.EVENT_RESOURCE_ROOT);
-        Assert.assertEquals(1, eventPaths.size());
 
         executableManager = NExecutableManager.getInstance(getTestConfig(), "version40");
 

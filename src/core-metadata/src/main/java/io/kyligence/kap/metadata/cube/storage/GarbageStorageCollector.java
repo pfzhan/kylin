@@ -79,7 +79,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
 
     private long calculateLayoutSize(Set<Long> cuboidLayoutIdSet, NDataflow dataflow) {
         long cuboidLayoutSize = 0L;
-        for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
+        for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
             for (Long cuboidLayoutId : cuboidLayoutIdSet) {
                 NDataLayout dataCuboid = segment.getSegDetails().getLayoutById(cuboidLayoutId);
                 if (dataCuboid != null) {

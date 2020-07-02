@@ -66,10 +66,11 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     this
   }
 
-  def cuboidTable(dataflow: NDataflow, layout: LayoutEntity): DataFrame = {
+  def cuboidTable(dataflow: NDataflow, layout: LayoutEntity, segmentIds: String): DataFrame = {
     option("project", dataflow.getProject)
     option("dataflowId", dataflow.getUuid)
     option("cuboidId", layout.getId)
+    option("prunedSegments", segmentIds)
     StorageStoreFactory.create(dataflow.getModel.getStorageType)
       .read(dataflow, layout, sparkSession, extraOptions.toMap)
   }

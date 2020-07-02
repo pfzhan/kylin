@@ -47,7 +47,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
@@ -75,7 +74,6 @@ public class EpochChangedListener implements IKeep {
     public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
         String project = notifier.getProject();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val eventMgr = EventOrchestratorManager.getInstance(kylinConfig);
         if (!GLOBAL.equals(project)) {
             if (NDefaultScheduler.getInstance(project).hasStarted()) {
                 return;
@@ -105,8 +103,7 @@ public class EpochChangedListener implements IKeep {
                 logger.error("Failed to register project metrics:{}", project, e);
             }
         } else {
-            if (eventMgr.hasProjectEventCheckerStarted(GLOBAL))
-                return;
+            //TODO need global leader
             CreateAdminUserUtils.createAllAdmins(userService, env);
             SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
             logger.info("Register global metrics...");
@@ -116,7 +113,6 @@ public class EpochChangedListener implements IKeep {
                 return null;
             }, "", 1);
         }
-        eventMgr.addProject(project);
     }
 
     @Subscribe
@@ -138,7 +134,6 @@ public class EpochChangedListener implements IKeep {
             logger.info("Remove global metrics...");
             NMetricsGroup.removeGlobalMetrics();
         }
-        EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
     }
 
     @Subscribe

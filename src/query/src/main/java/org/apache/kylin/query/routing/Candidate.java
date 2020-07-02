@@ -42,6 +42,7 @@
 
 package org.apache.kylin.query.routing;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -50,6 +51,8 @@ import org.apache.kylin.query.relnode.OLAPContextProp;
 
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 public class Candidate implements Comparable<Candidate> {
 
@@ -64,10 +67,14 @@ public class Candidate implements Comparable<Candidate> {
     @Setter
     OLAPContextProp rewrittenCtx;
 
-    public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx) {
+    @Getter
+    private List<NDataSegment> prunedSegments;
+
+    public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx, List<NDataSegment> selectedSegments) {
         this.realization = realization;
         this.sqlDigest = sqlDigest;
         this.ctx = ctx;
+        this.prunedSegments = selectedSegments;
     }
 
     public IRealization getRealization() {

@@ -49,6 +49,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -68,7 +69,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.ModifyTableNameSqlVisitor;
-import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -86,9 +86,9 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.smart.util.CubeUtils;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -109,7 +109,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel,
-            ModelRequest modelRequest) {
+                                                             ModelRequest modelRequest) {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
         List<JoinTableDesc> allTables = Lists.newArrayList();
@@ -254,7 +254,7 @@ public class ModelSemanticHelper extends BasicService {
                     throw new KylinException(DUPLICATE_MEASURE_EXPRESSION,
                             String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
                 }));
-        val newMeasures = Lists.<NDataModel.Measure> newArrayList();
+        val newMeasures = Lists.<NDataModel.Measure>newArrayList();
         var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1);
 
@@ -286,7 +286,7 @@ public class ModelSemanticHelper extends BasicService {
 
         // compare originModel and expectedModel's existing allNamedColumn
         val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
-        val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
+        val newCols = Lists.<NDataModel.NamedColumn>newArrayList();
         compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
                 oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
                 (olCol, newCol) -> olCol.setName(newCol.getName()));
@@ -326,7 +326,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private <K, T> void compareAndUpdateColumns(Map<K, T> origin, Map<K, T> target, Consumer<T> onlyInTarget,
-            Consumer<T> onlyInOrigin, BiConsumer<T, T> inBoth) {
+                                                Consumer<T> onlyInOrigin, BiConsumer<T, T> inBoth) {
         for (Map.Entry<K, T> entry : target.entrySet()) {
             // change name does not matter
             val matched = origin.get(entry.getKey());
@@ -442,7 +442,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
-            NIndexPlanManager indexPlanManager) {
+                                            NIndexPlanManager indexPlanManager) {
         return indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
                     .filter(index -> measures.containsAll(index.getMeasures())).collect(Collectors.toList()));
@@ -464,7 +464,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void removeUselessDimensions(IndexPlan indexPlan, Set<Integer> availableDimensions, boolean onlyDataflow,
-            KylinConfig config) {
+                                         KylinConfig config) {
         val dataflowManager = NDataflowManager.getInstance(config, indexPlan.getProject());
         val deprecatedLayoutIds = indexPlan.getIndexes().stream().filter(index -> !index.isTableIndex())
                 .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
@@ -530,14 +530,11 @@ public class ModelSemanticHelper extends BasicService {
             dataflowManager.fillDfManually(df, segmentRanges);
         }
 
-        if (saveOnly)
-            return;
-
-        EventManager.getInstance(config, project).postAddCuboidEvents(modelId, getUsername());
+        JobManager.getInstance(config, project).addFullIndexJob(modelId, getUsername());
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
-            NRuleBasedIndex newRule, boolean forceFireEvent) {
+                                                        NRuleBasedIndex newRule, boolean forceFireEvent) {
         log.debug("handle indexPlan udpate rule {} {}", project, model);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);
@@ -545,16 +542,16 @@ public class ModelSemanticHelper extends BasicService {
         if (readySegs.isEmpty()) {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
-        val eventManager = EventManager.getInstance(kylinConfig, project);
+        val jobManager = JobManager.getInstance(kylinConfig, project);
 
-        val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
+        val originLayouts = oldRule == null ? Sets.<LayoutEntity>newHashSet() : oldRule.genCuboidLayouts();
         val targetLayouts = newRule.genCuboidLayouts();
 
         val difference = Sets.difference(targetLayouts, originLayouts);
 
         // new cuboid
         if (difference.size() > 0 || forceFireEvent) {
-            eventManager.postAddCuboidEvents(model, getUsername());
+            jobManager.addFullIndexJob(model, getUsername());
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
         }
 

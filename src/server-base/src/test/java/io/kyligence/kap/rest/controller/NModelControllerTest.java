@@ -237,8 +237,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegments() throws Exception {
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(432L, 2234L);
-        Mockito.when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234",
-                "end_time", true, "")).thenReturn(mockSegments());
+        Mockito.when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234", "",
+                "end_time", true)).thenReturn(mockSegments());
         mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).param("offset", "0").param("project", "default")
@@ -247,7 +247,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nModelController).getSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "", 0, 10,
-                "432", "2234", "end_time", true);
+                "432", "2234", null, null, false, "end_time", true);
     }
 
     @Test

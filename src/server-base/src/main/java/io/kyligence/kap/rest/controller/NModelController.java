@@ -76,6 +76,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.RecommendationItem;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
+import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -289,65 +291,6 @@ public class NModelController extends NBasicController {
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
-    }
-
-    @ApiOperation(value = "getSegments (update)", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
-    @GetMapping(value = "/{model:.+}/segments")
-    @ResponseBody
-    public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
-            @PathVariable(value = "model") String modelId, //
-            @RequestParam(value = "project") String project,
-            @RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "start", required = false, defaultValue = "0") String start,
-            @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
-            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkProjectName(project);
-        validateRange(start, end);
-        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, sortBy,
-                reverse, status);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
-    }
-
-    @ApiOperation(value = "fixSegmentsManually (update)", notes = "Add URL: {model}")
-    @PostMapping(value = "/{model:.+}/segment_holes")
-    @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> fixSegHoles(@PathVariable("model") String modelId,
-            @RequestBody SegmentFixRequest segmentsRequest) throws Exception {
-        checkProjectName(segmentsRequest.getProject());
-        checkRequiredArg("segment_holes", segmentsRequest.getSegmentHoles());
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(segmentsRequest.getProject(), modelId);
-        segmentsRequest.getSegmentHoles()
-                .forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
-        JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
-                segmentsRequest.getSegmentHoles());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
-    }
-
-    @ApiOperation(value = "checkSegments (check)")
-    @PostMapping(value = "/{model:.+}/segment/validation")
-    @ResponseBody
-    public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
-            @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
-        checkProjectName(buildSegmentsRequest.getProject());
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
-                modelId);
-        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
-        val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
-                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
-    }
-
-    @ApiOperation(value = "checkSegmentsIfDelete (check)")
-    @GetMapping(value = "/{model:.+}/segment/validation")
-    @ResponseBody
-    public EnvelopeResponse<SegmentCheckResponse> checkHolesIfSegDeleted(@PathVariable("model") String model,
-            @RequestParam("project") String project, @RequestParam(value = "ids", required = false) String[] ids) {
-        checkProjectName(project);
-        val res = modelService.checkSegHoleIfSegDeleted(model, project, ids);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
     }
 
     @ApiOperation(value = "getAggIndices (update)", notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")
@@ -571,27 +514,6 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "deleteSegments (update)(check)", notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{model:.+}/segments")
-    @ResponseBody
-    public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
-            @RequestParam("project") String project, //
-            @RequestParam("purge") Boolean purge, //
-            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
-            @RequestParam(value = "ids", required = false) String[] ids) {
-        checkProjectName(project);
-
-        if (purge) {
-            modelService.purgeModelManually(model, project);
-        } else if (ArrayUtils.isEmpty(ids)) {
-            throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
-        } else {
-            modelService.deleteSegmentById(model, project, ids, force);
-        }
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
     @ApiOperation(value = "getPurgeModelAffectedResponse (update)", notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/purge_effect")
     @ResponseBody
@@ -618,57 +540,6 @@ public class NModelController extends NBasicController {
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "refreshOrMergeSegmentsByIds (update)", notes = "Add URL: {model}")
-    @PutMapping(value = "/{model:.+}/segments")
-    @ResponseBody
-    public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
-            @RequestBody SegmentsRequest request) {
-        checkProjectName(request.getProject());
-        if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
-            if (ArrayUtils.isEmpty(request.getIds())) {
-                throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
-            }
-            modelService.refreshSegmentById(modelId, request.getProject(), request.getIds());
-        } else {
-            if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
-                throw new KylinException(FAILED_MERGE_SEGMENT,
-                        MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
-            }
-            modelService.mergeSegmentsManually(modelId, request.getProject(), request.getIds());
-        }
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
-    @PostMapping(value = "/{model:.+}/segments")
-    @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
-            @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
-                modelId);
-        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
-        modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
-        JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
-                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
-    }
-
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
-    @PutMapping(value = "/{model:.+}/model_segments")
-    @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
-            @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        checkProjectName(buildSegmentsRequest.getProject());
-        String partitionColumnFormat = buildSegmentsRequest.getPartitionDesc().getPartitionDateFormat();
-        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
-        modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
-        JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
-                modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
-                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getSegmentHoles());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "checkComputedColumns (check)", notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
@@ -861,6 +732,170 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg("owner", request.getOwner());
         modelService.updateModelOwner(request.getProject(), modelId, request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    /* Segments */
+    @ApiOperation(value = "getSegments (update)", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
+    @GetMapping(value = "/{model:.+}/segments")
+    @ResponseBody
+    public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
+            @PathVariable(value = "model") String modelId, //
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "start", required = false, defaultValue = "0") String start,
+            @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
+            @RequestParam(value = "with_indexes", required = false) List<Long> withAllIndexes,
+            @RequestParam(value = "without_indexes", required = false) List<Long> withoutAnyIndexes,
+            @RequestParam(value = "all_to_complement", required = false, defaultValue = "false") Boolean allToComplement,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse
+    ) {
+        checkProjectName(project);
+        validateRange(start, end);
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(
+                modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, allToComplement, sortBy, reverse);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
+    }
+
+    @ApiOperation(value = "fixSegmentsManually (update)", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/segment_holes")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> fixSegHoles(@PathVariable("model") String modelId,
+                                                         @RequestBody SegmentFixRequest segmentsRequest) throws Exception {
+        checkProjectName(segmentsRequest.getProject());
+        checkRequiredArg("segment_holes", segmentsRequest.getSegmentHoles());
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(segmentsRequest.getProject(), modelId);
+        segmentsRequest.getSegmentHoles().forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
+        JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
+                segmentsRequest.getSegmentHoles());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "checkSegments (check)")
+    @PostMapping(value = "/{model:.+}/segment/validation")
+    @ResponseBody
+    public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
+                                                               @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
+        checkProjectName(buildSegmentsRequest.getProject());
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
+        val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
+                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+    }
+
+    @ApiOperation(value = "checkSegmentsIfDelete (check)")
+    @GetMapping(value = "/{model:.+}/segment/validation")
+    @ResponseBody
+    public EnvelopeResponse<SegmentCheckResponse> checkHolesIfSegDeleted(@PathVariable("model") String model,
+                                                                         @RequestParam("project") String project, @RequestParam(value = "ids", required = false) String[] ids) {
+        checkProjectName(project);
+        val res = modelService.checkSegHoleIfSegDeleted(model, project, ids);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+    }
+
+    @ApiOperation(value = "deleteSegments (update)(check)", notes = "Update URL: {project}; Update Param: project")
+    @DeleteMapping(value = "/{model:.+}/segments")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
+                                                   @RequestParam("project") String project, //
+                                                   @RequestParam("purge") Boolean purge, //
+                                                   @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
+                                                   @RequestParam(value = "ids", required = false) String[] ids) {
+        checkProjectName(project);
+
+        if (purge) {
+            modelService.purgeModelManually(model, project);
+        } else if (ArrayUtils.isEmpty(ids)) {
+            throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
+        } else {
+            modelService.deleteSegmentById(model, project, ids, force);
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "refreshOrMergeSegmentsByIds (update)", notes = "Add URL: {model}")
+    @PutMapping(value = "/{model:.+}/segments")
+    @ResponseBody
+    public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
+                                                                @RequestBody SegmentsRequest request) {
+        checkProjectName(request.getProject());
+        if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
+            if (ArrayUtils.isEmpty(request.getIds())) {
+                throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
+            }
+            modelService.refreshSegmentById(modelId, request.getProject(), request.getIds());
+        } else {
+            if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
+                throw new KylinException(FAILED_MERGE_SEGMENT,
+                        MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
+            }
+            modelService.mergeSegmentsManually(modelId, request.getProject(), request.getIds());
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/segments")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
+                                                                   @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
+        modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
+        JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
+                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), buildSegmentsRequest.isBuildAllIndexes());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @PutMapping(value = "/{model:.+}/model_segments")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
+                                                                            @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
+        checkProjectName(buildSegmentsRequest.getProject());
+        String partitionColumnFormat = buildSegmentsRequest.getPartitionDesc().getPartitionDateFormat();
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
+        modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
+        JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
+                modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
+                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getSegmentHoles(),
+                buildSegmentsRequest.isBuildAllIndexes());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/model_segments/indexes")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
+                                                                  @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
+        checkProjectName(buildSegmentsRequest.getProject());
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(), modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/model_segments/all_indexes")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponseWithFailure> addAllIndexesToSegments(@PathVariable("model") String modelId,
+                                                                     @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
+        checkProjectName(buildSegmentsRequest.getProject());
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(), modelId, buildSegmentsRequest.getSegmentIds(), null);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
+                                                              @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
+        checkProjectName(deleteSegmentsRequest.getProject());
+        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId, deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

@@ -235,6 +235,8 @@ class IndexSuggester {
                     "Cannot suggest any columns in table index.");
             final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
             nonFilterColumnSet.add(model.getEffectiveCols().get(namedColumn.getId()));
+            // set extra-column as dimension in model
+            namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
         }
         nonFilterColumnSet.removeAll(context.filterColumns);
 

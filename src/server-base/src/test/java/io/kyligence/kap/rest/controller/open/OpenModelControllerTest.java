@@ -182,7 +182,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String project = "default";
         mockGetModelName(modelName, project, modelId);
-        Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", "end_time", true))
+        Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false, "end_time", true))
                 .thenReturn(
                         new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)

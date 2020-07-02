@@ -48,4 +48,7 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
     @JsonProperty("segment_holes")
     private List<SegmentTimeRequest> segmentHoles;
 
+    @JsonProperty("build_all_indexes")
+    private boolean buildAllIndexes;
+
 }

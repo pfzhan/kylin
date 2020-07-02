@@ -58,7 +58,8 @@
     {
       "id": 2,
       "name": "LSTG_SITE_ID",
-      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID"
+      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 3,

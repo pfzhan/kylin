@@ -449,7 +449,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertEquals(1, recommendationMap.size());
         OptimizeRecommendation recommendation = recommendationMap.values().iterator().next();
         Assert.assertEquals(1, recommendation.getLayoutRecommendations().size());
-        Assert.assertEquals(2, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(1, recommendation.getMeasureRecommendations().size());
         Assert.assertEquals(1, recommendation.getCcRecommendations().size());
     }

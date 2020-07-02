@@ -42,8 +42,9 @@
 
 package org.apache.kylin.rest.service;
 
-import java.util.Arrays;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -66,8 +67,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.user.ManagedUser;
+import java.util.Arrays;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
@@ -93,6 +93,8 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
+        // init job factory
+        ExecutableUtils.initJobFactory();
         createTestMetadata();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
@@ -130,7 +132,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Configuration
     @ComponentScan("io.kyligence.kap.rest")
-    @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
+    @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
     public static class SpringConfig {
 
     }

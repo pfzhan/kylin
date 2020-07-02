@@ -64,7 +64,7 @@ public class JobEngineConfigTest extends HotLoadKylinPropertiesTestCase {
         assertEquals(20, jobEngineConfig.getMaxConcurrentJobLimit());
         String hdfsWorkingDirectory = jobEngineConfig.getHdfsWorkingDirectory();
 
-        updateProperty("kylin.job.max-concurrent-jobs", "30");
+        updateProperty("kylin.job.max-project-concurrent-jobs", "30");
         KylinConfig.getInstanceFromEnv().reloadFromSiteProperties();
 
         assertEquals(30, jobEngineConfig.getMaxConcurrentJobLimit());

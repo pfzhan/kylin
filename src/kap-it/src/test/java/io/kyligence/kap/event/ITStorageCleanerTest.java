@@ -44,7 +44,6 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -74,9 +73,6 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
                 "top_n")) {
             projectMgr.forceDropProject(project);
         }
-        EventOrchestratorManager.destroyInstance();
-        NDefaultScheduler.destroyInstance();
-        EventOrchestratorManager.getInstance(getTestConfig());
         NDefaultScheduler.destroyInstance();
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
@@ -89,7 +85,6 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
 
     @After
     public void tearDown() throws Exception {
-        EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.destroyInstance();
         this.cleanupTestMetadata();
         System.clearProperty("kylin.job.event.poll-interval-second");

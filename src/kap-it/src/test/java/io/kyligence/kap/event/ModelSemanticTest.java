@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -58,9 +60,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -76,9 +75,9 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
@@ -91,7 +90,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @BeforeClass
     public static void beforeClass() {
-
+        ExecutableUtils.initJobFactory();
         if (Shell.MAC)
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
@@ -120,8 +119,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "3");
         System.setProperty("kylin.job.event.poll-interval-second", "1");
         System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
-        EventOrchestratorManager.destroyInstance();
-        EventOrchestratorManager.getInstance(getTestConfig());
         NDefaultScheduler.destroyInstance();
         val scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
@@ -164,7 +161,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @After
     public void tearDown() throws IOException {
-        EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
         System.clearProperty("kylin.job.event.poll-interval-second");
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
@@ -176,11 +172,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     public void testSemanticChangedHappy() throws Exception {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         changeModelRequest();
-        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val firstStepEvents = eventDao.getEvents();
-        Assert.assertEquals(1, firstStepEvents.size());
 
-        waitForEventAndJobFinished(0);
+        val executables = getRunningExecutables(DEFAULT_PROJECT, null);
+        Assert.assertEquals(1, executables.size());
+        waitForJobFinished(0);
 
         val df = dfManager.getDataflow(MODEL_ID);
         Assert.assertEquals(2, df.getSegments().size());
@@ -192,7 +187,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     // see issue #8740
     public void testChange_WithReadySegment() throws Exception {
         changeModelRequest();
-        waitForEventAndJobFinished(0);
+        waitForJobFinished(0);
         NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT).updateIndexPlan(MODEL_ID,
                 copyForWrite -> {
                     copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(x -> x.getId() != 1000000)
@@ -201,7 +196,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         // update measure
         updateMeasureRequest();
-        waitForEventAndJobFinished(0);
+        waitForJobFinished(0);
 
         val result = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
@@ -215,7 +210,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     // see issue #8820
     public void testChange_ModelWithAggGroup() throws Exception {
         changeModelRequest();
-        waitForEventAndJobFinished(0);
+        waitForJobFinished(0);
 
         // init agg group
         val group1 = JsonUtil.readValue("{\n" + //
@@ -234,7 +229,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        waitForEventAndJobFinished(0);
+        waitForJobFinished(0);
 
         // update measures, throws an exception
         updateMeasureWithAgg();
@@ -312,24 +307,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         return jobs;
     }
 
-    private long waitForEventFinished(int expectedSize) throws Exception {
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        List<Event> events;
-        val startTime = System.currentTimeMillis();
-        while (true) {
-            int finishedEventNum = 0;
-            events = eventDao.getEvents();
-            log.debug("finished {}, all {}", finishedEventNum, events.size());
-            if (events.size() == expectedSize) {
-                break;
-            }
-            if (System.currentTimeMillis() - startTime > 200 * 1000) {
-                break;
-            }
-            Thread.sleep(1000);
-        }
-        return 0L;
-    }
 
     private long waitForJobFinished(int expectedSize) throws InterruptedException {
         NExecutableManager manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -351,8 +328,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         return 0L;
     }
 
-    private void waitForEventAndJobFinished(int expectedSize) throws Exception {
-        waitForEventFinished(expectedSize);
-        waitForJobFinished(expectedSize);
+    private List<AbstractExecutable> getRunningExecutables(String project, String model) {
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getRunningExecutables(project, model);
     }
 }

@@ -60,9 +60,6 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
         val modelId = getModelId();
         val executable = getExecutable();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        if (!checkSubjectExists(project, modelId, null)) {
-            return;
-        }
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val merger = new AfterBuildResourceMerger(kylinConfig, project);
         executable.getTasks().stream() //
@@ -92,7 +89,6 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
         if (!(job.checkCuttingInJobByModel() && job.checkAnyTargetSegmentExists())) {
             return;
         }
-        postEvent(ADD_CUBOID_EVENT_CLASS, null);
     }
 
 }

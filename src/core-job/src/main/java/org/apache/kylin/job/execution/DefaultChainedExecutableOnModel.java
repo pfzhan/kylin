@@ -24,17 +24,7 @@
 
 package org.apache.kylin.job.execution;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-
 import com.google.common.base.Preconditions;
-
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -44,6 +34,14 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
 
@@ -89,7 +87,7 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
     @Override
     public boolean checkSuicide() {
         try {
-            return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel() || !checkAnyLayoutExists();
+            return !checkAnyTargetSegmentExists() || !checkAnyLayoutExists();
         } catch (Exception e) {
             return true;
         }

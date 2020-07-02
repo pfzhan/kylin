@@ -70,7 +70,7 @@ object TableScanPlan extends LogEx {
     val olapContext = rel.getContext
     val dataflow = olapContext.realization.asInstanceOf[NDataflow]
     val cuboidDF = {
-      val segments = dataflow.getQueryableSegments
+      val prunedSegments = olapContext.storageContext.getPrunedSegments
       olapContext.resetSQLDigest()
       val context = olapContext.storageContext
       val cuboidLayout = context.getCandidate.getCuboidLayout
@@ -83,11 +83,11 @@ object TableScanPlan extends LogEx {
       /////////////////////////////////////////////
       val kapConfig = KapConfig.wrap(dataflow.getConfig)
       val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)
-      val fileList = segments.asScala.map(
+      val fileList = prunedSegments.asScala.map(
         seg => toCuboidPath(dataflow, cuboidLayout.getId, basePath, seg)
       )
       val path = fileList.mkString(",") + olapContext.isFastBitmapEnabled
-      lazy val segmentIDs = LogUtils.jsonArray(segments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
+      lazy val segmentIDs = LogUtils.jsonArray(prunedSegments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
       logDebug(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
       logDebug(s"size is ${cacheDf.get().size()}")
 
@@ -96,11 +96,14 @@ object TableScanPlan extends LogEx {
         cacheDf.get().get(path)
       } else {
         import io.kyligence.kap.query.implicits._
+        val segmentIdsCombined = prunedSegments.asScala.map(
+          seg => seg.getId
+        ).mkString(",")
         val d = session.kylin
           .format("parquet")
           .option("parquet.filter.columnindex.enabled", "false")
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
-          .cuboidTable(dataflow, cuboidLayout)
+          .cuboidTable(dataflow, cuboidLayout, segmentIdsCombined)
           .toDF(columnNames: _*)
         logDebug(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, d)

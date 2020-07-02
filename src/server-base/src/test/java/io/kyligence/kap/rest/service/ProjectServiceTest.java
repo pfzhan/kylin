@@ -91,7 +91,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -230,7 +229,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(16, projectInstances.size());
+        Assert.assertEquals(17, projectInstances.size());
 
     }
 
@@ -238,7 +237,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetAdminProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getAdminProjects();
-        Assert.assertEquals(16, projectInstances.size());
+        Assert.assertEquals(17, projectInstances.size());
     }
 
     @Test
@@ -252,7 +251,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(16, projectInstances.size());
+        Assert.assertEquals(17, projectInstances.size());
 
     }
 
@@ -552,9 +551,6 @@ public class ProjectServiceTest extends ServiceTestBase {
             return null;
         }, project);
 
-        val eventOrchestratorManager = EventOrchestratorManager.getInstance(getTestConfig());
-        eventOrchestratorManager.addProject(project);
-        Assert.assertNotNull(eventOrchestratorManager.getEventOrchestratorByProject(project));
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         Assert.assertTrue(scheduler.hasStarted());
@@ -565,7 +561,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         }, project);
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
-        Assert.assertNull(eventOrchestratorManager.getEventOrchestratorByProject(project));
         Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
     }
 

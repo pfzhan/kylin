@@ -63,6 +63,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +76,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -91,7 +90,9 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -101,6 +102,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -132,15 +134,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
+import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
+import io.kyligence.kap.engine.spark.job.ExecutableMergeOrRefreshHandler;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -202,6 +202,7 @@ import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import javax.annotation.Nullable;
 import lombok.val;
 import lombok.var;
 
@@ -241,7 +242,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
+    private static String[] timeZones = {"GMT+8", "CST", "PST", "UTC"};
 
     @Before
     public void setup() {
@@ -458,7 +459,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetSegmentsResponse() {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default", "0", "" + Long.MAX_VALUE, "start_time", false, "ONLINE");
+                "default", "0", "" + Long.MAX_VALUE, "ONLINE", "start_time", false);
         Assert.assertEquals(1, segments.size());
         Assert.assertEquals(3380224, segments.get(0).getBytesSize());
         Assert.assertEquals("16", segments.get(0).getAdditionalInfo().get("file_count"));
@@ -473,7 +474,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Segments<NDataSegment> segs = new Segments();
         val seg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
-                "" + Long.MAX_VALUE, "start_time", false, "");
+                "" + Long.MAX_VALUE, "", "start_time", false);
         Assert.assertEquals(1, segments.size());
         Assert.assertEquals("LOADING", segments.get(0).getStatusToDisplay().toString());
 
@@ -485,7 +486,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
-                "" + Long.MAX_VALUE, "start_time", false, "");
+                "" + Long.MAX_VALUE, "", "start_time", false);
         Assert.assertEquals(2, segments.size());
         Assert.assertEquals("REFRESHING", segments.get(1).getStatusToDisplay().toString());
 
@@ -505,7 +506,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
         segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
-                "" + Long.MAX_VALUE, "start_time", false, "");
+                "" + Long.MAX_VALUE, "", "start_time", false);
         Assert.assertEquals(3, segments.size());
         Assert.assertEquals("MERGING", segments.get(2).getStatusToDisplay().toString());
     }
@@ -695,10 +696,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testDropModelPass() throws NoSuchFieldException, IllegalAccessException {
         String modelId = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94";
         String project = "default";
-        EventManager eventManager = EventManager.getInstance(getTestConfig(), project);
-        eventManager.postAddCuboidEvents(modelId, "admin");
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), project);
-        Assert.assertEquals(1, eventDao.getEventsByModel(modelId).size());
+        JobManager jobManager = JobManager.getInstance(getTestConfig(), project);
+        val jobId = jobManager.addFullIndexJob(modelId, "admin");
+        Assert.assertTrue(jobId == null);
         AtomicBoolean clean = new AtomicBoolean(false);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -716,7 +716,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", null,
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
-        Assert.assertEquals(0, eventDao.getEventsByModel(modelId).size());
         Assert.assertTrue(clean.get());
     }
 
@@ -1112,7 +1111,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.getId()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() }, false);
+                new String[]{dataSegment.getId()}, false);
     }
 
     @Test
@@ -1127,7 +1126,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { "not_exist_01" }, false);
+                new String[]{"not_exist_01"}, false);
     }
 
     @Test
@@ -1147,7 +1146,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
 
-        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
+        modelService.deleteSegmentById(modelId, project, new String[]{"ef783e4d-e35f-4bd9-8afd-efd64336f04d"},
                 false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
@@ -1205,7 +1204,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Model [nmodel_basic_inner] is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() }, false);
+                new String[]{dataSegment.getId()}, false);
     }
 
     @Test
@@ -1217,7 +1216,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
-
         Segments<NDataSegment> segments = new Segments<>();
 
         // first segment
@@ -1249,32 +1247,38 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dfManager.updateDataflow(update);
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        eventDao.deleteAllEvents();
 
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Merging segments must not have gaps between " + dataSegment1.getId() + " and " + dataSegment3.getId());
+        try {
+            modelService.mergeSegmentsManually(dfId, "default",
+                    new String[]{dataSegment1.getId(), dataSegment3.getId()});
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("Merging segments must not have gaps between " + dataSegment1.getId() +
+                    " and " + dataSegment3.getId() + ".", e.getMessage());
+        }
+
         modelService.mergeSegmentsManually(dfId, "default",
-                new String[] { dataSegment1.getId(), dataSegment3.getId() });
+                new String[]{dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId()});
+        val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
+        Assert.assertEquals(1, executables.size());
+        Assert.assertEquals(JobTypeEnum.INDEX_MERGE, executables.get(0).getJobType());
+        AbstractExecutable job = executables.get(0);
+        Assert.assertEquals(1, job.getTargetSegments().size());
 
-        modelService.mergeSegmentsManually(dfId, "default",
-                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
-        List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
-
-        events.sort(Comparator.comparingLong(Event::getSequenceId));
-        val mergedSegment = dfManager.getDataflow(dfId).getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId());
-
+        val mergedSegment = dfManager.getDataflow(dfId).getSegment(job.getTargetSegments().get(0));
         Assert.assertEquals(SegmentRange.dateToLong("2010-01-01"), mergedSegment.getSegRange().getStart());
         Assert.assertEquals(SegmentRange.dateToLong("2010-05-01"), mergedSegment.getSegRange().getEnd());
 
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not remove or refresh or merge segment (ID:" + dataSegment2.getId()
-                + "), because the segment is LOCKED.");
-        //refresh exception
-        modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment2.getId() });
-
+        try {
+            //refresh exception
+            modelService.mergeSegmentsManually(dfId, "default", new String[]{dataSegment2.getId()});
+            Assert.fail();
+        } catch (KylinException e) {
+            Assert.assertEquals("Can not remove or refresh or merge segment [" + dataSegment2.getId()
+                    + "], because the segment is LOCKED.", e.getMessage());
+        }
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
@@ -1317,7 +1321,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(String.format(
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.getId()));
         modelService.mergeSegmentsManually(dfId, "default",
-                new String[] { dataSegment1.getId(), dataSegment2.getId() });
+                new String[]{dataSegment1.getId(), dataSegment2.getId()});
 
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -1353,16 +1357,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        eventDao.deleteAllEvents();
         //refresh normally
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment2.getId() });
+                new String[]{dataSegment2.getId()});
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.getId()));
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment2.getId() });
+                new String[]{dataSegment2.getId()});
     }
 
     @Test
@@ -1371,7 +1373,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { "not_exist_01" });
+                new String[]{"not_exist_01"});
     }
 
     @Test
@@ -1404,16 +1406,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        eventDao.deleteAllEvents();
         //remove normally
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { segments.get(0).getId() }, false);
-        List<Event> events = eventDao.getEvents();
+                new String[]{segments.get(0).getId()}, false);
         //2 dataflows
         val df2 = dataflowManager.getDataflow(dataModel.getUuid());
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { segments.get(2).getId(), segments.get(3).getId() }, false);
+                new String[]{segments.get(2).getId(), segments.get(3).getId()}, false);
         Assert.assertEquals(6, df2.getSegments().size());
     }
 
@@ -1485,7 +1484,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testCreateModel_SelfJoinIncrementBuild() throws Exception {
+    public void testCreateModel_SelfJoinementBuildIncr() throws Exception {
         val modelRequest = JsonUtil.readValue(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_self_join_increment.json"),
                 ModelRequest.class);
@@ -1826,9 +1825,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
-                                        + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
-                                        + " or use a different computed column name.");
+                        "Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
+                                + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
+                                + " or use a different computed column name.");
 
             }
         });
@@ -1959,8 +1958,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
-                                        + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
+                                + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2007,7 +2006,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
 
@@ -2059,7 +2058,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                                "Column name for computed column BUYER_ACCOUNT.COUNTRY_UPPER is already used in model nmodel_cc_test, you should apply the same expression as ' UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY) ' here, or use a different computed column name.");
+                        "Column name for computed column BUYER_ACCOUNT.COUNTRY_UPPER is already used in model nmodel_cc_test, you should apply the same expression as ' UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY) ' here, or use a different computed column name.");
             }
         });
 
@@ -2116,7 +2115,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2164,7 +2163,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR is already used in model nmodel_basic, you should apply the same expression as ' SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1) ' here, or use a different computed column name.");
+                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR is already used in model nmodel_basic, you should apply the same expression as ' SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1) ' here, or use a different computed column name.");
             }
         });
 
@@ -2201,7 +2200,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
             }
         });
 
@@ -2238,7 +2237,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                                "Expression SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1) in computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2 is already defined by computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR from model nmodel_basic, you should use the same column name: ' LEFTJOIN_BUYER_COUNTRY_ABBR ' .");
+                        "Expression SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1) in computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2 is already defined by computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR from model nmodel_basic, you should use the same column name: ' LEFTJOIN_BUYER_COUNTRY_ABBR ' .");
             }
         });
 
@@ -2307,7 +2306,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
             }
         });
 
@@ -2391,7 +2390,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
             }
         });
 
@@ -2433,9 +2432,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic,"
-                                        + " you should apply the same expression as ' CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME) ' here,"
-                                        + " or use a different computed column name.");
+                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic,"
+                                + " you should apply the same expression as ' CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME) ' here,"
+                                + " or use a different computed column name.");
             }
         });
 
@@ -2480,7 +2479,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+                        "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
             }
         });
 
@@ -2520,7 +2519,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+                        "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
             }
         });
 
@@ -2561,7 +2560,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+                        "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
             }
         });
 
@@ -2602,7 +2601,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+                        "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
             }
         });
 
@@ -2794,29 +2793,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "1577811661000", "1609430400000");
 
-        Assert.assertEquals(jobInfo.getJobs().size(), 2);
-        Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), "INC_BUILD");
-        Assert.assertEquals(jobInfo.getJobs().get(1).getJobName(), "INDEX_BUILD");
+        Assert.assertEquals(jobInfo.getJobs().size(), 1);
+        Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
         modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("yyyy-MM-dd", modelDesc.getPartitionDesc().getPartitionDateFormat());
 
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
 
         String pattern = "yyyy-MM-dd";
-        val events = eventDao.getEventsOrdered();
-        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        Assert.assertEquals(2, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertEquals(DateFormat.getFormatTimeStamp("1577808000000", pattern),
                 dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(DateFormat.getFormatTimeStamp("1609430400000", pattern),
                 dataflow.getSegments().get(0).getSegRange().getEnd());
-
-        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
     }
 
     public void testBuildSegmentsManually_WithPushDown() throws Exception {
@@ -2837,12 +2833,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
-        val events = eventDao.getEvents();
-        events.sort(Event::compareTo);
-
-        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
 
@@ -2927,10 +2920,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), getProject());
-        var events = eventDao.getEventsOrdered();
-        Assert.assertEquals(1, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
         thrown.expectInTransaction(KylinException.class);
         thrown.expectMessageInTransaction(String.format(
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
@@ -2939,6 +2931,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    @Ignore
     public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
@@ -2958,13 +2951,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setPartitionDesc(null);
         request.setProject(project);
         modelService.updateDataModelSemantic(project, request);
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        eventDao.deleteAllEvents();
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
-        val events = eventDao.getEvents();
-        Assert.assertEquals(2, events.size());
-        Assert.assertTrue(events.stream().anyMatch(e -> e instanceof RefreshSegmentEvent));
-        Assert.assertTrue(events.stream().anyMatch(e -> e instanceof AddCuboidEvent));
+        try {
+            modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+        } catch (TransactionException exception) {
+            Assert.assertTrue(exception.getCause() instanceof KylinException);
+            Assert.assertEquals("Add Job failed due to processing time conflict", exception.getCause().getMessage());
+        }
+        val executables = getRunningExecutables(project, modelId);
+        Assert.assertEquals(2, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
     }
 
     @Test
@@ -3175,8 +3170,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         joinTableDesc.setTable("DEFAULT.TEST_ACCOUNT");
         JoinDesc joinDesc = new JoinDesc();
         joinDesc.setType("INNER");
-        joinDesc.setPrimaryKey(new String[] { "TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID" });
-        joinDesc.setForeignKey(new String[] { "TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID" });
+        joinDesc.setPrimaryKey(new String[]{"TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID"});
+        joinDesc.setForeignKey(new String[]{"TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID"});
 
         joinTableDesc.setJoin(joinDesc);
         modelRequest.setJoinTables(Lists.newArrayList(joinTableDesc));
@@ -3218,10 +3213,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
         val response = modelService.buildIndicesManually(modelId, project);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(1, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        val executables = getRunningExecutables(project, modelId);
+        Assert.assertEquals(1, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
     }
 
@@ -3234,10 +3228,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
         val response = modelService.buildIndicesManually(modelId, project);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(0, events.size());
-
+        val executables = getRunningExecutables(project, modelId);
+        Assert.assertEquals(0, executables.size());
     }
 
     @Test
@@ -3254,9 +3246,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
         val response = modelService.buildIndicesManually(modelId, project);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(0, events.size());
+        val executables = getRunningExecutables(project, modelId);
+        Assert.assertEquals(0, executables.size());
 
     }
 
@@ -3335,10 +3326,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         prepareTwoOnlineModels();
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
                 "9223372036854775807");
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        List<Event> events = eventDao.getEventsOrdered();
-        Assert.assertEquals(2, events.size());
-        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
+
+        val executables = getRunningExecutables("default", null);
+
+        Assert.assertEquals(2, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
     }
 
     @Test
@@ -3359,10 +3351,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
                 "9223372036854775807");
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        List<Event> events = eventDao.getEventsOrdered();
-        Assert.assertEquals(2, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(2, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
     }
 
     @Test
@@ -3386,13 +3378,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "9223372036854775807", "0",
                 "9223372036854775807");
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(2, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableAddSegmentHandler);
         df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
         Assert.assertNotSame(df_basic_inner.getSegments().get(0).getId(), oldSeg.getId());
-        List<Event> events = eventDao.getEventsOrdered();
-        Assert.assertEquals(2, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof AddSegmentEvent);
     }
 
     @Test
@@ -3425,14 +3416,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.updateDataflow(update2);
 
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        List<Event> events = eventDao.getEventsOrdered();
+        val executables = getRunningExecutables("default", null);
         //refresh 2 ready segs and rebuild two new segs
-        Assert.assertEquals(4, events.size());
-        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(2) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(3) instanceof AddSegmentEvent);
+        Assert.assertEquals(4, executables.size());
+        executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableAddSegmentHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(3)).getHandler() instanceof ExecutableAddSegmentHandler);
     }
 
     @Test
@@ -3466,14 +3457,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.updateDataflow(update2);
 
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
-        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        List<Event> events = eventDao.getEventsOrdered();
+
+        val executables = getRunningExecutables("default", null);
+        executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
         //refresh 2 ready segs in online model and one ready seg in lag behind and rebuild one new seg in lag behind
-        Assert.assertEquals(4, events.size());
-        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(2) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(3) instanceof AddSegmentEvent);
+        Assert.assertEquals(4, executables.size());
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(3)).getHandler() instanceof ExecutableAddSegmentHandler);
     }
 
     @Test
@@ -3599,8 +3591,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testRemoveRecommendAggIndexDimensionColumn() throws Exception {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("agg group still contains dimension(s) TEST_SITES.SITE_NAME");
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("table index 20000000000 contains invalid column 0. table index can only contain columns added to model.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
@@ -3983,6 +3975,28 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         partitionColumnFormat = modelService.getPartitionColumnFormatByAlias("gc_test", "m1");
         Assert.assertEquals(null, partitionColumnFormat);
+    }
+
+    @Test
+    public void testModelSelectedColumns(){
+        NDataModelResponse model = modelService.getModels("nmodel_basic", "default", false, "",
+                null, "last_modify", true).get(0);
+
+        Set<String> dimCols = model.getAllNamedColumns().stream()
+                .filter(col -> col.getStatus() == NDataModel.ColumnStatus.DIMENSION)
+                .map(NDataModel.NamedColumn::getAliasDotColumn)
+                .collect(Collectors.toSet());
+
+        Set<String> colsInMeasure = model.getMeasures().stream()
+                .flatMap(measure -> measure.getFunction().getColRefs().stream())
+                .filter(Objects::nonNull)
+                .map(TblColRef::getIdentity).collect(Collectors.toSet());
+
+        Set<String> expected = new HashSet<>();
+        expected.addAll(dimCols);
+        expected.addAll(colsInMeasure);
+
+        Assert.assertEquals(expected, model.getAllSelectedColumns().stream().map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet()));
     }
 
 }

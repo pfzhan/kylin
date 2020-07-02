@@ -229,7 +229,7 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
                     .getDataflow(indexPlan.getUuid());
             Segments<NDataSegment> segments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging();
 
-            if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY))) {
+            if (CollectionUtils.isEmpty(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING))) {
                 return new SimplifiedCuboidResponse(cuboid.getId(), CuboidStatus.EMPTY, 0L);
             }
 

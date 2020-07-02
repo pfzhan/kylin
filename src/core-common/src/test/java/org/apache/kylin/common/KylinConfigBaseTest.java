@@ -222,7 +222,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getCliWorkingDir", new PropertiesEntity("kylin.job.remote-cli-working-dir", "/kylin", "/kylin"));
 
-        map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-concurrent-jobs", "10", 10));
+        map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-project-concurrent-jobs", "10", 10));
 
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 
@@ -746,7 +746,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(364, methodsCount);
+        Assert.assertEquals(365, methodsCount);
     }
 
     @Test

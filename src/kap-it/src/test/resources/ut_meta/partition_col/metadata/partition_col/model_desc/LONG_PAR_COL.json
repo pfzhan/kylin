@@ -32,7 +32,7 @@
   "partition_desc": {
     "partition_date_column": "DEFAULT.TEST_PAR_COL.LONG_PAR_COL",
     "partition_date_start": 0,
-    "partition_date_format" : "yyyy-MM-dd",
+    "partition_date_format" : "yyyyMMdd",
     "partition_type": "APPEND"
   }
 }

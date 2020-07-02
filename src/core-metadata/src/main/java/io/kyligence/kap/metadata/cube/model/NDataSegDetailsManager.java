@@ -89,7 +89,7 @@ class NDataSegDetailsManager implements IKeepNames {
         return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
 
-    private NDataSegDetails getForSegment(NDataflow df, String segId) {
+    NDataSegDetails getForSegment(NDataflow df, String segId) {
         NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getUuid(), segId),
                 DATA_SEG_LAYOUT_INSTANCES_SERIALIZER);
         if (instances != null) {

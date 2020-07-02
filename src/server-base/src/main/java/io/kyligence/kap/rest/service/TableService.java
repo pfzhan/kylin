@@ -106,8 +106,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -510,7 +508,7 @@ public class TableService extends BasicService {
         long size = 0;
         for (val model : models) {
             val df = dfManger.getDataflow(model.getUuid());
-            val readySegs = df.getSegments(SegmentStatusEnum.READY);
+            val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
             if (CollectionUtils.isNotEmpty(readySegs)) {
                 hasReadySegs = true;
                 size += dfManger.getDataflowStorageSize(model.getUuid());
@@ -624,7 +622,7 @@ public class TableService extends BasicService {
     }
 
     private void buildFullSegment(String model, String project) {
-        val eventManager = getEventManager(project);
+        val jobManager = getJobManager(project);
         val dataflowManager = getDataflowManager(project);
         val indexPlanManager = getIndexPlanManager(project);
         val indexPlan = indexPlanManager.getIndexPlan(model);
@@ -632,7 +630,7 @@ public class TableService extends BasicService {
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddSegmentEvents(newSegment, model, getUsername()));
+        getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(newSegment, model, getUsername()));
     }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
@@ -763,7 +761,7 @@ public class TableService extends BasicService {
         List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, project)
                 .getTableOrientedModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(models)) {
-            EventManager eventManager = EventManager.getInstance(kylinConfig, project);
+            val jobManager = getJobManager(project);
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
             for (var model : models) {
                 val modelId = model.getUuid();
@@ -771,7 +769,7 @@ public class TableService extends BasicService {
                 NDataflow df = dataflowManager.getDataflow(indexPlan.getUuid());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
-                getSourceUsageManager().licenseCheckWrap(project, () -> eventManager.postAddSegmentEvents(dataSegment, modelId, getUsername()));
+                getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(dataSegment, modelId, getUsername()));
 
                 logger.info(
                         "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
@@ -1162,9 +1160,6 @@ public class TableService extends BasicService {
             return;
         }
 
-        val eventDao = getEventDao(projectName);
-        val events = eventDao.getEventsByModel(model.getId());
-
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
         getOptimizeRecommendationManagerV2(projectName).removeAll(model.getId());
@@ -1178,14 +1173,13 @@ public class TableService extends BasicService {
         modelService.updateDataModelSemantic(projectName, request);
 
         if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getUpdatedLayouts())) {
-            val eventManager = getEventManager(projectName);
             indexPlanService.reloadLayouts(projectName, changeTypeAffectedModel.getModelId(),
                     changeTypeAffectedModel.getUpdatedLayouts());
+            val jobManager = getJobManager(projectName);
             if (needBuild) {
-                getSourceUsageManager().licenseCheckWrap(projectName, () -> eventManager.postAddCuboidEvents(model.getId(), getUsername()));
+                getSourceUsageManager().licenseCheckWrap(projectName, () -> jobManager.checkAndAddIndexJob(model.getId(), getUsername()));
             }
         }
-        cleanRedundantEvents(projectName, model, events);
     }
 
     private void setRequest(ModelRequest request, NDataModel model, AffectedModelContext removeAffectedModel,
@@ -1210,14 +1204,6 @@ public class TableService extends BasicService {
         if (needBuild && indexPlan.getRuleBasedIndex() != null) {
             semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
                     newIndexPlan.getRuleBasedIndex(), false);
-        }
-    }
-
-    void cleanRedundantEvents(String projectName, NDataModel model, List<Event> existEvents) {
-        val eventDao = getEventDao(projectName);
-        val events = eventDao.getEventsByModel(model.getId());
-        if (events.size() - existEvents.size() > 1) {
-            events.stream().skip(existEvents.size() + 1).forEach(event -> eventDao.deleteEvent(event.getId()));
         }
     }
 

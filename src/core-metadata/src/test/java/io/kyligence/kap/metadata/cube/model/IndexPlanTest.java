@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.cube.model;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -423,5 +424,51 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         });
 
         Assert.assertEquals(3, newPlan.getIndexEntity(100000).getNextLayoutOffset());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testAddLayoutWithNonSelectedColumns() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+
+        indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+            val newTableIndex = new IndexEntity();
+            newTableIndex.setDimensions(Lists.newArrayList(0, 1, 44));
+            newTableIndex.setId(20_000_000_000L);
+
+            val layout = new LayoutEntity();
+            layout.setId(20_000_000_001L);
+            layout.setColOrder(Lists.newArrayList(0, 1, 44));
+
+            List<IndexEntity> indexes = copyForWrite.getAllIndexes();
+            indexes.add(newTableIndex);
+            copyForWrite.setIndexes(indexes);
+        });
+    }
+
+    @Test
+    public void testAddLayoutWithSelectedColumns() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+
+        indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+            val newTableIndex = new IndexEntity();
+            newTableIndex.setDimensions(Lists.newArrayList(0, 1));
+            newTableIndex.setId(20_000_000_000L);
+
+            val layout = new LayoutEntity();
+            layout.setId(20_000_000_001L);
+            layout.setColOrder(Lists.newArrayList(0, 1));
+
+            List<IndexEntity> indexes = copyForWrite.getAllIndexes();
+            indexes.add(newTableIndex);
+            copyForWrite.setIndexes(indexes);
+        });
     }
 }

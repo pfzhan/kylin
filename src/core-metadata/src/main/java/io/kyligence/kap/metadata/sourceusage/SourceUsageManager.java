@@ -126,7 +126,7 @@ public class SourceUsageManager {
 
     private Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
         Map<String, Long> dataflowSourceMap = new HashMap<>();
-        for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
+        for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
             Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
             Map<String, Long> segmentSourceMap = MapUtils.isEmpty(columnSourceBytesMap) ?
                     calcAvgColumnSourceBytes(segment) : columnSourceBytesMap;
@@ -282,7 +282,7 @@ public class SourceUsageManager {
         // source usage is first captured by column, then sum up to table and project
         Map<String, Long> dataflowColumnsBytes = sumDataflowColumnSourceMap(dataflow);
 
-        NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY).get(0);
+        NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).get(0);
         Set<TblColRef> allColumns = Sets.newHashSet();
         try {
             List<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
@@ -394,7 +394,7 @@ public class SourceUsageManager {
         if (dataflow == null) {
             return true;
         }
-        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY);
+        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         if (segments.isEmpty()) {
             return true;
         }

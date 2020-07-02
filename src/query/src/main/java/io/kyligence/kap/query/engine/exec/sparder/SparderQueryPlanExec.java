@@ -27,8 +27,10 @@ package io.kyligence.kap.query.engine.exec.sparder;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.collect.Lists;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -37,12 +39,14 @@ import org.apache.kylin.query.relnode.OLAPRel;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
+import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapContext;
 import io.kyligence.kap.query.relnode.KapRel;
 import io.kyligence.kap.query.util.QueryContextCutter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  * implement and execute a physical plan with Sparder
@@ -52,7 +56,26 @@ public class SparderQueryPlanExec implements QueryPlanExec {
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
-        selectRealizationAndRewrite(rel);
+        // select realizations
+        selectRealization(rel);
+
+        // skip if no segment is selected
+        // check contentQuery and runConstantQueryLocally for UT cases to make sure SparderEnv.getDF is not null
+        // TODO refactor IT tests and remove this runConstantQueryLocally checking
+        if (!(dataContext instanceof SimpleDataContext) ||
+                !(((SimpleDataContext) dataContext)).isContentQuery() ||
+                KapConfig.wrap(((SimpleDataContext) dataContext).getKylinConfig()).runConstantQueryLocally()) {
+            val contexts = ContextUtil.listContexts();
+            for (OLAPContext context : contexts) {
+                if (context.olapSchema != null && context.storageContext.isEmptyLayout()) {
+                    updateQueryContextForEmptyResult();
+                    return Lists.newArrayList();
+                }
+            }
+        }
+
+        // rewrite
+        rewrite(rel);
         return doExecute(rel, dataContext);
     }
 
@@ -77,17 +100,21 @@ public class SparderQueryPlanExec implements QueryPlanExec {
     }
 
     /**
-     * match cubes and rewrite relNodes to fit the cube
-     * @param rel
+     * match cubes
      */
-    private void selectRealizationAndRewrite(RelNode rel) {
+    private void selectRealization(RelNode rel) {
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", rel, log);
         QueryContext.current().record("end_plan");
 
         QueryContext.current().getQueryTagInfo().setWithoutSyntaxError(true);
         QueryContextCutter.selectRealization(rel, BackdoorToggles.getIsQueryFromAutoModeling());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", rel, log);
+    }
 
+    /**
+     * rewrite relNodes
+     */
+    private void rewrite(RelNode rel) {
         // rewrite query if necessary
         OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
         rewriteImplementor.visitChild(rel, rel.getInput(0));
@@ -113,4 +140,9 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         QueryContext.current().record("end_rewrite");
     }
 
+    private void updateQueryContextForEmptyResult() {
+        //constant query should fill empty list for scan data
+        QueryContext.current().getMetrics().updateAndCalScanRows(DEFAULT_SCANNED_DATA);
+        QueryContext.current().getMetrics().updateAndCalScanBytes(DEFAULT_SCANNED_DATA);
+    }
 }

@@ -72,7 +72,7 @@
         <!-- <reflections.version>0.9.10</reflections.version> -->
 
         <!-- Calcite Version -->
-        <calcite.version>1.16.0-kylin-4.x-r37</calcite.version>
+        <calcite.version>1.16.0-kylin-4.x-r38</calcite.version>
         <avatica.version>1.10.0</avatica.version>
 
         <!-- Hadoop Common deps, keep compatible with hadoop2.version -->
@@ -254,7 +254,6 @@
         <module>src/source-hive</module>
         <module>src/server-base</module>
         <module>src/server</module>
-        <module>src/core-event</module>
         <module>src/spark-project</module>
         <module>src/assembly</module>
         <module>src/tool</module>
@@ -335,11 +334,6 @@
                 <artifactId>kap-tomcat-ext</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-event</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>

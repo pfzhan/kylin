@@ -27,11 +27,9 @@ package io.kyligence.kap.tool.upgrade;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -68,10 +66,6 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
 
     private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("dir")
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");
-
-    private static final List<String> REMOVE_EVENTS = Arrays.asList("io.kyligence.kap.event.model.PostAddCuboidEvent",
-            "io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent",
-            "io.kyligence.kap.event.model.PostAddSegmentEvent");
 
     private static final Map<String, String> JOB_TYPE_HANDLER_MAP = new HashMap<>();
 
@@ -115,38 +109,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
 
         NProjectManager projectManager = NProjectManager.getInstance(config);
         for (ProjectInstance project : projectManager.listAllProjects()) {
-            removeUselessEvent(project);
             updateExecute(project);
-        }
-    }
-
-    /**
-     * 
-     * @param projectInstance
-     */
-    private void removeUselessEvent(ProjectInstance projectInstance) {
-        NavigableSet<String> eventPaths = resourceStore
-                .listResources("/" + projectInstance.getName() + ResourceStore.EVENT_RESOURCE_ROOT);
-
-        if (eventPaths != null) {
-            for (String eventPath : eventPaths) {
-                RawResource rs = resourceStore.getResource(eventPath);
-                if (rs == null) {
-                    continue;
-                }
-                try (InputStream in = rs.getByteSource().openStream()) {
-                    JsonNode eventNode = JsonUtil.readValue(in, JsonNode.class);
-                    if (eventNode.has("@class")) {
-                        String clazz = eventNode.get("@class").textValue();
-                        if (REMOVE_EVENTS.contains(clazz)) {
-                            System.out.println("delete event " + eventPath);
-                            resourceStore.getMetadataStore().deleteResource(eventPath, null, 0, UnitOfWork.DEFAULT_EPOCH_ID);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("read {} failed", eventPath, e);
-                }
-            }
         }
     }
 

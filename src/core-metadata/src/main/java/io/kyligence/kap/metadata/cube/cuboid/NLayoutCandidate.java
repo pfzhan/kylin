@@ -47,11 +47,18 @@ public class NLayoutCandidate implements IRealizationCandidate  {
     @Setter
     private double cost;
 
+    public static final NLayoutCandidate EMPTY = new NLayoutCandidate(new LayoutEntity(), Double.MAX_VALUE);
+
     // derived
     private @Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap = Maps.newHashMap();
 
     public NLayoutCandidate(@Nonnull LayoutEntity cuboidLayout) {
         this.cuboidLayout = cuboidLayout;
+    }
+
+    public NLayoutCandidate(@Nonnull LayoutEntity cuboidLayout, double cost) {
+        this.cuboidLayout = cuboidLayout;
+        this.cost = cost;
     }
 
     @Nonnull

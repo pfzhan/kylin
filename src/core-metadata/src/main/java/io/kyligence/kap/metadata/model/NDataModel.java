@@ -46,8 +46,11 @@ import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -252,6 +255,7 @@ public class NDataModel extends RootPersistentEntity {
     private ImmutableBiMap<Integer, TblColRef> effectiveDimensions; // including DIMENSION cols
 
     private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols
+
     //private Map<TableRef, BitSet> effectiveDerivedCols;
     private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
 
@@ -1308,6 +1312,35 @@ public class NDataModel extends RootPersistentEntity {
         return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
                 .append("/").append(name).append(MetadataConstants.FILE_SURFIX).toString();
 
+    }
+
+    public Collection<NamedColumn> getAllSelectedColumns() {
+        Set<NamedColumn> selectedColumns = new HashSet<>();
+        for (NamedColumn namedColumn: allNamedColumns) {
+            if (namedColumn.getStatus() == ColumnStatus.DIMENSION) {
+                selectedColumns.add(namedColumn);
+            }
+        }
+
+        for (Measure measure : allMeasures) {
+            if (measure.tomb) {
+                continue;
+            }
+
+            for (TblColRef tblColRef: measure.getFunction().getColRefs()) {
+                if (tblColRef != null) {
+                    for (NamedColumn namedColumn : allNamedColumns) {
+                        if (namedColumn.getAliasDotColumn().equalsIgnoreCase(tblColRef.getAliasDotName())) {
+                            selectedColumns.add(namedColumn);
+                        }
+                    }
+                }
+            }
+        }
+
+        List<NamedColumn> result = new ArrayList<>(selectedColumns);
+        result.sort(Comparator.comparingInt(NamedColumn::getId));
+        return result;
     }
 
 }

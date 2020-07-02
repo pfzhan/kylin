@@ -39,7 +39,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,7 +55,6 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -67,8 +65,6 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.TrashRecord;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -282,11 +278,7 @@ public class StorageCleaner {
         }
 
         public void execute() {
-            val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            eventDao.getEvents().stream().filter(event -> event instanceof JobRelatedEvent)
-                    .map(event -> manager.getJob(((JobRelatedEvent) event).getJobId())).filter(Objects::nonNull)
-                    .map(AbstractExecutable::getDependentFiles).forEach(dependentFiles::addAll);
             collectJobTmp(project);
             collectDataflow(project);
             collectTable(project);

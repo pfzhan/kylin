@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -103,6 +104,12 @@ public class NExecutableDao {
         }
         crud.save(job);
         return job;
+    }
+
+    // for ut
+    @VisibleForTesting
+    public void deleteAllJob(){
+        getJobs().forEach(job -> deleteJob(job.getId()));
     }
 
     public void deleteJob(String uuid) {

@@ -51,9 +51,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
@@ -65,11 +62,11 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.var;
 
-public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
+public class FavoriteQueryServiceTest extends LocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
 
-    private final String[] sqls = new String[] { //
+    private final String[] sqls = new String[]{ //
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
             "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
@@ -149,20 +146,18 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         // when there is no origin model
         Map<String, List<String>> resultNoModel = favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, sqlList);
-        EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
-        var events = eventDaoOfNewtenProj.getEvents();
-        events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        var executables = getRunningExecutables(PROJECT_NEWTEN, null);
+
+        Assert.assertEquals(2, executables.size());
         Assert.assertEquals(2, resultNoModel.get("job_list").size());
 
         Mockito.doReturn(new CheckAccelerateSqlListResult(Lists.newArrayList(sqls), Lists.newArrayList()))
                 .when(favoriteQueryService).checkAccelerateSqlList(PROJECT, sqlList);
         // when there is origin model
         favoriteQueryService.acceptAccelerate(PROJECT, sqlList);
-        EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
-        events = eventDaoOfDefaultProj.getEvents();
-        events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+
+        executables = getRunningExecutables(PROJECT, null);
+        Assert.assertEquals(2, executables.size());
         Assert.assertEquals(2, resultNoModel.get("job_list").size());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
@@ -175,18 +170,15 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         // when there is no origin model
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
         favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, 4);
-        EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
-        var events = eventDaoOfNewtenProj.getEvents();
-        events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+
+        var executables = getRunningExecutables(PROJECT_NEWTEN, null);
+        Assert.assertEquals(2, executables.size());
 
         // when there is origin model
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT);
         favoriteQueryService.acceptAccelerate(PROJECT, 4);
-        EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
-        events = eventDaoOfDefaultProj.getEvents();
-        events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        executables = getRunningExecutables(PROJECT_NEWTEN, null);
+        Assert.assertEquals(2, executables.size());
 
         try {
             favoriteQueryService.acceptAccelerate(PROJECT, 10);
@@ -199,23 +191,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
 
-    @Test
-    public void testAccelerateWithNullJob() {
-        val fqManager = FavoriteQueryManager.getInstance(getTestConfig(), "newten");
-        val fq1 = new FavoriteQuery("select count(*) from test_kylin_fact");
-        fqManager.create(Sets.newHashSet(fq1));
-
-        favoriteQueryService.acceptAccelerate("newten", 1);
-
-        // no new index will be proposed
-        val fq2 = new FavoriteQuery("select count(*) from test_kylin_fact limit 500");
-        fqManager.create(Sets.newHashSet(fq2));
-        favoriteQueryService.acceptAccelerate("newten", 1);
-
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), "newten");
-        Assert.assertEquals(2, eventDao.getEvents().size());
-        Assert.assertEquals(2, eventDao.getJobRelatedEvents().size());
-    }
 
     @Test
     public void testAcceptAccelerateWithPendingSqlPattern() {
@@ -254,10 +229,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         // 4. accelerate and validate
         favoriteQueryService.acceptAccelerate(PROJECT, 3);
-        EventDao eventDaoOfDefaultProject = EventDao.getInstance(getTestConfig(), PROJECT);
-        var events = eventDaoOfDefaultProject.getEvents();
-        events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        val executables = getRunningExecutables(PROJECT, null);
+
+        Assert.assertEquals(2, executables.size());
 
         Map<String, FavoriteQuery> accFQ = Maps.newHashMap();
         favoriteQueryManager.getAll().forEach(fq -> accFQ.putIfAbsent(fq.getSqlPattern(), fq));
@@ -465,7 +439,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(manager.getAcceleratedSqlPattern().isEmpty());
 
         // accelerate
-        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), PROJECT, new String[] { sql },
+        val context = NSmartMaster.proposeForAutoMode(getTestConfig(), PROJECT, new String[]{sql},
                 ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT).updateStatus(sql,
                         FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();
@@ -485,7 +459,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.TO_BE_ACCELERATED, manager.get(sql).getStatus());
 
         // accelerate again
-        val context1 = NSmartMaster.proposeForAutoMode(getTestConfig(), PROJECT, new String[] { sql },
+        val context1 = NSmartMaster.proposeForAutoMode(getTestConfig(), PROJECT, new String[]{sql},
                 ctx -> FavoriteQueryManager.getInstance(getTestConfig(), PROJECT).updateStatus(sql,
                         FavoriteQueryStatusEnum.ACCELERATED, ""));
         manager.reloadSqlPatternMap();

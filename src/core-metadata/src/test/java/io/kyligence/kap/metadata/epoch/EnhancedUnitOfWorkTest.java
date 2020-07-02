@@ -38,6 +38,7 @@ import org.apache.kylin.common.persistence.StringEntity;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -169,6 +170,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore
     public void testUnsetMaintenanceMode() throws Exception {
         testSetMaintenanceMode();
         EpochManager epochManager = EpochManager.getInstance(getTestConfig());

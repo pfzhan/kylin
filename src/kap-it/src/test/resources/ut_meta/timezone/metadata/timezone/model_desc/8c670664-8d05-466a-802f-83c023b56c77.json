@@ -123,7 +123,7 @@
   "partition_desc": {
     "partition_date_column": "DEFAULT.TEST_ORDER.TEST_TIME_ENC",
     "partition_date_start": 0,
-    "partition_date_format" : "yyyy-MM-dd",
+    "partition_date_format" : "yyyy-MM-dd HH:mm:ss",
     "partition_type": "APPEND"
   }
 }

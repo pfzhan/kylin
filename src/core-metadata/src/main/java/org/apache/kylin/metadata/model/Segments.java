@@ -189,7 +189,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
 
     public long getTSStart() {
-        Segments<T> readySegs = getSegments(SegmentStatusEnum.READY);
+        Segments<T> readySegs = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
 
         long startTime = Long.MAX_VALUE;
         for (ISegment seg : readySegs) {
@@ -200,7 +200,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public long getTSEnd() {
-        Segments<T> readySegs = getSegments(SegmentStatusEnum.READY);
+        Segments<T> readySegs = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
 
         long endTime = Long.MIN_VALUE;
         for (ISegment seg : readySegs) {
@@ -214,7 +214,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         T latest = null;
         for (int i = this.size() - 1; i >= 0; i--) {
             T seg = this.get(i);
-            if (seg.getStatus() != SegmentStatusEnum.READY)
+            if (seg.getStatus() != SegmentStatusEnum.READY && seg.getStatus() != SegmentStatusEnum.WARNING)
                 continue;
             if (seg.getSegRange() instanceof SegmentRange.TimePartitionedSegmentRange) {
                 if (latest == null || latest.getTSRange().end < seg.getTSRange().end) {
@@ -241,13 +241,16 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         return latest;
     }
 
-    public Segments<T> getSegments(SegmentStatusEnum status) {
+    public Segments<T> getSegments(SegmentStatusEnum... statuslst) {
         Segments<T> result = new Segments<>();
 
 
         for (T segment : this) {
-            if (segment.getStatus() == status) {
-                result.add(segment);
+            for (SegmentStatusEnum status: statuslst) {
+                if (segment.getStatus() == status) {
+                    result.add(segment);
+                    break;
+                }
             }
         }
 
@@ -294,7 +297,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return result;
 
         for (T seg : this) {
-            if (seg.getStatus() != SegmentStatusEnum.READY)
+            if (seg.getStatus() != SegmentStatusEnum.READY && seg.getStatus() != SegmentStatusEnum.WARNING)
                 continue;
 
             if (seg == mergedSegment)
@@ -315,7 +318,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         if (!isAutoMergeEnabled) {
             return null;
         }
-        Segments<T> readySegs = getSegments(SegmentStatusEnum.READY);
+        Segments<T> readySegs = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         if (retentionRange.isRetentionRangeEnabled() && retentionRange.getRetentionRangeNumber() > 0 && retentionRange.getRetentionRangeType() != null) {
             removeSegmentsByRetention(readySegs, retentionRange);
         }
@@ -576,20 +579,20 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             js.validate();
 
             // check i is either ready or new
-            if (!isNew(is) && !isReady(is)) {
+            if (!isNew(is) && !isReady(is) && !isWarning(is)) {
                 tobe.remove(i);
                 continue;
             }
 
             // check j is either ready or new
-            if (!isNew(js) && !isReady(js)) {
+            if (!isNew(js) && !isReady(js) && !isWarning(js)) {
                 tobe.remove(j);
                 continue;
             }
 
             if (is.getSegRange().start.compareTo(js.getSegRange().start) == 0) {
                 // if i, j competes
-                if (isReady(is) && isReady(js) || isNew(is) && isNew(js)) {
+                if (isReady(is) && isReady(js) || isNew(is) && isNew(js) || isWarning(is) && isWarning(js)) {
                     // if both new or ready, favor the bigger segment
                     if (is.getSegRange().end.compareTo(js.getSegRange().end) <= 0) {
                         tobe.remove(i);
@@ -630,6 +633,10 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         }
 
         return tobe;
+    }
+
+    private boolean isWarning(ISegment seg) {
+        return seg.getStatus() == SegmentStatusEnum.WARNING;
     }
 
     private boolean isReady(ISegment seg) {
@@ -682,7 +689,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                 throw new IllegalStateException("Inconsistent isOffsetsOn for segment " + seg);
         }
 
-        Segments<T> ready = all.getSegments(SegmentStatusEnum.READY);
+        Segments<T> ready = all.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         Segments<T> news = all.getSegments(SegmentStatusEnum.NEW);
         validateReadySegs(ready);
         validateNewSegs(ready, news);
@@ -806,7 +813,9 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public SegmentStatusEnumToDisplay getSegmentStatusToDisplay(T segment) {
         Segments<T> overlapSegs = getSegmentsByRange(segment.getSegRange());
         overlapSegs.remove(segment);
-        if (segment.getStatus().equals(SegmentStatusEnum.READY)) {
+        if (segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            return SegmentStatusEnumToDisplay.WARNING;
+        } else if (segment.getStatus().equals(SegmentStatusEnum.READY)) {
             if (CollectionUtils.isEmpty(overlapSegs)) {
                 return SegmentStatusEnumToDisplay.ONLINE;
             } else {
@@ -829,7 +838,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public Segments<T> getFlatSegments() {
         Segments<T> result = new Segments<>(this);
         val buildingSegs = result.getBuildingSegments();
-        val readySegs = result.getSegments(SegmentStatusEnum.READY);
+        val readySegs = result.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         for (T segment : readySegs) {
             for (val buildingSeg : buildingSegs) {
                 if (segment.getSegRange().overlaps(buildingSeg.getSegRange())) {

@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -244,6 +245,22 @@ public class NIndexPlanManager implements IKeepNames {
                         index.getDimensions()), "layout " + layout.getId() + "'s dimension is illegal");
             }
         }
+
+        // validate columns of table index
+        Set<Integer> selectedColumnIds = indexPlan.getModel().getAllSelectedColumns().stream()
+                .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
+        for (IndexEntity index : indexPlan.getAllIndexes(false)) {
+            if (index.isTableIndex()) {
+                for (Integer dimId: index.getDimensions()) {
+                    if (!selectedColumnIds.contains(dimId)) {
+                        throw new IllegalStateException(
+                                String.format("table index %d contains invalid column %d. " +
+                                        "table index can only contain columns added to model.", index.getId(), dimId));
+                    }
+                }
+            }
+        }
+
 
         // make sure no layouts have same id
         val seen = Maps.<LayoutEntity, Long> newHashMap();

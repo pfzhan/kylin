@@ -282,7 +282,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         NDataModel model1 = smartContext.getModelContexts().get(1).getTargetModel();
         Assert.assertNotNull(model1);
         Assert.assertEquals(17, model1.getEffectiveCols().size());
-        Assert.assertEquals(0, model1.getEffectiveDimensions().size());
+        Assert.assertEquals(2, model1.getEffectiveDimensions().size());
         Assert.assertEquals(1, model1.getEffectiveMeasures().size());
 
         // select IndexPlan

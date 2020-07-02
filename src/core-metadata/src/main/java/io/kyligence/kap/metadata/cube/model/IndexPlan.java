@@ -671,7 +671,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(indexPlanId);
-        val readySegs = df.getSegments(SegmentStatusEnum.READY);
+        val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         NDataSegment lastReadySegment = readySegs.getLatestReadySegment();
         if (null == lastReadySegment) {
             return true;

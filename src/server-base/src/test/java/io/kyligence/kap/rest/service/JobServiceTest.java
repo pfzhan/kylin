@@ -55,8 +55,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -64,7 +62,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -94,22 +91,15 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.EventModelResponse;
-import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import javax.servlet.http.HttpServletResponse;
 import lombok.val;
 
 public class JobServiceTest extends NLocalFileMetadataTestCase {
@@ -526,34 +516,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetWaitingJobs() {
-        prepareEventData();
-
-        Map<String, Object> result = jobService.getEventsInfoGroupByModel("default");
-        Assert.assertEquals(6, result.get("size"));
-        Map<String, EventModelResponse> models = (Map<String, EventModelResponse>) result.get("data");
-        Assert.assertEquals(2, models.size());
-        Assert.assertTrue(models.containsKey("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        Assert.assertTrue(models.containsKey("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96"));
-        EventModelResponse model1 = models.get("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(4, model1.getSize());
-        Assert.assertEquals("nmodel_basic", model1.getModelAlias());
-        EventModelResponse model2 = models.get("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        Assert.assertEquals(2, model2.getSize());
-        Assert.assertEquals("all_fixed_length", model2.getModelAlias());
-
-        List<EventResponse> response = jobService.getWaitingJobsByModel("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(4, response.size());
-        Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(3).getJobType());
-        Assert.assertEquals(JobTypeEnum.INDEX_REFRESH.toString(), response.get(0).getJobType());
-        response = jobService.getWaitingJobsByModel("default", "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        Assert.assertEquals(2, response.size());
-        Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(1).getJobType());
-        Assert.assertEquals(JobTypeEnum.INC_BUILD.toString(), response.get(0).getJobType());
-    }
-
-    @Test
     public void testGetJobOutput() {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
@@ -564,37 +526,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         Assertions.assertThat(jobService.getJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de"))
                 .isEqualTo("succeed");
-    }
-
-    private void prepareEventData() {
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), "default");
-        Event event1 = new AddCuboidEvent();
-        event1.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        eventDao.addEvent(event1);
-
-        Event event2 = new AddSegmentEvent();
-        event2.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        eventDao.addEvent(event2);
-
-        Event event3 = new MergeSegmentEvent();
-        event3.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        eventDao.addEvent(event3);
-
-        Event event4 = new RefreshSegmentEvent();
-        event4.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        eventDao.addEvent(event4);
-
-        Event event5 = new AddCuboidEvent();
-        event5.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        eventDao.addEvent(event5);
-
-        Event event6 = new AddSegmentEvent();
-        event6.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        eventDao.addEvent(event6);
-
-        Event event7 = new AddCuboidEvent();
-        event7.setModelId("not_existing_model");
-        eventDao.addEvent(event7);
     }
 
     @Test

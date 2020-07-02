@@ -26,7 +26,6 @@ import java.io.File
 import com.codahale.metrics.Gauge
 import com.google.common.base.Preconditions
 import io.kyligence.kap.common.metrics.{NMetricsCategory, NMetricsGroup, NMetricsName}
-import io.kyligence.kap.engine.spark.SegmentUtils
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.job.{NSparkCubingUtil, UdfManager}
 import io.kyligence.kap.engine.spark.streaming.job.StreamingSegmentManager
@@ -45,6 +44,7 @@ import io.kyligence.kap.engine.spark.streaming.common.BuildJobEntry
 import io.kyligence.kap.engine.spark.streaming.job.StreamingDFBuildJob
 import org.apache.spark.sql.Row
 import io.kyligence.kap.engine.spark.streaming.util.MetricsManager
+import io.kyligence.kap.metadata.cube.utils.SegmentUtils
 
 import scala.collection.JavaConverters._
 

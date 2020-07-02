@@ -28,8 +28,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.relnode.ContextUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -50,7 +58,6 @@ import org.junit.runner.RunWith;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
@@ -115,7 +122,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         val layouts = df.getIndexPlan().getAllLayouts();
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
-        assertResultsAndScanFiles(base, 1);
+        assertResultsAndScanFiles(dfName, base, 1, false, Lists.newArrayList());
     }
 
     @Test
@@ -141,7 +148,8 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         // [2009-01-01 00:00:00, 2011-01-01 00:00:00)
         // [2011-01-01 00:00:00, 2013-01-01 00:00:00)
         // [2013-01-01 00:00:00, 2015-01-01 00:00:00)
-        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001);
+        val dfId = "8c670664-8d05-466a-802f-83c023b56c77";
+        buildMultiSegs(dfId, 10001);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
         String and_pruning0 = base
@@ -158,40 +166,67 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         String pruning1 = base + "where TEST_TIME_ENC <= TIMESTAMP '2009-01-01 00:00:00'";
         String pruning2 = base + "where TEST_TIME_ENC >= TIMESTAMP '2015-01-01 00:00:00'";
 
-        String not0 = base + "where TEST_TIME_ENC <> TIMESTAMP '2012-01-01 00:00:00'";
+        String not_equal0 = base + "where TEST_TIME_ENC <> TIMESTAMP '2012-01-01 00:00:00'";
+
+        String not0 = base + "where not (TEST_TIME_ENC < TIMESTAMP '2011-01-01 00:00:00' or TEST_TIME_ENC >= TIMESTAMP '2013-01-01 00:00:00')";
 
         String in_pruning0 = base
                 + "where TEST_TIME_ENC in (TIMESTAMP '2009-01-01 00:00:00',TIMESTAMP '2008-01-01 00:00:00',TIMESTAMP '2016-01-01 00:00:00')";
         String in_pruning1 = base
                 + "where TEST_TIME_ENC in (TIMESTAMP '2008-01-01 00:00:00',TIMESTAMP '2016-01-01 00:00:00')";
 
-        assertResultsAndScanFiles(base, 3);
+        val expectedRanges = Lists.<Pair<String, String>>newArrayList();
+        val segmentRange1 = Pair.newPair("2009-01-01 00:00:00", "2011-01-01 00:00:00");
+        val segmentRange2 = Pair.newPair("2011-01-01 00:00:00", "2013-01-01 00:00:00");
+        val segmentRange3 = Pair.newPair("2013-01-01 00:00:00", "2015-01-01 00:00:00");
 
-        assertResultsAndScanFiles(and_pruning0, 1);
-        assertResultsAndScanFiles(and_pruning1, 0);
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+        expectedRanges.add(segmentRange3);
+        assertResultsAndScanFiles(dfId, base, 3, false, expectedRanges);
 
-        assertResultsAndScanFiles(or_pruning0, 2);
-        assertResultsAndScanFiles(or_pruning1, 0);
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange2);
+        assertResultsAndScanFiles(dfId, and_pruning0, 1, false, expectedRanges);
+        expectedRanges.clear();
+        assertResultsAndScanFiles(dfId, and_pruning1, 0, true, expectedRanges);
 
-        assertResultsAndScanFiles(pruning0, 0);
-        assertResultsAndScanFiles(pruning1, 1);
-        assertResultsAndScanFiles(pruning2, 0);
+        expectedRanges.add(segmentRange2);
+        expectedRanges.add(segmentRange3);
+        assertResultsAndScanFiles(dfId, or_pruning0, 2, false, expectedRanges);
+        expectedRanges.clear();
+        assertResultsAndScanFiles(dfId, or_pruning1, 0, true, expectedRanges);
 
-        // pruning with "not" is not supported
-        assertResultsAndScanFiles(not0, 3);
+        assertResultsAndScanFiles(dfId, pruning0, 0, true, expectedRanges);
+        expectedRanges.add(segmentRange1);
+        assertResultsAndScanFiles(dfId, pruning1, 1, false, expectedRanges);
+        expectedRanges.clear();
+        assertResultsAndScanFiles(dfId, pruning2, 0, true, expectedRanges);
 
-        assertResultsAndScanFiles(in_pruning0, 1);
-        assertResultsAndScanFiles(in_pruning1, 0);
+        // pruning with "not equal" is not supported
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+        expectedRanges.add(segmentRange3);
+        assertResultsAndScanFiles(dfId, not_equal0, 3, false, expectedRanges);
+
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange2);
+        assertResultsAndScanFiles(dfId, not0, 1, false, expectedRanges);
+
+        expectedRanges.clear();
+        // pruning with "in" operator is supported in segment selection algorithm
+        assertResultsAndScanFiles(dfId, in_pruning0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(dfId, in_pruning1, 0, false, expectedRanges);
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("base", base));
         query.add(Pair.newPair("and_pruning0", and_pruning0));
-        query.add(Pair.newPair("and_pruning1", and_pruning1));
         query.add(Pair.newPair("or_pruning0", or_pruning0));
-        query.add(Pair.newPair("or_pruning1", or_pruning1));
-        query.add(Pair.newPair("pruning0", pruning0));
         query.add(Pair.newPair("pruning1", pruning1));
-        query.add(Pair.newPair("pruning2", pruning2));
+        query.add(Pair.newPair("not_equal0", not_equal0));
+        query.add(Pair.newPair("not0", not0));
+        query.add(Pair.newPair("in_pruning0", in_pruning0));
+        query.add(Pair.newPair("in_pruning1", in_pruning1));
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
     }
 
@@ -200,12 +235,13 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         try {
             System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
 
-            buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
+            val dfId = "8c670664-8d05-466a-802f-83c023b56c77";
+            buildMultiSegs(dfId);
 
             populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-            basicPruningScenario();
-            pruningWithVariousTypesScenario();
+            basicPruningScenario(dfId);
+            pruningWithVariousTypesScenario(dfId);
         } finally {
             System.clearProperty("kylin.storage.columnar.shard-rowcount");
         }
@@ -215,14 +251,15 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     public void testPruningWithChineseCharacter() throws Exception {
         System.setProperty("kylin.storage.columnar.shard-rowcount", "1");
         try {
-            fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
+            val dfId = "9cde9d25-9334-4b92-b229-a00f49453757";
+            fullBuildCube(dfId, getProject());
             populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
             val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
             val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
 
-            assertResultsAndScanFiles(chinese0, 1);
-            assertResultsAndScanFiles(chinese1, 3);
+            assertResultsAndScanFiles(dfId, chinese0, 1, false, Lists.newArrayList());
+            assertResultsAndScanFiles(dfId, chinese1, 3, false, Lists.newArrayList());
 
             List<Pair<String, String>> query = new ArrayList<>();
             query.add(Pair.newPair("", chinese0));
@@ -233,7 +270,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    private void pruningWithVariousTypesScenario() throws Exception {
+    private void pruningWithVariousTypesScenario(String dfId) throws Exception {
         // int type is tested #basicPruningScenario
 
         // xx0 means can pruning, while xx1 can not.
@@ -261,29 +298,29 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
                 + "and TEST_TIME_ENC < TIMESTAMP '2015-01-01 00:00:00' "
                 + "and TEST_TIME_ENC <> TIMESTAMP '2013-06-18 07:07:10'";
 
-        assertResultsAndScanFiles(bool0, 3);
-        assertResultsAndScanFiles(bool1, 11);
+        assertResultsAndScanFiles(dfId, bool0, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, bool1, 11, false, Lists.newArrayList());
 
-        assertResultsAndScanFiles(decimal0, 3);
-        assertResultsAndScanFiles(decimal1, 52);
+        assertResultsAndScanFiles(dfId, decimal0, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, decimal1, 52, false, Lists.newArrayList());
 
         // calcite will treat short as int. So pruning will not work.
-        assertResultsAndScanFiles(short0, 25);
-        assertResultsAndScanFiles(short1, 25);
+        assertResultsAndScanFiles(dfId, short0, 25, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, short1, 25, false, Lists.newArrayList());
 
-        assertResultsAndScanFiles(string0, 3);
-        assertResultsAndScanFiles(string1, 12);
+        assertResultsAndScanFiles(dfId, string0, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, string1, 12, false, Lists.newArrayList());
 
-        assertResultsAndScanFiles(long0, 3);
-        assertResultsAndScanFiles(long1, 28);
+        assertResultsAndScanFiles(dfId, long0, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, long1, 28, false, Lists.newArrayList());
 
-        assertResultsAndScanFiles(date0, 3);
-        assertResultsAndScanFiles(date1, 19);
+        assertResultsAndScanFiles(dfId, date0, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, date1, 19, false, Lists.newArrayList());
 
         // segment pruning first, then shard pruning
         // so the scanned files is 1 not 3(each segment per shard)
-        assertResultsAndScanFiles(ts0, 1);
-        assertResultsAndScanFiles(ts1, 11);
+        assertResultsAndScanFiles(dfId, ts0, 1, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, ts1, 11, false, Lists.newArrayList());
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", bool0));
@@ -305,7 +342,118 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
-    private void basicPruningScenario() throws Exception {
+    @Test
+    public void testSegmentPruningDate() throws Exception {
+        val modelId = "0da6c3d6-be35-4e91-b030-3b720b4043e1";
+        buildMultiSegs(modelId);
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        val sql = "select cal_dt, sum(price) from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id ";
+
+        val and_pruning0 = sql + "where cal_dt > (Date '2011-01-01') and cal_dt < (Date '2012-01-01') group by cal_dt";
+        val and_pruning1 = sql + "where cal_dt > '2011-01-01' and cal_dt < '2012-01-01' group by cal_dt";
+
+        val or_pruning0 = sql + "where cal_dt > '2012-01-01' or cal_dt = '2008-01-01' group by cal_dt";
+        val or_pruning1 = sql + "where cal_dt < '2011-01-01' or cal_dt > '2013-01-01' group by cal_dt";
+
+        val pruning0 = sql + "where cal_dt > '2020-01-01' group by cal_dt";
+        val pruning1 = sql + "where cal_dt < '2008-01-01' group by cal_dt";
+        val pruning2 = sql + "where cal_dt = '2012-01-01' group by cal_dt";
+
+        val not_pruning0 = sql + "where not (cal_dt < '2011-01-01' or cal_dt >= '2013-01-01') group by cal_dt";
+        val not_pruning1 = sql + "where not cal_dt = '2012-01-01' group by cal_dt";
+
+        val nested_query0 = "with test_kylin_fact as (select * from \"default\".test_kylin_fact where CAL_DT > '2012-01-01' and CAL_DT < '2013-01-01')" + sql + "group by cal_dt";
+        val nested_query1 = "select * from (select * from (" + sql + "where CAL_DT > '2011-01-01' group by cal_dt) where CAL_DT < '2012-01-01')";
+
+        // date functions are not supported yet
+        val date_function_query0 = "select * from (select year(cal_dt) as cal_dt_year from (" + sql  + "where cal_dt > '2011-01-01' and cal_dt < '2013-01-01' group by cal_dt)) where cal_dt_year = '2014'";
+
+        val between_query0 = sql + "where cal_dt between '2011-01-01' and '2012-12-31' group by cal_dt";
+
+        val expectedRanges = Lists.<Pair<String, String>>newArrayList();
+        val segmentRange1 = Pair.newPair("2009-01-01", "2011-01-01");
+        val segmentRange2 = Pair.newPair("2011-01-01", "2013-01-01");
+        val segmentRange3 = Pair.newPair("2013-01-01", "2015-01-01");
+
+        expectedRanges.add(segmentRange2);
+        assertResultsAndScanFiles(modelId, and_pruning0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, and_pruning1, 1, false, expectedRanges);
+
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange2);
+        expectedRanges.add(segmentRange3);
+        assertResultsAndScanFiles(modelId, or_pruning0, 2, false, expectedRanges);
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange3);
+        assertResultsAndScanFiles(modelId, or_pruning1, 2, false, expectedRanges);
+
+        expectedRanges.clear();
+        assertResultsAndScanFiles(modelId, pruning0, 0, true, expectedRanges);
+        assertResultsAndScanFiles(modelId, pruning1, 0, true, expectedRanges);
+        expectedRanges.add(segmentRange2);
+        assertResultsAndScanFiles(modelId, pruning2, 1, false, expectedRanges);
+
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange2);
+        assertResultsAndScanFiles(modelId, not_pruning0, 1, false, expectedRanges);
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+        expectedRanges.add(segmentRange3);
+        assertResultsAndScanFiles(modelId, not_pruning1, 3, false, expectedRanges);
+
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange2);
+        assertResultsAndScanFiles(modelId, nested_query0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, nested_query1, 1, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, between_query0, 1, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, date_function_query0, 1, false, expectedRanges);
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("", and_pruning0));
+        query.add(Pair.newPair("", and_pruning1));
+        query.add(Pair.newPair("", or_pruning0));
+        query.add(Pair.newPair("", or_pruning1));
+        query.add(Pair.newPair("", pruning2));
+        query.add(Pair.newPair("", not_pruning0));
+        query.add(Pair.newPair("", not_pruning1));
+        query.add(Pair.newPair("", nested_query0));
+        query.add(Pair.newPair("", nested_query1));
+        query.add(Pair.newPair("", date_function_query0));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "inner");
+
+        // kylin.query.heterogeneous-segment-enabled is turned off
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.query.heterogeneous-segment-enabled", "false");
+        });
+
+        expectedRanges.clear();
+        assertResultsAndScanFiles(modelId, and_pruning0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, and_pruning1, 1, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, or_pruning0, 2, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, or_pruning1, 2, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, pruning0, 0, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, pruning1, 0, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, pruning2, 1, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, not_pruning0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, not_pruning1, 3, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, nested_query0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, nested_query1, 1, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, between_query0, 1, false, expectedRanges);
+
+        assertResultsAndScanFiles(modelId, date_function_query0, 1, false, expectedRanges);
+    }
+
+    private void basicPruningScenario(String dfId) throws Exception {
         // shard pruning supports: Equality/In/IsNull/And/Or
         // other expression(gt/lt/like/cast/substr, etc.) will select all files.
 
@@ -317,13 +465,13 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         val notSupported0 = base + "where SELLER_ID <> 10000233";
         val notSupported1 = base + "where SELLER_ID > 10000233";
 
-        assertResultsAndScanFiles(equality, 3);
-        assertResultsAndScanFiles(in, 9);
-        assertResultsAndScanFiles(isNull, 3);
-        assertResultsAndScanFiles(and, 3);
-        assertResultsAndScanFiles(or, 4);
-        assertResultsAndScanFiles(notSupported0, 17);
-        assertResultsAndScanFiles(notSupported1, 17);
+        assertResultsAndScanFiles(dfId, equality, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, in, 9, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, isNull, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, and, 3, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, or, 4, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, notSupported0, 17, false, Lists.newArrayList());
+        assertResultsAndScanFiles(dfId, notSupported1, 17, false, Lists.newArrayList());
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", equality));
@@ -341,11 +489,18 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         return "file_pruning";
     }
 
-    private long assertResultsAndScanFiles(String sql, long numScanFiles) throws Exception {
+    private long assertResultsAndScanFiles(String modelId, String sql, long numScanFiles, boolean emptyLayout, List<Pair<String, String>> expectedRanges) throws Exception {
         val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), sql);
+        val context = ContextUtil.listContexts().get(0);
+        if (emptyLayout) {
+            Assert.assertTrue(context.storageContext.isEmptyLayout());
+            return numScanFiles;
+        }
         df.collect();
         val actualNum = findFileSourceScanExec(df.queryExecution().sparkPlan()).metrics().get("numFiles").get().value();
         Assert.assertEquals(numScanFiles, actualNum);
+        val segmentIds = context.storageContext.getPrunedSegments();
+        assertPrunedSegmentRange(modelId, segmentIds, expectedRanges);
         return actualNum;
     }
 
@@ -356,5 +511,23 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
                 return p instanceof KylinFileSourceScanExec;
             }
         }).get();
+    }
+
+    private void assertPrunedSegmentRange(String dfId, List<NDataSegment> prunedSegments, List<Pair<String, String>> expectedRanges) {
+        val model = NDataModelManager.getInstance(getTestConfig(), getProject()).getDataModelDesc(dfId);
+        val partitionColDateFormat = model.getPartitionDesc().getPartitionDateFormat();
+
+        if (CollectionUtils.isEmpty(expectedRanges)) {
+            return;
+        }
+        Assert.assertEquals(expectedRanges.size(), prunedSegments.size());
+        for (int i = 0; i < prunedSegments.size(); i++) {
+            val segment = prunedSegments.get(i);
+            val start = DateFormat.formatToDateStr(segment.getTSRange().getStart(), partitionColDateFormat);
+            val end = DateFormat.formatToDateStr(segment.getTSRange().getEnd(), partitionColDateFormat);
+            val expectedRange = expectedRanges.get(i);
+            Assert.assertEquals(expectedRange.getFirst(), start);
+            Assert.assertEquals(expectedRange.getSecond(), end);
+        }
     }
 }

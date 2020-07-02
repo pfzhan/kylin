@@ -199,9 +199,27 @@ public class NExecutableManager {
     }
 
     //for ut
+    @VisibleForTesting
     public void deleteJob(String jobId) {
         checkJobCanBeDeleted(jobId);
         executableDao.deleteJob(jobId);
+    }
+
+    //for ut
+    @VisibleForTesting
+    public void deleteAllJob(){
+        executableDao.deleteAllJob();
+    }
+
+    //for ut
+    @VisibleForTesting
+    public List<AbstractExecutable> getRunningExecutables(String project, String model) {
+        if (org.apache.commons.lang.StringUtils.isNotBlank(model)) {
+            return listExecByModelAndStatus(model, ExecutableState::isRunning, null);
+        } else {
+            return getAllExecutables().stream()
+                    .filter(e -> e.getStatus().isRunning()).collect(Collectors.toList());
+        }
     }
 
     public void checkJobCanBeDeleted(String jobId) {
@@ -303,13 +321,30 @@ public class NExecutableManager {
         return listExecByModelAndStatus(model, predicate, null).size();
     }
 
+    public long countBySegmentAndStatus(String model, Predicate<ExecutableState> predicate, HashSet<String> relatedSegments) {
+        return listExecBySegmentAndStatus(model, predicate, null, relatedSegments).size();
+    }
+
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-            JobTypeEnum jobType) {
+                                                             JobTypeEnum jobType) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
                 .filter(e -> predicate.apply(e.getStatus()))
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).collect(Collectors.toList());
+    }
+
+
+    public List<AbstractExecutable> listExecBySegmentAndStatus(String model, Predicate<ExecutableState> predicate,
+                                                               JobTypeEnum jobType, HashSet<String> relatedSegments) {
+        val relatedSegmentSet = new HashSet<>(relatedSegments);
+        return getAllExecutables().stream() //
+                .filter(e -> e.getTargetSubject() != null) //
+                .filter(e -> e.getTargetSubject().equals(model)) //
+                .filter(e -> predicate.apply(e.getStatus()))
+                .filter(e -> (jobType == null || jobType.equals(e.getJobType())))
+                .filter(e -> e.getTargetSegments().stream().anyMatch(relatedSegmentSet::contains))
+                .collect(Collectors.toList());
     }
 
     public Map<String, List<String>> getModelExecutables(Set<String> models, Predicate<ExecutableState> predicate) {
@@ -528,7 +563,6 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-
         cancelJob(jobId);
         job.cancelJob();
     }
@@ -601,13 +635,13 @@ public class NExecutableManager {
     }
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-            Set<String> removeInfo, String output) {
+                                Set<String> removeInfo, String output) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
             jobOutput = (Objects.equals(taskOrJobId, jobId)) ? job.getOutput()
                     : job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
-                            .map(ExecutablePO::getOutput).orElse(null);
+                    .map(ExecutablePO::getOutput).orElse(null);
             assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
@@ -792,6 +826,7 @@ public class NExecutableManager {
 
     /**
      * check the hdfs path exists.
+     *
      * @param hdfsPath
      * @return
      */
@@ -828,7 +863,7 @@ public class NExecutableManager {
 
             FileStatus fileStatus = fs.getFileStatus(path);
             try (FSDataInputStream din = fs.open(path);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
 
                 String line;
                 StringBuilder sampleData = new StringBuilder();
@@ -864,7 +899,7 @@ public class NExecutableManager {
      * @throws IOException
      */
     private String tailHdfsFileInputStream(FSDataInputStream hdfsDin, final long startPos, final long endPos,
-            final int nLines) throws IOException {
+                                           final int nLines) throws IOException {
         Preconditions.checkNotNull(hdfsDin);
         Preconditions.checkArgument(startPos < endPos && startPos >= 0);
         Preconditions.checkArgument(nLines >= 0);

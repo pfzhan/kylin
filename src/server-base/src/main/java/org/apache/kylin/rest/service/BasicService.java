@@ -57,6 +57,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -69,8 +70,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.base.CaseFormat;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -136,17 +135,14 @@ public abstract class BasicService {
         return NDataLoadingRangeManager.getInstance(getConfig(), project);
     }
 
-    public EventManager getEventManager(String project) {
-        return EventManager.getInstance(getConfig(), project);
+    public JobManager getJobManager(String project) {
+        return JobManager.getInstance(getConfig(), project);
     }
 
     public NProjectManager getProjectManager() {
         return NProjectManager.getInstance(getConfig());
     }
 
-    public EventDao getEventDao(String project) {
-        return EventDao.getInstance(getConfig(), project);
-    }
 
     public NExecutableManager getExecutableManager(String project) {
         return NExecutableManager.getInstance(getConfig(), project);

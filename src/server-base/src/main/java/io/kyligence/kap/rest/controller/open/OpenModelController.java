@@ -149,7 +149,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         String modelId = getModel(modelAlias, project).getId();
-        return modelController.getSegments(modelId, project, status, offset, limit, start, end, sortBy, reverse);
+        return modelController.getSegments(modelId, project, status, offset, limit, start, end, null, null, false, sortBy, reverse);
     }
 
     @PostMapping(value = "/{model_name:.+}/segments")

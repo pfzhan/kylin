@@ -27,10 +27,8 @@ package io.kyligence.kap.rest.scheduler;
 import com.google.common.eventbus.Subscribe;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 public class JobSchedulerListener {
@@ -52,6 +50,5 @@ public class JobSchedulerListener {
     public void onJobFinished(JobFinishedNotifier notifier) {
         jobFinishedNotified = true;
         NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
-        EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).fetchEventsImmediately(notifier.getProject());
     }
 }

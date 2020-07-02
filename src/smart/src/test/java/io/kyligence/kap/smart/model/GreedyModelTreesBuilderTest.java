@@ -118,7 +118,7 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
 
         Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
         Assert.assertNotNull(recommMap);
-        Assert.assertEquals(2, recommMap.get(model).getRecommendationsCount());
+        Assert.assertEquals(4, recommMap.get(model).getRecommendationsCount());
         Assert.assertEquals(2, recommMap.get(model).getLayoutRecommendations().size());
         layoutRecomms.forEach(layoutRecomm -> {
             Assert.assertFalse(layoutRecomm.isAggIndex());

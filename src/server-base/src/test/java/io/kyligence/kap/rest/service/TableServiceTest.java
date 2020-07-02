@@ -95,7 +95,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -642,8 +641,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(df.getSegments().size(), 1);
 
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        Assert.assertEquals(1, eventDao.getEventsByModel(df.getUuid()).size());
+        val executables = getRunningExecutables("default", df.getUuid());
+        Assert.assertEquals(1, executables.size());
 
         loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNull(loadingRange);
@@ -935,19 +934,13 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
 
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        eventDao.deleteAllEvents();
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "");
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
 
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         Assert.assertNull(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc());
-        val events = eventDao.getEvents();
-        //do not build immediately
-        Assert.assertEquals(4, events.size());
-        // TODO check other events
-        //        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
-        //        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));
+        val executables = getRunningExecutables("default", null);
+        Assert.assertEquals(4, executables.size());
     }
 
     @Test

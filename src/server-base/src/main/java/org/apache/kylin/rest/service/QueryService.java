@@ -1004,7 +1004,9 @@ public class QueryService extends BasicService {
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
                     logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
                     final String realizationType;
-                    if (ctx.storageContext.isUseSnapshot()) {
+                    if (ctx.storageContext.isEmptyLayout()) {
+                        continue;
+                    } else if (ctx.storageContext.isUseSnapshot()) {
                         realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
                     } else if (ctx.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
                         realizationType = QueryMetricsContext.TABLE_INDEX;

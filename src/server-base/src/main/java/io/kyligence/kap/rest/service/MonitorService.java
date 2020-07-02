@@ -57,7 +57,6 @@ import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
 import io.kyligence.kap.common.metrics.service.MonitorMetric;
 import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
-import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.monitor.AbstractMonitorCollectTask;
@@ -138,7 +137,6 @@ public class MonitorService extends BasicService {
         List<AbstractExecutable> runningJobs = new ArrayList<>();
         List<AbstractExecutable> pendingJobs = new ArrayList<>();
         List<AbstractExecutable> errorJobs = new ArrayList<>();
-        List<Event> initialJobs = new ArrayList<>();
 
         for (ProjectInstance project : getReadableProjects()) {
             val executableManager = getExecutableManager(project.getName());
@@ -156,7 +154,6 @@ public class MonitorService extends BasicService {
                 }
             }
 
-            initialJobs.addAll(getEventDao(project.getName()).getEvents());
         }
 
         List<String> runningOnYarnJobs = ClusterManagerFactory.create(getConfig()).getRunningJobs(getAllYarnQueues());
@@ -167,7 +164,7 @@ public class MonitorService extends BasicService {
 
         metric.setErrorJobs((long) errorJobs.size());
         metric.setFinishedJobs((long) finishedJobs.size());
-        metric.setPendingJobs(pendingJobs.size() + pendingOnYarnJobs + initialJobs.size());
+        metric.setPendingJobs(pendingJobs.size() + pendingOnYarnJobs);
         metric.setRunningJobs(runningJobs.size() - pendingOnYarnJobs);
         return metric;
     }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -38,6 +39,11 @@ import java.io.Serializable;
 @Getter
 @Setter
 public class NDataSegmentResponse extends NDataSegment {
+
+    private static final String SEGMENT_PATH = "segment_path";
+
+    private static final String FILE_COUNT = "file_count";
+
     @JsonProperty("bytes_size")
     private long bytesSize;
 
@@ -49,6 +55,15 @@ public class NDataSegmentResponse extends NDataSegment {
 
     @JsonProperty("status_to_display")
     private SegmentStatusEnumToDisplay statusToDisplay;
+
+    @JsonProperty("index_count")
+    private long indexCount;
+
+    @JsonProperty("index_count_total")
+    private long indexCountTotal;
+
+    @JsonProperty("row_count")
+    private long rowCount;
 
     private long createTime;
 
@@ -62,12 +77,22 @@ public class NDataSegmentResponse extends NDataSegment {
         super();
     }
 
-    public NDataSegmentResponse(NDataSegment other) {
-        super(other);
+    public NDataSegmentResponse(NDataflow dataflow, NDataSegment segment) {
+        super(segment);
         createTime = getCreateTimeUTC();
         startTime = Long.parseLong(getSegRange().getStart().toString());
         endTime = Long.parseLong(getSegRange().getEnd().toString());
         storage = bytesSize;
+        indexCount = segment.getLayoutSize();
+        indexCountTotal = segment.getIndexPlan().getAllLayouts().size();
+        rowCount = segment.getSegDetails().getTotalRowCount();
+        setBytesSize(segment.getStorageBytesSize());
+        getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
+        getAdditionalInfo().put(FILE_COUNT, segment.getStorageFileCount() + "");
+        setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
+        setSourceBytesSize(segment.getSourceBytesSize());
+        setLastBuildTime(segment.getLastBuildTime());
+        setSegDetails(segment.getSegDetails());
     }
 
     /**

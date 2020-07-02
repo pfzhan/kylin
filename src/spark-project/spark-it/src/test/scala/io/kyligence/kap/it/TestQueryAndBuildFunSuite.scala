@@ -80,7 +80,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_orderby", List(), checkOrder = true),
     FloderInfo("sql_powerbi"),
     FloderInfo("sql_raw"),
-    FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql")),
+    FloderInfo("sql_rawtable", List("query26.sql", "query32.sql", "query33.sql", "query34.sql", "query37.sql", "query38.sql")),
     FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
     //    "sql_timestamp", no exist dir
     FloderInfo("sql_topn"),

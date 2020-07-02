@@ -77,8 +77,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @SuppressWarnings("serial")
 @Slf4j
@@ -249,12 +249,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
-            boolean isAppend) throws Exception {
+                               boolean isAppend) throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-            boolean isAppend) throws Exception {
+                               boolean isAppend) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);

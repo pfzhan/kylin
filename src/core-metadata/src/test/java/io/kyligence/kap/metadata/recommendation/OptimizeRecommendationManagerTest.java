@@ -99,9 +99,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String recommendationDir = "src/test/resources/ut_meta/optimize/metadata/recommendation/";
     private final String id = "25f8bbb7-cddc-4837-873d-f80f994d8a2d";
     private final String baseModelFile = modelDir + "base_model.json";
+    private final String baseModelNoTableIndexFile = modelDir + "base_model_no_table_index.json";
     private final String baseIndexFile = indexDir + "base_index_plan.json";
+    private final String baseIndexNoTableIndexFile = indexDir + "base_index_plan_no_table_index.json";
     private final String optimizedModelFile = modelDir + "optimized_model.json";
+    private final String optimizedNoTableIndexModelFile = modelDir + "optimized_model_no_table_index.json";
     private final String optimizedIndexPlanFile = indexDir + "optimized_index_plan.json";
+    private final String optimizedNoTableIndexIndexPlanFile = indexDir + "optimized_index_plan_no_table_index.json";
     private final String optimizedIndexPlanTwiceFile = indexDir + "optimized_twice_index_plan.json";
     private final String selfSameCCNameExprModelFile = modelDir + "self_same_name_and_same_expr_model.json";
     private final String selfSameCCNameExprIndexPlanFile = indexDir + "self_same_name_and_same_expr_index_plan.json";
@@ -186,8 +190,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertNotNull(recommendation);
         Assert.assertEquals(2, recommendation.getCcRecommendations().size());
-        Assert.assertEquals(3, recommendation.getDimensionRecommendations().size());
-        Assert.assertEquals("bigint", recommendation.getDimensionRecommendations().get(0).getDataType());
+        Assert.assertEquals(2, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals("decimal(30,4)", recommendation.getDimensionRecommendations().get(0).getDataType());
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
         Assert.assertEquals(3, recommendation.getLayoutRecommendations().size());
         Assert.assertTrue(recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAggIndex())
@@ -392,7 +396,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         });
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(0, recommendation.getCcRecommendations().size());
-        Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(3, recommendation.getMeasureRecommendations().size());
         val model = recommendationManager.applyModel(id);
         Assert.assertTrue(model.getAllNamedColumns().stream().anyMatch(
@@ -510,7 +513,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testApply_ExistsDimensionRemoved() throws IOException {
-        prepare();
+        prepare(baseModelNoTableIndexFile, baseIndexNoTableIndexFile, optimizedNoTableIndexModelFile, optimizedNoTableIndexIndexPlanFile);
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         originInit.getAllNamedColumns().get(1).setStatus(NDataModel.ColumnStatus.DIMENSION);
         modelManager.updateDataModelDesc(originInit);
@@ -540,7 +543,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         modelManager.updateDataModelDesc(originInit);
         recommendationManager.cleanInEffective(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
+        Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(0).getColumn().getId());
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getDimensions().contains(16));
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(16));
     }
@@ -556,8 +559,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(1, recommendation.getCcRecommendations().size());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_X1 * 2",
                 recommendation.getCcRecommendations().get(0).getCc().getExpression());
-        Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
-        Assert.assertEquals("CC_AUTO_1", recommendation.getDimensionRecommendations().get(1).getColumn().getName());
+        Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(0).getColumn().getId());
+        Assert.assertEquals("CC_AUTO_1", recommendation.getDimensionRecommendations().get(0).getColumn().getName());
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getDimensions().contains(16));
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(16));
     }
@@ -574,15 +577,15 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("CC_AUTO_3", recommendation.getCcRecommendations().get(0).getCc().getColumnName());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3 * 2",
                 recommendation.getCcRecommendations().get(1).getCc().getExpression());
-        Assert.assertEquals(10000001, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
-        Assert.assertEquals("CC_AUTO_1", recommendation.getDimensionRecommendations().get(1).getColumn().getName());
+        Assert.assertEquals(10000001, recommendation.getDimensionRecommendations().get(0).getColumn().getId());
+        Assert.assertEquals("CC_AUTO_1", recommendation.getDimensionRecommendations().get(0).getColumn().getName());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3",
-                recommendation.getDimensionRecommendations().get(1).getColumn().getAliasDotColumn());
-        Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(2).getColumn().getId());
+                recommendation.getDimensionRecommendations().get(0).getColumn().getAliasDotColumn());
+        Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2",
-                recommendation.getDimensionRecommendations().get(2).getColumn().getName());
+                recommendation.getDimensionRecommendations().get(1).getColumn().getName());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_2",
-                recommendation.getDimensionRecommendations().get(2).getColumn().getAliasDotColumn());
+                recommendation.getDimensionRecommendations().get(1).getColumn().getAliasDotColumn());
 
     }
 
@@ -659,10 +662,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                 .getMeasure().getFunction().getParameters().get(0).getValue());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_PRICE_ITEM * 2",
                 recommendation.getCcRecommendations().get(0).getCc().getExpression());
-        Assert.assertEquals(2, recommendation.getDimensionRecommendations().size());
-        Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
+        Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(0).getColumn().getId());
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2",
-                recommendation.getDimensionRecommendations().get(1).getColumn().getName());
+                recommendation.getDimensionRecommendations().get(0).getColumn().getName());
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getDimensions().contains(16));
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(16));
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getMeasures().contains(100002));
@@ -862,7 +865,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(2, updatedModel.getAllMeasures().size());
         Assert.assertEquals(2, updateIndexPlan.getIndexes().size());
         Assert.assertEquals(0, updateRecommendation.getCcRecommendations().size());
-        Assert.assertEquals(1, updateRecommendation.getDimensionRecommendations().size());
         Assert.assertTrue(updateRecommendation.getDimensionRecommendations().stream()
                 .noneMatch(item -> item.getColumn().getAliasDotColumn().contains("CC_AUTO")));
         Assert.assertEquals(3, updateRecommendation.getMeasureRecommendations().size());
@@ -928,7 +930,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testVerify_passDimensionLostDependency() throws IOException {
-        prepare();
+        prepare(baseModelNoTableIndexFile, baseIndexNoTableIndexFile, optimizedNoTableIndexModelFile, optimizedNoTableIndexIndexPlanFile);
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         var passCCs = Sets.<Long> newHashSet();
         var failCCs = Sets.<Long> newHashSet();
@@ -1120,7 +1122,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testDuplicateColumn() throws IOException {
-        prepare(duplicateColumnBaseModel, baseIndexFile, duplicateColumnOptimizedModel, optimizedIndexPlanFile);
+        prepare(duplicateColumnBaseModel, baseIndexNoTableIndexFile, duplicateColumnOptimizedModel, optimizedNoTableIndexIndexPlanFile);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
 
         var model = recommendationManager.applyModel(id);

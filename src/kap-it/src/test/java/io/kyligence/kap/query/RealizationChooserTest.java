@@ -23,7 +23,11 @@
  */
 package io.kyligence.kap.query;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.junit.Assert;
@@ -44,6 +48,9 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
+
+import java.sql.SQLException;
+import java.util.List;
 
 public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
@@ -136,4 +143,111 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(dataflowUpdate);
     }
 
+    @Test
+    public void testHeterogeneousSegment() throws SQLException {
+        // layout 20000000001, tableindex
+        // layout 20001, cal_dt & trans_id
+        // layout 10001, cal_dt
+        // layout 1, trans_id
+
+        // segment1 [2012-01-01, 2012-01-02] layout 20000000001, 20001
+        // segment2 [2012-01-02, 2012-01-03] layout 20000000001, 20001, 10001
+        // segment3 [2012-01-03, 2012-01-04] layout 20001, 10001, 1
+        // segment4 [2012-01-04, 2012-01-05] layout 10001, 1
+        // segment5 [2012-01-05, 2012-01-06] layout 20000000001, 20001, 10001, 1
+
+        val project = "heterogeneous_segment";
+        val dfId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        val expectedRanges = Lists.<Pair<String, String>>newArrayList();
+        val segmentRange1 = Pair.newPair("2012-01-01", "2012-01-02");
+        val segmentRange2 = Pair.newPair("2012-01-02", "2012-01-03");
+        val segmentRange3 = Pair.newPair("2012-01-03", "2012-01-04");
+        val segmentRange4 = Pair.newPair("2012-01-04", "2012-01-05");
+        val segmentRange5 = Pair.newPair("2012-01-05", "2012-01-06");
+        val layout_20000000001 = 20000000001L;
+        val layout_20001 = 20001L;
+        val layout_10001 = 10001L;
+        val layout_1 = 1L;
+
+        val sql = "select cal_dt, sum(price) from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id ";
+
+        val no_filter = sql + "group by cal_dt";
+        try {
+            assertPrunedSegmentsRange(project, no_filter, dfId, null, -1L);
+        } catch (NoRealizationFoundException ex) {
+            // segments do not have common layout
+        }
+
+        val sql1_date = sql + "where cal_dt = DATE '2012-01-01' or (cal_dt >= DATE '2012-01-02' and cal_dt < DATE '2012-01-04') group by cal_dt";
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+        expectedRanges.add(segmentRange3);
+        assertPrunedSegmentsRange(project, sql1_date, dfId, expectedRanges, layout_20001);
+
+        val sql1_date_string = sql + "where cal_dt = '2012-01-01' or (cal_dt >= '2012-01-02' and cal_dt < '2012-01-04') group by cal_dt";
+        assertPrunedSegmentsRange(project, sql1_date_string, dfId, expectedRanges, layout_20001);
+
+        val sql2_date = sql + "where cal_dt >= DATE '2012-01-03' and cal_dt < DATE '2012-01-10' group by cal_dt";
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange3);
+        expectedRanges.add(segmentRange4);
+        expectedRanges.add(segmentRange5);
+        assertPrunedSegmentsRange(project, sql2_date, dfId, expectedRanges, layout_10001);
+
+        val sql2_date_string = sql + "where cal_dt >= '2012-01-03' and cal_dt < '2012-01-10' group by cal_dt";
+        assertPrunedSegmentsRange(project, sql2_date_string, dfId, expectedRanges, layout_10001);
+
+        val sql3_no_layout = "select trans_id from test_kylin_fact " +
+                "inner join test_account on test_kylin_fact.seller_id = test_account.account_id " +
+                "where cal_dt > '2012-01-03' and cal_dt < '2012-01-05'";
+        try {
+            assertPrunedSegmentsRange(project, sql3_no_layout, dfId, expectedRanges, -1L);
+        } catch (NoRealizationFoundException ex) {
+            // pruned segments do not have capable layout to answer
+        }
+
+        expectedRanges.clear();
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+        val sql4_table_index = "select trans_id from test_kylin_fact " +
+                "inner join test_account on test_kylin_fact.seller_id = test_account.account_id " +
+                "where cal_dt > '2012-01-01' and cal_dt < '2012-01-03'";
+        assertPrunedSegmentsRange(project, sql4_table_index, dfId, expectedRanges, layout_20000000001);
+
+        val sql5 = "select trans_id, sum(price) " +
+                "from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id " +
+                "where cal_dt > '2012-01-03' and cal_dt < '2012-01-06' group by trans_id";
+        try {
+            assertPrunedSegmentsRange(project, sql5, dfId, expectedRanges, -1L);
+        } catch (NoRealizationFoundException ex) {
+            // pruned segments do not have capable layout to answer
+        }
+    }
+
+    private void assertPrunedSegmentsRange(String project, String sql, String dfId, List<Pair<String, String>> expectedRanges, long expectedLayoutId) throws SQLException {
+        val proposeContext = new NSmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.runWithContext();
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context);
+
+        val prunedSegments = context.storageContext.getPrunedSegments();
+        val candidate = context.storageContext.getCandidate();
+        Assert.assertEquals(expectedRanges.size(), prunedSegments.size());
+        Assert.assertEquals(expectedLayoutId, candidate.getCuboidLayout().getId());
+
+        val model = NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(dfId);
+        val partitionColDateFormat = model.getPartitionDesc().getPartitionDateFormat();
+        for (int i = 0; i < prunedSegments.size(); i++) {
+            val segment = prunedSegments.get(i);
+            val start = DateFormat.formatToDateStr(segment.getTSRange().getStart(), partitionColDateFormat);
+            val end = DateFormat.formatToDateStr(segment.getTSRange().getEnd(), partitionColDateFormat);
+            val expectedRange = expectedRanges.get(i);
+            Assert.assertEquals(expectedRange.getFirst(), start);
+            Assert.assertEquals(expectedRange.getSecond(), end);
+        }
+    }
 }
