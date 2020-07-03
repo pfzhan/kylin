@@ -21,47 +21,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.lang.reflect.Method;
+import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.cglib.proxy.MethodProxy;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.val;
 
-@Getter
-@Setter
-public class RecommendationRef {
-    protected boolean existed;
-    // id >= 0 column in model
-    // id < 0 column in rawRecItem
-    protected int id;
+public class BrokenRefProxy implements MethodInterceptor {
 
-    public List<? extends RecommendationRef> getDependencies() {
-        return null;
+    private static Set<String> methods = Sets.newHashSet("setId", "getId");
+
+    public static <T extends RecommendationRef> T getProxy(Class<T> clazz, int id) {
+        val proxy = new BrokenRefProxy();
+        T brokenEntity = (T) Enhancer.create(clazz, proxy);
+        brokenEntity.setId(id);
+        return brokenEntity;
     }
 
-    public String getContent() {
-        return null;
-    }
-
-    public String getName() {
-        return null;
-    }
-
-    protected <T extends RecommendationRef> List<RecommendationRef> validate(List<T> refs) {
-        if (CollectionUtils.isEmpty(refs)) {
-            return Lists.newArrayList();
+    @Override
+    public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
+        if (methods.contains(method.getName())) {
+            return proxy.invokeSuper(obj, args);
         }
-        return refs.stream().filter(ref -> !ref.isBroken() && !ref.isExisted()).collect(Collectors.toList());
-    }
-
-    public boolean isBroken() {
-        return false;
+        switch (method.getName()) {
+        case "isBroken":
+            return true;
+        case "getDataType":
+            return null;
+        default:
+            return null;
+        }
     }
 }

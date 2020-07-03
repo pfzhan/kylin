@@ -30,10 +30,12 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class CCRef extends ColumnRef {
 
     private List<ColumnRef> columnRefs;

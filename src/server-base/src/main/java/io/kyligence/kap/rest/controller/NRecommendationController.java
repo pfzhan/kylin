@@ -73,7 +73,7 @@ public class NRecommendationController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         request.setModelId(modelId);
-        optRecService.pass(request.getProject(), request);
+        optRecService.approve(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

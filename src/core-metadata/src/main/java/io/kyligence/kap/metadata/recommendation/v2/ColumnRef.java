@@ -31,17 +31,4 @@ import lombok.Setter;
 @Setter
 public abstract class ColumnRef extends RecommendationRef {
     public abstract String getDataType();
-
-    public static class DeleteColumnRef extends ColumnRef {
-
-        DeleteColumnRef(int id) {
-            this.id = id;
-            this.deleted = true;
-        }
-
-        @Override
-        public String getDataType() {
-            return null;
-        }
-    }
 }

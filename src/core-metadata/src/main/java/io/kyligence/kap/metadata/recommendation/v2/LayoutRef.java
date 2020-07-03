@@ -30,10 +30,12 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class LayoutRef extends RecommendationRef {
     private List<DimensionRef> dimensionRefs;
     private List<MeasureRef> measureRefs;
@@ -46,10 +48,6 @@ public class LayoutRef extends RecommendationRef {
         this.measureRefs = Lists.newArrayList();
         this.id = id;
         this.agg = agg;
-    }
-
-    private LayoutRef() {
-
     }
 
     @Override
@@ -70,10 +68,4 @@ public class LayoutRef extends RecommendationRef {
         return null;
     }
 
-    public static class DeleteLayoutRef extends LayoutRef {
-        public DeleteLayoutRef(int id) {
-            this.id = id;
-            this.deleted = true;
-        }
-    }
 }

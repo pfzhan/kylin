@@ -112,7 +112,7 @@ public class OptRecService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void pass(String project, OptRecRequest request) {
+    public void approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectOperationPermission(project);
         checkProjectMode(project);
         val modelId = request.getModelId();
@@ -315,7 +315,7 @@ public class OptRecService extends BasicService {
         recommendationV2.setRawIds(intersection(originRawIds, rawIds));
         recommendationV2.init(KylinConfig.getInstanceFromEnv(), project);
 
-        Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isDeleted()
+        Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isBroken()
                 && !e.getValue().isExisted() && e.getKey() < 0;
         List<ColumnRef> columnRefs = recommendationV2.getColumnRefs().entrySet().stream().filter(filter)
                 .map(Map.Entry::getValue).collect(Collectors.toList());
@@ -397,7 +397,7 @@ public class OptRecService extends BasicService {
         val managerV2 = OptimizeRecommendationManagerV2.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val recommendationV2 = managerV2.getOptimizeRecommendationV2(modelId);
 
-        Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isDeleted()
+        Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isBroken()
                 && !e.getValue().isExisted() && e.getKey() < 0;
         List<RawRecItem> layoutRefs = recommendationV2 == null ? Lists.newArrayList()
                 : recommendationV2.getLayoutRefs().entrySet().stream().filter(filter)

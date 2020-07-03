@@ -222,12 +222,8 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     public static String concatResourcePath(String name, String project) {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION_V2)
-                .append("/").append(name).append(MetadataConstants.FILE_SURFIX).toString();
-    }
-
-    public RawRecItem getRawRecItem(int id) {
-        return rawRecItemMap.get(id);
+        return "/" + project + ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION_V2 + "/" + name
+                + MetadataConstants.FILE_SURFIX;
     }
 
     private void init(int rawId) {
@@ -235,10 +231,10 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         // handle null
         if (rawRecItem == null) {
             logger.warn("Project {} recommendation {} raw item {} is null", project, getId(), rawId);
-            columnRefs.put(rawId * -1, new ColumnRef.DeleteColumnRef(rawId * -1));
-            dimensionRefs.put(rawId * -1, new DimensionRef.DeleteDimensionRef(rawId * -1));
-            measureRefs.put(rawId * -1, new MeasureRef.DeleteMeasureRef(rawId * -1));
-            layoutRefs.put(rawId * -1, new LayoutRef.DeleteLayoutRef(rawId * -1));
+            columnRefs.put(-rawId, BrokenRefProxy.getProxy(ColumnRef.class, -rawId));
+            dimensionRefs.put(-rawId, BrokenRefProxy.getProxy(DimensionRef.class, -rawId));
+            measureRefs.put(-rawId, BrokenRefProxy.getProxy(MeasureRef.class, -rawId));
+            layoutRefs.put(-rawId, BrokenRefProxy.getProxy(LayoutRef.class, -rawId));
             rawRecItemMap.put(rawId, null);
             return;
         }
@@ -264,8 +260,8 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     private void initLayout(RawRecItem layoutRaw) {
         logger.debug("Project {} recommendation {} init layout raw item {}", project, getId(), layoutRaw.getId());
         LayoutRef ref = convertToLayout(layoutRaw);
-        layoutRefs.put(layoutRaw.getId() * -1, ref);
-        if (ref.isDeleted()) {
+        layoutRefs.put(-layoutRaw.getId(), ref);
+        if (ref.isBroken()) {
             return;
         }
         checkLayoutExists(layoutRaw.getId());
@@ -273,7 +269,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
     private void checkLayoutExists(int rawId) {
         // check in model.
-        LayoutRef layoutRef = layoutRefs.get(rawId * -1);
+        LayoutRef layoutRef = layoutRefs.get(-rawId);
         LayoutEntity layout = JsonUtil.deepCopyQuietly(layoutRef.getLayout(), LayoutEntity.class);
         List<Integer> colOrder = new ArrayList<>(layout.getColOrder().size());
         List<Integer> sortBy = new ArrayList<>(layout.getSortByColumns().size());
@@ -299,7 +295,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
         // check in other raw items.
         for (Map.Entry<Integer, LayoutRef> entry : getEffectiveLayoutRef()) {
-            if (entry.getKey() == rawId * -1) {
+            if (entry.getKey() == -rawId) {
                 continue;
             }
             if (equals(entry.getValue(), layoutRef)) {
@@ -349,35 +345,32 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private LayoutRef convertToLayout(RawRecItem layoutRaw) {
-        LayoutRef layoutRef = new LayoutRef(RecommendationUtil.getLayout(layoutRaw), layoutRaw.getId() * -1,
+        LayoutRef layoutRef = new LayoutRef(RecommendationUtil.getLayout(layoutRaw), -layoutRaw.getId(),
                 RecommendationUtil.isAgg(layoutRaw));
         if (getModel().getSemanticVersion() > layoutRaw.getSemanticVersion()) {
             logSemanticNotMatch(layoutRaw);
-            layoutRef.setDeleted(true);
-            return layoutRef;
+            return BrokenRefProxy.getProxy(LayoutRef.class, layoutRef.getId());
         }
         int[] colOrder = layoutRaw.getDependIDs();
         for (int value : colOrder) {
-            if (value < 0 && !rawRecItemMap.containsKey(value * -1)) {
+            if (value < 0 && !rawRecItemMap.containsKey(-value)) {
                 // dep is not init, init it first.
-                init(value * -1);
+                init(-value);
             }
             if (dimensionRefs.containsKey(value)) {
                 val ref = dimensionRefs.get(value);
-                if (ref.isDeleted()) {
+                if (ref.isBroken()) {
                     logDepDeleted(layoutRaw, value);
-                    layoutRef.setDeleted(true);
-                    return layoutRef;
+                    return BrokenRefProxy.getProxy(LayoutRef.class, layoutRef.getId());
                 }
                 layoutRef.getDimensionRefs().add(ref);
                 continue;
             }
             if (measureRefs.containsKey(value)) {
                 val ref = measureRefs.get(value);
-                if (ref.isDeleted()) {
+                if (ref.isBroken()) {
                     logDepDeleted(layoutRaw, value);
-                    layoutRef.setDeleted(true);
-                    return layoutRef;
+                    return BrokenRefProxy.getProxy(LayoutRef.class, layoutRef.getId());
                 }
                 layoutRef.getMeasureRefs().add(ref);
                 continue;
@@ -385,7 +378,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             // column deleted in model, mark this ref to deleted.
             if (value > 0) {
                 logDepLost(layoutRaw, value);
-                layoutRef.setDeleted(true);
+                return BrokenRefProxy.getProxy(LayoutRef.class, layoutRef.getId());
             }
 
         }
@@ -394,18 +387,18 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
     private void initCC(RawRecItem rawRecItem) {
         logger.debug("Project {} recommendation {} init cc raw item {}", project, getId(), rawRecItem.getId());
-        CCRef ccRef = new CCRef(RecommendationUtil.getCC(rawRecItem), rawRecItem.getId() * -1);
-        columnRefs.put(rawRecItem.getId() * -1, ccRef);
+        CCRef ccRef = new CCRef(RecommendationUtil.getCC(rawRecItem), -rawRecItem.getId());
+        columnRefs.put(-rawRecItem.getId(), ccRef);
         if (getModel().getSemanticVersion() > rawRecItem.getSemanticVersion()) {
             logSemanticNotMatch(rawRecItem);
-            ccRef.setDeleted(true);
+            columnRefs.put(ccRef.getId(), BrokenRefProxy.getProxy(CCRef.class, ccRef.getId()));
             return;
         }
         int[] dependId = rawRecItem.getDependIDs();
         for (int id : dependId) {
             if (!columnRefs.containsKey(id)) {
                 logDepLost(rawRecItem, id);
-                ccRef.setDeleted(true);
+                columnRefs.put(ccRef.getId(), BrokenRefProxy.getProxy(CCRef.class, ccRef.getId()));
                 return;
             }
             ccRef.getColumnRefs().add(columnRefs.get(id));
@@ -415,7 +408,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void checkCCExist(int rawId) {
-        val ref = columnRefs.get(rawId * -1);
+        val ref = columnRefs.get(-rawId);
         if (ref.isExisted() || !(ref instanceof CCRef)) {
             return;
         }
@@ -439,7 +432,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             private void handleSameExpr() {
                 ccRef.setExisted(true);
                 existed.set(true);
-                columnRefs.put(rawId * -1, columnRefs.get(id.get()));
+                columnRefs.put(-rawId, columnRefs.get(id.get()));
             }
         };
         for (ComputedColumnDesc ccInModel : getModel().getComputedColumnDescs()) {
@@ -453,7 +446,7 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         // check in other raw items.
         List<Map.Entry<Integer, ColumnRef>> ccRefs = getEffectiveCCRef();
         for (Map.Entry<Integer, ColumnRef> otherCCRef : ccRefs) {
-            if (otherCCRef.getKey() == rawId * -1) {
+            if (otherCCRef.getKey() == -rawId) {
                 continue;
             }
             id.set(otherCCRef.getKey());
@@ -466,11 +459,11 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     // When a ref is not deleted and does not exist in model.
-    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> effectiveFilter = e -> !e.getValue().isDeleted()
+    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> effectiveFilter = e -> !e.getValue().isBroken()
             && !e.getValue().isExisted() && e.getKey() < 0;
 
     // When a ref derives from origin model or is effective.
-    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> legalFilter = e -> !e.getValue().isDeleted()
+    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> legalFilter = e -> !e.getValue().isBroken()
             && (e.getKey() >= 0 || !e.getValue().isExisted());
 
     private List<Map.Entry<Integer, ColumnRef>> getEffectiveCCRef() {
@@ -496,47 +489,47 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     private void initDimension(RawRecItem rawRecItem) {
         logger.debug("Project {} recommendation {} init dimension raw item {}", project, getId(), rawRecItem.getId());
         int colId = rawRecItem.getDependIDs()[0];
-        DimensionRef ref = new DimensionRef(rawRecItem.getId() * -1);
-        dimensionRefs.put(rawRecItem.getId() * -1, ref);
+        DimensionRef ref = new DimensionRef(-rawRecItem.getId());
+        dimensionRefs.put(-rawRecItem.getId(), ref);
         if (getModel().getSemanticVersion() > rawRecItem.getSemanticVersion()) {
             logSemanticNotMatch(rawRecItem);
-            ref.setDeleted(true);
+            dimensionRefs.put(ref.getId(), BrokenRefProxy.getProxy(DimensionRef.class, ref.getId()));
             return;
         }
-        if (colId < 0 && !rawRecItemMap.containsKey(colId * -1)) {
-            init(colId * -1);
+        if (colId < 0 && !rawRecItemMap.containsKey(-colId)) {
+            init(-colId);
         }
         if (!columnRefs.containsKey(colId)) {
             logDepLost(rawRecItem, colId);
-            ref.setDeleted(true);
+            dimensionRefs.put(ref.getId(), BrokenRefProxy.getProxy(DimensionRef.class, ref.getId()));
             return;
         }
         val colRef = columnRefs.get(colId);
         ref.setColumnRef(colRef);
-        if (colRef.isDeleted()) {
+        if (colRef.isBroken()) {
             logDepDeleted(rawRecItem, colId);
-            ref.setDeleted(true);
+            dimensionRefs.put(ref.getId(), BrokenRefProxy.getProxy(DimensionRef.class, ref.getId()));
             return;
         }
         checkDimensionExist(rawRecItem.getId());
     }
 
     private void checkDimensionExist(int rawId) {
-        DimensionRef ref = dimensionRefs.get(rawId * -1);
+        DimensionRef ref = dimensionRefs.get(-rawId);
         // check in model.
         if (ref.getColId() >= 0 && dimensionRefs.containsKey(ref.getColId())) {
             ref.setExisted(true);
-            dimensionRefs.put(rawId * -1, dimensionRefs.get(ref.getColId()));
+            dimensionRefs.put(-rawId, dimensionRefs.get(ref.getColId()));
             return;
         }
         // check in other raw items.
         for (Map.Entry<Integer, DimensionRef> entry : getEffectiveDimensionRef()) {
-            if (entry.getKey() == rawId * -1) {
+            if (entry.getKey() == -rawId) {
                 continue;
             }
             if (entry.getValue().getColId() == ref.getColId()) {
                 ref.setExisted(true);
-                dimensionRefs.put(entry.getValue().getColId(), dimensionRefs.get(rawId * -1));
+                dimensionRefs.put(entry.getValue().getColId(), dimensionRefs.get(-rawId));
                 return;
             }
         }
@@ -546,11 +539,11 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         logger.debug("Project {} recommendation {} init measure raw item {}", project, getId(), rawRecItem.getId());
         MeasureDesc measure = RecommendationUtil.getMeasure(rawRecItem);
         int[] colOrder = rawRecItem.getDependIDs();
-        MeasureRef measureRef = new MeasureRef(measure, rawRecItem.getId() * -1);
-        measureRefs.put(rawRecItem.getId() * -1, measureRef);
+        MeasureRef ref = new MeasureRef(measure, -rawRecItem.getId());
+        measureRefs.put(-rawRecItem.getId(), ref);
         if (getModel().getSemanticVersion() > rawRecItem.getSemanticVersion()) {
             logSemanticNotMatch(rawRecItem);
-            measureRef.setDeleted(true);
+            measureRefs.put(ref.getId(), BrokenRefProxy.getProxy(MeasureRef.class, ref.getId()));
             return;
         }
         for (int value : colOrder) {
@@ -558,24 +551,24 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
                 continue;
             }
 
-            if (value < 0 && !rawRecItemMap.containsKey(value * -1)) {
-                init(value * -1);
+            if (value < 0 && !rawRecItemMap.containsKey(-value)) {
+                init(-value);
             }
 
             if (columnRefs.containsKey(value)) {
                 val depRef = columnRefs.get(value);
-                if (depRef.isDeleted()) {
+                if (depRef.isBroken()) {
                     logDepLost(rawRecItem, value);
-                    measureRef.setDeleted(true);
+                    measureRefs.put(ref.getId(), BrokenRefProxy.getProxy(MeasureRef.class, ref.getId()));
                     return;
                 }
-                measureRef.getColumnRefs().add(depRef);
+                ref.getColumnRefs().add(depRef);
                 continue;
             }
             // column deleted in model, mark this ref to deleted.
             if (value > 0) {
                 logDepLost(rawRecItem, value);
-                measureRef.setDeleted(true);
+                measureRefs.put(ref.getId(), BrokenRefProxy.getProxy(MeasureRef.class, ref.getId()));
             }
 
         }
@@ -583,15 +576,15 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void checkMeasureExist(int rawId) {
-        val measureRef = measureRefs.get(rawId * -1);
+        val measureRef = measureRefs.get(-rawId);
         for (Map.Entry<Integer, MeasureRef> entry : getLegalMeasureRef()) {
-            if (entry.getKey() == rawId * -1) {
+            if (entry.getKey() == -rawId) {
                 // pass itself.
                 continue;
             }
             if (equals(entry.getValue(), measureRef)) {
                 measureRef.setExisted(true);
-                measureRefs.put(rawId * -1, measureRefs.get(entry.getKey()));
+                measureRefs.put(-rawId, measureRefs.get(entry.getKey()));
                 return;
             }
         }
@@ -707,22 +700,22 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
     public List<Integer> validate() {
         List<Integer> res = new ArrayList<>();
-        res.addAll(columnRefs.entrySet().stream().filter(entry -> entry.getValue().isDeleted()).map(Map.Entry::getKey)
+        res.addAll(columnRefs.entrySet().stream().filter(entry -> entry.getValue().isBroken()).map(Map.Entry::getKey)
                 .collect(Collectors.toList()));
-        res.addAll(dimensionRefs.entrySet().stream().filter(entry -> entry.getValue().isDeleted())
-                .map(Map.Entry::getKey).collect(Collectors.toList()));
-        res.addAll(measureRefs.entrySet().stream().filter(entry -> entry.getValue().isDeleted()).map(Map.Entry::getKey)
+        res.addAll(dimensionRefs.entrySet().stream().filter(entry -> entry.getValue().isBroken()).map(Map.Entry::getKey)
                 .collect(Collectors.toList()));
-        res.addAll(layoutRefs.entrySet().stream().filter(entry -> entry.getValue().isDeleted()).map(Map.Entry::getKey)
+        res.addAll(measureRefs.entrySet().stream().filter(entry -> entry.getValue().isBroken()).map(Map.Entry::getKey)
                 .collect(Collectors.toList()));
-        return res.stream().filter(i -> i < 0).map(i -> i * -1).collect(Collectors.toList());
+        res.addAll(layoutRefs.entrySet().stream().filter(entry -> entry.getValue().isBroken()).map(Map.Entry::getKey)
+                .collect(Collectors.toList()));
+        return res.stream().filter(i -> i < 0).map(i -> -i).collect(Collectors.toList());
     }
 
     public List<RawRecItem> getAllRawItems(List<Integer> layoutIds) {
         Set<RawRecItem> set = Sets.newHashSet();
         layoutIds.forEach(id -> {
-            if (layoutRefs.containsKey(id * -1)) {
-                collect(set, layoutRefs.get(id * -1));
+            if (layoutRefs.containsKey(-id)) {
+                collect(set, layoutRefs.get(-id));
             }
         });
         return set.stream().sorted(Comparator.comparingLong(RawRecItem::getId)).collect(Collectors.toList());
@@ -749,11 +742,11 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     private void collect(Set<RawRecItem> set, RecommendationRef ref) {
-        val raw = rawRecItemMap.get(ref.getId() * -1);
+        val raw = rawRecItemMap.get(-ref.getId());
         if (set.contains(raw)) {
             return;
         }
-        if (!ref.isDeleted() && !ref.isExisted()) {
+        if (!ref.isBroken() && !ref.isExisted()) {
             ref.getDependencies().forEach(dep -> collect(set, dep));
             set.add(raw);
         }

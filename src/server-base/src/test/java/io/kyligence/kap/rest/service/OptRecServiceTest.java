@@ -185,7 +185,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setModelId(id);
         request.setProject(projectDefault);
         request.setIds(Lists.newArrayList(findFromOriginLayout(1000001L)));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
         List<LayoutEntity> afterLayouts = NIndexPlanManager.getInstance(getTestConfig(), projectDefault)
                 .getIndexPlan(id).getAllLayouts();
         NDataModel afterModel = modelManager.getDataModelDesc(id);
@@ -237,7 +237,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setModelId(id);
         request.setProject(projectDefault);
         request.setIds(Lists.newArrayList(findFromOriginLayout(20003000001L)));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
         List<LayoutEntity> afterLayouts = NIndexPlanManager.getInstance(getTestConfig(), projectDefault)
                 .getIndexPlan(id).getAllLayouts();
         NDataModel afterModel = modelManager.getDataModelDesc(id);
@@ -285,7 +285,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setModelId(id);
         request.setProject(projectDefault);
         request.setIds(Lists.newArrayList(findFromOriginLayout(160002L)));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
         List<LayoutEntity> afterLayouts = NIndexPlanManager.getInstance(getTestConfig(), projectDefault)
                 .getIndexPlan(id).getAllLayouts();
         NDataModel afterModel = modelManager.getDataModelDesc(id);
@@ -316,7 +316,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setModelId(id);
         request.setProject(projectDefault);
         request.setIds(Lists.newArrayList(findFromOriginLayout(1000002L)));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
         List<LayoutEntity> afterLayouts = NIndexPlanManager.getInstance(getTestConfig(), projectDefault)
                 .getIndexPlan(id).getAllLayouts();
         NDataModel afterModel = modelManager.getDataModelDesc(id);
@@ -352,7 +352,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setModelId(id);
         request.setProject(projectDefault);
         request.setIds(Lists.newArrayList(findFromOriginLayout(20000000003L)));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
         List<LayoutEntity> afterLayouts = NIndexPlanManager.getInstance(getTestConfig(), projectDefault)
                 .getIndexPlan(id).getAllLayouts();
         NDataModel afterModel = modelManager.getDataModelDesc(id);
@@ -409,7 +409,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
                 .collect(Collectors.toList()));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getCC_NAME_CONFLICT("CC_AUTO_1"));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
     }
 
     @Test
@@ -423,7 +423,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
                 .collect(Collectors.toList()));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getMEASURE_CONFLICT("SUM_CONSTANT"));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
     }
 
     @Test
@@ -437,7 +437,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
                 .collect(Collectors.toList()));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getDIMENSION_CONFLICT("TEST_KYLIN_FACT_TRANS_ID"));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
     }
 
     @Test
@@ -540,7 +540,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setProject(projectDefault);
         request.setIds(response.getLayouts().stream().filter(l -> l.getType().isAdd()).map(l -> (int) l.getItemId())
                 .collect(Collectors.toList()));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
     }
 
     private void exactlyAssertCC(List<ComputedColumnDesc> afterCCs, List<ComputedColumnDesc> beforeCCs) {
@@ -595,7 +595,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(
                 "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT * 2", "CC_AUTO_2", "CC_OTHER_4"));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
     }
 
     @Test
@@ -611,7 +611,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
                 .collect(Collectors.toList()));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getCC_NAME_CONFLICT("CC_AUTO_2"));
-        service.pass(projectDefault, request);
+        service.approve(projectDefault, request);
     }
 
     @Test

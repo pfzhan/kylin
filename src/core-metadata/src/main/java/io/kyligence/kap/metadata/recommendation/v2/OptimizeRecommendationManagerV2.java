@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -45,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -298,7 +298,7 @@ public class OptimizeRecommendationManagerV2 {
             CCRecommendationItem cc) {
         RawRecItem rawRecItem = createBasicRawRecItem(id, RawRecItem.RawRecType.COMPUTED_COLUMN);
         columnNameMap.put(cc.getCc().getFullName(), -1 * id);
-        idMap.put(cc.getCcColumnId(), id * -1);
+        idMap.put(cc.getCcColumnId(), -id);
         CCRecItemV2 itemV2 = new CCRecItemV2();
         rawRecItem.setRecEntity(itemV2);
         itemV2.setCc(cc.getCc());

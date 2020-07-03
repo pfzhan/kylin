@@ -24,16 +24,19 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
-
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 @Getter
+@NoArgsConstructor
 public class ModelColumnRef extends ColumnRef {
 
-    private final NDataModel.NamedColumn column;
+    private NDataModel.NamedColumn column;
     private String dataType;
     private String content;
 

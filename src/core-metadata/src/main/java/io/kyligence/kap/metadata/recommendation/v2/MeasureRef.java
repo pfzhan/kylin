@@ -26,15 +26,18 @@ package io.kyligence.kap.metadata.recommendation.v2;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 
+import com.google.common.collect.Lists;
+
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class MeasureRef extends RecommendationRef {
 
     private List<ColumnRef> columnRefs;
@@ -44,11 +47,6 @@ public class MeasureRef extends RecommendationRef {
         this.measure = measure;
         this.id = id;
         this.columnRefs = Lists.newArrayList();
-    }
-
-    protected MeasureRef(int id) {
-        this.id = id;
-        this.deleted = true;
     }
 
     @Override
@@ -64,12 +62,5 @@ public class MeasureRef extends RecommendationRef {
     @Override
     public String getName() {
         return measure.getName();
-    }
-
-    public static class DeleteMeasureRef extends MeasureRef {
-
-        public DeleteMeasureRef(int id) {
-            super(id);
-        }
     }
 }

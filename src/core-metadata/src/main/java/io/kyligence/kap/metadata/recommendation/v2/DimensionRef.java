@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.recommendation.v2;
 
 import java.util.List;
 
+import lombok.NoArgsConstructor;
 import org.apache.kylin.common.util.JsonUtil;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +38,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class DimensionRef extends RecommendationRef {
     private ColumnRef columnRef;
 
@@ -79,11 +81,4 @@ public class DimensionRef extends RecommendationRef {
         private String dataType;
     }
 
-    public static class DeleteDimensionRef extends DimensionRef {
-
-        public DeleteDimensionRef(int id) {
-            super(id);
-            this.deleted = true;
-        }
-    }
 }
