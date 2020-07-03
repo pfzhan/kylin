@@ -325,3 +325,65 @@ def multipart_encoder(filename, model_name):
         'names': model_name
     }
     return MultipartEncoder(fields)
+
+
+def approve_recommendation(model_name, project_name):
+    url = base_url + "/recommendations/" + get_model_uuid(model_name, project_name)
+
+    payload = {
+        "project": project_name,
+        "ids": [1]
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers).json()
+
+
+def prepare_approve_recommendation(model_name, project_name):
+    url = base_url + "/recommendations/" + get_model_uuid(model_name, project_name) + "/validation"
+
+    payload = {
+        "project": project_name,
+        "ids": [1]
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers).json()
+
+
+def delete_recommendation(model_name, project_name):
+    url = base_url + "/recommendations/" + get_model_uuid(model_name, project_name)
+
+    querystring = {"project": project_name, "ids": [1]}
+
+    payload = ""
+
+    requests.request("DELETE", url, data=payload, headers=headers, params=querystring).json()
+
+
+def delete_all_recommendation(model_name, project_name):
+    url = base_url + "/recommendations/" + get_model_uuid(model_name, project_name) + "/all"
+
+    querystring = {"project": project_name}
+
+    payload = ""
+
+    requests.request("DELETE", url, data=payload, headers=headers, params=querystring).json()
+
+
+def get_recommendation(model_name, project_name):
+    url = base_url + "/recommendations/" + get_model_uuid(model_name, project_name)
+
+    querystring = {"project": project_name}
+
+    payload = ""
+
+    requests.request("GET", url, data=payload, headers=headers, params=querystring).json()
+
+
+def get_recommendation_detail(model_name, project_name):
+    url = base_url + "/recommendations/" + get_model_uuid(model_name, project_name) + "/1"
+
+    querystring = {"project": project_name}
+
+    payload = ""
+
+    requests.request("GET", url, data=payload, headers=headers, params=querystring).json()

@@ -345,17 +345,17 @@ teststeps:
           - status_code
           - 200
     extract:
-        job_id: content.data.jobs.0.job_id
+      job_id: content.data.jobs.0.job_id
 
-#  - api: api/refresh_segment.yml
-#    name: 刷新segment
-#    variables:
-#      model: $model_name
-#      segment_id: $refresh_segment_id
-#    validate:
-#      - eq:
-#          - status_code
-#          - 200
+  #  - api: api/refresh_segment.yml
+  #    name: 刷新segment
+  #    variables:
+  #      model: $model_name
+  #      segment_id: $refresh_segment_id
+  #    validate:
+  #      - eq:
+  #          - status_code
+  #          - 200
 
   - api: api/get_segments.yml
     name: 获取segment
@@ -448,12 +448,12 @@ teststeps:
           - status_code
           - 200
 
-#  - api: api/get_job_details.yml
-#    name: 获取job的详细信息
-#    validate:
-#      - eq:
-#          - status_code
-#          - 200
+  #  - api: api/get_job_details.yml
+  #    name: 获取job的详细信息
+  #    validate:
+  #      - eq:
+  #          - status_code
+  #          - 200
   - api: api/get_job_step_output.yml
     name: 获取job的特定step的日志信息
     validate:
@@ -480,14 +480,14 @@ teststeps:
           - status_code
           - 200
 
-#  - api: api/get_remote_dump_diag_package.yml
-#    name: 生成诊断包
-#    variables:
-#      job_id: $job_id
-#    validate:
-#      - eq:
-#          - status_code
-#          - 200
+  #  - api: api/get_remote_dump_diag_package.yml
+  #    name: 生成诊断包
+  #    variables:
+  #      job_id: $job_id
+  #    validate:
+  #      - eq:
+  #          - status_code
+  #          - 200
 
   - api: api/restart_or_stop_job.yml
     name: 重启，暂停job
@@ -857,13 +857,13 @@ teststeps:
           - status_code
           - 200
 
-# 该 API 目前不会使用，智能模式才用的，有些问题，故注释掉
-#  - api: api/get_latest_range.yml
-#    name: 获取latest range
-#    validate:
-#      - eq:
-#          - status_code
-#          - 200
+  # 该 API 目前不会使用，智能模式才用的，有些问题，故注释掉
+  #  - api: api/get_latest_range.yml
+  #    name: 获取latest range
+  #    validate:
+  #      - eq:
+  #          - status_code
+  #          - 200
 
   - api: api/get_table_partition_column_format.yml
     name: 获取分区列format
@@ -967,12 +967,12 @@ teststeps:
       - eq:
           - status_code
           - 200
-#  - api: api/set_table_data_range.yml
-#    name: 设置table的数据范围
-#    validate:
-#      - eq:
-#          - status_code
-#          - 200
+  #  - api: api/set_table_data_range.yml
+  #    name: 设置table的数据范围
+  #    validate:
+  #      - eq:
+  #          - status_code
+  #          - 200
   - api: api/get_table_details.yml
     name: 获取table详细信息(数据源页面)
     validate:
@@ -1093,9 +1093,9 @@ teststeps:
     variables:
       access_entry_id: 0
     validate:
-        - eq:
-            - status_code
-            - 200
+      - eq:
+          - status_code
+          - 200
 
   - api: api/grant_project_permission_to_single_user.yml
     name: 添加单个项目用户的项目级权限
@@ -1112,9 +1112,9 @@ teststeps:
     variables:
       user: $resident_user
     validate:
-        - eq:
-            - status_code
-            - 200
+      - eq:
+          - status_code
+          - 200
 
   - api: api/grant_project_permission_to_single_user.yml
     name: 添加单个项目用户的项目级权限
@@ -1203,12 +1203,12 @@ teststeps:
           - status_code
           - 200
 
-#  - api: api/get_table_pushdown_mode.yml
-#    name: 获取table的下压开关
-#    validate:
-#      - eq:
-#          - status_code
-#          - 200
+  #  - api: api/get_table_pushdown_mode.yml
+  #    name: 获取table的下压开关
+  #    validate:
+  #      - eq:
+  #          - status_code
+  #          - 200
 
   - api: api/update_favorite_rules.yml
     name: 修改加速规则
@@ -1317,3 +1317,45 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/get_recommendation_detail.yml
+    name: 模型的优化建议详情
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_recommendation.yml
+    name: 模型的优化建议
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_recommendation.yml
+    name: 删除优化建议
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_all_recommendation.yml
+      name: 删除所有优化建议
+      validate:
+        - eq:
+            - status_code
+            - 200
+
+  - api: api/prepare_approve_recommendation.yml
+      name: 预批准优化建议
+      validate:
+        - eq:
+            - status_code
+            - 200
+
+  - api: api/approve_recommendation.yml
+      name: 批准优化建议
+      validate:
+        - eq:
+            - status_code
+            - 200
