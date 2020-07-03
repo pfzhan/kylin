@@ -362,4 +362,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
         stop.set(true);
         ExecutorServiceUtil.shutdownGracefully(consumeExecutor, 60);
     }
+
+    public long getStartId() {
+        return startId.get();
+    }
 }

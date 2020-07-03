@@ -286,8 +286,17 @@ public class MetadataTool extends ExecutableApplication {
 
         if (StringUtils.isBlank(project)) {
             logger.info("start to copy all projects from ResourceStore.");
-
+            val auditLogStore = resourceStore.getAuditLogStore();
+            long offset = 0;
+            if (kylinConfig.isUTEnv())
+                offset = auditLogStore.getMaxId();
+            else
+                offset = auditLogStore.getStartId() == 0 ? resourceStore.getOffset() : auditLogStore.getStartId();
+            long finalOffset = offset;
             UnitOfAllWorks.doInTransaction(() -> {
+                backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
+                        System.currentTimeMillis(), -1);
                 var projectFolders = resourceStore.listResources("/");
                 if (projectFolders == null) {
                     return null;
@@ -303,11 +312,7 @@ public class MetadataTool extends ExecutableApplication {
                         throw new InterruptedException("metadata task is interrupt");
                     }
                 }
-                val auditLogStore = resourceStore.getAuditLogStore();
-                val offset = auditLogStore.getMaxId();
-                backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(offset))),
-                        System.currentTimeMillis(), -1);
+
                 val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
                 if (uuid != null) {
                     backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),

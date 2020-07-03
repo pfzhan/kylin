@@ -113,7 +113,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             protected NDataflow initBrokenEntity(NDataflow entity, String resourceName) {
                 val dataflow = super.initBrokenEntity(entity, resourceName);
                 IndexPlan plan = NIndexPlanManager.getInstance(config, project).getIndexPlan(resourceName);
-                dataflow.setConfig((KylinConfigExt) plan.getConfig());
+                if (plan != null) {
+                    dataflow.setConfig((KylinConfigExt) plan.getConfig());
+                } else {
+                    dataflow.setConfig((KylinConfigExt) KylinConfig.getInstanceFromEnv());
+                }
                 dataflow.setProject(project);
                 dataflow.setDependencies(dataflow.calcDependencies());
                 return dataflow;

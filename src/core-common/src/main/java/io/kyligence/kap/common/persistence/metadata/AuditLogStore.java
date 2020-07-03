@@ -41,6 +41,8 @@ public interface AuditLogStore extends Closeable, IKeep {
 
     long getMinId();
 
+    long getStartId();
+
     void restore(ResourceStore store, long currentId);
 
     void rotate();
@@ -48,6 +50,7 @@ public interface AuditLogStore extends Closeable, IKeep {
     void catchupManuallyWithTimeOut(ResourceStore store) throws Exception;
 
     void catchupManually(ResourceStore store);
+
 
 
 }

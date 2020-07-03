@@ -133,6 +133,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     @Getter
     protected MetadataStore metadataStore;
     @Setter
+    @Getter
     long offset;
     @Setter
     @Getter

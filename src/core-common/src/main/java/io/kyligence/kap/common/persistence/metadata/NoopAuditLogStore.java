@@ -53,6 +53,11 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public long getStartId() {
+        return 0;
+    }
+
+    @Override
     public void restore(ResourceStore store, long currentId) {
         // just implement it
     }
