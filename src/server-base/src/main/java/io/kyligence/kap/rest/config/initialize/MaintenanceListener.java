@@ -62,10 +62,10 @@ public class MaintenanceListener implements IKeep, EventListenerRegistry.Resourc
             EpochManager manager = EpochManager.getInstance(config);
             Epoch beforeEpoch = manager.getGlobalEpoch();
             Epoch update = JsonUtil.readValue(updateIn, Epoch.class);
-            if (beforeEpoch.isMaintenanceMode() && !update.isMaintenanceMode()) {
+            if ((beforeEpoch != null && beforeEpoch.isMaintenanceMode()) && !update.isMaintenanceMode()) {
                 manager.startOwnedProjects();
             }
-            if (!beforeEpoch.isMaintenanceMode() && update.isMaintenanceMode()) {
+            if ((beforeEpoch == null || !beforeEpoch.isMaintenanceMode()) && update.isMaintenanceMode()) {
                 manager.shutdownOwnedProjects();
             }
         } catch (IOException e) {
