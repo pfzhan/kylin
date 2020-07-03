@@ -198,6 +198,7 @@ export default class ModelPartitionModal extends Vue {
   }
   buildType = 'incremental'
   isShowWarning = false
+  importantChange = false
   get disabledSave () {
     if (this.buildType === 'incremental' && this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format || this.buildType === 'fullLoad') {
       return false
@@ -435,8 +436,10 @@ export default class ModelPartitionModal extends Vue {
       //   await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
       // }
       if (this.isChangeToFullLoad || this.isChangePartition) {
+        this.importantChange = true
         await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
       } else if (this.isChangeModelLayout || this.originFilterCondition !== this.filterCondition) {
+        this.importantChange = true
         const res = await this.callGlobalDetailDialog({
           msg: this.$t('purgeSegmentDataTips', {storageSize: Vue.filter('dataSize')(this.modelInstance.storage)}),
           title: this.$t('kylinLang.common.tip'),
@@ -447,6 +450,8 @@ export default class ModelPartitionModal extends Vue {
           submitText: this.$t('saveAndLoad')
         })
         isOnlySave = res.isOnlySave
+      } else {
+        this.importantChange = false
       }
       this.savePartition(isOnlySave)
     } else {
@@ -480,28 +485,27 @@ export default class ModelPartitionModal extends Vue {
         handleSuccess(res, async (data) => {
           // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
           // await handleWaiting()
-          if ('rebuild_index' in data && data.rebuild_index) {
-            this.$confirm(this.$t('editCCBuildTip'), this.$t('kylinLang.common.notice'), {
-              confirmButtonText: this.$t('saveAndBuild'),
-              cancelButtonText: this.$t('modelSaveSet'),
-              showClose: false,
-              closeOnClickModal: false,
-              closeOnPressEscape: false,
-              type: 'warning'
-            }).then(() => {
-              this.handleClose(true)
+          if (!this.importantChange && 'rebuild_index' in data && data.rebuild_index) {
+            try {
+              const res = await this.callGlobalDetailDialog({
+                msg: this.$t('editCCBuildTip'),
+                title: this.$t('kylinLang.common.tip'),
+                dialogType: 'warning',
+                showDetailBtn: false,
+                isSubSubmit: true,
+                submitSubText: this.$t('kylinLang.common.save'),
+                submitText: this.$t('saveAndLoad'),
+                needConcelReject: true
+              })
+              this.handleClose(true, res.isOnlySave)
               this.isLoadingSave = false
-            }).catch(() => {
-              this.modelDesc.save_only = true
-              this.handleClose(true)
+            } catch (e) {
               this.isLoadingSave = false
-            })
+            }
           } else {
-            this.handleClose(true)
+            this.handleClose(true, isOnlySave)
             this.isLoadingSave = false
           }
-          this.handleClose(true, isOnlySave)
-          this.isLoadingSave = false
         })
       }, (errorRes) => {
         this.filterErrorMsg = errorRes.data.msg
