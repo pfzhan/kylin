@@ -72,4 +72,8 @@ public class IfNullUDF {
     public boolean IFNULL(@Parameter(name = "num1") Boolean expression1, @Parameter(name = "num2") Boolean expression2) {
         return expression1 == null ? expression2 : expression1;
     }
+
+    public long IFNULL(@Parameter(name = "num1") Long expression1, @Parameter(name = "num2") Long expression2) {
+        return expression1 == null ? expression2 : expression1;
+    }
 }

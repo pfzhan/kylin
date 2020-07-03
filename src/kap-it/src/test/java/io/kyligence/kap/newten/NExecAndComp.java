@@ -155,8 +155,6 @@ public class NExecAndComp {
     // TODO: udf/calcite function return type should be same as sparksql.
     private static boolean inToDoList(String fullPath) {
         final String[] toDoList = new String[] {
-                // TODO SIGN()
-                "query/sql_function/query01.sql",
                 // TODO ifnull()
                 "query/sql_function/sql_function_nullHandling/query00.sql",
                 "query/sql_function/sql_function_nullHandling/query01.sql",

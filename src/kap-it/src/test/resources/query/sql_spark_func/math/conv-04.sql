@@ -21,4 +21,10 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
-select lstg_format_name , substring(cast(crc32(substring_index(concat(lstg_format_name, '.www.apache.org'), '.', cast ('2' as  tinyint) )) as varchar), 1, 1+2) from  test_kylin_fact
+
+
+SELECT price,
+       conv(price, 10, 16)
+FROM test_kylin_fact
+ORDER BY price,
+         item_count LIMIT 10;

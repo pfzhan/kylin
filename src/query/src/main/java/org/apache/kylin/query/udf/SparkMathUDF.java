@@ -51,57 +51,66 @@ public class SparkMathUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public Object CBRT(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double CBRT(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object CONV(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") Integer exp2,
+    public String CONV(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") Integer exp2,
                        @Parameter(name = "str3") Integer exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object CONV(@Parameter(name = "str1") Long exp1, @Parameter(name = "str2") Integer exp2,
+    public String CONV(@Parameter(name = "str1") Long exp1, @Parameter(name = "str2") Integer exp2,
                        @Parameter(name = "str3") Integer exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object COSH(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public String CONV(@Parameter(name = "str1") double exp1, @Parameter(name = "str2") Integer exp2,
+                       @Parameter(name = "str3") Integer exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object EXPM1(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double COSH(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object FACTORIAL(@Parameter(name = "str1") Integer exp) throws CalciteNotSupportException {
+    public double EXPM1(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object HYPOT(@Parameter(name = "str1") Double exp1, @Parameter(name = "str2") Double exp2) throws CalciteNotSupportException {
+    public long FACTORIAL(@Parameter(name = "str1") Integer exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LOG(@Parameter(name = "str1") Double exp1, @Parameter(name = "str2") Double exp2) throws CalciteNotSupportException {
+    public long FACTORIAL(@Parameter(name = "str1") double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LOG1P(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double HYPOT(@Parameter(name = "str1") Double exp1, @Parameter(name = "str2") Double exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LOG2(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double LOG(@Parameter(name = "str1") Double exp1, @Parameter(name = "str2") Double exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object RINT(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double LOG1P(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object SINH(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double LOG2(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object TANH(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+    public double RINT(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
+    }
+
+    public double SINH(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
+    }
+
+    public double TANH(@Parameter(name = "str1") Double exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 }

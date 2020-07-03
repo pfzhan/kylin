@@ -47,79 +47,79 @@ import org.apache.calcite.sql.type.NotConstant;
 
 public class SparkStringUDF implements NotConstant {
 
-    public Object BASE64(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
+    public String BASE64(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object DECODE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public String DECODE(@Parameter(name = "str1") byte[] exp1, @Parameter(name = "str2") Object exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object ENCODE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public byte[] ENCODE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object FIND_IN_SET(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public int FIND_IN_SET(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LCASE(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
+    public String LCASE(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LEVENSHTEIN(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public int LEVENSHTEIN(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "num3") Integer exp3) throws CalciteNotSupportException {
+    public int LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "num3") Integer exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public int LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object LPAD(@Parameter(name = "str1") String exp1, @Parameter(name = "num2") Integer exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
+    public String LPAD(@Parameter(name = "str1") String exp1, @Parameter(name = "num2") Integer exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object REPLACE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
+    public String REPLACE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object RPAD(@Parameter(name = "str1") String exp1, @Parameter(name = "num2") Integer exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
+    public String RPAD(@Parameter(name = "str1") String exp1, @Parameter(name = "num2") Integer exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object RTRIM(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
+    public String RTRIM(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object RTRIM(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public String RTRIM(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object SENTENCES(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
+    public String[] SENTENCES(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object SPLIT(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public String[] SPLIT(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object SUBSTRING_INDEX(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "num2") Integer exp3) throws CalciteNotSupportException {
+    public String SUBSTRING_INDEX(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "num2") Integer exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object TRANSLATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
+    public String TRANSLATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "str3") String exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object UCASE(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
+    public String UCASE(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object UNBASE64(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
+    public byte[] UNBASE64(@Parameter(name = "str1") String exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 

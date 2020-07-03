@@ -201,6 +201,15 @@ object SparderQueryTest extends Logging {
     false
   }
 
+  private def isBinaryType(structField: StructField): Boolean = {
+    val intList = scala.collection.immutable.List(Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY)
+    val dataType = structField.getDataType();
+    if (intList.contains(dataType)) {
+      return true
+    }
+    false
+  }
+
   private def isSameDataType(cubeStructField: StructField, sparkStructField: StructField): Boolean = {
     if (cubeStructField.getDataType() == sparkStructField.getDataType()) {
       return true
@@ -213,6 +222,9 @@ object SparderQueryTest extends Logging {
       return true
     }
     if (isIntType(cubeStructField) && isIntType(sparkStructField)) {
+      return true
+    }
+    if (isBinaryType(cubeStructField) && isBinaryType(sparkStructField)) {
       return true
     }
     false

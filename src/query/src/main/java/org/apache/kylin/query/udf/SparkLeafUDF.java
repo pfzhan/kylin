@@ -44,36 +44,38 @@ package org.apache.kylin.query.udf;
 
 import org.apache.calcite.sql.type.NotConstant;
 
+import java.sql.Timestamp;
+
 public class SparkLeafUDF implements NotConstant {
-    public Object UUID() throws CalciteNotSupportException {
+    public String UUID() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object CURRENT_DATABASE() throws CalciteNotSupportException {
+    public String CURRENT_DATABASE() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object INPUT_FILE_BLOCK_LENGTH() throws CalciteNotSupportException {
+    public long INPUT_FILE_BLOCK_LENGTH() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object INPUT_FILE_BLOCK_START() throws CalciteNotSupportException {
+    public long INPUT_FILE_BLOCK_START() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object INPUT_FILE_NAME() throws CalciteNotSupportException {
+    public String INPUT_FILE_NAME() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object MONOTONICALLY_INCREASING_ID() throws CalciteNotSupportException {
+    public long MONOTONICALLY_INCREASING_ID() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object NOW() throws CalciteNotSupportException {
+    public Timestamp NOW() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object SPARK_PARTITION_ID() throws CalciteNotSupportException {
+    public int SPARK_PARTITION_ID() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 }
