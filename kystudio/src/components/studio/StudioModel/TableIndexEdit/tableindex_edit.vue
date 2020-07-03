@@ -300,8 +300,14 @@
       let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.tableIndex')})
       if (this.tableIndexMeta.load_data) {
         if (data.type === BuildIndexStatus.NORM_BUILD) {
-          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.tableIndex')})
-          this.$message({message: tipMsg, type: 'success'})
+          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.tableIndex')}) + `<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+          this.$message({
+            message: tipMsg,
+            type: 'success',
+            dangerouslyUseHTMLString: true,
+            duration: 0,
+            showClose: true
+          })
           return
         }
         if (data.type === BuildIndexStatus.NO_LAYOUT) {
@@ -323,11 +329,15 @@
         })
         this.closeModal(true)
         this.btnLoading = false
-        if (!isLoadData && !this.modelInstance.available_indexes_count) {
-          this.$emit('needShowBuildTips', this.modelInstance.uuid)
-        }
-        if (isLoadData && !this.modelInstance.available_indexes_count) {
+        // if (!isLoadData && !this.modelInstance.segments.length) {
+        //   this.$emit('needShowBuildTips', this.modelInstance.uuid)
+        // }
+        if (isLoadData && !this.modelInstance.segments.length) {
           this.$emit('openBuildDialog', this.modelInstance, true)
+        }
+        // 保存并增量构建时，需弹出segment list选择构建区域
+        if (isLoadData && this.modelInstance.segments.length > 0 && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column) {
+          this.$emit('openComplementAllIndexesDialog', this.modelInstance)
         }
       }
       let errorCb = (res) => {
@@ -359,7 +369,8 @@
       }
     }
     async submit (isLoadData) {
-      if (isLoadData && this.modelInstance.available_indexes_count || !isLoadData) {
+      // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
+      if (isLoadData && this.modelInstance.segments.length > 0 && !this.modelInstance.partition_desc || !isLoadData) {
         this.tableIndexMeta.load_data = isLoadData
       }
       if (this.tableIndexDesc && this.tableIndexDesc.status && this.tableIndexDesc.status !== 'EMPTY') {

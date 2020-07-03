@@ -201,7 +201,30 @@ export default {
     [types.FETCH_SEGMENTS] ({ commit }, params) {
       const startTime = !isNaN(parseInt(params.startTime)) ? String(params.startTime) : null
       const endTime = !isNaN(parseInt(params.endTime)) ? String(params.endTime) : null
-      return api.model.fetchSegments(params.modelName, params.projectName, startTime, endTime, params.sortBy, params.reverse, params.page_offset, params.pageSize)
+      const paraData = {
+        project: params.projectName,
+        sort_by: params.sortBy,
+        reverse: params.reverse,
+        page_offset: params.page_offset,
+        page_size: params.pageSize
+      }
+      if (startTime && endTime) {
+        paraData.start = startTime
+        paraData.end = endTime
+      }
+      if (params.all_to_complement) {
+        paraData.all_to_complement = params.all_to_complement
+      }
+      if (params.without_indexes) {
+        paraData.without_indexes = params.without_indexes
+      }
+      if (params.with_indexes) {
+        paraData.with_indexes = params.with_indexes
+      }
+      if (params.status) {
+        paraData.status = params.status
+      }
+      return api.model.fetchSegments(params.modelName, paraData)
     },
     [types.FETCH_CUBOID] ({ commit }, params) {
       return api.model.fetchCuboid(params.modelId, params.projectName, params.cuboidId)
@@ -259,6 +282,15 @@ export default {
     },
     [types.BUILD_INDEX] ({ commit }, paras) {
       return api.model.buildIndex(paras)
+    },
+    [types.COMPLEMENT_ALL_INDEX] ({ commit }, params) {
+      return api.model.complementAllIndex(params)
+    },
+    [types.COMPLEMENT_BATCH_INDEX] ({ commit }, params) {
+      return api.model.complementBatchIndex(params)
+    },
+    [types.DELETE_BATCH_INDEX] ({ commit }, params) {
+      return api.model.deleteBatchIndex(params)
     },
     [types.GET_MODEL_RECOMMENDATIONS] ({ commit }, paras) {
       return api.model.getModelRecommendations(paras)

@@ -35,9 +35,12 @@ export default {
     back: 'Back',
     requiredName: 'Please input alias',
     modelDataNullTip: 'Failed to find this model!',
-    saveSuccessTip: 'The model saved successfully and will be online. Add some indexes and load data into the model are highly recommended. For models without indexes and data, queries will be answered by pushdown.',
-    addIndexTip: 'Add Index',
-    ignoreaddIndexTip: 'Not now',
+    saveSuccessTip: 'The model has been saved successfully.',
+    addSegmentTips: 'To make it available for queries, please define the data range which this model would be served for.',
+    addIndexTips: 'To improve query performance, please add and build indexes.',
+    addIndex: 'Add Index',
+    addSegment: 'Add Segment',
+    ignoreaddIndexTip: 'Not Now',
     noDimensionTipContent: 'No dimension in the model. After the save, you can add table index for query on transaction resords. If the model needs to serve aggregate query,  we would suggest you to add some dimensions.',
     noDimensionAndMeasureTipContent: 'No dimension and measure in the model. After the save, you can add table index for query on transaction resords. If the model needs to serve aggregate query,  we would suggest you to add some dimensions and measures.',
     noDimensionTipTitle: 'Add Dimension',
@@ -65,7 +68,8 @@ export default {
     canNotRepairBrokenTip: 'Sorry the broken model couldn\'t be recovered as its metadata has too many information lost. You can delete the model or contact support to get more information.',
     searchColumn: 'Search column name',
     modelChangeTips: 'You are modifying the model definition. After submitted, all indexes of this model may be rebuilt. The model will be unavailable to serve queries until the indexes are built successfully.',
-    ignore: 'Ignore'
+    ignore: 'Ignore',
+    saveAndSubmitJobSuccess: 'Successfully saved the changes, and submitted the job of loading data'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -103,9 +107,12 @@ export default {
     back: '返回',
     requiredName: '请输入别名',
     modelDataNullTip: '没有找到当前模型!',
-    saveSuccessTip: '模型保存成功并将上线。系统建议您为模型添加索引并加载数据。没有索引和数据的模型，查询会通过查询下压回答。',
-    addIndexTip: '添加索引',
-    ignoreaddIndexTip: '暂不添加',
+    saveSuccessTip: '模型保存成功。',
+    addSegmentTips: '为了使模型可服务于查询，请添加可服务的数据范围。',
+    addIndexTips: '为了提高模型的查询效率，请添加索引并构建。',
+    addIndex: '添加索引',
+    addSegment: '添加 Segment',
+    ignoreaddIndexTip: '稍后添加',
     noDimensionTipContent: '本模型中尚无维度，如此保存后将无法添加聚合索引。如果只需要明细查询，继续保存即可。如果本模型后续将服务于聚合函数的查询，系统建议您添加一些要分析的维度。',
     noDimensionTipTitle: '添加维度',
     noDimensionAndMeasureTipTitle: '添加维度和度量',
@@ -133,6 +140,7 @@ export default {
     canNotRepairBrokenTip: '该模型丢失了太多的元数据信息，暂时无法进行恢复操作。您可以删除该模型或联系技术支持获取更多信息。',
     searchColumn: '搜索列名',
     modelChangeTips: '您正在修改模型定义，提交后，可能会导致模型下的所有索引重新构建。索引构建完成前该模型不能服务于相关的查询。',
-    ignore: '不再提示'
+    ignore: '不再提示',
+    saveAndSubmitJobSuccess: '保存成功，加载任务已提交'
   }
 }

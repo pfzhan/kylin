@@ -122,12 +122,13 @@
                   </el-tab-pane>
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
-                     ref="segmentComp"
+                     :ref="'segmentComp' + props.row.alias"
                      :model="props.row"
                      :isShowSegmentActions="datasourceActions.includes('segmentActions')"
                      v-if="props.row.tabTypes === 'first'"
                      @purge-model="model => handleCommand('purge', model)"
                      @loadModels="loadModelsList"
+                     @willAddIndex="() => {props.row.tabTypes = 'third'}"
                      @auto-fix="autoFix(props.row.alias, props.row.uuid, props.row.segment_holes)" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('indexOverview')" name="second">
@@ -136,7 +137,7 @@
                       :model="props.row"
                       :project-name="currentSelectedProject"
                       :isShowEditAgg="datasourceActions.includes('editAggGroup')"
-                      :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
+                      :isShowBulidIndex="datasourceActions.includes('buildIndex')"
                       :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
                       @loadModels="loadModelsList"
                       ref="modelAggregateItem"
@@ -187,6 +188,11 @@
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
+                </div>
+                <div v-if="scope.row.inconsistent_segment_count">
+                  <span>{{$t('modelMetadataChangedTips')}}</span><span
+                    style="color:#0988DE;cursor: pointer;"
+                    @click="openComplementSegment(scope.row, true)">{{$t('seeDetail')}}</span>
                 </div>
               </el-popover>
               <span class="model-alias-title" v-custom-tooltip="{text: scope.row.alias, w: 50, tableClassName: 'model_list_table'}">{{scope.row.alias}}</span>
@@ -289,7 +295,7 @@
               <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
                 <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="(e) => handleEditModel(scope.row.alias, e)"></i>
               </common-tip>
-              <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('bulidIndex')">
+              <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
                 <el-popover
                   ref="popoverBuild"
                   placement="bottom-end"
@@ -372,7 +378,7 @@
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
-    <ModelBuildModal @refreshModelList="loadModelsList" ref="modelBuildComp"/>
+    <ModelBuildModal v-on:refreshModelList="loadModelsList" @isWillAddIndex="willAddIndex" ref="modelBuildComp"/>
     <!--  数据分区设置 -->
     <ModelPartition/>
     <!-- 模型重命名 -->
@@ -386,9 +392,11 @@
     <!-- 推荐模型 -->
     <UploadSqlModel v-on:reloadModelList="loadModelsList"/>
     <!-- 聚合索引编辑 -->
-    <AggregateModal v-on:needShowBuildTips="needShowBuildTips" v-on:openBuildDialog="setModelBuldRange"/>
+    <AggregateModal v-on:needShowBuildTips="needShowBuildTips" v-on:openBuildDialog="setModelBuldRange" v-on:openComplementAllIndexesDialog="openComplementSegment"/>
     <!-- 表索引编辑 -->
-    <TableIndexEdit v-on:needShowBuildTips="needShowBuildTips" v-on:openBuildDialog="setModelBuldRange"/>
+    <TableIndexEdit v-on:needShowBuildTips="needShowBuildTips" v-on:openBuildDialog="setModelBuldRange" v-on:openComplementAllIndexesDialog="openComplementSegment"/>
+    <!-- 选择去构建的segment -->
+    <ConfirmSegment v-on:reloadModelAndSegment="reloadModelAndSegment"/>
   </div>
 </template>
 <script>
@@ -411,6 +419,7 @@ import ModelCloneModal from './ModelCloneModal/clone.vue'
 import ModelAddModal from './ModelAddModal/addmodel.vue'
 import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ModelBuildModal from './ModelBuildModal/build.vue'
+import ConfirmSegment from './ConfirmSegment/ConfirmSegment.vue'
 import ModelPartition from './ModelPartition/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
 import ModelSql from './ModelSql/ModelSql.vue'
@@ -442,8 +451,9 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
   beforeRouteEnter (to, from, next) {
     next(vm => {
       // 从编辑页面过来，要默认选中在某个tab上，从这里取
-      if (to.params.addIndex) {
+      if (to.params.expandTab) {
         vm.currentEditModel = from.params.modelName
+        vm.expandTab = to.params.expandTab
         // vm.showFull = true
       }
       if (to.params.modelAlias) {
@@ -508,6 +518,9 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     ...mapActions('ModelBuildModal', {
       callModelBuildDialog: 'CALL_MODAL'
     }),
+    ...mapActions('ConfirmSegment', {
+      callConfirmSegmentModal: 'CALL_MODAL'
+    }),
     ...mapActions('ModelPartition', {
       callModelPartitionDialog: 'CALL_MODAL'
     }),
@@ -538,6 +551,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     ModelAddModal,
     ModelCheckDataModal,
     ModelBuildModal,
+    ConfirmSegment,
     ModelPartition,
     ModelJson,
     ModelSql,
@@ -579,6 +593,8 @@ export default class ModelList extends Vue {
     model: '',
     name: ''
   }
+  expandTab = ''
+  isModelListOpen = false
   async loadAvailableModelOwners (filterName) {
     this.ownerFilter.name = filterName || ''
     try {
@@ -633,6 +649,34 @@ export default class ModelList extends Vue {
   closeBuildTips (uuid) {
     this.buildVisible[uuid] = false
     localStorage.setItem('hideBuildTips', true)
+  }
+  reloadModelAndSegment (alias) {
+    this.loadModelsList()
+    this.refreshSegment(alias)
+  }
+  openComplementSegment (model, isModelMetadataChanged) {
+    let title
+    let subTitle
+    let submitText
+    let refrashWarningSegment
+    if (isModelMetadataChanged) {
+      title = this.$t('kylinLang.common.seeDetail')
+      subTitle = this.$t('modelMetadataChangedDesc')
+      refrashWarningSegment = true
+      submitText = this.$t('kylinLang.common.refresh')
+    } else {
+      title = this.$t('buildIndex')
+      subTitle = this.$t('batchBuildSubTitle')
+      submitText = this.$t('buildIndex')
+    }
+    this.callConfirmSegmentModal({
+      title: title,
+      subTitle: subTitle,
+      refrashWarningSegment: refrashWarningSegment,
+      indexes: [],
+      submitText: submitText,
+      model: model
+    })
   }
   setRowClass (res) {
     const {row, rowIndex} = res
@@ -761,16 +805,24 @@ export default class ModelList extends Vue {
     if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column)) {
       type = 'fullLoad'
     }
-    await this.callModelBuildDialog({
-      modelDesc: modelDesc,
-      type: type,
-      isHaveSegment: !!total_size,
-      disableFullLoad: type === 'fullLoad' && value.length > 0 && value[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
+    this.isModelListOpen = true
+    this.$nextTick(async () => {
+      await this.callModelBuildDialog({
+        modelDesc: modelDesc,
+        type: type,
+        title: this.$t('build'),
+        isHaveSegment: !!total_size,
+        disableFullLoad: type === 'fullLoad' && value.length > 0 && value[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
+      })
+      await this.refreshSegment(modelDesc.alias)
+      this.isModelListOpen = false
     })
-    this.refreshSegment()
   }
-  async refreshSegment () {
-    this.$refs.segmentComp && await this.$refs.segmentComp.$emit('refresh')
+  async willAddIndex (alias) {
+    this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('willAddIndex')
+  }
+  async refreshSegment (alias) {
+    this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('refresh')
     this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
     this.$nextTick(() => {
       this.setModelExpand()
@@ -856,7 +908,7 @@ export default class ModelList extends Vue {
     } else if (command === 'purge') {
       return kapConfirm(this.$t('pergeModelTip', {modelName: modelDesc.alias}), {type: 'warning'}, this.$t('pergeModelTitle')).then(() => {
         this.handlePurge(modelDesc).then(() => {
-          this.refreshSegment()
+          this.refreshSegment(modelDesc.alias)
         })
       })
     } else if (command === 'clone') {
@@ -977,7 +1029,7 @@ export default class ModelList extends Vue {
             await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
             this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
             this.loadModelsList()
-            this.refreshSegment()
+            this.refreshSegment(modelName)
           } catch (e) {
             handleError(e)
           }
@@ -1039,7 +1091,7 @@ export default class ModelList extends Vue {
       this.$set(item, 'showModelDetail', false)
       this.modelArray.push({
         ...item,
-        tabTypes: this.currentEditModel === item.alias ? 'third' : 'overview'
+        tabTypes: this.currentEditModel === item.alias ? this.expandTab : 'overview'
       })
     })
   }

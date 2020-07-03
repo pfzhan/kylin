@@ -73,7 +73,7 @@ export default {
       { "id": "segmentActions" },
       { "id": "editAggGroup" },
       { "id": "delAggIdx" },
-      { "id": "bulidIndex" },
+      { "id": "buildIndex" },
       { "id": "tableIndexActions" },
       { "id": "viewDataSource" },
       { "id": "changeBuildType" },
@@ -181,16 +181,16 @@ export default {
     "datasourceActions": {
       "keyPattern": "groupRole-projectType-projectRole",
       "entries": [
-        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
         { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
         { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-manualMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
         { "key": "systemUser-autoMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
 
-        { "key": "systemUser-manualMaintain-operation", "value": "loadData,segmentActions,bulidIndex" },
+        { "key": "systemUser-manualMaintain-operation", "value": "loadData,segmentActions,buildIndex" },
         { "key": "systemUser-autoMaintain-operation", "value": "loadData" },
 
         { "key": "systemUser-*-read", "value": "none" }

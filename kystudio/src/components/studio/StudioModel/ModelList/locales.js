@@ -36,6 +36,7 @@ export default {
     onLine: 'Online',
     offLine: 'Offline',
     build: 'Build Index',
+    buildTitle: 'Build',
     storage: 'Storage',
     usage: 'Usage',
     fullLoadDataTitle: 'Load Data',
@@ -93,7 +94,13 @@ export default {
     changeTo: 'Change Owner To',
     pleaseChangeOwner: 'Please change model owner',
     changeDesc: 'You can change the owner of the model to a system administrator, a user in the project ADMIN role, or a user in the project management role.',
-    changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.'
+    changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.',
+    buildIndex: 'Build Index',
+    batchBuildSubTitle: 'Please choose which data ranges you’d like to build with the added indexes.',
+    modelMetadataChangedTips: 'Data in the source table was changed. The query results might be inaccurate. ',
+    seeDetail: 'View Details',
+    modelMetadataChangedDesc: 'Source table in the following segment(s) might have been changed. The data might be inconsistent after being built. Please check with your system administrator.<br/>You may try refreshing these segments to ensure the data consistency.',
+    refrashWarningSegment: 'Only ONLINE segments could be refreshed'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -132,6 +139,7 @@ export default {
     onLine: '模型上线',
     offLine: '模型下线',
     build: '构建索引',
+    buildTitle: '构建',
     storage: '存储大小',
     usage: '使用次数',
     fullLoadDataTitle: '加载数据',
@@ -186,6 +194,12 @@ export default {
     changeTo: '变更所有者为',
     pleaseChangeOwner: '请选择模型所有者',
     changeDesc: '您可以将该模型的所有者变更为系统管理员、项目 ADMIN 角色的用户或者项目 Management 角色的用户。',
-    changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。'
+    changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。',
+    buildIndex: '构建索引',
+    batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
+    modelMetadataChangedTips: '当前模型源表发生变化，可能会影响查询结果的准确性。',
+    seeDetail: '查看详情',
+    modelMetadataChangedDesc: '检测到以下 Segment 中源表数据可能发生了变化，将导致构建后数据不一致。请与系统管理员核实。<br/>建议刷新以下这些 Segment 确保数据的一致性。',
+    refrashWarningSegment: '仅支持刷新状态为 ONLINE 的 Segment'
   }
 }

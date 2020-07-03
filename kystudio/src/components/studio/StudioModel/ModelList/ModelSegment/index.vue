@@ -2,16 +2,21 @@
   <div class="model-segment" v-loading="isLoading">
     <div class="segment-actions clearfix">
       <div class="left ky-no-br-space" v-if="isShowSegmentActions">
+        <el-button-group>
+          <el-button size="small" icon="el-icon-ksd-add_2" class="ksd-mr-10" type="default" :disabled="!model.partition_desc && segments.length>0" @click="addSegment">Segment</el-button>
+        </el-button-group>
         <el-button-group class="ksd-mr-10">
           <el-button size="small" icon="el-icon-ksd-table_refresh" type="primary" :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
           <el-button size="small" icon="el-icon-ksd-merge" type="default" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')" @click="handleMergeSegment">{{$t('merge')}}</el-button>
           <el-button size="small" icon="el-icon-ksd-table_delete" type="default" :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
         </el-button-group>
-
         <el-button-group>
-          <el-button size="small" icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
           <el-button size="small" icon="el-icon-ksd-repair" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
         </el-button-group>
+        <!-- <el-button-group>
+          <el-button size="small" icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        </el-button-group> -->
+
       </div>
       <div class="right">
         <div class="segment-action ky-no-br-space" v-if="!filterSegment">
@@ -51,7 +56,18 @@
       <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
-        <el-table-column prop="id" label="Segment ID">
+        <el-table-column prop="id" show-overflow-tooltip label="Segment ID">
+        </el-table-column>
+        <el-table-column
+          header-align="right"
+          align="right"
+          sortable="custom"
+          prop="indexAmount"
+          show-overflow-tooltip
+          :render-header="renderIndexAmountHeader">
+          <template slot-scope="scope">
+              <span>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
+          </template>
         </el-table-column>
         <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114">
           <template slot-scope="scope">
@@ -59,6 +75,13 @@
               <el-tag size="mini" :type="getTagType(scope.row)">{{scope.row.status}}</el-tag>
             </el-tooltip>
           </template>
+        </el-table-column>
+        <el-table-column prop="last_modified" show-overflow-tooltip :label="$t('modifyTime')">
+          <template slot-scope="scope">
+            <span>{{scope.row.last_build_time | toServerGMTDate}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('sourceRecords')" align="right" prop="row_count" sortable="custom">
         </el-table-column>
         <el-table-column :label="$t('storageSize')" width="145" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
@@ -119,6 +142,8 @@
         </tr>
       </table>
     </el-dialog>
+
+    <!-- <ModelAddSegment v-if="isSegmentOpen" @isWillAddIndex="willAddIndex" @refreshModelList="refreshModelList"/> -->
   </div>
 </template>
 
@@ -131,6 +156,7 @@ import locales from './locales'
 import { pageCount } from '../../../../../config'
 import { handleSuccessAsync, handleError, transToUTCMs, transToServerGmtTime } from '../../../../../util'
 import { formatSegments } from './handler'
+import ModelAddSegment from '../ModelBuildModal/build.vue'
 
 @Component({
   props: {
@@ -148,6 +174,9 @@ import { formatSegments } from './handler'
       'isAutoProject'
     ])
   },
+  components: {
+    ModelAddSegment
+  },
   methods: {
     ...mapActions({
       fetchSegments: 'FETCH_SEGMENTS',
@@ -155,6 +184,9 @@ import { formatSegments } from './handler'
       deleteSegments: 'DELETE_SEGMENTS',
       mergeSegments: 'MERGE_SEGMENTS',
       checkSegments: 'CHECK_SEGMENTS'
+    }),
+    ...mapActions('ModelBuildModal', {
+      callModelBuildDialog: 'CALL_MODAL'
     }),
     ...mapActions('SourceTableModal', {
       callSourceTableModal: 'CALL_MODAL'
@@ -184,6 +216,7 @@ export default class ModelSegment extends Vue {
   isShowDetail = false
   isSegmentLoading = false
   isLoading = false
+  isSegmentOpen = false
   get selectedSegments () {
     return this.selectedSegmentIds.map(
       segmentId => this.segments.find(segment => segment.id === segmentId)
@@ -210,10 +243,38 @@ export default class ModelSegment extends Vue {
       this.loadSegments()
     })
   }
+  addSegment () {
+    let type = 'incremental'
+    if (!(this.model.partition_desc && this.model.partition_desc.partition_date_column)) {
+      type = 'fullLoad'
+    }
+    this.isSegmentOpen = true
+    this.$nextTick(async () => {
+      await this.callModelBuildDialog({
+        modelDesc: this.model,
+        title: this.$t('addSegment'),
+        type: type,
+        isAddSegment: true,
+        isHaveSegment: !!this.totalSegmentCount,
+        disableFullLoad: type === 'fullLoad' && this.segments.length > 0 && this.segments[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
+      })
+      await this.loadSegments()
+      this.$emit('loadModels')
+      this.isSegmentOpen = false
+    })
+  }
+  willAddIndex () {
+    this.$emit('willAddIndex')
+  }
+  // refreshModelList () {
+  //   this.$emit('loadModels')
+  // }
   // 更改不同状态对应不同type
   getTagType (row) {
     if (row.status === 'ONLINE') {
       return 'success'
+    } else if (row.status === 'WARNING') {
+      return 'warning'
     } else if (['LOCKED'].includes(row.status)) {
       return 'info'
     } else {
@@ -226,11 +287,11 @@ export default class ModelSegment extends Vue {
       return this.selectedSegments.length && typeof this.selectedSegments[0] !== 'undefined' ? this.selectedSegments.filter(it => !type.includes(it.status)).length > 0 : false
     }
     if (type === 'refresh') {
-      return typeList(['ONLINE'])
+      return typeList(['ONLINE', 'WARNING'])
     } else if (type === 'merge') {
       return typeList(['ONLINE'])
     } else if (type === 'delete') {
-      return typeList(['ONLINE', 'LOADING', 'REFRESHING', 'MERGING'])
+      return typeList(['ONLINE', 'LOADING', 'REFRESHING', 'MERGING', 'WARNING'])
     }
   }
   getStartDateLimit (time) {
@@ -302,7 +363,15 @@ export default class ModelSegment extends Vue {
         const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds })
         if (isSubmit) {
           await this.loadSegments()
-          this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+          this.$emit('loadModels')
+          // this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+          this.$message({
+            dangerouslyUseHTMLString: true,
+            type: 'success',
+            duration: 0,
+            showClose: true,
+            message: `${this.$t('kylinLang.common.buildSuccess')}<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+          })
         }
       } else {
         this.$message(this.$t('pleaseSelectSegments'))
@@ -343,7 +412,15 @@ export default class ModelSegment extends Vue {
         const isSubmit = await this.mergeSegments({ projectName, modelId, segmentIds })
         if (isSubmit) {
           await this.loadSegments()
-          this.$message({ type: 'success', message: this.$t('kylinLang.common.mergeSuccess') })
+          this.$emit('loadModels')
+          // this.$message({ type: 'success', message: this.$t('kylinLang.common.mergeSuccess') })
+          this.$message({
+            dangerouslyUseHTMLString: true,
+            type: 'success',
+            duration: 0,
+            showClose: true,
+            message: `${this.$t('kylinLang.common.buildSuccess')}<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+          })
         }
       }
     } catch (e) {
@@ -402,13 +479,21 @@ export default class ModelSegment extends Vue {
   handleSelectSegments (selectedSegments) {
     this.selectedSegmentIds = selectedSegments.map(segment => segment.id)
   }
-  async handlePurgeModel () {
-    if (this.segments.length > 0) {
-      this.$emit('purge-model', this.model)
-    } else {
-      this.$message({ type: 'info', message: this.$t('segmentIsEmpty') })
-    }
+  renderIndexAmountHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('kylinLang.common.indexAmount')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('kylinLang.common.indexAmountTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
   }
+  // async handlePurgeModel () {
+  //   if (this.segments.length > 0) {
+  //     this.$emit('purge-model', this.model)
+  //   } else {
+  //     this.$message({ type: 'info', message: this.$t('segmentIsEmpty') })
+  //   }
+  // }
   handleFixSegment () {
     this.$emit('auto-fix')
   }

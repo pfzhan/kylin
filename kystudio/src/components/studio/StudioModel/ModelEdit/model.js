@@ -23,6 +23,7 @@ class NModel {
     this.uuid = options.uuid || null
     this.tables = {}
     this.owner = options.owner || ''
+    this.storage = options.storage
     this.canvas = options.canvas // 模型布局坐标
     this.broken_reason = options.broken_reason // 破损原因
     this.filter_condition = options.filter_condition || ''

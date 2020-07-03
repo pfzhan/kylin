@@ -772,8 +772,14 @@ export default class AggregateModal extends Vue {
     let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
     if (this.form.isCatchUp) {
       if (data.type === BuildIndexStatus.NORM_BUILD) {
-        tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
-        this.$message({message: tipMsg, type: 'success'})
+        tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')}) + `<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+        this.$message({
+          message: tipMsg,
+          type: 'success',
+          dangerouslyUseHTMLString: true,
+          duration: 0,
+          showClose: true
+        })
         return
       }
       if (data.type === BuildIndexStatus.NO_LAYOUT) {
@@ -805,7 +811,8 @@ export default class AggregateModal extends Vue {
     })
   }
   async handleSubmit (isCatchUp) {
-    if (isCatchUp && this.model.available_indexes_count || !isCatchUp) {
+    // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
+    if (isCatchUp && this.model.segments.length > 0 && !this.model.partition_desc || !isCatchUp) {
       this.setModalForm({isCatchUp: set(this.form, 'isCatchUp', isCatchUp)['isCatchUp']})
     }
     this.isSubmit = true
@@ -864,11 +871,15 @@ export default class AggregateModal extends Vue {
         // 获取数字正常的情况下，才进行 submit
         let res = await this.submit(data)
         let result = await handleSuccessAsync(res)
-        if (!isCatchUp && !this.model.available_indexes_count) {
-          this.$emit('needShowBuildTips', this.model.uuid)
-        }
-        if (isCatchUp && !this.model.available_indexes_count) {
+        // if (!isCatchUp && !this.model.segments.length) {
+        //   this.$emit('needShowBuildTips', this.model.uuid)
+        // }
+        if (isCatchUp && this.model.segments.length === 0) {
           this.$emit('openBuildDialog', this.model, true)
+        }
+        // 保存并增量构建时，需弹出segment list选择构建区域
+        if (isCatchUp && this.model.segments.length > 0 && this.model.partition_desc && this.model.partition_desc.partition_date_column) {
+          this.$emit('openComplementAllIndexesDialog', this.model)
         }
         this.handleBuildIndexTip(result)
         this.isSubmit = false

@@ -41,8 +41,12 @@ export default {
     REFRESHING: 'A new segment is automatically generated when you refresh the specified segment. This new segment is marked as REFRESHING. When the refresh is complete the old segment will be automatically deleted.',
     MERGING: 'A new segment is automatically generated when you merge the specified segments. This new segment is marked as MERGING. When the merge is complete the old segment will be automatically deleted.',
     LOCKED: 'The segment is locked and is being referenced by a refreshed or merged segment. Locked segment cannot be refreshed and deleted.',
+    WARNING: 'Data in the source table for this segment was changed. The query results might be inaccurate. Please try refreshing.',
     fix: 'Fix',
-    fixTips: 'Automatic fix for discontinuous segments'
+    fixTips: 'Automatic fix for discontinuous segments',
+    addSegment: 'Add Segment',
+    modifyTime: 'Last Modified Time',
+    sourceRecords: 'Source Records'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -86,7 +90,11 @@ export default {
     REFRESHING: '刷新指定 Segment 时自动生成新的 Segment，这个新的 Segment 处于刷新中。当刷新完毕，将自动删除旧的 Segment。',
     MERGING: '合并指定 Segment 时自动生成新的 Segment，这个新的 Segment 处于合并中。当合并完毕，将自动删除旧的 Segment。',
     LOCKED: 'Segment 处于锁定状态下，正在被刷新或被合并的 Segment 引用。当前状态无法进行刷新和删除操作。',
+    WARNING: '当前 Segment 中源表发生变化，可能会影响查询结果的准确性，建议刷新。',
     fix: '修复',
-    fixTips: '自动补全不连续的 Segment'
+    fixTips: '自动补全不连续的 Segment',
+    addSegment: '添加 Segment',
+    modifyTime: '最后修改时间',
+    sourceRecords: '行数'
   }
 }

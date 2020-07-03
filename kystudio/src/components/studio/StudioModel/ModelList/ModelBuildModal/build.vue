@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog class="model-build" :title="$t('buildIndex')" width="560px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+    <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal()">
       <div>
         <el-alert
           :title="$t('changeBuildTypeTips')"
@@ -11,7 +11,7 @@
           show-icon>
         </el-alert>
         <div class="ksd-title-label-small ksd-mb-10">{{$t('chooseBuildType')}}</div>
-        <div>
+        <!-- <div>
           <el-radio-group v-model="buildOrComplete" class="ksd-mb-10">
             <el-radio label="build">{{$t('build')}}</el-radio>
             <common-tip :content="$t('unableComplete')" v-if="!modelDesc.empty_indexes_count">
@@ -19,22 +19,27 @@
             </common-tip>
             <el-radio v-else label="complete">{{$t('complete')}}</el-radio>
           </el-radio-group>
-        </div>
-        <el-select v-model="buildType" class="ksd-mb-10" @change="handChangeBuildType" v-if="buildOrComplete == 'build'" :disabled="!datasourceActions.includes('changeBuildType')">
+        </div> -->
+        <el-select v-model="buildType" class="ksd-mb-5" @change="handChangeBuildType" v-if="buildOrComplete == 'build'" :disabled="!datasourceActions.includes('changeBuildType')">
           <el-option :label="$t('incremental')" value="incremental"></el-option>
           <el-option :label="$t('fullLoad')" value="fullLoad"></el-option>
         </el-select>
       </div>
-      <el-alert
-        class="ksd-pt-0"
-        :title="buildTips"
-        type="info"
-        :show-background="false"
-        :closable="false"
-        show-icon>
-      </el-alert>
+      <div class="tips">{{buildTips}}</div>
+      <div v-if="buildType === 'fullLoad'">
+        <el-alert
+          class="ksd-pt-0 ksd-mt-15"
+          :title="$t('segmentTips')"
+          type="info"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+        </el-alert>
+        <span v-if="isHaveSegment">{{fullLoadBuildTips}}</span>
+        <span v-else>{{$t('willAddSegmentTips')}}</span>
+      </div>
       <div v-if="buildType === 'incremental' && buildOrComplete === 'build'">
-        <el-form class="ksd-mb-20" v-if="isExpand" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
+        <el-form class="ksd-mb-20 ksd-mt-15" v-if="isExpand" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
           <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
             <el-row :gutter="5">
               <el-col :span="12">
@@ -89,7 +94,7 @@
           <span v-else @click="toggleShowPartition">{{$t('showMore')}}</span>
           <div class="divide-line"></div>
         </div>
-        <div class="ksd-title-label-small ksd-mb-10">{{$t('pleaseSetDataRange')}}</div>
+        <div class="ksd-title-label-small ksd-mb-10">{{$t('addRangeTitle')}}</div>
         <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
           <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
           <!-- <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
@@ -105,7 +110,7 @@
             <br/> -->
             <el-alert
               class="ksd-pt-0"
-              :title="$t('kylinLang.dataSource.rangeInfoTip')"
+              :title="$t('segmentTips')"
               type="info"
               :show-background="false"
               :closable="false"
@@ -169,8 +174,14 @@
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" :loading="btnLoading" v-if="buildOrComplete=='build'" v-guide.setbuildModelRange @click="setbuildModel" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t(buildType)}}</el-button>
-        <el-button type="primary" :loading="btnLoading" v-else v-guide.setbuildModelRange @click="completeBuildModel" size="medium">{{$t('complete')}}</el-button>
+        <template v-if="isAddSegment">
+          <el-button type="primary" plain :loading="btnLoading" @click="setbuildModel(false)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button type="primary" :loading="btnLoading" v-if="modelDesc.total_indexes" v-guide.setbuildModelRange @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndBuild')}}</el-button>
+          <el-button type="primary" :loading="btnLoading" v-else v-guide.setbuildModelRange @click="saveAndAddIndex" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndAddIndex')}}</el-button>
+        </template>
+        <template v-else>
+          <el-button type="primary" :loading="btnLoading" @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t(buildType)}}</el-button>
+        </template>
       </div>
     </el-dialog>
 </template>
@@ -179,7 +190,7 @@
   import { Component, Watch } from 'vue-property-decorator'
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from 'store'
-  import { handleError, kapMessage, transToUTCMs, getGmtDateFromUtcLike } from 'util/business'
+  import { handleError, transToUTCMs, getGmtDateFromUtcLike, kapMessage } from 'util/business'
   import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, objectClone, kapConfirm } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
@@ -198,7 +209,9 @@
       ]),
       ...mapState('ModelBuildModal', {
         isShow: state => state.isShow,
+        title: state => state.title,
         type: state => state.type,
+        isAddSegment: state => state.isAddSegment,
         buildOrComp: state => state.buildOrComp,
         isHaveSegment: state => state.isHaveSegment,
         disableFullLoad: state => state.disableFullLoad,
@@ -253,7 +266,7 @@
     partitionMeta = {
       table: '',
       column: '',
-      format: 'yyyy-MM-dd'
+      format: ''
     }
     prevPartitionMeta = {
       table: '',
@@ -267,9 +280,13 @@
     dateFormats = dateFormats
     isExpand = true
     isShowWarning = false
+    isWillAddIndex = false
 
     toggleDetail () {
       this.showDetail = !this.showDetail
+    }
+    get fullLoadBuildTips () {
+      return this.$t('fullLoadBuildTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
     }
     get noPartition () {
       return !(this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format)
@@ -283,6 +300,7 @@
       }
       if (this.buildType === 'incremental' && !this.partitionMeta.table) {
         this.isExpand = true
+        this.partitionMeta.table = this.partitionTables[0].alias
       }
     }
     validateBrokenColumn (rule, value, callback) {
@@ -367,8 +385,8 @@
     }
 
     partitionColumnChange () {
-      this.partitionMeta.format = 'yyyy-MM-dd'
-      this.$refs.partitionForm.validate()
+      // this.partitionMeta.format = 'yyyy-MM-dd'
+      // this.$refs.partitionForm.validate()
       this.modelBuildMeta.dataRangeVal = []
     }
 
@@ -405,14 +423,10 @@
     }
 
     get buildTips () {
-      if (this.buildOrComplete === 'build') {
-        if (this.buildType === 'incremental') {
-          return this.$t('incrementalTips')
-        } else if (this.buildType === 'fullLoad') {
-          return this.$t('fullLoadTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
-        }
-      } else {
-        return this.$t('completeTips')
+      if (this.buildType === 'incremental') {
+        return this.$t('incrementalTips')
+      } else if (this.buildType === 'fullLoad') {
+        return this.$t('fullLoadTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
       }
     }
     get format () {
@@ -530,6 +544,7 @@
       this.isShowErrorSegments = false
       this.errorSegments = []
       this.showDetail = false
+      this.isWillAddIndex = false
       this.resetError()
       this.hideModal()
       setTimeout(() => {
@@ -537,27 +552,46 @@
         this.resetModalForm()
       }, 200)
     }
-    _buildModel ({start, end, modelId, partition_desc, segment_holes}) {
+    _buildModel ({start, end, modelId, modelName, isBuild, partition_desc, segment_holes}) {
       this.buildModel({
         model_id: modelId,
         data: {
           start: start,
           end: end,
+          build_all_indexes: isBuild,
           partition_desc: partition_desc,
           segment_holes: segment_holes || [],
           project: this.currentSelectedProject
         }
       }).then(() => {
         this.btnLoading = false
-        kapMessage(this.$t('kylinLang.common.submitSuccess'))
-        this.closeModal(true)
         this.$emit('refreshModelList')
+        if (this.isWillAddIndex) {
+          this.$emit('isWillAddIndex', modelName)
+        } else {
+          if (isBuild) {
+            this.$message({
+              dangerouslyUseHTMLString: true,
+              type: 'success',
+              duration: 0,
+              showClose: true,
+              message: `${this.$t('kylinLang.common.buildSuccess')}<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+            })
+          } else {
+            kapMessage(this.$t('kylinLang.common.submitSuccess'))
+          }
+        }
+        this.closeModal(true)
       }, (res) => {
         this.btnLoading = false
         res && handleError(res)
       })
     }
-    async setbuildModel () {
+    saveAndAddIndex () {
+      this.isWillAddIndex = true
+      this.setbuildModel(false)
+    }
+    async setbuildModel (isBuild) {
       this.btnLoading = true
       try {
         if (this.buildType === 'incremental' && this.buildOrComplete === 'build') {
@@ -571,7 +605,13 @@
             const partition_desc = {}
             if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
               if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
-                await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+                // await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+                try {
+                  await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
+                } catch (e) {
+                  this.btnLoading = false
+                  return false
+                }
               }
             }
             partition_desc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
@@ -586,7 +626,7 @@
             const isChangePatition = this.prevPartitionMeta.table && (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format)
             const isChangeBuildType = !this.prevPartitionMeta.table && this.isHaveSegment
             if (isChangePatition || isChangeBuildType) {
-              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
+              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc})
             } else {
               const res = await this.checkDataRange({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, start: start, end: end})
               const data = await handleSuccessAsync(res)
@@ -627,43 +667,69 @@
                         return {start: seg.date_range_start, end: seg.date_range_end}
                       })
                       try {
-                        this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
+                        this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
                       } catch (e) {
                         handleError(e)
                       }
                     }
                   })
-                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
+                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc})
                 } catch (e) {
                   this.btnLoading = false
                 }
               } else {
-                this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
+                this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc})
               }
             }
           })
         } else if (this.buildType === 'fullLoad' && this.buildOrComplete === 'build') {
           if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
-            await kapConfirm(this.$t('changeBuildTypeTipsConfirm', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+            // await kapConfirm(this.$t('changeBuildTypeTipsConfirm', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+            try {
+              await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
+            } catch (e) {
+              this.btnLoading = false
+              return false
+            }
             this.btnLoading = true
             await this.setModelPartition({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, partition_desc: null})
           }
-          await this.buildFullLoadModel({
+          this.buildFullLoadModel({
             model_id: this.modelDesc.uuid,
             start: null,
             end: null,
+            build_all_indexes: isBuild,
             project: this.currentSelectedProject
+          }).then(async () => {
+            this.btnLoading = false
+            await this.$emit('refreshModelList')
+            if (this.isWillAddIndex) {
+              this.$emit('isWillAddIndex')
+            } else {
+              if (isBuild) {
+                this.$message({
+                  dangerouslyUseHTMLString: true,
+                  type: 'success',
+                  duration: 0,
+                  showClose: true,
+                  message: `${this.$t('kylinLang.common.buildSuccess')}<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+                })
+              } else {
+                kapMessage(this.$t('kylinLang.common.submitSuccess'))
+              }
+            }
+            this.closeModal(true)
+          }, (res) => {
+            this.btnLoading = false
+            res && handleError(res)
           })
-          this.btnLoading = false
-          kapMessage(this.$t('kylinLang.common.submitSuccess'))
-          this.closeModal(true)
-          this.$emit('refreshModelList')
         }
       } catch (e) {
         this.btnLoading = false
         handleError(e)
       }
     }
+    // 补全索引已拿掉
     async completeBuildModel () {
       if (this.modelDesc.segment_holes.length) {
         const segmentHoles = this.modelDesc.segment_holes
@@ -752,6 +818,14 @@
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
   .model-build {
+    .tips {
+      font-size: 12px;
+      color: @text-disabled-color;
+    }
+    .add-title {
+      font-weight: 500;
+      color: @text-title-color;
+    }
     .item-desc {
       font-size: 12px;
       line-height: 1;

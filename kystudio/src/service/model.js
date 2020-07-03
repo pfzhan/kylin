@@ -108,8 +108,8 @@ export default {
   getAutoModelSql: (para) => {
     return Vue.resource(apiUrl + 'smart/' + para.modelName + '/model_sqls').get()
   },
-  fetchSegments: (model, project, start, end, sortBy, reverse, page_offset, pageSize) => {
-    return Vue.resource(`${apiUrl}models/${model}/segments`).get({model, project, start, end, sort_by: sortBy, reverse, page_offset, page_size: pageSize})
+  fetchSegments: (model, paraData) => {
+    return Vue.resource(`${apiUrl}models/${model}/segments`).get(paraData)
   },
   fetchAggregates: (para) => {
     return Vue.resource(`${apiUrl}models/${para.model}/agg_indices`).get(para)
@@ -153,7 +153,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.model_id + '/model_segments').update(para.data)
   },
   buildFullLoadModel: (para) => {
-    return Vue.resource(apiUrl + 'models/' + para.model_id + '/segments').save({project: para.project, start: para.start, end: para.end})
+    return Vue.resource(apiUrl + 'models/' + para.model_id + '/segments').save(para)
   },
   checkDataRange: (para) => {
     return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation`).save({project: para.project, start: para.start, end: para.end})
@@ -195,6 +195,15 @@ export default {
   },
   buildIndex: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.model_id + '/indices').save({project: para.project})
+  },
+  complementAllIndex: (para) => {
+    return Vue.resource(apiUrl + `models/${para.modelId}/model_segments/all_indexes`).save(para.data)
+  },
+  complementBatchIndex: (para) => {
+    return Vue.resource(apiUrl + `models/${para.modelId}/model_segments/indexes`).save(para.data)
+  },
+  deleteBatchIndex: (para) => {
+    return Vue.resource(apiUrl + `models/${para.modelId}/model_segments/indexes/deletion`).save(para.data)
   },
   getModelRecommendations: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations?project=' + para.project).get()

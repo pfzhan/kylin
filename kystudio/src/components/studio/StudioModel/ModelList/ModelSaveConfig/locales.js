@@ -36,7 +36,10 @@ export default {
     fullLoadTips: 'The system will load all data.',
     changeBuildTypeTips: 'Please note that modifying the load method will clear all segments',
     editCCBuildTip: 'The modified expression of computed column would be effective until all the related indexes have been built. Do you want to save and build index now? ',
-    saveAndBuild: 'Save and Build'
+    saveAndBuild: 'Save and Build',
+    purgeSegmentDataTips: 'Model definition has changed. Once saving the model, all data in the segments will be deleted. As a result, this model CAN’T be used to serve queries. We strongly recommend to reload all data (in total {storageSize}).\r\n Do you want to continue?',
+    changeSegmentTips: 'Model partition has changed. Once saving the model, all segments and data will be deleted. As a result, this model CAN’T be used to serve queries.<br/>Do you want to continue?',
+    saveAndLoad: 'Save and Build Index'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -75,6 +78,9 @@ export default {
     fullLoadTips: '系统会全量加载所有数据。',
     changeBuildTypeTips: '请注意，修改加载方式，会清空所有 Segment',
     editCCBuildTip: '修改的可计算列表达式需待索引构建完成后生效。是否继续保存并构建索引？',
-    saveAndBuild: '保存并构建'
+    saveAndBuild: '保存并构建',
+    purgeSegmentDataTips: '模型定义关系发生改变，保存后系统将删除所有 Segment 中的数据。模型将无法服务于业务查询。为了模型能够服务于业务查询，建议您重新加载模型下所有数据（共计 {storageSize}）。\r\n是否要继续保存？',
+    changeSegmentTips: '模型分区设置发生改变，保存后系统将删除所有 Segment 及数据。模型将无法服务于业务查询。<br/>是否要继续保存？',
+    saveAndLoad: '保存并构建索引'
   }
 }

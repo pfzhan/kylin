@@ -478,11 +478,14 @@
       :show-close="false">
       <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>
       <div class="ksd-pl-26">
-        <span>{{$t('saveSuccessTip')}}</span>
+        <div>{{$t('saveSuccessTip')}}</div>
+        <div v-if="saveModelType==='saveModel'&&!this.isFullLoad || saveModelType==='updataModel'&&!this.modelData.segments.length">{{$t('addSegmentTips')}}</div>
+        <div v-if="saveModelType==='saveModel'&&this.isFullLoad || saveModelType==='updataModel'&&this.modelData.segments.length">{{$t('addIndexTips')}}</div>
       </div>
       <span slot="footer" class="dialog-footer" v-if="gotoIndexdialogVisible">
         <el-button plain @click="ignoreAddIndex">{{$t('ignoreaddIndexTip')}}</el-button>
-        <el-button type="primary" @click="willAddIndex" v-guide.willAddIndex>{{$t('addIndexTip')}}</el-button>
+        <el-button type="primary" v-if="saveModelType==='saveModel'&&!this.isFullLoad || saveModelType==='updataModel'&&(!this.modelData.segments.length || isPurgeSegment)" @click="willAddSegment">{{$t('addSegment')}}</el-button>
+        <el-button type="primary" v-if="saveModelType==='saveModel'&&this.isFullLoad || saveModelType==='updataModel'&&this.modelData.segments.length&&!isPurgeSegment" @click="willAddIndex">{{$t('addIndex')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -622,6 +625,9 @@ export default class ModelEdit extends Vue {
     ]
   }
   isIgnore = false
+  isFullLoad = false
+  saveModelType = ''
+  isPurgeSegment = false
   validateName (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
@@ -1500,10 +1506,14 @@ export default class ModelEdit extends Vue {
       this.showSaveConfigDialog({
         modelDesc: data,
         modelInstance: this.modelInstance,
-        mode: 'saveModel'
+        mode: 'saveModel',
+        isChangeModelLayout: this.isIgnore // isIgnore为true说明至少改动过一次模型join关系等重大变化
       }).then((res) => {
+        if (data.uuid && res.isPurgeSegment) {
+          this.isPurgeSegment = res.isPurgeSegment // 修改分区列会清空所有segment，该字段引导用户去添加segment
+        }
         if (res.isSubmit) {
-          this.handleSaveModel(data)
+          this.handleSaveModel(data, res.data)
         } else {
           this.$emit('saveRequestEnd')
         }
@@ -1657,20 +1667,25 @@ export default class ModelEdit extends Vue {
     this.gotoIndexdialogVisible = false
   }
   willAddIndex () {
-    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, addIndex: true }})
+    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'third' }})
     this.gotoIndexdialogVisible = false
   }
-  handleSaveModel (data) {
-    let action = 'saveModel'
+  willAddSegment () {
+    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'first' }})
+    this.gotoIndexdialogVisible = false
+  }
+  handleSaveModel (data, modelSaveConfigData) {
+    this.saveModelType = 'saveModel'
     let para = data
     if (data.uuid) {
-      action = 'updataModel'
+      this.saveModelType = 'updataModel'
     }
     // 如果未选择partition 把partition desc 设置为null
     if (!(data && data.partition_desc && data.partition_desc.partition_date_column)) {
       data.partition_desc = null
+      this.isFullLoad = true
     }
-    this[action](para).then((res) => {
+    this[this.saveModelType](para).then((res) => {
       handleSuccess(res, async () => {
         // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
         // await handleWaiting()
@@ -1680,7 +1695,29 @@ export default class ModelEdit extends Vue {
           return
         }
         setTimeout(() => {
-          this.gotoIndexdialogVisible = true
+          // 有可用索引数据时，保存前二次确认是否清空segment，不再弹框引导是否打开添加索引tab
+          if (typeof this.modelData.available_indexes_count === 'number' && this.modelData.available_indexes_count > 0) {
+            this.ignoreAddIndex()
+            // 需要根据是点击的是保存，还是保存并加载来出提示，必须放在路由跳转之后，否则message会被吞掉
+            if (modelSaveConfigData) {
+              if (modelSaveConfigData.save_only) {
+                this.$message({
+                  type: 'success',
+                  message: this.$t('kylinLang.common.saveSuccess')
+                })
+              } else {
+                this.$message({
+                  dangerouslyUseHTMLString: true,
+                  type: 'success',
+                  duration: 0,
+                  showClose: true,
+                  message: `${this.$t('kylinLang.common.buildSuccess')}<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+                })
+              }
+            }
+          } else {
+            this.gotoIndexdialogVisible = true
+          }
           // kapConfirm(this.$t('saveSuccessTip'), {
           //   confirmButtonText: this.$t('addIndexTip'),
           //   cancelButtonText: this.$t('ignoreaddIndexTip'),

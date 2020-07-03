@@ -17,7 +17,7 @@
         :project-name="currentSelectedProject"
         :is-show-aggregate-action="false"
         :isShowEditAgg="datasourceActions.includes('editAggGroup')"
-        :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
+        :isShowBulidIndex="datasourceActions.includes('buildIndex')"
         :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')">
       </ModelAggregate>
     </el-dialog>

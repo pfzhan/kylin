@@ -45,7 +45,7 @@
           <el-col :span="12" v-if="partitionMeta.table">
             <el-form-item prop="column">
               <el-select :disabled="isLoadingNewRange"
-              v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
+              v-guide.partitionColumn v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
               <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.column.length"></i>
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
                   <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
@@ -139,6 +139,7 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
       mode: state => state.form.mode,
       modelDesc: state => state.form.modelDesc,
       modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
+      isChangeModelLayout: state => state.form.isChangeModelLayout,
       callback: state => state.callback
     })
   },
@@ -149,6 +150,9 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,
       resetModalForm: types.RESET_MODAL_FORM
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     }),
     // 后台接口请求
     ...mapActions({
@@ -208,9 +212,12 @@ export default class ModelPartitionModal extends Vue {
       return this.$t('fullLoadTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
     }
   }
-  handChangeBuildType () {
+  handChangeBuildType (val) {
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
       this.isShowWarning = true
+    }
+    if (val === 'incremental' && !this.partitionMeta.table) {
+      this.partitionMeta.table = this.partitionTables[0].alias
     }
   }
   validateRange (rule, value, callback) {
@@ -254,6 +261,7 @@ export default class ModelPartitionModal extends Vue {
     }
   }
   filterCondition = ''
+  originFilterCondition = ''
   dateFormats = dateFormats
   get partitionTitle () {
     if (this.mode === 'saveModel') {
@@ -284,7 +292,11 @@ export default class ModelPartitionModal extends Vue {
   get brokenPartitionColumns () {
     if (this.partitionMeta.table) {
       let ntable = this.modelInstance.getTableByAlias(this.partitionMeta.table)
-      return this.modelInstance.getBrokenModelLinksKeys(ntable.guid, [this.partitionMeta.column])
+      if (ntable) {
+        return this.modelInstance.getBrokenModelLinksKeys(ntable.guid, [this.partitionMeta.column])
+      } else {
+        return []
+      }
     }
     return []
   }
@@ -353,9 +365,9 @@ export default class ModelPartitionModal extends Vue {
   initModeDesc () {
     if (this.isShow) {
       this.modelBuildMeta.dataRangeVal = []
-      this.$nextTick(() => {
-        this.$refs.partitionForm && this.$refs.partitionForm.validate()
-      })
+      // this.$nextTick(() => {
+      //   this.$refs.partitionForm && this.$refs.partitionForm.validate()
+      // })
       if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column)) {
         this.buildType = 'fullLoad'
       }
@@ -364,8 +376,11 @@ export default class ModelPartitionModal extends Vue {
         this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
         this.partitionMeta.column = this.prevPartitionMeta.column = named[1]
         this.partitionMeta.format = this.prevPartitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+      } else {
+        this.partitionMeta.table = this.partitionTables[0].alias // 默认增量构建选择事实表
       }
       this.filterCondition = this.modelDesc.filter_condition
+      this.originFilterCondition = this.modelDesc.filter_condition
     } else {
       this.resetForm()
     }
@@ -382,12 +397,12 @@ export default class ModelPartitionModal extends Vue {
   partitionTableChange () {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
-    this.$refs.partitionForm.validate()
+    // this.$refs.partitionForm.validate()
   }
-  partitionColumnChange () {
-    this.partitionMeta.format = 'yyyy-MM-dd'
-    this.$refs.partitionForm.validate()
-  }
+  // partitionColumnChange () {
+  //   this.partitionMeta.format = 'yyyy-MM-dd'
+  //   this.$refs.partitionForm.validate()
+  // }
   resetForm () {
     this.partitionMeta = {
       table: '',
@@ -401,23 +416,45 @@ export default class ModelPartitionModal extends Vue {
     this.isShowWarning = false
   }
 
+  get isChangeToFullLoad () {
+    return this.prevPartitionMeta.table && this.buildType === 'fullLoad'
+  }
+
+  get isChangePartition () {
+    return (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) && this.buildType === 'incremental'
+  }
+
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+    let isOnlySave = false
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
-      if (this.prevPartitionMeta.table && this.buildType === 'fullLoad') {
-        await kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+      // if (this.prevPartitionMeta.table && this.buildType === 'fullLoad') {
+      //   await kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+      // } else if ((this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) && this.buildType === 'incremental') {
+      //   await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
+      // }
+      if (this.isChangeToFullLoad || this.isChangePartition) {
+        await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
+      } else if (this.isChangeModelLayout || this.originFilterCondition !== this.filterCondition) {
+        const res = await this.callGlobalDetailDialog({
+          msg: this.$t('purgeSegmentDataTips', {storageSize: Vue.filter('dataSize')(this.modelInstance.storage)}),
+          title: this.$t('kylinLang.common.tip'),
+          dialogType: 'warning',
+          showDetailBtn: false,
+          isSubSubmit: true,
+          submitSubText: this.$t('kylinLang.common.save'),
+          submitText: this.$t('saveAndLoad')
+        })
+        isOnlySave = res.isOnlySave
       }
-      if ((this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) && this.buildType === 'incremental') {
-        await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
-      }
-      this.savePartition()
+      this.savePartition(isOnlySave)
     } else {
       this.savePartition()
     }
   }
 
-  savePartition () {
+  savePartition (isOnlySave) {
     this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
     let hasSetDate = this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental'
     if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental') {
@@ -463,6 +500,8 @@ export default class ModelPartitionModal extends Vue {
             this.handleClose(true)
             this.isLoadingSave = false
           }
+          this.handleClose(true, isOnlySave)
+          this.isLoadingSave = false
         })
       }, (errorRes) => {
         this.filterErrorMsg = errorRes.data.msg
@@ -472,15 +511,21 @@ export default class ModelPartitionModal extends Vue {
       this.handleClose(true)
     }
   }
-  handleClose (isSubmit) {
+  handleClose (isSubmit, isOnlySave) {
     this.isLoadingFormat = false
-    this.hideModal()
+    if (isOnlySave) {
+      this.modelDesc.save_only = isOnlySave
+    }
+    // 不把这个信息记录下来的话，300 延迟后，modelDesc 就 undefined 了
+    let temp = objectClone(this.modelDesc)
     setTimeout(() => {
-      this.resetModalForm()
       this.callback && this.callback({
         isSubmit: isSubmit,
-        data: this.modelDesc
+        isPurgeSegment: this.isChangePartition,
+        data: temp
       })
+      this.hideModal()
+      this.resetModalForm()
     }, 300)
   }
   showToolTip (value) {

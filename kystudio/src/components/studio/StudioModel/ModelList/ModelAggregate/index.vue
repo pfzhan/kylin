@@ -53,22 +53,52 @@
             </div> -->
           </div>
           <div class="detail-content" v-loading="indexLoading">
-            <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
-              {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
+            <div class="clearfix">
+              <div class="ksd-mb-10 ksd-fs-12 ksd-fleft" v-if="isFullLoaded">
+                {{$t('dataRange')}}<el-tooltip :content="$t('dataRangeTips')" placement="top">
+                  <i class="el-icon-ksd-what"></i>
+                </el-tooltip>: {{$t('kylinLang.dataSource.full')}}
+              </div>
+              <div class="ksd-mb-10 ksd-fs-12 ksd-fleft" v-if="dataRange&&!isFullLoaded">
+                {{$t('dataRange')}}<el-tooltip :content="$t('dataRangeTips')" placement="top">
+                  <i class="el-icon-ksd-what"></i>
+                </el-tooltip>: {{getDataRange}}
+              </div>
+              <div @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-2">{{$t('viewIncomplete')}}</div>
             </div>
-            <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
-              {{$t('dataRange')}}: {{getDataRange}}
-            </div>
-            <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button>
-            <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
-              <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
-                <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
-            <div class="right fix">
-              <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+            <div class="clearfix">
+              <el-button icon="el-icon-ksd-icon_build-index" :disabled="!checkedList.length" v-if="datasourceActions.includes('buildIndex')" class="ksd-mb-10 ksd-fleft" size="small" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
+              <el-dropdown
+                split-button
+                plain
+                class="split-button ksd-mb-10 ksd-ml-10 ksd-fleft"
+                :class="{'is-disabled': !checkedList.length}"
+                size="small"
+                placement="bottom-start"
+                :loading="removeLoading"
+                v-if="datasourceActions.includes('delAggIdx')"
+                @click="removeIndexes">
+                {{$t('kylinLang.common.delete')}}
+                <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                  <el-dropdown-item
+                    :disabled="!checkedList.length"
+                    @click="complementedIndexes('deleteIndexes')">
+                    {{$t('deletePart')}}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
+              <!-- <el-button
+              icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10 ksd-ml-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button> -->
+              <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
+                <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
+                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
+              <div class="right fix">
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+              </div>
             </div>
             <div class="filter-tags-agg" v-show="filterTags.length">
               <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
@@ -107,12 +137,26 @@
                   <common-tip :content="$t('viewDetail')">
                     <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
                   </common-tip>
+                  <common-tip :content="$t('buildIndex')" v-if="datasourceActions.includes('buildIndex')">
+                    <i class="el-icon-ksd-icon_build-index ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
+                  </common-tip>
                   <common-tip :content="$t('editIndex')" v-if="datasourceActions.includes('editAggGroup')">
                     <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
                   </common-tip>
-                  <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
+                  <!-- <common-tip :content="$t('kylinLang.common.moreActions')">
+                    <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" trigger="click" >
+                      <span class="el-dropdown-link" >
+                          <i class="el-icon-ksd-table_others ksd-ml-5 ksd-fs-14"></i>
+                      </span>
+                      <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item command="edit" v-if="datasourceActions.includes('editAggGroup')&&scope.row.source === 'MANUAL_TABLE'">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
+                        <el-dropdown-item command="delete" v-if="datasourceActions.includes('delAggIdx')">{{$t('kylinLang.common.delete')}}</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </el-dropdown>
+                  </common-tip> -->
+                  <!-- <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
                     <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
-                  </common-tip>
+                  </common-tip> -->
                 </template>
               </el-table-column>
             </el-table>
@@ -187,6 +231,7 @@
       </div>
     </el-dialog>
 
+    <!-- <ConfirmSegment/> -->
     <!-- <TableIndexEdit/> -->
     <!-- <AggregateModal/> -->
     <!-- <AggAdvancedModal v-on:refreshIndexGraph="refreshIndexGraphAfterSubmitSetting" /> -->
@@ -204,6 +249,7 @@ import { handleSuccessAsync } from '../../../../../util'
 import { handleError, transToGmtTime, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
 import { speedProjectTypes } from '../../../../../config'
 import { BuildIndexStatus } from '../../../../../config/model'
+// import ConfirmSegment from '../ConfirmSegment/ConfirmSegment.vue'
 // import AggregateModal from './AggregateModal/index.vue'
 // import AggAdvancedModal from './AggAdvancedModal/index.vue'
 // import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
@@ -256,6 +302,9 @@ import Recommendations from './sub/recommendations'
     ...mapActions('AggregateModal', {
       callAggregateModal: 'CALL_MODAL'
     }),
+    ...mapActions('ConfirmSegment', {
+      callConfirmSegmentModal: 'CALL_MODAL'
+    }),
     // ...mapActions('AggAdvancedModal', {
     //   callAggAdvancedModal: 'CALL_MODAL'
     // }),
@@ -278,6 +327,7 @@ import Recommendations from './sub/recommendations'
     FlowerChart,
     TreemapChart,
     Recommendations
+    // ConfirmSegment
     // AggregateModal
     // AggAdvancedModal,
     // TableIndexEdit
@@ -332,6 +382,51 @@ export default class ModelAggregate extends Vue {
   //   })
   // }
 
+  async complementedIndexes (indexType, id) {
+    let title = this.$t('buildIndex')
+    let subTitle = this.$t('subTitle')
+    let submitText = this.$t('buildIndex')
+    let isRemoveIndex = false
+    let indexes = []
+    if (indexType === 'allIndexes') {
+      title = this.$t('viewIncompleteTitle')
+      subTitle = this.$t('incompleteSubTitle')
+    } else if (indexType === 'batchIndexes') {
+      title = this.$t('buildIndex')
+      subTitle = this.$t('batchBuildSubTitle', {number: this.checkedList.length})
+      indexes = this.checkedList.map((i) => {
+        return i.id
+      })
+    } else if (indexType === 'deleteIndexes') {
+      title = this.$t('deleteIndex')
+      subTitle = this.$t('deleteTips', {number: this.checkedList.length})
+      submitText = this.$t('kylinLang.common.delete')
+      isRemoveIndex = true
+      indexes = this.checkedList.map((i) => {
+        return i.id
+      })
+    } else {
+      indexes.push(id)
+    }
+    await this.callConfirmSegmentModal({
+      title: title,
+      subTitle: subTitle,
+      indexes: indexes,
+      submitText: submitText,
+      isRemoveIndex: isRemoveIndex,
+      model: this.model
+    })
+    this.refreshIndexGraphAfterSubmitSetting()
+  }
+
+  // handleCommand (command, row) {
+  //   if (command === 'edit') {
+  //     this.confrimEditTableIndex(row)
+  //   } else if (command === 'delete') {
+  //     this.removeIndexs(row.id)
+  //   }
+  // }
+
   handleSelectionChange (val) {
     this.checkedList = val
   }
@@ -342,7 +437,7 @@ export default class ModelAggregate extends Vue {
       return index.id
     }).join(',')
     try {
-      await kapConfirm(this.$t('delIndexesTips', {indexNum: this.checkedList.length}), null, this.$t('delIndex'))
+      await kapConfirm(this.$t('delIndexesTips', {indexNum: this.checkedList.length}), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('delIndex'))
       this.removeLoading = true
       await this.deleteIndexes({project: this.projectName, model: this.model.uuid, layout_ids: layout_ids})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
@@ -864,10 +959,26 @@ export default class ModelAggregate extends Vue {
       box-sizing: border-box;
       padding: 0px !important;
       .detail-content {
+        .text-btn-like {
+          color: @base-color;
+          cursor: pointer;
+          font-size: 12px;
+        }
         .el-row {
           margin-bottom: 10px;
           .dim-item {
             margin-bottom: 5px;
+          }
+        }
+        .split-button {
+          &.is-disabled {
+            .el-button-group > .el-button {
+              background-color: @background-disabled-color;
+              color: @text-disabled-color;
+              cursor: not-allowed;
+              background-image: none;
+              border-color: @line-border-color3;
+            }
           }
         }
       }

@@ -204,7 +204,13 @@ exports.default = {
     tryLater: '稍后再试',
     unSavedTips: '当前页面有未保存的编辑内容，是否确认丢弃更改并离开？',
     discardChanges: '丢弃更改',
-    systemUpgradeTips: '系统已进入维护模式，编辑可能无法提交或者保存。确定继续吗？'
+    systemUpgradeTips: '系统已进入维护模式，编辑可能无法提交或者保存。确定继续吗？',
+    fullLoad: '全量加载',
+    complementedIndex: '补全索引',
+    indexAmount: '索引数',
+    indexAmountTip: 'Segment 中包含的索引数/模型索引总数',
+    buildSuccess: '已提交，您可以到任务页',
+    toJoblist: '查看进度'
   },
   model: {
     generateModel: 'SQL 建模',

@@ -60,6 +60,7 @@
         </template>
       </div>
     </el-alert>
+    <div v-if="tableTitle">{{tableTitle}}</div>
     <el-table class="detail-table ksd-mt-10"
       border
       nested
@@ -85,7 +86,8 @@
       <template v-else>
         <el-button plain v-if="needResolveCancel" @click="handleCloseAndResove">{{cancelT}}</el-button>
         <el-button plain v-else @click="handleClose">{{cancelT}}</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">{{submitT}}</el-button>
+        <el-button type="primary" plain v-if="isSubSubmit" :loading="loading" @click="handleSubmit(false)">{{submitSubText}}</el-button>
+        <el-button type="primary" v-if="!isHideSubmit" :loading="loading" @click="handleSubmit(true)">{{submitT}}</el-button>
       </template>
     </div>
   </el-dialog>
@@ -112,6 +114,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       isShowSelection: state => state.isShowSelection,
       theme: state => state.theme,
       msg: state => state.msg,
+      tableTitle: state => state.tableTitle,
       detailMsg: state => state.detailMsg, // 详情里其他的文案信息
       isShow: state => state.isShow,
       dialogType: state => state.dialogType,
@@ -129,6 +132,9 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       closeText: state => state.closeText,
       cancelText: state => state.cancelText,
       submitText: state => state.submitText,
+      isSubSubmit: state => state.isSubSubmit,
+      isHideSubmit: state => state.isHideSubmit,
+      submitSubText: state => state.submitSubText,
       needResolveCancel: state => state.needResolveCancel,
       onlyCloseDialogReject: state => state.onlyCloseDialogReject
     })
@@ -185,13 +191,15 @@ export default class DetailDialogModal extends Vue {
     this.callback && this.callback()
     this.handleReset()
   }
-  handleSubmit () {
+  handleSubmit (isSubSubmit) {
     this.loading = true
     setTimeout(() => {
       if (this.isShowSelection && this.customCallback) {
         this.customCallback(this.multipleSelection)
       } else {
-        this.callback && this.callback()
+        this.callback && this.callback({
+          isOnlySave: !isSubSubmit // 保存模型使用该属性，isSubSubmit为false时，仅保存模型，不加载数据
+        })
       }
       this.handleReset()
     }, 200)

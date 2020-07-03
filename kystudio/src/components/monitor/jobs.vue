@@ -5,7 +5,7 @@
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
-        <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
+        <!-- <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
           <el-button class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size || $store.state.project.isAllProject">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
@@ -14,8 +14,8 @@
               {{$t('kylinLang.common.model')}} {{item.model_alias}}: {{item.size}} {{$t('jobs')}}
             </el-dropdown-item>
           </el-dropdown-menu>
-        </el-dropdown>
-        <el-button-group class="action_groups ksd-ml-10 ksd-fleft" v-if="monitorActions.includes('jobActions')">
+        </el-dropdown> -->
+        <el-button-group class="action_groups ksd-fleft" v-if="monitorActions.includes('jobActions')">
           <el-button size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
@@ -287,7 +287,7 @@
         </el-card>
       </el-col>
     </el-row>
-    <el-dialog :title="$t('waitingJobList')" limited-area :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="480px">
+    <!-- <el-dialog :title="$t('waitingJobList')" limited-area :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="480px">
       <div v-if="waitingJob">
         <div style="height:14px;line-height:14px;">
           <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span><span class="ky-title-color">{{waitingJob.modelName}}</span>
@@ -306,7 +306,7 @@
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
       </span>
-    </el-dialog>
+    </el-dialog> -->
     <el-dialog
       id="show-diagnos"
       limited-area
@@ -347,9 +347,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pauseJob: 'PAUSE_JOB',
       restartJob: 'RESTART_JOB',
       resumeJob: 'RESUME_JOB',
-      discardJob: 'DISCARD_JOB',
-      losdWaittingJobModels: 'LOAD_WAITTING_JOB_MODELS',
-      laodWaittingJobsByModel: 'LOAD_WAITTING_JOBS_BY_MODEL'
+      discardJob: 'DISCARD_JOB'
+      // losdWaittingJobModels: 'LOAD_WAITTING_JOB_MODELS',
+      // laodWaittingJobsByModel: 'LOAD_WAITTING_JOBS_BY_MODEL'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -743,7 +743,7 @@ export default class JobsList extends Vue {
     if (this.currentSelectedProject) {
       this.autoFilter()
       this.getJobsList()
-      this.getWaittingJobModels()
+      // this.getWaittingJobModels()
     }
   }
   destroyed () {
@@ -812,23 +812,23 @@ export default class JobsList extends Vue {
       })
     })
   }
-  getWaittingJobModels () {
-    return new Promise((resolve, reject) => {
-      if (!this.currentSelectedProject) return reject()
-      this.waitingFilter.project = this.filter.project
-      this.losdWaittingJobModels(this.waitingFilter).then((res) => {
-        handleSuccess(res, (data) => {
-          this.$nextTick(() => {
-            this.waittingJobModels = data
-          })
-          resolve()
-        })
-      }, (res) => {
-        handleError(res)
-        reject()
-      })
-    })
-  }
+  // getWaittingJobModels () {
+  //   return new Promise((resolve, reject) => {
+  //     if (!this.currentSelectedProject) return reject()
+  //     this.waitingFilter.project = this.filter.project
+  //     this.losdWaittingJobModels(this.waitingFilter).then((res) => {
+  //       handleSuccess(res, (data) => {
+  //         this.$nextTick(() => {
+  //           this.waittingJobModels = data
+  //         })
+  //         resolve()
+  //       })
+  //     }, (res) => {
+  //       handleError(res)
+  //       reject()
+  //     })
+  //   })
+  // }
   get getJobStatusTag () {
     if (this.selectedJob.job_status === 'PENDING') {
       return 'gray'
@@ -1067,11 +1067,11 @@ export default class JobsList extends Vue {
     this.getJobsList()
     this.closeIt()
   }
-  waitingJobsCurrentChange (size, count) {
-    this.waittingJobsFilter.offset = size
-    this.waittingJobsFilter.limit = count
-    this.getWaittingJobs()
-  }
+  // waitingJobsCurrentChange (size, count) {
+  //   this.waittingJobsFilter.offset = size
+  //   this.waittingJobsFilter.limit = count
+  //   this.getWaittingJobs()
+  // }
   closeIt () {
     if (this.showStep) {
       this.showStep = false
@@ -1096,11 +1096,10 @@ export default class JobsList extends Vue {
   loadList () {
     if (this.$store.state.project.isAllProject) {
       delete this.filter.project
-      return this.getJobsList()
     } else {
       this.filter.project = this.currentSelectedProject
-      return Promise.all([this.getJobsList(), this.getWaittingJobModels()])
     }
+    return this.getJobsList()
   }
   manualRefreshJobs () {
     // 手动刷新部分，接口skip session 设为false

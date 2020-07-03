@@ -205,7 +205,13 @@ exports.default = {
     tryLater: 'Try It Later',
     unSavedTips: 'There exist unsaved edits in current page. Are you sure to discard the changes and leave?',
     discardChanges: 'Discard changes',
-    systemUpgradeTips: 'System is currently undergoing maintenance. Edits might not be able to be submitted or saved. Do you want to continue?'
+    systemUpgradeTips: 'System is currently undergoing maintenance. Edits might not be able to be submitted or saved. Do you want to continue?',
+    fullLoad: 'Full Load',
+    complementedIndex: 'Complemented Index',
+    indexAmount: 'Index Amount',
+    indexAmountTip: 'Indexes in this segment / Total indexes',
+    buildSuccess: 'Submitted successfully. You may go to the job page to ',
+    toJoblist: 'check details'
   },
   model: {
     generateModel: 'From SQL',
@@ -232,7 +238,7 @@ exports.default = {
     checkOption: 'Check Option:',
     checkModel: 'Check Model',
     buildIndexSuccess: 'Success to submit a build index job, please check it on the monitor page.',
-    buildIndexSuccess1: ' The new {indexType} will be used for querying after the build is complete.',
+    buildIndexSuccess1: ' The new {indexType} will be used for querying after the build is complete. ',
     saveIndexSuccess: 'You have successfully saved the {indexType}.',
     buildIndexFail1: 'Fail to submit the build index job because the model {modelName} doesn\'t have any load data range.',
     buildIndexFail2: 'Fail to generate a build index job because the {indexType} has no change.',
