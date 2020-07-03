@@ -31,7 +31,7 @@
           <i class="el-icon-ksd-more_03"></i>
         </div>
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
-          <p class="empty-text">{{emptyText}}</p>
+          <p class="empty-text" v-html="emptyText"></p>
         </div>
         <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
       </div>
@@ -857,7 +857,7 @@ export default class SourceHive extends Vue {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    text-align: center;
+    // text-align: center;
   }
   .empty-img {
     width: 40px;

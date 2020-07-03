@@ -33,7 +33,7 @@ export default {
     refreshTips: 'The system caches the source table metadata periodically. If you can\'t find what you\'re looking for, you can refresh immediately or wait for the system to finish refreshing.',
     refreshSuccess: 'Data source refreshed Successfully.',
     refreshError: 'Failed to refresh data source.',
-    noSourceData: 'No data, please check the permission of current user and click "Refresh now" to try again.'
+    noSourceData: 'No data source information. Please try refreshing.<br/>Be sure that active job node is available now, and you have permission to access the source tables in Hive.'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -69,6 +69,6 @@ export default {
     refreshTips: '系统会定时缓存源表元数据。如果未找到搜索结果，可以立即刷新，或等待系统刷新完毕。',
     refreshSuccess: '数据源刷新成功',
     refreshError: '数据源刷新失败',
-    noSourceData: '暂无数据，请检查当前用户权限并点击立即刷新进行重试。'
+    noSourceData: '暂无数据源信息，请尝试刷新。<br/>请确保当前有活跃的任务节点，且您有访问 Hive 中源表的权限。'
   }
 }
