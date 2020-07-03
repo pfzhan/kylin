@@ -61,13 +61,16 @@
         </dependency>
         <!--for S3 -->
         <!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws -->
+        <!-- AWS dependencies -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-aws</artifactId>
+            <version>${hadoop-aws.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${aws-java-sdk-s3.version}</version>
         </dependency>
 
     </dependencies>

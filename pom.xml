@@ -754,24 +754,6 @@
                 <scope>provided</scope>
             </dependency>
 
-            <!-- AWS dependencies -->
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-aws</artifactId>
-                <version>${hadoop-aws.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-s3</artifactId>
-                <version>${aws-java-sdk-s3.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.dataformat</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
             <!-- Other dependencies -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
