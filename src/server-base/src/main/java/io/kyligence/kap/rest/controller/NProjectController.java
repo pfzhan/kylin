@@ -287,6 +287,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@PathVariable(value = "project") String project) {
         checkProjectName(project);
+        aclEvaluate.checkProjectWritePermission(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
     }
 
@@ -442,7 +443,7 @@ public class NProjectController extends NBasicController {
     @PutMapping(value = "/{project:.+}/config")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectConfig(@PathVariable("project") String project,
-                                                    @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request) {
         projectService.updateProjectConfig(project, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

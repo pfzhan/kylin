@@ -616,7 +616,6 @@ public class ProjectService extends BasicService {
     }
 
     public Map<String, Object> getFavoriteRules(String project) {
-        aclEvaluate.checkProjectWritePermission(project);
         Map<String, Object> result = Maps.newHashMap();
 
         for (String ruleName : favoriteRuleNames) {
