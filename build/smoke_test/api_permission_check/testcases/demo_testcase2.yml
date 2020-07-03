@@ -624,6 +624,14 @@ teststeps:
       - eq:
           - status_code
           - 200
+
+  - api: api/update_project_config.yml
+    name: 覆写项目级配置
+    validate:
+      - eq:
+          - status_code
+          - 200
+
   - api: api/run_sql.yml
     name: 运行sql
     validate:
