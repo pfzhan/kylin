@@ -74,6 +74,11 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
+        try {
+            Class.forName("org.h2.Driver");
+        } catch (ClassNotFoundException e) {
+            // ignore it
+        }
     }
 
     public static KylinConfig getTestConfig() {

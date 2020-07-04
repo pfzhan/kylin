@@ -50,6 +50,7 @@ import org.apache.kylin.common.KylinConfig;
 /**
  * @author ysong1
  */
+@Deprecated
 public class SandboxMetadataTestCase extends AbstractKylinTestCase {
 
     public static String SANDBOX_TEST_DATA = "../examples/test_case_data/sandbox";

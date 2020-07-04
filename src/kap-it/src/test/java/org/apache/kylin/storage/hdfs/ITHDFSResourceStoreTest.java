@@ -50,6 +50,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class ITHDFSResourceStoreTest extends SandboxMetadataTestCase {
 
     private KylinConfig kylinConfig;

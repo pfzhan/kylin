@@ -47,6 +47,7 @@ import java.io.IOException;
 
 import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -55,6 +56,7 @@ import org.junit.Test;
  *
  * It is in the exclude list of default profile in pom.xml
  */
+@Ignore
 public class ITHiveTableReaderTest extends SandboxMetadataTestCase {
 
     @Test
