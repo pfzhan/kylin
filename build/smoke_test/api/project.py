@@ -72,7 +72,8 @@ class Project:
         return requests.delete(url=req_url, headers=self.headers)
 
     def set_acceleration_rule(self, payload):
-        req_url = self.base_url + '/query/favorite_queries/rules'
+        project_name = payload['project']
+        req_url = self.base_url + '/projects/{}/favorite_rules'.format(project_name)
         return requests.put(url=req_url, json=payload, headers=self.headers)
 
     def session_get_projects(self, session):

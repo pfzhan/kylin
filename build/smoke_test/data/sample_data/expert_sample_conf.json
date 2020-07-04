@@ -418,7 +418,7 @@
       "col_order": [
         "LINEORDER.LO_ORDERKEY",
         "LINEORDER.LO_CUSTKEY",
-        "CUSTOMER.C_PHONE"
+        "CUSTOMER.C_NATION"
       ],
       "sort_by_columns": [],
       "shard_by_columns": [],
@@ -450,7 +450,7 @@
     }
   },
   "specified_queries": [
-    "select LINEORDER.LO_ORDERKEY, LINEORDER.LO_CUSTKEY, CUSTOMER.C_PHONE from LINEORDER join CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY join SUPPLIER on LINEORDER.LO_SUPPKEY = SUPPLIER.S_SUPPKEY limit 20;"
+    "select LINEORDER.LO_ORDERKEY, LINEORDER.LO_CUSTKEY, CUSTOMER.C_NATION from LINEORDER join CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY join SUPPLIER on LINEORDER.LO_SUPPKEY = SUPPLIER.S_SUPPKEY limit 20;"
   ],
   "revision_specified_queries": [
     "select max(LO_ORDERDATE) from LINEORDER inner join CUSTOMER on LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY inner join SUPPLIER on LINEORDER.LO_SUPPKEY = SUPPLIER.S_SUPPKEY limit 1;"
