@@ -81,6 +81,9 @@ public class AccelerateRuleUtil {
         List<QueryHistory> candidate = Lists.newArrayList();
         for (QueryHistory qh : queryHistories) {
             QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
+            if (queryHistoryInfo == null) {
+                continue;
+            }
             if (matchCustomerRule(qh, project) && matchInternalRule(qh)) {
                 queryHistoryInfo.setState(QueryHistoryInfo.HistoryState.SUCCESS);
                 candidate.add(qh);
@@ -93,6 +96,9 @@ public class AccelerateRuleUtil {
     }
 
     private boolean matchInternalRule(QueryHistory queryHistory) {
+        if (queryHistory.getQueryHistoryInfo() == null) {
+            return false;
+        }
         return InternalBlackOutRule.getSingletonInstance().filterCannotAccelerate(queryHistory);
     }
 

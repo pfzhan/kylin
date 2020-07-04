@@ -32,11 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 public class JDBCResultMapper {
 
@@ -126,6 +127,9 @@ public class JDBCResultMapper {
     public static QueryHistoryInfo readRecordInfo(Map<String, Object> rowMap) {
         if (rowMap.get(QueryHistory.RESERVED_FIELD_3) != null) {
             byte[] queryHistoryInfo = (byte[]) rowMap.get(QueryHistory.RESERVED_FIELD_3);
+            if (queryHistoryInfo.length == 0) {
+                return null;
+            }
             try {
                 return JsonUtil.readValue(queryHistoryInfo, QueryHistoryInfo.class);
             } catch (IOException e) {

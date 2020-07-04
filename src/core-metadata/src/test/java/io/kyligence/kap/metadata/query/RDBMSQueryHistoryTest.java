@@ -46,6 +46,7 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
 
 import java.io.InputStream;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 
@@ -523,21 +524,21 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
                 TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo1.getBytes());
 
         // happy pass - normal json
-        String recordInfo2 = "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":\"PENDING\",\"executionError\":true}";
+        String recordInfo2 = "{\"exactly_match\":true,\"scan_segment_num\":3,\"state\":\"PENDING\",\"execution_error\":true}";
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
                 500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
                 TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
                 TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo2.getBytes());
 
         // compatible - json add new fields
-        String recordInfo3 = "{\"exactlyMatch\":true,\"scanSegmentNum\":3,\"state\":\"PENDING\",\"executionError\":true,\"testFields\":12.34}";
+        String recordInfo3 = "{\"exactly_match\":true,\"scan_segment_num\":3,\"state\":\"PENDING\",\"execution_error\":true,\"testFields\":12.34}";
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
                 500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
                 TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
                 TimeUtil.getDayStart(1580311512000L), true, false, false, project, recordInfo3.getBytes());
 
         // compatible - json delete fields
-        String recordInfo4 = "{\"exactMatch\":true,\"testFields\":12.34}";
+        String recordInfo4 = "{\"exactly_match\":true,\"testFields\":12.34}";
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
                 500, ADMIN, "", "", "", "", false, "", true, 1580311512000L, "2020-03",
                 TimeUtil.getMonthStart(1580311512000L), TimeUtil.getWeekStart(1580311512000L),
@@ -552,6 +553,7 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         queryHistoryRequest.setUsername(ADMIN);
         List<QueryHistory> queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest,
                 10, 0, project);
+        queryHistoryList.sort(Comparator.comparingLong(QueryHistory::getId));
 
         Assert.assertEquals(4, queryHistoryList.size());
 
@@ -559,17 +561,17 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, queryHistoryList.get(0).getQueryHistoryInfo().getScanSegmentNum());
         Assert.assertEquals("PENDING", queryHistoryList.get(0).getQueryHistoryInfo().getState().toString());
 
-        Assert.assertEquals(false, queryHistoryList.get(1).getQueryHistoryInfo().isExactlyMatch());
-        Assert.assertEquals(0, queryHistoryList.get(1).getQueryHistoryInfo().getScanSegmentNum());
-        Assert.assertNull(queryHistoryList.get(1).getQueryHistoryInfo().getState());
+        Assert.assertEquals(true, queryHistoryList.get(1).getQueryHistoryInfo().isExactlyMatch());
+        Assert.assertEquals(3, queryHistoryList.get(1).getQueryHistoryInfo().getScanSegmentNum());
+        Assert.assertEquals("PENDING", queryHistoryList.get(1).getQueryHistoryInfo().getState().toString());
 
         Assert.assertEquals(true, queryHistoryList.get(2).getQueryHistoryInfo().isExactlyMatch());
         Assert.assertEquals(3, queryHistoryList.get(2).getQueryHistoryInfo().getScanSegmentNum());
         Assert.assertEquals("PENDING", queryHistoryList.get(2).getQueryHistoryInfo().getState().toString());
 
         Assert.assertEquals(true, queryHistoryList.get(3).getQueryHistoryInfo().isExactlyMatch());
-        Assert.assertEquals(3, queryHistoryList.get(3).getQueryHistoryInfo().getScanSegmentNum());
-        Assert.assertEquals("PENDING", queryHistoryList.get(3).getQueryHistoryInfo().getState().toString());
+        Assert.assertEquals(0, queryHistoryList.get(3).getQueryHistoryInfo().getScanSegmentNum());
+        Assert.assertNull(queryHistoryList.get(3).getQueryHistoryInfo().getState());
     }
 
     @Test

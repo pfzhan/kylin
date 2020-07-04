@@ -26,6 +26,9 @@ package io.kyligence.kap.metadata.query;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,10 +38,15 @@ import lombok.Setter;
 @Setter
 @Getter
 @NoArgsConstructor
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class QueryHistoryInfo {
+    @JsonProperty("exactly_match")
     private boolean exactlyMatch;
+    @JsonProperty("scan_segment_num")
     private int scanSegmentNum;
+    @JsonProperty("state")
     private HistoryState state;
+    @JsonProperty("execution_error")
     private boolean executionError;
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
