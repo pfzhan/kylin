@@ -33,6 +33,9 @@ source ${KYLIN_HOME}/sbin/init-kerberos.sh
 initKerberosIfNeeded
 
 columnarEnabled=`${dir}/get-properties.sh kylin.storage.columnar.start-own-spark`
+if [[ -z "$columnarEnabled" ]]; then
+    columnarEnabled="true"
+fi
 [[ "${columnarEnabled}" == "true" ]] || exit 3
 
 serverMode=`${dir}/get-properties.sh kylin.server.mode`
