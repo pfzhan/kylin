@@ -14,6 +14,7 @@
         :data="getRecommendData"
         class="recommendations-table"
         size="medium"
+        max-height="350"
         :empty-text="emptyText"
         @sort-change="onSortChange"
         @selection-change="handleSelectionChange"
@@ -247,6 +248,9 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
       accessRecommendations: 'ACCESS_RECOMMENDATIONS',
       getRecommendDetails: 'GET_RECOMMEND_DETAILS',
       validateRecommend: 'VALIDATE_RECOMMEND'
+    }),
+    ...mapActions('ConfirmSegment', {
+      callConfirmSegmentModal: 'CALL_MODAL'
     })
   },
   locales: {
@@ -307,7 +311,9 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
       bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es).',
       onlyAcceptAdd: 'Successfully added {addLength} index(es).',
       onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
-      buildIndex: ' Build Index'
+      buildIndexTip: ' Build Index',
+      buildIndex: 'Build Index',
+      batchBuildSubTitle: 'Please choose which data ranges you’d like to build with the added indexes.'
     },
     'zh-cn': {
       recommendations: '优化建议',
@@ -364,7 +370,9 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
       bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引。',
       onlyAcceptAdd: '成功新增 {addLength} 条索引。',
       onlyAcceptDelete: '成功删除 {delLength} 条索引。',
-      buildIndex: '立即构建索引'
+      buildIndexTip: '立即构建索引',
+      buildIndex: '构建索引',
+      batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。'
     }
   }
 })
@@ -474,6 +482,7 @@ export default class IndexList extends Vue {
     this.getAllRecommendations({project: this.currentProject, modelId: this.modelDesc.uuid}).then(async (res) => {
       const data = await handleSuccessAsync(res)
       this.recommendationsList.list = data.layouts
+      this.modelDesc.recommendations_count = data.size
     }).catch(e => {
       handleError(e)
     })
@@ -528,11 +537,11 @@ export default class IndexList extends Vue {
   }
 
   // 通过优化建议
-  confrim (ids) {
+  confrim (idList) {
     this.validateRecommend({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      ids
+      ids: idList
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
       let { layout_item_ids, column_items, dimension_items, measure_items } = data
@@ -544,8 +553,8 @@ export default class IndexList extends Vue {
         }
       } else {
         this.validateData = {layout_item_ids, list: []}
-        const ids = this.recommendationsList.list.filter(it => ids.includes(it.item_id) && it.version === 2)
-        const legacy_ids = this.recommendationsList.list.filter(it => ids.includes(it.item_id) && it.version === 1)
+        const ids = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.version === 2)
+        const legacy_ids = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.version === 1)
         this.accessApi(ids, legacy_ids)
       }
     }).catch((e) => {
@@ -590,8 +599,8 @@ export default class IndexList extends Vue {
             message: <span>{acceptIndexs().add > 0 && acceptIndexs().del > 0
              ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs().add, delLength: acceptIndexs().del})
               : acceptIndexs().add > 0 ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs().add})
-               : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a>{
-                 (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.$t('buildIndex')
+               : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a href="javascript:void();" onClick={() => this.buildIndex()}>{
+                 (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.modelDesc.segments.length ? this.$t('buildIndexTip') : ''
                }</a></span>
           })
           this.getRecommendations()
@@ -603,6 +612,17 @@ export default class IndexList extends Vue {
         handleError(e)
         reject()
       })
+    })
+  }
+
+  // 新增建议构建索引
+  buildIndex () {
+    this.callConfirmSegmentModal({
+      title: this.$t('buildIndex'),
+      subTitle: this.$t('batchBuildSubTitle'),
+      indexes: [],
+      submitText: this.$t('buildIndex'),
+      model: this.modelDesc
     })
   }
 

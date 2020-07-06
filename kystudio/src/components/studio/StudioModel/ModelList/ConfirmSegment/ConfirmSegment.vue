@@ -1,7 +1,15 @@
 <template>
-   <el-dialog :title="title" limited-area width="960px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="closeModal()">
+   <el-dialog
+    :title="title"
+    limited-area
+    width="960px"
+    :visible="isShow"
+    v-if="isShow"
+    :close-on-press-escape="false"
+    :close-on-click-modal="false"
+    @close="closeModal()">
       <div class="ksd-mb-10" v-html="subTitle"></div>
-      <el-table border :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table border :data="segments" @selection-change="handleSelectSegments" :empty-text="emptyText" @sort-change="handleSortChange">
         <el-table-column type="selection" :selectable="selectable" width="44">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom">
@@ -129,6 +137,9 @@ export default class ConfirmSegmentModal extends Vue {
   selectedSegmentIds = []
   totalSegmentCount = 0
   btnLoading = false
+  get emptyText () {
+    return this.$t('noSegmentList')
+  }
   async loadSegments () {
     try {
       const { sortBy, reverse } = this.filter
