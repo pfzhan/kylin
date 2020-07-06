@@ -147,6 +147,9 @@ public class RawRecService {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
+            if (targetModel == null) {
+                continue;
+            }
             Map<String, RawRecItem> layoutRecommendations = mgr.queryLayoutRawRecItems(targetModel.getUuid());
             Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
             layoutRecommendations.forEach((k, v) -> {

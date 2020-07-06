@@ -34,6 +34,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
@@ -77,5 +78,17 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
             }
         });
         return ccInnerExpToUniqueFlag;
+    }
+
+    @Override
+    public void handleExceptionAfterModelSelect() {
+        getModelContexts().forEach(modelCtx -> {
+            if (modelCtx.isTargetModelMissing()) {
+                modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
+                    AccelerateInfo accelerateInfo = getAccelerateInfoMap().get(olapContext.sql);
+                    accelerateInfo.setPendingMsg(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG);
+                });
+            }
+        });
     }
 }
