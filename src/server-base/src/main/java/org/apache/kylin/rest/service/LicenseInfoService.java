@@ -24,30 +24,37 @@
 
 package org.apache.kylin.rest.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.license.Constants;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.request.SourceUsageFilter;
-import io.kyligence.kap.rest.response.CapacityDetailsResponse;
-import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
-import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
-import io.kyligence.kap.rest.response.NodeMonitorInfoResponse;
-import io.kyligence.kap.rest.response.ProjectCapacityResponse;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_LICENSE;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -76,35 +83,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.net.InetAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_LICENSE;
+import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.request.SourceUsageFilter;
+import io.kyligence.kap.rest.response.CapacityDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
+import io.kyligence.kap.rest.response.LicenseMonitorInfoResponse;
+import io.kyligence.kap.rest.response.NodeMonitorInfoResponse;
+import io.kyligence.kap.rest.response.ProjectCapacityResponse;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service("licenseInfoService")
@@ -116,7 +119,7 @@ public class LicenseInfoService extends BasicService {
 
     public static final String LICENSE_FILENAME = "LICENSE";
     public static final String HOSTNAME = "hostname";
-    
+
     private static final String CAPACITY = "capacity";
 
     private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
@@ -184,7 +187,8 @@ public class LicenseInfoService extends BasicService {
 
         if (!StringUtils.isEmpty(System.getProperty(Constants.KE_LICENSE_SERVICEEND))) {
             result.setServiceEnd(System.getProperty(Constants.KE_LICENSE_SERVICEEND));
-        } else if (System.getProperty(Constants.KE_DATES) != null && System.getProperty(Constants.KE_DATES).contains(",")) {
+        } else if (System.getProperty(Constants.KE_DATES) != null
+                && System.getProperty(Constants.KE_DATES).contains(",")) {
             result.setServiceEnd(System.getProperty(Constants.KE_DATES).split(",")[1]);
         }
 
@@ -381,8 +385,10 @@ public class LicenseInfoService extends BasicService {
                 if (line.toLowerCase().contains("for cloud")) {
                     setProperty(Constants.KE_LICENSE_ISCLOUD, prefix, "true");
                 }
-                extractValue.apply(line, "Service End:").ifPresent(v -> setProperty(Constants.KE_LICENSE_SERVICEEND, prefix, v));
-                extractValue.apply(line, "Category:").ifPresent(v -> setProperty(Constants.KE_LICENSE_CATEGORY, prefix, v));
+                extractValue.apply(line, "Service End:")
+                        .ifPresent(v -> setProperty(Constants.KE_LICENSE_SERVICEEND, prefix, v));
+                extractValue.apply(line, "Category:")
+                        .ifPresent(v -> setProperty(Constants.KE_LICENSE_CATEGORY, prefix, v));
                 extractValue.apply(line, "Level:").ifPresent(v -> setProperty(Constants.KE_LICENSE_LEVEL, prefix, v));
                 extractValue.apply(line, "Volume:").ifPresent(volume::set);
                 extractValue.apply(line, "Service Nodes:").ifPresent(node::set);
@@ -488,7 +494,7 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateLicense(String string) throws IOException {
-        updateLicense(string.getBytes("UTF-8"));
+        updateLicense(string.getBytes(StandardCharsets.UTF_8));
     }
 
     public void clearSystemLicense() {
@@ -543,7 +549,8 @@ public class LicenseInfoService extends BasicService {
         return output.toString();
     }
 
-    public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail(SourceUsageFilter sourceUsageFilter, int offset, int limit) {
+    public LicenseInfoWithDetailsResponse getLicenseMonitorInfoWithDetail(SourceUsageFilter sourceUsageFilter,
+            int offset, int limit) {
         LicenseInfoWithDetailsResponse licenseInfoWithDetailsResponse = new LicenseInfoWithDetailsResponse();
         SourceUsageRecord latestRecords = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getLatestRecord();
@@ -554,8 +561,10 @@ public class LicenseInfoService extends BasicService {
         }
 
         if (ArrayUtils.isNotEmpty(capacityDetails)) {
-            List<CapacityDetailsResponse> capacityDetailsResponseList = filterAndSortPrjCapacity(sourceUsageFilter, Arrays.asList(capacityDetails));
-            licenseInfoWithDetailsResponse.setCapacityDetail(PagingUtil.cutPage(capacityDetailsResponseList, offset, limit));
+            List<CapacityDetailsResponse> capacityDetailsResponseList = filterAndSortPrjCapacity(sourceUsageFilter,
+                    Arrays.asList(capacityDetails));
+            licenseInfoWithDetailsResponse
+                    .setCapacityDetail(PagingUtil.cutPage(capacityDetailsResponseList, offset, limit));
             licenseInfoWithDetailsResponse.setSize(capacityDetailsResponseList.size());
         }
         return licenseInfoWithDetailsResponse;
@@ -583,9 +592,8 @@ public class LicenseInfoService extends BasicService {
                     nodeMonitorInfoResponse.setNodeStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
                 }
             } catch (NumberFormatException e) {
-                logger.error(
-                        "kap.service.nodes occurred java.lang.NumberFormatException: For input string: {}", serviceNodes,
-                        e);
+                logger.error("kap.service.nodes occurred java.lang.NumberFormatException: For input string: {}",
+                        serviceNodes, e);
             }
         }
         return nodeMonitorInfoResponse;
@@ -630,7 +638,6 @@ public class LicenseInfoService extends BasicService {
         return projectCapacities;
     }
 
-
     public ProjectCapacityResponse getLicenseMonitorInfoByProject(String project, SourceUsageFilter sourceUsageFilter) {
         ProjectCapacityResponse projectCapacityResponse = new ProjectCapacityResponse();
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -648,7 +655,8 @@ public class LicenseInfoService extends BasicService {
 
             TableCapacityDetail[] tables = projectCapacity.getTables();
             if (tables.length > 0) {
-                List<CapacityDetailsResponse> capacityDetailsResponseList = sortTableCapacity(sourceUsageFilter, Arrays.asList(tables));
+                List<CapacityDetailsResponse> capacityDetailsResponseList = sortTableCapacity(sourceUsageFilter,
+                        Arrays.asList(tables));
                 projectCapacityResponse.setTables(capacityDetailsResponseList);
                 projectCapacityResponse.setSize(capacityDetailsResponseList.size());
             }
@@ -681,7 +689,8 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void refreshTableExtDesc(String project) {
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
         List<TableDesc> tableDescList = tableMetadataManager.listAllTables();
         for (TableDesc tableDesc : tableDescList) {
@@ -728,7 +737,8 @@ public class LicenseInfoService extends BasicService {
         return licenseMonitorInfoResponse;
     }
 
-    private List<CapacityDetailsResponse> filterAndSortPrjCapacity(final SourceUsageFilter sourceUsageFilter, List<ProjectCapacityDetail> capacityDetails) {
+    protected List<CapacityDetailsResponse> filterAndSortPrjCapacity(final SourceUsageFilter sourceUsageFilter,
+            List<ProjectCapacityDetail> capacityDetails) {
         Preconditions.checkNotNull(sourceUsageFilter);
         Preconditions.checkNotNull(capacityDetails);
 
@@ -736,16 +746,25 @@ public class LicenseInfoService extends BasicService {
                 StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? CAPACITY : sourceUsageFilter.getSortBy(),
                 !sourceUsageFilter.isReverse());
         Set<String> matchedProjects = Sets.newHashSet(sourceUsageFilter.getProjectNames());
-        return capacityDetails.stream().filter(capacityDetail -> {
+        Set<SourceUsageRecord.CapacityStatus> matchedStatuses = sourceUsageFilter.getStatuses().stream()
+                .map(SourceUsageRecord.CapacityStatus::valueOf).collect(Collectors.toSet());
+        return capacityDetails.stream().filter(((Predicate<ProjectCapacityDetail>) (capacityDetail -> {
             if (CollectionUtils.isEmpty(sourceUsageFilter.getProjectNames())) {
                 return true;
             }
             String projectName = capacityDetail.getName();
             return matchedProjects.contains(projectName);
-        }).map(this::convertProjectDetail).sorted(comparator).collect(Collectors.toList());
+        })).and(capacityDetail -> {
+            if (CollectionUtils.isEmpty(sourceUsageFilter.getStatuses())) {
+                return true;
+            }
+            SourceUsageRecord.CapacityStatus status = capacityDetail.getStatus();
+            return matchedStatuses.contains(status);
+        })).map(this::convertProjectDetail).sorted(comparator).collect(Collectors.toList());
     }
 
-    private List<CapacityDetailsResponse> sortTableCapacity(final SourceUsageFilter sourceUsageFilter, List<TableCapacityDetail> capacityDetails) {
+    private List<CapacityDetailsResponse> sortTableCapacity(final SourceUsageFilter sourceUsageFilter,
+            List<TableCapacityDetail> capacityDetails) {
         Preconditions.checkNotNull(capacityDetails);
         Comparator<CapacityDetailsResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sourceUsageFilter.getSortBy()) ? CAPACITY : sourceUsageFilter.getSortBy(),

@@ -36,6 +36,8 @@ public class SourceUsageFilter {
 
     private List<String> projectNames;
 
+    private List<String> statuses;
+
     private String sortBy;
 
     private boolean reverse;

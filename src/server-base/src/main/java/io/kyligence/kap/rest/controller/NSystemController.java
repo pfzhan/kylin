@@ -79,6 +79,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -257,17 +258,19 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<LicenseInfoWithDetailsResponse> getLicenseMonitorInfoWithDetail(
             @RequestParam(value = "project_names", required = false, defaultValue = "") String[] projectNames,
+            @RequestParam(value = "status", required = false, defaultValue = "") String[] statuses,
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         List<String> argProjects = getValidProjects(projectNames, exactMatch);
+        List<String> statusList = Arrays.asList(statuses);
         LicenseInfoWithDetailsResponse result;
         if (CollectionUtils.isEmpty(argProjects)) {
             result = new LicenseInfoWithDetailsResponse(0, Lists.newArrayList());
         } else {
-            SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(argProjects, sortBy, reverse);
+            SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(argProjects, statusList, sortBy, reverse);
             result = licenseInfoService.getLicenseMonitorInfoWithDetail(sourceUsageFilter, pageOffset, pageSize);
         }
 
@@ -306,7 +309,7 @@ public class NSystemController extends NBasicController {
                                                            @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
                                                            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         aclEvaluate.checkProjectAdminPermission(project);
-        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), sortBy, reverse);
+        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), Lists.newArrayList(), sortBy, reverse);
         ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project, sourceUsageFilter);
         if (projectCapacityResponse.getSize() > 0) {
             List<CapacityDetailsResponse> tables = projectCapacityResponse.getTables();

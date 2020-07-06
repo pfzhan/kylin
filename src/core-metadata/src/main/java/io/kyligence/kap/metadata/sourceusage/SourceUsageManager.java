@@ -23,21 +23,19 @@
  */
 package io.kyligence.kap.metadata.sourceusage;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.license.Constants;
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
+import static io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus.OVERCAPACITY;
+import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAPACITY;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -60,18 +58,22 @@ import org.apache.kylin.metadata.project.RealizationEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import static io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus.OVERCAPACITY;
-import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAPACITY;
+import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
 
 public class SourceUsageManager {
 
