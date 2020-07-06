@@ -2142,4 +2142,8 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean cleanDiagTmpFile() {
         return Boolean.parseBoolean(getOptional("kylin.tool.clean-diag-tmp-file", FALSE));
     }
+
+    public int getSuggestModelSqlLimit() {
+        return Integer.parseInt(getOptional("kylin.model.suggest-model-sql-limit", "200"));
+    }
 }

@@ -22,22 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.metadata.model.MeasureDesc;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-public class OptRecMeasureResponse extends MeasureDesc {
-    @JsonProperty("item_id")
-    private long itemId;
-
-    @JsonProperty("version")
-    private int version;
-
-    @JsonProperty("expression")
-    private String expression;
+@Setter
+@Getter
+public class NRecommendationListRequest {
+    @JsonProperty("project")
+    String project;
+    @JsonProperty("recommendations")
+    List<OptimizeRecommendationRequest> recommendations;
+    @JsonProperty("new_models")
+    List<ModelRequest> newModels;
 }

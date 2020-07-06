@@ -460,6 +460,13 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
         assertListSize(1, 3, 2, 11);
     }
 
+    @Test
+    public void testDrop() {
+        recommendationManagerV2.dropOptimizeRecommendationV2(id);
+        Assert.assertNull(recommendationManagerV2.getOptimizeRecommendationV2(id));
+
+    }
+
     protected int findFromOriginLayout(long id) {
         return mockRawRecItems.values().stream().filter(item -> item.getType() == RawRecItem.RawRecType.LAYOUT)
                 .filter(item -> RecommendationUtil.getLayout(item).getId() == id).map(RawRecItem::getId).findFirst()

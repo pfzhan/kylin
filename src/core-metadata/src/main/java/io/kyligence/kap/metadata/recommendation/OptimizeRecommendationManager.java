@@ -174,7 +174,8 @@ public class OptimizeRecommendationManager {
         return recommendation;
     }
 
-    private Map<Integer, Integer> optimizeModel(NDataModel optimized, NDataModel origin) {
+    private Map<Integer, Integer> optimizeModel(NDataModel optimized, NDataModel origin,
+            OptimizeRecommendation optimizeRecommendation) {
         Preconditions.checkNotNull(optimized, "optimize model not exists");
         Preconditions.checkNotNull(origin, "optimize model not exists");
         logger.info("Semi-Auto-Mode project:{} start to optimize Model:{}", project, optimized.getId());
@@ -263,15 +264,10 @@ public class OptimizeRecommendationManager {
             item.getMeasure().setId(item.getMeasureId());
         }
 
-        val recommendation = copy(getOrCreate(optimized.getId()));
-        logOptimizeRecommendation(optimized.getId(), recommendation);
-        recommendation.setUuid(optimized.getUuid());
-        recommendation.addCCRecommendations(ccRecommendations);
-        recommendation.addDimensionRecommendations(dimensionRecommendations);
-        recommendation.addMeasureRecommendations(measureRecommendations);
-        recommendation.setProject(project);
-        updateOptimizeRecommendation(recommendation);
-
+        logOptimizeRecommendation(optimized.getId(), optimizeRecommendation);
+        optimizeRecommendation.addCCRecommendations(ccRecommendations);
+        optimizeRecommendation.addDimensionRecommendations(dimensionRecommendations);
+        optimizeRecommendation.addMeasureRecommendations(measureRecommendations);
         logOptimizeRecommendation(optimized.getId());
         return translations;
     }
@@ -302,7 +298,8 @@ public class OptimizeRecommendationManager {
         return save(optimizeRecommendation);
     }
 
-    private void optimizeIndexPlan(IndexPlan optimized, IndexPlan originIndexPlan, Map<Integer, Integer> translations) {
+    private void optimizeIndexPlan(IndexPlan optimized, IndexPlan originIndexPlan, Map<Integer, Integer> translations,
+            OptimizeRecommendation recommendation) {
         Preconditions.checkNotNull(optimized, "optimize index plan not exists");
 
         val optimizedAllIndexes = optimized.getAllIndexes();
@@ -323,7 +320,6 @@ public class OptimizeRecommendationManager {
         }).collect(Collectors.toSet());
 
         val delta = Sets.difference(optimizedAllLayouts, originAllLayouts);
-        val recommendation = copy(getOrCreate(optimized.getUuid()));
         logOptimizeRecommendation(optimized.getId(), recommendation);
 
         List<LayoutRecommendationItem> layoutRecommendationItems = delta.stream()
@@ -337,8 +333,6 @@ public class OptimizeRecommendationManager {
                     });
                 }).collect(Collectors.toList());
         recommendation.addLayoutRecommendations(layoutRecommendationItems);
-        crud.save(recommendation);
-
         logOptimizeRecommendation(optimized.getId());
     }
 
@@ -398,6 +392,34 @@ public class OptimizeRecommendationManager {
         update(context);
     }
 
+    public OptimizeRecommendation optimizeInMemory(NDataModel model, IndexPlan indexPlan) {
+        Preconditions.checkNotNull(model);
+        Preconditions.checkNotNull(indexPlan);
+        logger.info("Semi-Auto-Mode project:{} start to optimize Model:{} and IndexPlan: {} in memory", project,
+                model.getId(), indexPlan.getId());
+
+        val optimizedModel = JsonUtil.deepCopyQuietly(model, NDataModel.class);
+        val optimizedIndexPlan = JsonUtil.deepCopyQuietly(indexPlan, IndexPlan.class);
+
+        val modelManager = NDataModelManager.getInstance(getConfig(), project);
+        val modelInCache = modelManager.getDataModelDesc(model.getId());
+        val indexManager = NIndexPlanManager.getInstance(getConfig(), project);
+        val indexPlanInCache = indexManager.getIndexPlan(model.getId());
+
+        Preconditions.checkNotNull(modelInCache);
+        Preconditions.checkNotNull(indexPlanInCache);
+
+        OptimizeRecommendation recommendation = new OptimizeRecommendation();
+        recommendation.setUuid(model.getUuid());
+        recommendation.setProject(model.getProject());
+
+        val originModel = modelManager.copyForWrite(modelInCache);
+        val originIndexPlan = indexPlanInCache.copy();
+        val translations = optimizeModel(optimizedModel, originModel, recommendation);
+        optimizeIndexPlan(optimizedIndexPlan, originIndexPlan, translations, recommendation);
+        return recommendation;
+    }
+
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
         Preconditions.checkNotNull(model);
         Preconditions.checkNotNull(indexPlan);
@@ -418,8 +440,12 @@ public class OptimizeRecommendationManager {
                 getOrCreate(model.getId()));
         val appliedModel = context.getModel();
         val appliedIndexPlan = context.getIndexPlan();
-        val translations = optimizeModel(optimizedModel, appliedModel);
-        optimizeIndexPlan(optimizedIndexPlan, appliedIndexPlan, translations);
+        OptimizeRecommendation recommendation = copy(getOrCreate(model.getId()));
+        recommendation.setUuid(model.getUuid());
+        recommendation.setProject(model.getProject());
+        val translations = optimizeModel(optimizedModel, appliedModel, recommendation);
+        optimizeIndexPlan(optimizedIndexPlan, appliedIndexPlan, translations, recommendation);
+        updateOptimizeRecommendation(recommendation);
         cleanInEffective(model.getId());
         return getOptimizeRecommendation(model.getId());
     }

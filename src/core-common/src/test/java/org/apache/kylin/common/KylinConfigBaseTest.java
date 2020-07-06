@@ -727,6 +727,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getDowngradeParallelQueryThreshold", new PropertiesEntity("kylin.downgrade-mode.parallel-query-threshold", "10", 10));
         map.put("isSlowQueryKillFailedRestartKeEnabled", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-restart-enabled", "true", true));
         map.put("getGuardianSlowQueryKillFailedThreshold", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-threshold", "3", 3));
+        map.put("getSuggestModelSqlLimit", new PropertiesEntity("kylin.model.suggest-model-sql-limit", "200", 200));
     }
 
     @Before
@@ -746,7 +747,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(365, methodsCount);
+        Assert.assertEquals(366, methodsCount);
     }
 
     @Test

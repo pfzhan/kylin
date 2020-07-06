@@ -29,10 +29,11 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import lombok.Data;
 
 @Data
-public class LayoutRecommendationResponse implements Serializable {
+public class LayoutRecommendationResponse extends LayoutRecommendationItem implements Serializable {
     @JsonProperty("id")
     private long id;
 

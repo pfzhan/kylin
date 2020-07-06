@@ -34,6 +34,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -50,6 +51,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Ignore
 public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
 
     @Before

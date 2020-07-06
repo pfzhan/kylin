@@ -52,6 +52,9 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
     @Getter
     private boolean canCreateNewModel;
 
+    @Getter
+    private boolean inMemory;
+
     public ModelReuseContextOfSemiMode(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
         this.partialMatch = kylinConfig.isQueryMatchPartialInnerJoinModel();
@@ -59,8 +62,14 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
 
     public ModelReuseContextOfSemiMode(KylinConfig kylinConfig, String project, String[] sqlArray,
             boolean canCreateNewModel) {
+        this(kylinConfig, project, sqlArray, canCreateNewModel, false);
+    }
+
+    public ModelReuseContextOfSemiMode(KylinConfig kylinConfig, String project, String[] sqlArray,
+            boolean canCreateNewModel, boolean inMemory) {
         this(kylinConfig, project, sqlArray);
         this.canCreateNewModel = canCreateNewModel;
+        this.inMemory = inMemory;
     }
 
     @Override
@@ -139,7 +148,8 @@ public class ModelReuseContextOfSemiMode extends AbstractSemiAutoContext {
                     if (before != null) {
                         beforeLayoutItemId = before.getNextLayoutRecommendationItemId();
                     }
-                    OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
+                    OptimizeRecommendation recommendations = inMemory ? optRecMgr.optimizeInMemory(model, indexPlan)
+                            : optRecMgr.optimize(model, indexPlan);
                     optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
                     recommendationMap.putIfAbsent(model, new Pair<>(recommendations, beforeLayoutItemId));
                     saveRecommendation(model, recommendationMap.get(model));

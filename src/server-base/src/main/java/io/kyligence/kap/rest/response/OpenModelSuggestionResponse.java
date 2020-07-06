@@ -23,15 +23,14 @@
  */
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Setter
 @Getter
@@ -62,7 +61,7 @@ public class OpenModelSuggestionResponse implements Serializable {
         @JsonProperty("sqls")
         private List<String> sqls;
         @JsonProperty("dimensions")
-        private List<NDataModel.NamedColumn> dimensions;
+        private List<OptRecDimensionResponse> dimensions;
         @JsonProperty("recommendations")
         private OptRecommendationResponse recommendationResponse;
 

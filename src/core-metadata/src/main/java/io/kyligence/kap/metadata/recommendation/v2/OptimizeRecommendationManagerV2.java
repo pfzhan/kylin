@@ -243,6 +243,15 @@ public class OptimizeRecommendationManagerV2 {
         void modify(OptimizeRecommendationV2 recommendation);
     }
 
+    public void dropOptimizeRecommendationV2(String id) {
+        val recommendation = getOptimizeRecommendationV2(id);
+        if (recommendation == null) {
+            return;
+        }
+        crud.delete(recommendation);
+        logger.info("Semi-Auto-Mode project:{} deleted recommendation, id:{}", project, id);
+    }
+
     // for test
     public List<RawRecItem> convertFromV1(OptimizeRecommendation recommendation) {
 

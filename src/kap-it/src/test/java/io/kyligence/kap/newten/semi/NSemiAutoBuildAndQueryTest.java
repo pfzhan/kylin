@@ -55,6 +55,7 @@ import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.tool.garbage.IndexCleaner;
 import lombok.val;
 
+@Ignore
 public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
     @Before
     public void setup() throws Exception {

@@ -53,7 +53,7 @@ public class NRecomendationListResponse {
         @JsonProperty("sqls")
         private List<String> sqls;
         @JsonProperty("dimensions")
-        private List<NamedColumn> dimensions;
+        private List<OptRecDimensionResponse> dimensions;
         @JsonProperty("recommendation")
         private OptRecommendationResponse recommendationResponse;
         @JsonProperty("index_plan")

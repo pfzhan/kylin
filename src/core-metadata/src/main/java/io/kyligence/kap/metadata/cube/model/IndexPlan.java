@@ -900,13 +900,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             nextTableIndexId = new AtomicLong(indexPlan.getNextTableIndexId());
         }
 
-        public void add(LayoutEntity layout, boolean isAgg) {
+        public boolean add(LayoutEntity layout, boolean isAgg) {
             val identifier = createIndexIdentifier(layout, isAgg);
+            if (allIndexesMap.get(identifier) != null && allIndexesMap.get(identifier).getLayouts().contains(layout)) {
+                return false;
+            }
             if (!whiteIndexesMap.containsKey(identifier)) {
                 val index = new IndexEntity();
                 index.setDimensions(getDimensions(layout));
                 index.setMeasures(getMeasures(layout));
-                index.setNextLayoutOffset(2);
+                index.setNextLayoutOffset(1);
                 if (allIndexesMap.get(identifier) != null) {
                     index.setId(allIndexesMap.get(identifier).getId());
                     index.setNextLayoutOffset(allIndexesMap.get(identifier).getNextLayoutOffset());
@@ -923,12 +926,48 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             } else {
                 val indexEntity = whiteIndexesMap.get(identifier);
                 if (indexEntity.getLayouts().contains(layout)) {
-                    return;
+                    return false;
                 }
                 layout.setId(indexEntity.getId() + indexEntity.getNextLayoutOffset());
                 layout.setIndex(indexEntity);
                 indexEntity.setNextLayoutOffset(indexEntity.getNextLayoutOffset() + 1);
                 indexEntity.getLayouts().add(layout);
+            }
+            return true;
+        }
+
+        public boolean remove(LayoutEntity layout, boolean isAgg, boolean needAddBlackList) {
+            IndexEntity.IndexIdentifier identifier = createIndexIdentifier(layout, isAgg);
+            if (allIndexesMap.containsKey(identifier) && allIndexesMap.get(identifier).getLayouts().contains(layout)) {
+                IndexEntity indexEntity = allIndexesMap.get(identifier);
+                LayoutEntity layoutInIndexPlan = indexEntity.getLayout(layout.getId());
+                if (layoutInIndexPlan == null) {
+                    return false;
+                }
+
+                if (layoutInIndexPlan.isManual()) {
+                    if (isAgg && needAddBlackList) {
+                        // For similar strategy only works on AggIndex, we need add this to black list.
+                        indexPlan.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+                        if (layoutInIndexPlan.isAuto()) {
+                            indexEntity.getLayouts().remove(layoutInIndexPlan);
+                            whiteIndexesMap.values().stream().filter(
+                                    indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
+                                    .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
+                                            .remove(layoutInIndexPlan));
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+                indexEntity.getLayouts().remove(layoutInIndexPlan);
+                whiteIndexesMap.values().stream()
+                        .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
+                        .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
+                                .remove(layoutInIndexPlan));
+                return true;
+            } else {
+                return false;
             }
         }
 

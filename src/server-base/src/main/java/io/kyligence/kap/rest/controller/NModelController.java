@@ -40,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -76,19 +75,19 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.RecommendationItem;
-import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
-import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.NRecommendationListRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
@@ -102,8 +101,10 @@ import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
@@ -231,6 +232,17 @@ public class NModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 modelService.suggestModel(request.getProject(), request.getSqls(), request.getReuseExistedModel()), "");
+    }
+
+    @ApiOperation(value = "suggestModel (check)", notes = "; need check")
+    @PostMapping(value = "/model_recommendation")
+    @ResponseBody
+    public EnvelopeResponse<String> approveSuggestModel(@RequestBody NRecommendationListRequest request)
+            throws Exception {
+        checkProjectName(request.getProject());
+        checkProjectNotSemiAuto(request.getProject());
+        modelService.approveSuggestModel(request.getProject(), request.getNewModels(), request.getRecommendations());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     /**
@@ -751,12 +763,11 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "without_indexes", required = false) List<Long> withoutAnyIndexes,
             @RequestParam(value = "all_to_complement", required = false, defaultValue = "false") Boolean allToComplement,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse
-    ) {
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         validateRange(start, end);
-        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(
-                modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, allToComplement, sortBy, reverse);
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, status,
+                withAllIndexes, withoutAnyIndexes, allToComplement, sortBy, reverse);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
     }
 
@@ -764,11 +775,12 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/segment_holes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> fixSegHoles(@PathVariable("model") String modelId,
-                                                         @RequestBody SegmentFixRequest segmentsRequest) throws Exception {
+            @RequestBody SegmentFixRequest segmentsRequest) throws Exception {
         checkProjectName(segmentsRequest.getProject());
         checkRequiredArg("segment_holes", segmentsRequest.getSegmentHoles());
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(segmentsRequest.getProject(), modelId);
-        segmentsRequest.getSegmentHoles().forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
+        segmentsRequest.getSegmentHoles()
+                .forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
         JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
                 segmentsRequest.getSegmentHoles());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
@@ -778,9 +790,10 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/segment/validation")
     @ResponseBody
     public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
-                                                               @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
+            @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
+                modelId);
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
@@ -791,7 +804,7 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/{model:.+}/segment/validation")
     @ResponseBody
     public EnvelopeResponse<SegmentCheckResponse> checkHolesIfSegDeleted(@PathVariable("model") String model,
-                                                                         @RequestParam("project") String project, @RequestParam(value = "ids", required = false) String[] ids) {
+            @RequestParam("project") String project, @RequestParam(value = "ids", required = false) String[] ids) {
         checkProjectName(project);
         val res = modelService.checkSegHoleIfSegDeleted(model, project, ids);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
@@ -801,10 +814,10 @@ public class NModelController extends NBasicController {
     @DeleteMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
-                                                   @RequestParam("project") String project, //
-                                                   @RequestParam("purge") Boolean purge, //
-                                                   @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
-                                                   @RequestParam(value = "ids", required = false) String[] ids) {
+            @RequestParam("project") String project, //
+            @RequestParam("purge") Boolean purge, //
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
+            @RequestParam(value = "ids", required = false) String[] ids) {
         checkProjectName(project);
 
         if (purge) {
@@ -822,7 +835,7 @@ public class NModelController extends NBasicController {
     @PutMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
-                                                                @RequestBody SegmentsRequest request) {
+            @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
             if (ArrayUtils.isEmpty(request.getIds())) {
@@ -844,12 +857,14 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
-                                                                   @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(), modelId);
+            @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
+        String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
+                modelId);
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
-                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), buildSegmentsRequest.isBuildAllIndexes());
+                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
+                buildSegmentsRequest.isBuildAllIndexes());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -857,7 +872,7 @@ public class NModelController extends NBasicController {
     @PutMapping(value = "/{model:.+}/model_segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
-                                                                            @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
+            @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         String partitionColumnFormat = buildSegmentsRequest.getPartitionDesc().getPartitionDateFormat();
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
@@ -873,9 +888,10 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/indexes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
-                                                                  @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(), modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds());
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+                modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -883,9 +899,10 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/all_indexes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> addAllIndexesToSegments(@PathVariable("model") String modelId,
-                                                                     @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(), modelId, buildSegmentsRequest.getSegmentIds(), null);
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+                modelId, buildSegmentsRequest.getSegmentIds(), null);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -893,9 +910,10 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
     @ResponseBody
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
-                                                              @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
         checkProjectName(deleteSegmentsRequest.getProject());
-        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId, deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
+        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
+                deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

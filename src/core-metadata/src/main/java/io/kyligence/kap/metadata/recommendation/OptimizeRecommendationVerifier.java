@@ -57,10 +57,24 @@ public class OptimizeRecommendationVerifier {
     private Set<Long> passLayoutItems;
     private Set<Long> failLayoutItems;
 
+    private OptimizeRecommendation recommendation;
+    private boolean inMemory = false;
+
     public OptimizeRecommendationVerifier(KylinConfig config, String project, String id) {
         this.config = config;
         this.project = project;
         this.id = id;
+        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
+        recommendationManager.cleanInEffective(id);
+        this.recommendation = recommendationManager.getOptimizeRecommendation(id);
+    }
+
+    public OptimizeRecommendationVerifier(KylinConfig config, String project, OptimizeRecommendation recommendation) {
+        this.config = config;
+        this.project = project;
+        this.id = recommendation.getId();
+        this.recommendation = recommendation;
+        this.inMemory = true;
     }
 
     private int getSize(Collection items) {
@@ -68,29 +82,40 @@ public class OptimizeRecommendationVerifier {
     }
 
     public void verify() {
+        if (recommendation == null) {
+            return;
+        }
         log.info(
                 "Semi-Auto-Mode project:{} start to verify recommendations, [model:{}, passCCItems:{}, failCCItems:{}, passDimensionItems:{}, failDimensionItems:{}, passMeasureItems:{}, failMeasureItems:{}, passIndexItems:{}, failIndexItems:{}]",
                 project, id, getSize(passCCItems), getSize(failCCItems), getSize(passDimensionItems),
                 getSize(failDimensionItems), getSize(passMeasureItems), getSize(failMeasureItems),
                 getSize(passLayoutItems), getSize(failLayoutItems));
-        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
-        if (recommendationManager.getOptimizeRecommendation(id) == null) {
-            return;
-        }
+
         val modelManager = NDataModelManager.getInstance(config, project);
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
 
         Preconditions.checkNotNull(modelManager.getDataModelDesc(id), "model " + id + " not exists");
         Preconditions.checkNotNull(indexPlanManager.getIndexPlan(id), "index " + id + " not exists");
 
-        recommendationManager.cleanInEffective(id);
-
         val model = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         val indexPlan = indexPlanManager.copy(indexPlanManager.getIndexPlan(id));
-        val recommendation = recommendationManager.getOptimizeRecommendation(id);
-
         val context = new OptimizeContext(model, indexPlan, recommendation);
+        innerVerify(context);
+        if (inMemory) {
+            return;
+        }
+        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
+        recommendationManager.update(context, System.currentTimeMillis());
+        recommendationManager.cleanInEffective(id);
+        recommendationManager.logOptimizeRecommendation(id);
+    }
 
+    private void innerVerify(OptimizeContext context) {
+        val modelManager = NDataModelManager.getInstance(config, project);
+        val indexPlanManager = NIndexPlanManager.getInstance(config, project);
+
+        val recommendation = context.getRecommendation();
+        val model = context.getModel();
         verify(context, recommendation.getCcRecommendations(), passCCItems, failCCItems,
                 context.getCcContextRecommendationItems());
 
@@ -124,20 +149,12 @@ public class OptimizeRecommendationVerifier {
 
         context.updateIndexes();
 
-        indexPlanManager.updateIndexPlan(indexPlan);
+        indexPlanManager.updateIndexPlan(context.getIndexPlan());
 
-        recommendationManager.update(context, System.currentTimeMillis());
-
-        recommendationManager.cleanInEffective(id);
-
-        recommendationManager.logOptimizeRecommendation(id);
         log.info("Semi-Auto-Mode project:{} verify recommendations successfully, [model:{}]", project, id);
     }
 
     public void verifyAll() {
-        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
-        val recommendation = recommendationManager.getOptimizeRecommendation(id);
-
         if (recommendation == null)
             return;
 

@@ -25,12 +25,14 @@
 package io.kyligence.kap.newten.semi;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import lombok.val;
 
+@Ignore
 public class NSemiAutoTPCHTest extends SemiAutoTestBase {
 
     @Override

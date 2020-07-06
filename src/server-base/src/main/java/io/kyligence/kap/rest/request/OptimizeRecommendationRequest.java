@@ -22,15 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import lombok.Data;
 
 @Data
-public class OptRecDimensionResponse extends NDataModel.NamedColumn {
-    @JsonProperty("data_type")
-    private String dataType;
+public class OptimizeRecommendationRequest extends OptimizeRecommendation {
+
+    @JsonProperty("model_id")
+    private String modelId;
 }

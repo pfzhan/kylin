@@ -150,6 +150,9 @@ public class OptRecommendationResponse implements Serializable {
         val layout = item.getLayout();
         response.setId(layout.getId());
         response.setColumnsAndMeasuresSize(layout.getColOrder().size());
+        response.setLayout(layout);
+        response.setAggIndex(item.isAggIndex());
+        response.setAdd(item.isAdd());
         if (item.isAdd()) {
             if (item.isAggIndex()) {
                 response.setType(LayoutRecommendationResponse.Type.ADD_AGG);
