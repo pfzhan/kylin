@@ -170,6 +170,8 @@ def getProp(prop_file):
     output = cmd.getoutput("sed -nE 's/^([#\\\\t ]*)(kylin\\..*=.*|kap\\..*=.*)/\\\\2/p' %s" % prop_file)
     prop = dict()
     for x in output.split('\n'):
+        if x.strip() == '':
+            continue
         prop[x[0: x.index('=')]] = x[x.index('=') + 1:]
     return prop
 
