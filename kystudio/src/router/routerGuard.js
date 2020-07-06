@@ -35,6 +35,10 @@ export function bindRouterGuard (router) {
         Promise.all([
           store.dispatch(types.LOAD_AUTHENTICATION)
         ]).then(async () => {
+          if (!store.state.system.authentication || !store.state.system.authentication.data) {
+            router.replace('/access/login')
+            return
+          }
           store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
           Promise.all([
             store.dispatch(types.LOAD_ALL_PROJECT),
@@ -75,7 +79,7 @@ export function bindRouterGuard (router) {
         prepositionRequest()
       } else if (from.name !== 'access' && from.name !== 'Login' && to.name !== 'access' && to.name !== 'Login') {
         // 如果是非登录页过来的，内页之间的路由跳转的话，就需要判断是否已经拿过权限
-        if (store.state.system.authentication === null && store.state.system.serverConfig === null || (to.params.refresh || from.name === null)) {
+        if (!store.state.system.authentication && !store.state.system.serverConfig || (to.params.refresh || !from.name)) {
           prepositionRequest()
         } else {
           getRouteAuthority()

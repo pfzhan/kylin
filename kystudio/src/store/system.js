@@ -110,6 +110,10 @@ export default {
       }) */
       return new Promise((resolve, reject) => {
         api.system.getAuthentication().then((response) => {
+          if ((!response || !response.data || response.data.data === null)) {
+            window.kapVm.$router.replace('/access/login')
+            return
+          }
           commit(types.SAVE_AUTHENTICATION, { authentication: response.data })
           commit(types.INIT_SPEC)
           resolve(response.data)
