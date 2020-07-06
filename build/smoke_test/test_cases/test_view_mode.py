@@ -124,6 +124,8 @@ class TestView:
         sample_table_index_desc['model_id'] = config.sample_model_desc.get('uuid')
         response = model.add_table_index(sample_table_index_desc)
         assert response.status_code == 200
+        # wait jobs done
+        self.wait_job_done(project_name)
 
         # add agg group
         sample_agg_index_desc = config.sample_aggregate_index_desc

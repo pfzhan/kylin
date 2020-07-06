@@ -146,19 +146,25 @@ class TestExpertMode:
         resp = model.add_aggregate_indices(aggregate_index_desc)
         assert resp.status_code == 200
 
+        # wait jobs to be scheduled
+        time.sleep(_WAIT_INTERVAL)
+        # monitor job status
+        job = Job(headers_test)
+        assert job.await_all_jobs(config.project_name), 'all jobs should have finished.'
+
         # add table index
         table_index_desc = config.table_index_desc
         table_index_desc['project'] = config.project_name
         table_index_desc['model_id'] = config.model_desc.get('uuid')
         resp = model.add_table_index(table_index_desc)
         assert resp.status_code == 200
+
         # wait jobs to be scheduled
         time.sleep(_WAIT_INTERVAL)
         # monitor job status
         job = Job(headers_test)
         assert job.await_all_jobs(config.project_name), 'all jobs should have finished.'
-        # wait index to be ready
-        time.sleep(_WAIT_INTERVAL)
+
 
     @pytest.mark.p1
     def test_user_sign_inout(self, config):
