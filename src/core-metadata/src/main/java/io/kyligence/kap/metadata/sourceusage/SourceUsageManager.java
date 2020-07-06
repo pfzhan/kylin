@@ -278,7 +278,10 @@ public class SourceUsageManager {
 
     private void calculateTableInProject(NDataflow dataflow, ProjectCapacityDetail projectDetail) {
         NDataModel model = dataflow.getModel();
-
+        if (dataflow.checkBrokenWithRelatedInfo()) {
+            logger.debug("Current model: {} is broken, skip calculate source usage", model);
+            return;
+        }
         // source usage is first captured by column, then sum up to table and project
         Map<String, Long> dataflowColumnsBytes = sumDataflowColumnSourceMap(dataflow);
 

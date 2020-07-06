@@ -26,6 +26,9 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -119,6 +122,8 @@ public class ModelBrokenListener {
             val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(config, project);
             recommendationManagerV2.removeAll(model.getId());
 
+            UnitOfWork.get().doAfterUnit(
+                    () -> SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier()));
             return null;
         }, project);
     }
@@ -150,12 +155,12 @@ public class ModelBrokenListener {
             if (!needHandleModelRepair(project, modelId)) {
                 return null;
             }
-
-            val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val config = KylinConfig.getInstanceFromEnv();
+            val modelManager = NDataModelManager.getInstance(config, project);
             val modelOrigin = modelManager.getDataModelDesc(modelId);
             val model = modelManager.copyForWrite(modelOrigin);
 
-            val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val dataflowManager = NDataflowManager.getInstance(config, project);
             val dataflow = dataflowManager.getDataflow(modelId);
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
             dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
@@ -167,12 +172,15 @@ public class ModelBrokenListener {
                 } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
                     dataflowManager.fillDf(dataflow);
                 }
-                val jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                val sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
+                val jobManager = JobManager.getInstance(config, project);
+                val sourceUsageManager = SourceUsageManager.getInstance(config);
                 sourceUsageManager.licenseCheckWrap(project, () -> jobManager.checkAndAddIndexJob(model.getId(), "ADMIN"));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
+
+            UnitOfWork.get().doAfterUnit(
+                    () -> SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier()));
 
             return null;
         }, project);
