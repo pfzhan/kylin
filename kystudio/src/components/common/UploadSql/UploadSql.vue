@@ -805,4 +805,154 @@ export default class UploadSqlModel extends Vue {
   .importSqlDialog .el-dialog__body .upload-block .sql-upload .el-upload-list .el-upload-list__item:hover {
     background-color: @base-background-color-1;
   }
+  .importSqlDialog {
+    .ksd-null-pic-text {
+      margin: 122.5px 0;
+    }
+    .query-count {
+      color: @text-title-color;
+      line-height: 30px;
+      height: 30px;
+      display: inline-block;
+    }
+    .tips {
+      span {
+        margin-left: 5px;
+        color: @text-normal-color;
+      }
+      i {
+        color: @text-disabled-color;
+      }
+    }
+    .el-icon-ksd-good_health {
+      color: @normal-color-1;
+      margin-right: 2px;
+      font-size: 14px;
+    }
+    .el-icon-ksd-error_01 {
+      color: @error-color-1;
+      margin-right: 2px;
+      font-size: 14px;
+    }
+    .el-dialog__body {
+      // min-height: 460px;
+      height: 460px;
+      .model-table {
+        .rename-error {
+          color: @error-color-1;
+          font-size: 12px;
+          line-height: 1.2;
+        }
+        .name-error {
+          .el-input__inner {
+            border-color: @error-color-1;
+          }
+        }
+      }
+      .import-table {
+        .cell {
+          height: 23px;
+        }
+        .active-row {
+          background-color: @base-color-9;
+        }
+        .el-table__row {
+          cursor: pointer;
+        }
+        .el-icon-ksd-table_edit,
+        .el-icon-ksd-table_delete {
+          &:hover {
+            color: @base-color;
+          }
+        }
+      }
+      .new_sql_status {
+        border-color: @base-color;
+        .ace-chrome {
+          border-color: @base-color;
+          border-bottom-color: @text-secondary-color;
+        }
+      }
+      .operatorBox{
+        margin-top: 0;
+        padding: 10px;
+        display: block;
+        overflow: hidden;
+      }
+      .error_messages {
+        height: 130px;
+        border: 1px solid @line-border-color;
+        border-radius: 2px;
+        font-size: 12px;
+        margin-top: 10px;
+        padding: 10px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        .label {
+          color: @error-color-1;
+        }
+      }
+      .smyles_editor_wrap .smyles_dragbar {
+        height: 0;
+      }
+      .upload-block {
+        text-align: center;
+        margin: 0 auto;
+        img {
+          margin-top: 100px;
+        }
+        .text {
+          font-size: 14px;
+          color: @text-title-color;
+          line-height: 24px;
+        }
+        .el-upload {
+          margin-top: 25px;
+        }
+        .el-upload-list {
+          width: 300px;
+          margin: 0 auto;
+          text-align: left;
+          .el-upload-list__item {
+            .el-upload-list__item-name {
+              margin-right: 20px;
+              &:hover {
+                text-decoration: none;
+                color: inherit;
+              }
+            }
+            &:hover {
+              background-color: inherit;
+            }
+          }
+        }
+      }
+    }
+    .filter-tags {
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      box-sizing: border-box;
+      position: relative;
+      background: @background-disabled-color;
+      .filter-tags-layout {
+        width: calc(~'100% - 100px');
+        display: inline-block;
+        line-height: 34px;
+      }
+      .el-tag {
+        margin-left: 5px;
+        &:first-child {
+          margin-left: 0;
+        }
+      }
+      .clear-all-filters {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        font-size: 14px;
+        color: @base-color;
+        cursor: pointer;
+      }
+    }
+  }
 </style>
