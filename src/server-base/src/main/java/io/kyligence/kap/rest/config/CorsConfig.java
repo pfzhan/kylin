@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.config;
 
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,11 +35,19 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 public class CorsConfig {
 
-    @ConditionalOnProperty(name="kylin.server.cors.allow-all", havingValue = "true")
+    @Value(value = "${kylin.server.cors.allowed-origin:*}")
+    private String corsAllowedOrigins;
+
+    @ConditionalOnProperty(name = "kylin.server.cors.allow-all", havingValue = "true")
     @Bean
     public CorsFilter corsFilter() {
+        String[] corsAllowedOriginArray = StringUtils.isBlank(corsAllowedOrigins) ? new String[] { "*" }
+                : corsAllowedOrigins.split(",");
+
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("*");
+        for (String allowedOrigin : corsAllowedOriginArray) {
+            config.addAllowedOrigin(allowedOrigin);
+        }
         config.setAllowCredentials(true);
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
