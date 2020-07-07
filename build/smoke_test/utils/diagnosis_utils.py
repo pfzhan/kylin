@@ -25,8 +25,8 @@
 #
 import os
 
-METADATA_LIST = ['accelerate_ratio', 'dataflow', 'dataflow_details', 'execute', 'favorite', 'index_plan',
-                 'job_stats', 'model_desc', 'query_history_time_offset', 'table']
+METADATA_LIST = ['accelerate_ratio', 'dataflow', 'dataflow_details', 'execute', 'index_plan',
+                 'job_stats', 'model_desc', 'query_history_id_offset', 'table']
 
 
 def verify_metadata(diagnosis_path, project_name):
