@@ -193,9 +193,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         exportSparkLog(exportDir, start, recordTime, project, jobId, job);
 
         exportKgLogs(exportDir, startTime, endTime, start, recordTime);
-        if(!isCloud) {
-            exportMetrics(exportDir, start, recordTime, project);
-        }
+        exportMetrics(exportDir, start, recordTime, project);
 
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());

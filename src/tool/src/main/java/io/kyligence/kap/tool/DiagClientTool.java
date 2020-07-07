@@ -180,9 +180,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         });
 
         exportFileInfo(includeConf, exportDir, startTime, endTime, start, recordTime);
-        if(!getKapConfig().isCloud()) {
-            exportInfluxDBMetrics(exportDir, startTime, endTime, start, recordTime);
-        }
+        exportInfluxDBMetrics(exportDir, startTime, endTime, start, recordTime);
 
         exportSparkLog(exportDir, startTime, endTime, start, recordTime);
 
@@ -286,7 +284,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     }
 
     private void waitForSparderRollUp() {
-        if(!getKapConfig().isCloud()){
+        if (!getKapConfig().isCloud()) {
             return;
         }
         String check = SparderEnv.rollUpEventLog();
