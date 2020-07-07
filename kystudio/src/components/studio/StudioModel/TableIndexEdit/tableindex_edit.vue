@@ -370,7 +370,7 @@
     }
     async submit (isLoadData) {
       // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
-      if (isLoadData && this.modelInstance.segments.length > 0 && !this.modelInstance.partition_desc || !isLoadData) {
+      if (isLoadData && this.modelInstance.segments.length > 0 && (!this.modelInstance.partition_desc || this.modelInstance.partition_desc && !this.modelInstance.partition_desc.partition_date_column) || !isLoadData) {
         this.tableIndexMeta.load_data = isLoadData
       }
       if (this.tableIndexDesc && this.tableIndexDesc.status && this.tableIndexDesc.status !== 'EMPTY') {

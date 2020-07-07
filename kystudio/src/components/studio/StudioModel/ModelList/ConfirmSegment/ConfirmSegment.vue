@@ -303,8 +303,13 @@ export default class ConfirmSegmentModal extends Vue {
     const tableData = []
     failedSegments.forEach((seg) => {
       const obj = {}
-      obj['start'] = transToServerGmtTime(seg.segRange.date_range_start)
-      obj['end'] = transToServerGmtTime(seg.segRange.date_range_end)
+      if (seg.segRange.date_range_start === 0 && seg.segRange.date_range_end === 9223372036854776000) {
+        obj['start'] = this.$t('kylinLang.common.fullLoad')
+        obj['end'] = this.$t('kylinLang.common.fullLoad')
+      } else {
+        obj['start'] = transToServerGmtTime(seg.segRange.date_range_start)
+        obj['end'] = transToServerGmtTime(seg.segRange.date_range_end)
+      }
       tableData.push(obj)
     })
     this.callGlobalDetailDialog({
