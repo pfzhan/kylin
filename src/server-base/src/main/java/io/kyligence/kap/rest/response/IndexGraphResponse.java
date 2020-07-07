@@ -87,4 +87,7 @@ public class IndexGraphResponse {
 
     @JsonProperty("total_indexes")
     private long totalIndexes;
+
+    @JsonProperty("segment_to_complement_count")
+    private long segmentToComplementCount;
 }

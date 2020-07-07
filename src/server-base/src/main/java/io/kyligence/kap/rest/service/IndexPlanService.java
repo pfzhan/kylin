@@ -601,10 +601,6 @@ public class IndexPlanService extends BasicService {
                 .filter(seg -> !SegmentStatusEnum.NEW.equals(seg.getStatus()))
                 .collect(Collectors.toCollection(Segments::new));
 
-        if (CollectionUtils.isEmpty(readySegments)
-                || (readySegments.size() == 1 && readySegments.getFirstSegment().getLayoutsMap().isEmpty())) {
-            return indexGraphResponse;
-        }
         long startTime = Long.MAX_VALUE;
         long endTime = 0L;
         for (NDataSegment seg : readySegments) {
@@ -615,6 +611,15 @@ public class IndexPlanService extends BasicService {
         }
         indexGraphResponse.setStartTime(startTime);
         indexGraphResponse.setEndTime(endTime);
+
+        long segmentToComplementCount = 0;
+        for (NDataSegment seg : readySegments) {
+            if (seg.getSegDetails().getLayouts().size() != indexPlan.getAllLayouts().size()) {
+                segmentToComplementCount += 1;
+            }
+        }
+        indexGraphResponse.setSegmentToComplementCount(segmentToComplementCount);
+
         return indexGraphResponse;
     }
 
