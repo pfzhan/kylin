@@ -32,7 +32,7 @@
         <div class="drag-bar ky-drag-layout-bar" @mousedown="handlerDownEvent">||</div>
       </div>
       <div class="index-group" :style="{width: `calc(${100 - moveEvent.w}% - 10px)`}">
-        <div class="btn-groups">
+        <div class="btn-groups" v-if="isShowAggregateAction">
           <el-button-group>
             <el-button plain size="mini" icon="el-icon-ksd-login_intro" @click="switchIndexValue = 0" :class="{'active': switchIndexValue === 0}">{{$t('indexListBtn')}}</el-button>
             <el-button plain size="mini" icon="el-icon-ksd-status" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" @click="switchIndexValue = 1" :class="{'active': switchIndexValue === 1}">{{$t('recommendationsBtn')}}</el-button>
@@ -64,9 +64,9 @@
                   <i class="el-icon-ksd-what"></i>
                 </el-tooltip>: {{getDataRange}}
               </div>
-              <div @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-2">{{$t('viewIncomplete')}}</div>
+              <div v-if="isShowAggregateAction" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-2">{{$t('viewIncomplete')}}</div>
             </div>
-            <div class="clearfix">
+            <div class="clearfix" v-if="isShowAggregateAction">
               <el-button icon="el-icon-ksd-icon_build-index" :disabled="!checkedList.length" v-if="datasourceActions.includes('buildIndex')" class="ksd-mb-10 ksd-fleft" size="small" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
               <el-dropdown
                 split-button
@@ -137,10 +137,10 @@
                   <common-tip :content="$t('viewDetail')">
                     <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
                   </common-tip>
-                  <common-tip :content="$t('buildIndex')" v-if="datasourceActions.includes('buildIndex')">
+                  <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')">
                     <i class="el-icon-ksd-icon_build-index ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
                   </common-tip>
-                  <common-tip :content="$t('editIndex')" v-if="datasourceActions.includes('editAggGroup')">
+                  <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
                     <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
                   </common-tip>
                   <!-- <common-tip :content="$t('kylinLang.common.moreActions')">
