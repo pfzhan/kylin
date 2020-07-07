@@ -77,6 +77,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -110,6 +112,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.apache.kylin.util.BrokenEntityProxy;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -202,7 +205,6 @@ import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import javax.annotation.Nullable;
 import lombok.val;
 import lombok.var;
 
@@ -312,6 +314,29 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataModelResponse> models8 = modelService.getModels("nmodel_full_measure_test", "default", false, "",
                 null, "last_modify", true, "admin", 0L, 1L);
         Assert.assertEquals(0, models8.size());
+
+        String brokenModelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = dataModelManager.getDataModelDesc(brokenModelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        dataModelManager.updateDataBrokenModelDesc(brokenModel);
+
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(brokenModelId);
+        val brokenEntity = BrokenEntityProxy.getProxy(IndexPlan.class, indexPlan.getResourcePath());
+        brokenEntity.setUuid(brokenModelId);
+        brokenEntity.setMvcc(indexPlan.getMvcc());
+        brokenEntity.setProject("default");
+        Mockito.doReturn(brokenEntity).when(modelService).getIndexPlan(brokenModelId, "default");
+
+        List<NDataModelResponse> models9 = modelService.getModels("nmodel_basic_inner", "default", false, "",
+                null, "last_modify", true, "admin", null, null);
+        Assert.assertEquals(1, models9.size());
+        Assert.assertEquals(0, models9.get(0).getRecommendationsCount());
+        Assert.assertEquals(0, models9.get(0).getAvailableIndexesCount());
+        Assert.assertEquals(0, models9.get(0).getTotalIndexes());
+        Assert.assertEquals(0, models9.get(0).getEmptyIndexesCount());
     }
 
     @Test

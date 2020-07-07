@@ -187,12 +187,12 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
+import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -536,16 +536,14 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
                         nDataModelResponse.getSource()));
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());
-                nDataModelResponse.setRecommendationsCount(!prj.isSemiAutoMode() ? 0
-                        : optRecService.getOptRecLayoutsResponse(projectName, modelDesc.getId()).getSize());
-                nDataModelResponse
-                        .setAvailableIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
-                                : getAvailableIndexesCount(projectName, modelDesc.getId()));
-                nDataModelResponse.setTotalIndexes(modelDesc.isBroken() ? 0
-                        : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
-                nDataModelResponse.setEmptyIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
-                        : getEmptyIndexesCount(projectName, modelDesc.getId()));
                 nDataModelResponse.setInconsistentSegmentCount(inconsistentSegmentCount);
+                if (!modelDesc.isBroken()) {
+                    nDataModelResponse.setRecommendationsCount(!prj.isSemiAutoMode() ? 0
+                            : optRecService.getOptRecLayoutsResponse(projectName, modelDesc.getId()).getSize());
+                    nDataModelResponse.setAvailableIndexesCount(getAvailableIndexesCount(projectName, modelDesc.getId()));
+                    nDataModelResponse.setTotalIndexes(getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
+                    nDataModelResponse.setEmptyIndexesCount(getEmptyIndexesCount(projectName, modelDesc.getId()));
+                }
                 filterModels.add(nDataModelResponse);
             }
         });
@@ -882,7 +880,8 @@ public class ModelService extends BasicService {
         return relatedModel;
     }
 
-    private IndexPlan getIndexPlan(String modelId, String project) {
+    @VisibleForTesting
+    public IndexPlan getIndexPlan(String modelId, String project) {
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
         return indexPlanManager.getIndexPlan(modelId);
     }
