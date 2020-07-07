@@ -113,7 +113,7 @@ export function _getStorageQuota (data) {
   return {
     project: data.project,
     storage_quota_size: data.storage_quota_size,
-    storage_quota_tb_size: (data.storage_quota_size / 1024 / 1024 / 1024 / 1024).toFixed(2)
+    storage_quota_tb_size: data.storage_quota_tb_size
   }
 }
 export function _getIndexOptimization (data) {

@@ -475,7 +475,7 @@ export default class SettingBasic extends Vue {
           if (await this.$refs['setting-storage-quota'].validate()) {
             const submitData = _getStorageQuota(this.form, this.project)
             // TB转byte
-            submitData.storage_quota_size = +(submitData.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
+            this.form.storage_quota_size = submitData.storage_quota_size = +(submitData.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
             await this.updateStorageQuota(submitData); break
           } else {
             return errorCallback()
@@ -575,7 +575,7 @@ export default class SettingBasic extends Vue {
       case 'segment-settings':
         return JSON.stringify(_getSegmentSettings(form)) !== JSON.stringify(_getSegmentSettings(project))
       case 'storage-quota':
-        form.storage_quota_size = +(form.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
+        // form.storage_quota_size = +(form.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
         return JSON.stringify(_getStorageQuota(form)) !== JSON.stringify(_getStorageQuota(project))
       case 'index-optimization':
         return JSON.stringify(_getIndexOptimization(form)) !== JSON.stringify(_getIndexOptimization(project))
