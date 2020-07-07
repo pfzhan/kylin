@@ -383,15 +383,23 @@ public class NBasicController {
         if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
             long startLong = 0;
             long endLong = 0;
+
             try {
-                startLong = DateFormat.getFormatTimeStamp(start, partitionColumnFormat);
-                endLong = DateFormat.getFormatTimeStamp(end, partitionColumnFormat);
+                startLong = Long.parseLong(start);
+                endLong = Long.parseLong(end);
             } catch (Exception e) {
                 throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
             }
 
             if (startLong < 0 || endLong < 0)
                 throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+
+            try {
+                startLong = DateFormat.getFormatTimeStamp(start, partitionColumnFormat);
+                endLong = DateFormat.getFormatTimeStamp(end, partitionColumnFormat);
+            } catch (Exception e) {
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+            }
 
             if (startLong >= endLong)
                 throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());

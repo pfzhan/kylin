@@ -172,6 +172,12 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testTimeRangeValid() {
+        nBasicController.validateDataRange("0", "86400000", "yyyy-MM-dd");
+        nBasicController.validateDataRange("1000000000000", "2200000000000", "yyyy-MM-dd");
+    }
+
+    @Test
     public void testTimeRangeEndEqualToStartWithDateFormat() {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String start = null;
