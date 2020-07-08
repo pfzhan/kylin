@@ -30,9 +30,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import lombok.val;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -125,7 +127,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
 
     @Override
     public void implementOLAP(OLAPImplementor implementor) {
-        if (this.getPermutation() != null && !(implementor.getParentNode() instanceof OLAPToEnumerableConverter))
+        if (this.getPermutation() != null && !isTopProject(implementor.getParentNodeStack()))
             isMerelyPermutation = true;
         // @beforeTopPreCalcJoin refer to this rel is under a preCalcJoin Rel and need not be rewrite. eg.
         //        JOIN
@@ -145,6 +147,20 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         } else if (this.needPushInfoToSubCtx) {
             updateSubContexts(subContexts);
         }
+    }
+
+    private boolean isTopProject(Stack<RelNode> parentNodeStack) {
+        val tmpStack = (Stack<RelNode>) parentNodeStack.clone();
+        while (!tmpStack.empty()) {
+            val parentNode = tmpStack.pop();
+            if (parentNode instanceof OLAPToEnumerableConverter)
+                return true;
+
+            if (parentNode instanceof OLAPProjectRel)
+                return false;
+        }
+
+        return false;
     }
 
     @Override

@@ -510,4 +510,30 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
         Assert.assertTrue(layout.getUpdateTime() > 0);
     }
+
+    @Test
+    public void testCuboidWithWindowLimit() {
+
+        String[] sqls = new String[] {
+                "select trans_id, seller_id,part_dt\n" +
+                        ",lead(part_dt, 1) over w as next_dt\n" +
+                        ",lag(part_dt, 1) over w as last_dt \n" +
+                        "from kylin_sales \n" +
+                        "window w as (partition by seller_id order by part_dt) limit 100;" };
+
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
+        final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
+        Assert.assertEquals(3, layout.getColumns().size());
+        Assert.assertEquals(Lists.newArrayList(7, 9, 11), allCuboids.get(0).getDimensions());
+        Assert.assertEquals("{7, 9, 11}", allCuboids.get(0).getDimensionBitset().toString());
+        Assert.assertEquals("unexpected colOrder", "[7, 9, 11]", layout.getColOrder().toString());
+        Assert.assertTrue(layout.getUpdateTime() > 0);
+    }
 }
