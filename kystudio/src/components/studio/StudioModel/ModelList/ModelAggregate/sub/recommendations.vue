@@ -15,8 +15,8 @@
         class="recommendations-table"
         size="medium"
         max-height="350"
+        v-loading="loadingRecommends"
         :empty-text="emptyText"
-        @sort-change="onSortChange"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="44"></el-table-column>
@@ -31,6 +31,7 @@
           prop="type"
           show-overflow-tooltip>
           <template slot-scope="scope">
+            <el-tag size="mini" :type="scope.row.type.split('_')[0] === 'ADD' ? 'success' : 'danger'" v-if="['ADD', 'REMOVE'].includes(scope.row.type.split('_')[0])">{{scope.row.type.split('_')[0] === 'ADD' ? $t('newAdd') : $t('delete')}}</el-tag>
             {{$t(scope.row.type.split('_')[1])}}
           </template>
         </el-table-column>
@@ -121,6 +122,7 @@
       <el-table
         nested
         border
+        v-loading="loadingDetails"
         :data="detailData"
         class="index-details-table"
         size="medium"
@@ -378,6 +380,8 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
 })
 export default class IndexList extends Vue {
   transToGmtTime = transToGmtTime
+  loadingRecommends = false
+  loadingDetails = false
   recommendationsList = {
     list: [],
     page_offset: 0,
@@ -448,10 +452,6 @@ export default class IndexList extends Vue {
     </span>
   }
 
-  onSortChange () {
-
-  }
-
   async acceptLayout () {
     this.showIndexDetail = false
     await this.confrim([this.currentIndex.item_id])
@@ -464,6 +464,7 @@ export default class IndexList extends Vue {
   // 展示优化建议详情
   showDetail (row) {
     this.showIndexDetail = true
+    this.loadingDetails = true
     this.currentIndex = row
     this.getRecommendDetails({
       project: this.currentProject,
@@ -472,19 +473,24 @@ export default class IndexList extends Vue {
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
       this.detailData = [...data.column_items.map(it => ({...it, type: 'cc'})), ...data.dimension_items.map(it => ({...it, type: 'dimension'})), ...data.measure_items.map(it => ({...it, type: 'measure'}))]
+      this.loadingDetails = false
     }).catch(e => {
       handleError(e)
+      this.loadingDetails = false
     })
   }
 
   // 获取优化建议
   getRecommendations () {
+    this.loadingRecommends = true
     this.getAllRecommendations({project: this.currentProject, modelId: this.modelDesc.uuid}).then(async (res) => {
       const data = await handleSuccessAsync(res)
       this.recommendationsList.list = data.layouts
       this.modelDesc.recommendations_count = data.size
+      this.loadingRecommends = false
     }).catch(e => {
       handleError(e)
+      this.loadingRecommends = false
     })
   }
 

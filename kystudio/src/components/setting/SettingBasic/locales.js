@@ -121,7 +121,7 @@ export default {
     to: '秒到',
     secondes: '秒的查询生成优化建议。',
     acclerationRuleSettings: '优化建议规则',
-    optimizationSuggestions: '新增索引上限',
+    optimizationSuggestions: '优化建议上限',
     suggestionTip1: '最多生成',
     suggestionTip2: '条新增索引的优化建议。'
   }

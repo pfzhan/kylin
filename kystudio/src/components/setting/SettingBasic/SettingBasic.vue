@@ -207,7 +207,7 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryFrequency')}}</span>
-            <el-switch size="small" v-model="rulesObj.count_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <!-- <el-switch size="small" v-model="rulesObj.count_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch> -->
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
@@ -266,7 +266,7 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('optimizationSuggestions')}}</span>
-            <el-switch size="small" v-model="rulesObj.recommendation_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <!-- <el-switch size="small" v-model="rulesObj.recommendation_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch> -->
           </div>
           <div class="conds-content clearfix">
               <div class="ksd-mt-10 ksd-fs-14">
@@ -397,6 +397,7 @@ export default class SettingBasic extends Vue {
   }
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
+  @Watch('rulesObj', { deep: true })
   @Watch('rulesAccerationDefault', { deep: true })
   onFormChange () {
     const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'segment-settings') || this.isFormEdited(this.form, 'storage-quota') || this.isFormEdited(null, 'accleration-rule-settings')
@@ -557,6 +558,7 @@ export default class SettingBasic extends Vue {
           favorite_rules.min_duration = data.min_duration || 0
           favorite_rules.max_duration = data.max_duration || 0
           this.rulesObj = {...this.rulesObj, ...favorite_rules}
+          this.rulesAccerationDefault = {...this.rulesAccerationDefault, ...favorite_rules}
         }
       }
       successCallback()
