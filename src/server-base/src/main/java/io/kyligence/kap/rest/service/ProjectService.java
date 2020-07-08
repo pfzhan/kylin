@@ -135,7 +135,7 @@ public class ProjectService extends BasicService {
 
     private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
             FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
-            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.RECOMMENDATION_RULE_NAME);
+            FavoriteRule.SUBMITTER_GROUP_RULE_NAME, FavoriteRule.REC_SELECT_RULE_NAME);
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = -1)
@@ -658,7 +658,7 @@ public class ProjectService extends BasicService {
             result.put("min_duration", StringUtils.isEmpty(minDuration) ? null : Long.valueOf(minDuration));
             result.put("max_duration", StringUtils.isEmpty(maxDuration) ? null : Long.valueOf(maxDuration));
             break;
-        case FavoriteRule.RECOMMENDATION_RULE_NAME:
+        case FavoriteRule.REC_SELECT_RULE_NAME:
             result.put("recommendation_enable", rule.isEnabled());
             String upperBound = conds.get(0).getRightThreshold();
             result.put("recommendations_value", StringUtils.isEmpty(upperBound) ? null : Long.valueOf(upperBound));
@@ -708,7 +708,7 @@ public class ProjectService extends BasicService {
             isEnabled = request.isDurationEnable();
             conds.add(new FavoriteRule.Condition(request.getMinDuration(), request.getMaxDuration()));
             break;
-        case FavoriteRule.RECOMMENDATION_RULE_NAME:
+        case FavoriteRule.REC_SELECT_RULE_NAME:
             isEnabled = request.isRecommendationEnable();
             conds.add(new FavoriteRule.Condition(null, request.getRecommendationsValue()));
             break;
@@ -801,14 +801,14 @@ public class ProjectService extends BasicService {
         val countList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.COUNT_RULE_NAME));
         val submitterList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_RULE_NAME));
         val groupList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.SUBMITTER_GROUP_RULE_NAME));
-        val recList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.RECOMMENDATION_RULE_NAME));
+        val recList = Lists.newArrayList(FavoriteRule.getDefaultCondition(FavoriteRule.REC_SELECT_RULE_NAME));
 
         getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.FREQUENCY_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(countList, true, FavoriteRule.COUNT_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(Lists.newArrayList(), false, FavoriteRule.DURATION_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(submitterList, true, FavoriteRule.SUBMITTER_RULE_NAME);
         getFavoriteRuleManager(project).updateRule(groupList, true, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
-        getFavoriteRuleManager(project).updateRule(recList, true, FavoriteRule.RECOMMENDATION_RULE_NAME);
+        getFavoriteRuleManager(project).updateRule(recList, true, FavoriteRule.REC_SELECT_RULE_NAME);
     }
 
     private void resetGarbageCleanupConfig(String project) {

@@ -24,8 +24,6 @@
 package io.kyligence.kap.rest.service;
 
 import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -39,8 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class ScheduleService {
-
-    private static final Logger logger = LoggerFactory.getLogger(ScheduleService.class);
 
     @Autowired
     MetadataBackupService backupService;
@@ -68,16 +64,35 @@ public class ScheduleService {
         try {
             Thread.currentThread().setName("RoutineOpsWorker");
 
-            logger.info("Start to work");
+            log.info("Start to work");
             if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                 backupService.backupAll();
+                queryHistoryService.cleanQueryHistories();
+                rawRecService.deleteRawRecItems();
             }
             projectService.garbageCleanup();
-            queryHistoryService.cleanQueryHistories();
-            rawRecService.updateCostAndSelectTopRec();
-            rawRecService.deleteRawRecItems();
 
-            logger.info("Finish to work");
+            log.info("Finish to work");
+        } finally {
+            Thread.currentThread().setName(oldThreadName);
+        }
+
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, "global");
+    }
+
+    @Scheduled(cron = "${kylin.metadata.top-recs-filter-cron:0 0 0 * * *}")
+    public void selectTopRec() {
+
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, "global");
+
+        String oldThreadName = Thread.currentThread().getName();
+        try {
+            Thread.currentThread().setName("SelectTopRecommendations");
+            log.info("Routine task to update cost and select topN recommendations");
+
+            rawRecService.updateCostAndSelectTopRec();
+
+            log.info("Updating cost and selecting topN recommendations finished.");
         } finally {
             Thread.currentThread().setName(oldThreadName);
         }

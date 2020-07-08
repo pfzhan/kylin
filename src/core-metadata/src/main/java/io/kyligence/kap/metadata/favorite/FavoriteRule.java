@@ -48,7 +48,7 @@ public class FavoriteRule extends RootPersistentEntity {
     public static final String DURATION_RULE_NAME = "duration";
     public static final String SUBMITTER_RULE_NAME = "submitter";
     public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
-    public static final String RECOMMENDATION_RULE_NAME = "recommendations";
+    public static final String REC_SELECT_RULE_NAME = "recommendations";
     public static final String BLACKLIST_NAME = "blacklist";
 
     public FavoriteRule(List<AbstractCondition> conds, String name, boolean isEnabled) {
@@ -132,7 +132,7 @@ public class FavoriteRule extends RootPersistentEntity {
         case COUNT_RULE_NAME:
         case SUBMITTER_GROUP_RULE_NAME:
         case SUBMITTER_RULE_NAME:
-        case RECOMMENDATION_RULE_NAME:
+        case REC_SELECT_RULE_NAME:
             return rule == null ? new FavoriteRule(Lists.newArrayList(getDefaultCondition(name)), name, true) : rule;
         case FREQUENCY_RULE_NAME:
         case DURATION_RULE_NAME:
@@ -154,7 +154,7 @@ public class FavoriteRule extends RootPersistentEntity {
             return new Condition(null, "ROLE_ADMIN");
         case DURATION_RULE_NAME:
             return new Condition("0", "180");
-        case RECOMMENDATION_RULE_NAME:
+        case REC_SELECT_RULE_NAME:
             return new Condition(null, "20");
         default:
             return null;

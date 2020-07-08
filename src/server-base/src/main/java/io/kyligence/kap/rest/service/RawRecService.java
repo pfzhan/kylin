@@ -39,6 +39,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -56,7 +57,6 @@ import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -104,39 +104,34 @@ public class RawRecService {
     }
 
     public void updateCostAndSelectTopRec() {
-        updateCost();
-        selectTopRec();
-    }
-
-    private void updateCost() {
-
-        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listAllProjects().stream().filter(projectInstance -> !projectInstance.isExpertMode())
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
+        RawRecSelection rawRecSelection = RawRecSelection.getInstance();
+        List<ProjectInstance> projectInstances = NProjectManager.getInstance(kylinConfig) //
+                .listAllProjects().stream() //
+                .filter(projectInstance -> !projectInstance.isExpertMode()) //
                 .collect(Collectors.toList());
         for (ProjectInstance projectInstance : projectInstances) {
-            log.info("Running update cost for {}", projectInstance.getName());
-            RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
-                    .updateAllCost(projectInstance.getName());
-        }
-    }
-
-    private void selectTopRec() {
-        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listAllProjects().stream().filter(projectInstance -> !projectInstance.isExpertMode())
-                .collect(Collectors.toList());
-        for (ProjectInstance projectInstance : projectInstances) {
-            for (String model : projectInstance.getModels()) {
-                log.info("Running select topN recommendation for {}/({}).", projectInstance.getName(), model);
-                var recLimitRule = FavoriteRule.getDefaultRule(
-                        FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
-                                .getByName(FavoriteRule.RECOMMENDATION_RULE_NAME),
-                        FavoriteRule.RECOMMENDATION_RULE_NAME);
-                int limit = Integer
-                        .parseInt(((FavoriteRule.Condition) recLimitRule.getConds().get(0)).getRightThreshold());
-                List<RawRecItem> bestItem = RawRecSelection.getInstance().selectBestLayout(limit, model,
-                        projectInstance.getName());
-                updateRecommendationV2(projectInstance.getName(), model,
-                        bestItem.stream().map(RawRecItem::getId).collect(Collectors.toList()));
+            String project = projectInstance.getName();
+            if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
+                continue;
+            }
+            try {
+                log.info("Running update cost for project<{}>", project);
+                RawRecManager.getInstance(kylinConfig, project).updateAllCost(project);
+                FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(kylinConfig, project)
+                        .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
+                for (String model : projectInstance.getModels()) {
+                    log.info("Running select topN recommendation for {}/({}).", project, model);
+                    int topN = Integer.parseInt(((FavoriteRule.Condition) FavoriteRule
+                            .getDefaultRule(favoriteRule, FavoriteRule.REC_SELECT_RULE_NAME).getConds().get(0))
+                                    .getRightThreshold());
+                    List<Integer> bestItemsIds = rawRecSelection.selectBestLayout(topN, model, project).stream()
+                            .map(RawRecItem::getId).collect(Collectors.toList());
+                    updateRecommendationV2(project, model, bestItemsIds);
+                }
+            } catch (Exception e) {
+                log.error("Update cost and select topN failed for project<{}>", project, e);
             }
         }
     }
@@ -330,16 +325,16 @@ public class RawRecService {
         RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project).saveOrUpdate(layoutRecItems);
     }
 
-    private void updateRecommendationV2(String project, String id, List<Integer> rawIds) {
+    private void updateRecommendationV2(String project, String modelId, List<Integer> rawIds) {
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
                         .getInstance(KylinConfig.getInstanceFromEnv(), project);
-                managerV2.createOrUpdate(id, rawIds);
+                managerV2.createOrUpdate(modelId, rawIds);
                 return null;
             }, project);
         } catch (Exception e) {
-            log.error("project<" + project + "> failed to update RecommendationV2 file.", e);
+            log.error("project<" + project + "> model<" + modelId + ">failed to update RecommendationV2 file.", e);
         }
     }
 
