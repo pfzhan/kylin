@@ -292,7 +292,7 @@ export default {
           return { flag: 0, status: 'overCapacity', target: _types, text: _types.includes('systemCapacity') && _types.includes('nodes') ? 'bothSystemAndNodeAlert' : _types.includes('systemCapacity') ? 'systemCapacityOverAlert' : 'nodeOverAlert', query: { capacity, nodes } }
         } else if (getters.isOnlyQueryNode) {
           return { flag: 0, status: 'noAllNodes', text: 'noJobNodes' }
-        } else if (state.systemCapacityInfo.current_capacity / state.systemCapacityInfo.capacity > 80) {
+        } else if (state.systemCapacityInfo.current_capacity / state.systemCapacityInfo.capacity * 100 > 80) {
           return { flag: 2, status: 'warning', text: 'capacityOverPrecent', query: { capacity } }
         } else {
           return {}
