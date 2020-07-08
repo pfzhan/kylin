@@ -41,11 +41,7 @@
  */
 package org.apache.kylin.source.adhocquery;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,17 +55,11 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(HivePushDownConverter.class);
 
-    private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\bextract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern TIMESTAMP_ADD_DIFF_PATTERN = Pattern
-            .compile("\\btimestamp(add|diff)\\s*\\(\\s*(.*?)\\s*,", Pattern.CASE_INSENSITIVE);
     private static final Pattern SELECT_PATTERN = Pattern.compile("^select", Pattern.CASE_INSENSITIVE);
     private static final Pattern LIMIT_PATTERN = Pattern.compile("(limit\\s+[0-9;]+)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern GROUPING_SETS_PATTERN = Pattern
             .compile("group\\s+by\\s+(grouping\\s+sets\\s*\\(([`_a-z0-9A-Z(),\\s]+)\\))", Pattern.CASE_INSENSITIVE);
     private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
-    private static final Pattern VAR_SUBSTRING_PATTERN = Pattern
-            .compile("\\bsubstring\\s*\\(\\s*(.*?)\\s+from\\s+(.*?)\\s+for\\s+(.*?)\\s*\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern OVERLAY_PLACING_FROM_PATTERN = Pattern.compile(
             "\\b(overlay)\\s*\\(\\s*([^,]+)(\\s+placing\\s+)([^,]+)(\\s+from\\s+)([^,]+)\\s*\\)",
             Pattern.CASE_INSENSITIVE);
@@ -79,56 +69,6 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
     public static String replaceString(String originString, String fromString, String toString) {
         return originString.replace(fromString, toString);
-    }
-
-    public static String extractReplace(String originString) {
-        Matcher extractMatcher = EXTRACT_PATTERN.matcher(originString);
-        String replacedString = originString;
-        Map<Integer, Integer> parenthesesPairs = null;
-
-        while (extractMatcher.find()) {
-            if (parenthesesPairs == null) {
-                parenthesesPairs = findParenthesesPairs(originString);
-            }
-
-            String functionStr = extractMatcher.group(2);
-            int startIdx = extractMatcher.end(3);
-            int endIdx = parenthesesPairs.get(extractMatcher.start(1));
-            String extractInner = originString.substring(startIdx, endIdx);
-            int originStart = extractMatcher.start(0);
-            int originEnd = endIdx + 1;
-
-            replacedString = replaceString(replacedString, originString.substring(originStart, originEnd),
-                    functionStr + "(" + extractInner + ")");
-        }
-
-        return replacedString;
-    }
-
-    public static String castVariantSubstringGrammar(String originStr) {
-        Matcher matcher = VAR_SUBSTRING_PATTERN.matcher(originStr);
-        String replacedStr = originStr;
-        while (matcher.find()) {
-            String colName = matcher.group(1);
-            String begin = matcher.group(2);
-            String len = matcher.group(3);
-            String replaced = "substring(" + colName + ", " + begin + ", " + len + ")";
-            replacedStr = replaceString(replacedStr, matcher.group(), replaced);
-        }
-        return replacedStr;
-    }
-
-    public static String timestampAddDiffReplace(String originString) {
-        Matcher timestampaddMatcher = TIMESTAMP_ADD_DIFF_PATTERN.matcher(originString);
-        String replacedString = originString;
-
-        while (timestampaddMatcher.find()) {
-            String interval = timestampaddMatcher.group(2);
-            String timestampaddStr = replaceString(timestampaddMatcher.group(), interval, "'" + interval + "'");
-            replacedString = replaceString(replacedString, timestampaddMatcher.group(), timestampaddStr);
-        }
-
-        return replacedString;
     }
 
     /***
@@ -200,22 +140,9 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
     }
 
     private static String doConvert(String originStr, boolean isPrepare) {
-        // Replace " with `
-        String convertedSql = replaceString(originStr, "\"", "`");
-
-        // Replace char_length with length
-        convertedSql = replaceString(convertedSql, "CHAR_LENGTH", "LENGTH");
-        convertedSql = replaceString(convertedSql, "char_length", "length");
-
-        // Add quote for interval in timestampadd
-        convertedSql = timestampAddDiffReplace(convertedSql);
 
         // convert for overlay(string1 PLACING string2 FROM integer [ FOR integer2 ])
-        convertedSql = overlayReplace(convertedSql);
-
-        // Replace integer with int
-        convertedSql = replaceString(convertedSql, "INTEGER", "INT");
-        convertedSql = replaceString(convertedSql, "integer", "int");
+        String convertedSql = overlayReplace(originStr);
 
         // Add limit 1 for prepare select sql to speed up
         if (isPrepare) {
@@ -225,32 +152,7 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
         // Support grouping sets with none group by
         convertedSql = groupingSetsReplace(convertedSql);
 
-        // Support variant substring grammar
-        convertedSql = castVariantSubstringGrammar(convertedSql);
-
         return convertedSql;
-    }
-
-    private static Map<Integer, Integer> findParenthesesPairs(String sql) {
-        Map<Integer, Integer> result = new HashMap<>();
-        if (sql.length() > 1) {
-            Deque<Integer> lStack = new ArrayDeque<>();
-            for (int i = 0; i < sql.length(); i++) {
-                switch (sql.charAt(i)) {
-                case '(':
-                    lStack.push(i);
-                    break;
-                case ')':
-                    if (!lStack.isEmpty()) {
-                        result.put(lStack.pop(), i);
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-        return result;
     }
 
     @Override

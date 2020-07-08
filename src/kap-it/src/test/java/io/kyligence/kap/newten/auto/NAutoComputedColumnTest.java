@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -82,10 +83,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         IndexPlan targetIndex = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
 
         Assert.assertEquals(2, targetModel.getComputedColumnDescs().size());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE",
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`",
                 targetModel.getComputedColumnDescs().get(0).getInnerExpression());
         Assert.assertEquals("CC_AUTO_1", targetModel.getComputedColumnDescs().get(0).getColumnName());
-        Assert.assertEquals("(TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE) * TEST_KYLIN_FACT.PRICE",
+        Assert.assertEquals("(`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`) * `TEST_KYLIN_FACT`.`PRICE`",
                 targetModel.getComputedColumnDescs().get(1).getInnerExpression());
         Assert.assertEquals("CC_AUTO_2", targetModel.getComputedColumnDescs().get(1).getColumnName());
 
@@ -428,7 +429,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
             ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(1);
             Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
             Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1 + 10", computedColumnDesc.getExpression());
-            Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) + 10",
+            Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`) + 10",
                     computedColumnDesc.getInnerExpression());
 
             String convertedQuery = convertCC(query);
@@ -610,13 +611,13 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[5]).isNotSucceed());
 
         Assert.assertEquals(3, computedColumns.size());
-        Assert.assertEquals("CAST(TEST_KYLIN_FACT.PRICE AS BIGINT)",
+        Assert.assertEquals("CAST(`TEST_KYLIN_FACT`.`PRICE` AS BIGINT)",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
-        Assert.assertEquals("CAST(LENGTH(substring(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1, 4)) AS DOUBLE)",
+        Assert.assertEquals("CAST(CHAR_LENGTH(SUBSTRING(`TEST_KYLIN_FACT`.`LSTG_FORMAT_NAME`, 1, 4)) AS DOUBLE)",
                 computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("DOUBLE", computedColumns.get(1).getDatatype());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`",
                 computedColumns.get(2).getInnerExpression().trim());
         Assert.assertEquals("DECIMAL(30,4)", computedColumns.get(2).getDatatype());
     }
@@ -666,12 +667,12 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val targetModel = modelContexts.get(0).getTargetModel();
         val computedColumns = targetModel.getComputedColumnDescs();
         Assert.assertEquals(2, computedColumns.size());
-        Assert.assertEquals("CAST(LENGTH(substring(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1, 4)) AS DOUBLE)",
+        Assert.assertEquals("CAST(CHAR_LENGTH(SUBSTRING(`TEST_KYLIN_FACT`.`LSTG_FORMAT_NAME`, 1, 4)) AS DOUBLE)",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("CAST(CHAR_LENGTH(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)) AS DOUBLE)",
                 computedColumns.get(0).getExpression().trim());
         Assert.assertEquals("DOUBLE", computedColumns.get(0).getDatatype());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`",
                 computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
                 computedColumns.get(1).getExpression().trim());
@@ -700,7 +701,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(1, computedColumns.size());
-        Assert.assertEquals("CAST(TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID * TEST_CATEGORY_GROUPINGS.SITE_ID AS VARCHAR)",
+        Assert.assertEquals(
+                "CAST(`TEST_CATEGORY_GROUPINGS`.`LEAF_CATEG_ID` * `TEST_CATEGORY_GROUPINGS`.`SITE_ID` AS VARCHAR)",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("VARCHAR", computedColumns.get(0).getDatatype());
     }
@@ -727,20 +729,21 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 "CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
                 cc10.getExpression());
         Assert.assertEquals(
-                "CASE WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN TEST_KYLIN_FACT.PRICE IS NOT NULL THEN TEST_KYLIN_FACT.PRICE >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN TEST_KYLIN_FACT.ITEM_COUNT IS NOT NULL THEN TEST_KYLIN_FACT.ITEM_COUNT < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
+                "CASE WHEN CASE WHEN `TEST_KYLIN_FACT`.`ITEM_COUNT` IS NOT NULL THEN `TEST_KYLIN_FACT`.`ITEM_COUNT` <= 10 ELSE CAST(TRUE AS BOOLEAN) END AND CASE WHEN `TEST_KYLIN_FACT`.`PRICE` IS NOT NULL THEN `TEST_KYLIN_FACT`.`PRICE` >= 0.0 ELSE CAST(TRUE AS BOOLEAN) END THEN 'a' WHEN CASE WHEN `TEST_KYLIN_FACT`.`ITEM_COUNT` IS NOT NULL THEN `TEST_KYLIN_FACT`.`ITEM_COUNT` < 0 ELSE CAST(FALSE AS BOOLEAN) END THEN 'exception' ELSE NULL END",
                 cc10.getInnerExpression());
         Assert.assertEquals("VARCHAR", cc10.getDatatype());
         val cc11 = ccList1.get(1);
         Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT + 1 > 5 THEN 1 ELSE 0 END",
                 cc11.getExpression());
-        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT + 1 > 5 THEN 1 ELSE 0 END",
+        Assert.assertEquals(
+                "CASE WHEN `TEST_KYLIN_FACT`.`PRICE` + `TEST_KYLIN_FACT`.`ITEM_COUNT` + 1 > 5 THEN 1 ELSE 0 END",
                 cc11.getInnerExpression());
         Assert.assertEquals("INTEGER", cc11.getDatatype());
         val cc12 = ccList1.get(2);
         Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 10 "
                 + "AND TEST_KYLIN_FACT.SELLER_ID > 20 THEN 1 ELSE 0 END", cc12.getExpression());
-        Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 10 "
-                + "AND TEST_KYLIN_FACT.SELLER_ID > 20 THEN 1 ELSE 0 END", cc12.getInnerExpression());
+        Assert.assertEquals("CASE WHEN `TEST_KYLIN_FACT`.`PRICE` > 1 AND `TEST_KYLIN_FACT`.`ITEM_COUNT` < 10 "
+                + "AND `TEST_KYLIN_FACT`.`SELLER_ID` > 20 THEN 1 ELSE 0 END", cc12.getInnerExpression());
         Assert.assertEquals("INTEGER", cc12.getDatatype());
         val cc13 = ccList1.get(3);
         Assert.assertEquals(
@@ -748,8 +751,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                         + "OR TEST_KYLIN_FACT.SELLER_ID > 10 THEN TEST_KYLIN_FACT.PRICE ELSE 0 END",
                 cc13.getExpression());
         Assert.assertEquals(
-                "CASE WHEN TEST_KYLIN_FACT.PRICE > 1 AND TEST_KYLIN_FACT.ITEM_COUNT < 5 "
-                        + "OR TEST_KYLIN_FACT.SELLER_ID > 10 THEN TEST_KYLIN_FACT.PRICE ELSE 0 END",
+                "CASE WHEN `TEST_KYLIN_FACT`.`PRICE` > 1 AND `TEST_KYLIN_FACT`.`ITEM_COUNT` < 5 "
+                        + "OR `TEST_KYLIN_FACT`.`SELLER_ID` > 10 THEN `TEST_KYLIN_FACT`.`PRICE` ELSE 0 END",
                 cc13.getInnerExpression());
         Assert.assertEquals("DECIMAL(19,4)", cc13.getDatatype());
     }
@@ -778,7 +781,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(1, computedColumns.size());
-        Assert.assertEquals("CASE WHEN TEST_ACCOUNT.ACCOUNT_ID >= 10000336 THEN 1 ELSE 2 END",
+        Assert.assertEquals("CASE WHEN `TEST_ACCOUNT`.`ACCOUNT_ID` >= 10000336 THEN 1 ELSE 2 END",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("INTEGER", computedColumns.get(0).getDatatype());
     }
@@ -811,9 +814,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(2, computedColumns.size());
-        Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT",
+        Assert.assertEquals("`TEST_ACCOUNT`.`ACCOUNT_ID` + `TEST_KYLIN_FACT`.`ITEM_COUNT`",
                 computedColumns.get(0).getInnerExpression().trim());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * 100", computedColumns.get(1).getInnerExpression().trim());
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * 100", computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
         Assert.assertEquals("INTEGER", computedColumns.get(1).getDatatype());
     }
@@ -871,7 +874,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(1, computedColumns.size());
-        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID + TEST_KYLIN_FACT.ORDER_ID",
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`TRANS_ID` + `TEST_KYLIN_FACT`.`ORDER_ID`",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
     }
@@ -953,7 +956,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(1, computedColumns.size());
-        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID + TEST_KYLIN_FACT.ORDER_ID",
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`TRANS_ID` + `TEST_KYLIN_FACT`.`ORDER_ID`",
                 computedColumns.get(0).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
     }
@@ -997,30 +1000,32 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val modelContexts = smartMaster.getContext().getModelContexts();
         val targetModel = modelContexts.get(0).getTargetModel();
         val computedColumns = targetModel.getComputedColumnDescs();
+        computedColumns.sort((cc1, cc2) -> StringUtils.compare(cc1.getInnerExpression(), cc2.getInnerExpression()));
         Assert.assertEquals(4, computedColumns.size());
-        Assert.assertEquals("SPLIT_PART(CONCAT(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1), '-apache-kylin'), '-', 1)",
+        Assert.assertEquals("INSTR(CAST(`TEST_KYLIN_FACT`.`SELLER_ID` AS VARCHAR), '0')",
                 computedColumns.get(0).getInnerExpression().trim());
-        Assert.assertEquals("SPLIT_PART(CONCAT(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1), '-apache-kylin'), '-', 1)",
+        Assert.assertEquals("INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0')",
                 computedColumns.get(0).getExpression().trim());
-        Assert.assertEquals("VARCHAR", computedColumns.get(0).getDatatype());
-        Assert.assertEquals("SPLIT_PART(UPPER(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1)), 'A', 1)",
+        Assert.assertEquals("INTEGER", computedColumns.get(0).getDatatype());
+        Assert.assertEquals(
+                "LENGTH(CONCAT(CAST(INSTR(CAST(`TEST_KYLIN_FACT`.`SELLER_ID` AS VARCHAR), '0') AS VARCHAR), 'll'))",
                 computedColumns.get(1).getInnerExpression().trim());
-        Assert.assertEquals("SPLIT_PART(UPPER(SUBSTR(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, 1)), 'A', 1)",
-                computedColumns.get(1).getExpression().trim());
-        Assert.assertEquals("VARCHAR", computedColumns.get(1).getDatatype());
         Assert.assertEquals(
                 "LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
+                computedColumns.get(1).getExpression().trim());
+        Assert.assertEquals("INTEGER", computedColumns.get(1).getDatatype());
+        Assert.assertEquals(
+                "SPLIT_PART(CONCAT(SUBSTRING(`TEST_KYLIN_FACT`.`LSTG_FORMAT_NAME`, 1), '-apache-kylin'), '-', 1)",
                 computedColumns.get(2).getInnerExpression().trim());
         Assert.assertEquals(
-                "LENGTH(CONCAT(CAST(INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0') AS VARCHAR), 'll'))",
+                "SPLIT_PART(CONCAT(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1), '-apache-kylin'), '-', 1)",
                 computedColumns.get(2).getExpression().trim());
-        Assert.assertEquals("INTEGER", computedColumns.get(2).getDatatype());
-        Assert.assertEquals("INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0')",
+        Assert.assertEquals("VARCHAR", computedColumns.get(2).getDatatype());
+        Assert.assertEquals("SPLIT_PART(UPPER(SUBSTRING(`TEST_KYLIN_FACT`.`LSTG_FORMAT_NAME`, 1)), 'A', 1)",
                 computedColumns.get(3).getInnerExpression().trim());
-        Assert.assertEquals("INSTR(CAST(TEST_KYLIN_FACT.SELLER_ID AS VARCHAR), '0')",
+        Assert.assertEquals("SPLIT_PART(UPPER(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1)), 'A', 1)",
                 computedColumns.get(3).getExpression().trim());
-        Assert.assertEquals("INTEGER", computedColumns.get(3).getDatatype());
-
+        Assert.assertEquals("VARCHAR", computedColumns.get(3).getDatatype());
     }
 
     /**

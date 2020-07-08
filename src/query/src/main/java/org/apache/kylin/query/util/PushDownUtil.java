@@ -73,7 +73,6 @@ import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.query.udf.CalciteNotSupportException;
-import org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 import org.codehaus.commons.compiler.CompileException;
 import org.slf4j.Logger;
@@ -104,7 +103,8 @@ public class PushDownUtil {
         kylinConfig = prj.getConfig();
         if (!kylinConfig.isPushDownEnabled()) {
             if (queryParams.isForced) {
-                throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN, "you should turn on pushdown when you want to force to pushdown");
+                throw new KylinException(QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN,
+                        "you should turn on pushdown when you want to force to pushdown");
             }
             return null;
         }
@@ -127,17 +127,14 @@ public class PushDownUtil {
         // set pushdown engine in query context
         String pushdownEngine;
         // for file source
-        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class).getProject(queryParams.getProject())
-                .getSourceType();
+        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class)
+                .getProject(queryParams.getProject()).getSourceType();
         if (sourceType == ISourceAware.ID_FILE) {
             pushdownEngine = QueryContext.PUSHDOWN_FILE;
         } else {
             pushdownEngine = runner.getName();
         }
         QueryContext.current().setPushdownEngine(pushdownEngine);
-
-        //ref:KE-11848,only quote on push down query
-        sql = DoubleQuotePushDownConverter.convertDoubleQuote(sql);
 
         queryParams.setKylinConfig(kylinConfig);
         queryParams.setSql(sql);
@@ -208,7 +205,8 @@ public class PushDownUtil {
      * @return            query results and meta data pair
      * @throws Exception
      */
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String project) throws Exception {
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String project)
+            throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();

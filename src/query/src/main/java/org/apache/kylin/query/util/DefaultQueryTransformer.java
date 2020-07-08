@@ -58,7 +58,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
 
     private static final Pattern PTN_SUM = Pattern.compile(
             S0 + "\\bSUM" + S0 + "[(]" + S0 + "(-?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_NOT_EQ = Pattern.compile(S0 + "!=" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_INTERVAL = Pattern.compile(
             "\\binterval" + SM + "(floor\\()([\\d.]+)(\\))" + SM + "(second|minute|hour|day|month|year)",
             Pattern.CASE_INSENSITIVE);
@@ -74,7 +73,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
         sql = transformSumOfCast(sql);
         sql = transformEscapeFunction(sql);
         sql = transformSumOfNumericLiteral(sql);
-        sql = transformNotEqual(sql);
         sql = transformIntervalFunc(sql);
         return sql;
     }
@@ -118,18 +116,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             String literal = m.group(1);
             String replacedLiteral = ONE.equals(literal) ? " COUNT(1) " : " " + literal + " * COUNT(1) ";
             sql = sql.substring(0, m.start()) + replacedLiteral + sql.substring(m.end());
-        }
-        return sql;
-    }
-
-    // Case: !=    -->    <>
-    private static String transformNotEqual(String sql) {
-        Matcher m;
-        while (true) {
-            m = PTN_NOT_EQ.matcher(sql);
-            if (!m.find())
-                break;
-            sql = sql.substring(0, m.start()) + " <> " + sql.substring(m.end());
         }
         return sql;
     }

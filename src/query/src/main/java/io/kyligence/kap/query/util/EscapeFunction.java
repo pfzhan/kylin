@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.query.util;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.common.base.Preconditions;
 
 public class EscapeFunction {
 
     private static final String CEIL_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
     private static final String FLOOR_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
+    private static final String SUBSTRING_EXCEPTION_MSG = "substring/substr only support substring(col from start for len) or substring(col from start)";
+    private static final String SUBSTR_EXCEPTION_MSG = "substring/substr only support substr(col from start for len) or substr(col from start)";
 
     /* Function conversion implementations */
     /*
@@ -139,9 +139,59 @@ public class EscapeFunction {
             return "CURRENT_TIMESTAMP";
         }),
 
-        WEEK(args -> {
+        WEEK_CALCITE(args -> {
+            checkArgs(args, 1);
+            return normalFN("WEEK", args);
+        }),
+
+        WEEK_SPARK(args -> {
             checkArgs(args, 1);
             return normalFN("WEEKOFYEAR", args);
+        }),
+
+        YEAR(args -> {
+            checkArgs(args, 1);
+            return normalFN("YEAR", args);
+        }),
+
+        QUARTER(args -> {
+            checkArgs(args, 1);
+            return normalFN("QUARTER", args);
+        }),
+
+        MONTH(args -> {
+            checkArgs(args, 1);
+            return normalFN("MONTH", args);
+        }),
+
+        DAYOFMONTH(args -> {
+            checkArgs(args, 1);
+            return normalFN("DAYOFMONTH", args);
+        }),
+
+        DAYOFWEEK(args -> {
+            checkArgs(args, 1);
+            return normalFN("DAYOFWEEK", args);
+        }),
+
+        DAYOFYEAR(args -> {
+            checkArgs(args, 1);
+            return normalFN("DAYOFYEAR", args);
+        }),
+
+        HOUR(args -> {
+            checkArgs(args, 1);
+            return normalFN("HOUR", args);
+        }),
+
+        MINUTE(args -> {
+            checkArgs(args, 1);
+            return normalFN("MINUTE", args);
+        }),
+
+        SECOND(args -> {
+            checkArgs(args, 1);
+            return normalFN("SECOND", args);
         }),
 
         TRUNCATE_NUM(args -> {
@@ -151,14 +201,22 @@ public class EscapeFunction {
 
         TIMESTAMPADD(args -> {
             checkArgs(args, 3);
-            String[] newArgs = { "'" + args[0] + "'", args[1], args[2] };
-            return normalFN("TIMESTAMPADD", newArgs);
+            return normalFN("TIMESTAMPADD", args);
         }),
 
         TIMESTAMPDIFF(args -> {
             checkArgs(args, 3);
-            String[] newArgs = { "'" + args[0] + "'", args[1], args[2] };
-            return normalFN("TIMESTAMPDIFF", newArgs);
+            return normalFN("TIMESTAMPDIFF", args);
+        }),
+
+        SUSTRING(args -> {
+            Preconditions.checkArgument(args.length == 2 || args.length == 3, EscapeFunction.SUBSTRING_EXCEPTION_MSG);
+            return normalFN("SUBSTRING", args);
+        }),
+
+        SUSTR(args -> {
+            Preconditions.checkArgument(args.length == 2 || args.length == 3, EscapeFunction.SUBSTR_EXCEPTION_MSG);
+            return normalFN("SUBSTRING", args);
         }),
 
         CEIL2(args -> {
@@ -210,14 +268,12 @@ public class EscapeFunction {
 
     // Present as normal function: "func(arg1, arg2, ...)"
     public static String normalFN(String functionName, String[] args) {
-        return new StringBuilder().append(functionName).append('(').append(StringUtils.join(args, ", ")).append(')')
-                .toString();
+        return String.format("%s(%s)", functionName, String.join(", ", args));
     }
 
     // Present as JDBC/ODBC scalar function: "{ fn func(arg1, arg2, ...) }"
     public static String scalarFN(String functionName, String[] args) {
-        return new StringBuilder().append("{fn ").append(functionName).append('(').append(StringUtils.join(args, ", "))
-                .append(")}").toString();
+        return String.format("{fn %s(%s)}", functionName, String.join(", ", args));
     }
 
     private static void checkArgs(String[] args, int expectedCount) {

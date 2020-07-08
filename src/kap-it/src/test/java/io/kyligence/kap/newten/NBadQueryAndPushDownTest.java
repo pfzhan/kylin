@@ -35,7 +35,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -98,8 +97,10 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         // success
         pushDownSql(DEFAULT_PROJECT_NAME, sql, 10, 0, null, true);
 
-        // failed
-        try (SetAndUnsetSystemProp converters = new SetAndUnsetSystemProp("kylin.query.pushdown.converter-class-names", "org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,io.kyligence.kap.query.security.TableViewPrepender,org.apache.kylin.source.adhocquery.HivePushDownConverter")) {
+        // failed for wrong pushdown converter order
+        overwriteSystemProp("kylin.query.pushdown.converter-class-names",
+                "io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.security.TableViewPrepender,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        try {
             pushDownSql(DEFAULT_PROJECT_NAME, sql, 10, 0, null, true);
             Assert.fail();
         } catch (Exception e) {
@@ -241,8 +242,10 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(((KylinException) e).getErrorCode(), QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN.toErrorCode());
-            Assert.assertEquals(Throwables.getRootCause(e).getMessage(), "you should turn on pushdown when you want to force to pushdown");
+            Assert.assertEquals(((KylinException) e).getErrorCode(),
+                    QueryErrorCode.INVALID_PARAMETER_PUSH_DOWN.toErrorCode());
+            Assert.assertEquals(Throwables.getRootCause(e).getMessage(),
+                    "you should turn on pushdown when you want to force to pushdown");
         } finally {
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         }
@@ -254,8 +257,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     }
 
     private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownSql(String prjName, String sql, int limit,
-            int offset, SQLException sqlException, boolean isForced)
-            throws Exception {
+            int offset, SQLException sqlException, boolean isForced) throws Exception {
         populateSSWithCSVData(KylinConfig.getInstanceFromEnv(), prjName, SparderEnv.getSparkSession());
         String pushdownSql = NExecAndComp.removeDataBaseInSql(sql);
         String massagedSql = QueryUtil.normalMassageSql(KylinConfig.getInstanceFromEnv(), pushdownSql, limit, offset);

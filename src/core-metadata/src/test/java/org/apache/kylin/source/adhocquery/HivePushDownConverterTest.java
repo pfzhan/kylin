@@ -55,13 +55,6 @@ public class HivePushDownConverterTest {
     }
 
     @Test
-    public void testExtractReplace() {
-        String originString = "ignore EXTRACT(YEAR FROM KYLIN_CAL_DT.CAL_DT) ignore";
-        String replacedString = HivePushDownConverter.extractReplace(originString);
-        Assert.assertEquals("ignore YEAR(KYLIN_CAL_DT.CAL_DT) ignore", replacedString);
-    }
-
-    @Test
     public void testAddLimit() {
         String originString = "select t.TRANS_ID from (\n"
                 + "    select * from test_kylin_fact s inner join TEST_ACCOUNT a \n"
@@ -78,44 +71,6 @@ public class HivePushDownConverterTest {
         String replacedString = HivePushDownConverter.groupingSetsReplace(originString);
         Assert.assertEquals("select sum(price) as GMV group by \n"
                 + "lstg_format_name,cal_dt,slr_segment_cd grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));\n",
-                replacedString);
-    }
-
-    @Test
-    public void testReplaceQuote() {
-        String originString = "select tbl.\"DATE\" from tbl";
-        HivePushDownConverter converter = new HivePushDownConverter();
-        String replacedString = converter.convert(originString, "", "", false);
-        Assert.assertEquals("select tbl.`DATE` from tbl", replacedString);
-
-        // A case makes mistake, if this limitation doesn't exist any more, this method will fail
-        originString = "select CASE WHEN CUSTOMER.C_ADDRESS LIKE '%j5JsirBM9P%' THEN '\"bad' ELSE NULL END"
-                + " from SSB.CUSTOMER";
-        replacedString = converter.convert(originString, "", "", false);
-        Assert.assertEquals("select CASE WHEN CUSTOMER.C_ADDRESS LIKE '%j5JsirBM9P%' THEN '`bad' ELSE NULL END"
-                + " from SSB.CUSTOMER", replacedString);
-    }
-
-    @Test
-    public void testCastVariantSubstringGrammar() {
-        HivePushDownConverter converter = new HivePushDownConverter();
-        String originString = "select substring( lstg_format_name   from   1  for   4 ) from test_kylin_fact limit 10;";
-        String replacedString = converter.convert(originString, "", "", false);
-        Assert.assertEquals("select substring(lstg_format_name, 1, 4) from test_kylin_fact limit 10;", replacedString);
-
-        originString = "select distinct " //
-                + "substring (\"ZB_POLICY_T_VIEW\".\"DIMENSION1\" " //
-                + "\nfrom position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") + 3 " //
-                + "\nfor (position ('|2|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\") - position ('|1|' in \"ZB_POLICY_T_VIEW\".\"DIMENSION1\")) - 3"
-                + ") as \"memberUniqueName\"  " //
-                + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10;";
-        replacedString = converter.convert(originString, "", "", false);
-        Assert.assertEquals("select distinct " //
-                + "substring(`ZB_POLICY_T_VIEW`.`DIMENSION1`, " //
-                + "position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) + 3, " //
-                + "(position ('|2|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) - position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`)) - 3"
-                + ") as `memberUniqueName`  " //
-                + "from `FRPDB0322`.`ZB_POLICY_T_VIEW` `ZB_POLICY_T_VIEW` limit10;", //
                 replacedString);
     }
 

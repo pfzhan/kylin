@@ -114,6 +114,7 @@ import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.util.BrokenEntityProxy;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.After;
@@ -175,7 +176,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
-import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
@@ -2807,17 +2807,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest modelRequest = null;
         Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
         modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2",
+        Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT` + 1) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2");
         modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2",
+        Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT` + 2) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc2.setExpression("CC1 * 3");
         modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3",
+        Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT` + 2) * 3",
                 ccDesc2.getInnerExpression());
     }
 
@@ -4125,7 +4125,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testCheckModelDimensionNameAndMeasureName(){
+    public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setManagementType(ManagementType.MODEL_BASED);
