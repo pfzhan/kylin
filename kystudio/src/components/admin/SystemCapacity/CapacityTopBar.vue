@@ -98,7 +98,7 @@
     nodesTimer = null
 
     get getDataFails () {
-      return (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode || this.getCapacityPrecent >= 80) && (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
+      return !this.systemCapacityInfo.fail && !this.systemNodeInfo.fail
     }
 
     get getNodesNumColor () {

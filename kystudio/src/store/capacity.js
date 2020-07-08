@@ -218,7 +218,8 @@ export default {
 
           commit('UPDATE_REFRESH_STATUS')
           if (code === '000') {
-            commit(types.SET_SYSTEM_CAPACITY_INFO, {...data, error: false})
+            const fail = ['TENTATIVE', 'ERROR'].includes(data.capacity_status)
+            commit(types.SET_SYSTEM_CAPACITY_INFO, {...data, fail, error: false})
             resolve(data)
           }
         }).catch(e => {
