@@ -965,8 +965,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         val response = indexPlanService.getIndexGraph(getProject(), modelId, 100);
         Assert.assertEquals(0, response.getStartTime());
-        Assert.assertEquals(0, response.getEndTime());
-        Assert.assertFalse(response.isFullLoaded());
+        Assert.assertEquals(Long.MAX_VALUE, response.getEndTime());
+        Assert.assertTrue(response.isFullLoaded());
 
     }
 
