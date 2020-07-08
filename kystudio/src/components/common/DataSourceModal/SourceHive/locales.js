@@ -33,7 +33,16 @@ export default {
     refreshTips: 'The system caches the source table metadata periodically. If you can\'t find what you\'re looking for, you can refresh immediately or wait for the system to finish refreshing.',
     refreshSuccess: 'Data source refreshed Successfully.',
     refreshError: 'Failed to refresh data source.',
-    noSourceData: 'No data source information. Please try refreshing.<br/>Be sure that active job node is available now, and you have permission to access the source tables in Hive.'
+    noSourceData: 'No data source information. Please try refreshing.<br/>Be sure that active job node is available now, and you have permission to access the source tables in Hive.',
+    loadTableTips1_1: 'Once a database was selected, ',
+    loadTableTips1_2: 'all the unloaded tables',
+    loadTableTips1_3: 'from it were selected as well.',
+    loadTableTips2_1: 'You may ',
+    loadTableTips2_2: 'manually input the database or table name',
+    loadTableTips2_3: '; User ENTER to complete and comma to separate multiple values.',
+    loadTableTips3_1: 'Up to ',
+    loadTableTips3_2: '1000 tables',
+    loadTableTips3_3: ' could be loaded at a time.'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -69,6 +78,15 @@ export default {
     refreshTips: '系统会定时缓存源表元数据。如果未找到搜索结果，可以立即刷新，或等待系统刷新完毕。',
     refreshSuccess: '数据源刷新成功',
     refreshError: '数据源刷新失败',
-    noSourceData: '暂无数据源信息，请尝试刷新。<br/>请确保当前有活跃的任务节点，且您有访问 Hive 中源表的权限。'
+    noSourceData: '暂无数据源信息，请尝试刷新。<br/>请确保当前有活跃的任务节点，且您有访问 Hive 中源表的权限。',
+    loadTableTips1_1: '当选中一个数据库时，其中包含的',
+    loadTableTips1_2: '未被加载的表都会被添加',
+    loadTableTips1_3: '。',
+    loadTableTips2_1: '可',
+    loadTableTips2_2: '手动输入数据库名或表名',
+    loadTableTips2_3: '，按回车键进行确认；当输入多个值时，请用逗号分隔。',
+    loadTableTips3_1: '一次最多可加载 ',
+    loadTableTips3_2: '1000 张表',
+    loadTableTips3_3: '。'
   }
 }

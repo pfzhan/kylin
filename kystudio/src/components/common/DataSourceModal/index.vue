@@ -24,6 +24,7 @@
       <SourceHive
         v-if="sourceHive"
         ref="source-hive-form"
+        :databases-size="databaseSizeObj"
         :source-type="sourceType"
         :selected-tables="form.selectedTables"
         :selected-databases="form.selectedDatabases"
@@ -98,7 +99,8 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
       isShow: state => state.isShow,
       editType: state => state.editType,
       callback: state => state.callback,
-      firstEditType: state => state.firstEditType
+      firstEditType: state => state.firstEditType,
+      databaseSizeObj: state => state.databaseSizeObj
     })
   },
   methods: {

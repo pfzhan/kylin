@@ -61,7 +61,7 @@
         <div class="category tables">
           <div class="header font-medium">
             <span>{{$t('tableName')}}</span>
-            <span>({{selectTablesNames.length}})</span>
+            <span>({{tablesNum}})</span>
           </div>
           <div class="names">
             <arealabel
@@ -122,13 +122,22 @@
         -->
       </div>
       <transition name="fade">
-        <div class="tips" v-if="isShowTips">
+        <!-- <div class="tips" v-if="isShowTips">
           <div class="close el-icon-ksd-close" @click="handleHideTips"></div>
           <div class="header font-medium">{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTipHeader') : $t('loadTipHeader')}}</div>
           <ul class="body" :class="{'zh-body': $store.state.system.lang !== 'en'}">
             <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip1') : $t('loadTip1')}}</li>
             <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip2') : $t('loadTip2')}}</li>
             <li>{{$t('loadTip3')}}</li>
+          </ul>
+        </div> -->
+        <div class="tips" v-if="isShowTips">
+          <div class="close el-icon-ksd-close" @click="handleHideTips"></div>
+          <i class="el-icon-ksd-info infoIcon"></i>
+          <ul class="body" :class="{'zh-body': $store.state.system.lang !== 'en'}">
+            <li>{{$t('loadTableTips1_1')}}<span class="font-medium">{{$t('loadTableTips1_2')}}</span>{{$t('loadTableTips1_3')}}</li>
+            <li>{{$t('loadTableTips2_1')}}<span class="font-medium">{{$t('loadTableTips2_2')}}</span>{{$t('loadTableTips2_3')}}</li>
+            <li>{{$t('loadTableTips3_1')}}<span class="font-medium">{{$t('loadTableTips3_2')}}</span>{{$t('loadTableTips3_3')}}</li>
           </ul>
         </div>
       </transition>
@@ -174,7 +183,10 @@ import arealabel from '../../area_label.vue'
     samplingRows: {
       default: 20000000
     },
-    sourceType: Number
+    sourceType: Number,
+    databasesSize: {
+      default: () => {}
+    }
   },
   components: {
     TreeList,
@@ -232,6 +244,8 @@ export default class SourceHive extends Vue {
   pollingReloadStatusTimer = null // 轮询当前刷新状态的接口
   filterData = false // 打开弹窗时，不显示下面的立即刷新，执行了一次 handleFilter 后显示
   prevFilterText = ''
+  allDatabasesSizeObj = {}
+  tablesNum = 0
 
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('noSourceData')
@@ -296,12 +310,26 @@ export default class SourceHive extends Vue {
     this.selectDBNames = this.selectedDatabases.map((db) => {
       return db
     })
+    this.calcSelectTablesNum()
   }
   selectedDBValidateFail () {
     this.$message(this.$t('selectedDBValidateFailText'))
   }
   selectedTableValidateFail () {
     this.$message(this.$t('selectedTableValidateFailText'))
+  }
+
+  calcSelectTablesNum () {
+    let tablesLen = this.selectTablesNames.length
+    let dbTables = 0
+    for (let i = 0; i < this.selectedDatabases.length; i++) {
+      let db = this.selectedDatabases[i]
+      let total = this.allDatabasesSizeObj[db] ? this.allDatabasesSizeObj[db] : 0
+      let loaded = this.databasesSize[db] ? this.databasesSize[db] : 0
+      let size = total - loaded
+      dbTables = dbTables + size
+    }
+    this.tablesNum = dbTables + tablesLen
   }
 
   pollingReloadStatus () {
@@ -517,6 +545,9 @@ export default class SourceHive extends Vue {
       }
       const res = await this.fetctDatabaseAndTables(params)
       const results = await handleSuccessAsync(res)
+      results.databases.forEach((item) => {
+        this.allDatabasesSizeObj[item.dbname] = item.size
+      })
       this.treeKey = filterText ? filterText + Number(new Date()) : 'HIVETREE'
       this.treeData = this.getDatabaseTablesTree(results.databases)
       this.treeData.forEach((database, index) => {
@@ -686,10 +717,10 @@ export default class SourceHive extends Vue {
 .source-hive {
   &.zh-lang{
     .content-body.has-tips{
-      height: 254px;
+      height: 264px;
     }
     .tips{
-      height: 72px;
+      height: 62px;
     }
   }
   .list {
@@ -800,7 +831,7 @@ export default class SourceHive extends Vue {
     }
   }
   .content-body.has-tips {
-    height: 230px;
+    height: 250px;
     &.has-error-msg {
       height: 223px;
     }
@@ -872,12 +903,19 @@ export default class SourceHive extends Vue {
     position: absolute;
     padding: 10px;
     /* height: 63px; */
-    height: 96px;
+    height: 76px;
     border-radius: 2px;
-    background-color: @base-color-9;
+    background-color: @regular-background-color;
     // bottom: 25px;
     margin-top: 10px;
     right: 20px;
+    width: 485px;
+    .infoIcon{
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: @text-disabled-color;
+    }
     .header {
       color: @text-title-color;
       font-size: 12px;
@@ -892,18 +930,24 @@ export default class SourceHive extends Vue {
       }
     }
     ul, li {
-      list-style: decimal;
+      list-style: none;
     }
     ul {
-      padding-left: 16px;
+      padding-left:20px;
+      li{
+        margin-top:5px;
+        &:first-child{
+          margin-top:0;
+        }
+      }
     }
     .close {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      font-size: 16px;
+      top: 12px;
+      right: 12px;
+      font-size: 14px;
       cursor: pointer;
-      color: @base-color;
+      color: @text-normal-color;
     }
   }
   .fade-enter-active, .fade-leave-active {

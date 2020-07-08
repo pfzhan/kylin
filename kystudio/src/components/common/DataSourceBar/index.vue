@@ -226,6 +226,7 @@ export default class DataSourceBar extends Vue {
       width: [250]
     }
   }
+  databaseSizeObj = {}
   dataSourceSelectedLabel = ''
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -358,6 +359,16 @@ export default class DataSourceBar extends Vue {
     }
     const response = await this.fetchDBandTables(params)
     const results = await handleSuccessAsync(response)
+    // 没有筛选条件时，需要将数据库和 size 做个映射
+    if (!filterText) {
+      if (results.databases.length) {
+        results.databases.forEach((item) => {
+          this.databaseSizeObj[item.dbname] = item.size
+        })
+      } else {
+        this.databaseSizeObj = {}
+      }
+    }
     this.treeKey = 'pageTree_' + filterText + Number(new Date())
     // 初始化数据中 db 一层的 render
     this.datasources.forEach((datasource, index) => {
@@ -537,7 +548,7 @@ export default class DataSourceBar extends Vue {
     this.$emit('autoComplete', [...databaseWords, ...tableWords, ...databaseTableWords, ...columnWords])
   }
   async toImportDataSource (editType, project) {
-    const result = await this.callDataSourceModal({ editType, project })
+    const result = await this.callDataSourceModal({ editType, project, databaseSizeObj: this.databaseSizeObj })
     if (result) {
       const { loaded, failed } = result
       this.loadedTables = loaded || []

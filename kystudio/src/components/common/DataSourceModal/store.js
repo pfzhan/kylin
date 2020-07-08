@@ -50,7 +50,8 @@ const initialState = JSON.stringify({
       isAuthentication: false,
       username: '',
       password: ''
-    }
+    },
+    databaseSizeObj: null
   },
   datasource: null,
   project: null
@@ -80,9 +81,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, project, datasource }) {
+    [types.CALL_MODAL] ({ commit }, { editType, project, datasource, databaseSizeObj }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { editType, project, firstEditType: editType, datasource, callback: resolve })
+        commit(types.SET_MODAL, { editType, project, firstEditType: editType, datasource, databaseSizeObj, callback: resolve })
         commit(types.INIT_FORM)
         commit(types.SHOW_MODAL)
       })
