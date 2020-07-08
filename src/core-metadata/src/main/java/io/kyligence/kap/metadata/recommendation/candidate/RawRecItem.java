@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.apache.kylin.common.util.JsonUtil;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -40,7 +41,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class RawRecItem {
+public class RawRecItem implements IKeep {
     private static final String TYPE_ERROR_FORMAT = "incorrect raw recommendation type(%d), type value must from 1 to 4 included";
     private static final String STATE_ERROR_FORMAT = "incorrect raw recommendation state(%d), type value must from 0 to 4 included";
 
