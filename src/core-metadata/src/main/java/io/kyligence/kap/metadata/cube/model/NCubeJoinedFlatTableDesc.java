@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.cube.model;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -39,6 +40,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
@@ -53,6 +55,7 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     private Map<String, Integer> columnIndexMap = Maps.newHashMap();
     private List<TblColRef> columns = Lists.newLinkedList();
+    private Set<TblColRef> usedColumns = Sets.newLinkedHashSet();
     private List<Integer> indices = Lists.newArrayList();
 
     public NCubeJoinedFlatTableDesc(IndexPlan indexPlan) {
@@ -70,7 +73,6 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
         this.needJoin = needJoinLookup;
 
         initParseIndexPlan();
-
         initIndices();
     }
 
@@ -83,39 +85,63 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     }
 
     protected final void initAddColumn(TblColRef col) {
-        val model = getDataModel();
-        val factTable = model.getRootFactTable();
-        if (!needJoin && !factTable.getTableName().equalsIgnoreCase(col.getTableRef().getTableName())) {
+        if (shouldNotAddColumn(col) || columnIndexMap.containsKey(col.getIdentity())) {
             return;
         }
-
-        if (columnIndexMap.containsKey(col.getIdentity()))
-            return;
-
         columnIndexMap.put(col.getIdentity(), columnIndexMap.size());
         columns.add(col);
+    }
+
+    private void initAddUsedColumn(TblColRef col) {
+        if (shouldNotAddColumn(col)) {
+            return;
+        }
+        usedColumns.add(col);
+    }
+
+    private boolean shouldNotAddColumn(TblColRef col) {
+        val model = getDataModel();
+        val factTable = model.getRootFactTable();
+        return !needJoin && !factTable.getTableName().equalsIgnoreCase(col.getTableRef().getTableName());
     }
 
     // check what columns from hive tables are required, and index them
     private void initParseIndexPlan() {
         boolean flatTableEnabled = KylinConfig.getInstanceFromEnv().isPersistFlatTableEnabled();
+        Map<Integer, TblColRef> usedDimensions = indexPlan.getEffectiveDimCols();
         Map<Integer, TblColRef> effectiveDimensions = flatTableEnabled ? indexPlan.getModel().getEffectiveDimensions()
-                : indexPlan.getEffectiveDimCols();
-        for (Map.Entry<Integer, TblColRef> dimEntry : effectiveDimensions.entrySet()) {
-            initAddColumn(dimEntry.getValue());
-        }
+                : usedDimensions;
 
+        Map<Integer, NDataModel.Measure> usedMeasures = indexPlan.getEffectiveMeasures();
         Map<Integer, NDataModel.Measure> effectiveMeasures = flatTableEnabled
                 ? indexPlan.getModel().getEffectiveMeasures()
-                : indexPlan.getEffectiveMeasures();
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : effectiveMeasures.entrySet()) {
-            FunctionDesc func = measureEntry.getValue().getFunction();
-            List<TblColRef> colRefs = func.getColRefs();
-            if (colRefs != null) {
-                for (TblColRef colRef : colRefs) {
+                : usedMeasures;
+        if (flatTableEnabled) {
+            effectiveDimensions.forEach((k, v) -> initAddColumn(v));
+            effectiveMeasures.forEach((k, v) -> {
+                FunctionDesc func = v.getFunction();
+                List<TblColRef> colRefs = func.getColRefs();
+                colRefs.forEach(this::initAddColumn);
+            });
+            usedDimensions.forEach((k, v) -> initAddUsedColumn(v));
+            usedMeasures.forEach((k, v) -> {
+                FunctionDesc func = v.getFunction();
+                List<TblColRef> colRefs = func.getColRefs();
+                colRefs.forEach(this::initAddUsedColumn);
+            });
+        } else {
+            usedDimensions.forEach((k, v) -> {
+                initAddColumn(v);
+                initAddUsedColumn(v);
+            });
+            usedMeasures.forEach((k, v) -> {
+                FunctionDesc func = v.getFunction();
+                List<TblColRef> colRefs = func.getColRefs();
+                colRefs.forEach(colRef -> {
                     initAddColumn(colRef);
-                }
-            }
+                    initAddUsedColumn(colRef);
+                });
+            });
         }
 
         // TODO: add dictionary columns
@@ -143,6 +169,10 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     @Override
     public List<TblColRef> getAllColumns() {
         return columns;
+    }
+
+    public Set<TblColRef> getUsedColumns() {
+        return usedColumns;
     }
 
     @Override

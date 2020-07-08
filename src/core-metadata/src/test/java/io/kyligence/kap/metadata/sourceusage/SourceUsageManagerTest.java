@@ -23,8 +23,10 @@
  */
 package io.kyligence.kap.metadata.sourceusage;
 
-import io.kyligence.kap.common.license.Constants;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
@@ -33,9 +35,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import io.kyligence.kap.common.license.Constants;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before

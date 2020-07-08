@@ -104,7 +104,7 @@ public class SourceUsageManager {
         Map<String, Long> columnSourceBytes = Maps.newHashMap();
         Set<TblColRef> allColumns;
         try {
-            List<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(segment).getAllColumns();
+            Set<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(segment).getUsedColumns();
             allColumns = columnRefList.stream().filter(col -> !col.getColumnDesc().isComputedColumn()).collect(Collectors.toSet());
         } catch (Exception e) {
             return columnSourceBytes;
@@ -290,7 +290,7 @@ public class SourceUsageManager {
         NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).get(0);
         Set<TblColRef> allColumns = Sets.newHashSet();
         try {
-            List<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(dataSegment).getAllColumns();
+            Set<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(dataSegment).getUsedColumns();
             allColumns = columnRefList.stream().filter(col -> !col.getColumnDesc().isComputedColumn()).collect(Collectors.toSet());
         } catch (Exception e) {
             logger.error("Failed to get all columns' TblColRef for segment: {}", dataSegment, e);

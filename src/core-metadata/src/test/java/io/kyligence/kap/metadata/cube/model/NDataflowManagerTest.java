@@ -695,4 +695,23 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotSame(df1, df2);
     }
 
+    @Test
+    public void testJoinedFlatTableDescDiff() {
+        KylinConfig kylinConfig = getTestConfig();
+        NDataflowManager dfManager = NDataflowManager.getInstance(kylinConfig, projectDefault);
+        List<NDataflow> dataflowList = dfManager.listAllDataflows();
+        NDataSegment dataSegment = dataflowList.get(4).getLastSegment();
+        Assert.assertEquals("11124840-b3e3-43db-bcab-2b78da666d00", dataSegment.getId());
+        NCubeJoinedFlatTableDesc flatTableDesc1 = new NCubeJoinedFlatTableDesc(dataSegment);
+        Assert.assertEquals(4, flatTableDesc1.getUsedColumns().size());
+        Assert.assertEquals(4, flatTableDesc1.getAllColumns().size());
+
+        kylinConfig.setProperty("kylin.engine.persist-flattable-enabled", "true");
+        NCubeJoinedFlatTableDesc flatTableDesc2 = new NCubeJoinedFlatTableDesc(dataSegment);
+        // when persist flat table is enabled, flat table will include all columns in model
+        Assert.assertEquals(26, flatTableDesc2.getAllColumns().size());
+        // used columns only include all columns used in current index plan
+        Assert.assertEquals(4, flatTableDesc2.getUsedColumns().size());
+    }
+
 }
