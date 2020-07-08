@@ -227,7 +227,7 @@ export default {
     return Vue.resource(apiUrl + 'models/suggest_model').save(para)
   },
   saveSuggestModels: (para) => {
-    return Vue.resource(apiUrl + `models/batch_save_models?project=${para.project}`).save(para.models)
+    return Vue.resource(apiUrl + `models/model_recommendation?project=${para.project}`).save(para)
   },
   validateModelName: (para) => {
     return Vue.resource(apiUrl + 'models/validate_model').save(para)

@@ -1,72 +1,163 @@
 <template>
   <div>
     <el-alert :title="modelTips" style="padding-top:0px" type="info" :closable="false" :show-background="false" show-icon></el-alert>
-    <el-table
-      :data="suggestModels"
-      class="model-table"
-      border
-      v-scroll-shadow
-      :ref="tableRef"
-      style="width: 100%"
-      @select="handleSelectionModel"
-      @selection-change="handleSelectionModelChange"
-      @select-all="handleSelectionAllModel"
-      max-height="430">
-      <el-table-column type="selection" width="44" v-if="!isOriginModelsTable"></el-table-column>
-      <el-table-column type="expand" width="44">
-        <template slot-scope="scope">
-          <el-table :data="sqlsTable(scope.row.sqls)" border size="small" :show-header="false" stripe>
-            <el-table-column prop="sql" show-overflow-tooltip></el-table-column>
-          </el-table>
-        </template>
-      </el-table-column>
-      <template v-if="!isOriginModelsTable">
-        <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
-          <template slot-scope="scope">
-            <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isNameError}" size="small" @change="handleRename(scope.row)"></el-input>
-            <div class="rename-error" v-if="scope.row.isNameError">{{modelNameError}}</div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.fact')" prop="fact_table" show-overflow-tooltip width="140"></el-table-column>
-        <el-table-column :label="$t('kylinLang.common.dimension')" prop="dimensions" show-overflow-tooltip width="95" align="right">
-          <template slot-scope="scope">{{scope.row.dimensions.length}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.measure')" prop="all_measures" width="90" align="right">
-          <template slot-scope="scope">{{scope.row.all_measures.length}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="computed_columns" width="150" align="right">
-          <template slot-scope="scope">{{scope.row.computed_columns.length}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('index')" prop="index_plan.indexes" width="70" align="right">
-          <template slot-scope="scope">{{scope.row.index_plan.indexes.length}}</template>
-        </el-table-column>
-        <el-table-column label="SQL" prop="sqls" width="60" align="right">
-          <template slot-scope="scope">{{scope.row.sqls.length}}</template>
-        </el-table-column>
-      </template>
-      <template v-else>
-        <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
-          <template slot-scope="scope">
-            <span>{{scope.row.alias}}</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.dimension')" prop="recommendation.dimension_recommendations" show-overflow-tooltip width="95" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.dimension_recommendation_size}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.measure')" prop="recommendation.measure_recommendations" width="90" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.measure_recommendation_size}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="recommendation.cc_recommendations" width="150" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.cc_recommendation_size}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('index')" prop="recommendation.index_recommendations" width="70" align="right">
-          <template slot-scope="scope">{{scope.row.recommendation.index_recommendation_size}}</template>
-        </el-table-column>
-        <el-table-column label="SQL" prop="sqls" width="60" align="right">
-          <template slot-scope="scope">{{scope.row.sqls.length}}</template>
-        </el-table-column>
-      </template>
-    </el-table>
+    <el-row :gutter="15" v-if="!isOriginModelsTable">
+      <el-col :span="15">
+        <el-table
+          :data="suggestModels"
+          class="model-table"
+          border
+          v-scroll-shadow
+          :ref="tableRef"
+          style="width: 100%"
+          @select="handleSelectionModel"
+          @selection-change="handleSelectionModelChange"
+          @select-all="handleSelectionAllModel"
+          @row-click="modelRowClick"
+          max-height="430">
+          <el-table-column type="selection" width="44"></el-table-column>
+          <el-table-column type="expand" width="44">
+            <template slot-scope="scope">
+              <el-table :data="sqlsTable(scope.row.sqls)" border size="small" :show-header="false" stripe>
+                <el-table-column prop="sql" show-overflow-tooltip></el-table-column>
+              </el-table>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
+            <template slot-scope="scope">
+              <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isNameError}" size="small" @change="handleRename(scope.row)"></el-input>
+              <div class="rename-error" v-if="scope.row.isNameError">{{modelNameError}}</div>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('kylinLang.common.fact')" prop="fact_table" show-overflow-tooltip width="140"></el-table-column>
+          <!-- <el-table-column :label="$t('kylinLang.common.dimension')" prop="dimensions" show-overflow-tooltip width="95" align="right">
+            <template slot-scope="scope">{{scope.row.dimensions.length}}</template>
+          </el-table-column>
+          <el-table-column :label="$t('kylinLang.common.measure')" prop="all_measures" width="90" align="right">
+            <template slot-scope="scope">{{scope.row.all_measures.length}}</template>
+          </el-table-column>
+          <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="computed_columns" width="150" align="right">
+            <template slot-scope="scope">{{scope.row.computed_columns.length}}</template>
+          </el-table-column>
+          <el-table-column :label="$t('index')" prop="index_plan.indexes" width="70" align="right">
+            <template slot-scope="scope">{{scope.row.index_plan.indexes.length}}</template>
+          </el-table-column> -->
+          <el-table-column label="SQL" prop="sqls" width="80" align="right" :render-header="renderHeaderSql">
+            <template slot-scope="scope">{{scope.row.sqls.length}}</template>
+          </el-table-column>
+        </el-table>
+      </el-col>
+      <el-col :span="9">
+        <el-table
+          :data="modelDetails"
+          class="model-table"
+          border
+          v-scroll-shadow
+          style="width: 100%"
+          max-height="430">
+          <el-table-column type="expand" width="44">
+            <template slot-scope="scope">
+              <template v-if="scope.row.type === 'cc'">
+                <p><span>{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
+              </template>
+              <template v-if="scope.row.type === 'dimension'">
+                <p><span>{{$t('th_column')}}：</span>{{scope.row.column}}</p>
+                <!-- <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p> -->
+              </template>
+              <template v-if="scope.row.type === 'measure'">
+                <p><span>{{$t('th_column')}}：</span>{{scope.row.name}}</p>
+                <p><span>{{$t('th_function')}}：</span>{{scope.row.function.expression}}</p>
+                <p><span>{{$t('th_parameter')}}：</span>{{scope.row.function.parameters}}</p>
+              </template>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('th_name')" prop="name" show-overflow-tooltip>
+          </el-table-column>
+          <el-table-column :label="$t('th_type')" prop="type" width="80">
+            <template slot-scope="scope">
+              {{ $t(scope.row.type) }}
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-col>
+    </el-row>
+    <el-row :gutter="15" v-else>
+      <el-col :span="15">
+        <el-table
+          :data="suggestModels"
+          class="model-table"
+          border
+          v-scroll-shadow
+          :ref="tableRef"
+          style="width: 100%"
+          @selection-change="handleSelectionRecommendationChange"
+          @row-click="recommendRowClick"
+          max-height="430">
+          <el-table-column type="selection" width="44"></el-table-column>
+          <el-table-column :label="$t('kylinLang.model.modelNameGrid')" show-overflow-tooltip prop="alias">
+            <template slot-scope="scope">
+              <span>{{scope.row.alias}}</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('recommendType')">
+            <template slot-scope="scope">
+              <span>
+                <el-tag type="success" v-if="scope.row.recommendation.recommendation_type === 'ADDITION'" size="mini">{{$t(' ')}}</el-tag>
+                {{scope.row.recommendation.recommendation_type}}
+              </span>
+            </template>
+          </el-table-column>
+          <!-- <el-table-column :label="$t('kylinLang.common.dimension')" prop="recommendation.dimension_recommendations" show-overflow-tooltip width="95" align="right">
+            <template slot-scope="scope">{{scope.row.recommendation.dimension_recommendation_size}}</template>
+          </el-table-column>
+          <el-table-column :label="$t('kylinLang.common.measure')" prop="recommendation.measure_recommendations" width="90" align="right">
+            <template slot-scope="scope">{{scope.row.recommendation.measure_recommendation_size}}</template>
+          </el-table-column>
+          <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="recommendation.cc_recommendations" width="150" align="right">
+            <template slot-scope="scope">{{scope.row.recommendation.cc_recommendation_size}}</template>
+          </el-table-column>
+          <el-table-column :label="$t('index')" prop="recommendation.index_recommendations" width="70" align="right">
+            <template slot-scope="scope">{{scope.row.recommendation.index_recommendation_size}}</template>
+          </el-table-column> -->
+          <el-table-column label="SQL" prop="sqls" width="80" align="right" :render-header="renderHeaderSql">
+            <template slot-scope="scope">{{scope.row.sqls.length}}</template>
+          </el-table-column>
+        </el-table>
+      </el-col>
+      <el-col :span="9">
+        <el-table
+          :data="recommendDetails"
+          class="model-table"
+          border
+          v-scroll-shadow
+          style="width: 100%"
+          max-height="400">
+          <el-table-column type="expand" width="44">
+            <template slot-scope="scope">
+              <template v-if="scope.row.type === 'cc'">
+                <p><span>{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
+              </template>
+              <template v-if="scope.row.type === 'dimension'">
+                <p><span>{{$t('th_column')}}：</span>{{scope.row.column.column}}</p>
+                <!-- <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p> -->
+              </template>
+              <template v-if="scope.row.type === 'measure'">
+                <p><span>{{$t('th_column')}}：</span><span class="break-word">{{scope.row.measure.name}}</span></p>
+                <p><span>{{$t('th_function')}}：</span>{{scope.row.measure.function.expression}}</p>
+                <p><span>{{$t('th_parameter')}}：</span>{{scope.row.measure.function.parameters}}</p>
+              </template>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('th_name')" prop="name" show-overflow-tooltip>
+          </el-table-column>
+          <el-table-column :label="$t('th_type')" prop="type" width="80">
+            <template slot-scope="scope">
+              {{ $t(scope.row.type) }}
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
@@ -96,13 +187,14 @@ export default class SuggestModel extends Vue {
   modelNameError = ''
   isNameErrorModelExisted = ''
   selectModels = []
+  modelDetails = []
+  selectRecommends = []
+  recommendDetails = []
   mounted () {
     this.$nextTick(() => {
-      if (this.suggestModels.length && !this.isOriginModelsTable) {
-        this.suggestModels.forEach((model) => {
-          this.$refs[this.tableRef].toggleRowSelection(model)
-        })
-      }
+      this.suggestModels.forEach((model) => {
+        this.$refs[this.tableRef] && this.$refs[this.tableRef].toggleRowSelection(model)
+      })
     })
   }
   get modelTips () {
@@ -111,6 +203,21 @@ export default class SuggestModel extends Vue {
     } else {
       return this.$t('newModelTips')
     }
+  }
+  renderHeaderSql (h, { column, index }) {
+    return <span class="sql-header">
+      SQL
+      <el-tooltip content={ this.$t('sqlInfo') } effect="dark" placement="top">
+        <span class="icon el-icon-ksd-what ksd-ml-5"></span>
+      </el-tooltip>
+    </span>
+  }
+  modelRowClick (row) {
+    this.modelDetails = [...row.all_measures.map(it => ({...it, type: 'measure'})), ...row.dimensions.map(it => ({...it, type: 'dimension'})), ...row.computed_columns.map(it => ({...it, type: 'cc'}))]
+  }
+  recommendRowClick (scope) {
+    const row = scope.recommendation
+    this.recommendDetails = [...row.cc_recommendations.map(it => ({...it, type: 'cc'})), ...row.dimension_recommendations.map(it => ({...it, name: it.column.name, type: 'dimension'})), ...row.measure_recommendations.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
   }
   sqlsTable (sqls) {
     return sqls.map((s) => {
@@ -181,6 +288,10 @@ export default class SuggestModel extends Vue {
       })
     }
   }
+  handleSelectionRecommendationChange (val) {
+    this.selectRecommends = val
+    this.$emit('getSelectRecommends', this.selectRecommends)
+  }
   checkRenameModelExisted () {
     this.isNameErrorModelExisted = false
     for (let i = 0; i < this.suggestModels.length; i++) {
@@ -193,3 +304,14 @@ export default class SuggestModel extends Vue {
   }
 }
 </script>
+<style lang="less">
+  @import '../../../assets/styles/variables.less';
+  .rename-error {
+    color: @error-color-1;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+  .break-word {
+    word-break: break-all;
+  }
+</style>

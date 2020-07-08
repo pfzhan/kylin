@@ -13,6 +13,7 @@
       <div class="upload-block" v-if="uploadFlag==='step1'">
         <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
         <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
+        <span class="upload-size-tip" v-show="!uploadItems.length">{{$t('uploadSizeTip')}}</span>
         <el-upload
           ref="sqlUpload"
           class="sql-upload"
@@ -105,7 +106,7 @@
           {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
         </div>
         <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
-          {{$t('recommendations')}}
+          {{$t('recommendations')}} ({{selectRecommends.length}}/{{originModels.length}})
         </div>
         <SuggestModel
           v-if="isShowSuggestModels"
@@ -117,6 +118,7 @@
           v-if="isShowOriginModels"
           tableRef="originModelsTable"
           :suggestModels="originModels"
+          @getSelectRecommends="getSelectRecommends"
           :isOriginModelsTable="true" />
         <el-tabs v-model="modelType" type="card" v-if="isShowTabModels">
           <el-tab-pane :label="$t('kylinLang.model.modelList') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
@@ -126,10 +128,11 @@
               @isValidated="isValidated"
               @getSelectModels="getSelectModels" />
           </el-tab-pane>
-          <el-tab-pane :label="$t('recommendations')" name="origin">
+          <el-tab-pane :label="`${$t('recommendations')} (${selectRecommends.length}/${originModels.length})`" name="origin">
             <SuggestModel
               tableRef="originModelsTable"
               :suggestModels="originModels"
+              @getSelectRecommends="getSelectRecommends"
               :isOriginModelsTable="true" />
           </el-tab-pane>
         </el-tabs>
@@ -140,17 +143,18 @@
             <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}</span><span class="ksd-ml-10">
             <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
           </span>
-          <span v-if="uploadFlag==='step1'" class="tips">
+          <span v-if="uploadFlag==='step3'"><i class="el-icon-ksd-what"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommends.length}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommends.length})}}</span>
+          <!-- <span v-if="uploadFlag==='step1'" class="tips">
             <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
-          </span>
+          </span> -->
         </div>
         <div class="ky-no-br-space">
-          <el-button plain size="medium" @click="handleClose" v-if="!isShowOriginModels">{{$t('kylinLang.common.close')}}</el-button>
+          <el-button plain size="medium" @click="handleCancel" v-if="!isShowOriginModels">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
-          <el-button type="primary" size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&!isShowOriginModels" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
-          <el-button type="primary" size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleCloseAcceptModal">{{$t('kylinLang.common.ok')}}</el-button>
+          <el-button type="primary" size="medium" v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.ok')}}</el-button>
+          <!-- <el-button type="primary" size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleCloseAcceptModal">{{$t('kylinLang.common.ok')}}</el-button> -->
         </div>
       </span>
     </el-dialog>
@@ -180,7 +184,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
+import { handleSuccessAsync, handleError } from '../../../util/index'
 import { handleSuccess, kapConfirm, kapWarn } from '../../../util/business'
 import SuggestModel from './SuggestModel.vue'
 
@@ -253,6 +257,7 @@ export default class UploadSqlModel extends Vue {
   suggestModels = []
   selectModels = []
   originModels = []
+  selectRecommends = []
   selectOriginModels = []
   modelType = 'suggest'
   isConvertShow = false
@@ -263,6 +268,21 @@ export default class UploadSqlModel extends Vue {
     this.hideModal()
     this.resetModalForm()
     this.resetImport()
+  }
+  // 点击取消按钮
+  handleCancel () {
+    if (this.uploadFlag === 'step3') {
+      this.$confirm(this.$t('closeSqlDialogTip'), this.$t('kylinLang.common.tip'), {
+        confirmButtonText: this.$t('confirmCancel'),
+        cancelButtonText: this.$t('backToEdit'),
+        type: 'warning'
+      }).then(() => {
+        this.handleClose()
+      }).catch(() => {
+      })
+    } else {
+      this.handleClose()
+    }
   }
   resetImport () {
     this.uploadFlag = 'step1'
@@ -277,6 +297,7 @@ export default class UploadSqlModel extends Vue {
     this.suggestModels = []
     this.selectModels = []
     this.selectOriginModels = []
+    this.selectRecommends = []
     this.originModels = []
     this.submitModelLoading = false
     this.isNameErrorModelExisted = false
@@ -348,8 +369,11 @@ export default class UploadSqlModel extends Vue {
   getSelectOriginModels (models) {
     this.selectOriginModels = models
   }
+  getSelectRecommends (rec) {
+    this.selectRecommends = rec
+  }
   get getFinalSelectModels () {
-    return [...this.selectModels, ...this.selectOriginModels]
+    return [...this.selectModels, ...this.selectRecommends]
   }
   isValidated (isNameErrorModelExisted) {
     this.isNameErrorModelExisted = isNameErrorModelExisted
@@ -463,14 +487,28 @@ export default class UploadSqlModel extends Vue {
   }
   submitModels () {
     this.submitModelLoading = true
-    let models = objectClone(this.getFinalSelectModels)
-    models.forEach((m) => {
-      delete m.sqls
-      if (m.index_plan) {
-        delete m.index_plan.segment_range_end
-      }
+    // let models = objectClone(this.getFinalSelectModels)
+    // models.forEach((m) => {
+    //   delete m.sqls
+    //   if (m.index_plan) {
+    //     delete m.index_plan.segment_range_end
+    //   }
+    // })
+    let recommendations = this.selectRecommends.map(it => it.recommendation ? it.recommendation : '').filter(item => item)
+    recommendations.forEach(it => {
+      if (!it) return
+      it.layout_recommendations = it.index_recommendations
+      it.layout_recommendation_size = it.index_recommendation_size
+      it.model_id = it.modelId
+      delete it.index_recommendations
+      delete it.index_recommendation_size
+      delete it.modelId
     })
-    this.saveSuggestModels({project: this.currentSelectedProject, models: models}).then((res) => {
+    let data = {
+      new_models: this.selectModels,
+      recommendations: recommendations
+    }
+    this.saveSuggestModels({project: this.currentSelectedProject, ...data}).then((res) => {
       handleSuccess(res, (data) => {
         this.$message({
           type: 'success',
@@ -479,6 +517,13 @@ export default class UploadSqlModel extends Vue {
         this.submitModelLoading = false
         this.hideModal()
         this.$emit('reloadModelList')
+        if (this.selectModels.length && this.selectRecommends.length) {
+          this.$message.success(this.$t('successCreateModelsAndRecommends', {models: this.selectModels.length, recommends: this.selectRecommends.length}))
+        } else if (this.selectModels.length) {
+          this.$message.success(this.$t('successCreateModels', {models: this.selectModels.length}))
+        } else {
+          this.$message.success(this.$t('successCreateRecommends', {recommends: this.selectRecommends.length}))
+        }
       })
     }, (res) => {
       handleError(res)
@@ -562,6 +607,21 @@ export default class UploadSqlModel extends Vue {
   getSuggestModels (sqls, reuseExistedModel) {
     this.suggestModel({project: this.currentSelectedProject, sqls: sqls, reuse_existed_model: reuseExistedModel}).then((res) => {
       handleSuccess(res, (data) => {
+        // 优化建议超过 1000 让其重新上传sql
+        if (data.origin_model.length > 1000) {
+          this.$confirm(this.$t('recommendsOverSizeTip'), this.$t('recommendsOverSizeTitle'), {
+            confirmButtonText: this.$t('kylinLang.common.ok'),
+            showCancelButton: false,
+            showClose: false,
+            type: 'warning'
+          }).then(() => {
+            this.generateLoading = false
+            this.convertLoading = false
+            this.cancelConvertLoading = false
+            this.isConvertShow = false
+          })
+          return
+        }
         this.suggestModels = data.new_model.map((d) => {
           d.isChecked = true
           d.isNameError = false
@@ -785,6 +845,8 @@ export default class UploadSqlModel extends Vue {
       this.importLoading = false
     })
   }
+  mounted () {
+  }
 }
 </script>
 <style lang="less">
@@ -906,8 +968,12 @@ export default class UploadSqlModel extends Vue {
           color: @text-title-color;
           line-height: 24px;
         }
+        .upload-size-tip {
+          width: 400px;
+          display: inline-block;
+        }
         .el-upload {
-          margin-top: 25px;
+          margin-top: 15px;
         }
         .el-upload-list {
           width: 300px;

@@ -926,7 +926,7 @@ export default class ModelAggregate extends Vue {
     cursor: ew-resize;
   }
   .agg-detail-card {
-    height: 496px;
+    // height: 496px;
     border: none;
     background: none;
     .el-card__header {
