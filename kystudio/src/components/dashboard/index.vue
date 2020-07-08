@@ -225,8 +225,8 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { handleSuccess, transToUtcDateFormat } from '../../util/business'
 import { handleSuccessAsync, handleError } from '../../util/index'
-import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
-import $ from 'jquery'
+// import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
+// import $ from 'jquery'
 import * as d3 from 'd3'
 import echarts from 'echarts'
 import moment from 'moment-timezone'
@@ -515,22 +515,22 @@ export default class Dashboard extends Vue {
     })
     this.lineChartDara = resDataLine
   }
-  drawImpactChart () {
-    $(this.$el.querySelector('#ruleImpact')).empty()
-    const config1 = liquidFillGaugeDefaultSettings()
-    config1.circleColor = '#15BDF1'
-    config1.textColor = '#263238'
-    config1.waveAnimateTime = 1000
-    loadLiquidFillGauge('ruleImpact', this.impactRatio, config1)
-  }
+  // drawImpactChart () {
+  //   $(this.$el.querySelector('#ruleImpact')).empty()
+  //   const config1 = liquidFillGaugeDefaultSettings()
+  //   config1.circleColor = '#15BDF1'
+  //   config1.textColor = '#263238'
+  //   config1.waveAnimateTime = 1000
+  //   loadLiquidFillGauge('ruleImpact', this.impactRatio, config1)
+  // }
   mounted () {
     this.$nextTick(() => {
       window.onresize = () => {
-        const targetDom = this.$el.querySelector('#ruleImpact')
-        if (targetDom) {
-          $(targetDom).empty()
-          this.drawImpactChart()
-        }
+        // const targetDom = this.$el.querySelector('#ruleImpact')
+        // if (targetDom) {
+        //   $(targetDom).empty()
+        //   this.drawImpactChart()
+        // }
         this.resetChartsPosition()
       }
     })
@@ -673,7 +673,7 @@ export default class Dashboard extends Vue {
   created () {
     if (this.currentSelectedProject) {
       this.daterange = [new Date(new Date().getTime() - 3600 * 1000 * 24 * 7).getTime(), new Date().getTime()]
-      this.loadRuleImpactRatio()
+      // this.loadRuleImpactRatio()
       this.loadQuotaInfo()
       this.loadDashInfo()
       this.loadQueryChart()
@@ -716,16 +716,16 @@ export default class Dashboard extends Vue {
     }
     return totalSize
   }
-  loadRuleImpactRatio () {
-    this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.impactRatio = data.toFixed(2) * 100
-        this.drawImpactChart()
-      })
-    }, (res) => {
-      handleError(res)
-    })
-  }
+  // loadRuleImpactRatio () {
+  //   this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
+  //     handleSuccess(res, (data) => {
+  //       this.impactRatio = data.toFixed(2) * 100
+  //       this.drawImpactChart()
+  //     })
+  //   }, (res) => {
+  //     handleError(res)
+  //   })
+  // }
   async loadDashInfo () {
     const res = await this.loadDashboardQueryInfo({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1]})
     const resData = await handleSuccessAsync(res)
