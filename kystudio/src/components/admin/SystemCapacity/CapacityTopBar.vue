@@ -98,7 +98,7 @@
     nodesTimer = null
 
     get getDataFails () {
-      return this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode || this.getCapacityPrecent >= 80 || (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
+      return (this.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || this.systemNodeInfo.node_status === 'OVERCAPACITY' || this.isOnlyQueryNode || this.getCapacityPrecent >= 80) && (!this.systemCapacityInfo.fail && !this.systemNodeInfo.fail)
     }
 
     get getNodesNumColor () {
@@ -239,9 +239,11 @@
   @import '../../../assets/styles/variables.less';
   .nodes-popover {
     padding: 0 !important;
-    margin-left: -50px;
+    margin-left: -200px;
     .popper__arrow {
-      margin-left: 50px;
+      // margin-left: 50px;
+      left: initial !important;
+      right: 38px;
     }
     .font-disabled {
       color: @text-disabled-color;
@@ -296,7 +298,7 @@
       background: #ffffff;
       left: calc(~'100% + 5px');
       margin-top: -35px;
-      width: 280px;
+      width: 250px;
       padding: 10px;
       box-sizing: border-box;
       box-shadow: 0 0px 6px 0px #E5E5E5;

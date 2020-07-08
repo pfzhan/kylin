@@ -272,14 +272,7 @@ export default {
         // if (state.systemCapacityInfo.error_over_thirty_days) {
         //   return { flag: 0, status: 'overThirtyDays', text: 'overThirtyDays', query: { capacity } }
         // }
-        if (state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || state.systemNodeInfo.node_status === 'OVERCAPACITY') {
-          const _types = []
-          state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' && _types.push('systemCapacity')
-          state.systemNodeInfo.node_status === 'OVERCAPACITY' && _types.push('nodes')
-          return { flag: 0, status: 'overCapacity', target: _types, text: _types.includes('systemCapacity') && _types.includes('nodes') ? 'bothSystemAndNodeAlert' : _types.includes('systemCapacity') ? 'systemCapacityOverAlert' : 'nodeOverAlert', query: { capacity, nodes } }
-        } else if (getters.isOnlyQueryNode) {
-          return { flag: 0, status: 'noAllNodes', text: 'noJobNodes' }
-        } else if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
+        if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
           // let times = 30
           if (state.systemCapacityInfo.fail && state.systemNodeInfo.fail) {
             // times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
@@ -291,6 +284,13 @@ export default {
             return { flag: 1, status: 'failApi', text: 'nodesFailTip' }
           }
           // return { flag: 1, status: 'failApi', text: state.systemCapacityInfo.fail && state.systemNodeInfo.fail ? 'bothCapacityAndNodesFail' : state.systemCapacityInfo.fail ? 'capacityFailTip' : 'nodesFailTip' }
+        } else if (state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || state.systemNodeInfo.node_status === 'OVERCAPACITY') {
+          const _types = []
+          state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' && _types.push('systemCapacity')
+          state.systemNodeInfo.node_status === 'OVERCAPACITY' && _types.push('nodes')
+          return { flag: 0, status: 'overCapacity', target: _types, text: _types.includes('systemCapacity') && _types.includes('nodes') ? 'bothSystemAndNodeAlert' : _types.includes('systemCapacity') ? 'systemCapacityOverAlert' : 'nodeOverAlert', query: { capacity, nodes } }
+        } else if (getters.isOnlyQueryNode) {
+          return { flag: 0, status: 'noAllNodes', text: 'noJobNodes' }
         } else if (state.systemCapacityInfo.current_capacity / state.systemCapacityInfo.capacity > 80) {
           return { flag: 2, status: 'warning', text: 'capacityOverPrecent', query: { capacity } }
         } else {
