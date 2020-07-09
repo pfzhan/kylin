@@ -2,9 +2,9 @@ export default {
   'en': {
     importSql: 'Import SQL',
     modelFromSql: 'Add Model From SQL',
-    generateModel: 'Model Advisor',
-    pleImport: 'Please Import Files',
-    sqlFiles: 'SQL File',
+    generateModel: 'Import SQL',
+    pleImport: 'Upload SQL Files',
+    sqlFiles: 'Upload',
     sqlBox: 'SQL Box',
     checkAll: 'Check All',
     cancelAll: 'Uncheck All',
@@ -56,14 +56,17 @@ export default {
     backToEdit: 'Continue Editing',
     closeSqlDialogTip: 'Once cancel, all edits would be discarded and adding model from SQL would be terminated. Are you sure to cancel?',
     recommendsOverSizeTip: 'Recommendations can’t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.',
-    recommendsOverSizeTitle: 'Failed to Show all Recommendations'
+    recommendsOverSizeTitle: 'Failed to Show all Recommendations',
+    mergeSqlTip: 'Similar SQLs might have been merged. Non-equal join condition are not supported. ',
+    preview: 'Preview',
+    model: 'Model'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
     modelFromSql: 'SQL 建模',
-    generateModel: '模型推荐',
-    pleImport: '请导入文件',
-    sqlFiles: 'SQL 文件',
+    generateModel: '确认导入的 SQL',
+    pleImport: '上传 SQL 文件',
+    sqlFiles: '上传',
     sqlBox: 'SQL 窗口',
     checkAll: '全选',
     cancelAll: '取消全选',
@@ -115,6 +118,9 @@ export default {
     backToEdit: '返回编辑',
     closeSqlDialogTip: '一旦取消，将退出SQL建模，同时所有编辑会被丢弃。确定要取消吗？',
     recommendsOverSizeTip: '优化建议超过显示上限。请尝试减少导入 SQL 的数量。',
-    recommendsOverSizeTitle: '优化建议无法显示'
+    recommendsOverSizeTitle: '优化建议无法显示',
+    mergeSqlTip: '相似的 SQL 已被合并。非等值连接条件暂不支持。',
+    preview: '预览',
+    model: '模型'
   }
 }

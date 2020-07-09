@@ -120,8 +120,8 @@
           :suggestModels="originModels"
           @getSelectRecommends="getSelectRecommends"
           :isOriginModelsTable="true" />
-        <el-tabs v-model="modelType" type="card" v-if="isShowTabModels">
-          <el-tab-pane :label="$t('kylinLang.model.modelList') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
+        <el-tabs v-model="modelType" v-if="isShowTabModels">
+          <el-tab-pane :label="$t('model') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
             <SuggestModel
               tableRef="modelsTable"
               :suggestModels="suggestModels"
@@ -142,8 +142,9 @@
           <span v-if="uploadFlag==='step2'">
             <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}</span><span class="ksd-ml-10">
             <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
+            <span class="merge-sql-tip"><span class="divide">|</span><i class="el-icon-ksd-alert"></i>{{$t('mergeSqlTip')}}</span>
           </span>
-          <span v-if="uploadFlag==='step3'"><i class="el-icon-ksd-what"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommends.length}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommends.length})}}</span>
+          <span class="selected-item" v-if="uploadFlag==='step3'"><i class="el-icon-ksd-alert"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommends.length}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommends.length})}}</span>
           <!-- <span v-if="uploadFlag==='step1'" class="tips">
             <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span> -->
@@ -311,8 +312,10 @@ export default class UploadSqlModel extends Vue {
     if (this.isGenerateModel) {
       if (this.uploadFlag === 'step1') {
         return this.$t('modelFromSql')
-      } else {
+      } else if (this.uploadFlag === 'step2') {
         return this.$t('generateModel')
+      } else {
+        return this.$t('preview')
       }
     } else {
       return this.$t('importSql')
@@ -876,6 +879,27 @@ export default class UploadSqlModel extends Vue {
       line-height: 30px;
       height: 30px;
       display: inline-block;
+      .merge-sql-tip {
+        font-size: 12px;
+        color: @text-normal-color;
+        .divide {
+          margin-right: 10px;
+          margin-left: 5px;
+          color: @line-border-color3;
+        }
+        i {
+          margin-right: 5px;
+          color: @text-disabled-color;
+        }
+      }
+      .selected-item {
+        color: @text-normal-color;
+        font-size: 12px;
+        .el-icon-ksd-alert {
+          margin-right: 5px;
+          color: @text-disabled-color;
+        }
+      }
     }
     .tips {
       span {
@@ -967,10 +991,14 @@ export default class UploadSqlModel extends Vue {
           font-size: 14px;
           color: @text-title-color;
           line-height: 24px;
+          font-weight: bold;
         }
         .upload-size-tip {
-          width: 400px;
+          width: 440px;
           display: inline-block;
+          color: @text-normal-color;
+          font-size: 12px;
+          margin-top: 5px;
         }
         .el-upload {
           margin-top: 15px;

@@ -120,38 +120,39 @@
       v-if="showIndexDetail"
     >
       <el-table
-        nested
         border
         v-loading="loadingDetails"
         :data="detailData"
         class="index-details-table"
         size="medium"
+        :fit="false"
         :empty-text="emptyText"
+        style="width: 100%"
       >
         <el-table-column width="34" type="expand">
           <template slot-scope="scope">
             <template v-if="scope.row.type === 'cc'">
-              <p><span>{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
+              <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
             </template>
             <template v-if="scope.row.type === 'dimension'">
-              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).column}}</p>
-              <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p>
+              <p><span class="label">{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).column}}</p>
+              <p><span class="label">{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p>
             </template>
             <template v-if="scope.row.type === 'measure'">
-              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).name}}</p>
-              <p><span>{{$t('th_function')}}：</span>{{JSON.parse(scope.row.content).function.expression}}</p>
-              <p><span>{{$t('th_parameter')}}：</span>{{JSON.parse(scope.row.content).function.parameters}}</p>
+              <p><span class="label">{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).name}}</p>
+              <p><span class="label">{{$t('th_function')}}：</span>{{JSON.parse(scope.row.content).function.expression}}</p>
+              <p><span class="label">{{$t('th_parameter')}}：</span>{{JSON.parse(scope.row.content).function.parameters}}</p>
             </template>
           </template>
         </el-table-column>
-        <el-table-column type="index" :label="$t('order')"></el-table-column>
-        <el-table-column :label="$t('th_name')" show-overflow-tooltip>
+        <el-table-column type="index" :label="$t('order')" width="50"></el-table-column>
+        <el-table-column :label="$t('th_name')" width="260">
           <template slot-scope="scope">
-            <span>{{scope.row.name}}</span>
-            <el-tag size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
+            <span v-custom-tooltip="{text: scope.row.name, w: scope.row.add ? 80 : 0, tableClassName: 'index-details-table'}">{{scope.row.name}}</span>
+            <el-tag class="add-tag" size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="type" :label="$t('th_type')" show-overflow-tooltip>
+        <el-table-column prop="type" :label="$t('th_type')" width="95" show-overflow-tooltip>
           <template slot-scope="scope">
             {{$t(scope.row.type)}}
           </template>
@@ -179,23 +180,23 @@
         nested
         border
         :data="validateData.list"
-        class="index-details-table"
+        class="validate-table"
         size="medium"
         :empty-text="emptyText"
       >
         <el-table-column width="34" type="expand">
           <template slot-scope="scope">
             <template v-if="scope.row.type === 'cc'">
-              <p><span>{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
+              <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
             </template>
             <template v-if="scope.row.type === 'dimension'">
-              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).column}}</p>
-              <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p>
+              <p><span class="label">{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).column}}</p>
+              <p><span class="label">{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p>
             </template>
             <template v-if="scope.row.type === 'measure'">
-              <p><span>{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).name}}</p>
-              <p><span>{{$t('th_function')}}：</span>{{JSON.parse(scope.row.content).function.expression}}</p>
-              <p><span>{{$t('th_parameter')}}：</span>{{JSON.parse(scope.row.content).function.parameters}}</p>
+              <p><span class="label">{{$t('th_column')}}：</span>{{JSON.parse(scope.row.content).name}}</p>
+              <p><span class="label">{{$t('th_function')}}：</span>{{JSON.parse(scope.row.content).function.expression}}</p>
+              <p><span class="label">{{$t('th_parameter')}}：</span>{{JSON.parse(scope.row.content).function.parameters}}</p>
             </template>
           </template>
         </el-table-column>
@@ -366,7 +367,7 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
       newAdd: '新增',
       validateTitle: '添加以下内容至模型',
       validateModalTip: '通过所选优化建议需要添加以下内容至模型：',
-      add: '添加',
+      add: '确认添加',
       requiredName: '请输入别名',
       sameName: '已存在同名项',
       bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引。',
@@ -663,6 +664,7 @@ export default class IndexList extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../../../../assets/styles/variables.less';
 .el-card.recommendations-card {
   border: none;
 
@@ -682,6 +684,50 @@ export default class IndexList extends Vue {
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;
+  }
+}
+.el-table.index-details-table, .el-table.validate-table {
+  .cell {
+    height: 28px;
+    line-height: 28px;
+    .el-table__expand-icon {
+      >.el-icon {
+        margin-top: -2px;
+      }
+    }
+  }
+  .expanded {
+    .el-table__expand-icon {
+      >.el-icon {
+        margin-top: -6px;
+        margin-left: -2px;
+      }
+    }
+  }
+  .el-table__expanded-cell {
+    padding: 10px;
+    font-size: 12px;
+    color: @text-title-color;
+    p {
+      margin-bottom: 5px;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    .label {
+      color: @text-normal-color;
+    }
+  }
+  .add-tag {
+    position: absolute;
+    right: 10px;
+    top: 8px;
+  }
+}
+.el-table.validate-table {
+  margin-top: 10px;
+  .el-form-item__content {
+    line-height: 23px;
   }
 }
 .layout-details {

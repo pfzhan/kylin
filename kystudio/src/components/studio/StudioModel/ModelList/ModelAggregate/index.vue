@@ -371,7 +371,10 @@ export default class ModelAggregate extends Vue {
   removeLoading = false
   moveEvent = {
     w: 50,
-    curW: 50
+    curW: 50,
+    limit: {
+      width: [10, 80]
+    }
   }
   switchIndexValue = 0
   // 打开高级设置
@@ -808,6 +811,11 @@ export default class ModelAggregate extends Vue {
     let tarX = e.clientX
     let viewParent = this.$el.querySelector('.aggregate-view').getBoundingClientRect()
     this.moveEvent.w = (this.moveEvent.curW / 100 * viewParent.width + tarX - this.moveEvent.downX) / viewParent.width * 100
+    if (this.moveEvent.limit.width.length) {
+      const [min, max] = this.moveEvent.limit.width
+      min && this.moveEvent.w < min && (this.moveEvent.w = min)
+      max && this.moveEvent.w > max && (this.moveEvent.w = max)
+    }
     this.$refs.indexTreeMap && this.$refs.indexTreeMap.myChart.resize()
   }
 

@@ -204,10 +204,10 @@
       @submit="(scb, ecb) => handleSubmit('accleration-rule-settings', scb, ecb)"
       @cancel="(scb, ecb) => handleResetForm('accleration-rule-settings', scb, ecb)">
       <el-form ref="rulesForm" :rules="rulesSettingRules" :show-message="false" :model="rulesObj" size="medium" class="ruleSetting">
-        <div class="conds">
+        <!-- <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryFrequency')}}</span>
-            <!-- <el-switch size="small" v-model="rulesObj.count_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch> -->
+            <el-switch size="small" v-model="rulesObj.count_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
@@ -218,7 +218,7 @@
               </el-form-item>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <div class="conds">
           <div class="conds-title">

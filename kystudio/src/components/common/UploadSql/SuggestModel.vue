@@ -14,6 +14,7 @@
           @selection-change="handleSelectionModelChange"
           @select-all="handleSelectionAllModel"
           @row-click="modelRowClick"
+          :row-class-name="setRowClass"
           max-height="430">
           <el-table-column type="selection" width="44"></el-table-column>
           <el-table-column type="expand" width="44">
@@ -54,20 +55,20 @@
           border
           v-scroll-shadow
           style="width: 100%"
-          max-height="430">
+          max-height="380">
           <el-table-column type="expand" width="44">
             <template slot-scope="scope">
               <template v-if="scope.row.type === 'cc'">
-                <p><span>{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
+                <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
               </template>
               <template v-if="scope.row.type === 'dimension'">
-                <p><span>{{$t('th_column')}}：</span>{{scope.row.column}}</p>
+                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.column}}</p>
                 <!-- <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p> -->
               </template>
               <template v-if="scope.row.type === 'measure'">
-                <p><span>{{$t('th_column')}}：</span>{{scope.row.name}}</p>
-                <p><span>{{$t('th_function')}}：</span>{{scope.row.function.expression}}</p>
-                <p><span>{{$t('th_parameter')}}：</span>{{scope.row.function.parameters}}</p>
+                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.name}}</p>
+                <p><span class="label">{{$t('th_function')}}：</span>{{scope.row.function.expression}}</p>
+                <p><span class="label">{{$t('th_parameter')}}：</span>{{scope.row.function.parameters}}</p>
               </template>
             </template>
           </el-table-column>
@@ -92,6 +93,7 @@
           style="width: 100%"
           @selection-change="handleSelectionRecommendationChange"
           @row-click="recommendRowClick"
+          :row-class-name="setRowClass"
           max-height="430">
           <el-table-column type="selection" width="44"></el-table-column>
           <el-table-column :label="$t('kylinLang.model.modelNameGrid')" show-overflow-tooltip prop="alias">
@@ -131,20 +133,20 @@
           border
           v-scroll-shadow
           style="width: 100%"
-          max-height="400">
+          max-height="380">
           <el-table-column type="expand" width="44">
             <template slot-scope="scope">
               <template v-if="scope.row.type === 'cc'">
-                <p><span>{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
+                <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
               </template>
               <template v-if="scope.row.type === 'dimension'">
-                <p><span>{{$t('th_column')}}：</span>{{scope.row.column.column}}</p>
+                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.column.column}}</p>
                 <!-- <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p> -->
               </template>
               <template v-if="scope.row.type === 'measure'">
-                <p><span>{{$t('th_column')}}：</span><span class="break-word">{{scope.row.measure.name}}</span></p>
-                <p><span>{{$t('th_function')}}：</span>{{scope.row.measure.function.expression}}</p>
-                <p><span>{{$t('th_parameter')}}：</span>{{scope.row.measure.function.parameters}}</p>
+                <p><span class="label">{{$t('th_column')}}：</span><span class="break-word">{{scope.row.measure.name}}</span></p>
+                <p><span class="label">{{$t('th_function')}}：</span>{{scope.row.measure.function.expression}}</p>
+                <p><span class="label">{{$t('th_parameter')}}：</span>{{scope.row.measure.function.parameters}}</p>
               </template>
             </template>
           </el-table-column>
@@ -190,11 +192,17 @@ export default class SuggestModel extends Vue {
   modelDetails = []
   selectRecommends = []
   recommendDetails = []
+  activeRowId = ''
   mounted () {
     this.$nextTick(() => {
       this.suggestModels.forEach((model) => {
         this.$refs[this.tableRef] && this.$refs[this.tableRef].toggleRowSelection(model)
       })
+      if (!this.isOriginModelsTable) {
+        this.modelRowClick(this.suggestModels[0])
+      } else {
+        this.recommendRowClick(this.suggestModels[0])
+      }
     })
   }
   get modelTips () {
@@ -212,11 +220,16 @@ export default class SuggestModel extends Vue {
       </el-tooltip>
     </span>
   }
+  setRowClass ({row}) {
+    return row.uuid === this.activeRowId ? 'active-row' : ''
+  }
   modelRowClick (row) {
+    this.activeRowId = row.uuid
     this.modelDetails = [...row.all_measures.map(it => ({...it, type: 'measure'})), ...row.dimensions.map(it => ({...it, type: 'dimension'})), ...row.computed_columns.map(it => ({...it, type: 'cc'}))]
   }
   recommendRowClick (scope) {
     const row = scope.recommendation
+    this.activeRowId = scope.uuid
     this.recommendDetails = [...row.cc_recommendations.map(it => ({...it, type: 'cc'})), ...row.dimension_recommendations.map(it => ({...it, name: it.column.name, type: 'dimension'})), ...row.measure_recommendations.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
   }
   sqlsTable (sqls) {
@@ -313,5 +326,32 @@ export default class SuggestModel extends Vue {
   }
   .break-word {
     word-break: break-all;
+  }
+  .model-table {
+    .el-table__row {
+      cursor: pointer;
+    }
+    .active-row {
+      background-color: @base-color-9;
+    }
+    .el-table__expanded-cell {
+      padding: 10px;
+      font-size: 12px;
+      color: @text-title-color;
+      p {
+        margin-bottom: 5px;
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      .label {
+        color: @text-normal-color;
+      }
+    }
+    .sql-header {
+      .icon {
+        cursor: pointer;
+      }
+    }
   }
 </style>
