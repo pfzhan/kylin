@@ -835,12 +835,16 @@ export default class UploadSqlModel extends Vue {
     this.importSqlFiles({project: this.currentSelectedProject, formData: formData}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         this.importLoading = false
-        this.uploadFlag = 'step2'
-        this.whiteSqlData = data
-        this.selectAll()
-        this.whiteSqlDatasPageChange(0)
-        if (msg) {
-          this.$message.warning(msg)
+        if (data.size > 200) {
+          this.$message.error(this.$t('sqlOverSizeTip'))
+        } else {
+          this.uploadFlag = 'step2'
+          this.whiteSqlData = data
+          this.selectAll()
+          this.whiteSqlDatasPageChange(0)
+          if (msg) {
+            this.$message.warning(msg)
+          }
         }
       })
     }, (res) => {

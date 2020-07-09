@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-alert :title="modelTips" style="padding-top:0px" type="info" :closable="false" :show-background="false" show-icon></el-alert>
+    <!-- <el-alert :title="modelTips" style="padding-top:0px" type="info" :closable="false" :show-background="false" show-icon></el-alert> -->
     <el-row :gutter="15" v-if="!isOriginModelsTable">
       <el-col :span="15">
         <el-table
@@ -17,13 +17,13 @@
           :row-class-name="setRowClass"
           max-height="430">
           <el-table-column type="selection" width="44"></el-table-column>
-          <el-table-column type="expand" width="44">
+          <!-- <el-table-column type="expand" width="44">
             <template slot-scope="scope">
               <el-table :data="sqlsTable(scope.row.sqls)" border size="small" :show-header="false" stripe>
                 <el-table-column prop="sql" show-overflow-tooltip></el-table-column>
               </el-table>
             </template>
-          </el-table-column>
+          </el-table-column> -->
           <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
             <template slot-scope="scope">
               <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isNameError}" size="small" @change="handleRename(scope.row)"></el-input>

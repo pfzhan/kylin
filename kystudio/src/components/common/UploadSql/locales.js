@@ -59,7 +59,8 @@ export default {
     recommendsOverSizeTitle: 'Failed to Show all Recommendations',
     mergeSqlTip: 'Similar SQLs might have been merged. Non-equal join condition are not supported. ',
     preview: 'Preview',
-    model: 'Model'
+    model: 'Model',
+    sqlOverSizeTip: 'Up to 200 SQLs could be uploaded at a time. Please try selecting fewer files to upload.'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -121,6 +122,7 @@ export default {
     recommendsOverSizeTitle: '优化建议无法显示',
     mergeSqlTip: '相似的 SQL 已被合并。非等值连接条件暂不支持。',
     preview: '预览',
-    model: '模型'
+    model: '模型',
+    sqlOverSizeTip: '一次最多可上传 200 条 SQL。请重新上传。'
   }
 }
