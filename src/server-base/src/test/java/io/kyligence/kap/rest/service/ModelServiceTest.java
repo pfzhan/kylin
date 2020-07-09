@@ -4000,6 +4000,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         partitionColumnFormat = modelService.getPartitionColumnFormatByAlias("gc_test", "m1");
         Assert.assertEquals(null, partitionColumnFormat);
+
+        // broken model
+        String brokenModelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(brokenModelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+        partitionColumnFormat = modelService.getPartitionColumnFormatByAlias("default", "nmodel_basic_inner");
+        Assert.assertEquals(null, partitionColumnFormat);
     }
 
     @Test

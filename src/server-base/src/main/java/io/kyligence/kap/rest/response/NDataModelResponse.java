@@ -71,7 +71,7 @@ public class NDataModelResponse extends NDataModel {
     private boolean rootFactTableDeleted = false;
 
     @JsonProperty("segments")
-    private List<NDataSegmentResponse> segments;
+    private List<NDataSegmentResponse> segments = new ArrayList<>();
 
     @JsonProperty("recommendations_count")
     private int recommendationsCount;

@@ -3116,6 +3116,8 @@ public class ModelService extends BasicService {
 
     public String getPartitionColumnFormatById(String project, String modelId) {
         NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        if (dataModelDesc.isBroken())
+            return null;
         String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
         return partitionDateFormat;
@@ -3123,6 +3125,8 @@ public class ModelService extends BasicService {
 
     public String getPartitionColumnFormatByAlias(String project, String modelAlias) {
         NDataModel dataModelDesc = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        if (dataModelDesc.isBroken())
+            return null;
         String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
         return partitionDateFormat;
