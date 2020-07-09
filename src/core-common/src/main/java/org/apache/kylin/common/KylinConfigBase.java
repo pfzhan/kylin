@@ -1255,7 +1255,7 @@ public abstract class KylinConfigBase implements Serializable {
      *     left join will be transformed runtime-join
      * @return
      */
-    public boolean isQueryNonEquiJoinMoldelEnabled() {
+    public boolean isQueryNonEquiJoinModelEnabled() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.non-equi-join-model-enabled", FALSE));
     }
 

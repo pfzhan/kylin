@@ -94,7 +94,7 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
                         + "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT=TEST_CAL_DT.CAL_DT\n"
                         + "LEFT JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND\n"
                         + "TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC AND\n" + "TEST_ORDER.BUYER_ID <> 10000000\n" };
-        Boolean enableAutoModelingForNonEquiJoin = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled();
+        Boolean enableAutoModelingForNonEquiJoin = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled();
         KylinConfig conf = getTestConfig();
         conf.setProperty("kylin.query.non-equi-join-model-enabled", "TRUE");
         NSmartMaster smartMaster = new NSmartMaster(AccelerationContextUtil.newSmartContext(conf, "newten", sqls));

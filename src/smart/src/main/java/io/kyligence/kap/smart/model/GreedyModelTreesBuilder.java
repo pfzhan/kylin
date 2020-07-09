@@ -55,7 +55,7 @@ import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.util.JoinDescUtil;
+import io.kyligence.kap.metadata.model.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
 import lombok.extern.slf4j.Slf4j;
 

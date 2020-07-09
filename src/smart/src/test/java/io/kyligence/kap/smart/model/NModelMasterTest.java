@@ -239,7 +239,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         String[] sqls = new String[] {
                 "select avg(PRICE), ACCOUNT_ID\n" + "from KYLIN_SALES \n" + "left join KYLIN_ACCOUNT\n"
                         + "ON KYLIN_SALES.BUYER_ID > KYLIN_ACCOUNT.ACCOUNT_ID\n" + "group by price, account_id" };
-        Boolean enableAutoModelingForNonEquiJoin = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled();
+        Boolean enableAutoModelingForNonEquiJoin = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled();
         KylinConfig conf = getTestConfig();
 
         conf.setProperty("kylin.query.non-equi-join-model-enabled", "TRUE");

@@ -37,6 +37,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITIO
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,6 +76,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.RecommendationItem;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -271,6 +273,26 @@ public class NModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 modelService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
+    }
+
+    /**
+     * list model that is scd2 join condition
+     *
+     * @param project
+     * @return
+     * @throws Exception
+     */
+    @ApiOperation(value = "listScd2Model (check)", notes = "")
+    @GetMapping(value = "name/scd2")
+    @ResponseBody
+    public EnvelopeResponse<List<String>> listScd2Model(@RequestParam("project") String project,
+            @RequestParam(value = "non_offline", required = false, defaultValue = "true") boolean nonOffline) {
+        checkProjectName(project);
+
+        List<String> status = nonOffline ? modelService.getModelNonOffOnlineStatus()
+                : Arrays.asList(ModelStatusToDisplayEnum.OFFLINE.name());
+        List<String> scd2ModelsOnline = modelService.getSCD2ModelsAliasByStatus(project, status);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, scd2ModelsOnline, "");
     }
 
     @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")

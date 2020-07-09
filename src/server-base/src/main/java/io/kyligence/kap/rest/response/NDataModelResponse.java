@@ -29,19 +29,21 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -91,6 +93,12 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("total_indexes")
     private long totalIndexes;
 
+    @JsonProperty("forbidden_online")
+    private boolean forbiddenOnline = false;
+
+    @JsonProperty("join_tables")
+    private List<SimplifiedJoinTableDesc> simplifiedJoinTableDescs;
+
     private long lastModify;
 
     public NDataModelResponse() {
@@ -103,6 +111,8 @@ public class NDataModelResponse extends NDataModel {
         this.setProject(dataModel.getProject());
         this.setMvcc(dataModel.getMvcc());
         this.lastModify = lastModified;
+        this.setSimplifiedJoinTableDescs(
+                SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(dataModel.getJoinTables()));
     }
 
     @JsonProperty("simplified_dimensions")

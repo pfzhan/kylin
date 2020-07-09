@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -75,6 +76,8 @@ public class JoinDesc implements Serializable {
     @JsonProperty("foreign_table")
     private String foreignTable;
 
+
+
     private TblColRef[] primaryKeyColumns;
     private TblColRef[] foreignKeyColumns;
     private TableRef primaryTableRef;
@@ -93,7 +96,7 @@ public class JoinDesc implements Serializable {
     public boolean isInnerJoin() {
         return "INNER".equalsIgnoreCase(type);
     }
-    
+
     public boolean isLeftJoin() {
         return "LEFT".equalsIgnoreCase(type);
     }
@@ -104,6 +107,14 @@ public class JoinDesc implements Serializable {
 
     public String getForeignTable() {
         return foreignTable;
+    }
+
+    public void setPrimaryTable(String primaryTable) {
+        this.primaryTable = primaryTable;
+    }
+
+    public void setForeignTable(String foreignTable) {
+        this.foreignTable = foreignTable;
     }
 
     public void setPrimaryTableRef(TableRef primaryTableRef) {
@@ -125,7 +136,7 @@ public class JoinDesc implements Serializable {
     public String getType() {
         return type;
     }
-    
+
     public void setType(String type) {
         this.type = type;
     }
@@ -167,7 +178,7 @@ public class JoinDesc implements Serializable {
     private void checkSameTable(TblColRef[] cols) {
         if (cols == null || cols.length == 0)
             return;
-        
+
         TableRef tableRef = cols[0].getTableRef();
         for (int i = 1; i < cols.length; i++)
             Preconditions.checkState(tableRef == cols[i].getTableRef());
@@ -176,7 +187,7 @@ public class JoinDesc implements Serializable {
     public TableRef getPKSide() {
         return primaryTableRef != null ? primaryTableRef : primaryKeyColumns[0].getTableRef();
     }
-    
+
     public TableRef getFKSide() {
         return foreignTableRef != null ? foreignTableRef : foreignKeyColumns[0].getTableRef();
     }
@@ -274,6 +285,10 @@ public class JoinDesc implements Serializable {
                 return false;
         }
         return true;
+    }
+
+    public boolean isNonEquiJoin(){
+        return Objects.nonNull(nonEquiJoinCondition);
     }
 
     @Override

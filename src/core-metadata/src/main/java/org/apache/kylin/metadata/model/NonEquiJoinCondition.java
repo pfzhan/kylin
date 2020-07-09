@@ -36,9 +36,11 @@ import org.apache.kylin.metadata.model.tool.TypedLiteralConverter;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @SuppressWarnings("serial")
@@ -163,9 +165,8 @@ public class NonEquiJoinCondition implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        return obj != null &&
-                obj instanceof NonEquiJoinCondition &&
-                NonEquiJoinConditionComparator.equals(this, (NonEquiJoinCondition) obj);
+        return obj != null && obj instanceof NonEquiJoinCondition
+                && NonEquiJoinConditionComparator.equals(this, (NonEquiJoinCondition) obj);
     }
 
     @Override
@@ -193,5 +194,41 @@ public class NonEquiJoinCondition implements Serializable {
             }
         }
         return result;
+    }
+
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    public static class SimplifiedNonEquiJoinCondition {
+
+        @JsonProperty("foreign_key")
+        private String foreignKey;
+
+        @JsonProperty("primary_key")
+        private String primaryKey;
+
+        @JsonProperty("op")
+        private SqlKind op;
+
+        public SimplifiedNonEquiJoinCondition(String foreignKey, String primaryKey, SqlKind op) {
+            this.foreignKey = foreignKey;
+            this.primaryKey = primaryKey;
+            this.op = op;
+        }
+
+        public SimplifiedNonEquiJoinCondition(String foreignKey, TblColRef fk, String primaryKey, TblColRef pk,
+                SqlKind op) {
+            this.foreignKey = foreignKey;
+            this.primaryKey = primaryKey;
+            this.op = op;
+            this.fk = fk;
+            this.pk = pk;
+        }
+
+        @JsonIgnore
+        private TblColRef fk;
+
+        @JsonIgnore
+        private TblColRef pk;
     }
 }

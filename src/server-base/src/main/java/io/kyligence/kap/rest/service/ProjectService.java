@@ -101,6 +101,7 @@ import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
+import io.kyligence.kap.rest.request.SCD2ConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
@@ -425,6 +426,8 @@ public class ProjectService extends BasicService {
         // return favorite rules
         response.setFavoriteRules(getFavoriteRules(project));
 
+        response.setScd2Enabled(config.isQueryNonEquiJoinModelEnabled());
+
         return response;
     }
 
@@ -466,6 +469,19 @@ public class ProjectService extends BasicService {
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "true");
             } else {
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "false");
+            }
+        });
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction(project = 0)
+    public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest, ModelService modelService) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
+                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "true");
+            } else {
+                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
+                modelService.offlineSCD2ModelsInProjectById(project);
             }
         });
     }

@@ -173,6 +173,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
@@ -205,6 +206,7 @@ import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.val;
 import lombok.var;
 
@@ -244,7 +246,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private static String[] timeZones = {"GMT+8", "CST", "PST", "UTC"};
+    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     @Before
     public void setup() {
@@ -330,8 +332,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         brokenEntity.setProject("default");
         Mockito.doReturn(brokenEntity).when(modelService).getIndexPlan(brokenModelId, "default");
 
-        List<NDataModelResponse> models9 = modelService.getModels("nmodel_basic_inner", "default", false, "",
-                null, "last_modify", true, "admin", null, null);
+        List<NDataModelResponse> models9 = modelService.getModels("nmodel_basic_inner", "default", false, "", null,
+                "last_modify", true, "admin", null, null);
         Assert.assertEquals(1, models9.size());
         Assert.assertEquals(0, models9.get(0).getRecommendationsCount());
         Assert.assertEquals(0, models9.get(0).getAvailableIndexesCount());
@@ -1136,7 +1138,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.getId()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment.getId()}, false);
+                new String[] { dataSegment.getId() }, false);
     }
 
     @Test
@@ -1151,7 +1153,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{"not_exist_01"}, false);
+                new String[] { "not_exist_01" }, false);
     }
 
     @Test
@@ -1171,7 +1173,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
 
-        modelService.deleteSegmentById(modelId, project, new String[]{"ef783e4d-e35f-4bd9-8afd-efd64336f04d"},
+        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
                 false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
@@ -1229,7 +1231,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Model [nmodel_basic_inner] is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment.getId()}, false);
+                new String[] { dataSegment.getId() }, false);
     }
 
     @Test
@@ -1275,16 +1277,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         try {
             modelService.mergeSegmentsManually(dfId, "default",
-                    new String[]{dataSegment1.getId(), dataSegment3.getId()});
+                    new String[] { dataSegment1.getId(), dataSegment3.getId() });
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Merging segments must not have gaps between " + dataSegment1.getId() +
-                    " and " + dataSegment3.getId() + ".", e.getMessage());
+            Assert.assertEquals("Merging segments must not have gaps between " + dataSegment1.getId() + " and "
+                    + dataSegment3.getId() + ".", e.getMessage());
         }
 
         modelService.mergeSegmentsManually(dfId, "default",
-                new String[]{dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId()});
+                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
         val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
@@ -1298,7 +1300,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         try {
             //refresh exception
-            modelService.mergeSegmentsManually(dfId, "default", new String[]{dataSegment2.getId()});
+            modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment2.getId() });
             Assert.fail();
         } catch (KylinException e) {
             Assert.assertEquals("Can not remove or refresh or merge segment [" + dataSegment2.getId()
@@ -1346,7 +1348,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(String.format(
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.getId()));
         modelService.mergeSegmentsManually(dfId, "default",
-                new String[]{dataSegment1.getId(), dataSegment2.getId()});
+                new String[] { dataSegment1.getId(), dataSegment2.getId() });
 
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -1384,12 +1386,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.updateDataflow(update);
         //refresh normally
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment2.getId()});
+                new String[] { dataSegment2.getId() });
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.getId()));
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment2.getId()});
+                new String[] { dataSegment2.getId() });
     }
 
     @Test
@@ -1398,7 +1400,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{"not_exist_01"});
+                new String[] { "not_exist_01" });
     }
 
     @Test
@@ -1433,11 +1435,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.updateDataflow(update);
         //remove normally
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{segments.get(0).getId()}, false);
+                new String[] { segments.get(0).getId() }, false);
         //2 dataflows
         val df2 = dataflowManager.getDataflow(dataModel.getUuid());
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{segments.get(2).getId(), segments.get(3).getId()}, false);
+                new String[] { segments.get(2).getId(), segments.get(3).getId() }, false);
         Assert.assertEquals(6, df2.getSegments().size());
     }
 
@@ -1850,9 +1852,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
-                                + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
-                                + " or use a different computed column name.");
+                                "Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
+                                        + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
+                                        + " or use a different computed column name.");
 
             }
         });
@@ -1983,8 +1985,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
-                                + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
+                                        + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2031,7 +2033,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
 
@@ -2083,7 +2085,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                        "Column name for computed column BUYER_ACCOUNT.COUNTRY_UPPER is already used in model nmodel_cc_test, you should apply the same expression as ' UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY) ' here, or use a different computed column name.");
+                                "Column name for computed column BUYER_ACCOUNT.COUNTRY_UPPER is already used in model nmodel_cc_test, you should apply the same expression as ' UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY) ' here, or use a different computed column name.");
             }
         });
 
@@ -2140,7 +2142,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2188,7 +2190,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR is already used in model nmodel_basic, you should apply the same expression as ' SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1) ' here, or use a different computed column name.");
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR is already used in model nmodel_basic, you should apply the same expression as ' SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1) ' here, or use a different computed column name.");
             }
         });
 
@@ -2225,7 +2227,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
             }
         });
 
@@ -2262,7 +2264,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                        "Expression SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1) in computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2 is already defined by computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR from model nmodel_basic, you should use the same column name: ' LEFTJOIN_BUYER_COUNTRY_ABBR ' .");
+                                "Expression SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1) in computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2 is already defined by computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR from model nmodel_basic, you should use the same column name: ' LEFTJOIN_BUYER_COUNTRY_ABBR ' .");
             }
         });
 
@@ -2331,7 +2333,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
             }
         });
 
@@ -2415,7 +2417,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
             }
         });
 
@@ -2457,9 +2459,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
-                        "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic,"
-                                + " you should apply the same expression as ' CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME) ' here,"
-                                + " or use a different computed column name.");
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic,"
+                                        + " you should apply the same expression as ' CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME) ' here,"
+                                        + " or use a different computed column name.");
             }
         });
 
@@ -2504,7 +2506,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
             }
         });
 
@@ -2544,7 +2546,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
             }
         });
 
@@ -2585,7 +2587,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
             }
         });
 
@@ -2626,7 +2628,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
             }
         });
 
@@ -2769,18 +2771,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         newCCs2.add(ccDesc2);
         updated.setComputedColumnDescs(newCCs2);
 
+        ModelRequest modelRequest = null;
         Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
-        modelService.preProcessBeforeModelSave(updated, "default");
+        modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
         Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2");
-        modelService.preProcessBeforeModelSave(updated, "default");
+        modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
         Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc2.setExpression("CC1 * 3");
-        modelService.preProcessBeforeModelSave(updated, "default");
+        modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
         Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3",
                 ccDesc2.getInnerExpression());
     }
@@ -3195,8 +3198,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         joinTableDesc.setTable("DEFAULT.TEST_ACCOUNT");
         JoinDesc joinDesc = new JoinDesc();
         joinDesc.setType("INNER");
-        joinDesc.setPrimaryKey(new String[]{"TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID"});
-        joinDesc.setForeignKey(new String[]{"TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID"});
+        joinDesc.setPrimaryKey(new String[] { "TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID" });
+        joinDesc.setForeignKey(new String[] { "TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID" });
 
         joinTableDesc.setJoin(joinDesc);
         modelRequest.setJoinTables(Lists.newArrayList(joinTableDesc));
@@ -3355,7 +3358,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val executables = getRunningExecutables("default", null);
 
         Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
     }
 
     @Test
@@ -3445,8 +3449,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh 2 ready segs and rebuild two new segs
         Assert.assertEquals(4, executables.size());
         executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
         Assert.assertTrue(((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableAddSegmentHandler);
         Assert.assertTrue(((NSparkCubingJob) executables.get(3)).getHandler() instanceof ExecutableAddSegmentHandler);
     }
@@ -3487,9 +3493,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         executables.sort(Comparator.comparing(AbstractExecutable::getJobType));
         //refresh 2 ready segs in online model and one ready seg in lag behind and rebuild one new seg in lag behind
         Assert.assertEquals(4, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(2)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
         Assert.assertTrue(((NSparkCubingJob) executables.get(3)).getHandler() instanceof ExecutableAddSegmentHandler);
     }
 
@@ -3617,7 +3626,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("table index 20000000000 contains invalid column 0. table index can only contain columns added to model.");
+        thrown.expectMessage(
+                "table index 20000000000 contains invalid column 0. table index can only contain columns added to model.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
@@ -3705,7 +3715,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         model.getComputedColumnDescs().add(ccDesc);
 
-        modelService.preProcessBeforeModelSave(model, project);
+        modelService.preProcessBeforeModelSave(model, project, null);
     }
 
     @Test
@@ -3956,12 +3966,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(brokenModel);
 
         int joinTablesSize = result.stream()
-                .filter(model -> "cb596712-3a09-46f8-aea1-988b43fe9b6c".equals(model.getUuid()))
-                .findFirst()
-                .get()
-                .getOldParams()
-                .getJoinTables()
-                .size();
+                .filter(model -> "cb596712-3a09-46f8-aea1-988b43fe9b6c".equals(model.getUuid())).findFirst().get()
+                .getOldParams().getJoinTables().size();
         Assert.assertEquals(1, joinTablesSize);
     }
 
@@ -4013,25 +4019,65 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testModelSelectedColumns(){
-        NDataModelResponse model = modelService.getModels("nmodel_basic", "default", false, "",
-                null, "last_modify", true).get(0);
+    public void testModelSelectedColumns() {
+        NDataModelResponse model = modelService
+                .getModels("nmodel_basic", "default", false, "", null, "last_modify", true).get(0);
 
         Set<String> dimCols = model.getAllNamedColumns().stream()
                 .filter(col -> col.getStatus() == NDataModel.ColumnStatus.DIMENSION)
-                .map(NDataModel.NamedColumn::getAliasDotColumn)
-                .collect(Collectors.toSet());
+                .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet());
 
         Set<String> colsInMeasure = model.getMeasures().stream()
-                .flatMap(measure -> measure.getFunction().getColRefs().stream())
-                .filter(Objects::nonNull)
+                .flatMap(measure -> measure.getFunction().getColRefs().stream()).filter(Objects::nonNull)
                 .map(TblColRef::getIdentity).collect(Collectors.toSet());
 
         Set<String> expected = new HashSet<>();
         expected.addAll(dimCols);
         expected.addAll(colsInMeasure);
 
-        Assert.assertEquals(expected, model.getAllSelectedColumns().stream().map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet()));
+        Assert.assertEquals(expected, model.getAllSelectedColumns().stream()
+                .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet()));
+    }
+
+    @Test
+    public void testModelResponseJoinSimplified() throws Exception {
+        NDataModelResponse modelResponse = modelService
+                .getModels("nmodel_basic", "default", false, "", null, "last_modify", true).get(0);
+        Assert.assertTrue(CollectionUtils.isNotEmpty(modelResponse.getSimplifiedJoinTableDescs()));
+
+        //1.test SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert
+        String responseJson = JsonUtil.writeValueAsString(modelResponse.getJoinTables());
+        List<SimplifiedJoinTableDesc> convertedSimplifiedJointables = SCD2SimplificationConvertUtil
+                .simplifiedJoinTablesConvert(modelResponse.getJoinTables());
+
+        Assert.assertEquals(JsonUtil.writeValueAsString(convertedSimplifiedJointables),
+                JsonUtil.writeValueAsString(modelResponse.getSimplifiedJoinTableDescs()));
+
+        //2.test simplified join json equal origin join
+        //clear list
+        modelResponse.setJoinTables(null);
+
+        NDataModel nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelResponse), NDataModel.class);
+        String modelJson = JsonUtil.writeValueAsString(nDataModel.getJoinTables());
+
+        Assert.assertEquals(responseJson, modelJson);
+
+    }
+
+    @Test
+    public void testConvertToRequest() throws IOException {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        var originModel = modelManager.getDataModelDescByAlias("nmodel_basic");
+
+        ModelRequest modelRequest = modelService.convertToRequest(originModel);
+
+        String originJsonModel = JsonUtil.writeValueAsString(originModel.getJoinTables());
+
+        String requestJson = JsonUtil.writeValueAsString(
+                SCD2SimplificationConvertUtil.convertSimplified2JoinTables(modelRequest.getSimplifiedJoinTableDescs()));
+
+        Assert.assertEquals(originJsonModel, requestJson);
+
     }
 
 }

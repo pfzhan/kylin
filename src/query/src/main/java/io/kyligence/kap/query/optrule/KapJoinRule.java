@@ -42,7 +42,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,9 +58,17 @@ public class KapJoinRule extends ConverterRule implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(KapJoinRule.class);
 
     public static final ConverterRule INSTANCE = new KapJoinRule();
+    public static final ConverterRule NON_EQUI_INSTANCE = new KapJoinRule(true);
+
+    private boolean isQueryNonEquiJoinModelEnabled;
 
     public KapJoinRule() {
+        this(false);
+    }
+
+    public KapJoinRule(boolean isQueryNonEquiJoinModelEnabled) {
         super(LogicalJoin.class, Convention.NONE, KapRel.CONVENTION, "KapJoinRule");
+        this.isQueryNonEquiJoinModelEnabled = isQueryNonEquiJoinModelEnabled;
     }
 
     @Override
@@ -86,8 +93,8 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         try {
             if (isNonEquiJoinRelRule(info.isEqui(), join.getJoinType())) {
                 try {
-                    return new KapNonEquiJoinRel(join.getCluster(), traitSet, left, right,
-                            join.getCondition(), join.getVariablesSet(), join.getJoinType());
+                    return new KapNonEquiJoinRel(join.getCluster(), traitSet, left, right, join.getCondition(),
+                            join.getVariablesSet(), join.getJoinType(), isQueryNonEquiJoinModelEnabled);
                 } catch (InvalidRelException e) {
                     throw new IllegalStateException(e);
                 }
@@ -109,10 +116,8 @@ public class KapJoinRule extends ConverterRule implements IKeep {
     }
 
     private boolean isNonEquiJoinRelRule(boolean isEqui, JoinRelType joinRelType) {
-        final boolean queryNonEquiJoinMoldelEnabled = KylinConfig.getInstanceFromEnv()
-                .isQueryNonEquiJoinMoldelEnabled();
 
-        if (isEqui || (joinRelType == JoinRelType.INNER && !queryNonEquiJoinMoldelEnabled)) {
+        if (isEqui || (joinRelType == JoinRelType.INNER && !isQueryNonEquiJoinModelEnabled)) {
             return false;
         }
 

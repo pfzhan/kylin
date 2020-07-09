@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.util;
+package io.kyligence.kap.metadata.model.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,8 +65,8 @@ public class JoinDescUtil {
         String[] pkCols = new String[join.getPrimaryKey().length];
         TblColRef[] pkColRefs = new TblColRef[pkCols.length];
 
-        TableRef pkTblRef = aliasTableRefMap.computeIfAbsent(pkTblAlias, alias -> TblColRef.tableForUnknownModel(alias,
-                join.getPKSide().getTableDesc()));
+        TableRef pkTblRef = aliasTableRefMap.computeIfAbsent(pkTblAlias,
+                alias -> TblColRef.tableForUnknownModel(alias, join.getPKSide().getTableDesc()));
         for (int i = 0; i < pkCols.length; i++) {
             TblColRef colRef = join.getPrimaryKeyColumns()[i];
             pkCols[i] = pkTblAlias + "." + colRef.getName();
@@ -78,8 +78,8 @@ public class JoinDescUtil {
         String[] fkCols = new String[join.getForeignKey().length];
         TblColRef[] fkColRefs = new TblColRef[fkCols.length];
 
-        TableRef fkTblRef = aliasTableRefMap.computeIfAbsent(fkTblAlias, alias -> TblColRef.tableForUnknownModel(alias,
-                join.getFKSide().getTableDesc()));
+        TableRef fkTblRef = aliasTableRefMap.computeIfAbsent(fkTblAlias,
+                alias -> TblColRef.tableForUnknownModel(alias, join.getFKSide().getTableDesc()));
         for (int i = 0; i < fkCols.length; i++) {
             TblColRef colRef = join.getForeignKeyColumns()[i];
             fkCols[i] = fkTblAlias + "." + colRef.getName();
@@ -89,7 +89,8 @@ public class JoinDescUtil {
         joinDescBuilder.setForeignTableRef(fkTblRef);
 
         if (join.getNonEquiJoinCondition() != null) {
-            NonEquiJoinCondition nonEquiJoinCondition = convertNonEquiJoinCondition(join.getNonEquiJoinCondition(), pkTblRef, fkTblRef);
+            NonEquiJoinCondition nonEquiJoinCondition = convertNonEquiJoinCondition(join.getNonEquiJoinCondition(),
+                    pkTblRef, fkTblRef);
             String expr = join.getNonEquiJoinCondition().getExpr();
             expr = expr.replaceAll(join.getPKSide().getAlias(), pkTblAlias);
             expr = expr.replaceAll(join.getFKSide().getAlias(), fkTblAlias);
@@ -101,14 +102,14 @@ public class JoinDescUtil {
         return joinTableDesc;
     }
 
-    private static NonEquiJoinCondition convertNonEquiJoinCondition(NonEquiJoinCondition cond, TableRef pkTblRef, TableRef fkTblRef) {
+    private static NonEquiJoinCondition convertNonEquiJoinCondition(NonEquiJoinCondition cond, TableRef pkTblRef,
+            TableRef fkTblRef) {
         if (cond.getType() == NonEquiJoinConditionType.EXPRESSION) {
-            return new NonEquiJoinCondition(
-                    cond.getOpName(),
-                    cond.getOp(),
-                    Arrays.stream(cond.getOperands()).map(condInput -> convertNonEquiJoinCondition(condInput, pkTblRef, fkTblRef)).toArray(NonEquiJoinCondition[]::new),
-                    cond.getDataType()
-            );
+            return new NonEquiJoinCondition(cond.getOpName(), cond.getOp(),
+                    Arrays.stream(cond.getOperands())
+                            .map(condInput -> convertNonEquiJoinCondition(condInput, pkTblRef, fkTblRef))
+                            .toArray(NonEquiJoinCondition[]::new),
+                    cond.getDataType());
         } else if (cond.getType() == NonEquiJoinConditionType.LITERAL) {
             return cond;
         } else {
@@ -184,13 +185,15 @@ public class JoinDescUtil {
         return true;
     }
 
-    public static String toString(JoinTableDesc join) {
+    public static String toString(JoinDesc join) {
         StringBuilder result = new StringBuilder();
-        result.append(join.getJoin().getType()).append(" JOIN ").append(join.getTable()).append(" AS ")
-                .append(join.getAlias()).append(" ON ");
-        for (int i = 0; i < join.getJoin().getForeignKey().length; i++) {
-            String fk = join.getJoin().getForeignKey()[i];
-            String pk = join.getJoin().getPrimaryKey()[i];
+        result.append(" ").append(join.getFKSide().getTableIdentity()).append(" AS ")
+                .append(join.getFKSide().getAlias()).append(" ").append(join.getType()).append(" JOIN ")
+                .append(join.getPKSide().getTableIdentity()).append(" AS ").append(join.getPKSide().getAlias())
+                .append(" ON ");
+        for (int i = 0; i < join.getForeignKey().length; i++) {
+            String fk = join.getForeignKey()[i];
+            String pk = join.getPrimaryKey()[i];
             if (i > 0) {
                 result.append(" AND ");
             }

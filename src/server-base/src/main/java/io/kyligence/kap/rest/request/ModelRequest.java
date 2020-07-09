@@ -38,8 +38,10 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.insensitive.ModelInsensitiveRequest;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -74,6 +76,19 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("save_only")
     private boolean saveOnly = false;
 
+    private List<SimplifiedJoinTableDesc> simplifiedJoinTableDescs;
+
+    @JsonProperty("join_tables")
+    public void setSimplifiedJoinTableDescs(List<SimplifiedJoinTableDesc> simplifiedJoinTableDescs) {
+        this.simplifiedJoinTableDescs = simplifiedJoinTableDescs;
+        this.setJoinTables(SCD2SimplificationConvertUtil.convertSimplified2JoinTables(simplifiedJoinTableDescs));
+    }
+
+    @JsonProperty("join_tables")
+    public List<SimplifiedJoinTableDesc> getSimplifiedJoinTableDescs() {
+        return simplifiedJoinTableDescs;
+    }
+
     private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;
 
     public ModelRequest() {
@@ -82,6 +97,8 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
 
     public ModelRequest(NDataModel dataModel) {
         super(dataModel);
+        this.setSimplifiedJoinTableDescs(
+                SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(dataModel.getJoinTables()));
     }
 
 }

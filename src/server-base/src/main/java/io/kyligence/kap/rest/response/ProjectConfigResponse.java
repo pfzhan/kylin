@@ -56,6 +56,8 @@ public class ProjectConfigResponse {
 
     @JsonProperty("push_down_enabled")
     private boolean pushDownEnabled;
+    @JsonProperty("scd2_enabled")
+    private boolean scd2Enabled;
     @JsonProperty("runner_class_name")
     private String runnerClassName;
     @JsonProperty("converter_class_names")

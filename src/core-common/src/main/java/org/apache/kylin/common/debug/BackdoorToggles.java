@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -100,6 +99,10 @@ public class BackdoorToggles {
 
     public static boolean getIsQueryFromAutoModeling() {
         return getBoolean(QUERY_FROM_AUTO_MODELING);
+    }
+
+    public static boolean getIsQueryNonEquiJoinModelEnabled() {
+        return getBoolean(QUERY_NON_EQUI_JOIN_MODEL_ENABLED);
     }
 
     public static String getPartitionDumpDir() {
@@ -287,4 +290,6 @@ public class BackdoorToggles {
     public final static String DEBUG_TOGGLE_HTRACE_ENABLED = "DEBUG_TOGGLE_HTRACE_ENABLED";
 
     public final static String QUERY_FROM_AUTO_MODELING = "QUERY_FROM_AUTO_MODELING";
+
+    public final static String QUERY_NON_EQUI_JOIN_MODEL_ENABLED = "QUERY_NON_EQUI_JOIN_MODEL_ENABLED";
 }

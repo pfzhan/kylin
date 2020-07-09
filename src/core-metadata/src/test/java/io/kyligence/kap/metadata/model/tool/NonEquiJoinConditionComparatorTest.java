@@ -24,13 +24,19 @@
 
 package io.kyligence.kap.metadata.model.tool;
 
+import java.util.function.Function;
+
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
-import io.kyligence.kap.metadata.model.ModelNonEquiCondMock;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.tool.JoinDescNonEquiCompBean;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.kyligence.kap.metadata.model.ModelNonEquiCondMock;
 
 public class NonEquiJoinConditionComparatorTest {
 
@@ -142,18 +148,17 @@ public class NonEquiJoinConditionComparatorTest {
                 nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.EQUALS, "A.a9", "B.b9")),
                 nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colOp(SqlKind.IS_NULL, "A.a9")),
                 nonEquiMock.colCompareCond(SqlKind.LESS_THAN_OR_EQUAL, "A.a1", "B.b1"),
-                nonEquiMock.colCompareCond(SqlKind.LESS_THAN, "A.a4", "B.b4")
-        );
+                nonEquiMock.colCompareCond(SqlKind.LESS_THAN, "A.a4", "B.b4"));
         NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.AND,
                 nonEquiMock.colCompareCond(SqlKind.EQUALS, "B.b8", "A.a8"),
                 nonEquiMock.colCompareCond(SqlKind.NOT_EQUALS, "B.b9", "A.a9"),
                 nonEquiMock.colOp(SqlKind.IS_NOT_NULL, "A.a9"),
                 nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a1", "B.b1")),
-                nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.GREATER_THAN_OR_EQUAL, "A.a4", "B.b4"))
-        );
+                nonEquiMock.composite(SqlKind.NOT,
+                        nonEquiMock.colCompareCond(SqlKind.GREATER_THAN_OR_EQUAL, "A.a4", "B.b4")));
         Assert.assertEquals(cond1, cond2);
     }
-    
+
     @Test
     public void testCondNormalizationsOnSqlKindOTHER() {
         NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.EQUALS,
@@ -161,8 +166,7 @@ public class NonEquiJoinConditionComparatorTest {
                 nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"));
         NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.EQUALS,
                 nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"),
-                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9")
-        );
+                nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9"));
         Assert.assertEquals(cond1, cond2);
     }
 
@@ -173,9 +177,66 @@ public class NonEquiJoinConditionComparatorTest {
                 nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"));
         NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.EQUALS,
                 nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"),
-                nonEquiMock.colOp("cos", SqlKind.OTHER_FUNCTION, "A.a9")
-        );
+                nonEquiMock.colOp("cos", SqlKind.OTHER_FUNCTION, "A.a9"));
         Assert.assertNotEquals(cond1, cond2);
     }
-}
 
+    @Test
+    public void testNonEquJoinDescComparator() {
+
+        Function<NonEquiJoinCondition, JoinDesc> supplierSimpleJoinDesc = (nonEquiJoinCondition) -> {
+            JoinDesc joinDesc = new JoinDesc();
+            joinDesc.setNonEquiJoinCondition(nonEquiJoinCondition);
+            joinDesc.setPrimaryKey(new String[] {});
+            joinDesc.setForeignKey(new String[] {});
+            joinDesc.setForeignKeyColumns(new TblColRef[] {});
+            joinDesc.setPrimaryKeyColumns(new TblColRef[] {});
+            joinDesc.setType("LEFT");
+            return joinDesc;
+        };
+        //nonEqual
+        {
+            NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.EQUALS,
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9"),
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"));
+            NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.EQUALS,
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"),
+                    nonEquiMock.colOp("cos", SqlKind.OTHER_FUNCTION, "A.a9"));
+            Assert.assertNotEquals(new JoinDescNonEquiCompBean(supplierSimpleJoinDesc.apply(cond1)),
+                    new JoinDescNonEquiCompBean(supplierSimpleJoinDesc.apply(cond2)));
+        }
+
+        //equal
+        {
+            NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.EQUALS,
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9"),
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"));
+            NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.EQUALS,
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "B.a9"),
+                    nonEquiMock.colOp("abs", SqlKind.OTHER_FUNCTION, "A.a9"));
+            Assert.assertEquals(new JoinDescNonEquiCompBean(supplierSimpleJoinDesc.apply(cond1)),
+                    new JoinDescNonEquiCompBean(supplierSimpleJoinDesc.apply(cond2)));
+        }
+        //equal
+        {
+            NonEquiJoinCondition cond1 = nonEquiMock.composite(SqlKind.AND,
+                    nonEquiMock.colCompareCond(SqlKind.EQUALS, "A.a8", "B.b8"),
+                    nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colCompareCond(SqlKind.EQUALS, "A.a9", "B.b9")),
+                    nonEquiMock.composite(SqlKind.NOT, nonEquiMock.colOp(SqlKind.IS_NULL, "A.a9")),
+                    nonEquiMock.colCompareCond(SqlKind.LESS_THAN_OR_EQUAL, "A.a1", "B.b1"),
+                    nonEquiMock.colCompareCond(SqlKind.LESS_THAN, "A.a4", "B.b4"));
+            NonEquiJoinCondition cond2 = nonEquiMock.composite(SqlKind.AND,
+                    nonEquiMock.colCompareCond(SqlKind.EQUALS, "B.b8", "A.a8"),
+                    nonEquiMock.colCompareCond(SqlKind.NOT_EQUALS, "B.b9", "A.a9"),
+                    nonEquiMock.colOp(SqlKind.IS_NOT_NULL, "A.a9"),
+                    nonEquiMock.composite(SqlKind.NOT,
+                            nonEquiMock.colCompareCond(SqlKind.GREATER_THAN, "A.a1", "B.b1")),
+                    nonEquiMock.composite(SqlKind.NOT,
+                            nonEquiMock.colCompareCond(SqlKind.GREATER_THAN_OR_EQUAL, "A.a4", "B.b4")));
+            Assert.assertEquals(new JoinDescNonEquiCompBean(supplierSimpleJoinDesc.apply(cond1)),
+                    new JoinDescNonEquiCompBean(supplierSimpleJoinDesc.apply(cond2)));
+
+        }
+    }
+
+}

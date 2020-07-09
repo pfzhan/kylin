@@ -57,7 +57,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -86,11 +85,15 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     // record left input size before rewrite for runtime join expression parseing
     private int leftInputSizeBeforeRewrite = -1;
 
+    private boolean isQueryNonEquiJoinModelEnabled;
+
     public KapNonEquiJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition,
-            Set<CorrelationId> variablesSet, JoinRelType joinType) throws InvalidRelException {
+            Set<CorrelationId> variablesSet, JoinRelType joinType, boolean isQueryNonEquiJoinModelEnabled)
+            throws InvalidRelException {
         super(cluster, traits, left, right, condition, variablesSet, joinType);
         leftInputSizeBeforeRewrite = left.getRowType().getFieldList().size();
         rowType = getRowType();
+        this.isQueryNonEquiJoinModelEnabled = isQueryNonEquiJoinModelEnabled;
     }
 
     @Override
@@ -110,13 +113,12 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         subContexts.addAll(ContextUtil.collectSubContext(this.right));
     }
 
-    private void allocateContext(ContextVisitorState leftState, ContextVisitorState rightState, OLAPContextImplementor olapContextImplementor) {
-        final boolean queryNonEquiJoinMoldelEnabled = KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled();
-
+    private void allocateContext(ContextVisitorState leftState, ContextVisitorState rightState,
+            OLAPContextImplementor olapContextImplementor) {
         // if query on non-equi-join model is not enabled
         // allocate context like runtime join directly
         // inner join shouldnt run here with run-time join
-        if (getJoinType() == JoinRelType.LEFT && !queryNonEquiJoinMoldelEnabled) {
+        if (getJoinType() == JoinRelType.LEFT && !isQueryNonEquiJoinModelEnabled) {
             if (leftState.hasFreeTable()) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 leftState.setHasFreeTable(false);
@@ -144,7 +146,8 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         } else {
             // both has free tbl, leave ctx alloc for higher rel node
             // except the following situations
-            if (rightState.hasIncrementalTable() || hasSameFirstTable(leftState, rightState) || RexUtils.joinMoreThanOneTable(this)) {
+            if (rightState.hasIncrementalTable() || hasSameFirstTable(leftState, rightState)
+                    || RexUtils.joinMoreThanOneTable(this)) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 olapContextImplementor.allocateContext((KapRel) right, this);
                 leftState.setHasFreeTable(false);
@@ -201,6 +204,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     }
 
     private void buildAndUpdateContextJoin(RexNode condition) {
+        condition = preTransferCastColumn(condition);
         JoinDesc.JoinDescBuilder joinDescBuilder = new JoinDesc.JoinDescBuilder();
         JoinInfo joinInfo = JoinInfo.of(left, right, condition);
         Set<TblColRef> leftCols = new HashSet<>();
@@ -219,12 +223,26 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         joinDescBuilder.setForeignTableRef(((KapRel) left).getColumnRowType().getColumnByIndex(0).getTableRef());
         joinDescBuilder.setPrimaryTableRef(((KapRel) right).getColumnRowType().getColumnByIndex(0).getTableRef());
         NonEquiJoinCondition nonEquiJoinCondition = doBuildJoin(nonEquvCond);
-        nonEquiJoinCondition.setExpr(RexToTblColRefTranslator.translateRexNode(condition, columnRowType).getParserDescription());
+        nonEquiJoinCondition
+                .setExpr(RexToTblColRefTranslator.translateRexNode(condition, columnRowType).getParserDescription());
         joinDescBuilder.setNonEquiJoinCondition(nonEquiJoinCondition);
 
         JoinDesc joinDesc = joinDescBuilder.build();
 
         context.joins.add(joinDesc);
+    }
+
+    //cast(col1 as ...) = col2 with col1 = col2
+    private RexNode preTransferCastColumn(RexNode condition) {
+        if (condition instanceof RexCall) {
+            RexCall conditionCall = ((RexCall) condition);
+            List<RexNode> rexNodes = conditionCall.getOperands().stream()
+                    .map(RexUtils::stripOffCastInColumnEqualPredicate).collect(Collectors.toList());
+
+            return conditionCall.clone(conditionCall.getType(), rexNodes);
+        }
+        return condition;
+
     }
 
     private NonEquiJoinCondition doBuildJoin(RexNode condition) {
@@ -233,7 +251,8 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
             for (RexNode operand : ((RexCall) condition).getOperands()) {
                 nonEquiJoinConditions.add(doBuildJoin(operand));
             }
-            return new NonEquiJoinCondition(((RexCall) condition).getOperator(), nonEquiJoinConditions.toArray(new NonEquiJoinCondition[0]), condition.getType());
+            return new NonEquiJoinCondition(((RexCall) condition).getOperator(),
+                    nonEquiJoinConditions.toArray(new NonEquiJoinCondition[0]), condition.getType());
         } else if (condition instanceof RexInputRef) {
             final int colIdx = ((RexInputRef) condition).getIndex();
             Set<TblColRef> sourceCols = getColByIndex(colIdx).getSourceColumns();
@@ -276,8 +295,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     private Set<TblColRef> collectColumnsInJoinCondition(RexNode condition) {
         return RexUtils.getAllInputRefs(condition).stream()
                 .map(inRef -> columnRowType.getColumnByIndex(inRef.getIndex()))
-                .flatMap(col -> col.getSourceColumns().stream())
-                .collect(Collectors.toSet());
+                .flatMap(col -> col.getSourceColumns().stream()).collect(Collectors.toSet());
     }
 
     private ColumnRowType buildColumnRowType() {
@@ -297,7 +315,6 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         }
         return new ColumnRowType(columns);
     }
-
 
     @Override
     public void implementRewrite(RewriteImplementor rewriter) {
@@ -372,8 +389,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
             return false;
         // if non-equi join is the direct parent of the context, there is no need to push context further down
         // other wise try push context down to both side
-        if (this == context.getParentOfTopNode()
-                || ((KapRel) getLeft()).pushRelInfoToContext(context)
+        if (this == context.getParentOfTopNode() || ((KapRel) getLeft()).pushRelInfoToContext(context)
                 || ((KapRel) getRight()).pushRelInfoToContext(context)) {
             this.context = context;
             isPreCalJoin = false;
@@ -416,17 +432,16 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return joinType == JoinRelType.RIGHT ?
-                super.computeSelfCost(planner, mq).multiplyBy(100) :
-                super.computeSelfCost(planner, mq).multiplyBy(.05);
+        return joinType == JoinRelType.RIGHT ? super.computeSelfCost(planner, mq).multiplyBy(100)
+                : super.computeSelfCost(planner, mq).multiplyBy(.05);
     }
 
-    @Override public EnumerableThetaJoin copy(RelTraitSet traitSet,
-                                              RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
-                                              boolean semiJoinDone) {
+    @Override
+    public EnumerableThetaJoin copy(RelTraitSet traitSet, RexNode condition, RelNode left, RelNode right,
+            JoinRelType joinType, boolean semiJoinDone) {
         try {
-            return new KapNonEquiJoinRel(getCluster(), traitSet, left, right,
-                    condition, variablesSet, joinType);
+            return new KapNonEquiJoinRel(getCluster(), traitSet, left, right, condition, variablesSet, joinType,
+                    isQueryNonEquiJoinModelEnabled);
         } catch (InvalidRelException e) {
             // Semantic error not possible. Must be a bug. Convert to
             // internal error.

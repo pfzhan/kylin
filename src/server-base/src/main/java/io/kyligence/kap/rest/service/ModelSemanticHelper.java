@@ -39,20 +39,22 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
@@ -60,10 +62,13 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.metadata.model.tool.JoinDescNonEquiCompBean;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
 import org.springframework.stereotype.Service;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -81,35 +86,137 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2Exception;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
+import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
+import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class ModelSemanticHelper extends BasicService {
 
     public NDataModel convertToDataModel(ModelRequest modelRequest) {
+        List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
+        NDataModel dataModel;
         try {
-            List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
-            NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
-            dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
-            dataModel.setProject(modelRequest.getProject());
-            dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
-            dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
-            return dataModel;
+            dataModel = JsonUtil.deepCopy(modelRequest, NDataModel.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
+        dataModel.setProject(modelRequest.getProject());
+        dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
+        dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
+        return dataModel;
+    }
+
+    public void convertNonEquiJoinCond(final NDataModel dataModel, final ModelRequest request) {
+
+        final List<SimplifiedJoinTableDesc> requestJoinTableDescs = request.getSimplifiedJoinTableDescs();
+        if (CollectionUtils.isEmpty(requestJoinTableDescs)) {
+            return;
+        }
+
+        HashSet<JoinDescNonEquiCompBean> scd2NonEquiCondSets = new HashSet<>();
+
+        boolean isScd2Enabled = getProjectManager().getProject(dataModel.getProject()).getConfig()
+                .isQueryNonEquiJoinModelEnabled();
+
+        for (int i = 0; i < requestJoinTableDescs.size(); i++) {
+            final JoinDesc modelJoinDesc = dataModel.getJoinTables().get(i).getJoin();
+            final SimplifiedJoinDesc requestJoinDesc = requestJoinTableDescs.get(i).getSimplifiedJoinDesc();
+            List<NonEquiJoinCondition.SimplifiedNonEquiJoinCondition> simplifiedNonEquiJoinConditions = requestJoinDesc
+                    .getSimplifiedNonEquiJoinConditions();
+            //1. if non-equi condition is not exists, continue
+            if (CollectionUtils.isEmpty(simplifiedNonEquiJoinConditions)) {
+                continue;
+            }
+
+            if (!isScd2Enabled) {
+                throw new KylinException(QueryErrorCode.SCD2_SAVE_MODEL_WHEN_DISABLED, "please turn on scd2 config");
+            }
+
+            //2. check equi join condition
+            if (!SCD2CondChecker.INSTANCE.checkSCD2EquiJoinCond(requestJoinDesc.getForeignKey(),
+                    requestJoinDesc.getPrimaryKey())) {
+                throw new KylinException(QueryErrorCode.SCD2_EMPTY_EQUI_JOIN, "SCD2 must have one equi join conditon");
+            }
+            if (!SCD2CondChecker.INSTANCE
+                    .checkSCD2NonEquiJoinCondPair(requestJoinDesc.getSimplifiedNonEquiJoinConditions())) {
+                throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_FK_PK_PAIR,
+                        "SCD2 non-equi condition must be pair");
+            }
+            if (!SCD2CondChecker.INSTANCE.checkFkPkPairUnique(requestJoinDesc)) {
+                throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_FK_PK_PAIR, "SCD2 condition must be unqiue");
+            }
+
+            //3. convert this join to sql , include equi join cond
+            String nonEquiSql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(modelJoinDesc,
+                    requestJoinDesc.getSimplifiedNonEquiJoinConditions());
+
+            //4. use suggest model to gen join desc
+            BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
+            AbstractContext context = new NSmartContext(KylinConfig.getInstanceFromEnv(), dataModel.getProject(),
+                    new String[] { nonEquiSql });
+            NSmartMaster smartMaster = new NSmartMaster(context);
+            smartMaster.runSuggestModel();
+
+            List<AbstractContext.NModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
+            if (CollectionUtils.isEmpty(suggModelContexts)
+                    || Objects.isNull(suggModelContexts.get(0).getTargetModel())) {
+
+                AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(nonEquiSql);
+                if (Objects.nonNull(accelerateInfo)) {
+                    log.error("scd2 suggest error, sql:{}", nonEquiSql, accelerateInfo.getFailedCause());
+                }
+                throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR, "it has illegal join condition");
+            }
+
+            if (suggModelContexts.size() != 1) {
+                throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR,
+                        "scd2 suggest more than one model:" + nonEquiSql);
+            }
+
+            JoinDesc suggModelJoin = suggModelContexts.get(0).getTargetModel().getJoinTables().get(0).getJoin();
+
+            //5. update dataModel
+            try {
+
+                SCD2NonEquiCondSimplification.INSTANCE.convertToSimplifiedSCD2Cond(suggModelJoin);
+                modelJoinDesc.setNonEquiJoinCondition(suggModelJoin.getNonEquiJoinCondition());
+                modelJoinDesc.setForeignTable(suggModelJoin.getForeignTable());
+                modelJoinDesc.setPrimaryTable(suggModelJoin.getPrimaryTable());
+            } catch (SCD2Exception e) {
+                throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR, Throwables.getRootCause(e).getMessage());
+            }
+
+            if (scd2NonEquiCondSets.contains(new JoinDescNonEquiCompBean(requestJoinDesc))) {
+                throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_CONDITION, "duplicate join edge");
+            } else {
+                scd2NonEquiCondSets.add(new JoinDescNonEquiCompBean(requestJoinDesc));
+            }
+
+        }
+
     }
 
     private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel,
-                                                             ModelRequest modelRequest) {
+            ModelRequest modelRequest) {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
         List<JoinTableDesc> allTables = Lists.newArrayList();
@@ -197,7 +304,8 @@ public class ModelSemanticHelper extends BasicService {
         return matchAlias;
     }
 
-    public Set<Integer> updateModelColumns(NDataModel originModel, ModelRequest request, boolean updateRecommendationColumn) {
+    public Set<Integer> updateModelColumns(NDataModel originModel, ModelRequest request,
+            boolean updateRecommendationColumn) {
         val expectedModel = convertToDataModel(request);
 
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
@@ -254,7 +362,7 @@ public class ModelSemanticHelper extends BasicService {
                     throw new KylinException(DUPLICATE_MEASURE_EXPRESSION,
                             String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
                 }));
-        val newMeasures = Lists.<NDataModel.Measure>newArrayList();
+        val newMeasures = Lists.<NDataModel.Measure> newArrayList();
         var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1);
 
@@ -286,7 +394,7 @@ public class ModelSemanticHelper extends BasicService {
 
         // compare originModel and expectedModel's existing allNamedColumn
         val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
-        val newCols = Lists.<NDataModel.NamedColumn>newArrayList();
+        val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
         compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
                 oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
                 (olCol, newCol) -> olCol.setName(newCol.getName()));
@@ -294,8 +402,7 @@ public class ModelSemanticHelper extends BasicService {
         // one in expectedModel, is also a TOMB one in originModel, set status as the expected's
         for (NDataModel.NamedColumn newCol : newCols) {
             val modifiedColumn = originModel.getAllNamedColumns().stream()
-                    .filter(c -> newCol.getAliasDotColumn().equals(c.getAliasDotColumn()))
-                    .findFirst().orElse(null);
+                    .filter(c -> newCol.getAliasDotColumn().equals(c.getAliasDotColumn())).findFirst().orElse(null);
             if (modifiedColumn != null) {
                 modifiedColumn.setStatus(newCol.getStatus());
                 modifiedSet.add(Integer.valueOf(modifiedColumn.getId()));
@@ -326,7 +433,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private <K, T> void compareAndUpdateColumns(Map<K, T> origin, Map<K, T> target, Consumer<T> onlyInTarget,
-                                                Consumer<T> onlyInOrigin, BiConsumer<T, T> inBoth) {
+            Consumer<T> onlyInOrigin, BiConsumer<T, T> inBoth) {
         for (Map.Entry<K, T> entry : target.entrySet()) {
             // change name does not matter
             val matched = origin.get(entry.getKey());
@@ -442,7 +549,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
-                                            NIndexPlanManager indexPlanManager) {
+            NIndexPlanManager indexPlanManager) {
         return indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
                     .filter(index -> measures.containsAll(index.getMeasures())).collect(Collectors.toList()));
@@ -464,7 +571,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void removeUselessDimensions(IndexPlan indexPlan, Set<Integer> availableDimensions, boolean onlyDataflow,
-                                         KylinConfig config) {
+            KylinConfig config) {
         val dataflowManager = NDataflowManager.getInstance(config, indexPlan.getProject());
         val deprecatedLayoutIds = indexPlan.getIndexes().stream().filter(index -> !index.isTableIndex())
                 .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
@@ -534,7 +641,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
-                                                        NRuleBasedIndex newRule, boolean forceFireEvent) {
+            NRuleBasedIndex newRule, boolean forceFireEvent) {
         log.debug("handle indexPlan udpate rule {} {}", project, model);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(model);
@@ -544,7 +651,7 @@ public class ModelSemanticHelper extends BasicService {
         }
         val jobManager = JobManager.getInstance(kylinConfig, project);
 
-        val originLayouts = oldRule == null ? Sets.<LayoutEntity>newHashSet() : oldRule.genCuboidLayouts();
+        val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
         val targetLayouts = newRule.genCuboidLayouts();
 
         val difference = Sets.difference(targetLayouts, originLayouts);

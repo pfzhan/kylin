@@ -32,9 +32,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
-import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -63,6 +60,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -84,8 +83,10 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -1135,6 +1136,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         newRequest.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
                 .peek(nc -> nc.setAliasDotColumn(replaceTableName.apply(nc.getAliasDotColumn())))
                 .collect(Collectors.toList()));
+        newRequest.setSimplifiedJoinTableDescs(
+                SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(newRequest.getJoinTables()));
         return newRequest;
     }
 
@@ -1152,6 +1155,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.setSimplifiedJoinTableDescs(
+                SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(model.getJoinTables()));
+
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
     }
 

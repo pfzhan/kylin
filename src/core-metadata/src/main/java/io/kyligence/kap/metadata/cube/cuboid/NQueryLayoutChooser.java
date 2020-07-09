@@ -409,14 +409,16 @@ public class NQueryLayoutChooser {
                         unmatchedDimItr.remove();
                         continue;
                     }
-                } else {
-                    if (indexEntity.dimensionsDerive(foreignKeyColumns)
-                            && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
-                        needDeriveCollector.put(unmatchedDim,
-                                new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, joinByPKSide, foreignKeyColumns, false));
-                        unmatchedDimItr.remove();
-                        continue;
-                    }
+                } else if (indexEntity.dimensionsDerive(foreignKeyColumns)
+                        && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
+
+                    DeriveInfo.DeriveType deriveType = joinByPKSide.isNonEquiJoin()
+                            ? DeriveInfo.DeriveType.LOOKUP_NON_EQUI
+                            : DeriveInfo.DeriveType.LOOKUP;
+                    needDeriveCollector.put(unmatchedDim,
+                            new DeriveInfo(deriveType, joinByPKSide, foreignKeyColumns, false));
+                    unmatchedDimItr.remove();
+                    continue;
                 }
             }
 

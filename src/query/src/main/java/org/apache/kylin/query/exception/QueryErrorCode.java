@@ -45,6 +45,15 @@ import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.ErrorCodeSupplier;
 
 public enum QueryErrorCode implements ErrorCodeSupplier {
+
+    // 20002XXX model
+    SCD2_DUPLICATE_JOIN_COL("KE-20002001"), //
+    SCD2_DUPLICATE_FK_PK_PAIR("KE-20002002"), //
+    SCD2_EMPTY_EQUI_JOIN("KE-20002003"), //
+    SCD2_DUPLICATE_CONDITION("KE-20002004"), //
+    SCD2_COMMON_ERROR("KE-20002005"), //
+    SCD2_SAVE_MODEL_WHEN_DISABLED("KE-20002006"), //
+
     // 20007XXX table
     EMPTY_TABLE("KE-20007001"), //
 

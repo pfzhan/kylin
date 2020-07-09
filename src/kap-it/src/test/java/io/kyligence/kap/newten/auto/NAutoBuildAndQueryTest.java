@@ -43,9 +43,13 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,9 +71,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
         overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
 
-        executeTestScenario(
-                new TestScenario(CompareLevel.SAME, "query/sql_sum_expr")
-        );
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_sum_expr"));
     }
 
     @Test
@@ -178,12 +180,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "FALSE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        Assert.assertFalse(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled());
+        Assert.assertFalse(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled());
         executeTestScenario(2, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
 
         try {
             overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
-            Assert.assertTrue(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinMoldelEnabled());
+            Assert.assertTrue(KylinConfig.getInstanceFromEnv().isQueryNonEquiJoinModelEnabled());
             executeTestScenario(1, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
 
         } finally {
@@ -407,5 +409,42 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         //query04 support :Subquery is null
         new TestScenario(CompareLevel.SAME, TEST_FOLDER, 2, 5).execute();
 
+    }
+
+    @Test
+    public void testNonEquiJoinDerived() throws Exception {
+
+        final String TEST_FOLDER = "query/sql_derived_non_equi_join";
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        //left join
+        compareDerived(TEST_FOLDER, 0, JoinType.LEFT);
+        //inner join
+        compareDerived(TEST_FOLDER, 0, JoinType.INNER);
+
+        for (int i = 2; i < 5; i++) {
+            Assert.assertFalse(SCD2CondChecker.INSTANCE.isScd2Model(proposeSCD2Model(TEST_FOLDER, i, JoinType.LEFT)));
+        }
+    }
+
+    private void compareDerived(String testFolder, int startIndex, JoinType joinType) throws Exception {
+        NDataModel model = proposeSCD2Model(testFolder, startIndex, joinType);
+
+        Assert.assertTrue(SCD2CondChecker.INSTANCE.isScd2Model(model));
+
+        TestScenario derivedQuerys = new TestScenario(CompareLevel.SAME, testFolder, joinType, startIndex + 1,
+                startIndex + 2);
+        collectQueries(derivedQuerys);
+        buildAndCompare(null, derivedQuerys);
+    }
+
+    private NDataModel proposeSCD2Model(String testFolder, int startIndex, JoinType joinType) throws IOException {
+        NSmartMaster nSmartMaster = proposeWithSmartMaster(getProject(),
+                new TestScenario(CompareLevel.NONE, testFolder, joinType, startIndex, startIndex + 1));
+
+        Assert.assertEquals(nSmartMaster.getContext().getModelContexts().size(), 1);
+        return nSmartMaster.getContext().getModelContexts().get(0).getTargetModel();
     }
 }

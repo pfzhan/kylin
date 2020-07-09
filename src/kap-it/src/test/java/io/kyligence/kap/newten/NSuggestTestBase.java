@@ -78,8 +78,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class
-NSuggestTestBase extends NLocalWithSparkSessionTest {
+public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
 
     protected static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
 
@@ -165,6 +164,11 @@ NSuggestTestBase extends NLocalWithSparkSessionTest {
 
         public TestScenario(NExecAndComp.CompareLevel compareLevel, String folder, int fromIndex, int toIndex) {
             this(compareLevel, JoinType.DEFAULT, false, folder, fromIndex, toIndex, null);
+        }
+
+        public TestScenario(NExecAndComp.CompareLevel compareLevel, String folder, JoinType joinType, int fromIndex,
+                int toIndex) {
+            this(compareLevel, joinType, false, folder, fromIndex, toIndex, null);
         }
 
         TestScenario(NExecAndComp.CompareLevel compareLevel, String folder, Set<String> exclusionList) {

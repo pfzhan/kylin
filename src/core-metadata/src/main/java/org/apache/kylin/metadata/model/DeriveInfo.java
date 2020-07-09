@@ -65,6 +65,6 @@ public class DeriveInfo implements java.io.Serializable {
     }
 
     public enum DeriveType implements java.io.Serializable {
-        LOOKUP, PK_FK, EXTENDED_COLUMN
+        LOOKUP, LOOKUP_NON_EQUI, PK_FK, EXTENDED_COLUMN
     }
 }

@@ -76,6 +76,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -170,6 +172,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
@@ -516,6 +519,26 @@ public class ModelService extends BasicService {
         return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, null, null, null);
     }
 
+    public List<NDataModelResponse> getSCD2ModelsByStatus(final String projectName, final List<String> status) {
+        return getModels(null, projectName, false, null, status, "last_modify", true, null, null, null).stream()
+                .filter(SCD2CondChecker.INSTANCE::isScd2Model).collect(Collectors.toList());
+    }
+
+    public List<String> getSCD2ModelsAliasByStatus(final String projectName, final List<String> status) {
+        return getSCD2ModelsByStatus(projectName, status).stream().map(NDataModel::getAlias)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> getSCD2ModelsNonOffOnline(final String projectName) {
+        List<String> status = getModelNonOffOnlineStatus();
+        return getSCD2ModelsByStatus(projectName, status).stream().map(NDataModel::getId).collect(Collectors.toList());
+    }
+
+    public List<String> getModelNonOffOnlineStatus() {
+        return Arrays.asList(ModelStatusToDisplayEnum.ONLINE.name(), ModelStatusToDisplayEnum.WARNING.name(),
+                ModelStatusToDisplayEnum.LAG_BEHIND.name());
+    }
+
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
@@ -532,9 +555,14 @@ public class ModelService extends BasicService {
                     .getSegments(SegmentStatusEnum.WARNING).size();
             ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName,
                     inconsistentSegmentCount);
+            boolean isScd2ForbiddenOnline = checkSCD2ForbiddenOnline(modelDesc, projectName);
+            //check all scd2 model must be offline when scd2 turn off
+            modelResponseStatus = checkScd2StatusConsistence(isScd2ForbiddenOnline, modelDesc, projectName,
+                    modelResponseStatus);
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
+                nDataModelResponse.setForbiddenOnline(isScd2ForbiddenOnline);
                 nDataModelResponse.setBroken(modelDesc.isBroken());
                 nDataModelResponse.setStatus(modelResponseStatus);
                 nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
@@ -578,6 +606,19 @@ public class ModelService extends BasicService {
                         && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
                         && isArgMatch(owner, exactMatch, p.getValue().getOwner()))
                 .collect(Collectors.toList());
+    }
+
+    private ModelStatusToDisplayEnum checkScd2StatusConsistence(boolean isScd2Forbidden, NDataModel modelDesc,
+            String projectName, ModelStatusToDisplayEnum status) {
+        if (isScd2Forbidden && isListContains(getModelNonOffOnlineStatus(), status)) {
+            offlineModelsInProjectById(projectName, Sets.newHashSet(modelDesc.getId()));
+            NDataModel nDataModel = getModelById(modelDesc.getId(), projectName);
+            long inconsistentSegmentCount = getDataflowManager(projectName).getDataflow(nDataModel.getId())
+                    .getSegments(SegmentStatusEnum.WARNING).size();
+            return convertModelStatusToDisplay(nDataModel, projectName, inconsistentSegmentCount);
+        } else {
+            return status;
+        }
     }
 
     private ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName,
@@ -647,6 +688,7 @@ public class ModelService extends BasicService {
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
         NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
+
         if (modelDesc.isBroken()) {
             val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
             if (tableManager.getTableDesc(modelDesc.getRootFactTableName()) == null) {
@@ -667,6 +709,11 @@ public class ModelService extends BasicService {
             }
         }
         return nDataModelResponse;
+    }
+
+    private boolean checkSCD2ForbiddenOnline(NDataModel modelDesc, String projectName) {
+        boolean isSCD2 = SCD2CondChecker.INSTANCE.isScd2Model(modelDesc);
+        return !getProjectManager().getProject(projectName).getConfig().isQueryNonEquiJoinModelEnabled() && isSCD2;
     }
 
     protected RealizationStatusEnum getModelStatus(String modelId, String projectName) {
@@ -1067,6 +1114,27 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
+    public void offlineSCD2ModelsInProjectById(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
+        List<String> scd2Models = getSCD2ModelsNonOffOnline(project);
+        if (CollectionUtils.isEmpty(scd2Models)) {
+            return;
+        }
+        offlineModelsInProjectById(project, new HashSet<>(scd2Models));
+
+    }
+
+    @Transaction(project = 0)
+    public void offlineModelsInProjectById(String project, Set<String> modelIds) {
+        aclEvaluate.checkProjectWritePermission(project);
+        for (String id : modelIds) {
+            if (modelIds.contains(id)) {
+                updateDataModelStatus(id, project, ModelStatusToDisplayEnum.OFFLINE.name());
+            }
+        }
+    }
+
+    @Transaction(project = 0)
     public void onlineAllModelsInProject(String project) {
         aclEvaluate.checkProjectWritePermission(project);
         Set<String> ids = listAllModelIdsInProject(project);
@@ -1448,7 +1516,7 @@ public class ModelService extends BasicService {
             throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getINVALID_CREATE_MODEL());
         }
 
-        preProcessBeforeModelSave(dataModel, project);
+        preProcessBeforeModelSave(dataModel, project, modelRequest);
         checkFlatTableSql(dataModel);
         return dataModel;
     }
@@ -1476,7 +1544,7 @@ public class ModelService extends BasicService {
         validatePartitionDateColumn(modelRequest);
 
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
-        preProcessBeforeModelSave(dataModel, project);
+        preProcessBeforeModelSave(dataModel, project, modelRequest);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -2125,9 +2193,23 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void preProcessBeforeModelSave(NDataModel model, String project) {
+    /**
+     * process when model is inited, but before save
+     * @param initedModel
+     * @param modelRequest
+     */
+    public void preProcessBeforeInitedModelSave(NDataModel initedModel, @Nullable ModelRequest modelRequest) {
+        if (Objects.isNull(modelRequest)) {
+            return;
+        }
+        semanticUpdater.convertNonEquiJoinCond(initedModel, modelRequest);
+    }
+
+    public void preProcessBeforeModelSave(NDataModel model, String project, @Nullable ModelRequest modelRequest) {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
+
+        preProcessBeforeInitedModelSave(model, modelRequest);
 
         String originFilterCondition = model.getFilterCondition();
         if (StringUtils.isNotEmpty(originFilterCondition)) {
@@ -2378,7 +2460,7 @@ public class ModelService extends BasicService {
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
 
-        preProcessBeforeModelSave(copyModel, project);
+        preProcessBeforeModelSave(copyModel, project, request);
         modelManager.updateDataModelDesc(copyModel);
 
         val affectedLayoutSet = getAffectedLayouts(project, modelId, modifiedSet);

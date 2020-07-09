@@ -30,8 +30,10 @@ import com.google.common.collect.Maps
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import io.kyligence.kap.metadata.model.NTableMetadataManager
+import org.apache.calcite.sql.SqlKind
 import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
-import org.apache.kylin.metadata.model.{DeriveInfo, TblColRef}
+import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification
+import org.apache.kylin.metadata.model.{DeriveInfo, NonEquiJoinCondition, TblColRef}
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.sql.derived.DerivedInfo
 import org.apache.spark.sql.execution.utils.{DeriveTableColumnInfo, SchemaProcessor}
@@ -220,6 +222,35 @@ case class SparderDerivedUtil(gtInfoTableName: String,
               .equalTo(col(newNames(pkIndex))))
         }
     }
+
+    if(derivedInfo.deriveType == DeriveType.LOOKUP_NON_EQUI){
+      val simplifiedCond= SCD2NonEquiCondSimplification.INSTANCE.convertToSimplifiedSCD2Cond(derivedInfo.join).getSimplifiedNonEquiJoinConditions
+      joinCol = genNonEquiJoinColumn(newNameLookupDf,gTInfoNames,joinCol,simplifiedCond.asScala)
+    }
     df.join(newNameLookupDf, joinCol, derivedInfo.join.getType)
+
+  }
+
+  def genNonEquiJoinColumn(newNameLookupDf: DataFrame,
+                           gTInfoNames: Array[String],
+                           colOrigin: Column,
+                           simplifiedConds: scala.collection.mutable.Buffer[NonEquiJoinCondition.SimplifiedNonEquiJoinCondition]): Column = {
+
+    var joinCol = colOrigin
+    for (simplifiedCond <- simplifiedConds) {
+      val colFk = col(gTInfoNames.apply(indexOnTheGTValues(simplifiedCond.getFk)))
+      val colPk = col(newNameLookupDf.schema.fieldNames.apply(simplifiedCond.getPk.getColumnDesc.getZeroBasedIndex))
+      val colOp = simplifiedCond.getOp
+
+      val newCol = colOp match {
+        case SqlKind.GREATER_THAN_OR_EQUAL => colFk.>=(colPk)
+        case SqlKind.LESS_THAN => colFk.<(colPk)
+      }
+
+      joinCol = joinCol.and(newCol)
+    }
+
+    joinCol
+
   }
 }

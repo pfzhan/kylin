@@ -28,8 +28,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.query.optrule.SumConstantConvertRule;
-import io.kyligence.kap.query.relnode.KapAggregateReduceFunctionsRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -42,6 +40,7 @@ import org.apache.calcite.plan.volcano.AbstractConverter;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateStarTableRule;
@@ -72,6 +71,7 @@ import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
 import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -94,6 +94,8 @@ import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
 import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
+import io.kyligence.kap.query.optrule.SumConstantConvertRule;
+import io.kyligence.kap.query.relnode.KapAggregateReduceFunctionsRule;
 
 /**
  * factory that create optimizers and register opt rules
@@ -179,7 +181,7 @@ public class PlannerFactory {
             planner.addRule(rule);
         }
     }
-    
+
     private void registerCustomRules(VolcanoPlanner planner) {
         // force clear the query context before traversal relational operators
         OLAPContext.clearThreadLocalContexts();
@@ -190,7 +192,7 @@ public class PlannerFactory {
         planner.addRule(KapFilterRule.INSTANCE);
         planner.addRule(KapProjectRule.INSTANCE);
         planner.addRule(KapAggregateRule.INSTANCE);
-        planner.addRule(KapJoinRule.INSTANCE);
+        planner.addRule(selectJoinRuleByConfig());
         planner.addRule(KapLimitRule.INSTANCE);
         planner.addRule(KapSortRule.INSTANCE);
         planner.addRule(KapUnionRule.INSTANCE);
@@ -270,6 +272,13 @@ public class PlannerFactory {
 
         planner.addRule(ProjectJoinTransposeRule.INSTANCE);
         planner.removeRule(ProjectRemoveRule.INSTANCE);
+    }
+
+    private ConverterRule selectJoinRuleByConfig() {
+        return kylinConfig.isQueryNonEquiJoinModelEnabled() && (!BackdoorToggles.getIsQueryFromAutoModeling()
+                || BackdoorToggles.getIsQueryNonEquiJoinModelEnabled() || KylinConfig.getInstanceFromEnv().isUTEnv())
+                        ? KapJoinRule.NON_EQUI_INSTANCE
+                        : KapJoinRule.INSTANCE;
     }
 
     protected void removeRules(final RelOptPlanner planner, List<String> rules) {

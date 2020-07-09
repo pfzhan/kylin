@@ -91,6 +91,7 @@ import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
+import io.kyligence.kap.rest.request.SCD2ConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
@@ -98,6 +99,7 @@ import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.swagger.annotations.ApiOperation;
 
@@ -116,6 +118,10 @@ public class NProjectController extends NBasicController {
     @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
+
+    @Autowired
+    @Qualifier("modelService")
+    private ModelService modelService;
 
     @ApiOperation(value = "getProjects (update)", notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
@@ -332,6 +338,16 @@ public class NProjectController extends NBasicController {
             @RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkRequiredArg("push_down_enabled", pushDownConfigRequest.getPushDownEnabled());
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateSCD2Config (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/scd2_config")
+    @ResponseBody
+    public EnvelopeResponse<String> updateSCD2Config(@PathVariable("project") String project,
+            @RequestBody SCD2ConfigRequest scd2ConfigRequest) {
+        checkRequiredArg("scd2_enabled", scd2ConfigRequest.getScd2Enabled());
+        projectService.updateSCD2Config(project, scd2ConfigRequest, modelService);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

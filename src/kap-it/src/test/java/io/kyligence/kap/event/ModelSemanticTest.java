@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -60,6 +59,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -74,10 +74,11 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
@@ -248,6 +249,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(
                 request.getJoinTables().stream().peek(j -> j.getJoin().setType("inner")).collect(Collectors.toList()));
+        request.setSimplifiedJoinTableDescs(
+                SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(request.getJoinTables()));
         val result = mockMvc
                 .perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
@@ -290,6 +293,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
                 .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(request.getJoinTables());
+        request.setSimplifiedJoinTableDescs(
+                SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(request.getJoinTables()));
 
         return request;
     }
