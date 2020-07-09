@@ -43,7 +43,8 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.query.util.SparderAppUtil;
+import io.kyligence.kap.query.util.ExtractFactory;
+import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 
 public class DiagClientTool extends AbstractInfoExtractorTool {
@@ -133,8 +134,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
                 try {
                     File metaDir = new File(exportDir, "metadata");
                     FileUtils.forceMkdir(metaDir);
-                    String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
-                            "-excludeTableExd" };
+                    String[] metaToolArgs = {"-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
+                            "-excludeTableExd"};
                     String dumpMetadataCmd = String.format(
                             "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -compress false -excludeTableExd",
                             KylinConfig.getKylinHome(), metaDir.getAbsolutePath());
@@ -154,8 +155,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
                 File auditLogDir = new File(exportDir, "audit_log");
                 FileUtils.forceMkdir(auditLogDir);
 
-                String[] auditLogToolArgs = { "-startTime", String.valueOf(startTime), "-endTime",
-                        String.valueOf(endTime), OPT_DIR, auditLogDir.getAbsolutePath() };
+                String[] auditLogToolArgs = {"-startTime", String.valueOf(startTime), "-endTime",
+                        String.valueOf(endTime), OPT_DIR, auditLogDir.getAbsolutePath()};
                 new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
             } catch (Exception e) {
                 logger.warn("Failed to extract audit log.", e);
@@ -212,8 +213,9 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         // sparder history rolling eventlog
         executorService.execute(() -> {
             logger.info("Start to extract sparder history logs.");
-            waitForSparderRollUp();
-            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf());
+            ILogExtractor extractTool = ExtractFactory.create();
+            waitForSparderRollUp(extractTool);
+            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(), extractTool);
             DiagnosticFilesChecker.writeMsgToFile("SPARDER_HISTORY", System.currentTimeMillis() - start, recordTime);
         });
     }
@@ -235,7 +237,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     }
 
     private void exportFileInfo(boolean includeConf, File exportDir, long startTime, long endTime, long start,
-            File recordTime) {
+                                File recordTime) {
         // export conf
         if (includeConf) {
             executorService.execute(() -> {
@@ -283,7 +285,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         return DateTime.now().plusDays(1).minus(1).withTimeAtStartOfDay().getMillis();
     }
 
-    private void waitForSparderRollUp() {
+    private void waitForSparderRollUp(ILogExtractor extractUtil) {
         if (!getKapConfig().isCloud()) {
             return;
         }
@@ -291,7 +293,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         if (StringUtils.isBlank(check)) {
             return;
         }
-        String logDir = SparderAppUtil.getSparderEvenLogDir();
+        String logDir = extractUtil.getSparderEvenLogDir();
         ExecutorService es = Executors.newSingleThreadExecutor();
         FileSystem fs = HadoopUtil.getFileSystem(logDir);
         try {

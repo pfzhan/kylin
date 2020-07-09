@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.query.util.SparderAppUtil;
+import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.util.ToolUtil;
 import lombok.val;
 import scala.collection.JavaConversions;
@@ -94,7 +94,7 @@ public class KylinLogTool {
     }
 
     private static void extractAllIncludeLogs(File[] logFiles, File destDir) throws IOException {
-        String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
+        String[] allIncludeLogs = {"kylin.gc.", "shell.", "kylin.out", "diag.log"};
         for (File logFile : logFiles) {
             for (String includeLog : allIncludeLogs) {
                 if (logFile.getName().startsWith(includeLog)) {
@@ -106,7 +106,7 @@ public class KylinLogTool {
 
     private static void extractPartIncludeLogByDay(File[] logFiles, String startDate, String endDate, File destDir)
             throws IOException {
-        String[] partIncludeLogByDay = { "access_log." };
+        String[] partIncludeLogByDay = {"access_log."};
         for (File logFile : logFiles) {
             for (String includeLog : partIncludeLogByDay) {
                 if (logFile.getName().startsWith(includeLog)) {
@@ -121,7 +121,7 @@ public class KylinLogTool {
 
     private static void extractPartIncludeLogByMs(File[] logFiles, long start, long end, File destDir)
             throws IOException {
-        String[] partIncludeLogByMs = { "jstack.timed.log" };
+        String[] partIncludeLogByMs = {"jstack.timed.log"};
         for (File logFile : logFiles) {
             for (String includeLog : partIncludeLogByMs) {
                 if (logFile.getName().startsWith(includeLog)) {
@@ -136,6 +136,7 @@ public class KylinLogTool {
 
     /**
      * extract the specified log from kylin logs dir.
+     *
      * @param exportDir
      */
 
@@ -166,6 +167,7 @@ public class KylinLogTool {
     /**
      * extract kylin log by jobId
      * for job diagnosis
+     *
      * @param exportDir
      * @param jobId
      */
@@ -176,6 +178,7 @@ public class KylinLogTool {
     /**
      * extract kylin log by time range
      * for full diagnosis
+     *
      * @param exportDir
      * @param startTime
      * @param endTime
@@ -189,7 +192,7 @@ public class KylinLogTool {
     }
 
     private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File logFile,
-            boolean onlyStartTime) {
+                                                                       boolean onlyStartTime) {
         Preconditions.checkNotNull(jobId);
         Preconditions.checkNotNull(logFile);
 
@@ -276,7 +279,7 @@ public class KylinLogTool {
         Preconditions.checkArgument(timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0);
 
         try (BufferedReader br = new BufferedReader(new FileReader(logFile));
-                BufferedWriter bw = new BufferedWriter(new FileWriter(distFile))) {
+             BufferedWriter bw = new BufferedWriter(new FileWriter(distFile))) {
 
             int extraLines = EXTRA_LINES;
             boolean extract = false;
@@ -311,6 +314,7 @@ public class KylinLogTool {
 
     /**
      * extract kylin log
+     *
      * @param exportDir
      * @param jobId
      * @param startTime
@@ -359,6 +363,7 @@ public class KylinLogTool {
     /**
      * extract the spark executor log by project and jobId.
      * for job diagnosis
+     *
      * @param exportDir
      * @param project
      * @param jobId
@@ -397,27 +402,27 @@ public class KylinLogTool {
      * otherwise it always increases.
      */
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
-                                              Map<String, String> sparderConf) {
+                                              Map<String, String> sparderConf, ILogExtractor extractTool) {
         val sparkLogsDir = new File(exportDir, "sparder_history");
-        val fs = HadoopUtil.getFileSystem(SparderAppUtil.getSparderEvenLogDir());
-        val validApps = SparderAppUtil.getValidSparderApps(startTime, endTime);
+        val fs = HadoopUtil.getFileSystem(extractTool.getSparderEvenLogDir());
+        val validApps = extractTool.getValidSparderApps(startTime, endTime);
         JavaConversions.asJavaCollection(validApps)
                 .forEach(app -> {
                     try {
                         if (!sparkLogsDir.exists()) {
                             FileUtils.forceMkdir(sparkLogsDir);
                         }
-                        String fileAppId = app.getPath().getName().split("#")[0].replace(SparderAppUtil.ROLL_LOG_DIR_NAME_PREFIX(), "");
+                        String fileAppId = app.getPath().getName().split("#")[0].replace(extractTool.ROLL_LOG_DIR_NAME_PREFIX(), "");
                         File localFile = new File(sparkLogsDir, fileAppId);
                         copyValidLog(fileAppId, startTime, endTime, app, fs, localFile);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         logger.error("Failed to extract sparder eventLog.", e);
                     }
                 });
     }
 
     private static void copyValidLog(String appId, long startTime, long endTime, FileStatus fileStatus, FileSystem fs,
-            File localFile) throws IOException {
+                                     File localFile) throws IOException {
         FileStatus[] eventStatuses = fs.listStatus(new Path(fileStatus.getPath().toUri()));
         for (FileStatus status : eventStatuses) {
 
@@ -449,7 +454,7 @@ public class KylinLogTool {
     }
 
     public static void extractJobEventLogs(File exportDir, List<AbstractExecutable> tasks,
-            Map<String, String> sparkConf) {
+                                           Map<String, String> sparkConf) {
         try {
             String logDir = sparkConf.get("spark.eventLog.dir").trim();
             boolean eventEnabled = Boolean.parseBoolean(sparkConf.get("spark.eventLog.enabled").trim());
@@ -491,6 +496,7 @@ public class KylinLogTool {
     /**
      * extract the job tmp by project and jobId.
      * for job diagnosis.
+     *
      * @param exportDir
      * @param project
      * @param jobId
@@ -517,6 +523,7 @@ public class KylinLogTool {
     /**
      * extract the sparder log range by startime and endtime
      * for full diagnosis
+     *
      * @param exportDir
      * @param startTime
      * @param endTime
