@@ -634,4 +634,8 @@ public class KapConfig {
     public boolean isQueryEscapedLiteral() {
         return Boolean.parseBoolean(config.getOptional("kylin.query.parser.escaped-string-literals", FALSE));
     }
+
+    public boolean isAESkewJoinEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.build.ae.skew-join-enabled", TRUE));
+    }
 }

@@ -52,6 +52,7 @@ object ExceptionTerminator extends Logging {
     }
     result match {
       case Success(conf) =>
+        KylinBuildEnv.get().supportAndAdjustAdaptiveHandleSkewJoin
         KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(conf, rl.throwable))
         eventLoop.post(RunJob())
       case Failed(message, throwable) => eventLoop.post(JobFailed(message, throwable))

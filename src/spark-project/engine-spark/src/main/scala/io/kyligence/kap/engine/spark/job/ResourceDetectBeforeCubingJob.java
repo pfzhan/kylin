@@ -73,6 +73,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
         ResourceDetectUtils.write(
                 new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()),
                 ResourceDetectUtils.findCountDistinctMeasure(cuboids));
+        ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", "false");
         for (String segId : segmentIds) {
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
             if (Objects.isNull(seg)) {
