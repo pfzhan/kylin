@@ -41,8 +41,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -58,6 +56,8 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -86,7 +86,9 @@ import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -98,6 +100,7 @@ import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Setter;
 import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -769,10 +772,17 @@ public class IndexPlanService extends BasicService {
         if (CollectionUtils.isEmpty(ids)) {
             return Lists.newArrayList();
         }
+        NTableMetadataManager tableMetadata = NTableMetadataManager.getInstance(getConfig(), model.getProject());
         val result = Lists.<IndexResponse.ColOrderPair> newArrayList();
         for (Integer id : ids) {
             if (id < NDataModel.MEASURE_ID_BASE) {
-                result.add(new IndexResponse.ColOrderPair(model.getColumnNameByColumnId(id), "column"));
+                String columnName = model.getColumnNameByColumnId(id);
+                TblColRef colRef = model.findColumnByAlias(columnName);
+                TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
+                TableExtDesc.ColumnStats columnStats = Objects.isNull(tableExt) ? null
+                        : tableExt.getColumnStatsByName(colRef.getName());
+                result.add(new IndexResponse.ColOrderPair(columnName, "column",
+                        Objects.isNull(columnStats) ? 0 : columnStats.getCardinality()));
             } else {
                 result.add(new IndexResponse.ColOrderPair(model.getMeasureNameByMeasureId(id), "measure"));
             }

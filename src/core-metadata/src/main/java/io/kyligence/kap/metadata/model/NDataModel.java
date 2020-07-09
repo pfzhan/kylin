@@ -93,6 +93,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -149,6 +150,7 @@ public class NDataModel extends RootPersistentEntity {
         }
     }
 
+    @VisibleForTesting
     private KylinConfig config;
 
     @EqualsAndHashCode.Include
@@ -297,18 +299,18 @@ public class NDataModel extends RootPersistentEntity {
     @ToString
     public static class NamedColumn implements Serializable, IKeep {
         @JsonProperty("id")
-        private int id;
+        protected int id;
 
         @JsonProperty("name")
-        private String name;
+        protected String name;
 
         @JsonProperty("column")
-        private String aliasDotColumn;
+        protected String aliasDotColumn;
 
         // logical delete symbol
         @JsonProperty("status")
         @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = ColumnStatusFilter.class)
-        private ColumnStatus status = ColumnStatus.EXIST;
+        protected ColumnStatus status = ColumnStatus.EXIST;
 
         public boolean isExist() {
             return status != ColumnStatus.TOMB;
@@ -556,6 +558,25 @@ public class NDataModel extends RootPersistentEntity {
 
         if (result == null)
             throw new IllegalArgumentException("Column not found by " + input);
+
+        return result;
+    }
+
+    public TblColRef findColumnByAlias(String column) {
+        TblColRef result = null;
+
+        column = column.toUpperCase();
+        int cut = column.lastIndexOf('.');
+        String table = column.substring(0, cut);
+        String col = column.substring(cut + 1);
+
+        for (TableRef tableRef : allTableRefs) {
+            if (tableRef.getAlias().equals(table)) {
+                result = tableRef.getColumn(col);
+            }
+            if (result != null)
+                break;
+        }
 
         return result;
     }
@@ -1316,7 +1337,7 @@ public class NDataModel extends RootPersistentEntity {
 
     public Collection<NamedColumn> getAllSelectedColumns() {
         Set<NamedColumn> selectedColumns = new HashSet<>();
-        for (NamedColumn namedColumn: allNamedColumns) {
+        for (NamedColumn namedColumn : allNamedColumns) {
             if (namedColumn.getStatus() == ColumnStatus.DIMENSION) {
                 selectedColumns.add(namedColumn);
             }

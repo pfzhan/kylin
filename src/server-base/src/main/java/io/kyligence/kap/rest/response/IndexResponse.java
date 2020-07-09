@@ -103,5 +103,11 @@ public class IndexResponse {
     public static class ColOrderPair {
         private String key;
         private String value;
+        private long cardinality;
+
+        public ColOrderPair(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
     }
 }

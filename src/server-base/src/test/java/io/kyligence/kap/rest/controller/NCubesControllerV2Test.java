@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -106,6 +107,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     }
 
     private List<NDataModelResponse> mockModels() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         final List<NDataModelResponse> models = new ArrayList<>();
         NDataModel model = new NDataModel();
         model.setUuid("model1");
@@ -119,18 +121,28 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         segmentResponse2.setId("seg2");
         segmentResponse2.setName("test_seg2");
         modelResponse.setSegments(Lists.newArrayList(segmentResponse1, segmentResponse2));
+        modelResponse.setProject("default");
+        modelResponse.setConfig(kylinConfig);
         models.add(modelResponse);
         NDataModel model1 = new NDataModel();
         model.setUuid("model2");
         NDataModelResponse model2Response = new NDataModelResponse(model1);
         model2Response.setSegments(Lists.newArrayList(segmentResponse1));
+        model2Response.setProject("default");
+        model2Response.setConfig(kylinConfig);
         models.add(model2Response);
         NDataModel model2 = new NDataModel();
         model.setUuid("model3");
-        models.add(new NDataModelResponse(model2));
+        NDataModelResponse model3Response = new NDataModelResponse(model2);
+        model3Response.setProject("default");
+        model3Response.setConfig(kylinConfig);
+        models.add(model3Response);
         NDataModel model3 = new NDataModel();
         model.setUuid("model4");
-        models.add(new NDataModelResponse(model3));
+        NDataModelResponse model4Response = new NDataModelResponse(model3);
+        model4Response.setProject("default");
+        model4Response.setConfig(kylinConfig);
+        models.add(model4Response);
 
         return models;
     }

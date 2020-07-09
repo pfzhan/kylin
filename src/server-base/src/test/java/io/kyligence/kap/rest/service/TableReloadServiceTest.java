@@ -484,6 +484,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(brokenModel.getId()).isBroken());
 
+        brokenModel.setConfig(KylinConfig.getInstanceFromEnv());
+        brokenModel.setProject(PROJECT);
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         val updateJoinTables = copyModel.getJoinTables();
         updateJoinTables.get(0).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.ORDER_ID2" });
@@ -541,6 +543,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(0, brokenDataflow.getSegments().size());
             Assert.assertEquals(RealizationStatusEnum.BROKEN, brokenDataflow.getStatus());
         });
+        brokenModel.setConfig(KylinConfig.getInstanceFromEnv());
+        brokenModel.setProject(PROJECT);
         Assert.assertTrue(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(brokenModel.getId()).isBroken());
 
@@ -592,6 +596,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(0, df2.getSegments().size());
         });
 
+        brokenModel.setConfig(KylinConfig.getInstanceFromEnv());
+        brokenModel.setProject(PROJECT);
         modelService.checkFlatTableSql(brokenModel);
 
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);

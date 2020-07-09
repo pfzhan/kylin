@@ -53,7 +53,7 @@ public class RawRecStoreUtil {
 
     private static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
     private static final String CREATE_INDEX = "create.rawrecommendation.store.index";
-    private static SqlSessionFactory sqlSessionFactory = null;
+    private volatile static SqlSessionFactory sqlSessionFactory = null;
 
     private RawRecStoreUtil() {
     }

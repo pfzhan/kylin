@@ -24,28 +24,36 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Setter
 @Getter
@@ -116,8 +124,49 @@ public class NDataModelResponse extends NDataModel {
     }
 
     @JsonProperty("simplified_dimensions")
-    public List<NamedColumn> getNamedColumns() {
-        return getAllNamedColumns().stream().filter(NamedColumn::isDimension).collect(Collectors.toList());
+    public List<SimplifiedNamedColumn> getNamedColumns() {
+        NTableMetadataManager tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
+
+        List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
+        for (NamedColumn col : getAllNamedColumns()) {
+            if (col.isDimension()) {
+                dimList.add(transColumnToDim(col, tableMetadata));
+            }
+        }
+
+        return dimList;
+    }
+
+    public SimplifiedNamedColumn transColumnToDim(NamedColumn col, NTableMetadataManager tableMetadata) {
+        SimplifiedNamedColumn simplifiedDimension = new SimplifiedNamedColumn(col);
+
+        TblColRef colRef = findColumnByAlias(simplifiedDimension.getAliasDotColumn());
+        if (colRef == null) {
+            return simplifiedDimension;
+        }
+        TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
+        if (tableExt != null) {
+            TableExtDesc.ColumnStats columnStats = tableExt.getColumnStatsByName(colRef.getName());
+            if (colRef.getColumnDesc().getComment() != null) {
+                simplifiedDimension.setComment(colRef.getColumnDesc().getComment());
+            }
+            if (colRef.getColumnDesc().getType() != null) {
+                simplifiedDimension.setType(colRef.getColumnDesc().getType().toString());
+            }
+            if (columnStats != null) {
+                simplifiedDimension.setCardinality(columnStats.getCardinality());
+                simplifiedDimension.setMaxValue(columnStats.getMaxValue());
+                simplifiedDimension.setMinValue(columnStats.getMinValue());
+                simplifiedDimension.setMaxLengthValue(columnStats.getMaxLengthValue());
+                simplifiedDimension.setMinLengthValue(columnStats.getMinLengthValue());
+
+                List simple = Lists.newArrayList();
+                tableExt.getSampleRows().stream()
+                        .forEach(row -> simple.add(row[tableExt.getAllColumnStats().indexOf(columnStats)]));
+                simplifiedDimension.setSimple(simple);
+            }
+        }
+        return simplifiedDimension;
     }
 
     @JsonProperty("all_measures")
@@ -177,6 +226,47 @@ public class NDataModelResponse extends NDataModel {
         return columns;
     }
 
+    @Data
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @EqualsAndHashCode
+    @ToString
+    public static class SimplifiedNamedColumn extends NamedColumn implements Serializable, IKeep {
+        
+        public SimplifiedNamedColumn(NamedColumn namedColumn) {
+            this.id = namedColumn.getId();
+            this.aliasDotColumn = namedColumn.getAliasDotColumn();
+            this.status = namedColumn.getStatus();
+            this.name = namedColumn.getName();
+        }
+
+        @JsonProperty("cardinality")
+        private Long cardinality;
+
+        @JsonProperty("min_value")
+        private String minValue;
+
+        @JsonProperty("max_value")
+        private String maxValue;
+
+        @JsonProperty("max_length_value")
+        private String maxLengthValue;
+
+        @JsonProperty("min_length_value")
+        private String minLengthValue;
+
+        @JsonProperty("null_count")
+        private Long nullCount;
+
+        @JsonProperty("comment")
+        private String comment;
+
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("simple")
+        private List simple;
+    }
+
     /**
      * for 3x rest api
      */
@@ -191,7 +281,24 @@ public class NDataModelResponse extends NDataModel {
     private NDataModelAclParams aclParams;
 
     @JsonGetter("selected_columns")
-    public Collection<NamedColumn> getSelectedColumns() {
-        return getAllSelectedColumns();
+    public List<SimplifiedNamedColumn> getSelectedColumns() {
+        List<SimplifiedNamedColumn> selectedColumns = Lists.newArrayList();
+        NTableMetadataManager tableMetadata = NTableMetadataManager.getInstance(getConfig(), getProject());
+        for (NamedColumn namedColumn : getAllSelectedColumns()) {
+            SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
+            TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());
+            if (simplifiedNamedColumn.getStatus() == ColumnStatus.DIMENSION && colRef != null) {
+                TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
+                TableExtDesc.ColumnStats columnStats = Objects.isNull(tableExt) ? null
+                        : tableExt.getColumnStatsByName(colRef.getName());
+                if (columnStats != null) {
+                    simplifiedNamedColumn.setCardinality(columnStats.getCardinality());
+                }
+
+            }
+            selectedColumns.add(simplifiedNamedColumn);
+        }
+
+        return selectedColumns;
     }
 }
