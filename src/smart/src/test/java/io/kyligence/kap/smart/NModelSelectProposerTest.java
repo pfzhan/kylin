@@ -340,4 +340,80 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID",
                 models.get(0).getColRef(indexPlan.getAllLayouts().get(0).getColOrder().get(0)).getIdentity());
     }
+
+    @Test
+    public void testSplitModelContext() {
+        String originSql1 = "SELECT LSTG_FORMAT_NAME\n" +
+                "FROM test_kylin_fact\n" +
+                "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt)";
+        String originSql2 = "SELECT LSTG_FORMAT_NAME\n" +
+                "FROM test_kylin_fact\n" +
+                "LEFT JOIN test_account ON (seller_id = account_id)";
+
+        val smartContext1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql1});
+        val smartMaster1 = new NSmartMaster(smartContext1);
+        smartMaster1.runSuggestModel();
+        smartContext1.saveMetadata();
+
+        val smartContext2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql2});
+        val smartMaster2 = new NSmartMaster(smartContext2);
+        smartMaster2.runSuggestModel();
+        smartContext2.saveMetadata();
+
+        String sql1 = originSql1;
+        String sql2 = originSql1 + " limit 100";
+        String sql3 = originSql2;
+        val smartContext3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", new String[]{sql1, sql2, sql3});
+        val smartMaster3 = new NSmartMaster(smartContext3);
+        smartMaster3.runSuggestModel();
+        smartContext3.saveMetadata();
+        Assert.assertEquals(2, smartContext3.getModelContexts().size());
+    }
+
+    @Test
+    public void testTwoLeftJoinSQLs() {
+        String originSql1 = "SELECT LSTG_FORMAT_NAME\n" +
+                "FROM test_kylin_fact\n" +
+                "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt)";
+        String originSql2 = "SELECT LSTG_FORMAT_NAME\n" +
+                "FROM test_kylin_fact\n" +
+                "LEFT JOIN test_account ON (seller_id = account_id)";
+
+        val smartContext1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql1});
+        val smartMaster1 = new NSmartMaster(smartContext1);
+        smartMaster1.runSuggestModel();
+        smartContext1.saveMetadata();
+
+        val smartContext2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql2});
+        val smartMaster2 = new NSmartMaster(smartContext2);
+        smartMaster2.runSuggestModel();
+        smartContext2.saveMetadata();
+
+        // accelerate two left join sqls together
+        String sql1 = "SELECT sum(price), LSTG_FORMAT_NAME\n" +
+                "FROM test_kylin_fact\n" +
+                "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt) group by LSTG_FORMAT_NAME";
+        String sql2 = "SELECT sum(price), LSTG_FORMAT_NAME\n" +
+                "FROM test_kylin_fact\n" +
+                "LEFT JOIN test_account ON (seller_id = account_id) group by LSTG_FORMAT_NAME";
+
+        val smartContext3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", new String[]{sql1, sql2});
+        val smartMaster3 = new NSmartMaster(smartContext3);
+        smartMaster3.runSuggestModel();
+        smartContext3.saveMetadata();
+        Assert.assertEquals(2, smartContext3.getModelContexts().size());
+        val modelContext1 = smartContext3.getModelContexts().get(0);
+        val modelContext2 = smartContext3.getModelContexts().get(1);
+        Assert.assertNotNull(modelContext1.getTargetModel());
+        Assert.assertNotNull(modelContext2.getTargetModel());
+        val layouts1 = smartContext3.getAccelerateInfoMap().get(sql1).getRelatedLayouts();
+        val layouts2 = smartContext3.getAccelerateInfoMap().get(sql2).getRelatedLayouts();
+        Assert.assertEquals(1, layouts1.size());
+        val layout1 = modelContext1.getTargetIndexPlan().getCuboidLayout(layouts1.iterator().next().getLayoutId());
+        Assert.assertEquals("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", layout1.getColumns().get(0).getAliasDotName());
+        Assert.assertEquals(1, layouts2.size());
+        val layout2 = modelContext1.getTargetIndexPlan().getCuboidLayout(layouts1.iterator().next().getLayoutId());
+        Assert.assertEquals("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", layout2.getColumns().get(0).getAliasDotName());
+
+    }
 }

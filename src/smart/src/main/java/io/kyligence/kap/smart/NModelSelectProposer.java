@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -47,6 +51,8 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import static java.util.stream.Collectors.groupingBy;
 
 @Slf4j
 public class NModelSelectProposer extends NAbstractProposer {
@@ -69,17 +75,41 @@ public class NModelSelectProposer extends NAbstractProposer {
             return;
         }
 
+        val allSubModelContexts = Lists.<AbstractContext.NModelContext>newArrayList();
         Set<String> selectedModel = Sets.newHashSet();
-        for (AbstractContext.NModelContext modelContext : modelContexts) {
+        selectModelForModelContext(modelContexts, allSubModelContexts, selectedModel);
+        if (CollectionUtils.isNotEmpty(allSubModelContexts)) {
+            selectModelForModelContext(allSubModelContexts, Lists.newArrayList(), selectedModel);
+        }
+
+        proposeContext.handleExceptionAfterModelSelect();
+    }
+
+    private void selectModelForModelContext(List<AbstractContext.NModelContext> modelContexts, List<AbstractContext.NModelContext> allSubModelContexts, Set<String> selectedModel) {
+        val modelContextIterator = modelContexts.listIterator();
+        while (modelContextIterator.hasNext()) {
+            val modelContext = modelContextIterator.next();
             ModelTree modelTree = modelContext.getModelTree();
             NDataModel model = selectExistedModel(modelTree, modelContext);
-            if (model == null || (selectedModel.contains(model.getUuid()) && !modelContext.isSnapshotSelected())) {
+
+            if (model == null) {
+                if (CollectionUtils.isEmpty(proposeContext.getOriginModels())) {
+                    continue;
+                }
+                val subModelContexts = splitModelContext(modelContext);
+                if (subModelContexts.size() > 1) {
+                    modelContextIterator.remove();
+                    subModelContexts.forEach(modelContextIterator::add);
+                    allSubModelContexts.addAll(subModelContexts);
+                }
+                continue;
+            }
+
+            if (selectedModel.contains(model.getUuid()) && !modelContext.isSnapshotSelected()) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
-                if (model != null) {
-                    log.info("An existing model({}) compatible to more than one modelTree, "
-                            + "in order to avoid modification conflict, ignore this match.", model.getId());
-                }
+                log.info("An existing model({}) compatible to more than one modelTree, "
+                        + "in order to avoid modification conflict, ignore this match.", model.getId());
                 continue;
             }
             // found matched, then use it
@@ -95,8 +125,60 @@ public class NModelSelectProposer extends NAbstractProposer {
                 selectedModel.add(model.getUuid());
             }
         }
+    }
 
-        proposeContext.handleExceptionAfterModelSelect();
+    private List<AbstractContext.NModelContext> splitModelContext(AbstractContext.NModelContext modelContext) {
+        val sqlOLAPContextMap = modelContext.getModelTree().getOlapContexts().stream().collect(groupingBy(olapContext -> olapContext.sql));
+        if (sqlOLAPContextMap.size() == 1) {
+            return Lists.newArrayList(modelContext);
+        }
+
+        val subModelContexts = Lists.<AbstractContext.NModelContext>newArrayList();
+        val sqlModelContextMap = Maps.<String, AbstractContext.NModelContext>newHashMap();
+        val nonSelectedSqls = Lists.<String>newArrayList();
+        val nonSelectedOlapContexts = Lists.<Collection<OLAPContext>>newArrayList();
+        val sqlSelectedModelMap = Maps.<NDataModel, List<String>>newHashMap();
+        for (Map.Entry<String, List<OLAPContext>> entry : sqlOLAPContextMap.entrySet()) {
+            val sql = entry.getKey();
+            val olapContexts = entry.getValue();
+            val sqlModelContext = buildModelContext(Lists.newArrayList(sql), Lists.<Collection<OLAPContext>>newArrayList(olapContexts)).get(0);
+            val selectedModel = selectExistedModel(sqlModelContext.getModelTree(), sqlModelContext);
+            if (selectedModel == null) {
+                nonSelectedSqls.add(sql);
+                nonSelectedOlapContexts.add(olapContexts);
+            } else {
+                sqlSelectedModelMap.putIfAbsent(selectedModel, Lists.newArrayList());
+                sqlSelectedModelMap.get(selectedModel).add(sql);
+                sqlModelContextMap.put(sql, sqlModelContext);
+            }
+        }
+
+        // merge non-selected model contexts
+        subModelContexts.addAll(buildModelContext(nonSelectedSqls, nonSelectedOlapContexts));
+
+        // merge selected model contexts by model id
+        sqlSelectedModelMap.forEach((model, sqls) -> {
+            if (sqls.size() == 1) {
+                subModelContexts.add(sqlModelContextMap.get(sqls.get(0)));
+            } else {
+                val olapContexts = Lists.<Collection<OLAPContext>>newArrayList();
+                for (String sql : sqls) {
+                    olapContexts.add(sqlOLAPContextMap.get(sql));
+                }
+                subModelContexts.addAll(buildModelContext(sqls, olapContexts));
+            }
+        });
+
+        return subModelContexts;
+    }
+
+    private List<AbstractContext.NModelContext> buildModelContext(List<String> sqls, List<Collection<OLAPContext>> olapContexts) {
+        return new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project, proposeContext) //
+                .build(sqls, olapContexts, null) //
+                .stream() //
+                .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()) //
+                .map(proposeContext::createModelContext) //
+                .collect(Collectors.toList());
     }
 
     private void initModel(NDataModel modelDesc) {
