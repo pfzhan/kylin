@@ -102,7 +102,7 @@ public class AccelerateRuleUtil {
         return InternalBlackOutRule.getSingletonInstance().filterCannotAccelerate(queryHistory);
     }
 
-    private boolean matchCustomerRule(QueryHistory queryHistory, String project) {
+    boolean matchCustomerRule(QueryHistory queryHistory, String project) {
         var submitterRule = FavoriteRule.getDefaultRule(FavoriteRuleManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).getByName(FavoriteRule.SUBMITTER_RULE_NAME),
                 FavoriteRule.SUBMITTER_RULE_NAME);
@@ -122,8 +122,10 @@ public class AccelerateRuleUtil {
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).getByName(FavoriteRule.DURATION_RULE_NAME),
                 FavoriteRule.DURATION_RULE_NAME);
         boolean durationMatch = matchRule(queryHistory, durationRule,
-                (queryHistory1, conditions) -> conditions.stream().anyMatch(cond -> queryHistory1
-                        .getDuration() >= Long.parseLong(((FavoriteRule.Condition) cond).getLeftThreshold()) * 1000L));
+                (queryHistory1, conditions) -> conditions.stream().anyMatch(cond -> (queryHistory1
+                        .getDuration() >= Long.parseLong(((FavoriteRule.Condition) cond).getLeftThreshold()) * 1000L
+                        && queryHistory1.getDuration() <= Long
+                                .parseLong(((FavoriteRule.Condition) cond).getRightThreshold()) * 1000L)));
 
         return submitterMatch || userGroupMatch || durationMatch;
     }
