@@ -386,7 +386,10 @@ public class SourceUsageManager {
             try {
                 long licenseCapacity = Long.parseLong(capacity);
                 usage.setLicenseCapacity(licenseCapacity);
-                if (licenseCapacity < usage.getCurrentCapacity()) {
+                CapacityStatus currentStatus = usage.getCapacityStatus();
+                if (isNotOk(currentStatus)) {
+                    logger.debug("Current capacity status: {} is not ok, will skip overcapacity check", currentStatus);
+                } else if (licenseCapacity < usage.getCurrentCapacity()) {
                     usage.setCapacityStatus(OVERCAPACITY);
                 }
             } catch (NumberFormatException e) {
