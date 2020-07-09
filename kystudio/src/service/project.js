@@ -123,5 +123,11 @@ export default {
   // 更新加速规则
   updateFavoriteRules (data) {
     return Vue.resource(apiUrl + `projects/${data.project}/favorite_rules`).update(data)
+  },
+  toggleEnableSCD (data) {
+    return Vue.resource(apiUrl + 'projects/' + data.project + '/scd2_config').update(data)
+  },
+  getSCDModel (data) {
+    return Vue.resource(apiUrl + 'models/name/scd2').get(data)
   }
 }

@@ -194,6 +194,9 @@
                     style="color:#0988DE;cursor: pointer;"
                     @click="openComplementSegment(scope.row, true)">{{$t('seeDetail')}}</span>
                 </div>
+                <div v-if="scope.row.status === 'OFFLINE' && scope.row.forbidden_online">
+                  <span>{{$t('SCD2ModalOfflineTip')}}</span>
+                </div>
               </el-popover>
               <span class="model-alias-title" v-custom-tooltip="{text: scope.row.alias, w: 50, tableClassName: 'model_list_table'}">{{scope.row.alias}}</span>
             </div>
@@ -331,7 +334,11 @@
                     <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
                     <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
                     <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">{{$t('onLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="online" :class="{'disabled-online': scope.row.forbidden_online}" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">
+                      <common-tip :content="$t('closeSCD2ModalOnlineTip')" :disabled="!scope.row.forbidden_online">
+                        <span>{{$t('onLine')}}</span>
+                      </common-tip>
+                    </el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
               </common-tip>
@@ -919,6 +926,7 @@ export default class ModelList extends Vue {
         this.handleDisableModel(objectClone(modelDesc))
       })
     } else if (command === 'online') {
+      if (modelDesc.forbidden_online) return
       kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
         this.handleEnableModel(objectClone(modelDesc))
       })
@@ -1439,6 +1447,14 @@ export default class ModelList extends Vue {
           }
         }
       }
+    }
+  }
+  .disabled-online {
+    color: #bbbbbb;
+    cursor: not-allowed;
+    &:hover {
+      background: none;
+      color: #bbbbbb;
     }
   }
   .el-tabs__nav {

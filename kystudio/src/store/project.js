@@ -13,7 +13,8 @@ export default {
     selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName'),
     projectDefaultDB: '',
     isSemiAutomatic: false,
-    projectPushdownConfig: true
+    projectPushdownConfig: true,
+    scd2_enabled: false
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -86,6 +87,9 @@ export default {
     },
     [types.CACHE_PROJECT_PUSHDOWN_CONFIG]: function (state, { projectPushdownConfig }) {
       state.projectPushdownConfig = projectPushdownConfig
+    },
+    [types.UPDATE_SCD2_ENABLE] (state, type) {
+      state.scd2_enabled = type
     }
   },
   actions: {
@@ -178,6 +182,7 @@ export default {
         // 更新是否是半自动档标志
         let notAutoProjectFlag = !speedProjectTypes.includes(response.data.data.maintain_model_type)
         commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, notAutoProjectFlag && response.data.data.semi_automatic_mode)
+        commit(types.UPDATE_SCD2_ENABLE, response.data.data.scd2_enabled || false)
         return response
       })
     },
@@ -240,6 +245,12 @@ export default {
     },
     [types.UPDATE_FAVORITE_RULES]: function (_, para) {
       return api.project.updateFavoriteRules(para)
+    },
+    [types.TOGGLE_ENABLE_SCD]: function ({ commit }, para) {
+      return api.project.toggleEnableSCD(para)
+    },
+    [types.GET_SCD2_MODEL]: function ({ commit }, para) {
+      return api.project.getSCDModel(para)
     }
   },
   getters: {

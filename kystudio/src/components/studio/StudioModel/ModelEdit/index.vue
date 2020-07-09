@@ -877,6 +877,15 @@ export default class ModelEdit extends Vue {
   }
   changeTableType (t) {
     if (this._checkTableType(t)) {
+      let joinT = Object.keys(this.modelInstance.linkUsedColumns).filter(it => it.indexOf(t.guid) === 0)
+      if (joinT.length && joinT.some(it => this.modelInstance.linkUsedColumns[it].length)) {
+        this.cancelTableEdit()
+        this.$message({
+          message: this.$t('changeTableJoinCondition'),
+          type: 'warning'
+        })
+        return
+      }
       this.modelInstance.changeTableType(t)
       this.cancelTableEdit()
       if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
@@ -1161,9 +1170,22 @@ export default class ModelEdit extends Vue {
     if (this.currentDragColumnData.guid === table.guid) {
       return
     }
-    // 判断两个表是否已经在一个方向上连接过
+    // scd2 join关系从事实表开始连接
+    if (table.kind === 'FACT') {
+      this.$message({
+        message: this.$t('lockupTableToFactTableTip'),
+        type: 'warning'
+      })
+      return
+    }
+    // 判断两个表是否已经在一个方向上连接过(scd2 有连接阻止返方向连接)
     if (fromTable.getJoinInfoByFGuid(table.guid)) {
-      this.modelInstance.changeLinkDirect(this.currentDragColumnData.guid, null, table.guid)
+      this.$message({
+        message: this.$t('tableHasOppositeLinks'),
+        type: 'warning'
+      })
+      return
+      // this.modelInstance.changeLinkDirect(this.currentDragColumnData.guid, null, table.guid)
     }
     if (this.modelInstance.checkLinkCircle(this.currentDragColumnData.guid, table.guid)) {
       kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
@@ -1240,12 +1262,14 @@ export default class ModelEdit extends Vue {
     var fGuid = data.selectF
     var joinData = data.joinData
     var joinType = data.joinType
+    // 2020/06/24 add 过滤出条件是等于的
     var fcols = joinData.foreign_key
     var pcols = joinData.primary_key
     var fTable = this.modelInstance.tables[fGuid]
     var pTable = this.modelInstance.tables[pGuid]
+    // 2020/06/24 add 多了 scd2 模式后，joinData 中的字段格式需要重新拼接
     // 给table添加连接数据
-    pTable.addLinkData(fTable, fcols, pcols, joinType)
+    pTable.addLinkData(fTable, fcols, pcols, joinType, joinData.op)
     this.currentDragColumnData = {}
     this.currentDropColumnData = {}
     this.currentDragColumn = null

@@ -2,6 +2,7 @@
   <div class="editable-block" :class="{ 'is-edit': isEditing, 'is-loading': isLoading }">
     <div class="block-header" v-if="headerContent">
       <span>{{headerContent}}</span>
+      <slot name="header"></slot>
       <i class="icon el-icon-ksd-table_edit"
         v-if="isEditable && !isEditing"
         @click="handleEdit">

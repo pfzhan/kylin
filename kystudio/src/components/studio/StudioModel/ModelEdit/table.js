@@ -97,7 +97,7 @@ class NTable {
     }, 200)
   }
   // 链接关系处理 (链接数据都存储在主键表上)
-  addLinkData (fTable, linkColumnF, linkColumnP, type) {
+  addLinkData (fTable, linkColumnF, linkColumnP, type, opArr) {
     // this.addFreeLinkData(fTable, linkColumnF, linkColumnP, type)
     let fguid = fTable.guid
     let key = fguid + '$' + this.guid
@@ -112,7 +112,8 @@ class NTable {
       join: {
         type: type,
         primary_key: [...linkColumnP],
-        foreign_key: [...linkColumnF]
+        foreign_key: [...linkColumnF],
+        op: [...opArr]
       },
       foreignTable: {
         guid: fTable.guid,
@@ -159,7 +160,26 @@ class NTable {
       if (joinInfo && joinInfo.table && joinInfo.join) {
         obj.table = joinInfo.table.name
         obj.alias = joinInfo.table.alias
-        obj.join = joinInfo.join
+        // obj.join = joinInfo.join
+        // 这里要处理成后端要的结构
+        let item = joinInfo.join.op
+        let foreign_key = []
+        let primary_key = []
+        let opArr = []
+        for (let i = 0; i < item.length; i++) {
+          if (item[i] === 'EQUAL') {
+            foreign_key.push(joinInfo.join.foreign_key[i])
+            primary_key.push(joinInfo.join.primary_key[i])
+          } else {
+            opArr.push({foreign_key: joinInfo.join.foreign_key[i], primary_key: joinInfo.join.primary_key[i], op: item[i]})
+          }
+        }
+        obj.join = {
+          foreign_key: foreign_key,
+          primary_key: primary_key,
+          simplified_non_equi_join_conditions: opArr,
+          type: joinInfo.join.type
+        }
       } else {
         return null
       }

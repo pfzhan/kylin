@@ -40,7 +40,20 @@ export default {
     refreshTitle: 'Refresh DataSource',
     refreshNow: 'Refresh Now',
     refreshLater: 'Refresh Later',
-    refreshContent: 'Update successfully. The configuration will take effect after refreshing the datasource cache. Please confirm whether to refresh now. </br> Note: It will take a long time to refresh the cache. If you need to configure multiple projects, it is recommended to refresh when configuring the last project.'
+    refreshContent: 'Update successfully. The configuration will take effect after refreshing the datasource cache. Please confirm whether to refresh now. </br> Note: It will take a long time to refresh the cache. If you need to configure multiple projects, it is recommended to refresh when configuring the last project.',
+    openSCDSetting: 'Turn On Support Zipper Tables',
+    openSCDTip: 'Please note that this feature is still in BETA phase. Potential risks or known limitations might exist. Check ',
+    userManual: 'user manual',
+    openSCDTip1: ' for details.',
+    closeSCDSetting: 'Turn Off Support Zipper Tables',
+    confirmOpenTip: 'Do you want to continue?',
+    SCD2Settings: 'Support Zipper Tables',
+    nonEqualJoin: 'Show non-equal join conditions for zipper tables',
+    noEqualDecription: 'With this switch ON, you may use zipper tables for slowly changing dimension (as was): Non-equal join conditions (≥，<) could be used for modeling, building and queries. ',
+    confirmOpen: 'Turn On',
+    closeSCDTip: 'With this switch OFF, non-equal join conditions (≥, <) couldn’t be used when editing model. The following models will go offline automatically as they include non-equal join conditions:',
+    closeSCDTip1: 'To make these models online, please delete the non-equal join conditions, or turn this switch ON. Do you want to continue?',
+    confirmClose: 'Turn Off'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -83,6 +96,18 @@ export default {
     refreshTitle: '刷新数据源',
     refreshNow: '立即刷新',
     refreshLater: '稍后刷新',
-    refreshContent: '更新成功。刷新数据源缓存后配置生效。请问是否刷新数据源缓存？</br> 提示：刷新缓存时间较长，如您需要配置多个项目，建议配置最后一个项目时进行刷新。'
+    refreshContent: '更新成功。刷新数据源缓存后配置生效。请问是否刷新数据源缓存？</br> 提示：刷新缓存时间较长，如您需要配置多个项目，建议配置最后一个项目时进行刷新。',
+    openSCDSetting: '开启支持拉链表',
+    closeSCDSetting: '关闭支持拉链表',
+    openSCDTip: '请注意，此功能尚属于 BETA 阶段，可能存在潜在风险或已知限制。详情请',
+    userManual: '查看手册',
+    confirmOpenTip: '确认要开启吗？',
+    SCD2Settings: '支持拉链表',
+    nonEqualJoin: '支持基于拉链表的连接条件',
+    noEqualDecription: '该选项开启后，您可以使用拉链表满足对缓慢变化维度（as was）的场景需求：可选择 ≥ 和 < 来进行建模、构建和查询。',
+    confirmOpen: '确定开启',
+    closeSCDTip: '关闭后，编辑模型时不再支持选择 ≥，< 的连接条件。以下模型会因包含上述条件自动下线：',
+    closeSCDTip1: '若需重新上线模型，需删除模型中相应的连接条件，或将此选项开启。确认关闭吗？',
+    confirmClose: '确定关闭'
   }
 }

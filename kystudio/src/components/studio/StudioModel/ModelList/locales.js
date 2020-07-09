@@ -100,7 +100,9 @@ export default {
     modelMetadataChangedTips: 'Data in the source table was changed. The query results might be inaccurate. ',
     seeDetail: 'View Details',
     modelMetadataChangedDesc: 'Source table in the following segment(s) might have been changed. The data might be inconsistent after being built. Please check with your system administrator.<br/>You may try refreshing these segments to ensure the data consistency.',
-    refrashWarningSegment: 'Only ONLINE segments could be refreshed'
+    refrashWarningSegment: 'Only ONLINE segments could be refreshed',
+    closeSCD2ModalOnlineTip: 'This model can’t go online as it includes non-equal join conditions(≥, <). Please delete those join conditions, or turn on `Support Zipper Tables` in project settings.',
+    SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support Zipper Tables` in project settings.'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -200,6 +202,8 @@ export default {
     modelMetadataChangedTips: '当前模型源表发生变化，可能会影响查询结果的准确性。',
     seeDetail: '查看详情',
     modelMetadataChangedDesc: '检测到以下 Segment 中源表数据可能发生了变化，将导致构建后数据不一致。请与系统管理员核实。<br/>建议刷新以下这些 Segment 确保数据的一致性。',
-    refrashWarningSegment: '仅支持刷新状态为 ONLINE 的 Segment'
+    refrashWarningSegment: '仅支持刷新状态为 ONLINE 的 Segment',
+    closeSCD2ModalOnlineTip: '该模型因存在 ≥ 或 < 的连接条件，当前不可上线。请删除相应连接条件，或在项目设置中开启支持拉链表开关。',
+    SCD2ModalOfflineTip: '该模型中存在 ≥ 或 < 的连接条件，当前不可用。请删除相应连接条件，或在项目设置中开启支持拉链表开关。'
   }
 }

@@ -1,5 +1,10 @@
 <template>
   <el-dialog append-to-body limited-area :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="720px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+    <p class="join-notices"><i :class="[!isErrorValue.length ? 'el-icon-ksd-alert' : 'el-icon-ksd-error_01 is-error']"></i>{{$t(!isErrorValue.length ? 'joinNotice' : 'joinErrorNotice')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('details')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></p>
+    <div class="detail-content" v-if="showDetails">
+      <p :class="[item.isError && 'is-error']" v-for="item in getDetails" :key="item.value">{{item.text}}</p>
+    </div>
+    <p class="title-label ksd-mt-15">{{$t('tableJoin')}}</p>
     <el-row :gutter="10">
       <el-col :span="10">
         <el-select :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" @change="changeFTable" style="width:100%" filterable v-model="selectF">
@@ -19,42 +24,37 @@
         </el-select>
       </el-col>
     </el-row>
-    <div class="ky-line ksd-mt-15"></div>
+    <!-- <div class="ky-line ksd-mt-15"></div> -->
     <!-- 列的关联 -->
-    <el-form class="ksd-mt-10" ref="conditionForm" :model="joinColumns">
+    <p class="title-label ksd-mt-20 ksd-mb-5">{{$t('columnsJoin')}}</p>
+    <el-form class="join-form" ref="conditionForm" :model="joinColumns">
       <el-form-item v-for="(key, val) in joinColumns.foreign_key" :key="val" class="ksd-mb-6">
-          <el-col :span="10">
-            <el-form-item :prop="'foreign_key.' + val" :rules="[{validator: checkIsBrokenForeignKey, trigger: 'change'}]">
-              <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
-                 <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.foreign_key[val]"></i>
-                <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
-                <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="1" class="ksd-center" style="font-size:20px;">
-            =
-          </el-col>
-          <el-col :span="11">
-            <el-form-item :prop="'primary_key.' + val" :rules="[{validator: checkIsBrokenPrimaryKey, trigger: 'change'}]">
-              <el-select size="small" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
-                <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.primary_key[val]"></i>
-                <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
-                <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="2" class="ksd-right">
-            <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
-          </el-col>
+        <el-form-item :prop="'foreign_key.' + val" :rules="[{validator: checkIsBrokenForeignKey, trigger: 'change'}]">
+          <el-select size="small" :class="['foreign-select', {'is-error': errorFlag.includes(val)}]" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
+              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.foreign_key[val]"></i>
+            <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
+            <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-select size="small" :class="['join-type', {'is-error': errorFlag.includes(val)}]" :placeholder="$t('kylinLang.common.pleaseSelect')" v-model="joinColumns.op[val]">
+          <el-option :value="item.value" :label="item.label" :disabled="['GREATER_THAN_OR_EQUAL', 'LESS_THAN'].includes(item.value) && !scd2_enabled" v-for="item in columnsLinkKind" :key="'joinColumnstype' + item.value"></el-option>
+        </el-select>
+        <el-form-item :prop="'primary_key.' + val" :rules="[{validator: checkIsBrokenPrimaryKey, trigger: 'change'}]">
+          <el-select size="small" :class="['primary-select', {'is-error': errorFlag.includes(val)}]" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
+            <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.primary_key[val]"></i>
+            <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
+            <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
       <!-- <el-button @click="delConn" v-if="currentConnObj" size="medium" class="ksd-fleft">{{$t('delConn')}}</el-button> -->
       <el-button plain @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-guide.saveJoinBtn size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-guide.saveJoinBtn size="medium" :disabled="disableSaveBtn" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
     </span>
   </el-dialog>
 </template>
@@ -80,6 +80,9 @@ vuex.registerModule(['modals', 'TableJoinModal'], store)
       isShow: state => state.isShow,
       form: state => state.form,
       callback: state => state.callback
+    }),
+    ...mapState({
+      scd2_enabled: state => state.project.scd2_enabled
     })
   },
   methods: {
@@ -103,8 +106,19 @@ export default class TableJoinModal extends Vue {
   selectP = '' // 选择的主键表的alias名
   joinColumns = {
     foreign_key: [''],
+    op: [''], // 新加的列的关联关系的字段
     primary_key: ['']
   } // join信息
+  columnsLinkKind = [
+    {label: '=', value: 'EQUAL'},
+    {label: '>=', value: 'GREATER_THAN_OR_EQUAL'},
+    {label: '<', value: 'LESS_THAN'}
+  ]
+  columnJoinType = 0
+  isErrorValue = []
+  showDetails = false
+  disableSaveBtn = false
+  errorFlag = []
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
@@ -125,10 +139,12 @@ export default class TableJoinModal extends Vue {
         var joinInfo = joinData.join
         this.joinColumns.foreign_key = objectClone(joinInfo.foreign_key)
         this.joinColumns.primary_key = objectClone(joinInfo.primary_key)
+        this.joinColumns.op = objectClone(joinInfo.op)
         this.joinType = joinInfo.type
       } else { // 无join数据的情况,设置默认值
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
+        this.$set(this.joinColumns, 'op', ['EQUAL'])
       }
       // 拖动添加默认填充
       // 如果添加的是重复的连接条件不做处理
@@ -153,7 +169,33 @@ export default class TableJoinModal extends Vue {
           this.joinColumns.primary_key[0] = this.form.pColumnName
         }
       }
+      // if (this.form.fColumnName && this.form.pColumnName) {
+      //   if (this.joinColumns.op[0]) {
+      //     this.joinColumns.op.push('EQUAL')
+      //   } else {
+      //     this.joinColumns.op[0] = 'EQUAL'
+      //   }
+      // }
+    } else {
+      this.showDetails = false
+      this.isErrorValue = []
     }
+  }
+  @Watch('joinColumns', {deep: true})
+  changeJoinCondition (oldVal, newVal) {
+    let type = this.checkNoEqualRelation(newVal) && this.checkLinkCompelete()
+    this.disableSaveBtn = !type
+  }
+  get getDetails () {
+    let notices = [
+      { text: this.$t('notice1'), value: 1, isError: false },
+      { text: this.$t('notice2'), value: 2, isError: false },
+      { text: this.$t('notice3'), value: 3, isError: false },
+      { text: this.$t('notice4'), value: 4, isError: false }
+    ]
+    return notices.map(item => {
+      return {...item, isError: this.isErrorValue.includes(item.value)}
+    })
   }
   changeFTable () {
     this.joinColumns.foreign_key = ['']
@@ -235,25 +277,30 @@ export default class TableJoinModal extends Vue {
   addJoinConditionColumns () {
     this.joinColumns.foreign_key.unshift('')
     this.joinColumns.primary_key.unshift('')
+    this.joinColumns.op.unshift('EQUAL')
   }
   // 删除condition关联列的框
   removeJoinConditionColumn (i) {
     if (this.joinColumns.foreign_key.length === 1) {
       this.joinColumns.foreign_key.splice(0, 1, '')
+      this.joinColumns.op.splice(0, 1, 'EQUAL')
       this.joinColumns.primary_key.splice(0, 1, '')
       return
     }
     this.joinColumns.foreign_key.splice(i, 1)
     this.joinColumns.primary_key.splice(i, 1)
+    this.joinColumns.op.splice(i, 1)
   }
-  removeDuplicateCondition (fkeys, pkeys) {
+  removeDuplicateCondition () {
     let obj = {}
-    for (let i = fkeys.length - 1; i >= 0; i--) {
-      if (obj[fkeys[i] + pkeys[i]]) {
-        fkeys.splice(i, 1)
-        pkeys.splice(i, 1)
+    let { foreign_key, primary_key, op } = this.joinColumns
+    for (let i = foreign_key.length - 1; i >= 0; i--) {
+      if (obj[foreign_key[i] + primary_key[i] + op[i]]) {
+        foreign_key.splice(i, 1)
+        op.splice(i, 1)
+        primary_key.splice(i, 1)
       } else {
-        obj[fkeys[i] + pkeys[i]] = true
+        obj[foreign_key[i] + primary_key[i] + op[i]] = true
       }
     }
   }
@@ -279,31 +326,121 @@ export default class TableJoinModal extends Vue {
       }
     })
   }
+
+  // 检测连接条件
+  checkNoEqualRelation (joinColumns) {
+    let flag = true
+    this.isErrorValue = []
+    this.errorFlag = []
+    let joins = joinColumns.foreign_key.map((item, index) => ({fk: item, op: joinColumns.op[index], pk: joinColumns.primary_key[index], index, joinExpression: `${item}&${joinColumns.primary_key[index]}`}))
+    let greater_than = joins.filter(it => it.op === 'GREATER_THAN_OR_EQUAL' && it.fk && it.pk)
+    let less_than = joins.filter(it => it.op === 'LESS_THAN' && it.fk && it.pk)
+    // let equals = joins.filter(it => it.op === 'EQUAL' && it.fk && it.pk)
+    // 两张表仅可使用同一连接条件一次
+    let correctTableName = (pid, fid) => {
+      return {
+        pTable: this.form.tables[pid].name.replace(/^(\w+)\./, ''),
+        tTable: this.form.tables[fid].name.replace(/^(\w+)\./, '')
+      }
+    }
+    let fk = joinColumns.foreign_key.map(it => it.replace(/(\w+)\./, `${correctTableName(this.form.pid, this.form.fid).tTable}.`))
+    let pk = joinColumns.primary_key.map(it => it.replace(/(\w+)\./, `${correctTableName(this.form.pid, this.form.fid).pTable}.`))
+    let combination = fk.map((item, index) => `${item}&${pk[index]}`)
+    let joinInfoHistory = Object.keys(this.form.modelInstance.linkUsedColumns).filter(it => it.indexOf(this.form.fid) >= 0 && it !== `${this.form.pid}${this.form.fid}`)
+    if (joinInfoHistory.length) {
+      let tables = []
+      joinInfoHistory.map(item => this.form.modelInstance.linkUsedColumns[item]).forEach((list, idx) => {
+        let joinId = joinInfoHistory[idx]
+        let start = joinId.indexOf(this.form.fid)
+        let uid = []
+        if (start === 0) {
+          uid = [joinId.slice(0, this.form.fid.length), joinId.slice(this.form.fid.length, joinId.length)]
+        } else {
+          uid = [joinId.slice(joinId.length - this.form.fid.length, joinId.length), joinId.slice(0, joinId.length - this.form.fid.length)]
+        }
+        for (let i = 0; i <= list.length / 2 - 1; i++) {
+          tables.push(`${list[i + list.length / 2].replace(/(\w+)\./, `${correctTableName(uid[1], uid[0]).tTable}.`)}&${list[i].replace(/(\w+)\./, `${correctTableName(uid[1], uid[0]).pTable}.`)}`)
+        }
+      })
+      if (tables.length) {
+        let cludesIndex = []
+        combination.forEach((v, index) => {
+          tables.includes(v) && cludesIndex.push(index)
+        })
+        if (cludesIndex.length) {
+          this.errorFlag = [...this.errorFlag, ...cludesIndex]
+          this.isErrorValue.push(4)
+          flag = false
+        }
+      }
+    }
+    // 至少有一个equal连接关系
+    if (!joinColumns.op.includes('EQUAL')) {
+      this.isErrorValue.push(3)
+      flag = false
+    }
+    // 列的连接条件不能重复定义
+    joins.forEach((item, index, self) => {
+      this.errorFlag = [...this.errorFlag, ...self.map(it => item.index !== it.index && it.joinExpression === item.joinExpression && item.index).filter(it => typeof it === 'number')]
+    })
+    if (this.errorFlag.length) {
+      this.isErrorValue.push(1)
+      flag = false
+    }
+    // 连接关系 >= 和 < 成对出现, 且位于中间的列必须一致(此处判断放在最后处理)
+    let checkFun = () => {
+      let fl = true
+      let firstV = greater_than.shift(0)
+      while (firstV) {
+        let idx = less_than.findIndex(it => it.fk === firstV.fk)
+        if (idx >= 0) {
+          less_than.splice(idx, 1)
+        } else {
+          this.errorFlag.push(firstV.index)
+          fl = false
+        }
+        firstV = greater_than.shift(0)
+      }
+      if (less_than.length) {
+        this.errorFlag = [...this.errorFlag, ...less_than.map(it => it.index)]
+        fl = false
+      }
+      return fl
+    }
+    if (!checkFun()) {
+      this.isErrorValue.push(2)
+      flag = false
+    }
+    !flag && (this.showDetails = true)
+    return flag
+  }
+
+  // 保存连接条件
   async saveJoinCondition () {
     await this.$refs.conditionForm.validate()
     var joinData = this.joinColumns // 修改后的连接关系
     var selectF = this.selectF // 外键表名
     var selectP = this.selectP // 主键表名
-    if (this.checkLinkCompelete()) {
-      // 校验是否链接层环状
-      if (this.form && this.form.modelInstance.checkLinkCircle(selectF, selectP)) {
-        kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
-        return
-      }
-      // 删除重复的条件
-      this.removeDuplicateCondition(this.joinColumns.foreign_key, this.joinColumns.primary_key)
-      // 传出处理后的结果
-      this.handleClose(true, {
-        selectF: selectF,
-        selectP: selectP,
-        joinData: joinData,
-        joinType: this.joinType
-      })
-    } else {
-      kapMessage(this.$t('checkCompleteLink'), {
-        type: 'warning'
-      })
+    // if (this.checkLinkCompelete() && this.checkNoEqualRelation()) {
+    // 校验是否链接层环状
+    if (this.form && this.form.modelInstance.checkLinkCircle(selectF, selectP)) {
+      kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
+      return
     }
+    // 删除重复的条件
+    this.removeDuplicateCondition()
+    // 传出处理后的结果
+    this.handleClose(true, {
+      selectF: selectF,
+      selectP: selectP,
+      joinData: joinData,
+      joinType: this.joinType
+    })
+    // } else {
+    //   kapMessage(this.$t('checkCompleteLink'), {
+    //     type: 'warning'
+    //   })
+    // }
   }
   handleClose (isSubmit, data) {
     this.hideModal()
@@ -325,6 +462,48 @@ export default class TableJoinModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .links-dialog {
+  min-height: 720px;
+  .join-notices {
+    margin-bottom: 5px;
+    i {
+      color: @text-disabled-color;
+      margin-right: 5px;
+    }
+    color: @text-title-color;
+    font-size: 12px;
+    .review-details {
+      color: @base-color;
+      cursor: pointer;
+      position: relative;
+    }
+    .arrow {
+      transform: rotate(90deg);
+      margin-left: 3px;
+      font-size: 8px;
+      color: @base-color;
+      position: absolute;
+      top: 5px;
+    }
+    .is-error {
+      color: @error-color-1;
+    }
+  }
+  .is-error {
+    color: @error-color-1;
+  }
+  .detail-content {
+    background-color: @base-background-color-1;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    font-size: 12px;
+    color: @text-normal-color;
+  }
+  .title-label {
+    color: @text-title-color;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
   .el-button+.el-button {
     margin-left:5px;
   }
@@ -336,6 +515,34 @@ export default class TableJoinModal extends Vue {
     .error-msg {
       color:@color-danger;
       display:block;
+    }
+  }
+  .join-form {
+    .el-form-item {
+      display: inline-block;
+      margin-bottom: 0;
+    }
+    .foreign-select, .primary-select {
+      width: 273px;
+    }
+    .foreign-select.is-error {
+      .el-input__inner {
+        border:solid 1px @color-danger;
+      }
+    }
+    .primary-select.is-error {
+      .el-input__inner {
+        border:solid 1px @color-danger;
+      }
+    }
+    .join-type {
+      width: 60px;
+      margin: 0 5px;
+      &.is-error {
+        .el-input__inner {
+          border:solid 1px @color-danger;
+        }
+      }
     }
   }
 }

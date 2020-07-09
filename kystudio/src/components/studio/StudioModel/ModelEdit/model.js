@@ -62,7 +62,35 @@ class NModel {
         return x
       }
     })
-    this.lookups = options.lookups || options.join_tables || []
+    // 这里要将后端的结构数据解析为前端需要的
+    let tempLooks = options.join_tables || options.lookups || []
+    tempLooks.forEach((table) => {
+      let itemJoin = table.join
+      let temp_foreign_key = []
+      let temp_primary_key = []
+      let temp_op = []
+      for (let i = 0; i < itemJoin.foreign_key.length; i++) {
+        temp_foreign_key.push(itemJoin.foreign_key[i])
+        temp_op.push('EQUAL')
+      }
+      for (let i = 0; i < itemJoin.primary_key.length; i++) {
+        temp_primary_key.push(itemJoin.primary_key[i])
+      }
+      if (itemJoin.simplified_non_equi_join_conditions) {
+        for (let i = 0; i < itemJoin.simplified_non_equi_join_conditions.length; i++) {
+          temp_foreign_key.push(itemJoin.simplified_non_equi_join_conditions[i].foreign_key)
+          temp_op.push(itemJoin.simplified_non_equi_join_conditions[i].op)
+          temp_primary_key.push(itemJoin.simplified_non_equi_join_conditions[i].primary_key)
+        }
+      }
+      table.join.foreign_key = objectClone(temp_foreign_key)
+      table.join.primary_key = objectClone(temp_primary_key)
+      table.join.op = objectClone(temp_op)
+      delete table.join.non_equi_join_condition
+      delete table.join.simplified_non_equi_join_conditions
+    })
+    this.lookups = objectClone(tempLooks)
+    // this.lookups = options.lookups || options.join_tables || []
     this.all_measures = options.simplified_measures || []
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
@@ -319,7 +347,8 @@ class NModel {
   }
   // 生成供后台使用的数据结构
   generateMetadata (ignoreAloneTableCheck) {
-    this._arrangeLinks()
+    // scd2 no-equal 禁止自动整理连接关系
+    // this._arrangeLinks()
     return new Promise((resolve, reject) => {
       try {
         let metaData = {
@@ -387,7 +416,7 @@ class NModel {
         // 获取外键表对象
         if (this.renderDom) {
           var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
-          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
+          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type, tableObj.join.op)
         }
       })
     }
@@ -426,12 +455,13 @@ class NModel {
           if (hisTargetConnInfo && hisTargetConnInfo.join) {
             hisConnInfo.join.primary_key.push(...hisTargetConnInfo.join.foreign_key)
             hisConnInfo.join.foreign_key.push(...hisTargetConnInfo.join.primary_key)
+            hisConnInfo.join.op.push(...hisTargetConnInfo.join.op)
           }
           // 删除
           this.removeRenderLink(conn)
           // 产生新的连接数据
           if (hisConnInfo) {
-            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type)
+            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type, hisConnInfo.join.op)
           }
           // 重新连接
           this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)

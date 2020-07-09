@@ -69,7 +69,10 @@ export default {
     searchColumn: 'Search column name',
     modelChangeTips: 'You are modifying the model definition. After submitted, all indexes of this model may be rebuilt. The model will be unavailable to serve queries until the indexes are built successfully.',
     ignore: 'Ignore',
-    saveAndSubmitJobSuccess: 'Successfully saved the changes, and submitted the job of loading data'
+    saveAndSubmitJobSuccess: 'Successfully saved the changes, and submitted the job of loading data',
+    tableHasOppositeLinks: 'A reserved join condition already exists between the tables. Please click on the join condition to modify.',
+    changeTableJoinCondition: 'Modifying the table’s type would affect the existing join condition. Please delete or modify the join condition first.',
+    lockupTableToFactTableTip: 'Please add join condition from the fact table to a look up table.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -141,6 +144,9 @@ export default {
     searchColumn: '搜索列名',
     modelChangeTips: '您正在修改模型定义，提交后，可能会导致模型下的所有索引重新构建。索引构建完成前该模型不能服务于相关的查询。',
     ignore: '不再提示',
-    saveAndSubmitJobSuccess: '保存成功，加载任务已提交'
+    saveAndSubmitJobSuccess: '保存成功，加载任务已提交',
+    tableHasOppositeLinks: '两表之间已经存在一个反向连接条件，请点击连接关系进行修改。',
+    changeTableJoinCondition: '修改该表的类型会影响现有的连接条件，请先删除或编辑连接关系。',
+    lockupTableToFactTableTip: '请从事实表开始向维度表添加连接条件。'
   }
 }

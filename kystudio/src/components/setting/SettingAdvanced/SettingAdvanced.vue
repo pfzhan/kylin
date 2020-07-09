@@ -199,13 +199,33 @@
         <div class="setting-desc">{{$t('exposingCCDesc')}}</div>
       </div>
     </EditableBlock>
+    <!-- 支持拉链表 -->
+    <EditableBlock
+      :header-content="$t('SCD2Settings')"
+      :isEditable="false">
+      <template slot="header">
+        <span class="beta-label">BETA</span>
+      </template>
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('nonEqualJoin')}}</span><span class="setting-value fixed">
+          <el-switch
+            size="small"
+            v-model="form.scd2_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @change="handleScdSetting">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('noEqualDecription')}}</div>
+      </div>
+    </EditableBlock>
   </div>
 </template>
 
 <script>
 import Vue from 'vue'
 import locales from './locales'
-import { mapActions, mapGetters, mapState } from 'vuex'
+import { mapActions, mapGetters, mapState, mapMutations } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import { handleError, handleSuccessAsync } from '../../../util'
@@ -230,7 +250,12 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       updateYarnQueue: 'UPDATE_YARN_QUEUE',
       updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG',
       updateKerberosConfig: 'UPDATE_KERBEROS_CONFIG',
-      reloadHiveDBAndTables: 'RELOAD_HIVE_DB_TABLES'
+      reloadHiveDBAndTables: 'RELOAD_HIVE_DB_TABLES',
+      toggleEnableSCD: 'TOGGLE_ENABLE_SCD',
+      getSCDModels: 'GET_SCD2_MODEL'
+    }),
+    ...mapMutations({
+      updateSCD2Enable: 'UPDATE_SCD2_ENABLE'
     })
   },
   components: {
@@ -264,7 +289,8 @@ export default class SettingAdvanced extends Vue {
     expose_computed_column: !this.isAutoProject,
     principal: '',
     fileList: [],
-    file: null
+    file: null,
+    scd2_enabled: this.project.scd2_enabled
   }
   // 这里是为了适配lighting 嵌套的KE 要隐藏 yarn队列部分
   get ifShowYarn () {
@@ -611,12 +637,118 @@ export default class SettingAdvanced extends Vue {
         return name || fileName
     }
   }
+  handleScdSetting (val) {
+    const h = this.$createElement
+    if (val) {
+      this.$msgbox({
+        title: this.$t('openSCDSetting'),
+        message: h('p', null, [
+          h('span', null, [
+            h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+            h('span', null, this.$t('openSCDTip'))
+          ]),
+          h('a', {
+            style: 'color: #0988DE'
+          }, this.$t('userManual')),
+          this.$lang === 'en' && h('span', null, this.$t('openSCDTip1')),
+          h('p', null, this.$t('confirmOpenTip'))
+        ]),
+        showCancelButton: true,
+        confirmButtonText: this.$t('confirmOpen'),
+        cancelButtonText: this.$t('kylinLang.common.cancel')
+      }).then(() => {
+        this.toggleEnableSCD({scd2_enabled: val, project: this.currentSelectedProject}).then(async (res) => {
+          try {
+            await handleSuccessAsync(res)
+            this.updateSCD2Enable(val)
+            this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+          } catch (e) {
+            handleError(e)
+          }
+        }).catch((e) => {
+          this.form.scd2_enabled = false
+          handleError(e)
+        })
+      }).catch(() => {
+        this.form.scd2_enabled = false
+      })
+    } else {
+      // 抓取下是scd2 的model，如果存在，需要二次确认
+      this.getSCDModels({project: this.currentSelectedProject}).then(async (modeldata) => {
+        try {
+          const data = await handleSuccessAsync(modeldata)
+          if (data.length) {
+            this.$msgbox({
+              title: this.$t('openSCDSetting'),
+              message: h('p', null, [
+                h('span', null, [
+                  h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+                  h('span', null, this.$t('closeSCDTip'))
+                ]),
+                h('div', {
+                  style: 'color: #5C5C5C;padding: 10px;background:#FAFAFA;'
+                }, data.join(',')),
+                h('p', null, this.$t('closeSCDTip1'))
+              ]),
+              showCancelButton: true,
+              confirmButtonText: this.$t('confirmClose'),
+              cancelButtonText: this.$t('kylinLang.common.cancel')
+            }).then(() => {
+              this.toggleEnableSCD({scd2_enabled: val, project: this.currentSelectedProject}).then(async (res) => {
+                try {
+                  await handleSuccessAsync(res)
+                  this.updateSCD2Enable(val)
+                  this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+                } catch (e) {
+                  handleError(e)
+                }
+              }).catch((e) => {
+                this.form.scd2_enabled = true
+                handleError(e)
+              })
+            }).catch(() => {
+              this.form.scd2_enabled = true
+            })
+          } else {
+            this.toggleEnableSCD({scd2_enabled: val, project: this.currentSelectedProject}).then(async (res) => {
+              try {
+                await handleSuccessAsync(res)
+                this.updateSCD2Enable(val)
+                this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+              } catch (e) {
+                handleError(e)
+              }
+            }).catch((e) => {
+              handleError(e)
+            })
+          }
+        } catch (e) {
+          handleError(e)
+        }
+      }).catch((e) => {
+        handleError(e)
+      })
+    }
+  }
 }
 </script>
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .accelerate-setting {
+  .beta-label {
+    display: inline-block;
+    height: 18px;
+    line-height: 9px;
+    background: #EFDBFF;
+    color: #531DAB;
+    font-size: 11px;
+    font-family: Lato-Bold,Lato;
+    font-weight: bold;
+    border-radius: 2px;
+    padding: 5px;
+    box-sizing: border-box;
+  }
   .item-value .el-input {
     width: 200px;
   }
