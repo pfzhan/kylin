@@ -54,17 +54,12 @@
           </div>
           <div class="detail-content" v-loading="indexLoading">
             <div class="clearfix">
-              <div class="ksd-mb-10 ksd-fs-12 ksd-fleft" v-if="isFullLoaded">
-                {{$t('dataRange')}}<el-tooltip :content="$t('dataRangeTips')" placement="top">
-                  <i class="el-icon-ksd-what"></i>
-                </el-tooltip>: {{$t('kylinLang.dataSource.full')}}
-              </div>
-              <div class="ksd-mb-10 ksd-fs-12 ksd-fleft" v-if="dataRange&&!isFullLoaded">
+              <div class="ksd-mb-10 ksd-fs-12 ksd-fleft">
                 {{$t('dataRange')}}<el-tooltip :content="$t('dataRangeTips')" placement="top">
                   <i class="el-icon-ksd-what"></i>
                 </el-tooltip>: {{getDataRange}}
               </div>
-              <div v-if="isShowAggregateAction" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-2">{{$t('viewIncomplete')}}</div>
+              <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-2">{{$t('viewIncomplete')}}</div>
             </div>
             <div class="clearfix" v-if="isShowAggregateAction">
               <el-button icon="el-icon-ksd-icon_build-index" :disabled="!checkedList.length" v-if="datasourceActions.includes('buildIndex')" class="ksd-mb-10 ksd-fleft" size="small" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
@@ -377,6 +372,7 @@ export default class ModelAggregate extends Vue {
     }
   }
   switchIndexValue = 0
+  isHaveComplementSegs = false
   // 打开高级设置
   // openAggAdvancedModal () {
   //   this.callAggAdvancedModal({
@@ -701,6 +697,7 @@ export default class ModelAggregate extends Vue {
       })
       const data = await handleSuccessAsync(res)
       this.dataRange = [data.start_time, data.end_time]
+      this.isHaveComplementSegs = data.segment_to_complement_count > 0
       this.isFullLoaded = data.is_full_loaded
       this.cuboids = formatGraphData(data)
       this.cuboidCount = data.total_indexes
@@ -710,7 +707,18 @@ export default class ModelAggregate extends Vue {
     }
   }
   get getDataRange () {
-    return this.dataRange ? transToServerGmtTime(this.dataRange[0]) + this.$t('to') + transToServerGmtTime(this.dataRange[1]) : ''
+    if (this.dataRange) {
+      if (this.isFullLoaded && this.dataRange[0] === 0 && this.dataRange[1] === 9223372036854776000) {
+        return this.$t('kylinLang.dataSource.full')
+      } else if (!this.dataRange[0] && !this.dataRange[1]) {
+        return this.$t('noDataRange')
+      } else {
+        return transToServerGmtTime(this.dataRange[0]) + this.$t('to') + transToServerGmtTime(this.dataRange[1])
+      }
+    } else {
+      return ''
+    }
+    // return this.dataRange ? transToServerGmtTime(this.dataRange[0]) + this.$t('to') + transToServerGmtTime(this.dataRange[1]) : ''
   }
   get noDataNum () {
     let nodeNum = 0

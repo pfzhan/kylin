@@ -34,9 +34,9 @@
             <el-tag size="mini" :type="getTagType(scope.row)">{{scope.row.status_to_display}}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="last_modified" show-overflow-tooltip :label="$t('modifyTime')">
+        <el-table-column prop="last_modified_time" show-overflow-tooltip :label="$t('modifyTime')">
           <template slot-scope="scope">
-            <span>{{scope.row.last_build_time | toServerGMTDate}}</span>
+            <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('sourceRecords')" align="right" prop="row_count" sortable="custom">
@@ -47,23 +47,19 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10"
-        layout="prev, pager, next"
         :background="false"
         :curPage="pagination.page_offset+1"
         :totalSize="totalSegmentCount"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <div class="ksd-fleft">
-          <el-alert
-            class="ksd-ptb-0 ksd-mt-5"
-            :title="$t('cannotBuildTips')"
-            type="info"
-            :show-background="false"
-            :closable="false"
-            v-if="!refrashWarningSegment"
-            show-icon>
-          </el-alert>
+        <div class="ksd-fleft" v-if="!refrashWarningSegment&&!isRemoveIndex&&!isFullLoadModel">
+          <el-checkbox v-model="parallel_build_by_segment">
+            <span>{{$t('parallelBuild')}}</span>
+            <common-tip placement="top" :content="$t('parallelBuildTip')">
+              <span class='el-icon-ksd-what'></span>
+            </common-tip>
+          </el-checkbox>
         </div>
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" @click="submit" :disabled="!selectedSegments.length" :loading="btnLoading" size="medium">{{submitText}}</el-button>
@@ -137,6 +133,7 @@ export default class ConfirmSegmentModal extends Vue {
   selectedSegmentIds = []
   totalSegmentCount = 0
   btnLoading = false
+  parallel_build_by_segment = false
   get emptyText () {
     return this.$t('noSegmentList')
   }
@@ -172,6 +169,9 @@ export default class ConfirmSegmentModal extends Vue {
   segmentTime (row, data) {
     const isFullLoad = row.segRange.date_range_start === 0 && row.segRange.date_range_end === 9223372036854776000
     return isFullLoad ? this.$t('kylinLang.common.fullLoad') : data
+  }
+  get isFullLoadModel () {
+    return !(this.model.partition_desc && this.model.partition_desc.partition_date_column)
   }
   // 更改不同状态对应不同type
   getTagType (row) {
@@ -249,7 +249,8 @@ export default class ConfirmSegmentModal extends Vue {
             data: {
               project: this.currentSelectedProject,
               segment_ids: this.selectedSegmentIds,
-              index_ids: this.indexes
+              index_ids: this.indexes,
+              parallel_build_by_segment: this.parallel_build_by_segment
             }
           })
           const data = await handleSuccessAsync(res)
@@ -273,7 +274,8 @@ export default class ConfirmSegmentModal extends Vue {
             modelId: this.model.uuid,
             data: {
               project: this.currentSelectedProject,
-              segment_ids: this.selectedSegmentIds
+              segment_ids: this.selectedSegmentIds,
+              parallel_build_by_segment: this.parallel_build_by_segment
             }
           })
           const data = await handleSuccessAsync(res)

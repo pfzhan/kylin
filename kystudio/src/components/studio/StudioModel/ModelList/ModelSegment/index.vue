@@ -76,9 +76,9 @@
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="last_modified" show-overflow-tooltip :label="$t('modifyTime')">
+        <el-table-column prop="last_modified_time" show-overflow-tooltip :label="$t('modifyTime')">
           <template slot-scope="scope">
-            <span>{{scope.row.last_build_time | toServerGMTDate}}</span>
+            <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('sourceRecords')" align="right" prop="row_count" sortable="custom">
@@ -102,7 +102,6 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10"
-        layout="prev, pager, next"
         :background="false"
         :curPage="pagination.page_offset+1"
         :totalSize="totalSegmentCount"
