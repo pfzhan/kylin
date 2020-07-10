@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
@@ -111,6 +112,11 @@ public class NDataSegmentResponse extends NDataSegment {
 
         @JsonProperty("input_records")
         private long inputRecords;
+    }
+
+    @JsonGetter("last_modified_time")
+    public long lastModifiedTime() {
+        return getLastBuildTime() != 0 ? getLastBuildTime() : getCreateTime();
     }
 
 }
