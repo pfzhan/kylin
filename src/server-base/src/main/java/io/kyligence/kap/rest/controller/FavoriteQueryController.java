@@ -81,7 +81,7 @@ public class FavoriteQueryController extends NBasicController {
                 favoriteQueryService.createFavoriteQuery(request.getProject(), request), "");
     }
 
-    @ApiOperation(value = "listFavoriteQuery (update)", notes = "Update Param: sort_by; Update Response: total_size")
+    @ApiOperation(value = "listFavoriteQuery", notes = "Update Param: sort_by; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<FavoriteQuery>>> listFavoriteQuery(
@@ -141,7 +141,7 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "acceptAccelerate (update)", notes = "Update Param: accelerate_size")
+    @ApiOperation(value = "acceptAccelerate", notes = "Update Param: accelerate_size")
     @PutMapping(value = "/accept")
     @ResponseBody
     public EnvelopeResponse<String> acceptAccelerate(@RequestParam(value = "project") String project,
@@ -154,7 +154,7 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "ignoreAccelerate (update)", notes = "Update Param: ignore_size")
+    @ApiOperation(value = "ignoreAccelerate", notes = "Update Param: ignore_size")
     @PutMapping(value = "/ignore")
     @ResponseBody
     public EnvelopeResponse<String> ignoreAccelerate(@RequestParam(value = "project") String project,
@@ -165,7 +165,7 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getBlacklist (update)", notes = "Update Response: total_size")
+    @ApiOperation(value = "getBlacklist", notes = "Update Response: total_size")
     @GetMapping(value = "/blacklist")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<FavoriteRule.SQLCondition>>> getBlacklist(
@@ -178,7 +178,7 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(blacklistSqls, offset, limit), "");
     }
 
-    @ApiOperation(value = "removeBlacklistSql (update)", notes = "Add URL: {id}; Update Param: id")
+    @ApiOperation(value = "removeBlacklistSql", notes = "Add URL: {id}; Update Param: id")
     @DeleteMapping(value = "/blacklist/{id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeBlacklistSql(@PathVariable("id") String id,
@@ -200,7 +200,7 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, (String) data.get("msg"));
     }
 
-    @ApiOperation(value = "sqlValidate (update)", notes = "Update Response: incapable_reason, sql_advices")
+    @ApiOperation(value = "sqlValidate", notes = "Update Response: incapable_reason, sql_advices")
     @PutMapping(value = "/sql_validation")
     @ResponseBody
     public EnvelopeResponse<SQLValidateResponse> sqlValidate(@RequestBody SQLValidateRequest request) {

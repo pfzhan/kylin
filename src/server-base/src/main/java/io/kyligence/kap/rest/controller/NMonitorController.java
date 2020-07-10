@@ -59,7 +59,7 @@ public class NMonitorController extends NBasicController {
     @Qualifier("monitorService")
     private MonitorService monitorService;
 
-    @ApiOperation(value = "getMemoryMetrics (update)", notes = "Update URL: memory_info")
+    @ApiOperation(value = "getMemoryMetrics", notes = "Update URL: memory_info")
     @GetMapping(value = "/memory_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorMemoryResponse>> getMemoryMetrics() {
@@ -67,7 +67,7 @@ public class NMonitorController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, parseToMemoryResponse(memorySnapshotMap), "");
     }
 
-    @ApiOperation(value = "getThreadInfoMetrics (update)", notes = "Update URL: thread_info")
+    @ApiOperation(value = "getThreadInfoMetrics", notes = "Update URL: thread_info")
     @GetMapping(value = "/thread_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorThreadInfoResponse>> getThreadInfoMetrics() {

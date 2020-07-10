@@ -52,7 +52,7 @@ import io.swagger.annotations.ApiOperation;
 @RequestMapping(value = "/api/admin", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NAdminController extends NBasicController {
 
-    @ApiOperation(value = "getPublicConfig (update)", notes = "Update Param: project_name")
+    @ApiOperation(value = "getPublicConfig", notes = "Update Param: project_name")
     @GetMapping(value = "/public_config")
     @ResponseBody
     public EnvelopeResponse<String> getPublicConfig() throws IOException {

@@ -889,7 +889,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBatchSaveModels() throws Exception {
         ModelRequest request = new ModelRequest();
-        Mockito.doNothing().when(modelService).batchCreateModel("gc_test", Mockito.spy(Lists.newArrayList(request)));
+        Mockito.doNothing().when(modelService).batchCreateModel("gc_test", Mockito.spy(Lists.newArrayList(request)), Lists.newArrayList());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/batch_save_models").param("project", "gc_test")
                 .contentType(MediaType.APPLICATION_JSON)

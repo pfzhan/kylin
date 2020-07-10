@@ -125,7 +125,6 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -1095,7 +1094,6 @@ public class ModelService extends BasicService {
             }
             modelUpdate.setManagementType(ManagementType.MODEL_BASED);
             dataModelManager.updateDataModelDesc(modelUpdate);
-            return;
         }
     }
 
@@ -1322,29 +1320,31 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void batchCreateModel(String project, List<ModelRequest> modelRequests) {
+    public void batchCreateModel(String project, List<ModelRequest> modelRequests,
+            List<OptimizeRecommendationRequest> recommendations) {
         aclEvaluate.checkProjectWritePermission(project);
         checkDuplicateAliasInModelRequests(modelRequests);
         for (ModelRequest modelRequest : modelRequests) {
             validatePartitionDateColumn(modelRequest);
-
             modelRequest.setProject(project);
-            modelRequest.setSimplifiedDimensions(modelRequest.getDimensions());
-
-            List<NDataModel.Measure> allMeasures = modelRequest.getAllMeasures();
-            List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
-            for (NDataModel.Measure measure : allMeasures) {
-                SimplifiedMeasure simplifiedMeasure = SimplifiedMeasure.fromMeasure(measure);
-                simplifiedMeasures.add(simplifiedMeasure);
-            }
-            modelRequest.setSimplifiedMeasures(simplifiedMeasures);
             doCheckBeforeModelSave(project, modelRequest);
         }
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (ModelRequest modelRequest : modelRequests) {
-                if (modelRequest.getIndexPlan() != null) {
-                    saveModelAndIndexInMem(modelRequest, modelRequest.getIndexPlan(), modelRequest.getProject());
+            if (CollectionUtils.isNotEmpty(modelRequests)) {
+                for (ModelRequest modelRequest : modelRequests) {
+                    if (modelRequest.getIndexPlan() != null) {
+                        saveModelAndIndexInMem(JsonUtil.deepCopyQuietly(modelRequest, NDataModel.class),
+                                modelRequest.getIndexPlan(), modelRequest.getProject());
+                    }
+                }
+            }
+            if (CollectionUtils.isNotEmpty(recommendations)) {
+                for (OptimizeRecommendationRequest request : recommendations) {
+                    request.setUuid(request.getModelId());
+                    OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(
+                            KylinConfig.getInstanceFromEnv(), project, request);
+                    verifier.verifyAll();
                 }
             }
             return null;
@@ -1401,28 +1401,6 @@ public class ModelService extends BasicService {
         }
 
         return CollectionUtils.isNotEmpty(couldAnsweredByExistedModels(project, sqls));
-    }
-
-    @Transaction(project = 0)
-    public void approveSuggestModel(String project, List<ModelRequest> newModels,
-            List<OptimizeRecommendationRequest> recommendationRequests) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
-
-        if (CollectionUtils.isNotEmpty(newModels)) {
-            for (ModelRequest request : newModels) {
-                request.setProject(project);
-                ((ModelService) AopContext.currentProxy()).createModel(project, request);
-            }
-        }
-
-        if (CollectionUtils.isNotEmpty(recommendationRequests)) {
-            for (OptimizeRecommendationRequest request : recommendationRequests) {
-                request.setUuid(request.getModelId());
-                OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(
-                        KylinConfig.getInstanceFromEnv(), project, request);
-                verifier.verifyAll();
-            }
-        }
     }
 
     public NRecomendationListResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
@@ -1544,7 +1522,6 @@ public class ModelService extends BasicService {
         validatePartitionDateColumn(modelRequest);
 
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
-        preProcessBeforeModelSave(dataModel, project, modelRequest);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -2198,14 +2175,14 @@ public class ModelService extends BasicService {
      * @param initedModel
      * @param modelRequest
      */
-    public void preProcessBeforeInitedModelSave(NDataModel initedModel, @Nullable ModelRequest modelRequest) {
+    private void preProcessBeforeInitedModelSave(NDataModel initedModel, @Nullable ModelRequest modelRequest) {
         if (Objects.isNull(modelRequest)) {
             return;
         }
         semanticUpdater.convertNonEquiJoinCond(initedModel, modelRequest);
     }
 
-    public void preProcessBeforeModelSave(NDataModel model, String project, @Nullable ModelRequest modelRequest) {
+    void preProcessBeforeModelSave(NDataModel model, String project, @Nullable ModelRequest modelRequest) {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
 

@@ -148,7 +148,7 @@ public class NUserController extends NBasicController {
         CreateAdminUserUtils.createAllAdmins(userService, env);
     }
 
-    @ApiOperation(value = "createUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @ApiOperation(value = "createUser", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -179,7 +179,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @ApiOperation(value = "updateUser", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
     @PutMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -242,7 +242,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "listAllUsers (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "listAllUsers", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

@@ -123,7 +123,7 @@ public class NProjectController extends NBasicController {
     @Qualifier("modelService")
     private ModelService modelService;
 
-    @ApiOperation(value = "getProjects (update)", notes = "Update Param: page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getProjects", notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ProjectInstance>>> getProjects(
@@ -148,7 +148,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "backupProject (check)", notes = "Update URL, {project}")
+    @ApiOperation(value = "backupProject", notes = "Update URL, {project}")
     @PostMapping(value = "/{project:.+}/backup")
     @ResponseBody
     public EnvelopeResponse<String> backupProject(@PathVariable("project") String project) throws Exception {
@@ -156,7 +156,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
     }
 
-    @ApiOperation(value = "saveProject (update)", notes = "Update Param: former_project_name, project_desc_data")
+    @ApiOperation(value = "saveProject", notes = "Update Param: former_project_name, project_desc_data")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<ProjectInstance> saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
@@ -187,7 +187,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createdProj, "");
     }
 
-    @ApiOperation(value = "updateDefaultDatabase (update)", notes = "Add URL: {project}; Update Param: default_database;")
+    @ApiOperation(value = "updateDefaultDatabase", notes = "Add URL: {project}; Update Param: default_database;")
     @PutMapping(value = "/{project:.+}/default_database")
     @ResponseBody
     public EnvelopeResponse updateDefaultDatabase(@PathVariable("project") String project,
@@ -198,7 +198,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateQueryAccelerateThresholdConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateQueryAccelerateThresholdConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/query_accelerate_threshold")
     @ResponseBody
     public EnvelopeResponse<String> updateQueryAccelerateThresholdConfig(@PathVariable("project") String project,
@@ -212,7 +212,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getQueryAccelerateThresholdConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "getQueryAccelerateThresholdConfig", notes = "Add URL: {project}; ")
     @GetMapping(value = "/{project:.+}/query_accelerate_threshold")
     @ResponseBody
     public EnvelopeResponse<FavoriteQueryThresholdResponse> getQueryAccelerateThresholdConfig(
@@ -221,7 +221,7 @@ public class NProjectController extends NBasicController {
                 projectService.getQueryAccelerateThresholdConfig(project), "");
     }
 
-    @ApiOperation(value = "getStorageVolumeInfo (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "getStorageVolumeInfo", notes = "Add URL: {project}; ")
     @GetMapping(value = "/{project:.+}/storage_volume_info")
     @ResponseBody
     public EnvelopeResponse<StorageVolumeInfoResponse> getStorageVolumeInfo(
@@ -231,7 +231,7 @@ public class NProjectController extends NBasicController {
                 "");
     }
 
-    @ApiOperation(value = "cleanupProjectStorage (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "cleanupProjectStorage", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/storage")
     @ResponseBody
     public EnvelopeResponse<Boolean> cleanupProjectStorage(@PathVariable(value = "project") String project)
@@ -245,7 +245,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @ApiOperation(value = "updateStorageQuotaConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateStorageQuotaConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/storage_quota")
     @ResponseBody
     public EnvelopeResponse<Boolean> updateStorageQuotaConfig(@PathVariable(value = "project") String project,
@@ -256,7 +256,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @ApiOperation(value = "updateFavoriteRules (update)", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
+    @ApiOperation(value = "updateFavoriteRules", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
     @PutMapping(value = "/{project:.+}/favorite_rules")
     @ResponseBody
     public EnvelopeResponse<String> updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) {
@@ -288,7 +288,7 @@ public class NProjectController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "getFavoriteRules (update)", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
+    @ApiOperation(value = "getFavoriteRules", notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
     @GetMapping(value = "/{project:.+}/favorite_rules")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@PathVariable(value = "project") String project) {
@@ -297,7 +297,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
     }
 
-    @ApiOperation(value = "updateShardNumConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateShardNumConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/shard_num_config")
     @ResponseBody
     public EnvelopeResponse<String> updateShardNumConfig(@PathVariable("project") String project,
@@ -306,7 +306,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getShardNumConfig(project), "");
     }
 
-    @ApiOperation(value = "updateGarbageCleanupConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateGarbageCleanupConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/garbage_cleanup_config")
     @ResponseBody
     public EnvelopeResponse updateGarbageCleanupConfig(@PathVariable("project") String project,
@@ -317,7 +317,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @ApiOperation(value = "updateJobNotificationConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateJobNotificationConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/job_notification_config")
     @ResponseBody
     public EnvelopeResponse<String> updateJobNotificationConfig(@PathVariable("project") String project,
@@ -331,7 +331,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updatePushDownConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updatePushDownConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/push_down_config")
     @ResponseBody
     public EnvelopeResponse<String> updatePushDownConfig(@PathVariable("project") String project,
@@ -341,7 +341,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateSCD2Config (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateSCD2Config", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/scd2_config")
     @ResponseBody
     public EnvelopeResponse<String> updateSCD2Config(@PathVariable("project") String project,
@@ -351,7 +351,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updatePushDownProjectConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updatePushDownProjectConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/push_down_project_config")
     @ResponseBody
     public EnvelopeResponse<String> updatePushDownProjectConfig(@PathVariable("project") String project,
@@ -362,7 +362,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateExposeComputedColumnConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateExposeComputedColumnConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/computed_column_config")
     @ResponseBody
     public EnvelopeResponse<String> updatePushDownConfig(@PathVariable("project") String project,
@@ -372,7 +372,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateSegmentConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateSegmentConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/segment_config")
     @ResponseBody
     public EnvelopeResponse<String> updateSegmentConfig(@PathVariable("project") String project,
@@ -383,7 +383,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateProjectGeneralInfo (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateProjectGeneralInfo", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/project_general_info")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectGeneralInfo(@PathVariable("project") String project,
@@ -395,14 +395,14 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getProjectConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "getProjectConfig", notes = "Add URL: {project}; ")
     @GetMapping(value = "/{project:.+}/project_config")
     @ResponseBody
     public EnvelopeResponse<ProjectConfigResponse> getProjectConfig(@PathVariable(value = "project") String project) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
     }
 
-    @ApiOperation(value = "resetProjectConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "resetProjectConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/project_config")
     @ResponseBody
     public EnvelopeResponse<ProjectConfigResponse> resetProjectConfig(@PathVariable("project") String project,
@@ -412,7 +412,7 @@ public class NProjectController extends NBasicController {
                 projectService.resetProjectConfig(project, projectConfigResetRequest.getResetItem()), "");
     }
 
-    @ApiOperation(value = "setDataSourceType (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "setDataSourceType", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/source_type")
     @ResponseBody
     public EnvelopeResponse<String> setDataSourceType(@PathVariable("project") String project,
@@ -422,7 +422,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateYarnQueue (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateYarnQueue", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/yarn_queue")
     @ResponseBody
     public EnvelopeResponse<String> updateYarnQueue(@PathVariable("project") String project,
@@ -433,7 +433,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateProjectKerberosInfo (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateProjectKerberosInfo", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/project_kerberos_info")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectKerberosInfo(@PathVariable("project") String project,
@@ -455,7 +455,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateProjectConfig (update)", notes = "Add URL: {project}; ")
+    @ApiOperation(value = "updateProjectConfig", notes = "Add URL: {project}; ")
     @PutMapping(value = "/{project:.+}/config")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectConfig(@PathVariable("project") String project,

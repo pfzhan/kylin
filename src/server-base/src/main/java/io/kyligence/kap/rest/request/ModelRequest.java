@@ -33,6 +33,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -57,9 +58,6 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
 
     @JsonProperty("end")
     private String end;
-
-    @JsonProperty("dimensions")
-    private List<NamedColumn> dimensions = Lists.newArrayList();
 
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
@@ -87,6 +85,22 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("join_tables")
     public List<SimplifiedJoinTableDesc> getSimplifiedJoinTableDescs() {
         return simplifiedJoinTableDescs;
+    }
+
+    @JsonSetter("dimensions")
+    public void setDimensions(List<NamedColumn> dimensions) {
+        setSimplifiedDimensions(dimensions);
+    }
+
+    @JsonSetter("all_measures")
+    public void setMeasures(List<Measure> measures) {
+        List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
+        for (NDataModel.Measure measure : measures) {
+            SimplifiedMeasure simplifiedMeasure = SimplifiedMeasure.fromMeasure(measure);
+            simplifiedMeasures.add(simplifiedMeasure);
+        }
+        setAllMeasures(measures);
+        setSimplifiedMeasures(simplifiedMeasures);
     }
 
     private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;

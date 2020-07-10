@@ -78,7 +78,7 @@ public class AclTCRController extends NBasicController {
     @Qualifier("accessService")
     private AccessService accessService;
 
-    @ApiOperation(value = "getProjectSidTCR (update)", notes = "Update URL: {project}; Update Param: project, authorized_only")
+    @ApiOperation(value = "getProjectSidTCR", notes = "Update URL: {project}; Update Param: project, authorized_only")
     @GetMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody
     public EnvelopeResponse<List<AclTCRResponse>> getProjectSidTCR(@PathVariable("sid_type") String sidType,
@@ -98,7 +98,7 @@ public class AclTCRController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "updateProject (update)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "updateProject", notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> updateProject(@PathVariable("sid_type") String sidType, //

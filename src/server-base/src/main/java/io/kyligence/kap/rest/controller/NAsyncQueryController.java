@@ -81,7 +81,7 @@ public class NAsyncQueryController extends NBasicController {
 
     ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @ApiOperation(value = "query (update)", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key; Update Response: query_id")
+    @ApiOperation(value = "query", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key; Update Response: query_id")
     @PostMapping(value = "/async_query")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
@@ -154,7 +154,7 @@ public class NAsyncQueryController extends NBasicController {
             throw new BadRequestException(msg.getCLEAN_FOLDER_FAIL());
     }
 
-    @ApiOperation(value = "query (update)", notes = "Update Response: query_id")
+    @ApiOperation(value = "query", notes = "Update Response: query_id")
     @GetMapping(value = "/async_query/{query_id:.+}/status")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@PathVariable("query_id") String queryId)
@@ -184,7 +184,7 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryResponse, "");
     }
 
-    @ApiOperation(value = "fileStatus (update)", notes = "Update URL: file_status")
+    @ApiOperation(value = "fileStatus", notes = "Update URL: file_status")
     @GetMapping(value = "/async_query/{query_id:.+}/file_status")
     @ResponseBody
     public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId) throws IOException {
@@ -199,7 +199,7 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryService.getMetaData(queryId), "");
     }
 
-    @ApiOperation(value = "downloadQueryResult (update)", notes = "Update URL: result")
+    @ApiOperation(value = "downloadQueryResult", notes = "Update URL: result")
     @GetMapping(value = "/async_query/{query_id:.+}/result")
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,

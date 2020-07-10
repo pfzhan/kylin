@@ -127,7 +127,7 @@ public class NTableController extends NBasicController {
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
 
-    @ApiOperation(value = "getTableDesc (update)", notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
+    @ApiOperation(value = "getTableDesc", notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse getTableDesc(@RequestParam(value = "ext", required = false) boolean withExt,
@@ -147,7 +147,7 @@ public class NTableController extends NBasicController {
                 "");
     }
 
-    @ApiOperation(value = "getProjectTables (update)", notes = "Update Param: is_fuzzy, page_offset, page_size")
+    @ApiOperation(value = "getProjectTables", notes = "Update Param: is_fuzzy, page_offset, page_size")
     @GetMapping(value = "/project_tables", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -166,7 +166,7 @@ public class NTableController extends NBasicController {
                 }), "");
     }
 
-    @ApiOperation(value = "unloadTable (update)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "unloadTable", notes = "Update URL: {project}; Update Param: project")
     @DeleteMapping(value = "/{database:.+}/{table:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -181,7 +181,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "prepareUnloadTable (update)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "prepareUnloadTable", notes = "Update URL: {project}; Update Param: project")
     @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -196,7 +196,7 @@ public class NTableController extends NBasicController {
     /**
      * set table partition key
      */
-    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update Body: partition_column_format")
+    @ApiOperation(value = "getUsersByGroup", notes = "Update Body: partition_column_format")
     @PostMapping(value = "/partition_key", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -219,7 +219,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "loadTables (update)", notes = "Update Body: data_source_type, need_sampling, sampling_rows")
+    @ApiOperation(value = "loadTables", notes = "Update Body: data_source_type, need_sampling, sampling_rows")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
@@ -273,7 +273,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "refreshSegments (update)", notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
+    @ApiOperation(value = "refreshSegments", notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
     @PutMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
@@ -364,7 +364,7 @@ public class NTableController extends NBasicController {
      * @return String[]
      * @throws IOException
      */
-    @ApiOperation(value = "showTables (update)", notes = "Update Param: data_source_type, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "showTables", notes = "Update Param: data_source_type, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/names")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableNameResponse>>> showTables(
@@ -379,7 +379,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tables, offset, limit), "");
     }
 
-    @ApiOperation(value = "showProjectTableNames (update)", notes = "Update Param: data_source_type, page_offset, page_size")
+    @ApiOperation(value = "showProjectTableNames", notes = "Update Param: data_source_type, page_offset, page_size")
     @GetMapping(value = "/project_table_names")
     @ResponseBody
     public EnvelopeResponse<NInitTablesResponse> showProjectTableNames(@RequestParam(value = "project") String project,
@@ -394,7 +394,7 @@ public class NTableController extends NBasicController {
                 }), "");
     }
 
-    @ApiOperation(value = "getTablesAndColomns (update)", notes = "Update Param: page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getTablesAndColomns", notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/simple_table")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TablesAndColumnsResponse>>> getTablesAndColomns(
@@ -423,7 +423,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update Body: pushdown_range_limited")
+    @ApiOperation(value = "getUsersByGroup", notes = "Update Body: pushdown_range_limited")
     @PutMapping(value = "/pushdown_mode")
     @ResponseBody
     public EnvelopeResponse<String> setPushdownMode(@RequestBody PushDownModeRequest pushDownModeRequest) {
@@ -464,7 +464,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "updateAutoMergeConfig (update)", notes = "Update Body: auto_merge_enabled, auto_merge_time_ranges, volatile_range_number, volatile_range_enabled, volatile_range_type")
+    @ApiOperation(value = "updateAutoMergeConfig", notes = "Update Body: auto_merge_enabled, auto_merge_time_ranges, volatile_range_number, volatile_range_enabled, volatile_range_type")
     @PutMapping(value = "/auto_merge_config")
     @ResponseBody
     public EnvelopeResponse<String> updateAutoMergeConfig(@RequestBody AutoMergeRequest autoMergeRequest) {
@@ -496,7 +496,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "hasSamplingJob (update)", notes = "Update Param: qualified_table_name")
+    @ApiOperation(value = "hasSamplingJob", notes = "Update Param: qualified_table_name")
     @GetMapping(value = "/sampling_check_result")
     @ResponseBody
     public EnvelopeResponse<Boolean> hasSamplingJob(@RequestParam(value = "project") String project,
@@ -566,7 +566,7 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "reloadHiveTableName (update)", notes = "Update URL: table_name")
+    @ApiOperation(value = "reloadHiveTableName", notes = "Update URL: table_name")
     @GetMapping(value = "/reload_hive_table_name")
     @ResponseBody
     public EnvelopeResponse<NHiveTableNameResponse> reloadHiveTablename(

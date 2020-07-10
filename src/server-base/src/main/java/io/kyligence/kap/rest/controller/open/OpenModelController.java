@@ -318,7 +318,7 @@ public class OpenModelController extends NBasicController {
             return modelRequest;
         }).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(modelRequests)) {
-            modelService.batchCreateModel(request.getProject(), modelRequests);
+            modelService.batchCreateModel(request.getProject(), modelRequests, Lists.newArrayList());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 OpenNRecommendationListResponse.convert(nRecomendationListResponse), "");
@@ -336,7 +336,7 @@ public class OpenModelController extends NBasicController {
                 return modelRequest;
             }).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(modelRequests)) {
-                modelService.batchCreateModel(request.getProject(), modelRequests);
+                modelService.batchCreateModel(request.getProject(), modelRequests, Lists.newArrayList());
             }
 
             result = OpenModelSuggestionResponse.convert(nRecomendationListResponse.getNewModels());
@@ -415,7 +415,7 @@ public class OpenModelController extends NBasicController {
         return modelController.deleteModel(modelId, project);
     }
 
-    @ApiOperation(value = "check segment range (check)")
+    @ApiOperation(value = "check segment range")
     @PostMapping(value = "/{model:.+}/segments/check")
     @ResponseBody
     public EnvelopeResponse<CheckSegmentResponse> checkSegments(@PathVariable("model") String modelName,

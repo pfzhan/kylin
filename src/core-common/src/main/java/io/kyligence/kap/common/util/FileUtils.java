@@ -32,12 +32,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.util.OrderedProperties;
 
 import com.google.common.base.Preconditions;
 
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
+import lombok.val;
 
 public final class FileUtils {
     public static File findFile(String dir, String ptn) {
@@ -68,12 +68,12 @@ public final class FileUtils {
             byte[] buffer = new byte[(int) file.length()];
             final int read = inputFile.read(buffer);
             Preconditions.checkState(read != -1);
-            return new BASE64Encoder().encode(buffer);
+            return Base64.encodeBase64String(buffer);
         }
     }
 
     public static void decoderBase64File(String base64Code, String targetPath) throws Exception {
-        byte[] buffer = new BASE64Decoder().decodeBuffer(base64Code);
+        val buffer = Base64.decodeBase64(base64Code);
         try (FileOutputStream out = new FileOutputStream(targetPath)) {
             out.write(buffer);
         }

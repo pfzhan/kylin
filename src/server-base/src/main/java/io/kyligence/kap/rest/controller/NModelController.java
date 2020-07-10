@@ -69,6 +69,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -146,7 +147,7 @@ public class NModelController extends NBasicController {
     @Qualifier("optimizeRecommendationService")
     private OptimizeRecommendationService optimizeRecommendationService;
 
-    @ApiOperation(value = "getModels (update){Red}", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getModels{Red}", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(
@@ -177,7 +178,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(models, offset, limit), "");
     }
 
-    @ApiOperation(value = "offlineAllModelsInProject (update)(check)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "offlineAllModelsInProject", notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/disable_all_models")
     @ResponseBody
     public EnvelopeResponse<String> offlineAllModelsInProject(@RequestParam("project") String project) {
@@ -186,7 +187,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "offlineAllModelsInProject (update)(check)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "offlineAllModelsInProject", notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/enable_all_models")
     @ResponseBody
     public EnvelopeResponse<String> onlineAllModelsInProject(@RequestParam("project") String project) {
@@ -211,7 +212,8 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "batchSaveModels (update)(check)", notes = "Update URL: {project}; Update Param: project")
+    @Deprecated
+    @ApiOperation(value = "batchSaveModels", notes = "Update URL: {project}; Update Param: project")
     @PostMapping(value = "/batch_save_models")
     @ResponseBody
     public EnvelopeResponse<String> batchSaveModels(@RequestParam("project") String project,
@@ -219,14 +221,14 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         try {
-            modelService.batchCreateModel(project, modelRequests);
+            modelService.batchCreateModel(project, modelRequests, Lists.newArrayList());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
         }
     }
 
-    @ApiOperation(value = "suggestModel (check)", notes = "; need check")
+    @ApiOperation(value = "suggestModel", notes = "")
     @PostMapping(value = "/suggest_model")
     @ResponseBody
     public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody SqlAccerelateRequest request) {
@@ -236,15 +238,20 @@ public class NModelController extends NBasicController {
                 modelService.suggestModel(request.getProject(), request.getSqls(), request.getReuseExistedModel()), "");
     }
 
-    @ApiOperation(value = "suggestModel (check)", notes = "; need check")
+    @ApiOperation(value = "suggestModel", notes = "")
     @PostMapping(value = "/model_recommendation")
     @ResponseBody
     public EnvelopeResponse<String> approveSuggestModel(@RequestBody NRecommendationListRequest request)
             throws Exception {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
-        modelService.approveSuggestModel(request.getProject(), request.getNewModels(), request.getRecommendations());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+//        modelService.approveSuggestModel(request.getProject(), request.getNewModels(), request.getRecommendations());
+        try {
+            modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getRecommendations());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        } catch (LookupTableException e) {
+            throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
+        }
     }
 
     /**
@@ -254,7 +261,7 @@ public class NModelController extends NBasicController {
      * @return
      * @throws Exception
      */
-    @ApiOperation(value = "validateModelAlias (check)", notes = "")
+    @ApiOperation(value = "validateModelAlias", notes = "")
     @PostMapping(value = "/validate_model")
     @ResponseBody
     public EnvelopeResponse<Boolean> validateModelAlias(@RequestBody ModelRequest modelRequest) {
@@ -265,7 +272,7 @@ public class NModelController extends NBasicController {
                 "");
     }
 
-    @ApiOperation(value = "checkIfCanAnsweredByExistedModel (check)", notes = "")
+    @ApiOperation(value = "checkIfCanAnsweredByExistedModel", notes = "")
     @PostMapping(value = "/can_answered_by_existed_model")
     @ResponseBody
     public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
@@ -282,7 +289,7 @@ public class NModelController extends NBasicController {
      * @return
      * @throws Exception
      */
-    @ApiOperation(value = "listScd2Model (check)", notes = "")
+    @ApiOperation(value = "listScd2Model", notes = "")
     @GetMapping(value = "name/scd2")
     @ResponseBody
     public EnvelopeResponse<List<String>> listScd2Model(@RequestParam("project") String project,
@@ -295,7 +302,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, scd2ModelsOnline, "");
     }
 
-    @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "getLatestData", notes = "Update URL: {model}")
     @GetMapping(value = "/{model:.+}/data_range/latest_data")
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@PathVariable(value = "model") String modelId,
@@ -303,7 +310,7 @@ public class NModelController extends NBasicController {
         return getPartitionLatestData(project, modelId, null);
     }
 
-    @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "getLatestData", notes = "Update URL: {model}")
     @PostMapping(value = "/{model:.+}/data_range/latest_data")
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getPartitionLatestData(
@@ -327,7 +334,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "getAggIndices (update)", notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getAggIndices", notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "/{model:.+}/agg_indices")
     @ResponseBody
     public EnvelopeResponse<IndicesResponse> getAggIndices(@PathVariable(value = "model") String modelId,
@@ -346,7 +353,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "updateAggIndicesShardColumns (update)", notes = "Update URL: model;Update Param: model_id")
+    @ApiOperation(value = "updateAggIndicesShardColumns", notes = "Update URL: model;Update Param: model_id")
     @PostMapping(value = "/{model:.+}/agg_indices/shard_columns")
     @ResponseBody
     public EnvelopeResponse<String> updateAggIndicesShardColumns(@PathVariable("model") String modelId,
@@ -358,7 +365,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getAggIndicesShardColumns (update)", notes = "Update URL: model; Update Response: model_id")
+    @ApiOperation(value = "getAggIndicesShardColumns", notes = "Update URL: model; Update Response: model_id")
     @GetMapping(value = "/{model:.+}/agg_indices/shard_columns")
     @ResponseBody
     public EnvelopeResponse<AggShardByColumnsResponse> getAggIndicesShardColumns(
@@ -370,7 +377,7 @@ public class NModelController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "getTableIndices (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "getTableIndices", notes = "Update URL: {model}")
     @GetMapping(value = "/{model:.+}/table_indices")
     @ResponseBody
     public EnvelopeResponse<IndicesResponse> getTableIndices(@PathVariable(value = "model") String modelId,
@@ -380,7 +387,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getTableIndices(modelId, project), "");
     }
 
-    @ApiOperation(value = "buildIndicesManually (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "buildIndicesManually", notes = "Update URL: {model}")
     @PostMapping(value = "/{model:.+}/indices")
     @ResponseBody
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model") String modelId,
@@ -394,7 +401,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "getModelJson (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "getModelJson", notes = "Update URL: {model}")
     @GetMapping(value = "/{model:.+}/json")
     @ResponseBody
     public EnvelopeResponse<String> getModelJson(@PathVariable(value = "model") String modelId,
@@ -410,7 +417,7 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "getModelSql (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "getModelSql", notes = "Update URL: {model}")
     @GetMapping(value = "{model:.+}/sql")
     @ResponseBody
     public EnvelopeResponse<String> getModelSql(@PathVariable(value = "model") String modelId,
@@ -427,7 +434,7 @@ public class NModelController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "getModelRelations (update)", notes = "Update URL: {model}")
+    @ApiOperation(value = "getModelRelations", notes = "Update URL: {model}")
     @GetMapping(value = "{model:.+}/relations")
     @ResponseBody
     public EnvelopeResponse<List<NSpanningTreeForWeb>> getModelRelations(@PathVariable(value = "model") String modelId,
@@ -499,7 +506,7 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "updateModelName (update)", notes = "Update Body: model_id, new_model_name")
+    @ApiOperation(value = "updateModelName", notes = "Update Body: model_id, new_model_name")
     @PutMapping(value = "/{model:.+}/name")
     @ResponseBody
     public EnvelopeResponse<String> updateModelName(@PathVariable("model") String modelId,
@@ -516,7 +523,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateModelStatus (update)", notes = "Update Body: model_id, new_model_name")
+    @ApiOperation(value = "updateModelStatus", notes = "Update Body: model_id, new_model_name")
     @PutMapping(value = "/{model:.+}/status")
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model") String modelId,
@@ -527,7 +534,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "unlinkModel (update)", notes = "Update Body: model_id")
+    @ApiOperation(value = "unlinkModel", notes = "Update Body: model_id")
     @PutMapping(value = "/{model:.+}/management_type")
     @ResponseBody
     public EnvelopeResponse<String> unlinkModel(@PathVariable("model") String modelId,
@@ -538,7 +545,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "deleteModel (update)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "deleteModel", notes = "Update URL: {project}; Update Param: project")
     @DeleteMapping(value = "/{model:.+}")
     @ResponseBody
     public EnvelopeResponse<String> deleteModel(@PathVariable("model") String model,
@@ -548,7 +555,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getPurgeModelAffectedResponse (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "getPurgeModelAffectedResponse", notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/purge_effect")
     @ResponseBody
     public EnvelopeResponse<PurgeModelAffectedResponse> getPurgeModelAffectedResponse(
@@ -559,7 +566,7 @@ public class NModelController extends NBasicController {
                 modelService.getPurgeModelAffectedResponse(project, model), "");
     }
 
-    @ApiOperation(value = "cloneModel (update)(check)", notes = "Add URL: {model}; Update Param: new_model_name")
+    @ApiOperation(value = "cloneModel", notes = "Add URL: {model}; Update Param: new_model_name")
     @PostMapping(value = "/{model:.+}/clone")
     @ResponseBody
     public EnvelopeResponse<String> cloneModel(@PathVariable("model") String modelId,
@@ -576,7 +583,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "checkComputedColumns (check)", notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
+    @ApiOperation(value = "checkComputedColumns", notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
     @PostMapping(value = "/computed_columns/check")
     @ResponseBody
     public EnvelopeResponse<ComputedColumnDesc> checkComputedColumns(
@@ -600,7 +607,7 @@ public class NModelController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "updateModelDataCheckDesc (check)", notes = "URL, front end Deprecated")
+    @ApiOperation(value = "updateModelDataCheckDesc", notes = "URL, front end Deprecated")
     @PutMapping(value = "/{model:.+}/data_check")
     @ResponseBody
     public EnvelopeResponse<String> updateModelDataCheckDesc(@PathVariable("model") String modelId,
@@ -611,7 +618,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getModelConfig (update)", notes = "Update Param: model_name, page_offset, page_size")
+    @ApiOperation(value = "getModelConfig", notes = "Update Param: model_name, page_offset, page_size")
     @GetMapping(value = "/config")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ModelConfigResponse>>> getModelConfig(
@@ -633,7 +640,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "getOptimizeRecommendations (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "getOptimizeRecommendations", notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<OptRecommendationResponse> getOptimizeRecommendations(
@@ -646,7 +653,7 @@ public class NModelController extends NBasicController {
                 optimizeRecommendationService.getRecommendationByModel(project, modelId, sources), "");
     }
 
-    @ApiOperation(value = "applyOptimizeRecommendations (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "applyOptimizeRecommendations", notes = "Add URL: {model}")
     @PutMapping(value = "/{model:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<String> applyOptimizeRecommendations(@PathVariable("model") String modelId,
@@ -659,7 +666,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "removeOptimizeRecommendations (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "removeOptimizeRecommendations", notes = "Add URL: {model}")
     @DeleteMapping(value = "/{model:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<String> removeOptimizeRecommendations(@PathVariable(value = "model") String modelId,
@@ -702,7 +709,7 @@ public class NModelController extends NBasicController {
         return recommendationItems.stream().map(RecommendationItem::getItemId).collect(Collectors.toList());
     }
 
-    @ApiOperation(value = "getLayoutRecommendationContent (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "getLayoutRecommendationContent", notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/recommendations/index")
     @ResponseBody
     public EnvelopeResponse<LayoutRecommendationDetailResponse> getLayoutRecommendationContent(
@@ -718,7 +725,7 @@ public class NModelController extends NBasicController {
                 .getLayoutRecommendationContent(project, modelId, content, itemId, offset, limit), "");
     }
 
-    @ApiOperation(value = "getRecommendationsByProject (update){Red}", notes = "Del URL: project")
+    @ApiOperation(value = "getRecommendationsByProject{Red}", notes = "Del URL: project")
     @GetMapping(value = "/recommendations")
     @ResponseBody
     public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
@@ -750,7 +757,7 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "checkBeforeModelSave (check)")
+    @ApiOperation(value = "checkBeforeModelSave")
     @PostMapping(value = "/model_save/check")
     @ResponseBody
     public EnvelopeResponse<ModelSaveCheckResponse> checkBeforeModelSave(@RequestBody ModelRequest modelRequest) {
@@ -770,7 +777,7 @@ public class NModelController extends NBasicController {
     }
 
     /* Segments */
-    @ApiOperation(value = "getSegments (update)", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getSegments", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
@@ -793,7 +800,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
     }
 
-    @ApiOperation(value = "fixSegmentsManually (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "fixSegmentsManually", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/segment_holes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> fixSegHoles(@PathVariable("model") String modelId,
@@ -808,7 +815,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "checkSegments (check)")
+    @ApiOperation(value = "checkSegments")
     @PostMapping(value = "/{model:.+}/segment/validation")
     @ResponseBody
     public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
@@ -822,7 +829,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
     }
 
-    @ApiOperation(value = "checkSegmentsIfDelete (check)")
+    @ApiOperation(value = "checkSegmentsIfDelete")
     @GetMapping(value = "/{model:.+}/segment/validation")
     @ResponseBody
     public EnvelopeResponse<SegmentCheckResponse> checkHolesIfSegDeleted(@PathVariable("model") String model,
@@ -832,7 +839,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
     }
 
-    @ApiOperation(value = "deleteSegments (update)(check)", notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "deleteSegments", notes = "Update URL: {project}; Update Param: project")
     @DeleteMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
@@ -853,7 +860,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "refreshOrMergeSegmentsByIds (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "refreshOrMergeSegmentsByIds", notes = "Add URL: {model}")
     @PutMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
@@ -875,7 +882,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
@@ -890,7 +897,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
     @PutMapping(value = "/{model:.+}/model_segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
@@ -906,7 +913,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/model_segments/indexes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
@@ -917,7 +924,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/model_segments/all_indexes")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponseWithFailure> addAllIndexesToSegments(@PathVariable("model") String modelId,
@@ -928,7 +935,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
     @ResponseBody
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,

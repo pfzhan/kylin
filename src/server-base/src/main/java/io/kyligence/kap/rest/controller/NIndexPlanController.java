@@ -79,7 +79,7 @@ public class NIndexPlanController extends NBasicController {
     @Qualifier("modelService")
     private ModelService modelService;
 
-    @ApiOperation(value = "updateRule (update)", notes = "Update Body: model_id")
+    @ApiOperation(value = "updateRule", notes = "Update Body: model_id")
     @PutMapping(value = "/rule")
     public EnvelopeResponse<BuildIndexResponse> updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
@@ -109,7 +109,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, diffRuleBasedIndexResponse, "");
     }
 
-    @ApiOperation(value = "calculateAggIndexCombination (update)", notes = "Update Body: model_id")
+    @ApiOperation(value = "calculateAggIndexCombination", notes = "Update Body: model_id")
     @PutMapping(value = "/agg_index_count")
     public EnvelopeResponse<AggIndexResponse> calculateAggIndexCombination(
             @RequestBody UpdateRuleBasedCuboidRequest request) {
@@ -120,7 +120,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, aggIndexCount, "");
     }
 
-    @ApiOperation(value = "createTableIndex (update)", notes = "Update Body: model_id")
+    @ApiOperation(value = "createTableIndex", notes = "Update Body: model_id")
     @PostMapping(value = "/table_index")
     public EnvelopeResponse<BuildIndexResponse> createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
@@ -130,7 +130,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "updateTableIndex (update)", notes = "Update Body: model_id")
+    @ApiOperation(value = "updateTableIndex", notes = "Update Body: model_id")
     @PutMapping(value = "/table_index")
     public EnvelopeResponse<BuildIndexResponse> updateTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
@@ -142,7 +142,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "deleteTableIndex (update)", notes = "Update URL: {project}, Update Param: project")
+    @ApiOperation(value = "deleteTableIndex", notes = "Update URL: {project}, Update Param: project")
     @DeleteMapping(value = "/table_index/{id:.+}")
     public EnvelopeResponse<String> deleteTableIndex(@PathVariable("id") Long id, @RequestParam("model") String modelId,
             @RequestParam("project") String project) {
@@ -154,7 +154,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @Deprecated
-    @ApiOperation(value = "getTableIndex (update)", notes = "Update Param: page_offset, page_size; Update response: total_size")
+    @ApiOperation(value = "getTableIndex", notes = "Update Param: page_offset, page_size; Update response: total_size")
     @GetMapping(value = "/table_index")
     public EnvelopeResponse<DataResult<List<TableIndexResponse>>> getTableIndex(
             @RequestParam(value = "project") String project, // 
@@ -167,7 +167,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tableIndexs, offset, limit), "");
     }
 
-    @ApiOperation(value = "getIndex (update)", notes = "Update response: total_size")
+    @ApiOperation(value = "getIndex", notes = "Update response: total_size")
     @GetMapping(value = "/index")
     public EnvelopeResponse<DataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
             @RequestParam(value = "model") String modelId, //
@@ -194,7 +194,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, indexes, "");
     }
 
-    @ApiOperation(value = "deleteIndex (update)", notes = "Update response: need to update total_size")
+    @ApiOperation(value = "deleteIndex", notes = "Update response: need to update total_size")
     @DeleteMapping(value = "/index/{layout_id:.+}")
     public EnvelopeResponse<String> deleteIndex(@PathVariable(value = "layout_id") long layoutId,
             @RequestParam(value = "project") String project, //

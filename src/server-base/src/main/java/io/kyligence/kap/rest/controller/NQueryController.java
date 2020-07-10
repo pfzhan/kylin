@@ -117,7 +117,7 @@ public class NQueryController extends NBasicController {
     @Autowired
     private ClusterManager clusterManager;
 
-    @ApiOperation(value = "query (update)", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
+    @ApiOperation(value = "query", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
@@ -172,7 +172,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(savedQueries, offset, limit), "");
     }
 
-    @ApiOperation(value = "getQueryHistories (update)", notes = "Update Param: start_time_from, start_time_to, latency_from, latency_to")
+    @ApiOperation(value = "getQueryHistories", notes = "Update Param: start_time_from, start_time_to, latency_from, latency_to")
     @GetMapping(value = "/history_queries")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getQueryHistories(@RequestParam(value = "project") String project,
@@ -268,7 +268,7 @@ public class NQueryController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "getMetadata (update)", notes = "Update Param: project")
+    @ApiOperation(value = "getMetadata", notes = "Update Param: project")
     @GetMapping(value = "/tables_and_columns")
     @ResponseBody
     public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project) {

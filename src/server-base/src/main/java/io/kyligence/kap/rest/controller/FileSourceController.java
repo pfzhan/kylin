@@ -56,7 +56,7 @@ public class FileSourceController extends NBasicController {
     @Qualifier("fileSourceService")
     private FileSourceService fileSourceService;
 
-    @ApiOperation(value = "saveCsv (update)", notes = "Update URL: /save")
+    @ApiOperation(value = "saveCsv", notes = "Update URL: /save")
     @PostMapping(value = "/csv")
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> saveCsv(@RequestParam(value = "mode") String mode,

@@ -77,7 +77,7 @@ public class NJobController extends NBasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @ApiOperation(value = "getJobList (update)", notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
+    @ApiOperation(value = "getJobList", notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ExecutableResponse>>> getJobList(
@@ -103,7 +103,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, executables, "");
     }
 
-    @ApiOperation(value = "getWaitingJobs (update)", notes = "Update Response: total_size")
+    @ApiOperation(value = "getWaitingJobs", notes = "Update Response: total_size")
     @GetMapping(value = "/waiting_jobs")
     @ResponseBody
     @Deprecated
@@ -143,7 +143,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateJobStatus (update)", notes = "Update Body: job_ids")
+    @ApiOperation(value = "updateJobStatus", notes = "Update Body: job_ids")
     @PutMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
@@ -164,7 +164,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateJobStatus (update)", notes = "Update Param: job_id")
+    @ApiOperation(value = "updateJobStatus", notes = "Update Param: job_id")
     @GetMapping(value = "/{job_id:.+}/detail")
     @ResponseBody
     public EnvelopeResponse<List<ExecutableStepResponse>> getJobDetail(@PathVariable(value = "job_id") String jobId,
@@ -174,7 +174,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
     }
 
-    @ApiOperation(value = "updateJobStatus (update)", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @ApiOperation(value = "updateJobStatus", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output")
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getJobOutput(@PathVariable("job_id") String jobId,
@@ -187,7 +187,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @ApiOperation(value = "downloadLogFile (update)", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @ApiOperation(value = "downloadLogFile", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
     @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log")
     @ResponseBody
     public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,

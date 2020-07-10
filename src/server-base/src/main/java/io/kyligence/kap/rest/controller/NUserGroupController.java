@@ -85,7 +85,7 @@ public class NUserGroupController extends NBasicController {
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
-    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/group_members/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -121,7 +121,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, groups, "get groups");
     }
 
-    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
+    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
     @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -152,7 +152,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, userGroupService.getUserAndUserGroup(), "");
     }
 
-    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_name; Update Param: group_name")
+    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_name; Update Param: group_name")
     @PostMapping(value = "/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -163,7 +163,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user group");
     }
 
-    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_name; Update Param: group_name")
+    @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_name; Update Param: group_name")
     @DeleteMapping(value = "/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)

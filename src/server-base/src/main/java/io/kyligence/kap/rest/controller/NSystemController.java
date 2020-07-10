@@ -188,7 +188,7 @@ public class NSystemController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @ApiOperation(value = "trialLicense (update)", notes = "Update Body: product_type")
+    @ApiOperation(value = "trialLicense", notes = "Update Body: product_type")
     @PostMapping(value = "/license/trial")
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> trialLicense(@RequestBody LicenseRequest licenseRequest) throws Exception {
