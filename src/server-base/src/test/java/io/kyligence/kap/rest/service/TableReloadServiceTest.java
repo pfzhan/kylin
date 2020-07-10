@@ -41,11 +41,17 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -55,7 +61,9 @@ import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -99,6 +107,9 @@ import lombok.var;
 public class TableReloadServiceTest extends CSVSourceTestCase {
 
     private static final String PROJECT = "default";
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Autowired
     private TableService tableService;
@@ -826,6 +837,36 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(originTable.getColumns().length + 1, sampleRow.length);
             Assert.assertTrue(Joiner.on(",").join(sampleRow).endsWith(","));
         }
+
+        addColumn("DEFAULT.TEST_KYLIN_FACT", true, new ColumnDesc("", "DEAL_YEAR", "int", "", "", "", null));
+
+        try {
+            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+            Assert.fail();
+        } catch (TransactionException e) {
+            Assert.assertTrue(e.getCause() instanceof RuntimeException);
+            Assert.assertTrue(e.getCause().getMessage().contains("KE-10007007(Duplicated Column Name)"));
+        }
+
+        removeColumn("DEFAULT.TEST_KYLIN_FACT", "DEAL_YEAR");
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+    }
+
+    @Test
+    public void testCheckEffectedJobs() throws KylinException {
+        TableDesc tableDesc = tableService.getTableManager(PROJECT).getTableDesc("DEFAULT.TEST_ORDER");
+
+        AbstractExecutable job1 = new NTableSamplingJob();
+        job1.setTargetSubject("DEFAULT.TEST_ORDER");
+        job1.setJobType(JobTypeEnum.TABLE_SAMPLING);
+        AbstractExecutable job2 = new NSparkCubingJob();
+        job2.setJobType(JobTypeEnum.INDEX_BUILD);
+        job2.setTargetSubject("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        List<AbstractExecutable> jobs = Lists.newArrayList(job1, job2);
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): DEFAULT.TEST_ORDER,nmodel_basic_inner. Please try reloading until all the jobs are completed, or manually discard the jobs.");
+        tableService.checkEffectedJobs(tableDesc, jobs);
     }
 
     @Test

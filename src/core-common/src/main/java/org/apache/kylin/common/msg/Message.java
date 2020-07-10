@@ -1483,4 +1483,12 @@ public class Message {
     public String getADD_JOB_CHECK_LAYOUT_FAIL() {
         return "Add Job failed due to no layout is to be built.";
     }
+
+    public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
+        return String.format("The table metadata can’t be reloaded now. Column %s already exists in table %s.", column, table);
+    }
+
+    public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
+        return "The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): %s. Please try reloading until all the jobs are completed, or manually discard the jobs.";
+    }
 }

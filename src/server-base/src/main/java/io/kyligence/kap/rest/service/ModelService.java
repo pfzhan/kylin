@@ -261,7 +261,7 @@ public class ModelService extends BasicService {
     @Autowired
     private IndexPlanService indexPlanService;
 
-    private NDataModel getModelById(String modelId, String project) {
+    public NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
         if (null == nDataModel) {

@@ -1382,4 +1382,12 @@ public class CnMessage extends Message {
     public String getADD_JOB_CHECK_LAYOUT_FAIL() {
         return "添加任务失败，没有需要构建的layout";
     }
+
+    public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
+        return String.format("当前暂不可重载表。表 %s 中已经存在列 %s。", table, column);
+    }
+
+    public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
+        return "当前暂不可重载表。存在运行中的任务，任务对象为： %s。请等任务完成后再重载，或手动终止任务。";
+    }
 }

@@ -60,10 +60,6 @@ public enum JobStatusEnum {
         return this.code;
     }
 
-    public boolean isComplete() {
-        return code == JobStatusEnum.FINISHED.getCode() || code == JobStatusEnum.ERROR.getCode() || code == JobStatusEnum.DISCARDED.getCode();
-    }
-
     private static final Map<Integer, JobStatusEnum> codeMap = new HashMap<>(10);
     private static final Map<String, JobStatusEnum> nameMap = new HashMap<>(10);
     static {

@@ -25,12 +25,14 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_CATALOG_CACHE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.File;
@@ -54,6 +56,7 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -71,7 +74,9 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.common.PatternedLogger;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -1289,6 +1294,54 @@ public class TableService extends BasicService {
         }
     }
 
+    private void checkNewColumn(Graph<SchemaNode> graph, TableDesc newTableDesc, Set<String> addColumns) {
+        List<SchemaNode> schemaNodes = graph.nodes().stream()
+                .filter(schemaNode -> SchemaNodeType.MODEL_CC == schemaNode.getType())
+                .filter(schemaNode -> addColumns.contains(schemaNode.getDetail().toUpperCase()))
+                .collect(Collectors.toList());
+        for (SchemaNode schemaNode : schemaNodes) {
+            NDataModel model = modelService.getModelById(schemaNode.getSubject(), newTableDesc.getProject());
+            if (newTableDesc.getIdentity().equals(model.getRootFactTableRef().getTableDesc().getIdentity())) {
+                throw new KylinException(DUPLICATED_COLUMN_NAME, MsgPicker.getMsg()
+                        .getTABLE_RELOAD_ADD_COLUMN_EXIST(newTableDesc.getIdentity(), schemaNode.getDetail()));
+            }
+        }
+    }
+
+    private void checkEffectedJobs(TableDesc newTableDesc) {
+        val notFinalStateJobs = getExecutableManager(newTableDesc.getProject()).getAllExecutables().stream()
+                .filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
+        checkEffectedJobs(newTableDesc, notFinalStateJobs);
+    }
+
+    @VisibleForTesting
+    public void checkEffectedJobs(TableDesc newTableDesc, List<AbstractExecutable> notFinalStateJobs) {
+        List<String> targetSubjectList = Lists.newArrayList();
+        for (AbstractExecutable job : notFinalStateJobs) {
+            if (JobTypeEnum.TABLE_SAMPLING == job.getJobType()) {
+                if (newTableDesc.getIdentity().equalsIgnoreCase(job.getTargetSubject())) {
+                    targetSubjectList.add(job.getTargetSubject());
+                }
+            } else {
+                try {
+                    NDataModel model = modelService.getModelById(job.getTargetSubject(), newTableDesc.getProject());
+                    if (!model.isBroken() && model.getAllTables().stream().map(TableRef::getTableIdentity)
+                            .anyMatch(s -> s.equalsIgnoreCase(newTableDesc.getIdentity()))) {
+                        targetSubjectList.add(model.getAlias());
+                    }
+                } catch (KylinException e) {
+                    logger.warn("Get model by Job target subject failed!", e);
+                }
+            }
+        }
+
+        if (CollectionUtils.isNotEmpty(targetSubjectList)) {
+            throw new KylinException(ON_GOING_JOB_EXIST,
+                    String.format(MsgPicker.getMsg().getTABLE_RELOAD_HAVING_NOT_FINAL_JOB(),
+                            StringUtils.join(targetSubjectList.iterator(), ",")));
+        }
+    }
+
     private ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
         val context = new ReloadTableContext();
         val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
@@ -1307,6 +1360,10 @@ public class TableService extends BasicService {
         context.setChangeTypeColumns(diff.entriesDiffering().keySet());
 
         val dependencyGraph = SchemaUtil.dependencyGraph(project);
+
+        checkNewColumn(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
+        checkEffectedJobs(newTableDesc);
+
         Function<Set<String>, Map<String, AffectedModelContext>> toAffectedModels = cols -> {
             Set<SchemaNode> affectedNodes = Sets.newHashSet();
             cols.forEach(colName -> {

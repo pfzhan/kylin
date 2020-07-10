@@ -111,6 +111,7 @@ public class CsvSource implements ISource {
                 String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
                 TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
                 tableDesc.setTableType("defaultTable");
+                tableDesc.init(prj);
                 TableExtDesc tableExt = new TableExtDesc();
                 tableExt.setIdentity(tableDesc.getIdentity());
                 return Pair.newPair(tableDesc, tableExt);
