@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -360,6 +361,11 @@ public class FavoriteQueryService extends BasicService {
                 generateSuggestions(project, oneBatchPatterns);
             } else {
                 jobList.addAll(handleAcceleration(project, oneBatchPatterns, getUsername()));
+            }
+            try {
+                TimeUnit.SECONDS.sleep(config.getSuggestModelSqlInterval());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         });
         return jobList;

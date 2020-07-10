@@ -2146,4 +2146,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getSuggestModelSqlLimit() {
         return Integer.parseInt(getOptional("kylin.model.suggest-model-sql-limit", "200"));
     }
+
+    public int getSuggestModelSqlInterval() {
+        return Integer.parseInt(getOptional("kylin.model.suggest-model-sql-interval", "10"));
+    }
 }

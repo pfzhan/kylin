@@ -82,6 +82,31 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testKeepProjectEpochWhenOwnerChanged() throws Exception {
+        System.setProperty("kylin.server.leader-race.enabled", "false");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        EpochManager epochManager = EpochManager.getInstance(config);
+        val prjMgr = NProjectManager.getInstance(config);
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
+            Assert.assertNull(prj.getEpoch());
+        }
+        epochManager.updateAllEpochs();
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
+            Assert.assertEquals(prj.getEpoch().getCurrentEpochOwner(), EpochOrchestrator.getOwnerIdentity());
+            Assert.assertEquals(prj.getEpoch().getLastEpochRenewTime(), Long.MAX_VALUE);
+
+        }
+        epochManager.setIdentity("newOwner");
+        epochManager.updateAllEpochs();
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
+            Assert.assertEquals(prj.getEpoch().getCurrentEpochOwner(), "newOwner");
+            Assert.assertEquals(prj.getEpoch().getLastEpochRenewTime(), Long.MAX_VALUE);
+            Assert.assertEquals(prj.getMvcc(), 2);
+        }
+        System.clearProperty("kylin.server.leader-race.enabled");
+    }
+
+    @Test
     public void testUpdateProjectEpoch() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);

@@ -173,7 +173,8 @@ public class EpochManager implements IKeep {
     }
 
     private void tryUpdatePrjEpochs(Set<String> newEpochs) throws Exception {
-        List<ProjectInstance> prjs = getProjectsToMarkOwner();
+        List<ProjectInstance> prjs = config.getEpochCheckerEnabled() ? getProjectsToMarkOwner()
+                : NProjectManager.getInstance(config).listAllProjects();
         Map<String, FutureTask<Boolean>> fts = Maps.newHashMap();
         for (ProjectInstance prj : prjs) {
             FutureTask<Boolean> ft = new FutureTask<Boolean>(new Callable<Boolean>() {
@@ -238,6 +239,9 @@ public class EpochManager implements IKeep {
                 newEpochs.add(GLOBAL);
             return true;
         } catch (Exception e) {
+            if (checkEpochOwner(GLOBAL)) {
+                newEpochs.add(GLOBAL);
+            }
             logger.error("failed to update epoch {}", GLOBAL, e);
             return false;
         }
@@ -249,11 +253,11 @@ public class EpochManager implements IKeep {
 
     private Epoch getNewEpoch(Epoch epoch, boolean force, String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-
         if (!kylinConfig.getEpochCheckerEnabled()) {
-            return new Epoch(1L, identity, Long.MAX_VALUE, kylinConfig.getServerMode(), false, null);
+            Epoch newEpoch = new Epoch(1L, identity, Long.MAX_VALUE, kylinConfig.getServerMode(), false, null);
+            newEpoch.setMvcc(epoch == null ? -1 : epoch.getMvcc());
+            return newEpoch;
         }
-
         if (epoch == null) {
             epoch = new Epoch(1L, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), false, null);
         } else {
@@ -449,5 +453,10 @@ public class EpochManager implements IKeep {
         for (ProjectInstance prj : prjs) {
             schedulerEventBusFactory.post(new ProjectControlledNotifier(prj.getName()));
         }
+    }
+
+    //for UT
+    public void setIdentity(String newIdentity) {
+        this.identity = newIdentity;
     }
 }

@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.model;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.smart.NSQLAnalysisProposer;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -161,7 +162,7 @@ public class NModelMaster {
         // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(
                 KylinConfig.getInstanceFromEnv(), project, originQueryList.toArray(new String[0]),
-                Lists.newArrayList(dataModel), 1)) {
+                Lists.newArrayList(dataModel), NSQLAnalysisProposer.getDefaultThreadNum())) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             final AbstractContext proposeContext = modelContext.getProposeContext();
