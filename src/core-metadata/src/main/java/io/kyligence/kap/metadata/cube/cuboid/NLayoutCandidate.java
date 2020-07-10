@@ -104,7 +104,7 @@ public class NLayoutCandidate implements IRealizationCandidate  {
                         merged = true;
                         break;
                     }
-                    if (type == DeriveInfo.DeriveType.LOOKUP) {
+                    if (type == DeriveInfo.DeriveType.LOOKUP || type == DeriveInfo.DeriveType.LOOKUP_NON_EQUI) {
                         existing.columns = (TblColRef[]) ArrayUtils.add(existing.columns, derCol);
                         merged = true;
                         break;
