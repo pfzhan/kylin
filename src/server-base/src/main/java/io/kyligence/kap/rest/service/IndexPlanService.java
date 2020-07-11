@@ -597,17 +597,19 @@ public class IndexPlanService extends BasicService {
 
         val dataflow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
                 .getDataflow(indexPlan.getId());
+        // include all segs (except refreshing, merging) for data range count
         val readySegments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging().stream()
-                .filter(seg -> !SegmentStatusEnum.NEW.equals(seg.getStatus()))
                 .collect(Collectors.toCollection(Segments::new));
-
-        long startTime = Long.MAX_VALUE;
-        long endTime = 0L;
-        for (NDataSegment seg : readySegments) {
-            long start = Long.parseLong(seg.getSegRange().getStart().toString());
-            long end = Long.parseLong(seg.getSegRange().getEnd().toString());
-            startTime = Math.min(startTime, start);
-            endTime = Math.max(endTime, end);
+        long startTime = 0;
+        long endTime = 0;
+        if (!readySegments.isEmpty()) {
+            startTime = Long.MAX_VALUE;
+            for (NDataSegment seg : readySegments) {
+                long start = Long.parseLong(seg.getSegRange().getStart().toString());
+                long end = Long.parseLong(seg.getSegRange().getEnd().toString());
+                startTime = Math.min(startTime, start);
+                endTime = Math.max(endTime, end);
+            }
         }
         indexGraphResponse.setStartTime(startTime);
         indexGraphResponse.setEndTime(endTime);
