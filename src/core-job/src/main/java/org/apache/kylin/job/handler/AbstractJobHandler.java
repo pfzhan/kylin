@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_ADD_JOB_C
 import static org.apache.kylin.job.execution.AbstractExecutable.DEPENDENT_FILES;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -60,13 +62,9 @@ public abstract class AbstractJobHandler {
 
     public final void handle(JobParam jobParam) {
 
-        if (!checkBeforeHandle(jobParam)) {
-            throw new KylinException(FAILED_ADD_JOB_CHECK, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
-        }
+        checkBeforeHandle(jobParam);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            if (!checkBeforeHandle(jobParam)) {
-                throw new KylinException(FAILED_ADD_JOB_CHECK, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
-            }
+            checkBeforeHandle(jobParam);
             doHandle(jobParam);
             return null;
         }, jobParam.getProject(), 1);
@@ -98,7 +96,7 @@ public abstract class AbstractJobHandler {
 
     protected abstract AbstractExecutable createJob(JobParam jobParam);
 
-    protected boolean checkBeforeHandle(JobParam jobParam) {
+    protected void checkBeforeHandle(JobParam jobParam) {
         String model = jobParam.getModel();
         String project = jobParam.getProject();
         checkNotNull(project);
@@ -108,15 +106,28 @@ public abstract class AbstractJobHandler {
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
         List<AbstractExecutable> executables = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning, null);
 
+        List<String> failedSegs = new LinkedList<>();
         if (jobParam.getJobTypeEnum().equals(JobTypeEnum.INDEX_BUILD)) {
             for (String segmentId : jobParam.getTargetSegments()) {
                 if (isOverlapWithJob(executables, segmentId, jobParam, dataflow)) {
-                    return false;
+                    failedSegs.add(segmentId);
                 }
             }
-            return true;
+        } else {
+            if (isOverlapWithJob(executables, jobParam.getSegment(), jobParam, dataflow)) {
+                failedSegs.add(jobParam.getSegment());
+            }
         }
-        return !isOverlapWithJob(executables, jobParam.getSegment(), jobParam, dataflow);
+
+        if (failedSegs.isEmpty()) {
+            return;
+        }
+
+        JobSubmissionException jobSubmissionException = new JobSubmissionException(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
+        for (String failedSeg : failedSegs) {
+            jobSubmissionException.addJobFailInfo(failedSeg, new KylinException(FAILED_ADD_JOB_CHECK, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
+        }
+        throw jobSubmissionException;
     }
 
     public boolean isOverlapWithJob(List<AbstractExecutable> executables, String segmentId, JobParam jobParam, NDataflow dataflow) {

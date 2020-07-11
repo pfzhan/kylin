@@ -64,11 +64,8 @@ public class MergeSegmentHandler extends AbstractJobHandler {
      * Merge is abandoned when segment index is not aligned.
      */
     @Override
-    protected boolean checkBeforeHandle(JobParam event) {
-        boolean pass = super.checkBeforeHandle(event);
-        if (!pass) {
-            return false;
-        }
+    protected void checkBeforeHandle(JobParam event) {
+        super.checkBeforeHandle(event);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         NDataflow df = NDataflowManager.getInstance(kylinConfig, event.getProject()).getDataflow(event.getModel());
         val segments = df.getSegments();
@@ -87,6 +84,5 @@ public class MergeSegmentHandler extends AbstractJobHandler {
                 throw new KylinException(FAILED_ADD_JOB_INDEX_ALIGNED, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_FAIL());
             }
         }
-        return true;
     }
 }

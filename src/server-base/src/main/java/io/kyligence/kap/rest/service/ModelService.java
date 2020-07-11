@@ -94,6 +94,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.manager.JobManager;
@@ -1871,8 +1872,12 @@ public class ModelService extends BasicService {
         return incrementBuildSegmentsManually(project, modelId, start, end, partitionDesc, segmentHoles, true);
     }
 
-    public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
-            List<Long> indexIds) throws Exception {
+    public JobInfoResponseWithFailure addIndexesToSegments(String project,
+                                                           String modelId,
+                                                           List<String> segmentIds,
+                                                           List<Long> indexIds,
+                                                           boolean parallelBuildBySegment
+    ) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
         val jobManager = getJobManager(project);
         val dfManger = getDataflowManager(project);
@@ -1880,15 +1885,29 @@ public class ModelService extends BasicService {
         NDataflow dataflow = dfManger.getDataflow(modelId);
         JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
         List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
-        for (String segmentId : segmentIds) {
+        if (parallelBuildBySegment) {
+            for (String segmentId : segmentIds) {
+                try {
+                    JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(
+                            JobTypeEnum.INDEX_BUILD.toString(),
+                            getSourceUsageManager().licenseCheckWrap(project,
+                                    () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentId), indexIds == null ? null : new HashSet<>(indexIds)))
+                    );
+                    jobs.add(jobInfo);
+                } catch (JobSubmissionException e) {
+                    result.addFailedSeg(dataflow, e);
+                }
+            }
+        } else {
             try {
-                JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
+                JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(
+                        JobTypeEnum.INDEX_BUILD.toString(),
                         getSourceUsageManager().licenseCheckWrap(project,
-                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentId),
-                                        indexIds == null ? null : new HashSet<>(indexIds))));
+                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentIds), indexIds == null ? null : new HashSet<>(indexIds)))
+                );
                 jobs.add(jobInfo);
-            } catch (KylinException e) {
-                result.addFailedSeg(dataflow, dataflow.getSegment(segmentId), e);
+            } catch (JobSubmissionException e) {
+                result.addFailedSeg(dataflow, e);
             }
         }
         result.setJobs(jobs);

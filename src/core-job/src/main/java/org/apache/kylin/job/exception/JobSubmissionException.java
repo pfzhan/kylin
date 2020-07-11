@@ -22,25 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package org.apache.kylin.job.exception;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import lombok.Data;
+import org.apache.kylin.common.exception.KylinException;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-@Data
-public class IndexesToSegmentsRequest implements ProjectInsensitiveRequest {
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_ADD_JOB_CHECK;
 
-    private String project;
+public class JobSubmissionException extends KylinException {
 
-    @JsonProperty("segment_ids")
-    private List<String> segmentIds;
+    private Map<String, KylinException> segmentFailInfos = new HashMap<>();
 
-    @JsonProperty(value = "index_ids", required = false)
-    private List<Long> indexIds;
+    public JobSubmissionException(String msg) {
+        super(FAILED_ADD_JOB_CHECK, msg);
+    }
 
-    @JsonProperty("parallel_build_by_segment")
-    private boolean parallelBuildBySegment;
+    public void addJobFailInfo(String segId, KylinException error) {
+        segmentFailInfos.put(segId, error);
+    }
+
+    public Map<String, KylinException> getSegmentFailInfos() {
+        return segmentFailInfos;
+    }
 }

@@ -29,9 +29,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.Data;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.job.exception.JobSubmissionException;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class JobInfoResponseWithFailure extends JobInfoResponse {
@@ -39,11 +41,16 @@ public class JobInfoResponseWithFailure extends JobInfoResponse {
     @JsonProperty("failed_segments")
     List<FailedSegmentJobWithReason> failedSegments = new LinkedList<>();
 
-    public void addFailedSeg(NDataflow dataflow, NDataSegment segment, KylinException exception) {
-        FailedSegmentJobWithReason failedSeg = new FailedSegmentJobWithReason(dataflow, segment);
-        failedSeg.setErrorCode(exception.getErrorCode());
-        failedSeg.setErrorMsg(exception.getMessage());
-        failedSegments.add(failedSeg);
+    public void addFailedSeg(NDataflow dataflow, JobSubmissionException jobSubmissionException) {
+        for (Map.Entry<String, KylinException> entry : jobSubmissionException.getSegmentFailInfos().entrySet()) {
+            String segId  = entry.getKey();
+            KylinException error = entry.getValue();
+
+            FailedSegmentJobWithReason failedSeg = new FailedSegmentJobWithReason(dataflow, dataflow.getSegment(segId));
+            failedSeg.setErrorCode(error.getErrorCode());
+            failedSeg.setErrorMsg(error.getMessage());
+            failedSegments.add(failedSeg);
+        }
     }
 
     @Data
