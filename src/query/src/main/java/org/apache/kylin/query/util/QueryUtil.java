@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.query.util.RestoreFromComputedColumn;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -88,6 +89,13 @@ public class QueryUtil {
         QueryContext.current().record("massage");
         return massagedSql;
     }
+
+    public static String massageSqlAndExpandCC(QueryParams queryParams) {
+        String massaged = massageSql(queryParams);
+        return new RestoreFromComputedColumn().convert(
+                massaged, queryParams.getProject(), queryParams.getDefaultSchema(), queryParams.isPrepare());
+    }
+
 
     private static String transformSql(QueryParams queryParams) {
         // customizable SQL transformation

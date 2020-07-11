@@ -228,7 +228,8 @@ public class FavoriteRuleService extends BasicService {
             QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0,
                     DEFAULT_SCHEMA, false);
             queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
-            String correctedSql = QueryUtil.massageSql(queryParams);
+            // massage sql and expand CC columns
+            String correctedSql = QueryUtil.massageSqlAndExpandCC(queryParams);
             sqls.add(correctedSql);
         }
 

@@ -325,4 +325,29 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("select 1 \"--注释\"", QueryUtil.removeCommentInSql("select 1 \"--注释\""));
         Assert.assertEquals("select 1 \"apache's kylin\"", QueryUtil.removeCommentInSql("select 1 \"apache's kylin\""));
     }
+
+    @Test
+    public void testMassageAndExpandComputedColumn() {
+        String modelUuid = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+        final KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, "default");
+        modelManager.updateDataModel(modelUuid, copyForWrite -> {
+            ComputedColumnDesc cc = new ComputedColumnDesc();
+            cc.setTableAlias("TEST_KYLIN_FACT");
+            cc.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+            cc.setComment("");
+            cc.setColumnName("CC1");
+            cc.setDatatype("DECIMAL(38,4)");
+            cc.setExpression("TEST_KYLIN_FACT.PRICE + 1");
+            cc.setInnerExpression("TEST_KYLIN_FACT.PRICE + 1");
+            copyForWrite.getComputedColumnDescs().add(cc);
+        });
+
+        config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
+        String sql = "select sum(cast(CC1 as double)) from test_kylin_fact";
+        String expected = "select SUM(TEST_KYLIN_FACT.PRICE + 1) from test_kylin_fact";
+        QueryParams queryParams = new QueryParams(config, sql, "default", 0, 0, "DEFAULT", true);
+        Assert.assertEquals(expected, QueryUtil.massageSqlAndExpandCC(queryParams));
+    }
+
 }
