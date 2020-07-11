@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -43,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -221,7 +221,10 @@ public class NIndexPlanManager implements IKeepNames {
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         if (dataflow != null && dataflow.getLatestReadySegment() != null) {
             val livedIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-            val layoutIds = Sets.newHashSet(dataflow.getLatestReadySegment().getLayoutsMap().keySet());
+            val layoutIds = new HashSet<Long>();
+            for (NDataSegment segment : dataflow.getSegments()) {
+                layoutIds.addAll(segment.getLayoutIds());
+            }
             layoutIds.removeAll(livedIds);
             dataflowManager.removeLayouts(dataflow, layoutIds);
         }
