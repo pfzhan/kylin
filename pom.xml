@@ -220,7 +220,7 @@
 
         <!-- AWS versions -->
         <aws-java-sdk-s3.version>1.11.791</aws-java-sdk-s3.version>
-        <hadoop-aws.version>2.8.5-kylin-r2</hadoop-aws.version>
+        <hadoop-aws.version>2.8.5-kylin-r3</hadoop-aws.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>

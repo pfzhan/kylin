@@ -459,29 +459,29 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
         expectedRanges.clear();
         assertResultsAndScanFiles(modelId, and_pruning0, 1, false, expectedRanges);
-        assertResultsAndScanFiles(modelId, and_pruning1, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, and_pruning1, 1, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, or_pruning0, 3, false, expectedRanges);
-        assertResultsAndScanFiles(modelId, or_pruning1, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, or_pruning0, 2, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, or_pruning1, 2, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, pruning0, 3, false, expectedRanges);
-        assertResultsAndScanFiles(modelId, pruning1, 3, false, expectedRanges);
-        assertResultsAndScanFiles(modelId, pruning2, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, pruning0, 0, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, pruning1, 0, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, pruning2, 1, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, not_pruning0, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, not_pruning0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, not_pruning1, 3, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, nested_query0, 3, false, expectedRanges);
-        assertResultsAndScanFiles(modelId, nested_query1, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, nested_query0, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, nested_query1, 1, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, between_query0, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, between_query0, 1, false, expectedRanges);
 
         assertResultsAndScanFiles(modelId, in_query0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, in_query1, 3, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, date_function_query0, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, date_function_query0, 1, false, expectedRanges);
 
-        assertResultsAndScanFiles(modelId, complex_query0, 3, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, complex_query0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, complex_query1, 1, false, expectedRanges);
     }
 

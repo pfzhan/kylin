@@ -133,7 +133,7 @@ class FilePruner(val session: SparkSession,
         // we can only get col ID in layout cuz data schema is all ids.
         val id = layout.getOrderedDimensions.inverse().get(ref)
         if (id != null && (ref.getType.isDateTimeFamily || ref.getType.isStringFamily)) {
-          if (ref.getType.isStringFamily) {
+          if (ref.getType.isStringFamily || ref.getType.isDateTimeFamily) {
             pattern = desc.getPartitionDateFormat
           }
           dataSchema.filter(_.name == id.toString)

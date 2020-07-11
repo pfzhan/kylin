@@ -29,6 +29,8 @@ if [ "$1" == "-v" ]; then
     shift
 fi
 
+mkdir -p ${KYLIN_HOME}/logs
+
 KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
 export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
 export SPARK_HOME=${KYLIN_HOME}/spark
