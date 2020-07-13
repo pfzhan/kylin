@@ -47,19 +47,6 @@ export const render = {
       return (
         <div>
           <div {...nodeClass}>
-            <div class="left">
-              {tags.map(tag => {
-                switch (tag) {
-                  case 'F':
-                    return <i class="tree-icon el-icon-ksd-fact_table"></i>
-                  case 'L':
-                    return <i class="tree-icon el-icon-ksd-lookup_table"></i>
-                  case 'N':
-                  default:
-                    return <i class="tree-icon el-icon-ksd-sample"></i>
-                }
-              })}
-            </div>
             <span title={label}>{label}</span>
             <div class="right">
               <span class="tree-icon" slot="reference">
@@ -77,6 +64,21 @@ export const render = {
                   <i class="tree-icon table-date-tip el-icon-ksd-data_range" slot="reference"></i>
                 </el-popover>
               ) : null }
+            </div>
+            <div class="right fact-icon">
+              {tags.map(tag => {
+                switch (tag) {
+                  case 'F':
+                    return <el-tooltip effect="dark" enterable={false} content={this.$t('factTable')} placement="top"><i class="tree-icon el-icon-ksd-fact_table"></i></el-tooltip>
+                  case 'L':
+                    return <i class="tree-icon"></i>
+                    // return <i class="tree-icon el-icon-ksd-lookup_table"></i>
+                  case 'N':
+                  default:
+                    return <i class="tree-icon"></i>
+                    // return <i class="tree-icon el-icon-ksd-sample"></i>
+                }
+              })}
             </div>
           </div>
           <div class="background"></div>

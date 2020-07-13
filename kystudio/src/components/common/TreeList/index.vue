@@ -16,6 +16,7 @@
       ref="tree"
       v-guide.tableScroll
       class="filter-tree"
+      :class="{'ignore-column-tree': ignoreColumnTree}"
       node-key="id"
       :show-checkbox="isShowCheckbox"
       :empty-text="emptyText"
@@ -63,6 +64,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
     filterWhiteListTypes: {
       type: Array,
       default: () => []
+    },
+    ignoreColumnTree: {
+      type: Boolean,
+      default: false
     },
     isGroupTrees: {
       type: Boolean,

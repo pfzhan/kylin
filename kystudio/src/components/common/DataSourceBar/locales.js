@@ -18,7 +18,8 @@ export default {
     loadTablesFail: 'Failed to load {db_counts} database(s) or {table_counts} source table(s) metadata. Please contact your administrator to check whether the databases and tables are existing in your datasource.',
     databases: 'Database',
     tables: 'Table',
-    cloudHive: 'Object Storage'
+    cloudHive: 'Object Storage',
+    factTable: 'Fact Table'
   },
   'zh-cn': {
     searchTable: '搜索数据库名称或表名',
@@ -39,6 +40,7 @@ export default {
     loadTablesFail: '{db_counts} 个数据库和 {table_counts} 个源表（元数据）加载失败，请联系您的管理员检查当前数据源中是否存在所选的数据库或源表。',
     databases: '数据库',
     tables: '源表',
-    cloudHive: '文件数据源'
+    cloudHive: '文件数据源',
+    factTable: '事实表'
   }
 }

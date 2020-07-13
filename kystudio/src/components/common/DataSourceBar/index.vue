@@ -34,6 +34,7 @@
           :is-resizable="isResizable"
           :on-filter="handleFilter"
           :filter-white-list-types="['column']"
+          :ignore-column-tree="ignoreColumnTree"
           @click="handleClick"
           @drag="handleDrag"
           @load-more="handleLoadMore">
@@ -268,6 +269,9 @@ export default class DataSourceBar extends Vue {
   }
   get columnArray () {
     return this.ignoreNodeTypes.indexOf('column') >= 0 ? [] : this.tableArray.reduce((columns, table) => [...columns, ...table.children], [])
+  }
+  get ignoreColumnTree () {
+    return this.ignoreNodeTypes.indexOf('column') >= 0
   }
   get currentSourceTypes () {
     const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
@@ -717,6 +721,11 @@ export default class DataSourceBar extends Vue {
   .el-tree {
     min-height: calc(~"100vh - 263px");
     margin-bottom: 40px;
+    &.ignore-column-tree {
+      .el-tree-node >.el-tree-node__children {
+        // margin-left: -18px;
+      }
+    }
     .left {
       float: left;
       margin-right: 4px;
@@ -726,14 +735,17 @@ export default class DataSourceBar extends Vue {
       right: 10px;
       top: 50%;
       transform: translateY(-50%);
-    }
-    .tree-icon {
-      margin-right: 4px;
-      display: inline-block;
-      &:last-child {
-        margin-right: 0;
+      &.fact-icon {
+        right: 25px;
       }
     }
+    // .tree-icon {
+    //   margin-right: 4px;
+    //   display: inline-block;
+    //   &:last-child {
+    //     margin-right: 0;
+    //   }
+    // }
     .tree-item {
       position: relative;
       width: calc(~'100% - 24px');
@@ -754,7 +766,7 @@ export default class DataSourceBar extends Vue {
         display: inline;
       }
       .table {
-        padding-right: 30px;
+        padding-right: 35px;
         line-height: 30px;
       }
       .table.has-range:hover {
@@ -789,8 +801,10 @@ export default class DataSourceBar extends Vue {
     .datasource {
       color: #263238;
     }
-    .el-tree-node .el-tree-node__content:hover > .tree-item {
-      color: #087AC8;
+    .el-tree-node {
+      .el-tree-node__content:hover > .tree-item {
+        color: #087AC8;
+      }
     }
     .table-date-tip {
       color: #8E9FA8;
