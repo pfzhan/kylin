@@ -30,6 +30,7 @@ import org.apache.spark.sql.Column
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.types.LongType
 import org.apache.spark.sql.udaf._
 import org.apache.spark.sql.udf.SparderExternalAggFunc
 import org.apache.spark.util.Benchmark
@@ -352,7 +353,8 @@ class UDAFBenchmark extends SparderBaseFunSuite with SharedSparkSession {
 
     benchmark.addCase("new udaf w/o group by") { _ =>
       spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "true")
-      spark.table("t").agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr)
+      spark.table("t").agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr,
+        lit(IntersectCount.RAW_STRING).expr, LongType, "\\|")
         .toAggregateExpression())).collect()
     }
 
@@ -367,8 +369,9 @@ class UDAFBenchmark extends SparderBaseFunSuite with SharedSparkSession {
       spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "true")
       spark.conf.set(SQLConf.OBJECT_AGG_SORT_BASED_FALLBACK_THRESHOLD.key, "2")
       spark.table("t").groupBy(col("id").divide(4).cast("BIGINT"))
-        .agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr).toAggregateExpression()))
-        .collect()
+        .agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr,
+          lit(IntersectCount.RAW_STRING).expr, LongType, "\\|")
+          .toAggregateExpression())).collect()
     }
 
     benchmark.addCase("old udaf w/ group by w/100") { _ =>
@@ -382,8 +385,9 @@ class UDAFBenchmark extends SparderBaseFunSuite with SharedSparkSession {
       spark.conf.set(SQLConf.USE_OBJECT_HASH_AGG.key, "true")
       spark.conf.set(SQLConf.OBJECT_AGG_SORT_BASED_FALLBACK_THRESHOLD.key, "2")
       spark.table("t").groupBy(col("id").divide(100).cast("BIGINT"))
-        .agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr).toAggregateExpression()))
-        .collect()
+        .agg(new Column(IntersectCount(col("map").expr, col("key").expr, lit(Array(1)).expr,
+          lit(IntersectCount.RAW_STRING).expr, LongType, "\\|")
+          .toAggregateExpression())).collect()
     }
 
     benchmark.run()

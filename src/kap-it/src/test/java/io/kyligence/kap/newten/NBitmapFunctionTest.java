@@ -41,7 +41,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
-public class NIntersectCountTest extends NLocalWithSparkSessionTest {
+public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
@@ -68,7 +68,7 @@ public class NIntersectCountTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testIntersectCount() throws Exception {
+    public void testBitmapFunction() throws Exception {
         fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3b", getProject());
         fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3z", getProject());
 
@@ -83,6 +83,14 @@ public class NIntersectCountTest extends NLocalWithSparkSessionTest {
         testWithUnion();
 
         testWithLimit();
+
+        testIntersectCountByCol();
+
+        testIntersectCount();
+
+        testIntersectValue();
+
+        testExplodeIntersectValue();
     }
 
     private void testDateType() throws SQLException {
@@ -182,6 +190,108 @@ public class NIntersectCountTest extends NLocalWithSparkSessionTest {
         List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
         Assert.assertEquals("14", result.get(0));
+    }
+
+    private void testIntersectCountByCol() throws Exception {
+        String query1 = "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
+                + "    (select bitmap_uuid(SELLER_ID) as a1 "
+                + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid( "
+                + "        SELLER_ID, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others']) as a2 "
+                + "from TEST_KYLIN_FACT) t2 "
+                + "union all "
+                + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
+                + "    (select bitmap_uuid(SELLER_ID) as a1 "
+                + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( "
+                + "        SELLER_ID, LSTG_FORMAT_NAME, "
+                + "        array['FP-.*GTC', 'Others'], 'REGEXP') as a2 "
+                + "from TEST_KYLIN_FACT) t2 "
+                + "union all "
+                + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
+                + "    (select bitmap_uuid(SELLER_ID) as a1 "
+                + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( "
+                + "        SELLER_ID, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 "
+                + "from TEST_KYLIN_FACT) t2";
+
+        List<String> result1 = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("841", result1.get(0));
+        Assert.assertEquals("841", result1.get(1));
+        Assert.assertEquals("841", result1.get(2));
+
+        String query2 = "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
+                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 "
+                + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid( "
+                + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others']) as a2 "
+                + "from TEST_KYLIN_FACT) t2 "
+                + "union all "
+                + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
+                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 "
+                + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( "
+                + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
+                + "        array['FP-.*GTC', 'Others'], 'REGEXP') as a2 "
+                + "from TEST_KYLIN_FACT) t2 "
+                + "union all "
+                + "select intersect_count_by_col(Array[t1.a1,t2.a2]) from "
+                + "    (select bitmap_uuid(TEST_COUNT_DISTINCT_BITMAP) as a1 "
+                + "        from TEST_KYLIN_FACT) t1, "
+                + "    (select intersect_bitmap_uuid_v2( "
+                + "        TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, "
+                + "        array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as a2 "
+                + "from TEST_KYLIN_FACT) t2";
+        List<String> result2 = NExecAndComp.queryCube(getProject(), query2).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("862", result2.get(0));
+        Assert.assertEquals("862", result2.get(1));
+        Assert.assertEquals("862", result2.get(2));
+    }
+
+    private void testIntersectCount() throws SQLException {
+        String query = "select "
+                + "intersect_count(TEST_COUNT_DISTINCT_BITMAP, lstg_format_name, array['FP-GTC|FP-non GTC', 'Others']) as a, "
+                + "intersect_count_v2(TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, array['FP-.*GTC', 'Others'], 'REGEXP') as b, "
+                + "intersect_count_v2(TEST_COUNT_DISTINCT_BITMAP, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as c "
+                + "from test_kylin_fact";
+        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("862,862,862", result.get(0));
+    }
+
+    private void testIntersectValue() throws SQLException {
+        String query = "select "
+                + "intersect_value(LSTG_SITE_ID, lstg_format_name, array['FP-GTC|FP-non GTC', 'Others']) as a, "
+                + "intersect_value_v2(LSTG_SITE_ID, LSTG_FORMAT_NAME, array['FP-.*GTC', 'Others'], 'REGEXP') as b, "
+                + "intersect_value_v2(LSTG_SITE_ID, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING') as c "
+                + "from test_kylin_fact ";
+        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals(
+                "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)," +
+                "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)," +
+                "WrappedArray(0, 2, 3, 15, 23, 100, 101, 211)", result.get(0));
+    }
+
+    private void testExplodeIntersectValue() throws SQLException {
+        String query = "select "
+                + "explode(intersect_value(LSTG_SITE_ID, lstg_format_name, array['FP-GTC|FP-non GTC', 'Others'])) as a "
+                + "from test_kylin_fact ";
+        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("0", result.get(0));
+        Assert.assertEquals("2", result.get(1));
+        Assert.assertEquals("3", result.get(2));
+        Assert.assertEquals("15", result.get(3));
+        Assert.assertEquals("23", result.get(4));
+        Assert.assertEquals("100", result.get(5));
+        Assert.assertEquals("101", result.get(6));
+        Assert.assertEquals("211", result.get(7));
     }
 
 }

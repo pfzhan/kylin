@@ -41,9 +41,7 @@
  */
 package org.apache.kylin.measure.bitmap;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * BitmapIntersectDistinctCountAggFunc is an UDAF used for calculating the intersection of two or more bitmaps
@@ -54,67 +52,16 @@ import java.util.Map;
 
 @Deprecated
 public class BitmapIntersectDistinctCountAggFunc {
-    private static final BitmapCounterFactory factory = RoaringBitmapCounterFactory.INSTANCE;
 
-    public static class RetentionPartialResult {
-        Map<Object, BitmapCounter> map;
-        List keyList;
-
-        public RetentionPartialResult() {
-            map = new LinkedHashMap<>();
-        }
-
-        public void add(Object key, List keyList, Object value) {
-            if (this.keyList == null) {
-                this.keyList = keyList;
-            }
-            if (this.keyList != null && this.keyList.contains(key)) {
-                BitmapCounter counter = map.get(key);
-                if (counter == null) {
-                    map.put(key, counter = factory.newBitmap());
-                }
-                counter.orWith((BitmapCounter) value);
-            }
-        }
-
-        public long result() {
-            if (keyList == null || keyList.isEmpty()) {
-                return 0;
-            }
-            // if any specified key not in map, the intersection must be 0
-            for (Object key : keyList) {
-                if (!map.containsKey(key)) {
-                    return 0;
-                }
-            }
-            BitmapCounter counter = null;
-            for (Object key : keyList) {
-                BitmapCounter c = map.get(key);
-                if (counter == null) {
-                    counter = factory.newBitmap();
-                    counter.orWith(c);
-                } else {
-                    counter.andWith(c);
-                }
-            }
-            return counter.getCount();
-        }
+    public static Object init() {
+        return null;
     }
 
-    public static RetentionPartialResult init() {
-        return new RetentionPartialResult();
-    }
+    public static void add(Object result, Object value, Object key, List keyList) { }
 
-    public static RetentionPartialResult add(RetentionPartialResult result, Object value, Object key, List keyList) {
-        result.add(key, keyList, value);
-        return result;
-    }
+    public static void merge(Object result, Object value, Object key, List keyList) { }
 
-    public static RetentionPartialResult merge(RetentionPartialResult result, Object value, Object key, List keyList) {
-        return add(result, value, key, keyList);
-    }
-
-    public static long result(RetentionPartialResult result) {
-        return result.result();
+    public static Object result() {
+        return null;
     }
 }

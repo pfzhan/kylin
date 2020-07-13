@@ -194,8 +194,9 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
         return true;
     }
 
-    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(FUNC_COUNT_DISTINCT,
-            BitmapDistinctCountAggFunc.class);
+    static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(
+            FunctionDesc.FUNC_COUNT_DISTINCT, BitmapDistinctCountAggFunc.class,
+            FunctionDesc.FUNC_BITMAP_UUID, BitmapDistinctCountAggFunc.class);
 
     @Override
     public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {

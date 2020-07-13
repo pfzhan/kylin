@@ -728,6 +728,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isSlowQueryKillFailedRestartKeEnabled", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-restart-enabled", "true", true));
         map.put("getGuardianSlowQueryKillFailedThreshold", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-threshold", "3", 3));
         map.put("getSuggestModelSqlLimit", new PropertiesEntity("kylin.model.suggest-model-sql-limit", "200", 200));
+        map.put("getIntersectFilterOrSeparator", new PropertiesEntity("kylin.query.intersect.separator", "|", "|"));
+        map.put("getBitmapValuesUpperBound", new PropertiesEntity("kylin.query.bitmap-values-upper-bound", "10000000", 10000000));
     }
 
     @Before
@@ -747,7 +749,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(367, methodsCount);
+        // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
+        Assert.assertEquals(369, methodsCount);
     }
 
     @Test

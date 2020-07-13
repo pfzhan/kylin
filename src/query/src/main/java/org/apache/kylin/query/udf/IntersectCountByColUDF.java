@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,32 +40,12 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.measure.bitmap;
+package org.apache.kylin.query.udf;
 
-/**
- * Bitmap-based distinct count UDAF, called by calcite runtime.
- */
-public class BitmapDistinctCountAggFunc {
+import java.util.List;
 
-    public static BitmapAggregator init() {
-        return new BitmapAggregator();
-    }
-
-    public static BitmapAggregator add(BitmapAggregator agg, Object value) {
-        agg.aggregate((BitmapCounter) value);
-        return agg;
-    }
-
-    public static BitmapAggregator merge(BitmapAggregator agg, Object value) {
-        BitmapAggregator agg2 = (BitmapAggregator) value;
-        if (agg2.getState() == null) {
-            return agg;
-        }
-        return add(agg, agg2.getState());
-    }
-
-    public static Object result(BitmapAggregator agg) {
-        BitmapCounter finalState = agg.getState();
-        return finalState == null ? 0 : finalState.getCount();
+public class IntersectCountByColUDF {
+    public long INTERSECT_COUNT_BY_COL(List maps) throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 }

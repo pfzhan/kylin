@@ -1273,6 +1273,7 @@ public abstract class KylinConfigBase implements Serializable {
         udfMap.put("rlike", "org.apache.kylin.query.udf.otherUdf.RlikeUDF");
         udfMap.put("if", "org.apache.kylin.query.udf.otherUdf.IfUDF");
         udfMap.put("version", "org.apache.kylin.query.udf.VersionUDF");
+        udfMap.put("bitmap_function", "org.apache.kylin.query.udf.IntersectCountByColUDF");
         udfMap.put("concat", "org.apache.kylin.query.udf.stringUdf.ConcatUDF");
         udfMap.put("concat_ws", "org.apache.kylin.query.udf.stringUdf.ConcatwsUDF");
         udfMap.put("massin", "org.apache.kylin.query.udf.MassInUDF");
@@ -1298,6 +1299,7 @@ public abstract class KylinConfigBase implements Serializable {
         udfMap.put("spark_misc_function", "org.apache.kylin.query.udf.SparkMiscUDF");
         udfMap.put("spark_time_function", "org.apache.kylin.query.udf.SparkTimeUDF");
         udfMap.put("spark_math_function", "org.apache.kylin.query.udf.SparkMathUDF");
+        udfMap.put("spark_other_function", "org.apache.kylin.query.udf.SparkOtherUDF");
         Map<String, String> overrideUdfMap = getPropertiesByPrefix("kylin.query.udf.");
         udfMap.putAll(overrideUdfMap);
         return udfMap;
@@ -2149,5 +2151,13 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getSuggestModelSqlInterval() {
         return Integer.parseInt(getOptional("kylin.model.suggest-model-sql-interval", "10"));
+    }
+
+    public String getIntersectFilterOrSeparator() {
+        return getOptional("kylin.query.intersect.separator", "|");
+    }
+
+    public int getBitmapValuesUpperBound() {
+        return Integer.parseInt(getOptional("kylin.query.bitmap-values-upper-bound", "10000000"));
     }
 }

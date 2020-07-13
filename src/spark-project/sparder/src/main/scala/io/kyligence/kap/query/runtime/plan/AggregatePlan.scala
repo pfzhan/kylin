@@ -27,12 +27,14 @@ import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{CreateArray, In}
 import org.apache.spark.sql.catalyst.plans.logical.Project
+import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StructType}
@@ -81,14 +83,24 @@ object AggregatePlan extends LogEx {
       val names = dataFrame.schema.names
       val children = dataFrame.queryExecution.logical
       if (intersects.nonEmpty && intersects.size == rel.getRewriteAggCalls.size() && children.isInstanceOf[Project]) {
+        // only exists intersect count function in agg
         val list = children.asInstanceOf[Project].projectList
-        val filters = intersects.map { call =>
-          val filterColumnIndex = call.getArgList.get(1)
-          val litIndex = call.getArgList.get(2)
-          new Column(In(col(names(filterColumnIndex)).expr, list.apply(litIndex).children.head.asInstanceOf[CreateArray].children))
+        val supportGenFilter = intersects.forall { call =>
+          val listIndex = call.getArgList.get(2)
+          call.getArgList.size() == 3 && list.apply(listIndex).eval().asInstanceOf[ArrayData].array.map(_.toString)
+            .forall(!_.contains(KylinConfig.getInstanceFromEnv.getIntersectFilterOrSeparator))
         }
-        val column = filters.reduceLeft(_.or(_))
-        dataFrame.filter(column)
+        if (supportGenFilter) {
+          val filters = intersects.map { call =>
+            val filterColumnIndex = call.getArgList.get(1)
+            val litIndex = call.getArgList.get(2)
+            new Column(In(col(names(filterColumnIndex)).expr, list.apply(litIndex).children.head.asInstanceOf[CreateArray].children))
+          }
+          val column = filters.reduceLeft(_.or(_))
+          dataFrame.filter(column)
+        } else {
+          dataFrame
+        }
       } else {
         dataFrame
       }
@@ -119,15 +131,29 @@ object AggregatePlan extends LogEx {
               .approx_count_distinct(columnName.head, dataType.getPrecision)
               .alias(aggName)
           } else {
-            KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
+            if (call.name.equalsIgnoreCase(FunctionDesc.FUNC_COUNT_DISTINCT)) {
+              KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
+            } else {
+              KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)
+            }
           }
         } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT)) {
-          require(columnName.size == 3, s"Input columns size ${columnName.size} don't equal to 3.")
-          val columns = columnName.zipWithIndex.map {
+          require(columnName.size >= 3, s"Input columns size ${columnName.size} don't greater than or equal to 3.")
+          val columns = columnName.slice(0, 3).zipWithIndex.map {
             case (column: Column, 2) => column.cast(ArrayType.apply(schema.fields.apply(call.getArgList.get(1)).dataType))
             case (column: Column, _) => column
           }
-          KapFunctions.intersect_count(columns.toList: _*).alias(aggName)
+          val separator = s"\\${KylinConfig.getInstanceFromEnv.getIntersectFilterOrSeparator}"
+          val upperBound = KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound
+          call.name.toUpperCase match {
+            case FunctionDesc.FUNC_INTERSECT_COUNT => KapFunctions.intersect_count(separator, upperBound, columns.toList: _*).alias(aggName)
+            case FunctionDesc.FUNC_INTERSECT_VALUE => KapFunctions.intersect_value(separator, upperBound, columns.toList: _*).alias(aggName)
+            case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID => KapFunctions.intersect_bitmap(separator, upperBound, columns.toList: _*).alias(aggName)
+            case FunctionDesc.FUNC_INTERSECT_COUNT_V2 => KapFunctions.intersect_count_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
+            case FunctionDesc.FUNC_INTERSECT_VALUE_V2 => KapFunctions.intersect_value_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
+            case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID_V2 => KapFunctions.intersect_bitmap_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
+            case func => throw new UnsupportedOperationException(s"Unsupported intersect count function: $func, please check the sql.")
+          }
         } else {
           callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
         }

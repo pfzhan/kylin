@@ -153,13 +153,12 @@ case class ReusePreciseCountDistinct(
 @SerialVersionUID(1)
 case class PreciseCountDistinct(
   child: Expression,
+  dataType: DataType,
   mutableAggBufferOffset: Int = 0,
   inputAggBufferOffset: Int = 0)
   extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
 
-  def this(child: Expression) = this(child, 0, 0)
-
-  override def dataType: DataType = LongType
+  def this(child: Expression, dataType: DataType) = this(child, dataType, 0, 0)
 
   override def update(buffer: Roaring64NavigableMap, input: InternalRow): Roaring64NavigableMap = {
     val colValue = child.eval(input)
@@ -168,7 +167,10 @@ case class PreciseCountDistinct(
   }
 
   override def eval(buffer: Roaring64NavigableMap): Any = {
-    buffer.getLongCardinality
+    dataType match {
+      case LongType => buffer.getLongCardinality
+      case BinaryType => serialize(buffer)
+    }
   }
 
   override def withNewMutableAggBufferOffset(newMutableAggBufferOffset: Int): ImperativeAggregate =

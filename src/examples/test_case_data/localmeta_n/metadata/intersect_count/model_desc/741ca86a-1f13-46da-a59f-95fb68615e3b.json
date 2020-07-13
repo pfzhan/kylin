@@ -27,6 +27,18 @@
       "name": "LEAF_CATEG_ID",
       "column": "TEST_KYLIN_FACT.LEAF_CATEG_ID",
       "status": "DIMENSION"
+    },
+    {
+      "id": 4,
+      "name": "SELLER_ID",
+      "column": "TEST_KYLIN_FACT.SELLER_ID",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 5,
+      "name": "LSTG_SITE_ID",
+      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID",
+      "status": "DIMENSION"
     }
   ],
   "all_measures": [
@@ -54,6 +66,34 @@
           "value": "1"
         }],
         "returntype": "bigint"
+      }
+    },
+    {
+      "id": 100002,
+      "name": "TEST_COUNT_DISTINCT_SELLER_ID",
+      "function": {
+        "expression": "COUNT_DISTINCT",
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.SELLER_ID"
+          }
+        ],
+        "returntype": "bitmap"
+      }
+    },
+    {
+      "id": 100003,
+      "name": "TEST_COUNT_DISTINCT_LSTG_SITE_ID",
+      "function": {
+        "expression": "COUNT_DISTINCT",
+        "parameters": [
+          {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.LSTG_SITE_ID"
+          }
+        ],
+        "returntype": "bitmap"
       }
     }
   ],

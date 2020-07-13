@@ -71,6 +71,28 @@
           "storage_type": 20
         }
       ]
+    },
+    {
+      "id": 30000,
+      "dimensions": [
+        1
+      ],
+      "measures": [
+        100002,
+        100003
+      ],
+      "layouts": [
+        {
+          "id": 30001,
+          "auto": true,
+          "col_order": [
+            1,
+            100002,
+            100003
+          ],
+          "storage_type": 20
+        }
+      ]
     }
   ],
   "dictionaries": [
@@ -81,7 +103,9 @@
   ],
   "next_aggregation_index_id": 1130000,
   "next_table_index_id": 20000030000,
-  "override_properties": {},
+  "override_properties": {
+    "kylin.query.skip-encode-integer-enabled": "true"
+  },
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,
   "auto_merge_time_ranges": null,

@@ -28,6 +28,7 @@ import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.{CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.types.{ArrayType, BinaryType, LongType}
 import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, PreciseCountDistinct}
 
 object KapFunctions {
@@ -64,7 +65,10 @@ object KapFunctions {
   def in(value: Expression, list: Seq[Expression]): Column = Column(In(value, list))
 
   def precise_count_distinct(column: Column): Column =
-    Column(PreciseCountDistinct(column.expr).toAggregateExpression())
+    Column(PreciseCountDistinct(column.expr, LongType).toAggregateExpression())
+
+  def precise_bitmap_uuid(column: Column): Column =
+    Column(PreciseCountDistinct(column.expr, BinaryType).toAggregateExpression())
 
   def approx_count_distinct(column: Column, precision: Int): Column =
     Column(ApproxCountDistinct(column.expr, precision).toAggregateExpression())
@@ -73,11 +77,53 @@ object KapFunctions {
     Column(TRUNCATE(column.expr, Literal(scale)))
   }
 
-  def intersect_count(columns: Column*): Column = {
+  def intersect_count(separator: String, upperBound: Int, columns: Column*): Column = {
     require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
     val expressions = columns.map(_.expr)
-    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2))
-      .toAggregateExpression())
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
+      k_lit(IntersectCount.RAW_STRING).expr, LongType, separator, upperBound).toAggregateExpression()
+     )
+  }
+
+  def intersect_value(separator: String, upperBound: Int, columns: Column*): Column = {
+    require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
+    val expressions = columns.map(_.expr)
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
+      k_lit(IntersectCount.RAW_STRING).expr, ArrayType(LongType, containsNull = false), separator, upperBound).toAggregateExpression()
+    )
+  }
+
+  def intersect_bitmap(separator: String, upperBound: Int, columns: Column*): Column = {
+    require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
+    val expressions = columns.map(_.expr)
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
+      k_lit(IntersectCount.RAW_STRING).expr, BinaryType, separator, upperBound).toAggregateExpression()
+    )
+  }
+
+
+  def intersect_count_v2(filterType: Column, separator: String, upperBound: Int, columns: Column*): Column = {
+    require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
+    val expressions = columns.map(_.expr)
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
+      filterType.expr, LongType, separator, upperBound
+    ).toAggregateExpression())
+  }
+
+  def intersect_value_v2(filterType: Column, separator: String, upperBound: Int, columns: Column*): Column = {
+    require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
+    val expressions = columns.map(_.expr)
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
+      filterType.expr, ArrayType(LongType, containsNull = false), separator, upperBound
+    ).toAggregateExpression())
+  }
+
+  def intersect_bitmap_v2(filterType: Column, separator: String, upperBound: Int, columns: Column*): Column = {
+    require(columns.size == 3, s"Input columns size ${columns.size} don't equal to 3.")
+    val expressions = columns.map(_.expr)
+    Column(IntersectCount(expressions.apply(0), expressions.apply(1), expressions.apply(2),
+      filterType.expr, BinaryType, separator, upperBound
+    ).toAggregateExpression())
   }
 
   case class TRUNCATE(child: Expression, scale: Expression)

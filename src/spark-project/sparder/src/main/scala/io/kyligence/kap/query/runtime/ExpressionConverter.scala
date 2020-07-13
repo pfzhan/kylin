@@ -31,7 +31,7 @@ import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{If, IfNull, StringLocate}
+import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -45,7 +45,9 @@ object ExpressionConverter {
     // time
     "weekofyear",
     // math
-    "cbrt", "cosh", "expm1", "factorial", "log1p", "log2", "rint", "sinh", "tanh"
+    "cbrt", "cosh", "expm1", "factorial", "log1p", "log2", "rint", "sinh", "tanh",
+    // other
+    "explode"
   )
 
   val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad", "conv")
@@ -364,6 +366,8 @@ object ExpressionConverter {
               throw new UnsupportedOperationException(
                 s"overlay must provide three or four parameters under sparder")
             }
+          case "intersect_count_by_col" =>
+            new Column(IntersectCountByCol(children.head.asInstanceOf[Column].expr.children.toArray: _*))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
@@ -387,7 +391,7 @@ object ExpressionConverter {
             s"floor must provide one or two parameters under sparder")
         }
       case ARRAY_VALUE_CONSTRUCTOR =>
-        array(children.map(child => k_lit(child.toString)): _*)
+        array(children.map(child => k_lit(child)): _*)
       case (IS_FALSE | IS_NOT_TRUE) =>
         not(k_lit(children.head))
       case (IS_TRUE | IS_NOT_FALSE) =>

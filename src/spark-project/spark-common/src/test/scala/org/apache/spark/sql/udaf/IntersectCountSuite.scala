@@ -30,7 +30,7 @@ import java.nio.ByteBuffer
 import org.apache.kylin.common.util.ByteBufferOutputStream
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, GenericInternalRow, Literal}
 import org.apache.spark.sql.common.SparderBaseFunSuite
-import org.apache.spark.sql.types.{BinaryType, DateType}
+import org.apache.spark.sql.types.{BinaryType, DateType, LongType}
 import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 import scala.collection.JavaConverters._
@@ -51,7 +51,7 @@ class IntersectCountSuite extends SparderBaseFunSuite {
     val child1 = BoundReference(0, BinaryType, nullable = true)
     val child2 = BoundReference(1, DateType, nullable = true)
     val child3 = Literal(Array(1, 2))
-    val count = IntersectCount(child1, child2, child3)
+    val count = IntersectCount(child1, child2, child3, Literal(IntersectCount.RAW_STRING), LongType, "\\|")
     val buffer = count.createAggregationBuffer()
 
     val row = new GenericInternalRow(2)
@@ -97,7 +97,7 @@ class IntersectCountSuite extends SparderBaseFunSuite {
     val child1 = BoundReference(0, BinaryType, nullable = true)
     val child2 = BoundReference(1, DateType, nullable = true)
     val child3 = Literal(Array.empty[Int])
-    val count = IntersectCount(child1, child2, child3)
+    val count = IntersectCount(child1, child2, child3, Literal(IntersectCount.RAW_STRING), LongType, "\\|")
     val buffer = count.createAggregationBuffer()
 
     val row = new GenericInternalRow(2)
@@ -115,7 +115,7 @@ class IntersectCountSuite extends SparderBaseFunSuite {
     val child1 = BoundReference(0, BinaryType, nullable = true)
     val child2 = BoundReference(1, DateType, nullable = true)
     val child3 = Literal(Array(1, 2))
-    val count = IntersectCount(child1, child2, child3)
+    val count = IntersectCount(child1, child2, child3, Literal(IntersectCount.RAW_STRING), LongType, "\\|")
     val buffer = count.createAggregationBuffer()
 
     val row = new GenericInternalRow(2)
@@ -140,7 +140,7 @@ class IntersectCountSuite extends SparderBaseFunSuite {
     val child1 = BoundReference(0, BinaryType, nullable = true)
     val child2 = BoundReference(1, DateType, nullable = true)
     val child3 = Literal(Array(1, 2))
-    val count = IntersectCount(child1, child2, child3)
+    val count = IntersectCount(child1, child2, child3, Literal(IntersectCount.RAW_STRING), LongType, "\\|")
     val counter = new IntersectBitmapCounter()
     val map1 = new Roaring64NavigableMap()
     map1.add(1, 3, 5, 7, 9)

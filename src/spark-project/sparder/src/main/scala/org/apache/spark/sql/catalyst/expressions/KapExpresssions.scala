@@ -26,10 +26,12 @@ package org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode, FalseLiteral}
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
+import org.apache.spark.sql.catalyst.expressions.codegen.Block._
+import scala.collection.JavaConverters._
 
 // Returns the date that is num_months after start_date.
 // scalastyle:off line.size.limit
@@ -439,4 +441,42 @@ case class CeilDateTime(timestamp: Expression,
         s"ceilTimestamp($date, $fmt, $tz);"
     }
   }
+}
+
+case class IntersectCountByCol(children: Expression*) extends Expression {
+  override def nullable: Boolean = false
+
+  override def eval(input: InternalRow): Long = {
+    val array = children.map(_.eval(input).asInstanceOf[Array[Byte]]).toList.asJava
+    IntersectCountByColImpl.evaluate(array)
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val codes = children.map(_.genCode(ctx))
+    val list = ctx.addMutableState("java.util.List<Byte[]>", s"bytesList",
+      v => s"$v = new java.util.LinkedList();", forceInline = true)
+
+    val ic = IntersectCountByColImpl.getClass.getName.stripSuffix("$")
+
+    val builder = new StringBuilder()
+    codes.map(_.value).foreach { code =>
+        builder.append(s"$list.add($code);\n")
+    }
+
+    val resultCode = s"""
+         ${builder.toString()}
+         ${ev.value} = $ic.evaluate($list);"""
+
+    builder.clear()
+    codes.map(_.code).foreach { code =>
+      builder.append(s"${code.code}\n")
+    }
+
+    ev.copy(code = code"""
+        ${builder.toString()}
+        ${CodeGenerator.javaType(dataType)} ${ev.value} = ${CodeGenerator.defaultValue(dataType)};
+        $resultCode""", isNull = FalseLiteral)
+  }
+
+  override def dataType: DataType = LongType
 }

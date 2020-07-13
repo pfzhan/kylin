@@ -49,6 +49,7 @@ import org.apache.kylin.measure.MeasureIngester;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.bitmap.BitmapIntersectDistinctCountAggFunc;
+import org.apache.kylin.measure.bitmap.BitmapIntersectDistinctCountAggV2Func;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -94,8 +95,14 @@ public class IntersectMeasureType extends MeasureType<IntersectBitmapCounter> {
         return new IntersectMeasureAggregator();
     }
 
-    private static final Map<String, Class<?>> UDAF_MAP = ImmutableMap
-            .<String, Class<?>> of(FUNC_INTERSECT_COUNT_DISTINCT, BitmapIntersectDistinctCountAggFunc.class);
+    private static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.<String, Class<?>>builder()
+            .put(FunctionDesc.FUNC_INTERSECT_COUNT, BitmapIntersectDistinctCountAggFunc.class)
+            .put(FunctionDesc.FUNC_INTERSECT_COUNT_V2, BitmapIntersectDistinctCountAggV2Func.class)
+            .put(FunctionDesc.FUNC_INTERSECT_VALUE, BitmapIntersectDistinctCountAggFunc.class)
+            .put(FunctionDesc.FUNC_INTERSECT_VALUE_V2, BitmapIntersectDistinctCountAggV2Func.class)
+            .put(FunctionDesc.FUNC_INTERSECT_BITMAP_UUID, BitmapIntersectDistinctCountAggFunc.class)
+            .put(FunctionDesc.FUNC_INTERSECT_BITMAP_UUID_V2, BitmapIntersectDistinctCountAggV2Func.class)
+            .build();
 
     @Override
     public Map<String, Class<?>> getRewriteCalciteAggrFunctions() {

@@ -29,13 +29,10 @@ import java.nio.ByteBuffer
 import org.apache.kylin.measure.bitmap.RoaringBitmapCounter
 import org.apache.kylin.measure.hllc.HLLCounter
 import org.apache.spark.sql.catalyst.util.stackTraceToString
-import org.apache.spark.sql.common.{
-  SharedSparkSession,
-  SparderBaseFunSuite,
-  SparderQueryTest
-}
+import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite, SparderQueryTest}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.KapFunctions._
+import org.apache.spark.sql.udaf.BitmapSerAndDeSer
 
 // scalastyle:off
 class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
@@ -51,9 +48,9 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
                  ("b": String, array2),
                  ("a": String, array2)).toDF("col1", "col2")
 
-    val frame = df.coalesce(1).select(precise_count_distinct($"col2")).collect()
     checkAnswer(df.coalesce(1).select(precise_count_distinct($"col2")),
                 Seq(Row(4)))
+    checkBitmapAnswer(df.coalesce(1).select(precise_bitmap_uuid($"col2")), Array(4L))
   }
 
   test("test precise_count_distinct with grouping keys") {
@@ -66,6 +63,10 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
     checkAnswer(
       df.coalesce(1).groupBy($"col1").agg(precise_count_distinct($"col2")),
       Seq(Row("a", 4), Row("b", 3))
+    )
+    checkBitmapAnswer(
+      df.coalesce(1).groupBy($"col1").agg(precise_bitmap_uuid($"col2").as("col")).select("col"),
+      Array(4L, 3L)
     )
   }
 
@@ -85,6 +86,10 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
     checkAnswer(
       df.coalesce(1).groupBy($"col1").agg(precise_count_distinct($"col2")),
       Seq(Row("a", 6), Row("b", 3), Row("c", 5))
+    )
+    checkBitmapAnswer(
+      df.coalesce(1).groupBy($"col1").agg(precise_bitmap_uuid($"col2").as("col")).select("col"),
+      Array(6L, 3L, 5L)
     )
   }
 
@@ -125,6 +130,12 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
       case Some(errorMessage) => fail(errorMessage)
       case None               =>
     }
+  }
+
+  private def checkBitmapAnswer(df: => DataFrame,
+                                expectedAnswer: Array[Long]): Unit = {
+    val result = df.collect().map(row => BitmapSerAndDeSer.get().deserialize(row.getAs[Array[Byte]](0)).getLongCardinality)
+    assert(result sameElements expectedAnswer)
   }
 
   test("test approx_count_distinct without grouping keys") {

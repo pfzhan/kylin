@@ -47,6 +47,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
+import scala.collection.mutable
+
 object SparderTypeUtil extends Logging {
   val DATETIME_FAMILY = List("time", "date", "timestamp", "datetime")
 
@@ -272,6 +274,8 @@ object SparderTypeUtil extends Logging {
     // in case the type is not set
     case (ts: java.sql.Timestamp, _) => DateFormat.castTimestampToString(ts.getTime)
     case (dt: java.sql.Date, _) => DateFormat.formatToDateStr(dt.getTime)
+    case (value: mutable.WrappedArray.ofRef[Any], _) =>
+      s"[${value.array.mkString(",")}]"
     case (other, _) => other.toString
   }
 
