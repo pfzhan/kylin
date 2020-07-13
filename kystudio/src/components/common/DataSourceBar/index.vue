@@ -224,7 +224,7 @@ export default class DataSourceBar extends Vue {
   dataSourceDragData = {
     width: 250,
     limit: {
-      width: [250]
+      width: [250, 500]
     }
   }
   databaseSizeObj = {}
@@ -317,6 +317,7 @@ export default class DataSourceBar extends Vue {
       this.$refs.treeList && this.$refs.treeList.$emit('filter', event)
     })
     this.initTree()
+    document.getElementsByClassName('table-layout') && (this.dataSourceDragData.limit.width[1] = document.getElementsByClassName('table-layout')[0].offsetWidth - 60)
   }
   addPagination (data) {
     data.pagination.page_offset++
