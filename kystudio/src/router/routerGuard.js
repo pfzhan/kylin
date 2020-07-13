@@ -99,6 +99,8 @@ export function bindRouterGuard (router) {
     if (from.name && to.name && to.name === 'Login') {
       // 登出之后清除currentUser数据
       store.commit(types.RESET_CURRENT_USER)
+      // 重置 project 权限
+      store.commit(types.SAVE_CURRENT_USER_ACCESS, {access: 'DEFAULT'})
     }
     // 跳转路由的时候，关闭独立挂载的弹窗上的isShow的状态(暂只处理guide模式下)
     for (let i in store.state.modals) {
