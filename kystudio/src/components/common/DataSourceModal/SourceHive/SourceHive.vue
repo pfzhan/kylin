@@ -677,13 +677,13 @@ export default class SourceHive extends Vue {
   handleSamplingRows (samplingRows) {
     if (samplingRows && samplingRows < 10000) {
       this.errorMsg = this.$t('minNumber')
-      this.contentStyle.height = '317px'
+      this.contentStyle.height = '328px'
     } else if (samplingRows && samplingRows > 20000000) {
       this.errorMsg = this.$t('maxNumber')
-      this.contentStyle.height = '317px'
+      this.contentStyle.height = '328px'
     } else if (!samplingRows) {
       this.errorMsg = this.$t('invalidType')
-      this.contentStyle.height = '317px'
+      this.contentStyle.height = '328px'
     } else {
       this.errorMsg = ''
       this.contentStyle.height = '367px'
@@ -827,13 +827,19 @@ export default class SourceHive extends Vue {
     transition: height .2s .2s;
     overflow: auto;
     &.has-error-msg {
-      height: 317px;
+      height: 328px;
+    }
+  }
+  &.zh-lang .content-body.has-tips {
+    height: 265px;
+    &.has-error-msg {
+      height: 243px;
     }
   }
   .content-body.has-tips {
-    height: 250px;
+    height: 240px;
     &.has-error-msg {
-      height: 223px;
+      height: 213px;
     }
   }
   .el-tag {
@@ -903,7 +909,7 @@ export default class SourceHive extends Vue {
     position: absolute;
     padding: 10px;
     /* height: 63px; */
-    height: 76px;
+    height: 90px;
     border-radius: 2px;
     background-color: @regular-background-color;
     // bottom: 25px;

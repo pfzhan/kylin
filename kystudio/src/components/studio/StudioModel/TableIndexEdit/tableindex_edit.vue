@@ -210,6 +210,7 @@
     allColumns = []
     getAllColumns () {
       this.allColumns = []
+      // let result = []
       let result = this.modelInstance.selected_columns.map((c) => {
         return c.column
       })
@@ -217,14 +218,14 @@
       // modelUsedTables.forEach((col) => {
       //   result.push(col.full_colname)
       // })
-      if (this.tableIndexMeta.sort_by_columns) {
-        result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
-      }
       // cc列也要放到这里
       // let ccColumns = this.modelInstance && this.modelInstance.computed_columns || []
       // ccColumns.forEach((col) => {
       //   result.push(col.tableAlias + '.' + col.columnName)
       // })
+      if (this.tableIndexMeta.sort_by_columns) {
+        result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
+      }
       result.forEach((i, index) => {
         let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false, colorful: false}
         if (this.tableIndexMeta.sort_by_columns.indexOf(i) >= 0) {
