@@ -44,7 +44,7 @@
                     width="44">
                   </el-table-column>
                   <el-table-column
-                    :label="$t('name')">
+                    :render-header="renderNameHeader">
                     <template slot-scope="scope">
                       <div @click.stop>
                         <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
@@ -70,12 +70,12 @@
                     align="right"
                     show-overflow-tooltip
                     prop="cardinality"
-                    :label="$t('cardinality')"
+                    :render-header="renderCardinalityHeader"
                     width="100">
                   </el-table-column>
                   <el-table-column
                     prop="comment"
-                    :label="$t('comment')">
+                    :render-header="renderCommentHeader">
                   </el-table-column>
                 </el-table>
               </div>
@@ -107,7 +107,7 @@
                     width="44">
                   </el-table-column>
                   <el-table-column
-                    :label="$t('name')">
+                    :render-header="renderNameHeader">
                     <template slot-scope="scope">
                       <div @click.stop>
                         <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
@@ -131,11 +131,11 @@
                   <el-table-column
                     prop="cardinality"
                     show-overflow-tooltip
-                    :label="$t('cardinality')"
+                    :render-header="renderCardinalityHeader"
                     width="100">
                   </el-table-column>
                   <el-table-column
-                  :label="$t('comment')">
+                  :render-header="renderCommentHeader">
                   </el-table-column>
                 </el-table>
               </div>
@@ -169,7 +169,7 @@
                     </el-table-column>
                     <el-table-column
                       prop="alias"
-                      :label="$t('name')">
+                      :render-header="renderNameHeader">
                       <template slot-scope="scope">
                         <div @click.stop>
                           <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
@@ -202,48 +202,48 @@
           </div>
           <div v-show="searchChar.trim()">
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
-                  border
-                  :empty-text="emptyText"
-                  :row-class-name="(para) => tableRowClassName(para, searchTable)"
-                  :data="searchTable.columns" :ref="searchTable.guid"
-                  @row-click="(row) => {rowClick(row, searchTable.guid)}"
-                  @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
-                  @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
-                  <el-table-column
-                    type="selection"
-                    align="center"
-                    width="44">
-                  </el-table-column>
-                  <el-table-column
-                    prop="alias"
-                    :label="$t('name')">
-                    <template slot-scope="scope">
-                      <div @click.stop>
-                        <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
-                        </el-input>
-                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
-                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                      </div>
-                    </template>
-                  </el-table-column>
-                  <el-table-column
-                    prop="column"
-                    :label="$t('column')">
-                    <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
-                  </el-table-column>
-                  <el-table-column
-                    show-overflow-tooltip
-                    prop="expression"
-                    :label="$t('expression')">
-                  </el-table-column>
-                  <el-table-column
-                    show-overflow-tooltip
-                    :label="$t('datatype')"
-                    prop="datatype"
-                    width="110">
-                  </el-table-column>
-                </el-table>
-                <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+              border
+              :empty-text="emptyText"
+              :row-class-name="(para) => tableRowClassName(para, searchTable)"
+              :data="searchTable.columns" :ref="searchTable.guid"
+              @row-click="(row) => {rowClick(row, searchTable.guid)}"
+              @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
+              @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
+              <el-table-column
+                type="selection"
+                align="center"
+                width="44">
+              </el-table-column>
+              <el-table-column
+                prop="alias"
+                :label="$t('name')">
+                <template slot-scope="scope">
+                  <div @click.stop>
+                    <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                    </el-input>
+                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="column"
+                :label="$t('column')">
+                <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
+              </el-table-column>
+              <el-table-column
+                show-overflow-tooltip
+                prop="expression"
+                :label="$t('expression')">
+              </el-table-column>
+              <el-table-column
+                show-overflow-tooltip
+                :label="$t('datatype')"
+                prop="datatype"
+                width="110">
+              </el-table-column>
+            </el-table>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </div>
       </div>
@@ -324,6 +324,33 @@ export default class DimensionsModal extends Vue {
 
   get emptyText () {
     return this.searchChar ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+
+  renderNameHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('name')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('nameTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
+
+  renderCardinalityHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('cardinality')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('cardinalityTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
+
+  renderCommentHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('comment')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('commentTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
   }
 
   changeSearchVal (val) {

@@ -41,7 +41,7 @@
         header-align="right"
         min-width="105"
         show-overflow-tooltip
-        :label="$t('kylinLang.dataSource.cardinality')">
+        :render-header="renderCardinalityHeader">
       </el-table-column>
       <el-table-column
         prop="min_value"
@@ -62,7 +62,7 @@
       <el-table-column
         prop="comment"
         show-overflow-tooltip
-        :label="$t('kylinLang.dataSource.comment')">
+        :render-header="renderCommentHeader">
         <template slot-scope="scope">
           <span :title="scope.row.comment">{{scope.row.comment}}</span>
         </template>
@@ -97,6 +97,22 @@ export default class TableColumns extends Vue {
   pagination = {
     page_offset: 0,
     pageSize: pageCount
+  }
+  renderCardinalityHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('kylinLang.dataSource.cardinality')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('cardinalityTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
+  renderCommentHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('kylinLang.dataSource.comment')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('commentTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
   }
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
