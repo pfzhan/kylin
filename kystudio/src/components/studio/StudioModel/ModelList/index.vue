@@ -187,7 +187,7 @@
                 <div v-if="scope.row.segment_holes && scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
-                    @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
+                    @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('seeDetail')}}</span>
                 </div>
                 <div v-if="scope.row.inconsistent_segment_count">
                   <span>{{$t('modelMetadataChangedTips')}}</span><span
