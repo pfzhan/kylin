@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -42,6 +43,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode(callSuper = false)
 public class SourceUsageRecord extends RootPersistentEntity implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(SourceUsageRecord.class);
 
@@ -62,7 +64,7 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
     private long licenseCapacity;
 
     @JsonProperty("capacity_details")
-    private ProjectCapacityDetail[] capacityDetails;
+    private transient ProjectCapacityDetail[] capacityDetails;
 
     @JsonProperty("capacity_status")
     private CapacityStatus capacityStatus = CapacityStatus.OK;
