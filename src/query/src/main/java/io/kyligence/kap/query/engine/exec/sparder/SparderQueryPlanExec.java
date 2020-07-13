@@ -144,7 +144,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
 
     private void updateQueryContextForEmptyResult() {
         //constant query should fill empty list for scan data
-        QueryContext.current().getMetrics().updateAndCalScanRows(DEFAULT_SCANNED_DATA);
-        QueryContext.current().getMetrics().updateAndCalScanBytes(DEFAULT_SCANNED_DATA);
+        QueryContext.current().getMetrics().updateAndCalScanRows(QueryContext.DEFAULT_SCANNED_DATA);
+        QueryContext.current().getMetrics().updateAndCalScanBytes(QueryContext.DEFAULT_SCANNED_DATA);
     }
 }

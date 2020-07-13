@@ -43,6 +43,7 @@
 package org.apache.kylin.common;
 
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +70,8 @@ public class QueryContext implements Closeable {
     public static final String PUSHDOWN_FILE = "FILE";
 
     public static final long DEFAULT_NULL_SCANNED_DATA = -1L;
+
+    public static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     private static final ThreadLocal<QueryContext> contexts = new ThreadLocal<QueryContext>() {
         @Override

@@ -117,6 +117,9 @@ public class RealizationChooser {
 
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
+    private RealizationChooser() {
+    }
+
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
         // try different model for different context
@@ -228,11 +231,7 @@ public class RealizationChooser {
 
     private static boolean hasReadySegments(NDataModel model) {
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataflow(model.getUuid());
-        if (dataflow.hasReadySegments()) {
-            return true;
-        }
-
-        return false;
+        return dataflow.hasReadySegments();
     }
 
     private static List<NDataSegment> pruneSegments(NDataModel model, OLAPContext olapContext) {
@@ -308,7 +307,8 @@ public class RealizationChooser {
     }
 
     private static Pair<RexNode, RexNode> transformSegment2RexCall(NDataSegment dataSegment, String dateFormat, RexBuilder rexBuilder, RexInputRef partitionColInputRef, DataType partitionColType) {
-        String start, end;
+        String start;
+        String end;
         if (dataSegment.isOffsetCube()) {
             start = DateFormat.formatToDateStr(dataSegment.getKSRange().getStart(), dateFormat);
             end = DateFormat.formatToDateStr(dataSegment.getKSRange().getEnd(), dateFormat);
@@ -395,7 +395,7 @@ public class RealizationChooser {
                 addToContextGroupBy(functionDesc.getColRefs(), olapContext);
                 olapContext.resetSQLDigest();
                 olapContext.getSQLDigest();
-                logger.info("Adjust DimensionAsMeasure for " + functionDesc);
+                logger.info("Adjust DimensionAsMeasure for {}", functionDesc);
             } else {
 
                 MeasureDesc involvedMeasure = inf.getInvolvedMeasure();
@@ -410,7 +410,7 @@ public class RealizationChooser {
 
     private static void addToContextGroupBy(List<TblColRef> colRefs, OLAPContext context) {
         for (TblColRef col : colRefs) {
-            if (col.isInnerColumn() == false && context.belongToContextTables(col))
+            if (!col.isInnerColumn() && context.belongToContextTables(col))
                 context.getGroupByColumns().add(col);
         }
     }
@@ -495,9 +495,6 @@ public class RealizationChooser {
     private static String toErrorMsg(OLAPContext ctx) {
         StringBuilder buf = new StringBuilder("OLAPContext");
         RealizationCheck checkResult = ctx.realizationCheck;
-        //        for (RealizationCheck.IncapableReason reason : checkResult.getCubeIncapableReasons().values()) {
-        //            buf.append(", ").append(reason);
-        //        }
         for (List<RealizationCheck.IncapableReason> reasons : checkResult.getModelIncapableReasons().values()) {
             for (RealizationCheck.IncapableReason reason : reasons) {
                 buf.append(", ").append(reason);
@@ -525,7 +522,6 @@ public class RealizationChooser {
             // has hanging tables
             ctx.realizationCheck.addModelIncapableReason(model,
                     RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.MODEL_BAD_JOIN_SEQUENCE));
-            //            throw new IllegalStateException("Please adjust the sequence of join tables. " + toErrorMsg(ctx));
             return null;
         } else {
             // normal big joins
@@ -587,17 +583,13 @@ public class RealizationChooser {
         public static final int COST_WEIGHT_DIMENSION = 10;
         public static final int COST_WEIGHT_INNER_JOIN = 100;
 
-        final public int cost;
+        final int cost;
 
         public RealizationCost(IRealization real) {
 
             // ref CubeInstance.getCost()
             int countedDimensionNum;
-            //            if (CubeInstance.REALIZATION_TYPE.equals(real.getType())) {
-            //                countedDimensionNum = ((CubeInstance) real).getRowKeyColumnCount();
-            //            } else {
             countedDimensionNum = real.getAllDimensions().size();
-            //            }
             int c = countedDimensionNum * COST_WEIGHT_DIMENSION + real.getMeasures().size() * COST_WEIGHT_MEASURE;
             for (JoinTableDesc join : real.getModel().getJoinTables()) {
                 if (join.getJoin().isInnerJoin())
