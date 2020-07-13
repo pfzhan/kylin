@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.engine.exec.sparder;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -53,6 +54,7 @@ import lombok.val;
  */
 @Slf4j
 public class SparderQueryPlanExec implements QueryPlanExec {
+    private static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {

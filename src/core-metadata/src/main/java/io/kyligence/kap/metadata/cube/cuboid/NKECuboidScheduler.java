@@ -60,10 +60,10 @@ public class NKECuboidScheduler extends NCuboidScheduler {
     private final BigInteger max;
     private final int measureSize;
     private boolean isBaseCuboidValid;
-    private final Set<CuboidBigInteger> allCuboidIds;
+    private transient final Set<CuboidBigInteger> allCuboidIds;
 
-    private final SetCreator newHashSet = HashSet::new;
-    private final SetCreator newCuboidSet = CuboidSet::new;
+    private transient final SetCreator newHashSet = HashSet::new;
+    private transient final SetCreator newCuboidSet = CuboidSet::new;
 
     NKECuboidScheduler(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
         super(indexPlan, ruleBasedAggIndex);
