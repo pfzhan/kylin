@@ -82,7 +82,7 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
             String ret = restoreFromComputedColumn.convert("select DEAL_AMOUNT,DEAL_YEAR from test_kylin_fact",
                     "default", "DEFAULT", false);
             Assert.assertEquals(
-                    "select TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT,year(TEST_KYLIN_FACT.CAL_DT) from test_kylin_fact",
+                    "select TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT AS DEAL_AMOUNT,year(TEST_KYLIN_FACT.CAL_DT) AS DEAL_YEAR from test_kylin_fact",
 
                     ret);
         }
@@ -91,7 +91,7 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
             String ret = restoreFromComputedColumn.convert(
                     "select DEAL_AMOUNT,DEAL_YEAR from test_kylin_fact group by DEAL_YEAR", "default", "DEFAULT", false);
             Assert.assertEquals(
-                    "select TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT,year(TEST_KYLIN_FACT.CAL_DT) from test_kylin_fact group by year(TEST_KYLIN_FACT.CAL_DT)",
+                    "select TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT AS DEAL_AMOUNT,year(TEST_KYLIN_FACT.CAL_DT) AS DEAL_YEAR from test_kylin_fact group by year(TEST_KYLIN_FACT.CAL_DT)",
 
                     ret);
         }
@@ -137,7 +137,7 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
             String ret = restoreFromComputedColumn.convert("select NEST3 from TEST_KYLIN_FACT",
                     "default", "DEFAULT", false);
 
-            Assert.assertEquals("select round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) from TEST_KYLIN_FACT", ret);
+            Assert.assertEquals("select round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) AS NEST3 from TEST_KYLIN_FACT", ret);
 
         }
 
@@ -146,7 +146,7 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
             String ret = restoreFromComputedColumn.convert("select NEST4 from TEST_KYLIN_FACT",
                     "default", "DEFAULT", false);
 
-            Assert.assertEquals("select (round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0)) * TEST_KYLIN_FACT.ITEM_COUNT from TEST_KYLIN_FACT", ret);
+            Assert.assertEquals("select (round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0)) * TEST_KYLIN_FACT.ITEM_COUNT AS NEST4 from TEST_KYLIN_FACT", ret);
 
         }
     }
@@ -284,6 +284,14 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
             String originSql = "select sum (TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
             String ccSql = "select sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
 
+            check(converter, originSql, ccSql);
+        }
+
+        {
+            String originSql = "select sum(DEAL_AMOUNT) as \"c1\" from (select F.PRICE * F.ITEM_COUNT AS DEAL_AMOUNT from test_kylin_fact f left join test_order o " +
+                    "on f.order_id = o.account_id where cal_dt = '2012-01-02') as tbl";
+            String ccSql = "select sum(DEAL_AMOUNT) as \"c1\" from (select f.DEAL_AMOUNT from test_kylin_fact f left join test_order o " +
+                    "on f.order_id = o.account_id where cal_dt = '2012-01-02') as tbl";
             check(converter, originSql, ccSql);
         }
     }

@@ -274,17 +274,26 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
         Set<String> ccColNamesWithPrefix = Sets.newHashSet();
         ccColNamesWithPrefix.addAll(dataModelDesc.getComputedColumnNames());
-        List<SqlIdentifier> columnUsages = ColumnUsagesFinder.getColumnUsages(selectOrOrderby, ccColNamesWithPrefix);
+        List<ColumnUsage> columnUsages = ColumnUsagesFinder.getColumnUsages(selectOrOrderby, ccColNamesWithPrefix);
         if (columnUsages.size() == 0) {
             return Pair.newPair(inputSql, 0);
         }
 
-        CalciteParser.descSortByPosition(columnUsages);
+        columnUsages.sort((item1, item2) -> {
+            SqlIdentifier column1 = item1.sqlIdentifier;
+            SqlIdentifier column2 = item2.sqlIdentifier;
+            int linegap = column1.getParserPosition().getLineNum() - column1.getParserPosition().getLineNum();
+            if (linegap != 0)
+                return linegap;
+
+            return column2.getParserPosition().getColumnNum() - column2.getParserPosition().getColumnNum();
+        });
 
         List<ReplaceRange> toBeReplacedUsages = Lists.newArrayList();
 
-        for (SqlIdentifier columnUsage : columnUsages) {
-            String columnName = Iterables.getLast(columnUsage.names);
+        for (ColumnUsage columnUsage : columnUsages) {
+            SqlIdentifier column = columnUsage.sqlIdentifier;
+            String columnName = Iterables.getLast(column.names);
             //TODO cannot do this check because cc is not visible on schema without solid realizations
             // after this is done, constrains on #1932 can be relaxed
 
@@ -296,10 +305,12 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                     .findCCByCCColumnName(ComputedColumnDesc.getOriginCcName(columnName));
             // The computed column expression is defined based on alias in model, e.g. BUYER_COUNTRY.x + BUYER_ACCOUNT.y
             // however user query might use a different alias, say bc.x + ba.y
-            String replaced = CalciteParser.replaceAliasInExpr(computedColumnDesc.getExpression(),
+            String ccExpression = CalciteParser.replaceAliasInExpr(computedColumnDesc.getExpression(),
                     matchInfo.getAliasMapping().inverse());
+            // intend to handle situation like KE-15939
+            String replaceExpression = columnUsage.addAlias ? ccExpression + " AS " + computedColumnDesc.getColumnName() : ccExpression;
 
-            Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(columnUsage, inputSql);
+            Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(column, inputSql);
             int begin = startEndPos.getFirst();
             int end = startEndPos.getSecond();
 
@@ -307,8 +318,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             replaceRange.beginPos = begin;
             replaceRange.endPos = end;
 
-            replaceRange.column = columnUsage;
-            replaceRange.replaceExpr = replaced;
+            replaceRange.column = column;
+            replaceRange.replaceExpr = replaceExpression;
 
             toBeReplacedUsages.add(replaceRange);
         }
@@ -343,7 +354,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
     //find child inner select first
     static class ColumnUsagesFinder extends SqlBasicVisitor<SqlNode> {
-        private List<SqlIdentifier> usages;
+        private List<ColumnUsage> usages;
         private Set<String> columnNames;
 
         ColumnUsagesFinder(Set<String> columnNames) {
@@ -351,21 +362,21 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             this.usages = Lists.newArrayList();
         }
 
-        public static List<SqlIdentifier> getColumnUsages(SqlCall selectOrOrderby, Set<String> columnNames)
+        public static List<ColumnUsage> getColumnUsages(SqlCall selectOrOrderby, Set<String> columnNames)
                 throws SqlParseException {
             ColumnUsagesFinder sqlSubqueryFinder = new ColumnUsagesFinder(columnNames);
             selectOrOrderby.accept(sqlSubqueryFinder);
             return sqlSubqueryFinder.getUsages();
         }
 
-        public List<SqlIdentifier> getUsages() {
+        public List<ColumnUsage> getUsages() {
             return usages;
         }
 
         @Override
         public SqlNode visit(SqlIdentifier id) {
-            if (columnNames.contains(id.names.get(id.names.size() - 1))) {
-                this.usages.add(id);
+            if (matchName(id)) {
+                this.usages.add(new ColumnUsage(id, false));
             }
             return null;
         }
@@ -380,16 +391,47 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                     operands[0].accept(this);
                 }
             } else {
-                for (SqlNode operand : call.getOperandList()) {
-                    if (operand != null) {
-                        operand.accept(this);
+                List<SqlNode> operands = call.getOperandList();
+                for (int i = 0; i < operands.size(); i++) {
+                    SqlNode operand = operands.get(i);
+                    if (operand == null)
+                        continue;
+
+                    if (call instanceof SqlSelect && i == 1) {
+                        traverseSelectList((SqlNodeList) operand);
+                        continue;
                     }
+
+                    operand.accept(this);
                 }
             }
 
             return null;
         }
 
+        private boolean matchName(SqlIdentifier sqlIdentifier) {
+            return columnNames.contains(sqlIdentifier.names.get(sqlIdentifier.names.size() - 1));
+        }
+
+        private void traverseSelectList(SqlNodeList sqlSelectList) {
+            for (SqlNode selectItem : sqlSelectList.getList()) {
+                if (selectItem instanceof SqlIdentifier && matchName((SqlIdentifier) selectItem)) {
+                    this.usages.add(new ColumnUsage((SqlIdentifier) selectItem, true));
+                } else {
+                    selectItem.accept(this);
+                }
+            }
+        }
+    }
+
+    static private class ColumnUsage{
+        SqlIdentifier sqlIdentifier;
+        boolean addAlias;
+
+        ColumnUsage(SqlIdentifier sqlIdentifier, boolean addAlias) {
+            this.sqlIdentifier = sqlIdentifier;
+            this.addAlias = addAlias;
+        }
     }
 
 }
