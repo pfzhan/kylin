@@ -107,7 +107,7 @@ public class JobManager {
         boolean noNeed = (relatedSegments == null && getValidSegments(modelId, project).isEmpty()) ||
                 (relatedSegments != null && relatedSegments.isEmpty());
         if (noNeed) {
-            log.trace("No need to add index build job due to there is no valid segment in {}.", modelId);
+            log.debug("No need to add index build job due to there is no valid segment in {}.", modelId);
             return null;
         }
         return addJob(modelId, userName, relatedSegments, targetLayouts, JobTypeEnum.INDEX_BUILD);

@@ -211,6 +211,23 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRefreshJob_emptyIndex() {
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val df = dfManager.getDataflow(MODEL_ID);
+        val update = new NDataflowUpdate(df.getUuid());
+        val seg = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-05-01"), SegmentRange.dateToLong("" + "2012-06-01")));
+        seg.setStatus(SegmentStatusEnum.READY);
+        update.setToUpdateSegs(seg);
+        dfManager.updateDataflow(update);
+        val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN");
+        List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
+        Assert.assertEquals(1, executables.size());
+        Assert.assertEquals(19, executables.get(0).getParam(NBatchConstants.P_LAYOUT_IDS).split(",").length);
+    }
+
+    @Test
     public void testMergeJob() {
         val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);

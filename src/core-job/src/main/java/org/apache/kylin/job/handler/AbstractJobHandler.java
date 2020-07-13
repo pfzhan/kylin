@@ -140,7 +140,7 @@ public abstract class AbstractJobHandler {
             for (String segId : targetSegments) {
                 if (relatedSegment.get(segId) != null &&
                         dealSegment.getSegRange().overlaps(relatedSegment.get(segId).getSegRange())) {
-                    log.trace("JobParam {} segment range  conflicts with running job {}", jobParam, job);
+                    log.debug("JobParam {} segment range  conflicts with running job {}", jobParam, job);
                     return true;
                 }
             }

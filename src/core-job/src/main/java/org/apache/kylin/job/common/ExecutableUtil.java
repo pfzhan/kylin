@@ -110,7 +110,17 @@ public class ExecutableUtil {
             throw new KylinException(FAILED_CREATE_JOB_EXCEPTION, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
         }
         HashSet<LayoutEntity> layouts = Sets.newHashSet();
-        segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
+        if (segments.get(0).getLayoutsMap().isEmpty()) {
+            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
+                    .getIndexPlan(jobParam.getModel());
+            indexPlan.getAllLayouts().forEach(layout -> {
+                if (!layout.isToBeDeleted()) {
+                    layouts.add(layout);
+                }
+            });
+        } else {
+            segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
+        }
         jobParam.setProcessLayouts(layouts);
     }
 
