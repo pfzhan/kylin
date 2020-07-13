@@ -24,11 +24,13 @@
 
 package io.kyligence.kap.query.optrule;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
@@ -91,7 +93,8 @@ public class KapJoinRule extends ConverterRule implements IKeep {
 
         RelNode newRel;
         try {
-            if (isNonEquiJoinRelRule(info.isEqui(), join.getJoinType())) {
+            if (isNonEquiJoinRelRule(info.isEqui(), join.getJoinType())
+                    || isNotDistinctFrom(left, right, join.getCondition())) {
                 try {
                     return new KapNonEquiJoinRel(join.getCluster(), traitSet, left, right, join.getCondition(),
                             join.getVariablesSet(), join.getJoinType(), isQueryNonEquiJoinModelEnabled);
@@ -122,6 +125,19 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         }
 
         return true;
+    }
+
+    private boolean isNotDistinctFrom(RelNode left, RelNode right, RexNode condition) {
+        final List<Integer> leftKeys = new ArrayList<>();
+        final List<Integer> rightKeys = new ArrayList<>();
+        final List<Boolean> filterNulls = new ArrayList<>();
+        RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys, filterNulls);
+
+        for (int i = 0; i < leftKeys.size(); i++) {
+            if (!filterNulls.get(i))
+                return true;
+        }
+        return false;
     }
 
     private Join transformJoinCondition(LogicalJoin join, JoinInfo info, RelTraitSet traitSet, RelNode left,
