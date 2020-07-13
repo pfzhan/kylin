@@ -166,9 +166,6 @@ public class TableService extends BasicService {
     private ModelSemanticHelper semanticHelper;
 
     @Autowired
-    private FavoriteQueryService favoriteQueryService;
-
-    @Autowired
     private TableSamplingService tableSamplingService;
 
     @Autowired
@@ -1085,7 +1082,6 @@ public class TableService extends BasicService {
             }
             return null;
         }, projectName);
-        favoriteQueryService.asyncAdjustFavoriteQuery(projectName);
     }
 
     @Transaction(project = 0)
@@ -1107,7 +1103,6 @@ public class TableService extends BasicService {
 
         val fqManager = getFavoriteQueryManager(projectName);
         context.getFavoriteQueries().forEach(fqManager::delete);
-        favoriteQueryService.asyncAdjustFavoriteQuery(projectName);
 
         val loadingManager = getDataLoadingRangeManager(projectName);
         val removeCols = context.getRemoveColumnFullnames();
