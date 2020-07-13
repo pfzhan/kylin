@@ -158,6 +158,13 @@ case class ReuseTopN(
       val value = data.getDouble(0)
       val dims = data.get(1, dimType).asInstanceOf[InternalRow]
       val item = dimType.fields.map(_.dataType).zipWithIndex.map {
+        case (StringType, index) =>
+          val result = dims.get(index, StringType)
+          if (null != result) {
+            dims.getString(index)
+          } else {
+            result
+          }
         case (dataType, index) =>
           dims.get(index, dataType)
       }.toSeq

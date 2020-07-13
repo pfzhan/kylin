@@ -184,8 +184,14 @@ object CuboidAggregator {
               StructField(s"DIMENSION_${col.getName}", dateType)
             }
           })
-          val udfName = UdfManager.register(returnType, function.getExpression, schema, !reuseLayout)
-          callUDF(udfName, columns: _*).as(measureEntry._1.toString)
+
+          if (reuseLayout) {
+            new Column(ReuseTopN(returnType.getPrecision, schema, columns.head.expr)
+              .toAggregateExpression()).as(measureEntry._1.toString)
+          } else {
+            new Column(EncodeTopN(returnType.getPrecision, schema, columns.head.expr, columns.drop(1).map(_.expr))
+              .toAggregateExpression()).as(measureEntry._1.toString)
+          }
         case "PERCENTILE_APPROX" =>
           val udfName = UdfManager.register(returnType, function.getExpression, null, !reuseLayout)
           if (!reuseLayout) {
