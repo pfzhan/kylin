@@ -102,6 +102,7 @@
         </el-col>
       </el-row>
       <div v-if="uploadFlag==='step3'">
+        <el-alert class="recommendation-alert" :title="$t('recommendationTip')" type="warning" :closable="false" show-icon v-if="isShowOriginModels || isShowTabModels"></el-alert>
         <div class="ky-list-title ksd-mb-10" v-if="isShowSuggestModels">
           {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
         </div>
@@ -112,12 +113,14 @@
           v-if="isShowSuggestModels"
           tableRef="modelsTable"
           :suggestModels="suggestModels"
+          :maxHeight="430"
           @isValidated="isValidated"
           @getSelectModels="getSelectModels" />
         <SuggestModel
           v-if="isShowOriginModels"
           tableRef="originModelsTable"
           :suggestModels="originModels"
+          :maxHeight="365"
           @getSelectRecommends="getSelectRecommends"
           :isOriginModelsTable="true" />
         <el-tabs v-model="modelType" v-if="isShowTabModels">
@@ -125,6 +128,7 @@
             <SuggestModel
               tableRef="modelsTable"
               :suggestModels="suggestModels"
+              :maxHeight="365"
               @isValidated="isValidated"
               @getSelectModels="getSelectModels" />
           </el-tab-pane>
@@ -132,6 +136,7 @@
             <SuggestModel
               tableRef="originModelsTable"
               :suggestModels="originModels"
+              :maxHeight="365"
               @getSelectRecommends="getSelectRecommends"
               :isOriginModelsTable="true" />
           </el-tab-pane>
@@ -1051,6 +1056,9 @@ export default class UploadSqlModel extends Vue {
         color: @base-color;
         cursor: pointer;
       }
+    }
+    .recommendation-alert {
+      margin-bottom: 10px;
     }
   }
 </style>

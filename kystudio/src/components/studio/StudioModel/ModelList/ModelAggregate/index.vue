@@ -859,10 +859,10 @@ export default class ModelAggregate extends Vue {
         position: absolute;
         right: 20px;
         .active {
-          color: #5C5C5C;
-          // box-shadow:1px 1px 2px 0px rgba(204,204,204,1);
+          color: @text-normal-color;
           background:rgba(244,244,244,1);
           border:1px solid rgba(204,204,204,1);
+          box-shadow: inset 1px 1px 2px 0 @line-border-color3;
         }
       }
     }

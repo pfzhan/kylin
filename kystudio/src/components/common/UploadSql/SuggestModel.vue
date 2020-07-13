@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- <el-alert :title="modelTips" style="padding-top:0px" type="info" :closable="false" :show-background="false" show-icon></el-alert> -->
     <el-row :gutter="15" v-if="!isOriginModelsTable">
       <el-col :span="15">
         <el-table
@@ -15,7 +14,7 @@
           @select-all="handleSelectionAllModel"
           @row-click="modelRowClick"
           :row-class-name="setRowClass"
-          max-height="430">
+          :max-height="maxHeight">
           <el-table-column type="selection" width="44"></el-table-column>
           <!-- <el-table-column type="expand" width="44">
             <template slot-scope="scope">
@@ -55,7 +54,7 @@
           border
           v-scroll-shadow
           style="width: 100%"
-          max-height="380">
+          :max-height="maxHeight">
           <el-table-column type="expand" width="44">
             <template slot-scope="scope">
               <template v-if="scope.row.type === 'cc'">
@@ -94,7 +93,7 @@
           @selection-change="handleSelectionRecommendationChange"
           @row-click="recommendRowClick"
           :row-class-name="setRowClass"
-          max-height="430">
+          :max-height="maxHeight">
           <el-table-column type="selection" width="44"></el-table-column>
           <el-table-column :label="$t('kylinLang.model.modelNameGrid')" show-overflow-tooltip prop="alias">
             <template slot-scope="scope">
@@ -133,7 +132,7 @@
           border
           v-scroll-shadow
           style="width: 100%"
-          max-height="380">
+          :max-height="maxHeight">
           <el-table-column type="expand" width="44">
             <template slot-scope="scope">
               <template v-if="scope.row.type === 'cc'">
@@ -172,7 +171,7 @@ import { handleError } from '../../../util/index'
 import { mapActions, mapGetters } from 'vuex'
 import locales from './locales'
 @Component({
-  props: ['suggestModels', 'tableRef', 'isOriginModelsTable'],
+  props: ['suggestModels', 'tableRef', 'isOriginModelsTable', 'maxHeight'],
   computed: {
     ...mapGetters([
       'currentSelectedProject'

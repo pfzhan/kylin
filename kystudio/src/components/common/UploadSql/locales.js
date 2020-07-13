@@ -60,7 +60,8 @@ export default {
     mergeSqlTip: 'Similar SQLs might have been merged. Non-equal join condition are not supported. ',
     preview: 'Preview',
     model: 'Model',
-    sqlOverSizeTip: 'Up to 200 SQLs could be uploaded at a time. Please try selecting fewer files to upload.'
+    sqlOverSizeTip: 'Up to 200 SQLs could be uploaded at a time. Please try selecting fewer files to upload.',
+    recommendationTip: 'Please note that the selected recommendations would be affective immediately after proceeding'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -120,9 +121,10 @@ export default {
     closeSqlDialogTip: '一旦取消，将退出SQL建模，同时所有编辑会被丢弃。确定要取消吗？',
     recommendsOverSizeTip: '优化建议超过显示上限。请尝试减少导入 SQL 的数量。',
     recommendsOverSizeTitle: '优化建议无法显示',
-    mergeSqlTip: '相似的 SQL 已被合并。非等值连接条件暂不支持。',
+    mergeSqlTip: '相似的 SQL 会在此页面进行合并。非等值连接条件暂不支持。',
     preview: '预览',
     model: '模型',
-    sqlOverSizeTip: '一次最多可上传 200 条 SQL。请重新上传。'
+    sqlOverSizeTip: '一次最多可上传 200 条 SQL。请重新上传。',
+    recommendationTip: '请注意，所选的优化建议将立即生效'
   }
 }
