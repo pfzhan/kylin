@@ -520,7 +520,7 @@ public class ModelService extends BasicService {
     }
 
     public List<NDataModelResponse> getSCD2ModelsByStatus(final String projectName, final List<String> status) {
-        return getModels(null, projectName, false, null, status, "last_modify", true, null, null, null).stream()
+        return getModels(null, projectName, false, null, status, LAST_MODIFY, true, null, null, null).stream()
                 .filter(SCD2CondChecker.INSTANCE::isScd2Model).collect(Collectors.toList());
     }
 
@@ -740,7 +740,7 @@ public class ModelService extends BasicService {
             String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        List<NDataSegmentResponse> segmentResponseList = Lists.newArrayList();
+        List<NDataSegmentResponse> segmentResponseList;
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
         val segs = getSegmentsByRange(modelId, project, start, end);
 
@@ -763,7 +763,7 @@ public class ModelService extends BasicService {
             }
         }
         List<NDataSegment> indexFiltered = new LinkedList<>();
-        for (NDataSegment segment : segs) {
+        segs.forEach(segment -> {
             if (allToComplement) {
                 // find seg that does not have all indexes
                 if (segment.getSegDetails().getLayouts().size() != allIndexes.size()) {
@@ -782,15 +782,12 @@ public class ModelService extends BasicService {
             } else {
                 indexFiltered.add(segment);
             }
-        }
+        });
 
-        for (NDataSegment segment : indexFiltered) {
-            if (StringUtils.isNotEmpty(status)
-                    && !status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
-                continue;
-            }
-            segmentResponseList.add(new NDataSegmentResponse(dataflow, segment));
-        }
+        segmentResponseList = indexFiltered.stream()
+                .filter(segment -> !StringUtils.isNotEmpty(status)
+                        || status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString()))
+                .map(segment -> new NDataSegmentResponse(dataflow, segment)).collect(Collectors.toList());
         Comparator<NDataSegmentResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "create_time" : sortBy, reverse);
         segmentResponseList.sort(comparator);
@@ -1878,12 +1875,8 @@ public class ModelService extends BasicService {
         return incrementBuildSegmentsManually(project, modelId, start, end, partitionDesc, segmentHoles, true);
     }
 
-    public JobInfoResponseWithFailure addIndexesToSegments(String project,
-                                                           String modelId,
-                                                           List<String> segmentIds,
-                                                           List<Long> indexIds,
-                                                           boolean parallelBuildBySegment
-    ) throws Exception {
+    public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
+            List<Long> indexIds, boolean parallelBuildBySegment) throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
         val jobManager = getJobManager(project);
         val dfManger = getDataflowManager(project);
@@ -1894,11 +1887,11 @@ public class ModelService extends BasicService {
         if (parallelBuildBySegment) {
             for (String segmentId : segmentIds) {
                 try {
-                    JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(
-                            JobTypeEnum.INDEX_BUILD.toString(),
+                    JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                             getSourceUsageManager().licenseCheckWrap(project,
-                                    () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentId), indexIds == null ? null : new HashSet<>(indexIds)))
-                    );
+                                    () -> jobManager.addRelatedIndexJob(modelId, getUsername(),
+                                            Sets.newHashSet(segmentId),
+                                            indexIds == null ? null : new HashSet<>(indexIds))));
                     jobs.add(jobInfo);
                 } catch (JobSubmissionException e) {
                     result.addFailedSeg(dataflow, e);
@@ -1906,11 +1899,10 @@ public class ModelService extends BasicService {
             }
         } else {
             try {
-                JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(
-                        JobTypeEnum.INDEX_BUILD.toString(),
+                JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getSourceUsageManager().licenseCheckWrap(project,
-                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentIds), indexIds == null ? null : new HashSet<>(indexIds)))
-                );
+                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentIds),
+                                        indexIds == null ? null : new HashSet<>(indexIds))));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
                 result.addFailedSeg(dataflow, e);

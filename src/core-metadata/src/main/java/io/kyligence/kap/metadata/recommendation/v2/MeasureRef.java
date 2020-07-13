@@ -50,8 +50,10 @@ public class MeasureRef extends RecommendationRef {
     }
 
     @Override
-    public List<ColumnRef> getDependencies() {
-        return columnRefs;
+    public List<RecommendationRef> getDependencies() {
+        List<RecommendationRef> res = Lists.newArrayList();
+        res.addAll(columnRefs);
+        return res;
     }
 
     @Override

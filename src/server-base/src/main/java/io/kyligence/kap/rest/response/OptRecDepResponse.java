@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
 
 @Data
-public class OptRecDepResponse {
+public class OptRecDepResponse implements Serializable {
     @JsonProperty("item_id")
     private long itemId;
 

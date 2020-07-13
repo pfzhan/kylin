@@ -27,7 +27,6 @@ package io.kyligence.kap.metadata.recommendation.v2;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -81,17 +80,17 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
 
     // Ref map. If key >= 0, ref in model else ref in raw item.
     @Getter
-    private Map<Integer, ColumnRef> columnRefs = new HashMap<>();
+    private transient Map<Integer, ColumnRef> columnRefs = new HashMap<>();
     @Getter
-    private Map<Integer, MeasureRef> measureRefs = new HashMap<>();
+    private transient Map<Integer, MeasureRef> measureRefs = new HashMap<>();
     @Getter
-    private Map<Integer, DimensionRef> dimensionRefs = new HashMap<>();
+    private transient Map<Integer, DimensionRef> dimensionRefs = new HashMap<>();
     @Getter
-    private Map<Integer, LayoutRef> layoutRefs = new HashMap<>();
+    private transient Map<Integer, LayoutRef> layoutRefs = new HashMap<>();
 
     // cache all raw items.
     @Getter
-    private Map<Integer, RawRecItem> rawRecItemMap = new HashMap<>();
+    private transient Map<Integer, RawRecItem> rawRecItemMap = new HashMap<>();
 
     // cache all layout from indexplan.
     @Getter(lazy = true)
@@ -459,11 +458,11 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
     }
 
     // When a ref is not deleted and does not exist in model.
-    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> effectiveFilter = e -> !e.getValue().isBroken()
+    transient Predicate<Map.Entry<Integer, ? extends RecommendationRef>> effectiveFilter = e -> !e.getValue().isBroken()
             && !e.getValue().isExisted() && e.getKey() < 0;
 
     // When a ref derives from origin model or is effective.
-    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> legalFilter = e -> !e.getValue().isBroken()
+    transient Predicate<Map.Entry<Integer, ? extends RecommendationRef>> legalFilter = e -> !e.getValue().isBroken()
             && (e.getKey() >= 0 || !e.getValue().isExisted());
 
     private List<Map.Entry<Integer, ColumnRef>> getEffectiveCCRef() {
@@ -655,8 +654,8 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             return false;
         }
 
-        Iterator<ColumnRef> columnRefIterator1 = m1.getDependencies().iterator();
-        Iterator<ColumnRef> columnRefIterator2 = m2.getDependencies().iterator();
+        val columnRefIterator1 = m1.getDependencies().iterator();
+        val columnRefIterator2 = m2.getDependencies().iterator();
         for (int i = 0; i < f1.getParameters().size(); i++) {
             ParameterDesc p1 = f1.getParameters().get(i);
             ParameterDesc p2 = f2.getParameters().get(i);
@@ -669,8 +668,8 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
             if (!columnRefIterator1.hasNext() || !columnRefIterator2.hasNext()) {
                 throw new IllegalStateException("column ref size less than parameter size.");
             }
-            ColumnRef ref1 = columnRefIterator1.next();
-            ColumnRef ref2 = columnRefIterator2.next();
+            val ref1 = columnRefIterator1.next();
+            val ref2 = columnRefIterator2.next();
             if (!refEquality(ref1, ref2, columnRefs)) {
                 return false;
             }
@@ -692,7 +691,8 @@ public class OptimizeRecommendationV2 extends RootPersistentEntity {
         return true;
     }
 
-    private <T extends RecommendationRef> boolean refEquality(T ref1, T ref2, Map<Integer, T> map) {
+    private <T extends RecommendationRef> boolean refEquality(RecommendationRef ref1, RecommendationRef ref2,
+            Map<Integer, T> map) {
         // if ref1 id equals ref2 id, same ref.
         // if ref1 or ref2 exist in model, map contains exist column in model
         return ref1.getId() == ref2.getId() || map.get(ref1.getId()).getId() == map.get(ref2.getId()).getId();

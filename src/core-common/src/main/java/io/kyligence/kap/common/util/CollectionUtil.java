@@ -24,13 +24,17 @@
 
 package io.kyligence.kap.common.util;
 
+import com.google.common.collect.Sets;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CollectionUtil {
 
@@ -63,4 +67,13 @@ public class CollectionUtil {
         collection.removeIf(el -> !values.add(distinctBy.apply(el)));
     }
 
+    public static List<Integer> intersection(List<Integer> list1, List<Integer> list2) {
+        return Sets.intersection(Sets.newHashSet(list1), Sets.newHashSet(list2)).stream().sorted()
+                .collect(Collectors.toList());
+    }
+
+    public static List<Integer> difference(List<Integer> list1, List<Integer> list2) {
+        return Sets.difference(Sets.newHashSet(list1), Sets.newHashSet(list2)).stream().sorted()
+                .collect(Collectors.toList());
+    }
 }

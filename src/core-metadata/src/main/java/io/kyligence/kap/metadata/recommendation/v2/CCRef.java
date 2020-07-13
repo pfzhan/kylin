@@ -48,17 +48,16 @@ public class CCRef extends ColumnRef {
         this.columnRefs = Lists.newArrayList();
     }
 
-    public void init() {
-    }
-
     @Override
     public String getDataType() {
         return cc.getDatatype();
     }
 
     @Override
-    public List<ColumnRef> getDependencies() {
-        return columnRefs;
+    public List<RecommendationRef> getDependencies() {
+        List<RecommendationRef> res = Lists.newArrayList();
+        res.addAll(columnRefs);
+        return res;
     }
 
     @Override

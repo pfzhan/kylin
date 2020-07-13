@@ -151,42 +151,18 @@ public class UnitOfWork {
                 log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
             }
 
-            if (!GLOBAL_UNIT.equals(params.getUnitName())) {
-                NMetricsGroup.histogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT,
-                        params.getUnitName(), duration);
-            } else {
-                NMetricsGroup.histogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, "global",
-                        duration);
-            }
+            NMetricsGroup.histogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT,
+                    !GLOBAL_UNIT.equals(params.getUnitName()) ? params.getUnitName() : "global", duration);
 
             result = Pair.newPair(ret, true);
         } catch (Throwable throwable) {
-            if (throwable instanceof KylinException
-                    && ((KylinException) throwable).getErrorCode().equals(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE.toErrorCode())) {
-                retry = params.getMaxRetry();
-            }
-            if (throwable instanceof QuitTxnRightNow) {
-                retry = params.getMaxRetry();
-            }
-
-            if (retry >= params.getMaxRetry()) {
-                params.getProcessor().onProcessError(throwable);
-                throw new TransactionException(
-                        "exhausted max retry times, transaction failed due to inconsistent state, traceId:" + traceId,
-                        throwable);
-            }
-
-            if (retry == 1) {
-                log.warn("transaction failed at first time, traceId:" + traceId, throwable);
-            }
-
+            handleError(throwable, params, retry, traceId);
         } finally {
             if (isAlreadyInTransaction()) {
                 try {
                     val unitOfWork = UnitOfWork.get();
                     unitOfWork.getCurrentLock().unlock();
                     unitOfWork.cleanResource();
-                    //log.debug("leaving UnitOfWork for project {}", unitOfWork.project);
                 } catch (IllegalStateException e) {
                     //has not hold the lock yet, it's ok
                     log.warn(e.getMessage());
@@ -287,12 +263,12 @@ public class UnitOfWork {
         long oriMvcc = -1;
         String unitPath = null;
         if (StringUtils.isNotEmpty(unitName) && checker != null) {
-            if (unitName.equals(GLOBAL_UNIT))
-                oriMvcc = ResourceStore.getKylinMetaStore(originConfig)
-                        .getResource(unitPath = ResourceStore.GLOBAL_EPOCH).getMvcc();
-            else
-                oriMvcc = ResourceStore.getKylinMetaStore(originConfig)
-                        .getResource(unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json").getMvcc();
+            if (unitName.equals(GLOBAL_UNIT)) {
+                unitPath = ResourceStore.GLOBAL_EPOCH;
+            } else {
+                unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json";
+            }
+            oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath).getMvcc();
 
         }
         metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc,
@@ -310,6 +286,27 @@ public class UnitOfWork {
             System.exit(1);
         }
         return null;
+    }
+
+    private static void handleError(Throwable throwable, UnitOfWorkParams<?> params, int retry, String traceId) {
+        if (throwable instanceof KylinException && ((KylinException) throwable).getErrorCode()
+                .equals(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE.toErrorCode())) {
+            retry = params.getMaxRetry();
+        }
+        if (throwable instanceof QuitTxnRightNow) {
+            retry = params.getMaxRetry();
+        }
+
+        if (retry >= params.getMaxRetry()) {
+            params.getProcessor().onProcessError(throwable);
+            throw new TransactionException(
+                    "exhausted max retry times, transaction failed due to inconsistent state, traceId:" + traceId,
+                    throwable);
+        }
+
+        if (retry == 1) {
+            log.warn("transaction failed at first time, traceId:" + traceId, throwable);
+        }
     }
 
     private static UnitMessages packageEvents(List<Event> events, String project, String uuid,

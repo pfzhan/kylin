@@ -42,7 +42,7 @@ public class RecommendationRef {
     // id < 0 column in rawRecItem
     protected int id;
 
-    public List<? extends RecommendationRef> getDependencies() {
+    public List<RecommendationRef> getDependencies() {
         return null;
     }
 
