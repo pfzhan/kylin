@@ -13,6 +13,7 @@ export function getFormattedTable (originData = {}) {
     updateAt: originData.last_modified,
     datasource: originData.source_type,
     cardinality: originData.cardinality,
+    last_build_job_id: originData.last_build_job_id,
     partitionColumn,
     format: originData.partitioned_column_format || 'yyyy-MM-dd',
     storageType,
