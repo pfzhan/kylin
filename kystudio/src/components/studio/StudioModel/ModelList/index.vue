@@ -245,7 +245,7 @@
           show-overflow-tooltip
           width="120px"
           sortable="custom"
-          :label="$t('storage')">
+          :render-header="renderStorageHeader">
           <template slot-scope="scope">
             {{scope.row.storage|dataSize}}
           </template>
@@ -746,6 +746,14 @@ export default class ModelList extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('recommendations')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('recommendationsTip')}>
+       <span class='el-icon-ksd-what'></span>
+      </common-tip>
+    </span>)
+  }
+  renderStorageHeader (h, { column, $index }) {
+    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+      <span>{this.$t('storage')}</span>&nbsp;
+      <common-tip placement="top" content={this.$t('storageTip')}>
        <span class='el-icon-ksd-what'></span>
       </common-tip>
     </span>)
