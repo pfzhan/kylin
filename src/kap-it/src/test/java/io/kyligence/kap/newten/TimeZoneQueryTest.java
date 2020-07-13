@@ -124,7 +124,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Row> rows = NExecAndComp.queryCube(getProject(), sql).collectAsList();
         List<List<String>> calciteDf = transformToString(rows);
-        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID()).getFirst();
+        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject()).getFirst();
         List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
         Assert.assertTrue(jdbc.size() == calciteDf.size());
         for (int i = 0; i < jdbc.size(); i++) {
@@ -172,7 +172,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[]{
                 new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(), paramString)};
         String sqlPushDown = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params);
-        List<List<String>> setTimestampPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown, UUID.randomUUID()).getFirst();
+        List<List<String>> setTimestampPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown, UUID.randomUUID(), getProject()).getFirst();
         // setString
         List<Row> rows2 = NExecAndComp.queryCube(getProject(), sqlWithPlaceholder,
                 Arrays.asList(new String[] {paramString})).collectAsList();
@@ -181,7 +181,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         PrepareSqlRequest.StateParam[] params2 = new PrepareSqlRequest.StateParam[]{
                 new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), paramString)};
         String sqlPushDown2 = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params2);
-        List<List<String>> setStringPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown2, UUID.randomUUID()).getFirst();
+        List<List<String>> setStringPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown2, UUID.randomUUID(), getProject()).getFirst();
 
         Assert.assertTrue(benchmark.size() == setTimestampResults.size());
         Assert.assertTrue(benchmark.size() == setTimestampPushdownResults.size());
@@ -207,7 +207,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
     @Test
     public void testConstantDate() throws Exception {
         String sql = "select date'2020-01-01', current_date";
-        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID()).getFirst();
+        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject()).getFirst();
         List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
         for (int i = 0; i < jdbc.size(); i++) {
             Assert.assertEquals("Date literal doesn't match", pushDown.get(i), jdbc.get(i));
@@ -227,7 +227,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 // try matching timestamp to minutes mutilple times
                 int max_try = 10;
                 while (max_try-- > 0) {
-                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID()).getFirst();
+                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject()).getFirst();
                     List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
 
                     // match timestamp to minute

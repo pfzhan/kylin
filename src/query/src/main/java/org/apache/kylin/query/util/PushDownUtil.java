@@ -45,8 +45,6 @@ package org.apache.kylin.query.util;
 import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,26 +54,9 @@ import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.BadRequestException;
 
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlDynamicParam;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOrderBy;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlWith;
-import org.apache.calcite.sql.SqlWithItem;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -86,7 +67,6 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
@@ -155,22 +135,6 @@ public class PushDownUtil {
             pushdownEngine = runner.getName();
         }
         QueryContext.current().setPushdownEngine(pushdownEngine);
-
-        // default schema in calcite does not apply to other engines.
-        // since this is a universql requirement, it's not implemented as a converter
-        if (queryParams.getDefaultSchema() != null && !queryParams.getDefaultSchema().equals("DEFAULT")) {
-            String completed = queryParams.getSql();
-            try {
-                completed = schemaCompletion(sql, queryParams.getDefaultSchema());
-            } catch (SqlParseException e) {
-                // fail to parse the pushdown sql, ignore
-                logger.debug("fail to do schema completion on the pushdown sql, ignore it. {}", e.getMessage());
-            }
-            if (!sql.equals(completed)) {
-                logger.info("the query is converted to {} after schema completion", completed);
-                sql = completed;
-            }
-        }
 
         //ref:KE-11848,only quote on push down query
         sql = DoubleQuotePushDownConverter.convertDoubleQuote(sql);
@@ -314,133 +278,10 @@ public class PushDownUtil {
         return false;
     }
 
-    static String schemaCompletion(String inputSql, String schema) throws SqlParseException {
-        if (inputSql == null || inputSql.equals("")) {
-            return "";
-        }
-        SqlNode node = CalciteParser.parse(inputSql);
-
-        // get all table node that don't have schema by visitor pattern
-        FromTablesVisitor ftv = new FromTablesVisitor();
-        node.accept(ftv);
-        List<SqlNode> tablesWithoutSchema = ftv.getTablesWithoutSchema();
-        // sql do not need completion
-        if (tablesWithoutSchema.isEmpty()) {
-            return inputSql;
-        }
-
-        List<Pair<Integer, Integer>> tablesPos = new ArrayList<>();
-        for (SqlNode tables : tablesWithoutSchema) {
-            tablesPos.add(CalciteParser.getReplacePos(tables, inputSql));
-        }
-
-        // make the behind position in the front of the list, so that the front position will not be affected when replaced
-        Collections.sort(tablesPos, (o1, o2) -> {
-            int r = o2.getFirst() - o1.getFirst();
-            return r == 0 ? o2.getSecond() - o1.getSecond() : r;
-        });
-
-        StrBuilder afterConvert = new StrBuilder(inputSql);
-        for (Pair<Integer, Integer> pos : tablesPos) {
-            String tableWithSchema = schema + "." + inputSql.substring(pos.getFirst(), pos.getSecond());
-            afterConvert.replace(pos.getFirst(), pos.getSecond(), tableWithSchema);
-        }
-        return afterConvert.toString();
-    }
-
     public static String calcStart(String start, SegmentRange coveredRange) {
         if (coveredRange != null) {
             start = coveredRange.getEnd().toString();
         }
         return start;
-    }
-
-    /**
-     * Get all the tables from "FROM clause" that without schema
-     * subquery is only considered in "from clause"
-     */
-    static class FromTablesVisitor implements SqlVisitor<SqlNode> {
-        private List<SqlNode> tables;
-
-        FromTablesVisitor() {
-            this.tables = new ArrayList<>();
-        }
-
-        List<SqlNode> getTablesWithoutSchema() {
-            return tables;
-        }
-
-        @Override
-        public SqlNode visit(SqlNodeList nodeList) {
-            for (int i = 0; i < nodeList.size(); i++) {
-                SqlNode node = nodeList.get(i);
-                if (node instanceof SqlWithItem) {
-                    SqlWithItem item = (SqlWithItem) node;
-                    item.query.accept(this);
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlLiteral literal) {
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlCall call) {
-            if (call instanceof SqlSelect) {
-                SqlSelect select = (SqlSelect) call;
-                if (select.getFrom() != null) {
-                    select.getFrom().accept(this);
-                }
-                return null;
-            }
-            if (call instanceof SqlOrderBy) {
-                SqlOrderBy orderBy = (SqlOrderBy) call;
-                orderBy.query.accept(this);
-                return null;
-            }
-            if (call instanceof SqlWith) {
-                SqlWith sqlWith = (SqlWith) call;
-                sqlWith.body.accept(this);
-                sqlWith.withList.accept(this);
-            }
-            if (call instanceof SqlBasicCall) {
-                SqlBasicCall node = (SqlBasicCall) call;
-                node.getOperands()[0].accept(this);
-                return null;
-            }
-            if (call instanceof SqlJoin) {
-                SqlJoin node = (SqlJoin) call;
-                node.getLeft().accept(this);
-                node.getRight().accept(this);
-                return null;
-            }
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlIdentifier id) {
-            if (id.names.size() == 1) {
-                tables.add(id);
-            }
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlDataTypeSpec type) {
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlDynamicParam param) {
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
-            return null;
-        }
     }
 }

@@ -51,7 +51,7 @@ public class SparkSubmitter {
         SparkSession ss = SparderEnv.getSparkSession();
         ss.sessionState().conf().setLocalProperty("spark.sql.autoBroadcastJoinThreshold", String.valueOf(10L * 1024 * 1024));
         CredentialUtils.wrap(ss, project);
-        Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
+        Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
         return new PushdownResponse(pair.getSecond(), pair.getFirst());
     }
 

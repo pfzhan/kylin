@@ -27,6 +27,7 @@ package io.kyligence.kap.query.pushdown
 import java.sql.Timestamp
 import java.util.{UUID, List => JList}
 
+import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.common.exception.KylinTimeoutException
@@ -43,26 +44,34 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.collection.JavaConverters._
 
 object SparkSqlClient {
+  val DEFAULT_DB: String = "spark.sql.default.database"
+
   val logger: Logger = LoggerFactory.getLogger(classOf[SparkSqlClient])
 
-  def executeSql(ss: SparkSession, sql: String, uuid: UUID): Pair[JList[JList[String]], JList[StructField]] = {
+  def executeSql(ss: SparkSession, sql: String, uuid: UUID, project: String): Pair[JList[JList[String]], JList[StructField]] = {
     ss.sparkContext.setLocalProperty("spark.scheduler.pool", "query_pushdown")
     HadoopUtil.setCurrentConfiguration(ss.sparkContext.hadoopConfiguration)
     val s = "Start to run sql with SparkSQL..."
     val queryId = QueryContext.current().getQueryId
+    val db = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getDefaultDatabase(project)
     ss.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     logger.info(s)
     Trace.addTimelineAnnotation(s)
 
-    val df = ss.sql(sql)
+    try {
+      ss.sessionState.conf.setLocalProperty(DEFAULT_DB, db)
+      val df = ss.sql(sql)
 
-    autoSetShufflePartitions(ss, df)
+      autoSetShufflePartitions(ss, df)
 
-    val msg = "SparkSQL returned result DataFrame"
-    logger.info(msg)
+      val msg = "SparkSQL returned result DataFrame"
+      logger.info(msg)
 
-    Trace.addTimelineAnnotation(msg)
-    DFToList(ss, sql, uuid, df)
+      Trace.addTimelineAnnotation(msg)
+      DFToList(ss, sql, uuid, df)
+    } finally {
+      ss.sessionState.conf.setLocalProperty(DEFAULT_DB, null)
+    }
   }
 
   private def autoSetShufflePartitions(ss: SparkSession, df: DataFrame) = {

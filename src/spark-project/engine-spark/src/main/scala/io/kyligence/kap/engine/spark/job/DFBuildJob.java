@@ -449,7 +449,7 @@ public class DFBuildJob extends SparkApplication {
         String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn,
                 modelDesc.getRootFactTableName(), partitionColumn);
         logger.debug("Check date format with sql: {}", sql);
-        val res = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
+        val res = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
         if (CollectionUtils.isEmpty(res.getFirst())) {
             return;
         }

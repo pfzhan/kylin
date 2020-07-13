@@ -161,7 +161,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             slowQueryDetector.queryStart();
             try {
                 String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
-                SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
+                SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject());
                 Assert.fail();
             } catch (Exception e) {
                 Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
