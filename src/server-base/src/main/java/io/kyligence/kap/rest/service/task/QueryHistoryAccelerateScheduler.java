@@ -64,6 +64,7 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.RawRecService;
 import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.val;
 
 public class QueryHistoryAccelerateScheduler {
@@ -110,7 +111,7 @@ public class QueryHistoryAccelerateScheduler {
         logger.info("Query history accelerate scheduler is started for [{}] ", project);
     }
 
-    public Future<?> scheduleImmediately() {
+    public Future scheduleImmediately() {
         return queryHistoryAccelerateScheduler.schedule(new QueryHistoryAccelerateRunner(), 10L, TimeUnit.SECONDS);
     }
 
@@ -137,11 +138,8 @@ public class QueryHistoryAccelerateScheduler {
         return INSTANCE_MAP.get(project);
     }
 
+    @NoArgsConstructor
     public class QueryHistoryAccelerateRunner implements Runnable {
-
-        public QueryHistoryAccelerateRunner() {
-
-        }
 
         @Override
         public void run() {

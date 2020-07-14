@@ -144,20 +144,10 @@ public class UDFRegistry {
                 Class<?> clazz = Class.forName(udfDef.getClassName());
                 if (UdfDef.class.isAssignableFrom(clazz)) {
                     SqlOperator udfOp;
-                    try {
-                        udfOp = (SqlOperator) clazz.getField("OPERATOR").get(null);
-                    } catch (IllegalAccessException | NoSuchFieldException e) {
-                        throw new IllegalStateException("Invalid UdfDef " + udfDef.getClassName(), e);
-                    }
+                    udfOp = (SqlOperator) clazz.getField("OPERATOR").get(null);
 
                     CallImplementor udfImpl = UdfEmptyImplementor.INSTANCE;
-                    try {
-                        udfImpl = (CallImplementor) clazz.getField("IMPLEMENTOR").get(null);
-                    } catch (IllegalAccessException e) {
-                        logger.error("UDF class {} illegal access", udfDef.getClassName(), e);
-                    } catch (NoSuchFieldException e) {
-                        logger.error("UDF class {} have no IMPLEMENTOR field", udfDef.getClassName(), e);
-                    }
+                    udfImpl = (CallImplementor) clazz.getField("IMPLEMENTOR").get(null);
 
                     SqlStdOperatorTable.instance().register(udfOp);
                     RexImpTable.INSTANCE.defineImplementor(udfOp, udfImpl);
@@ -170,8 +160,8 @@ public class UDFRegistry {
                     final ScalarFunction function = ScalarFunctionImpl.create(method);
                     allUdfMap.put(method.getName(), function);
                 }
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException("UDF class '" + udfDef.getClassName() + "' not found", e);
+            } catch (Exception e) {
+                logger.error("Register UDF {} fail", udfDef.getClassName(), e);
             }
         }
 
@@ -183,7 +173,8 @@ public class UDFRegistry {
         }
         for (UDFRegistry.UDFDefinition udfDef : Collections.unmodifiableCollection(udafDefinitions.values())) {
             try {
-                final AggregateFunction aggFunction = AggregateFunctionImpl.create(Class.forName(udfDef.getClassName()));
+                final AggregateFunction aggFunction = AggregateFunctionImpl
+                        .create(Class.forName(udfDef.getClassName()));
                 allUdfMap.put(udfDef.getName(), aggFunction);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException("UDAF class '" + udfDef.getClassName() + "' not found");

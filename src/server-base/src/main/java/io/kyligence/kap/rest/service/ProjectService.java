@@ -298,7 +298,7 @@ public class ProjectService extends BasicService {
     public void updateProjectRegularRule(String project) {
         QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
-            Future<?> future = scheduler.scheduleImmediately();
+            Future future = scheduler.scheduleImmediately();
             try {
                 future.get();
             } catch (Exception e) {
