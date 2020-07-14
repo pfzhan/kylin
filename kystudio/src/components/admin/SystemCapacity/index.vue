@@ -71,7 +71,7 @@
               <i class="icon el-icon-ksd-what"></i>
             </el-tooltip>
             <span class="select-date-line">
-              <el-select size="mini" v-model="selectedDataLine" @change="changeDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '115px' : '72px'}">
+              <el-select size="mini" v-model="selectedDataLine" @change="changeDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '115px' : '100px'}">
                 <el-option v-for="(item, index) in dataOptions" :key="index" :value="item.value" :label="item.text">
                 </el-option>
               </el-select>
@@ -423,8 +423,7 @@ export default class SystemCapacity extends Vue {
   get dataOptions () {
     return [
       { text: this.$t('cMonth'), value: 'month' },
-      { text: this.$t('cSeason'), value: 'quarter' },
-      { text: this.$t('cYear'), value: 'year' }
+      { text: this.$t('cSeason'), value: 'quarter' }
     ]
   }
 

@@ -82,7 +82,7 @@
                 <i class="icon el-icon-ksd-what"></i>
               </el-tooltip>
               <span class="select-date-line">
-                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '110px' : '72px'}">
+                <el-select size="mini" v-model="selectedDataLine" @change="changeProjectDataLine" popper-class="data-line-dropdown" :style="{'width': $lang === 'en' ? '110px' : '100px'}">
                   <el-option v-for="(item, index) in dataOptions" :key="index" :value="item.value" :label="item.text">
                   </el-option>
                 </el-select>
@@ -295,9 +295,8 @@ import EmptyData from '../common/EmptyData/EmptyData'
       quotaTips4: ', or notify the system administrator to increase the storage quota for this project.',
       projectDataline: 'Data Volume Used',
       dataValume: 'The amount of uncompressed data which has been loaded into the project',
-      cMonth: 'This Month',
-      cSeason: 'This Quarter',
-      cYear: 'This Year',
+      cMonth: 'Last 30 Days',
+      cSeason: 'Last 90 Days',
       usedCapacity: 'Data Volume'
     },
     'zh-cn': {
@@ -333,9 +332,8 @@ import EmptyData from '../common/EmptyData/EmptyData'
       quotaTips4: '，或者通知系统管理员提高本项目的存储配额。',
       projectDataline: '已使用数据量',
       dataValume: '已经载入该项目的不压缩的数据量',
-      cMonth: '当月',
-      cSeason: '当季',
-      cYear: '当年',
+      cMonth: '最近 30 天',
+      cSeason: '最近 90 天',
       usedCapacity: '数据量'
     }
   }
@@ -385,8 +383,7 @@ export default class Dashboard extends Vue {
   get dataOptions () {
     return [
       { text: this.$t('cMonth'), value: 'month' },
-      { text: this.$t('cSeason'), value: 'quarter' },
-      { text: this.$t('cYear'), value: 'year' }
+      { text: this.$t('cSeason'), value: 'quarter' }
     ]
   }
   gotoQueryHistory () {
