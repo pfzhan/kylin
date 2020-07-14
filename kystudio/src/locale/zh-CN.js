@@ -112,6 +112,7 @@ exports.default = {
     copyfail: '复制失败，您的浏览器不支持粘贴板功能!',
     checkSuccess: '表达式校验结果正确。',
     // placeholder
+    inputPld: '请输入...',
     pleaseInput: '请输入',
     pleaseFilter: '筛选...',
     pleaseFilterByModelName: '输入模型名称筛选',

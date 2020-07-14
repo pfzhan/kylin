@@ -113,6 +113,7 @@ exports.default = {
     copyfail: 'Failed to copy! Your browser does not support paste boards!',
     checkSuccess: 'Great, the expression is valid.',
     // placeholder
+    inputPld: 'Please input...',
     pleaseInput: 'Please input here',
     pleaseFilter: 'Filter...',
     pleaseFilterByModelName: 'Filter by model name',

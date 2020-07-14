@@ -19,7 +19,12 @@ export default {
     passwordConfirm: 'Password and confirm password are not the same.',
     ok: 'OK',
     cancel: 'Cancel',
-    groupMembership: 'Assign to Group'
+    groupMembership: 'Assign to Group',
+    passwordValid1: 'Contains at least one number',
+    passwordValid2: 'Contains at least one letter',
+    passwordValid3: 'Contains at least one symbol (~!@#$%^&*(){}|:"<>?[];\',./`)',
+    passwordValid4: 'Contains at least 8 characters',
+    usernamePld: 'Not support Chinese, nor special symbols (/:*?"<>|)'
   },
   'zh-cn': {
     addUser: '添加用户',
@@ -41,6 +46,11 @@ export default {
     passwordConfirm: '两次密码不一致, 请检查',
     ok: '确定',
     cancel: '取消',
-    groupMembership: '分组'
+    groupMembership: '分组',
+    passwordValid1: '至少包含一个数字',
+    passwordValid2: '至少包含一个字母',
+    passwordValid3: '至少包含一个特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`）',
+    passwordValid4: '长度至少 8 位',
+    usernamePld: '不支持中文和特殊字符（/:*?"<>|）'
   }
 }

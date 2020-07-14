@@ -17,22 +17,52 @@
         <el-input
           size="medium"
           :value="form.username"
+          :placeholder="$t('usernamePld')"
           @input="value => inputHandler('username', value)"
           :disabled="editType !== 'new'">
           </el-input>
       </el-form-item>
       <!-- 表单：密码 -->
-      <el-form-item :label="$t('password')" prop="password" v-if="isFieldShow('password')" class="js_password">
-        <el-input
-          size="medium"
-          type="password"
-          :value="form.password"
-          @input="value => inputHandler('password', value)">
-          </el-input>
-      </el-form-item>
+      <div class="needHideErrMsg">
+        <el-form-item :label="$t('password')" prop="password" :show-message="false" v-if="isFieldShow('password')" class="js_password">
+          <el-input
+            :placeholder="$t('kylinLang.common.inputPld')"
+            size="medium"
+            type="password"
+            :value="form.password"
+            @input="value => inputHandler('password', value)"
+            @blur="blurHandler('password')">
+            </el-input>
+        </el-form-item>
+        <!-- 设置密码的时候，需要显示常规规则 begin -->
+        <div class="pwdRuleList" v-if="isFieldShow('password')">
+          <p :class="pwdRuleList.num" class="clearfix">
+            <i v-if="!pwdRuleList.num" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.num === 'ok', 'el-icon-ksd-close': pwdRuleList.num === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid1')}}</span>
+          </p>
+          <p :class="pwdRuleList.letter" class="clearfix">
+            <i v-if="!pwdRuleList.letter" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.letter === 'ok', 'el-icon-ksd-close': pwdRuleList.letter === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid2')}}</span>
+          </p>
+          <p :class="pwdRuleList.char" class="clearfix">
+            <i v-if="!pwdRuleList.char" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.char === 'ok', 'el-icon-ksd-close': pwdRuleList.char === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid3')}}</span>
+          </p>
+          <p :class="pwdRuleList.len" class="clearfix">
+            <i v-if="!pwdRuleList.len" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.len === 'ok', 'el-icon-ksd-close': pwdRuleList.len === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid4')}}</span>
+          </p>
+        </div>
+        <!-- 设置密码的时候，需要显示常规规则 end -->
+      </div>
       <!-- 表单：旧密码（ 面向非管理员 -->
       <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="isFieldShow('oldPassword')" class="js_oldPassword">
         <el-input
+          :placeholder="$t('kylinLang.common.inputPld')"
           size="medium"
           type="password"
           :value="form.oldPassword"
@@ -40,17 +70,46 @@
           </el-input>
       </el-form-item>
       <!-- 表单：新密码 -->
-      <el-form-item :label="$t('newPassword')" prop="newPassword" v-if="isFieldShow('newPassword')" class="js_newPassword">
-        <el-input
-          size="medium"
-          type="password"
-          :value="form.newPassword"
-          @input="value => inputHandler('newPassword', value)">
+      <div class="needHideErrMsg">
+        <el-form-item :label="$t('newPassword')" prop="newPassword" :show-message="false" v-if="isFieldShow('newPassword')" class="js_newPassword">
+          <el-input
+            :placeholder="$t('kylinLang.common.inputPld')"
+            size="medium"
+            type="password"
+            :value="form.newPassword"
+            @input="value => inputHandler('newPassword', value)"
+            @blur="blurHandler('newPassword')">
           </el-input>
-      </el-form-item>
+        </el-form-item>
+        <!-- 设置密码的时候，需要显示常规规则 begin -->
+        <div class="pwdRuleList" v-if="isFieldShow('newPassword')">
+          <p :class="pwdRuleList.num" class="clearfix">
+            <i v-if="!pwdRuleList.num" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.num === 'ok', 'el-icon-ksd-close': pwdRuleList.num === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid1')}}</span>
+          </p>
+          <p :class="pwdRuleList.letter" class="clearfix">
+            <i v-if="!pwdRuleList.letter" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.letter === 'ok', 'el-icon-ksd-close': pwdRuleList.letter === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid2')}}</span>
+          </p>
+          <p :class="pwdRuleList.char" class="clearfix">
+            <i v-if="!pwdRuleList.char" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.char === 'ok', 'el-icon-ksd-close': pwdRuleList.char === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid3')}}</span>
+          </p>
+          <p :class="pwdRuleList.len" class="clearfix">
+            <i v-if="!pwdRuleList.len" class="point ksd-fleft">•</i>
+            <i v-else :class="{'el-icon-ksd-accept': pwdRuleList.len === 'ok', 'el-icon-ksd-close': pwdRuleList.len === 'error'}" class="ksd-fleft"></i>
+            <span class="ksd-fleft msg">{{$t('passwordValid4')}}</span>
+          </p>
+        </div>
+        <!-- 设置密码的时候，需要显示常规规则 end -->
+      </div>
       <!-- 表单：确认密码 -->
       <el-form-item :label="$t('confirmNewPassword')" prop="confirmPassword" v-if="isFieldShow('confirmPassword')" class="js_confirmPwd">
         <el-input
+          :placeholder="$t('kylinLang.common.inputPld')"
           size="medium"
           type="password"
           :value="form.confirmPassword"
@@ -144,6 +203,14 @@ export default class UserEditModal extends Vue {
   isFormShow = false
   isLoading = false
 
+  // 密码规则出错信息
+  pwdRuleList = {
+    len: '',
+    num: '',
+    char: '',
+    letter: ''
+  }
+
   // Computed: Modal宽度
   get modalWidth () {
     return this.editType === 'group'
@@ -190,6 +257,13 @@ export default class UserEditModal extends Vue {
       this.editType === 'group' && this.fetchUserGroups()
       document.addEventListener('keyup', this.handlerKeyEvent)
     } else {
+      // 密码规则出错信息重置
+      this.pwdRuleList = {
+        len: '',
+        num: '',
+        char: '',
+        letter: ''
+      }
       document.removeEventListener('keyup', this.handlerKeyEvent)
       setTimeout(() => {
         this.isFormShow = false
@@ -216,6 +290,47 @@ export default class UserEditModal extends Vue {
   // Action: 修改Form函数
   inputHandler (key, value) {
     this.setModalForm({[key]: value})
+    if (key === 'password' || key === 'newPassword') {
+      if (value.length >= 8) {
+        this.pwdRuleList.len = 'ok'
+      } else {
+        this.pwdRuleList.len = this.pwdRuleList.len ? 'error' : ''
+      }
+      if (/[a-zA-z]+/.test(value)) {
+        this.pwdRuleList.letter = 'ok'
+      } else {
+        this.pwdRuleList.letter = this.pwdRuleList.letter ? 'error' : ''
+      }
+      if (/[0-9]+/.test(value)) {
+        this.pwdRuleList.num = 'ok'
+      } else {
+        this.pwdRuleList.num = this.pwdRuleList.num ? 'error' : ''
+      }
+      if (/[~!@#$%^&*(){}|:"<>?\[\];',.\/`]+/.test(value)) { // eslint-disable-line
+        this.pwdRuleList.char = 'ok'
+      } else {
+        this.pwdRuleList.char = this.pwdRuleList.char ? 'error' : ''
+      }
+    }
+  }
+
+  // Action: blur 事件
+  blurHandler (key) {
+    if (key === 'password' || key === 'newPassword') {
+      let value = key === 'password' ? this.form.password : this.form.newPassword
+      if (!value || value.length < 8) {
+        this.pwdRuleList.len = 'error'
+      }
+      if (!/[a-zA-z]+/.test(value)) {
+        this.pwdRuleList.letter = 'error'
+      }
+      if (!/[0-9]+/.test(value)) {
+        this.pwdRuleList.num = 'error'
+      }
+      if (!/[~!@#$%^&*(){}|:"<>?\[\];',.\/`]+/.test(value)) { // eslint-disable-line
+        this.pwdRuleList.char = 'error'
+      }
+    }
   }
 
   // Action: Form递交函数
@@ -288,6 +403,36 @@ export default class UserEditModal extends Vue {
     margin-bottom: 15px;
     font-size: 14px;
     color: @text-title-color;
+  }
+  .needHideErrMsg{
+    .el-form-item{
+      margin-bottom:5px;
+    }
+    .pwdRuleList{
+      font-size: 12px;
+      line-height: 14px;
+      margin-bottom:15px;
+      p{
+        margin-top:5px;
+        .msg{
+          width: calc(~'100% - 20px');
+        }
+      }
+      i{
+        margin-right:5px;
+        margin-top:1px;
+        &.point{
+          color:@text-disabled-color;
+          margin-top:0;
+        }
+      }
+      .ok{
+        color: @normal-color-1;
+      }
+      .error{
+        color: @error-color-1;
+      }
+    }
   }
 }
 </style>
