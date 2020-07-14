@@ -22,13 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.util.JsonUtil.readValue;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +40,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,7 +51,6 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -67,10 +66,13 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationV2;
+import io.kyligence.kap.metadata.recommendation.v2.RecommendationUtil;
 import lombok.val;
 import lombok.var;
 
-public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestCase {
+public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
 
     protected NDataModelManager modelManager;
     protected NIndexPlanManager indexPlanManager;
@@ -95,10 +97,7 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
         indexPlanManager.listAllIndexPlans().forEach(indexPlan -> indexPlanManager.dropIndexPlan(indexPlan));
         modelManager.listAllModels().forEach(model -> modelManager.dropModel(model));
         recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), projectDefault);
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProjectFromSingleton();
         managersByPrjCache.put(RawRecManager.class, new ConcurrentHashMap<>());
         managersByPrjCache.get(RawRecManager.class).put(projectDefault, rawRecManager);
         Mockito.doAnswer(answer -> mockRawRecItems.get(answer.getArgument(0))).when(rawRecManager)
@@ -111,7 +110,7 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
                 }
             });
             return null;
-        }).when(rawRecManager).applyRecommendations(Mockito.anyList());
+        }).when(rawRecManager).applyByIds(Mockito.anyList());
 
         Mockito.doAnswer(answer -> {
             List<Integer> ids = answer.getArgument(0);
@@ -121,7 +120,7 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
                 }
             });
             return null;
-        }).when(rawRecManager).discardRawRecommendations(Mockito.anyList());
+        }).when(rawRecManager).discardByIds(Mockito.anyList());
         recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(getTestConfig(), projectDefault);
         prepare();
     }
@@ -131,8 +130,8 @@ public class OptimizeRecommendationManagerV2Test extends NLocalFileMetadataTestC
         this.cleanupTestMetadata();
     }
 
-    protected String modelDir = "src/test/resources/ut_meta/optimize/metadataV2/model/";
-    protected String indexDir = "src/test/resources/ut_meta/optimize/metadataV2/index_plan/";
+    protected String modelDir = "../core-metadata/src/test/resources/ut_meta/optimize/metadataV2/model/";
+    protected String indexDir = "../core-metadata/src/test/resources/ut_meta/optimize/metadataV2/index_plan/";
     protected final String id = "25f8bbb7-cddc-4837-873d-f80f994d8a2d";
     protected String baseModelFile = modelDir + "base_model.json";
     protected String baseIndexFile = indexDir + "base_index_plan.json";

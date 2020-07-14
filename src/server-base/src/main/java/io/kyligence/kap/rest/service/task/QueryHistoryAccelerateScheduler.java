@@ -143,30 +143,34 @@ public class QueryHistoryAccelerateScheduler {
 
         @Override
         public void run() {
-            if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-                return;
-            }
-            if (!KylinConfig.getInstanceFromEnv().isUTEnv()
-                    && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
-                shutdownByProject(project);
-                return;
-            }
-
-            QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
-
-            int accelerateBatchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
-            int accelerateMaxSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
-            int acceleratedCounts = 0;
-
-            while (true) {
-                List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesById(
-                        queryHistoryIdOffset.getQueryHistoryIdOffset(), accelerateBatchSize, project);
-                acceleratedCounts = acceleratedCounts + queryHistories.size();
-                accelerateAndUpdateMetadata(queryHistories);
-                if (queryHistories.size() < accelerateBatchSize || acceleratedCounts >= accelerateMaxSize) {
-                    break;
+            try {
+                if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
+                    return;
                 }
+                if (!KylinConfig.getInstanceFromEnv().isUTEnv()
+                        && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                    shutdownByProject(project);
+                    return;
+                }
+
+                QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
+
+                int accelerateBatchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
+                int accelerateMaxSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
+                int acceleratedCounts = 0;
+
+                while (true) {
+                    List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesById(
+                            queryHistoryIdOffset.getQueryHistoryIdOffset(), accelerateBatchSize, project);
+                    acceleratedCounts = acceleratedCounts + queryHistories.size();
+                    accelerateAndUpdateMetadata(queryHistories);
+                    if (queryHistories.size() < accelerateBatchSize || acceleratedCounts >= accelerateMaxSize) {
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Query History for project <{}> scan failed", project, e);
             }
         }
 

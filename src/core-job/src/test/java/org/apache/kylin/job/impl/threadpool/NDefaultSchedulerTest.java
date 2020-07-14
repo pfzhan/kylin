@@ -27,7 +27,6 @@ package org.apache.kylin.job.impl.threadpool;
 import static org.awaitility.Awaitility.await;
 
 import java.io.FileNotFoundException;
-import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,7 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
@@ -85,6 +83,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -1049,6 +1048,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId(), 6000);
     }
 
+    @Repeat(3)
     @Test
     public void testSchedulerRestart() {
         logger.info("testSchedulerRestart");
@@ -1762,14 +1762,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSubmitParallelTasksReachMemoryQuota()
-            throws InterruptedException, NoSuchFieldException, IllegalAccessException {
+    public void testSubmitParallelTasksReachMemoryQuota() throws Exception {
         logger.info("testSubmitParallelTasksByMemoryQuota");
         val manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), project));
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
         managersByPrjCache.get(NExecutableManager.class).put(project, manager);
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfs = Lists.newArrayList(NDataflowManager.getInstance(getTestConfig(), project).listAllDataflows());

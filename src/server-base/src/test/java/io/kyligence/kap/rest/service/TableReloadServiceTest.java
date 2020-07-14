@@ -28,7 +28,6 @@ import static org.awaitility.Awaitility.await;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -881,10 +880,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             val modelId = model.getId();
             AtomicBoolean clean = new AtomicBoolean(false);
             val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), PROJECT));
-            Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-            filed.setAccessible(true);
-            ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                    .get(getTestConfig());
+            ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
             managersByPrjCache.get(OptimizeRecommendationManager.class).put(PROJECT, manager);
             Mockito.doAnswer(invocation -> {
                 String id = invocation.getArgument(0);

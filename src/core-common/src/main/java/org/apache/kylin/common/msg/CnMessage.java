@@ -42,19 +42,16 @@
 
 package org.apache.kylin.common.msg;
 
-public class CnMessage extends Message {
+import org.apache.kylin.common.Singletons;
 
-    private static CnMessage instance = null;
+public class CnMessage extends Message {
 
     protected CnMessage() {
 
     }
 
     public static CnMessage getInstance() {
-        if (instance == null) {
-            instance = new CnMessage();
-        }
-        return instance;
+        return Singletons.getInstance(CnMessage.class);
     }
 
     // Cube

@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
@@ -50,10 +51,8 @@ public class KerberosLoginManager implements IKeep {
     public static final String KEYTAB_SUFFIX = ".keytab";
     public static final String TMP_KEYTAB_SUFFIX = "_tmp.keytab";
 
-    private static final KerberosLoginManager instance = new KerberosLoginManager();
-
     public static KerberosLoginManager getInstance() {
-        return instance;
+        return Singletons.getInstance(KerberosLoginManager.class);
     }
 
     public UserGroupInformation getProjectUGI(String projectName) {

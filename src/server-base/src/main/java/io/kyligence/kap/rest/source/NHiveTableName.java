@@ -42,6 +42,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -60,14 +61,13 @@ import lombok.val;
 
 public class NHiveTableName implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(NHiveTableName.class);
-    private static final NHiveTableName instance = new NHiveTableName();
     private Map<String, NHiveSourceInfo> sourceInfos;//Map<UGI,NHiveSourceInfo>
     private volatile Map<String, Boolean> isRunnings;
     private volatile Map<String, Long> lastLoadTimes;
     private final ISourceMetadataExplorer explr;
 
     public static NHiveTableName getInstance() {
-        return instance;
+        return Singletons.getInstance(NHiveTableName.class);
     }
 
     private NHiveTableName() {

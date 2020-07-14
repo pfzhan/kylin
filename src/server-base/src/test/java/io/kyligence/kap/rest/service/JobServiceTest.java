@@ -45,7 +45,6 @@ package io.kyligence.kap.rest.service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -54,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -99,7 +100,6 @@ import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
-import javax.servlet.http.HttpServletResponse;
 import lombok.val;
 
 public class JobServiceTest extends NLocalFileMetadataTestCase {
@@ -237,12 +237,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         return Lists.newArrayList(defaultProject, defaultProject1);
     }
 
-    private List<AbstractExecutable> mockJobs1() throws NoSuchFieldException, IllegalAccessException {
+    private List<AbstractExecutable> mockJobs1() throws Exception {
         NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default1"));
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
         managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
@@ -454,12 +451,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
-    private List<AbstractExecutable> mockJobs() throws NoSuchFieldException, IllegalAccessException {
+    private List<AbstractExecutable> mockJobs() throws Exception {
         NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase.getInstanceByProject();
         managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();

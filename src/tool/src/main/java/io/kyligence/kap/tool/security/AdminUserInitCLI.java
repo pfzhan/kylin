@@ -43,7 +43,7 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;

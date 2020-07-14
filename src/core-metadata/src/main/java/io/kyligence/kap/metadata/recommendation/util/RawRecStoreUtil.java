@@ -41,11 +41,11 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.TransactionFactory;
-import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItemMapper;
+import io.kyligence.kap.metadata.transaction.SpringManagedTransactionFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -62,7 +62,7 @@ public class RawRecStoreUtil {
             throws IOException, SQLException {
         if (sqlSessionFactory == null) {
             log.info("Start to build SqlSessionFactory");
-            TransactionFactory transactionFactory = new JdbcTransactionFactory();
+            TransactionFactory transactionFactory = new SpringManagedTransactionFactory();
             Environment environment = new Environment("raw recommendation", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);
             configuration.setUseGeneratedKeys(true);

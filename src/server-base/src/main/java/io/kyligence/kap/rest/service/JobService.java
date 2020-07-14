@@ -365,7 +365,7 @@ public class JobService extends BasicService {
     @VisibleForTesting
     public void updateJobStatus(String jobId, String project, String action) throws IOException {
         val executableManager = getExecutableManager(project);
-        UnitOfWorkContext.AfterUnitTask afterUnitTask = () -> SchedulerEventBusFactory
+        UnitOfWorkContext.UnitTask afterUnitTask = () -> SchedulerEventBusFactory
                 .getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobReadyNotifier(project));
         switch (JobActionEnum.valueOf(action)) {
             case RESUME:

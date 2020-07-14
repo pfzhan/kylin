@@ -65,8 +65,13 @@ public class TransactionExceptedException implements TestRule {
             if (!(item instanceof TransactionException)) {
                 return false;
             }
-            Throwable t = ((TransactionException) item).getCause();
-            return t != null && aClass.isAssignableFrom(t.getClass());
+            Throwable ex = (Throwable) item;
+            while ((ex = (ex.getCause())) != null) {
+                if (aClass.isAssignableFrom(ex.getClass())) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
@@ -88,8 +93,13 @@ public class TransactionExceptedException implements TestRule {
             if (!(item instanceof TransactionException)) {
                 return false;
             }
-            Throwable t = ((TransactionException) item).getCause();
-            return t != null && t.getMessage() != null && t.getMessage().contains(message);
+            Throwable ex = (Throwable) item;
+            while ((ex = (ex.getCause())) != null) {
+                if (ex.getMessage() != null && ex.getMessage().contains(message)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override

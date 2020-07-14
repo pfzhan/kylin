@@ -68,7 +68,7 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public Map<String, String> getInnerExpToUniqueFlag() {
-        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(getProject())
                 .listAll();
         Map<String, String> ccInnerExpToUniqueFlag = Maps.newHashMap();
         recItemMap.forEach((k, v) -> {

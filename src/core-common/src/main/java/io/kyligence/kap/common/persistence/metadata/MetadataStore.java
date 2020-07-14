@@ -100,6 +100,7 @@ public abstract class MetadataStore {
         if (!skipAuditLog) {
             auditLogStore.save(unitMessages);
         }
+        UnitOfWork.get().onUnitUpdated();
     }
 
     public void restore(ResourceStore store) throws IOException {

@@ -36,6 +36,7 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -49,6 +50,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import lombok.val;
 
+@Ignore
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
 

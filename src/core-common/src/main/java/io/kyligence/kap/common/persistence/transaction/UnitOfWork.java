@@ -175,7 +175,7 @@ public class UnitOfWork {
         }
 
         if (result.getSecond() && context != null) {
-            context.runTasks();
+            context.onUnitFinished();
         }
         return result;
     }

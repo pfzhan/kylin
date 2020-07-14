@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
@@ -37,7 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
@@ -62,7 +60,7 @@ public class MaintenanceListenerTest extends CSVSourceTestCase {
         super.cleanup();
     }
 
-    private void prepare() throws NoSuchFieldException, IllegalAccessException {
+    private void prepare() throws Exception {
         EpochManager epochManager = spyEpochManager();
         try {
             epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
@@ -84,8 +82,7 @@ public class MaintenanceListenerTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testLeaveMaintenanceMode()
-            throws NoSuchFieldException, IllegalAccessException, JsonProcessingException {
+    public void testLeaveMaintenanceMode() throws Exception {
         prepare();
         EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         Epoch epoch = manager.getGlobalEpoch();
@@ -97,10 +94,10 @@ public class MaintenanceListenerTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testEnterMaintenanceMode()
-            throws NoSuchFieldException, IllegalAccessException, IOException {
+    public void testEnterMaintenanceMode() throws Exception {
         prepare();
-        Epoch epoch = JsonUtil.deepCopy(EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).getGlobalEpoch(), Epoch.class);
+        Epoch epoch = JsonUtil.deepCopy(EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).getGlobalEpoch(),
+                Epoch.class);
         epoch.setMaintenanceMode(true);
         RawResource rawResource = new RawResource(ResourceStore.GLOBAL_EPOCH,
                 ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(epoch)), 0L, 0);

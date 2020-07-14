@@ -113,12 +113,12 @@ public class RawRecService {
                 .collect(Collectors.toList());
         for (ProjectInstance projectInstance : projectInstances) {
             String project = projectInstance.getName();
-            if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
-                continue;
-            }
+//            if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
+//                continue;
+//            }
             try {
                 log.info("Running update cost for project<{}>", project);
-                RawRecManager.getInstance(kylinConfig, project).updateAllCost(project);
+                RawRecManager.getInstance(project).updateAllCost(project);
                 FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(kylinConfig, project)
                         .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
                 for (String model : projectInstance.getModels()) {
@@ -138,7 +138,7 @@ public class RawRecService {
 
     List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
             ArrayListMultimap<Long, QueryHistory> layoutToQHMap) {
-        val mgr = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), semiContextV2.getProject());
+        val mgr = RawRecManager.getInstance(semiContextV2.getProject());
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
@@ -225,7 +225,7 @@ public class RawRecService {
     }
 
     private List<RawRecItem> transferToMeasureRecItems(AbstractSemiContextV2 semiContextV2) {
-        val mgr = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), semiContextV2.getProject());
+        val mgr = RawRecManager.getInstance(semiContextV2.getProject());
         Map<String, RawRecItem> uniqueRecItemMap = mgr.listAll();
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -253,7 +253,7 @@ public class RawRecService {
     }
 
     private List<RawRecItem> transferToDimensionRecItems(AbstractSemiContextV2 semiContextV2) {
-        val rcMgr = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), semiContextV2.getProject());
+        val rcMgr = RawRecManager.getInstance(semiContextV2.getProject());
         Map<String, RawRecItem> uniqueRecItemMap = rcMgr.listAll();
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -281,7 +281,7 @@ public class RawRecService {
     }
 
     private List<RawRecItem> transferToCCRawRecItem(AbstractSemiContextV2 semiContextV2) {
-        val rcMgr = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), semiContextV2.getProject());
+        val rcMgr = RawRecManager.getInstance(semiContextV2.getProject());
         Map<String, RawRecItem> uniqueRecItemMap = rcMgr.listAll();
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -310,7 +310,7 @@ public class RawRecService {
     }
 
     private void saveCCRawRecItems(List<RawRecItem> ccRawRecItems, String project) {
-        RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project).saveOrUpdate(ccRawRecItems);
+        RawRecManager.getInstance(project).saveOrUpdate(ccRawRecItems);
     }
 
     private void saveDimensionAndMeasure(List<RawRecItem> dimensionRecItems, List<RawRecItem> measureRecItems,
@@ -318,11 +318,11 @@ public class RawRecService {
         List<RawRecItem> recItems = Lists.newArrayList();
         recItems.addAll(dimensionRecItems);
         recItems.addAll(measureRecItems);
-        RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project).saveOrUpdate(recItems);
+        RawRecManager.getInstance(project).saveOrUpdate(recItems);
     }
 
     private void saveLayoutRawRecItems(List<RawRecItem> layoutRecItems, String project) {
-        RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project).saveOrUpdate(layoutRecItems);
+        RawRecManager.getInstance(project).saveOrUpdate(layoutRecItems);
     }
 
     private void updateRecommendationV2(String project, String modelId, List<Integer> rawIds) {
@@ -345,8 +345,8 @@ public class RawRecService {
         Thread.currentThread().setName("DeleteRawRecItemsInDB");
         for (ProjectInstance instance : projectInstances) {
             try {
-                RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), instance.getName())
-                        .deleteAllOutDatedRecommendations(instance.getName());
+                RawRecManager.getInstance(instance.getName())
+                        .deleteAllOutDated(instance.getName());
             } catch (Exception e) {
                 log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
             }

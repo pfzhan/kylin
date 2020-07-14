@@ -132,7 +132,6 @@ public class OptimizeRecommendationManagerV2 {
     // called by reflection
     @SuppressWarnings("unused")
     static OptimizeRecommendationManagerV2 newInstance(KylinConfig conf, String project) {
-
         return new OptimizeRecommendationManagerV2(conf, project);
     }
 
@@ -140,7 +139,7 @@ public class OptimizeRecommendationManagerV2 {
     private String project;
 
     private RawRecManager getRawRecManager() {
-        return RawRecManager.getInstance(config, project);
+        return RawRecManager.getInstance(project);
     }
 
     private CachedCrudAssist<OptimizeRecommendationV2> crud;
@@ -212,8 +211,8 @@ public class OptimizeRecommendationManagerV2 {
             return;
         }
         List<Integer> rawIds = recommendationV2.getRawIds();
-        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        rawManager.discardRawRecommendations(rawIds);
+        RawRecManager rawManager = RawRecManager.getInstance(project);
+        rawManager.discardByIds(rawIds);
         createOrUpdate(modelId, Lists.newArrayList());
     }
 
@@ -223,8 +222,8 @@ public class OptimizeRecommendationManagerV2 {
             return;
         }
         List<Integer> rawIds = recommendationV2.getRawIds();
-        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        rawManager.discardRawRecommendations(rawIds);
+        RawRecManager rawManager = RawRecManager.getInstance(project);
+        rawManager.discardByIds(rawIds);
         createOrUpdate(modelId, Lists.newArrayList());
     }
 
@@ -419,7 +418,7 @@ public class OptimizeRecommendationManagerV2 {
         }
 
         List<Integer> inEffective = recommendation.validate();
-        getRawRecManager().removeRecommendations(inEffective);
+        getRawRecManager().removeByIds(inEffective);
         createOrUpdate(id, difference(recommendation.getRawIds(), inEffective));
     }
 

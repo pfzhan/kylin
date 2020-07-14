@@ -21,39 +21,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.metadata.transaction;
 
-package io.kyligence.kap.metadata.recommendation.candidate;
+import java.sql.Connection;
+import java.util.Properties;
 
-import java.util.List;
+import javax.sql.DataSource;
 
-import org.apache.kylin.common.KylinConfig;
+import org.apache.ibatis.session.TransactionIsolationLevel;
+import org.apache.ibatis.transaction.Transaction;
+import org.apache.ibatis.transaction.TransactionFactory;
 
-public class CostBasedRecSelectStrategy implements RecSelectStrategy {
-    private KylinConfig config;
+public class SpringManagedTransactionFactory implements TransactionFactory {
 
-    public CostBasedRecSelectStrategy(KylinConfig config) {
-        this.config = config;
+    @Override
+    public Transaction newTransaction(DataSource dataSource, TransactionIsolationLevel level, boolean autoCommit) {
+        return new SpringManagedTransaction(dataSource);
     }
 
     @Override
-    public List<RawRecItem> getBestRecItem(int topn) {
-        throw new RuntimeException("Not supported");
+    public Transaction newTransaction(Connection conn) {
+        throw new UnsupportedOperationException("New Spring transactions require a DataSource");
     }
 
     @Override
-    public List<RawRecItem> getBestRecItemByModel(int topn, String project, String model) {
-        RawRecManager rawRecManager = RawRecManager.getInstance(project);
-        return rawRecManager.getCandidatesByModelAndBenefit(project, model, topn);
+    public void setProperties(Properties props) {
+        // not needed in this version
     }
 
-    @Override
-    public List<RawRecItem> getBestRecItemByProject(int topn, String project) {
-        RawRecManager rawRecManager = RawRecManager.getInstance(project);
-        return rawRecManager.getCandidatesByProjectAndBenefit(project, topn);
-    }
-
-    public void update(RawRecItem recItem, long time) {
-        double latencyOfTheDay = recItem.getLayoutMetric().getLatencyMap().getLatencyByDate(time);
-        recItem.setCost((recItem.getCost() + latencyOfTheDay) / Math.E);
-    }
 }

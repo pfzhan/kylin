@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -94,7 +93,7 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
 
     private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccMap, NDataModel model,
             List<Integer> columnIDs) {
-        val uniqueRecItemMap = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+        val uniqueRecItemMap = RawRecManager.getInstance(model.getProject())
                 .listAll();
         List<Integer> colOrderInDB = Lists.newArrayListWithCapacity(columnIDs.size());
         columnIDs.forEach(colId -> {

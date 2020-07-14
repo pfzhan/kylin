@@ -26,6 +26,8 @@ package io.kyligence.kap.common.persistence.transaction;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.CommonErrorCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 
 import com.google.common.base.Preconditions;
@@ -51,10 +53,16 @@ public class UnitOfWorkContext {
     @Delegate
     private UnitOfWorkParams params;
 
-    List<AfterUnitTask> tasks = Lists.newArrayList();
+    List<UnitTask> onFinishedTasks = Lists.newArrayList();
 
-    public void doAfterUnit(AfterUnitTask task) {
-        tasks.add(task);
+    List<UnitTask> onUpdatedTasks = Lists.newArrayList();
+
+    public void doAfterUnit(UnitTask task) {
+        onFinishedTasks.add(task);
+    }
+
+    public void doAfterUpdate(UnitTask task) {
+        onUpdatedTasks.add(task);
     }
 
     void cleanResource() {
@@ -86,8 +94,8 @@ public class UnitOfWorkContext {
                 params.isUseSandbox());
     }
 
-    void runTasks() {
-        tasks.forEach(task -> {
+    public void onUnitFinished() {
+        onFinishedTasks.forEach(task -> {
             try {
                 task.run();
             } catch (Exception e) {
@@ -96,7 +104,18 @@ public class UnitOfWorkContext {
         });
     }
 
-    public interface AfterUnitTask {
+    public void onUnitUpdated() {
+        onUpdatedTasks.forEach(task -> {
+            try {
+                task.run();
+            } catch (Exception e) {
+                log.warn("Failed to run task after update metadata", e);
+                throw new KylinException(CommonErrorCode.FAILED_UPDATE_METADATA, "task failed");
+            }
+        });
+    }
+
+    public interface UnitTask {
         void run() throws Exception;
     }
 }

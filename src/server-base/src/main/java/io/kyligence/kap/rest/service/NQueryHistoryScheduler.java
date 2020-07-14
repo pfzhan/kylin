@@ -53,6 +53,7 @@ import io.kyligence.kap.common.metric.MetricWriter;
 import io.kyligence.kap.common.metric.MetricWriterFactory;
 import io.kyligence.kap.common.metric.QueryMetrics;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
@@ -76,18 +77,8 @@ public class NQueryHistoryScheduler {
                 kyinConfig.getQueryHistorySchedulerInterval(), TimeUnit.SECONDS);
     }
 
-    private static volatile NQueryHistoryScheduler INSTANCE;
-
     public static NQueryHistoryScheduler getInstance() {
-        if (INSTANCE == null) {
-            synchronized (NQueryHistoryScheduler.class) {
-                if (INSTANCE != null) {
-                    return INSTANCE;
-                }
-                INSTANCE = new NQueryHistoryScheduler();
-            }
-        }
-        return INSTANCE;
+        return Singletons.getInstance(NQueryHistoryScheduler.class);
     }
 
     public NQueryHistoryScheduler() {

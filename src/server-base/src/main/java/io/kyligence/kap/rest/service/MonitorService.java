@@ -102,7 +102,7 @@ public class MonitorService extends BasicService {
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
         if (kapConfig.isMonitorEnabled()) {
             try {
-                MonitorReporter.getInstance(kapConfig).startReporter();
+                MonitorReporter.getInstance().startReporter();
             } catch (Exception e) {
                 log.error("Failed to start monitor reporter!", e);
             }

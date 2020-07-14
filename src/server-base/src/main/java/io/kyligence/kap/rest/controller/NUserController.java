@@ -85,7 +85,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;

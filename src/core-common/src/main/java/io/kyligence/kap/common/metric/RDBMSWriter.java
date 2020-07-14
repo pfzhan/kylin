@@ -35,6 +35,7 @@ import lombok.val;
 import lombok.var;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.StorageURL;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -92,22 +93,12 @@ public class RDBMSWriter implements MetricWriter {
 
     volatile JdbcTemplate jdbcTemplate;
 
-    private static volatile RDBMSWriter INSTANCE;
-
     public static RDBMSWriter getInstance() throws Exception {
-        if (INSTANCE == null) {
-            synchronized (RDBMSWriter.class) {
-                if (INSTANCE != null) {
-                    return INSTANCE;
-                }
-                INSTANCE = new RDBMSWriter(KylinConfig.getInstanceFromEnv());
-            }
-        }
-
-        return INSTANCE;
+        return Singletons.getInstance(RDBMSWriter.class);
     }
 
-    private RDBMSWriter(KylinConfig kylinConfig) throws Exception {
+    private RDBMSWriter() throws Exception {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         val url = kylinConfig.getMetadataUrl();
         val props = JdbcUtil.datasourceParameters(url);
         val dataSource = JdbcDataSource.getDataSource(props);
@@ -203,7 +194,7 @@ public class RDBMSWriter implements MetricWriter {
         createIndexForTable(properties, tableName, "create.queryhistoryrealization.store.tableindex1");
         createIndexForTable(properties, tableName, "create.queryhistoryrealization.store.tableindex2");
     }
-    
+
     void createIndexForTable(Properties properties, String tableName, String indexProperty) {
         var createQueryHistorIndexSql = properties.getProperty(indexProperty);
         jdbcTemplate.execute(String.format(createQueryHistorIndexSql, tableName, tableName));

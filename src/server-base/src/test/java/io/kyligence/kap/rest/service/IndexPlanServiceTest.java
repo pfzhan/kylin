@@ -119,7 +119,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
     }
 
-    private AtomicBoolean prepare(String modelId) throws NoSuchFieldException, IllegalAccessException {
+    private AtomicBoolean prepare(String modelId) throws Exception {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
@@ -141,7 +141,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
 
     @Test
-    public void testUpdateSingleRuleBasedCuboid() throws NoSuchFieldException, IllegalAccessException {
+    public void testUpdateSingleRuleBasedCuboid() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -354,7 +354,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testCreateTableIndex() throws NoSuchFieldException, IllegalAccessException {
+    public void testCreateTableIndex() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -480,7 +480,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testUpdateTableIndex() throws NoSuchFieldException, IllegalAccessException {
+    public void testUpdateTableIndex() throws Exception {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val clean = prepare(modelId);
         long prevMaxId = 20000040001L;
@@ -769,7 +769,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testRemoveIndex() throws NoSuchFieldException, IllegalAccessException {
+    public void testRemoveIndex() throws Exception {
         testUpdateSingleRuleBasedCuboid();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val clean = prepare(modelId);
@@ -796,7 +796,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testRemoveIndexes() throws NoSuchFieldException, IllegalAccessException {
+    public void testRemoveIndexes() throws Exception {
         testUpdateSingleRuleBasedCuboid();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
@@ -836,7 +836,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testGetIndexes() throws NoSuchFieldException, IllegalAccessException {
+    public void testGetIndexes() throws Exception {
         testUpdateSingleRuleBasedCuboid();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         var indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), "data_size",

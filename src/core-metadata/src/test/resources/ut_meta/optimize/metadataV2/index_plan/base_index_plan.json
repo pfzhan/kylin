@@ -136,12 +136,6 @@
     "layout_id_mapping": [1, 10001, 20001, 30001, 40001, 50001, 60001, 70001, 80001, 90001, 100001],
     "storage_type": 20
   },
-  "dictionaries": [
-    {
-      "id": 26,
-      "builder": "org.apache.kylin.dict.NGlobalDictionaryBuilder2"
-    }
-  ],
   "next_aggregation_index_id": 10000000,
   "next_table_index_id": 20000010000,
   "override_properties": {},

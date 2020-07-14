@@ -39,7 +39,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kyligence.kap.metadata.password;
+package org.apache.kylin.util;
 
 import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_INIT_PASSWORD_ENCODER;
 import static org.apache.kylin.common.exception.SystemErrorCode.INVALID_PASSWORD_ENCODER;

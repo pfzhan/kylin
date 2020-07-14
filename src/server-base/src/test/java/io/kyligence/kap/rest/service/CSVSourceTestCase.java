@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
@@ -115,59 +114,53 @@ public class CSVSourceTestCase extends ServiceTestBase {
         System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 
-    public EpochManager spyEpochManager() throws NoSuchFieldException, IllegalAccessException {
+    public EpochManager spyEpochManager() throws Exception {
         return spyManager(EpochManager.getInstance(getTestConfig()), EpochManager.class);
     }
 
     public OptimizeRecommendationManager spyOptimizeRecommendationManager()
-            throws NoSuchFieldException, IllegalAccessException {
+            throws Exception {
         return spyManagerByProject(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()),
                 OptimizeRecommendationManager.class);
     }
 
-    public NDataModelManager spyNDataModelManager() throws NoSuchFieldException, IllegalAccessException {
+    public NDataModelManager spyNDataModelManager() throws Exception {
         return spyManagerByProject(NDataModelManager.getInstance(getTestConfig(), getProject()),
                 NDataModelManager.class);
     }
 
-    public NIndexPlanManager spyNIndexPlanManager() throws NoSuchFieldException, IllegalAccessException {
+    public NIndexPlanManager spyNIndexPlanManager() throws Exception {
         return spyManagerByProject(NIndexPlanManager.getInstance(getTestConfig(), getProject()),
                 NIndexPlanManager.class);
     }
 
-    public NDataflowManager spyNDataflowManager() throws NoSuchFieldException, IllegalAccessException {
+    public NDataflowManager spyNDataflowManager() throws Exception {
         return spyManagerByProject(NDataflowManager.getInstance(getTestConfig(), getProject()), NDataflowManager.class);
     }
 
-    protected List<AbstractExecutable> getRunningExecutables(String project, String model){
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getRunningExecutables(project, model);
+    protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
+                model);
     }
 
-    protected void deleteJobByForce(AbstractExecutable executable){
+    protected void deleteJobByForce(AbstractExecutable executable) {
         val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
         exManager.deleteJob(executable.getId());
     }
 
-
-    <T> T spyManagerByProject(T t, Class<T> tClass) throws NoSuchFieldException, IllegalAccessException {
+    <T> T spyManagerByProject(T t, Class<T> tClass) throws Exception {
         T manager = Mockito.spy(t);
         originManager.put(manager, t);
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
         managersByPrjCache.get(tClass).put(getProject(), manager);
         return manager;
     }
 
-    <T> T spyManager(T t, Class<T> tClass) throws NoSuchFieldException, IllegalAccessException {
+    <T> T spyManager(T t, Class<T> tClass) throws Exception {
         T manager = Mockito.spy(t);
         originManager.put(manager, t);
-        Field filed = getTestConfig().getClass().getDeclaredField("managersCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, Object> managersCache = (ConcurrentHashMap<Class, Object>) filed.get(getTestConfig());
+        ConcurrentHashMap<Class, Object> managersCache = getInstances();
         managersCache.put(tClass, manager);
         return manager;
     }
@@ -178,4 +171,5 @@ public class CSVSourceTestCase extends ServiceTestBase {
             return functionT.apply(t);
         }).when(m));
     }
+
 }

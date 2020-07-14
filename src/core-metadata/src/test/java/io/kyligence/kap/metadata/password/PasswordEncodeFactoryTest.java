@@ -41,6 +41,7 @@
  */
 package io.kyligence.kap.metadata.password;
 
+import org.apache.kylin.util.PasswordEncodeFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

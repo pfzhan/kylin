@@ -58,7 +58,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -71,8 +70,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-
-import lombok.val;
 
 /**
  */
@@ -505,16 +502,17 @@ public class KylinConfig extends KylinConfigBase {
 
     // ============================================================================
 
-    transient ConcurrentHashMap<Class, Object> managersCache = null;
-    transient ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = null;
+    private final Singletons singletons;
 
     private KylinConfig() {
         super();
+        this.singletons = new Singletons();
         logger.trace("a new KylinConfig is created with id: {}", System.identityHashCode(this));
     }
 
     protected KylinConfig(Properties props, boolean force) {
         super(props, force);
+        this.singletons = new Singletons();
         logger.trace("a new KylinConfig is created with id: {}", System.identityHashCode(this));
     }
 
@@ -523,65 +521,22 @@ public class KylinConfig extends KylinConfigBase {
         if (base != this)
             return base.getManager(clz);
 
-        Object mgr = managersCache == null ? null : managersCache.get(clz);
-        if (mgr != null)
-            return (T) mgr;
-
-        synchronized (this) {
-            if (managersCache == null)
-                managersCache = new ConcurrentHashMap<>();
-
-            mgr = managersCache.get(clz);
-            if (mgr != null)
-                return (T) mgr;
-
-            try {
-                // new manager via static Manager.newInstance()
-                Method method = clz.getDeclaredMethod("newInstance", KylinConfig.class);
-                method.setAccessible(true); // override accessibility
-                mgr = method.invoke(null, this);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            managersCache.put(clz, mgr);
-        }
-        return (T) mgr;
+        return singletons.getInstance0(clz, clazz -> {
+            Method method = clazz.getDeclaredMethod("newInstance", KylinConfig.class);
+            method.setAccessible(true); // override accessibility
+            return (T) method.invoke(null, KylinConfig.this);
+        });
     }
 
     public <T> T getManager(String project, Class<T> clz) {
         KylinConfig base = base();
         if (base != this)
             return base.getManager(project, clz);
-
-        ConcurrentHashMap<String, Object> mgrMap = (null == managersByPrjCache) ? null : managersByPrjCache.get(clz);
-        Object mgr = (null == mgrMap) ? null : mgrMap.get(project);
-        if (mgr != null)
-            return (T) mgr;
-
-        synchronized (this) {
-            if (null == managersByPrjCache)
-                managersByPrjCache = new ConcurrentHashMap<>();
-
-            mgrMap = managersByPrjCache.get(clz);
-            if (mgrMap == null)
-                mgrMap = new ConcurrentHashMap<>();
-
-            mgr = mgrMap.get(project);
-            if (mgr != null)
-                return (T) mgr;
-
-            try {
-                // new manager via static Manager.newInstance()
-                Method method = clz.getDeclaredMethod("newInstance", KylinConfig.class, String.class);
-                method.setAccessible(true); // override accessibility
-                mgr = method.invoke(null, this, project);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            mgrMap.put(project, mgr);
-            managersByPrjCache.put(clz, mgrMap);
-        }
-        return (T) mgr;
+        return singletons.getInstance0(project, clz, clazz -> {
+            Method method = clazz.getDeclaredMethod("newInstance", KylinConfig.class, String.class);
+            method.setAccessible(true); // override accessibility
+            return (T) method.invoke(null, this, project);
+        });
     }
 
     public void clearManagers() {
@@ -590,9 +545,7 @@ public class KylinConfig extends KylinConfigBase {
             base.clearManagers();
             return;
         }
-
-        if (managersCache != null)
-            managersCache.clear();
+        singletons.clear();
     }
 
     public void clearManagersByProject(String project) {
@@ -601,11 +554,7 @@ public class KylinConfig extends KylinConfigBase {
             base.clearManagersByProject(project);
             return;
         }
-        if (managersByPrjCache != null) {
-            for (val value : managersByPrjCache.values()) {
-                value.remove(project);
-            }
-        }
+        singletons.clearByProject(project);
     }
 
     public void clearManagersByClz(Class clz) {
@@ -614,8 +563,7 @@ public class KylinConfig extends KylinConfigBase {
             base.clearManagersByClz(clz);
             return;
         }
-        if (managersCache != null)
-            managersCache.remove(clz);
+        singletons.clearByType(clz);
     }
 
     public Properties exportToProperties() {

@@ -43,7 +43,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -565,16 +564,11 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testClearManagerCache() throws NoSuchFieldException, IllegalAccessException {
+    public void testClearManagerCache() throws Exception {
         val config = getTestConfig();
         val modelManager = NDataModelManager.getInstance(config, "default");
-        Field filed = KylinConfig.class.getDeclaredField("managersCache");
-        Field filed2 = KylinConfig.class.getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        filed2.setAccessible(true);
-        ConcurrentHashMap<Class, Object> managersCache = (ConcurrentHashMap<Class, Object>) filed.get(config);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed2
-                .get(config);
+        ConcurrentHashMap<Class, Object> managersCache = getInstances();
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
 
         Assert.assertTrue(managersByPrjCache.containsKey(NDataModelManager.class));
         Assert.assertTrue(managersByPrjCache.get(NDataModelManager.class).containsKey("default"));
@@ -582,8 +576,8 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertTrue(managersCache.containsKey(NProjectManager.class));
         projectService.clearManagerCache("default");
 
-        managersCache = (ConcurrentHashMap<Class, Object>) filed.get(config);
-        managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed2.get(config);
+        managersCache = getInstances();
+        managersByPrjCache = getInstanceByProject();
         //cleared
         Assert.assertTrue(!managersCache.containsKey(NProjectManager.class));
         Assert.assertTrue(!managersByPrjCache.get(NDataModelManager.class).containsKey("default"));

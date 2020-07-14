@@ -40,16 +40,18 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -57,7 +59,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2Test;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecommendationResponse;
 import io.kyligence.kap.rest.response.OptRecDepResponse;
@@ -68,8 +69,11 @@ import lombok.var;
 
 public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
 
-    @InjectMocks
-    private OptRecService service = Mockito.spy(new OptRecService());
+    @Autowired
+    OptRecService service;
+
+    @Rule
+    public TransactionExceptedException thrown = TransactionExceptedException.none();
 
     @Mock
     private AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -407,8 +411,8 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setProject(projectDefault);
         request.setIds(response.getLayouts().stream().filter(l -> l.getType().isAdd()).map(l -> (int) l.getItemId())
                 .collect(Collectors.toList()));
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getCC_NAME_CONFLICT("CC_AUTO_1"));
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MsgPicker.getMsg().getCC_NAME_CONFLICT("CC_AUTO_1"));
         service.approve(projectDefault, request);
     }
 
@@ -421,8 +425,8 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setProject(projectDefault);
         request.setIds(response.getLayouts().stream().filter(l -> l.getType().isAdd()).map(l -> (int) l.getItemId())
                 .collect(Collectors.toList()));
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getMEASURE_CONFLICT("SUM_CONSTANT"));
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MsgPicker.getMsg().getMEASURE_CONFLICT("SUM_CONSTANT"));
         service.approve(projectDefault, request);
     }
 
@@ -435,8 +439,8 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setProject(projectDefault);
         request.setIds(response.getLayouts().stream().filter(l -> l.getType().isAdd()).map(l -> (int) l.getItemId())
                 .collect(Collectors.toList()));
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getDIMENSION_CONFLICT("TEST_KYLIN_FACT_TRANS_ID"));
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MsgPicker.getMsg().getDIMENSION_CONFLICT("TEST_KYLIN_FACT_TRANS_ID"));
         service.approve(projectDefault, request);
     }
 
@@ -592,8 +596,8 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setProject(projectDefault);
         request.setIds(response.getLayouts().stream().filter(l -> l.getType().isAdd()).map(l -> (int) l.getItemId())
                 .collect(Collectors.toList()));
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(
                 "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT * 2", "CC_AUTO_2", "CC_OTHER_4"));
         service.approve(projectDefault, request);
     }
@@ -609,8 +613,8 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         request.setProject(projectDefault);
         request.setIds(response.getLayouts().stream().filter(l -> l.getType().isAdd()).map(l -> (int) l.getItemId())
                 .collect(Collectors.toList()));
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(MsgPicker.getMsg().getCC_NAME_CONFLICT("CC_AUTO_2"));
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(MsgPicker.getMsg().getCC_NAME_CONFLICT("CC_AUTO_2"));
         service.approve(projectDefault, request);
     }
 

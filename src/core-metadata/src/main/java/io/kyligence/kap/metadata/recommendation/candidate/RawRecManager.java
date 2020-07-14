@@ -40,6 +40,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.common.Singletons;
 
 @Slf4j
 public class RawRecManager {
@@ -55,22 +56,17 @@ public class RawRecManager {
     private BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
 
     // CONSTRUCTOR
-    public static RawRecManager getInstance(KylinConfig kylinConfig, String project) {
-        return kylinConfig.getManager(project, RawRecManager.class);
+    public static RawRecManager getInstance(String project) {
+        return Singletons.getInstance(project, RawRecManager.class);
     }
 
-    // called by reflection
-    static RawRecManager newInstance(KylinConfig config, String project) throws Exception {
-        return new RawRecManager(config, project);
-    }
-
-    private RawRecManager(KylinConfig config, String project) throws Exception {
+    private RawRecManager(String project) throws Exception {
         this.project = project;
-        this.kylinConfig = config;
-        this.jdbcRawRecStore = new JdbcRawRecStore(config);
+        this.kylinConfig = KylinConfig.getInstanceFromEnv();
+        this.jdbcRawRecStore = new JdbcRawRecStore(kylinConfig);
         this.cachedRecItems = CacheBuilder.newBuilder().maximumSize(MAX_CACHED_NUM)
                 .expireAfterAccess(EXPIRED_TIME, TimeUnit.MINUTES).build();
-        init(config, project);
+        init(kylinConfig, project);
     }
 
     protected void init(KylinConfig cfg, final String project) {
@@ -85,16 +81,6 @@ public class RawRecManager {
     // CURD
     public Map<String, RawRecItem> listAll() {
         return cachedRecItems.asMap();
-    }
-
-    public Map<String, RawRecItem> listByModel(String model) {
-        Map<String, RawRecItem> map = Maps.newHashMap();
-        cachedRecItems.asMap().forEach((k, v) -> {
-            if (v.getModelID().equalsIgnoreCase(model)) {
-                map.put(k, v);
-            }
-        });
-        return map;
     }
 
     private List<RawRecItem> queryByRawRecType(String model, RawRecItem.RawRecType type, RawRecItem.RawRecState state) {
@@ -125,16 +111,6 @@ public class RawRecManager {
         updateCache(rawRecItem);
     }
 
-    public void batchSave(List<RawRecItem> recItems) {
-        jdbcRawRecStore.save(recItems);
-        updateCache(recItems);
-    }
-
-    public void saveOrUpdate(RawRecItem recItem) {
-        jdbcRawRecStore.addOrUpdate(recItem);
-        updateCache(recItem);
-    }
-
     public void saveOrUpdate(List<RawRecItem> recItems) {
         jdbcRawRecStore.batchAddOrUpdate(recItems);
         updateCache(recItems);
@@ -152,35 +128,30 @@ public class RawRecManager {
         return recItem;
     }
 
-    public void deleteAllOutDatedRecommendations(String project) {
+    public void deleteAllOutDated(String project) {
         ImmutableList<String> models = NProjectManager.getInstance(kylinConfig).getProject(project).getModels();
-        models.forEach(model -> deleteOutDatedRecommendations(model, LAG_SEMANTIC_VERSION));
+        models.forEach(model -> deleteOutDated(model, LAG_SEMANTIC_VERSION));
         cachedRecItems.invalidateAll();
         init(kylinConfig, project);
     }
 
-    public void deleteOutDatedRecommendations(String model, int lagVersion) {
+    public void deleteOutDated(String model, int lagVersion) {
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
     }
 
-    public void removeRecommendations(List<Integer> idList) {
+    public void removeByIds(List<Integer> idList) {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.BROKEN);
         removeFromCache(idList);
     }
 
-    public void suggestRecommendations(List<Integer> idList) {
-        jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.RECOMMENDED);
-        removeFromCache(idList);
-    }
-
-    public void applyRecommendations(List<Integer> idList) {
+    public void applyByIds(List<Integer> idList) {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.APPLIED);
         removeFromCache(idList);
     }
 
-    public void discardRawRecommendations(List<Integer> idList) {
+    public void discardByIds(List<Integer> idList) {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.DISCARD);
         removeFromCache(idList);
     }

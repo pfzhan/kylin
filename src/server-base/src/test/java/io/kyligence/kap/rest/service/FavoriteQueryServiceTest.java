@@ -39,6 +39,7 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -62,6 +63,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.var;
 
+@Ignore
 public class FavoriteQueryServiceTest extends LocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";

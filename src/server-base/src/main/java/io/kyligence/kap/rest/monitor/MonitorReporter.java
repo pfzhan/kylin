@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,6 @@ public class MonitorReporter {
 
     private ScheduledExecutorService reportMonitorMetricsExecutor;
 
-    private static volatile MonitorReporter INSTANCE;
     private volatile boolean started = false;
 
     private static final long REPORT_MONITOR_METRICS_SECONDS = 1;
@@ -68,31 +68,19 @@ public class MonitorReporter {
     private static final int REPORT_QUEUE_CAPACITY = 5000;
     private LinkedBlockingDeque<MonitorMetric> reportQueue = new LinkedBlockingDeque<>(REPORT_QUEUE_CAPACITY);
 
-    private MonitorReporter(KapConfig kapConfig) {
+    private MonitorReporter() {
         dataCollectorExecutor = Executors.newScheduledThreadPool(MAX_SCHEDULED_TASKS,
                 new NamedThreadFactory("data_collector"));
 
         reportMonitorMetricsExecutor = Executors
                 .newSingleThreadScheduledExecutor(new NamedThreadFactory("report_monitor_metrics"));
 
-        this.kapConfig = kapConfig;
+        this.kapConfig = KapConfig.getInstanceFromEnv();
         periodInMilliseconds = kapConfig.getMonitorInterval();
     }
 
-    public static MonitorReporter getInstance(KapConfig kapConfig) {
-        if (null == INSTANCE) {
-            synchronized (MonitorReporter.class) {
-                if (null == INSTANCE) {
-                    INSTANCE = new MonitorReporter(kapConfig);
-                }
-            }
-        }
-
-        return INSTANCE;
-    }
-
     public static MonitorReporter getInstance() {
-        return getInstance(KapConfig.getInstanceFromEnv());
+        return Singletons.getInstance(MonitorReporter.class);
     }
 
     private static String getLocalIp() {

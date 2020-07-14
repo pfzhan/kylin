@@ -35,7 +35,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.CuratorOperator;
 import io.kyligence.kap.tool.MetadataTool;

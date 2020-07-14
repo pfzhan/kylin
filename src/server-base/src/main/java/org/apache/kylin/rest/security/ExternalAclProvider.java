@@ -41,10 +41,14 @@
 */
 package org.apache.kylin.rest.security;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
@@ -52,28 +56,20 @@ import org.apache.kylin.common.util.Pair;
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.model.Permission;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-
 /**
  */
 abstract public class ExternalAclProvider {
 
-    private volatile static ExternalAclProvider singleton = null;
-
     public static ExternalAclProvider getInstance() {
-        if (singleton == null) {
-            synchronized (ExternalAclProvider.class) {
-                if (singleton == null) {
-                    String cls = KylinConfig.getInstanceFromEnv().getExternalAclProvider();
-                    if (!StringUtils.isBlank(cls)) {
-                        singleton = (ExternalAclProvider) ClassUtil.newInstance(cls);
-                        singleton.init();
-                    }
-                }
+        return Singletons.getInstance(ExternalAclProvider.class, clz -> {
+            ExternalAclProvider singleton = null;
+            String cls = KylinConfig.getInstanceFromEnv().getExternalAclProvider();
+            if (!StringUtils.isBlank(cls)) {
+                singleton = (ExternalAclProvider) ClassUtil.newInstance(cls);
+                singleton.init();
             }
-        }
-        return singleton;
+            return singleton;
+        });
     }
 
     // ============================================================================
@@ -83,7 +79,7 @@ abstract public class ExternalAclProvider {
     public final static String OPERATION = "OPERATION";
     public final static String READ = "QUERY";
     public final static String EMPTY = "EMPTY";
-    
+
     // used by ranger ExternalAclProvider
     public static String convertToExternalPermission(Permission p) {
         String permString = null;
@@ -115,28 +111,28 @@ abstract public class ExternalAclProvider {
     public static String convertToExternalPermission(int mask) {
         String permission;
         switch (mask) {
-            case 16:
-                permission = ADMINISTRATION;
-                break;
-            case 32:
-                permission = MANAGEMENT;
-                break;
-            case 64:
-                permission = OPERATION;
-                break;
-            case 1:
-                permission = READ;
-                break;
-            case 0:
-                return EMPTY;
-            default:
-                throw new KylinException(PERMISSION_DENIED, "Invalid permission state: " + mask);
+        case 16:
+            permission = ADMINISTRATION;
+            break;
+        case 32:
+            permission = MANAGEMENT;
+            break;
+        case 64:
+            permission = OPERATION;
+            break;
+        case 1:
+            permission = READ;
+            break;
+        case 0:
+            return EMPTY;
+        default:
+            throw new KylinException(PERMISSION_DENIED, "Invalid permission state: " + mask);
         }
         return permission;
     }
 
     // ============================================================================
-    
+
     abstract public void init();
 
     /**

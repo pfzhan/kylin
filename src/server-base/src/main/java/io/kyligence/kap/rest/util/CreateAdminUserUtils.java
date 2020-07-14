@@ -45,7 +45,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;

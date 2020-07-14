@@ -26,20 +26,69 @@ package io.kyligence.kap.common.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractKylinTestCase;
 import org.junit.After;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
+
+import lombok.val;
+
 public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(NLocalFileMetadataTestCase.class);
     private static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
     protected static File tempMetadataDirectory = null;
+
+    public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProjectFromSingleton()
+            throws Exception {
+        Field instanceField = Singletons.class.getDeclaredField("instance");
+        instanceField.setAccessible(true);
+        Field field = Singletons.class.getDeclaredField("instancesByPrj");
+        field.setAccessible(true);
+        val result = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field.get(instanceField.get(null));
+        if (result == null) {
+            field.set(instanceField.get(null), Maps.newConcurrentMap());
+        }
+        return (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field.get(instanceField.get(null));
+    }
+
+    public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProject() throws Exception {
+        Field singletonField = getTestConfig().getClass().getDeclaredField("singletons");
+        singletonField.setAccessible(true);
+        Field field = Singletons.class.getDeclaredField("instancesByPrj");
+        field.setAccessible(true);
+        return (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field
+                .get(singletonField.get(getTestConfig()));
+    }
+
+    public static ConcurrentHashMap<Class, Object> getInstancesFromSingleton() throws Exception {
+        Field instanceField = Singletons.class.getDeclaredField("instance");
+        instanceField.setAccessible(true);
+        Field field = Singletons.class.getDeclaredField("instances");
+        field.setAccessible(true);
+        val result = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field.get(instanceField.get(null));
+        if (result == null) {
+            field.set(instanceField.get(null), Maps.newConcurrentMap());
+        }
+        return (ConcurrentHashMap<Class, Object>) field.get(instanceField.get(null));
+    }
+
+    public static ConcurrentHashMap<Class, Object> getInstances() throws Exception {
+        Field singletonField = getTestConfig().getClass().getDeclaredField("singletons");
+        singletonField.setAccessible(true);
+        Field filed = Singletons.class.getDeclaredField("instances");
+        filed.setAccessible(true);
+        return (ConcurrentHashMap<Class, Object>) filed.get(singletonField.get(getTestConfig()));
+    }
 
     @Override
     public void createTestMetadata(String... overlay) {

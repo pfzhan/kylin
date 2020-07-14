@@ -59,6 +59,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -76,6 +77,7 @@ import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.service.KapQueryService;
 import lombok.extern.slf4j.Slf4j;
 
+@Ignore
 @Slf4j
 public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 

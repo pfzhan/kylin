@@ -42,19 +42,16 @@
 
 package org.apache.kylin.common.msg;
 
-public class Message {
+import org.apache.kylin.common.Singletons;
 
-    private static Message instance = null;
+public class Message {
 
     protected Message() {
 
     }
 
     public static Message getInstance() {
-        if (instance == null) {
-            instance = new Message();
-        }
-        return instance;
+        return Singletons.getInstance(Message.class);
     }
 
     // Cube

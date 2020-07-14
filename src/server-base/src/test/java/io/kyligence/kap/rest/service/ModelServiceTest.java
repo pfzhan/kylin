@@ -174,7 +174,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
-import io.kyligence.kap.metadata.password.PasswordEncodeFactory;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
@@ -3795,7 +3795,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testGetAvailableIndexesCount() throws NoSuchFieldException, IllegalAccessException {
+    public void testGetAvailableIndexesCount() throws Exception {
         val id = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val alias = "nmodel_basic_inner";
         val layouts = spyLayouts();

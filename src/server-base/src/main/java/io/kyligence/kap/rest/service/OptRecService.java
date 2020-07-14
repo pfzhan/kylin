@@ -24,13 +24,15 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.common.util.CollectionUtil.difference;
+import static io.kyligence.kap.common.util.CollectionUtil.intersection;
+
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.CollectionUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -128,7 +131,7 @@ public class OptRecService extends BasicService {
         val v2Names = request.getNames();
 
         List<RawRecItem> rawRecItems = recommendationV2
-                .getAllRawItems(CollectionUtil.intersection(recommendationV2.getRawIds(), request.getIds()));
+                .getAllRawItems(intersection(recommendationV2.getRawIds(), request.getIds()));
         List<RawRecItem> ccItems = Lists.newArrayList();
         List<RawRecItem> dimensionItems = Lists.newArrayList();
         List<RawRecItem> measureItems = Lists.newArrayList();
@@ -225,10 +228,12 @@ public class OptRecService extends BasicService {
             }
             handler.complete();
         });
-        List<Integer> newRawIds = CollectionUtil.difference(recommendationV2.getRawIds(), request.getIds());
+        List<Integer> newRawIds = difference(recommendationV2.getRawIds(), request.getIds());
         managerV2.createOrUpdate(modelId, newRawIds);
-        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        rawManager.applyRecommendations(rawRecItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
+        UnitOfWork.get().doAfterUpdate(() -> {
+            RawRecManager rawManager = RawRecManager.getInstance(project);
+            rawManager.applyByIds(rawRecItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
+        });
     }
 
     @Transaction(project = 0)
@@ -246,9 +251,11 @@ public class OptRecService extends BasicService {
         if (recommendationV2 == null) {
             return;
         }
-        RawRecManager rawManager = RawRecManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        rawManager.discardRawRecommendations(CollectionUtil.intersection(recommendationV2.getRawIds(), request.getIds()));
-        managerV2.createOrUpdate(request.getModelId(), CollectionUtil.difference(recommendationV2.getRawIds(), request.getIds()));
+        managerV2.createOrUpdate(request.getModelId(), difference(recommendationV2.getRawIds(), request.getIds()));
+        UnitOfWork.get().doAfterUpdate(() -> {
+            RawRecManager rawManager = RawRecManager.getInstance(project);
+            rawManager.discardByIds(intersection(recommendationV2.getRawIds(), request.getIds()));
+        });
     }
 
     @Transaction(project = 0)
@@ -302,7 +309,7 @@ public class OptRecService extends BasicService {
 
         val recommendationV2 = new OptimizeRecommendationV2();
         recommendationV2.setUuid(modelId);
-        recommendationV2.setRawIds(CollectionUtil.intersection(originRawIds, rawIds));
+        recommendationV2.setRawIds(intersection(originRawIds, rawIds));
         recommendationV2.init(KylinConfig.getInstanceFromEnv(), project);
 
         Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isBroken()

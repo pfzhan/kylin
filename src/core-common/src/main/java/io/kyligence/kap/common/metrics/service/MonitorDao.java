@@ -26,8 +26,10 @@ package io.kyligence.kap.common.metrics.service;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
@@ -38,7 +40,6 @@ import lombok.Setter;
 public class MonitorDao {
 
     private InfluxDBInstance influxDBInstance;
-    private static volatile MonitorDao INSTANCE;
     public static final String QUERY_METRICS_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE create_time >= %d AND create_time < %d";
 
     private MonitorDao() {
@@ -51,15 +52,7 @@ public class MonitorDao {
     }
 
     public static MonitorDao getInstance() {
-        if (null == INSTANCE) {
-            synchronized (MonitorDao.class) {
-                if (null == INSTANCE) {
-                    INSTANCE = new MonitorDao();
-                }
-            }
-        }
-
-        return INSTANCE;
+        return Singletons.getInstance(MonitorDao.class);
     }
 
     @Getter
