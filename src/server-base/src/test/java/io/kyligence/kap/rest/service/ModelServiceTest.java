@@ -191,6 +191,7 @@ import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
@@ -851,6 +852,31 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "last_modify", true);
         Assert.assertEquals(1, models.size());
         Assert.assertEquals(randomUser, models.get(0).getOwner());
+
+        // test clone model without locked layout
+        String indexPlanId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        indexPlanManager.updateIndexPlan(indexPlanId, copyForWrite -> {
+            var indexPlan = indexPlanManager.getIndexPlan(indexPlanId);
+            val ruleBaseIndex = indexPlan.getRuleBasedIndex();
+            UpdateRuleBasedCuboidRequest request = new UpdateRuleBasedCuboidRequest();
+            request.setProject("default");
+            request.setModelId(indexPlanId);
+            request.setLoadData(false);
+            request.setGlobalDimCap(null);
+            request.setAggregationGroups(ruleBaseIndex.getAggregationGroups().subList(0, 1));
+            NRuleBasedIndex newRuleBasedCuboid = request.convertToRuleBasedIndex();
+            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
+        });
+
+        modelService.cloneModel(indexPlanId, "test_clone_with_locked", "default");
+        List<NDataModelResponse> newModels = modelService.getModels("test_clone_with_locked", "default", true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, newModels.size());
+        IndexPlan originIndexPlan = indexPlanManager.getIndexPlan(indexPlanId);
+        Assert.assertEquals(1, originIndexPlan.getToBeDeletedIndexes().size());
+        IndexPlan clonedIndexPlan = indexPlanManager.getIndexPlan(newModels.get(0).getUuid());
+        Assert.assertEquals(0, clonedIndexPlan.getToBeDeletedIndexes().size());
     }
 
     @Test

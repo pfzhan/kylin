@@ -74,6 +74,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -82,6 +83,7 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -100,6 +102,7 @@ import lombok.val;
 @Component("metaStoreService")
 public class MetaStoreService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(MetaStoreService.class);
+    private static final String META_ROOT_PATH = "/";
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -141,7 +144,11 @@ public class MetaStoreService extends BasicService {
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
-            Set<String> resourcePathSet = Sets.newHashSet();
+            ResourceStore oldResourceStore = modelManager.getStore();
+            KylinConfig newConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
+            ResourceStore newResourceStore = new InMemResourceStore(newConfig);
+            ResourceStore.setRS(newConfig, newResourceStore);
+
             for (String modelId : modelList) {
                 NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
                 if (Objects.isNull(modelDesc)) {
@@ -152,26 +159,46 @@ public class MetaStoreService extends BasicService {
                     logger.warn("The model is broken, can not export. model id: [{}]", modelId);
                     continue;
                 }
-                resourcePathSet.add(modelDesc.getResourcePath());
-                resourcePathSet.add(indexPlanManager.getIndexPlan(modelId).getResourcePath());
+                oldResourceStore.copy(modelDesc.getResourcePath(), newResourceStore);
+
+                // add IndexPlan with deleting locked status layouts
+                IndexPlan copyIndexPlan = getIndexPlanWithoutLockedLayout(indexPlanManager, modelId);
+                newResourceStore.putResourceWithoutCheck(copyIndexPlan.getResourcePath(),
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(copyIndexPlan)),
+                        copyIndexPlan.getLastModified(), copyIndexPlan.getMvcc());
+
                 // Broken model can't use getAllTables method, will be intercepted in BrokenEntityProxy
-                resourcePathSet.addAll(modelDesc.getAllTables().stream().map(TableRef::getTableDesc)
-                        .map(TableDesc::getResourcePath).collect(Collectors.toSet()));
+                Set<String> tables = modelDesc.getAllTables().stream()
+                        .map(TableRef::getTableDesc)
+                        .map(TableDesc::getResourcePath)
+                        .filter(resPath -> !newResourceStore.listResourcesRecursively(META_ROOT_PATH).contains(resPath))
+                        .collect(Collectors.toSet());
+                tables.forEach(resourcePath -> oldResourceStore.copy(resourcePath, newResourceStore));
             }
-            if (CollectionUtils.isEmpty(resourcePathSet)) {
+            if (CollectionUtils.isEmpty(newResourceStore.listResourcesRecursively(META_ROOT_PATH))) {
                 throw new KylinException(PERMISSION_DENIED, "Can not export broken model.");
             }
-            resourcePathSet.add(ResourceStore.METASTORE_UUID_TAG);
-            writeMetadataToZipOutputStream(zipOutputStream, modelManager.getStore(), resourcePathSet);
+            oldResourceStore.copy(ResourceStore.METASTORE_UUID_TAG, newResourceStore);
+            writeMetadataToZipOutputStream(zipOutputStream, newResourceStore);
         }
         return byteArrayOutputStream;
     }
 
-    private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore,
-            Set<String> resourcePathSet) throws IOException {
-        for (val resourcePath : resourcePathSet) {
-            zipOutputStream.putNextEntry(new ZipEntry(resourcePath));
-            zipOutputStream.write(resourceStore.getResource(resourcePath).getByteSource().read());
+    private IndexPlan getIndexPlanWithoutLockedLayout(NIndexPlanManager indexPlanManager, String modelId) throws JsonProcessingException {
+        IndexPlan copyIndexPlan = indexPlanManager.copy(indexPlanManager.getIndexPlan(modelId));
+        Set<Long> toBeDeletedLayouts = copyIndexPlan.getToBeDeletedIndexes()
+                .stream()
+                .flatMap(indexEntity -> indexEntity.getLayouts().stream())
+                .map(LayoutEntity::getId)
+                .collect(Collectors.toSet());
+        copyIndexPlan.removeLayouts(toBeDeletedLayouts, true, true);
+        return copyIndexPlan;
+    }
+
+    private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore) throws IOException {
+        for (String resPath : resourceStore.listResourcesRecursively(META_ROOT_PATH)) {
+            zipOutputStream.putNextEntry(new ZipEntry(resPath));
+            zipOutputStream.write(resourceStore.getResource(resPath).getByteSource().read());
         }
     }
 

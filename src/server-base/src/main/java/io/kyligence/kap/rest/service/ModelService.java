@@ -1056,6 +1056,12 @@ public class ModelService extends BasicService {
         copy.setUuid(newModelId);
         copy.setLastModified(System.currentTimeMillis());
         copy.setMvcc(-1);
+        Set<Long> toBeDeletedLayouts = copy.getToBeDeletedIndexes()
+                .stream()
+                .flatMap(indexEntity -> indexEntity.getLayouts().stream())
+                .map(LayoutEntity::getId)
+                .collect(Collectors.toSet());
+        copy.removeLayouts(toBeDeletedLayouts, true, true);
         indexPlanManager.createIndexPlan(copy);
         NDataflow nDataflow = new NDataflow();
         nDataflow.setStatus(RealizationStatusEnum.ONLINE);

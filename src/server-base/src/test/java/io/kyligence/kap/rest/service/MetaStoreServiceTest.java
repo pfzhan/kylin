@@ -67,6 +67,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -88,12 +89,17 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.MetadataChecker;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.ModelMetadataCheckResponse;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import lombok.val;
+import lombok.var;
 
 public class MetaStoreServiceTest extends CSVSourceTestCase {
     @InjectMocks
@@ -143,6 +149,44 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
         Assert.assertEquals(rawResourceMap.size(), 24);
+    }
+
+    @Test
+    public void testExatractModelMetadataWithoutLockedLayouts() throws Exception  {
+        String indexPlanId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        setModelWithLockedLayout(indexPlanId);
+
+        String projectName = "default";
+        List<NDataflow> dataflowList = modelService.getDataflowManager(projectName).listAllDataflows(true);
+        List<NDataModel> dataModelList = dataflowList.stream().map(NDataflow::getModel).collect(Collectors.toList());
+        List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
+
+        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(projectName, modelIdList);
+        Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
+        Map<String, RawResource> rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+        Assert.assertEquals(24, rawResourceMap.size());
+
+        RawResource indexPlanRaw = rawResourceMap.get("/default/index_plan/741ca86a-1f13-46da-a59f-95fb68615e3a.json");
+        IndexPlan exportIndexPlan = JsonUtil.readValue(indexPlanRaw.getByteSource().read(), IndexPlan.class);
+        IndexPlan originIndexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(indexPlanId);
+        Assert.assertEquals(1, originIndexPlan.getToBeDeletedIndexes().size());
+        Assert.assertEquals(0, exportIndexPlan.getToBeDeletedIndexes().size());
+    }
+
+    private void setModelWithLockedLayout(String indexPlanId) {
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        indexPlanManager.updateIndexPlan(indexPlanId, copyForWrite -> {
+            var indexPlan = indexPlanManager.getIndexPlan(indexPlanId);
+            val ruleBaseIndex = indexPlan.getRuleBasedIndex();
+            UpdateRuleBasedCuboidRequest request = new UpdateRuleBasedCuboidRequest();
+            request.setProject("default");
+            request.setModelId(indexPlanId);
+            request.setLoadData(false);
+            request.setGlobalDimCap(null);
+            request.setAggregationGroups(ruleBaseIndex.getAggregationGroups().subList(0, 1));
+            NRuleBasedIndex newRuleBasedCuboid = request.convertToRuleBasedIndex();
+            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
+        });
     }
 
     private Map<String, RawResource> getRawResourceFromZipFile(InputStream inputStream) throws IOException {
