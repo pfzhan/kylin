@@ -62,10 +62,10 @@ export function bindRouterGuard (router) {
 
         // 判断是否有路由权限，无权限或没有打开智能推荐跳至 /noAuthority 页面
         if (to.name && !['noauthority', 'refresh', '404'].includes(to.name.toLowerCase()) && !auth) {
-          next({path: '/noAuthority', query: {resouce: 'isNoAuthority'}})
+          next({path: '/noauthority', query: {resouce: 'isNoAuthority'}})
         } else if (to.name && to.name.toLowerCase() === 'acceleration') {
           if (!store.getters.isAutoProject && !store.state.project.isSemiAutomatic) {
-            next({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
+            next({path: '/noauthority', query: {resouce: 'isNotSemiAuto'}})
           } else {
             next()
           }

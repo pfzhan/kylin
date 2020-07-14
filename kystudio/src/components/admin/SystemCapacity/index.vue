@@ -132,6 +132,21 @@
               <el-table-column :label="$t('usedCapacity')" prop="capacity" sortable align="right" width="120">
                 <template slot-scope="scope"><span v-if="!['ERROR', 'TENTATIVE'].includes(scope.row.status)">{{scope.row.capacity | dataSize}}</span><span class="font-disabled" v-else>{{$t('failApi')}}</span></template>
               </el-table-column>
+              <el-table-column
+                :label="$t('status')"
+                prop="status"
+                width="120"
+                align='right'
+                :filters="projectStatusFilter.map(item => ({text: $t(item), value: item}))"
+                :filtered-value="projectCapacity.status"
+                filter-icon="el-icon-ksd-filter"
+                :show-multiple-footer="false"
+                :filter-change="(v) => filterContent(v, 'project_status')"
+              >
+                <template slot-scope="scope">
+                  {{scope.row.status === 'OK' ? $t('success') : $t('fail')}}
+                </template>
+              </el-table-column>
               <el-table-column :label="$t('tools')" align="left" class-name="tools-list" width="80">
                 <template slot-scope="scope">
                   <common-tip :content="$t('viewDetail')">
@@ -294,13 +309,15 @@ export default class SystemCapacity extends Vue {
   treeMapCharts = null
   filterProject = ''
   nodes = []
+  projectStatusFilter = ['success', 'fail']
   projectCapacity = {
     list: [],
     pageSize: 10,
     currentPage: 0,
     totalSize: 10,
     sort_by: '',
-    reverse: ''
+    reverse: '',
+    status: []
   }
   showAlert = false
   showProjectChargedDetails = false
@@ -348,12 +365,22 @@ export default class SystemCapacity extends Vue {
 
   // 获取项目占比
   getProjectList () {
+    let status = [...this.projectCapacity.status]
+    if (status.includes('fail')) {
+      status.splice(status.indexOf('fail'), 1)
+      status.push('ERROR', 'TENTATIVE')
+    }
+    if (status.includes('success')) {
+      status.splice(status.indexOf('success'), 1)
+      status.push('OK')
+    }
     this.getProjectCapacityList({
       project_names: this.filterProject,
       page_offset: this.projectCapacity.currentPage,
       page_size: this.projectCapacity.pageSize,
       sort_by: this.projectCapacity.sort_by,
-      reverse: this.projectCapacity.reverse
+      reverse: this.projectCapacity.reverse,
+      status: status.join(',')
     }).then(data => {
       this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
     })
@@ -522,7 +549,13 @@ export default class SystemCapacity extends Vue {
   }
 
   getTableDetails () {
-    this.getProjectDetails({project: this.currentProjectName, page_offset: this.projectDetail.currentPage, page_size: this.projectDetail.pageSize, sort_by: this.projectDetail.sort_by, reverse: this.projectDetail.reverse}).then(data => {
+    this.getProjectDetails({
+      project: this.currentProjectName,
+      page_offset: this.projectDetail.currentPage,
+      page_size: this.projectDetail.pageSize,
+      sort_by: this.projectDetail.sort_by,
+      reverse: this.projectDetail.reverse
+    }).then(data => {
       this.projectDetail = {...this.projectDetail, list: data.tables, totalSize: data.size}
     })
   }
@@ -581,6 +614,17 @@ export default class SystemCapacity extends Vue {
   // 手动刷新节点信息
   refreshNodes () {
     this.getNodesInfo()
+  }
+
+  // 过滤项目或表的状态
+  filterContent (v, type) {
+    if (type === 'project_status') {
+      this.projectCapacity.status = v
+      this.getProjectList()
+    } else if (type === 'project_detail_status') {
+      this.projectDetail.status = v
+      this.getTableDetails()
+    }
   }
 
   mounted () {

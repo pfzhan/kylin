@@ -45,9 +45,10 @@ export default {
     usageTableTip: 'Table’s data volume / Project’s data volume',
     projectNameByTreeMap: 'Project Name',
     usedCapacityByTreeMap: 'Used Capacity',
-    status: 'Status',
-    success: 'Success',
-    fail: 'Fail'
+    status: 'Fetch Status',
+    success: 'Successful',
+    fail: 'Failed',
+    ok: 'OK'
   },
   'zh-cn': {
     mainTitle: '系统容量',
@@ -95,8 +96,9 @@ export default {
     usageTableTip: '表数据量 / 该项目数据量',
     projectNameByTreeMap: '项目名称',
     usedCapacityByTreeMap: '已用容量',
-    status: '状态',
+    status: '容量状态',
     success: '成功',
-    fail: '失败'
+    fail: '失败',
+    OK: '正常'
   }
 }

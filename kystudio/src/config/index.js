@@ -92,7 +92,7 @@ export const menusData = [
   },
   {
     name: 'systemcapacity',
-    path: '/admin/systemCapacity',
+    path: '/admin/systemcapacity',
     icon: 'el-icon-ksd-Combined_Shape'
   }
 ]
