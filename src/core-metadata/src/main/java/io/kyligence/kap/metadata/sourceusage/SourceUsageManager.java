@@ -549,9 +549,7 @@ public class SourceUsageManager {
                 || SourceUsageRecord.CapacityStatus.ERROR.equals(status);
     }
 
-    private LicenseInfo getLicenseInfo(String project) {
-        LicenseInfo info = new LicenseInfo();
-
+    private void setNodeInfo(LicenseInfo info) {
         //node part
         List<String> servers = config.getAllServers();
         int currentNodes = servers.size();
@@ -572,7 +570,9 @@ public class SourceUsageManager {
                 logger.error("Illegal value of config ke.license.nodes", e);
             }
         }
+    }
 
+    private void setSourceUsageInfo(LicenseInfo info, String project) {
         //capacity part
         SourceUsageRecord latestHistory = getLatestRecord();
 
@@ -610,6 +610,13 @@ public class SourceUsageManager {
         } else {
             logger.warn("Latest history of source usage record is null.");
         }
+    }
+
+    private LicenseInfo getLicenseInfo(String project) {
+        LicenseInfo info = new LicenseInfo();
+
+        setNodeInfo(info);
+        setSourceUsageInfo(info, project);
 
         long firstErrorTime = info.getFirstErrorTime();
         if (firstErrorTime != 0L) {
