@@ -43,6 +43,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -392,6 +393,21 @@ public class  FunctionDesc implements Serializable {
 
     public Map<String, String> getConfiguration() {
         return configuration;
+    }
+
+    public boolean isDatatypeSuitable(DataType dataType) {
+        switch (expression) {
+        case FUNC_SUM:
+        case FUNC_TOP_N:
+            List<String> suitableTypes = Arrays.asList("tinyint", "smallint", "integer", "bigint", "float", "double",
+                    "decimal");
+            return suitableTypes.contains(dataType.getName());
+        case FUNC_PERCENTILE:
+            suitableTypes = Arrays.asList("tinyint", "smallint", "integer", "bigint");
+            return suitableTypes.contains(dataType.getName());
+        default:
+            return true;
+        }
     }
 
     @Override

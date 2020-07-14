@@ -59,11 +59,11 @@ public class ReloadTableContext {
 
     private TableExtDesc tableExtDesc;
 
-    public AffectedModelContext getRemoveAffectedModel(String modelId) {
-        return removeAffectedModels.getOrDefault(modelId, new AffectedModelContext(modelId, Sets.newHashSet()));
+    public AffectedModelContext getRemoveAffectedModel(String project, String modelId) {
+        return removeAffectedModels.getOrDefault(modelId, new AffectedModelContext(project, modelId, Sets.newHashSet(), true));
     }
-    public AffectedModelContext getChangeTypeAffectedModel(String modelId) {
-        return changeTypeAffectedModels.getOrDefault(modelId, new AffectedModelContext(modelId, Sets.newHashSet()));
+    public AffectedModelContext getChangeTypeAffectedModel(String project, String modelId) {
+        return changeTypeAffectedModels.getOrDefault(modelId, new AffectedModelContext(project, modelId, Sets.newHashSet(), false));
     }
 
     @Getter(lazy = true)

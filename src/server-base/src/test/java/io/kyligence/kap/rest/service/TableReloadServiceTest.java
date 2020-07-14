@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,6 +53,7 @@ import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -100,6 +102,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.val;
 import lombok.var;
 
@@ -1038,6 +1041,147 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(layouts1.size(), layouts2.size());
         Assert.assertTrue(layouts1.stream()
                 .allMatch(l -> layouts2.stream().anyMatch(l2 -> l2.equals(l) && l2.getId() > l.getId())));
+    }
+
+    @Test
+    public void testReload_ChangeColumnInAggManualUnsuitable() throws Exception {
+        // add TEST_KYLIN_FACT.ITEM_COUNT as dimension
+
+        var indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var dataModelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        NDataModel model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
+
+        var request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject("default");
+        request.setUuid(model.getUuid());
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+
+        NDataModel.NamedColumn newDimension = new NDataModel.NamedColumn();
+        newDimension.setName("ITEM_COUNT");
+        newDimension.setAliasDotColumn("TEST_KYLIN_FACT.ITEM_COUNT");
+        newDimension.setStatus(NDataModel.ColumnStatus.DIMENSION);
+        request.getSimplifiedDimensions().add(newDimension);
+        modelService.updateDataModelSemantic("default", request);
+
+        // add agg group contains TEST_KYLIN_FACT.ITEM_COUNT and sum(TEST_KYLIN_FACT.ITEM_COUNT)
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+
+        val newRule = new NRuleBasedIndex();
+        // TEST_KYLIN_FACT.ITEM_COUNT， TEST_ORDER.TEST_TIME_ENC， TEST_KYLIN_FACT.SLR_SEGMENT_CD
+        newRule.setDimensions(Arrays.asList(12, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [12,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        // 100000 count(1), 100004 sum(TEST_KYLIN_FACT.ITEM_COUNT)
+        group1.setMeasures(new Integer[] { 100000, 100004 });
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts1 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+        Assert.assertEquals(4, layouts1.size());
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("ITEM_COUNT", "string");
+            }
+        }, true);
+
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+
+        indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts2 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+
+        // 100004 measure has removed and TEST_KYLIN_FACT.ITEM_COUNT column exists
+        Assert.assertTrue(layouts2.stream().anyMatch(layoutEntity -> layoutEntity.getColOrder().contains(12)
+                && !layoutEntity.getMeasureIds().contains(100004)));
+    }
+
+    @Test
+    public void testReload_ChangeColumnInAggManualSuitable() throws Exception {
+        // add TEST_KYLIN_FACT.ITEM_COUNT as dimension
+
+        var indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var dataModelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        NDataModel model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
+
+        var request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject("default");
+        request.setUuid(model.getUuid());
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+
+        NDataModel.NamedColumn newDimension = new NDataModel.NamedColumn();
+        newDimension.setName("ITEM_COUNT");
+        newDimension.setAliasDotColumn("TEST_KYLIN_FACT.ITEM_COUNT");
+        newDimension.setStatus(NDataModel.ColumnStatus.DIMENSION);
+        request.getSimplifiedDimensions().add(newDimension);
+        modelService.updateDataModelSemantic("default", request);
+
+        // add agg group contains TEST_KYLIN_FACT.ITEM_COUNT and sum(TEST_KYLIN_FACT.ITEM_COUNT)
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+
+        val newRule = new NRuleBasedIndex();
+        // TEST_KYLIN_FACT.ITEM_COUNT， TEST_ORDER.TEST_TIME_ENC， TEST_KYLIN_FACT.SLR_SEGMENT_CD
+        newRule.setDimensions(Arrays.asList(12, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [12,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        // 100000 count(1), 100004 sum(TEST_KYLIN_FACT.ITEM_COUNT)
+        group1.setMeasures(new Integer[] { 100000, 100004 });
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts1 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+        Assert.assertEquals(4, layouts1.size());
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("ITEM_COUNT", "decimal(30,4)");
+            }
+        }, true);
+
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+
+        indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts2 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+
+        dataModelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
+        Optional<NDataModel.Measure> sumMeasure = model.getAllMeasures().stream().filter(measure -> {
+            FunctionDesc function = measure.getFunction();
+            return !measure.isTomb() && function.getExpression().equals("SUM")
+                    && function.getParameters().get(0).getValue().equalsIgnoreCase("TEST_KYLIN_FACT.ITEM_COUNT")
+                    && function.getReturnType().contains("decimal");
+        }).findAny();
+
+        Assert.assertTrue(sumMeasure.isPresent());
+
+        // sum measure and TEST_KYLIN_FACT.ITEM_COUNT column still exists
+        Assert.assertTrue(layouts2.stream().anyMatch(layoutEntity -> layoutEntity.getColOrder().contains(12)
+                && layoutEntity.getMeasureIds().contains(sumMeasure.get().getId())));
     }
 
     @Test

@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -78,7 +79,9 @@ import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -108,6 +111,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -1073,14 +1077,20 @@ public class TableService extends BasicService {
             affectedModels.putAll(context.getRemoveAffectedModels());
             result.setBrokenModelCount(affectedModels.values().stream().filter(AffectedModelContext::isBroken).count());
         }
-        result.setRemoveMeasureCount(context.getRemoveAffectedModels().values().stream()
-                .map(AffectedModelContext::getMeasures).mapToLong(Set::size).sum());
+        // change type column also will remove measure when column type change
+        long removeColumnAffectMeasureSum = context.getRemoveAffectedModels().values().stream()
+                .map(AffectedModelContext::getMeasures).mapToLong(Set::size).sum();
+
+        long changeColumnTypeAffectMeasureSum = context.getChangeTypeAffectedModels().values().stream()
+                .map(AffectedModelContext::getMeasures).mapToLong(Set::size).sum();
+
+        result.setRemoveMeasureCount(removeColumnAffectMeasureSum + changeColumnTypeAffectMeasureSum);
         result.setRemoveLayoutsCount(
                 context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getUpdatedLayouts().size()).sum());
         result.setAddLayoutsCount(
                 context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getAddLayouts().size()).sum());
         result.setRefreshLayoutsCount(context.getChangeTypeAffectedModels().values().stream().mapToLong(m -> Sets
-                .difference(m.getUpdatedLayouts(), context.getRemoveAffectedModel(m.getModelId()).getUpdatedLayouts())
+                .difference(m.getUpdatedLayouts(), context.getRemoveAffectedModel(m.getProject(), m.getModelId()).getUpdatedLayouts())
                 .size()).sum());
         return result;
     }
@@ -1144,7 +1154,8 @@ public class TableService extends BasicService {
 
     void updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context, boolean needBuild)
             throws Exception {
-        val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
+        val removeAffectedModel = context.getRemoveAffectedModel(project.getName(), model.getId());
+        val changeTypeAffectedModel = context.getChangeTypeAffectedModel(project.getName(), model.getId());
 
         if (!removeAffectedModel.isBroken()) {
             return;
@@ -1155,10 +1166,11 @@ public class TableService extends BasicService {
         }
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
+        cleanIndexPlan(projectName, model, changeTypeAffectedModel, needBuild);
         getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
         getOptimizeRecommendationManagerV2(projectName).removeAll(model.getId());
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
-        setRequest(request, model, removeAffectedModel, projectName);
+        setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
         modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumns());
     }
 
@@ -1166,18 +1178,19 @@ public class TableService extends BasicService {
             boolean needBuild) throws Exception {
         val projectName = project.getName();
 
-        val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
-        val changeTypeAffectedModel = context.getChangeTypeAffectedModel(model.getId());
+        val removeAffectedModel = context.getRemoveAffectedModel(project.getName(), model.getId());
+        val changeTypeAffectedModel = context.getChangeTypeAffectedModel(project.getName(), model.getId());
         if (removeAffectedModel.isBroken()) {
             return;
         }
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
+        cleanIndexPlan(projectName, model, changeTypeAffectedModel, needBuild);
         getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
         getOptimizeRecommendationManagerV2(projectName).removeAll(model.getId());
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
-        setRequest(request, model, removeAffectedModel, projectName);
+        setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
         request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
                 tableRef.getIdentity().equals(context.getTableDesc().getIdentity()) ? context.getTableDesc() : tableRef,
                 isFilterCC));
@@ -1206,10 +1219,22 @@ public class TableService extends BasicService {
     }
 
     private void setRequest(ModelRequest request, NDataModel model, AffectedModelContext removeAffectedModel,
-            String projectName) {
+            AffectedModelContext changeTypeAffectedModel, String projectName) {
         request.setSimplifiedMeasures(model.getEffectiveMeasures().values().stream()
-                .filter(m -> !removeAffectedModel.getMeasures().contains(m.getId())).map(SimplifiedMeasure::fromMeasure)
+                .filter(m -> !removeAffectedModel.getMeasures().contains(m.getId())
+                        && !changeTypeAffectedModel.getMeasures().contains(m.getId()))
+                .map(SimplifiedMeasure::fromMeasure)
                 .collect(Collectors.toList()));
+
+        request.setSimplifiedMeasures(request.getSimplifiedMeasures().stream().map(simplifiedMeasure -> {
+            int measureId = simplifiedMeasure.getId();
+            NDataModel.Measure updateMeasure = changeTypeAffectedModel.getUpdateMeasureMap().get(measureId);
+            if (updateMeasure != null) {
+                simplifiedMeasure = SimplifiedMeasure.fromMeasure(updateMeasure);
+            }
+            return simplifiedMeasure;
+        }).collect(Collectors.toList()));
+
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
                 .filter(col -> !removeAffectedModel.getDimensions().contains(col.getId()) && col.isDimension())
                 .collect(Collectors.toList()));
@@ -1219,11 +1244,32 @@ public class TableService extends BasicService {
         request.setProject(projectName);
     }
 
-    void cleanIndexPlan(String projectName, NDataModel model, AffectedModelContext removeAffectedModel,
+    void cleanIndexPlan(String projectName, NDataModel model, AffectedModelContext affectedModel,
             boolean needBuild) {
         val indexManager = getIndexPlanManager(projectName);
         val indexPlan = indexManager.getIndexPlan(model.getId());
-        val newIndexPlan = indexManager.updateIndexPlan(model.getId(), removeAffectedModel::shrinkIndexPlan);
+
+        if (!affectedModel.getUpdateMeasureMap().isEmpty()) {
+            getDataModelManager(projectName).updateDataModel(model.getId(), modelDesc -> {
+                affectedModel.getUpdateMeasureMap().forEach((originalMeasureId, newMeasure) -> {
+                    int maxMeasureId = modelDesc.getAllMeasures().stream()
+                            .map(NDataModel.Measure::getId)
+                            .mapToInt(i -> i).max()
+                            .orElse(NDataModel.MEASURE_ID_BASE - 1);
+                    Optional<NDataModel.Measure> originalMeasureOptional = modelDesc.getAllMeasures().stream()
+                            .filter(measure -> measure.getId() == originalMeasureId)
+                            .findAny();
+                    if (originalMeasureOptional.isPresent()) {
+                        NDataModel.Measure originalMeasure = originalMeasureOptional.get();
+                        originalMeasure.setTomb(true);
+                        maxMeasureId++;
+                        newMeasure.setId(maxMeasureId);
+                        modelDesc.getAllMeasures().add(newMeasure);
+                    }
+                });
+            });
+        }
+        val newIndexPlan = indexManager.updateIndexPlan(model.getId(), affectedModel::shrinkIndexPlan);
         if (needBuild && indexPlan.getRuleBasedIndex() != null) {
             semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
                     newIndexPlan.getRuleBasedIndex(), false);
@@ -1380,7 +1426,10 @@ public class TableService extends BasicService {
         checkNewColumn(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
         checkEffectedJobs(newTableDesc);
 
-        Function<Set<String>, Map<String, AffectedModelContext>> toAffectedModels = cols -> {
+        Map<String, Set<Pair<Integer, NDataModel.Measure>>> suitableColumnTypeChangedMeasuresMap =
+                getSuitableColumnTypeChangedMeasures(dependencyGraph, project, newTableDesc.getName(), diff.entriesDiffering());
+
+        BiFunction<Set<String>, Boolean, Map<String, AffectedModelContext>> toAffectedModels = (cols, isDelete) -> {
             Set<SchemaNode> affectedNodes = Sets.newHashSet();
             cols.forEach(colName -> {
                 affectedNodes.addAll(Graphs.reachableNodes(dependencyGraph,
@@ -1391,13 +1440,18 @@ public class TableService extends BasicService {
             Map<String, AffectedModelContext> modelContexts = Maps.newHashMap();
             nodesMap.forEach((key, nodes) -> {
                 val indexPlan = getIndexPlanManager(project).getIndexPlan(key);
-                val modelContext = new AffectedModelContext(indexPlan, nodes);
+                Set<Pair<Integer, NDataModel.Measure>> updateMeasures = Sets.newHashSet();
+                if (!isDelete) {
+                    updateMeasures = suitableColumnTypeChangedMeasuresMap.getOrDefault(key, updateMeasures);
+                }
+
+                val modelContext = new AffectedModelContext(project, indexPlan, nodes, updateMeasures, isDelete);
                 modelContexts.put(key, modelContext);
             });
             return modelContexts;
         };
-        context.setRemoveAffectedModels(toAffectedModels.apply(context.getRemoveColumns()));
-        context.setChangeTypeAffectedModels(toAffectedModels.apply(context.getChangeTypeColumns()));
+        context.setRemoveAffectedModels(toAffectedModels.apply(context.getRemoveColumns(), true));
+        context.setChangeTypeAffectedModels(toAffectedModels.apply(context.getChangeTypeColumns(), false));
         val fqManager = getFavoriteQueryManager(project);
         context.setFavoriteQueries(fqManager.getAll().stream()
                 .filter(fq -> fq.getRealizations().stream()
@@ -1407,6 +1461,67 @@ public class TableService extends BasicService {
                 .map(FavoriteQuery::getId).collect(Collectors.toSet()));
 
         return context;
+    }
+
+    /**
+     * get suitable measures when column type change
+     * and remove old measure add new measure with suitable function return type
+     * @param dependencyGraph
+     * @param project
+     * @param table
+     * @param changeTypeDifference
+     * @return
+     */
+    private Map<String, Set<Pair<Integer, NDataModel.Measure>>> getSuitableColumnTypeChangedMeasures(
+            Graph<SchemaNode> dependencyGraph, String project, String table,
+            Map<String, MapDifference.ValueDifference<Pair<String, String>>> changeTypeDifference) {
+        Map<String, Set<Pair<Integer, NDataModel.Measure>>> result = Maps.newHashMap();
+
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        for (MapDifference.ValueDifference<Pair<String, String>> value : changeTypeDifference.values()) {
+            Graphs.reachableNodes(dependencyGraph,
+                    SchemaNodeType.TABLE_COLUMN.withKey(table + "." + value.leftValue().getFirst())).stream()
+                    .filter(node -> node.getType() == SchemaNodeType.MODEL_MEASURE).forEach(node -> {
+                String modelId = node.getSubject();
+                String measureId = node.getDetail();
+
+                NDataModel modelDesc = dataModelManager.getDataModelDesc(modelId);
+                if (modelDesc != null) {
+                    NDataModel.Measure measure = modelDesc.getEffectiveMeasures()
+                            .get(Integer.parseInt(measureId));
+                    if (measure != null) {
+                        int originalMeasureId = measure.getId();
+
+                        FunctionDesc originalFunction = measure.getFunction();
+
+                        String newColumnType = value.leftValue().getSecond();
+
+                        boolean datatypeSuitable = originalFunction
+                                .isDatatypeSuitable(DataType.getType(newColumnType));
+
+                        if (datatypeSuitable) {
+                            // update measure function's return type
+                            FunctionDesc newFunction = FunctionDesc.newInstance(originalFunction.getExpression(),
+                                    Lists.newArrayList(originalFunction.getParameters()),
+                                    FunctionDesc.proposeReturnType(originalFunction.getExpression(), newColumnType));
+
+                            NDataModel.Measure newMeasure = new NDataModel.Measure();
+
+                            newMeasure.setFunction(newFunction);
+                            newMeasure.setName(measure.getName());
+
+                            Set<Pair<Integer, NDataModel.Measure>> measureList = result.getOrDefault(modelId, new HashSet<>());
+
+                            measureList.add(Pair.newPair(originalMeasureId, newMeasure));
+
+                            result.put(modelId, measureList);
+                        }
+                    }
+                }
+            });
+        }
+        return result;
     }
 
     boolean isSqlContainsColumns(String sql, String reloadTable, Set<String> cols) {
