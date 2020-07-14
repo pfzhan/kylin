@@ -12,6 +12,7 @@
           :is-show-load-table="datasourceActions.includes('loadSource')"
           :is-show-settings="false"
           :is-show-selected="true"
+          :hide-fact-icon="true"
           :is-expand-on-click-node="false"
           :is-first-select="true"
           :is-show-source-switch="datasourceActions.includes('sourceManagement')"

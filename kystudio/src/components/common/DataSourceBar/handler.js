@@ -69,7 +69,11 @@ export const render = {
               {tags.map(tag => {
                 switch (tag) {
                   case 'F':
-                    return <el-tooltip effect="dark" enterable={false} content={this.$t('factTable')} placement="top"><i class="tree-icon el-icon-ksd-fact_table"></i></el-tooltip>
+                    if (data.isHideFactIcon) {
+                      return <i class="tree-icon"></i>
+                    } else {
+                      return <el-tooltip effect="dark" enterable={false} content={this.$t('factTable')} placement="top"><i class="tree-icon el-icon-ksd-fact_table"></i></el-tooltip>
+                    }
                   case 'L':
                     return <i class="tree-icon"></i>
                     // return <i class="tree-icon el-icon-ksd-lookup_table"></i>
@@ -192,6 +196,7 @@ export function getTableObj (that, database, table, ignoreColumn) {
     datasource,
     isCentral: table.increment_loading,
     isTopSet: table.top,
+    isHideFactIcon: that.hideFactIcon,
     dateRange: dateRangeStr,
     isSelected: false,
     parent: database,

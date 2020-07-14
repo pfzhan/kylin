@@ -174,6 +174,10 @@ import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
       type: Boolean,
       default: false
     },
+    hideFactIcon: {
+      type: Boolean,
+      default: false
+    },
     customTreeTitle: {
       type: String,
       default: ''

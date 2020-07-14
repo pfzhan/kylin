@@ -726,6 +726,7 @@ export default class DimensionsModal extends Vue {
     }
     .table-icon {
       float: left;
+      line-height: 43px;
     }
     .dimension-header-tip-layout {
       max-width: calc(~'100% - 140px');
@@ -733,8 +734,9 @@ export default class DimensionsModal extends Vue {
       text-overflow: ellipsis;
       overflow: hidden;
       float: left;
-      margin-left: 10px;
+      margin-left: 5px;
       margin-right: 5px;
+      line-height: 40px;
     }
   }
   .same-name-tip {
