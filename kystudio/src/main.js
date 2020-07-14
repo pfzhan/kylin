@@ -135,6 +135,7 @@ Vue.http.interceptors.push(function (request, next) {
       if (store.state.config.platform === 'iframe') {
         window.parent.postMessage('keLogout', '*')
       } else {
+        localStorage.setItem('loginIn', false)
         router.replace({name: 'Login', params: { ignoreIntercept: true }})
       }
     }

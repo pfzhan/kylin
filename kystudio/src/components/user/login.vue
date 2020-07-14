@@ -300,6 +300,7 @@ export default {
                 this.$router.push('/dashboard')
               }
               localStorage.setItem('username', this.user.username)
+              localStorage.setItem('loginIn', true)
               this.$store.state.config.overLock = false
             })
           }, (res) => {

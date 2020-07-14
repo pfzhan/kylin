@@ -85,6 +85,19 @@ export function bindRouterGuard (router) {
           getRouteAuthority()
         }
       } else {
+        const loginIn = localStorage.getItem('loginIn')
+        if (from.name && to.name === 'Login') {
+          if (loginIn && loginIn === 'true') {
+            next(from.path)
+            return
+          } else {
+            next()
+            return
+          }
+        } else if (!from.name && to.name === 'Login' && loginIn && loginIn === 'true') {
+          next('/dashboard')
+          return
+        }
         next()
       }
     } else {

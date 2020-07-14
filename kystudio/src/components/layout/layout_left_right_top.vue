@@ -661,6 +661,7 @@ export default class LayoutLeftRightTop extends Vue {
         this.logoutConfirm().then(() => {
           this.loginOut().then(() => {
             localStorage.setItem('buyit', false)
+            localStorage.setItem('loginIn', false)
             // reset 所有的project信息
             this.resetProjectState()
             this.resetQueryTabs()
@@ -672,6 +673,7 @@ export default class LayoutLeftRightTop extends Vue {
       this.logoutConfirm().then(() => {
         this.loginOut().then(() => {
           localStorage.setItem('buyit', false)
+          localStorage.setItem('loginIn', false)
           // reset 所有的project信息
           this.resetProjectState()
           this.resetQueryTabs()
