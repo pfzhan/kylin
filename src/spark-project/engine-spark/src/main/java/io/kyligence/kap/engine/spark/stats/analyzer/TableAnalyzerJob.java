@@ -132,7 +132,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
             sampleData.add(data);
         });
         tableExt.setSampleRows(sampleData);
-
+        tableExt.setJodID(jobId);
         tableMetadataManager.saveTableExt(tableExt);
         logger.info("Table {} analysis finished, update table ext desc done.", tableDesc.getName());
     }

@@ -265,6 +265,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         col4.setMaxValue("ZZZZ");
         col4.setNullCount(10);
         tableExt.setColumnStats(Lists.newArrayList(col1, col2, col3, col4));
+        tableExt.setJodID("949afe5d-0221-420f-92db-cdd91cb31ac8");
         tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
 
         // verify the column stats update successfully
@@ -1149,4 +1150,22 @@ public class TableServiceTest extends CSVSourceTestCase {
         config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
+    @Test
+    public void testGetTableExtDescJobID() throws IOException {
+        final String tableIdentity = "DEFAULT.TEST_COUNTRY";
+        final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "newten");
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);
+        TableExtDesc oldExtDesc = tableMgr.getOrCreateTableExt(tableDesc);
+
+        // mock table ext desc
+        TableExtDesc tableExt = new TableExtDesc(oldExtDesc);
+        tableExt.setIdentity(tableIdentity);
+        tableExt.setJodID("949afe5d-0221-420f-92db-cdd91cb31ac8");
+        tableMgr.mergeAndUpdateTableExt(oldExtDesc, tableExt);
+
+        List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true);
+        Assert.assertEquals(tables.size(), 1);
+
+        Assert.assertEquals(((TableDescResponse)tables.get(0)).getJodID(), "949afe5d-0221-420f-92db-cdd91cb31ac8");
+    }
 }

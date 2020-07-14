@@ -66,6 +66,8 @@ public class TableDescResponse extends TableDesc {
     private List<String[]> samplingRows;
     @JsonProperty("columns")
     private ColumnDescResponse[] extColumns;
+    @JsonProperty("last_build_job_id")
+    private String jodID;
 
     public TableDescResponse(TableDesc table) {
         super(table);

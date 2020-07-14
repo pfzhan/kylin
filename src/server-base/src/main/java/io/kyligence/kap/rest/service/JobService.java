@@ -360,7 +360,6 @@ public class JobService extends BasicService {
     private void dropJob(String project, String jobId) {
         NExecutableManager executableManager = getExecutableManager(project);
         executableManager.deleteJob(jobId);
-        tableExtService.removeJobIdFromTableExt(jobId, project);
     }
 
     @VisibleForTesting

@@ -406,6 +406,7 @@ public class TableService extends BasicService {
             if (tableExtDesc != null) {
                 rtableDesc.setTotalRecords(tableExtDesc.getTotalRows());
                 rtableDesc.setSamplingRows(tableExtDesc.getSampleRows());
+                rtableDesc.setJodID(tableExtDesc.getJodID());
                 filterSamplingRows(project, rtableDesc, isAclGreen, aclTCRS);
             }
 

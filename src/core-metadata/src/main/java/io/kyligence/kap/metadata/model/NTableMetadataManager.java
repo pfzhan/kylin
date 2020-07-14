@@ -278,6 +278,7 @@ public class NTableMetadataManager {
         copyForWrite.setColumnStats(other.getAllColumnStats());
         copyForWrite.setSampleRows(other.getSampleRows());
         copyForWrite.setTotalRows(other.getTotalRows());
+        copyForWrite.setJodID(other.getJodID());
         copyForWrite.setOriginalSize(other.getOriginalSize());
         saveTableExt(copyForWrite);
     }
