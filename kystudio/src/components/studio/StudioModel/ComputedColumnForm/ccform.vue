@@ -105,9 +105,11 @@ export default class CCForm extends Vue {
     this.modelInstance.generateMetadata().then((data) => {
       // 组装带cc的模型功校验cc接口使用
       let resData = objectClone(data)
-      let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
-      ccMeta.datatype = 'any' // 默认传给后台的数据类型
-      resData.computed_columns.push(ccMeta)
+      if (!this.isEdited) {
+        let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
+        ccMeta.datatype = 'any' // 默认传给后台的数据类型
+        resData.computed_columns.push(ccMeta)
+      }
       this.checkBtnLoading = true
       this.checkCC({
         model_desc: resData,
@@ -143,8 +145,12 @@ export default class CCForm extends Vue {
         }
         if (this.isEdited) {
           this.modelInstance.editCC(this.ccObject).then((cc) => {
-            this.$emit('saveSuccess', cc)
-            this.isEdit = false
+            this.checkRemoteCC((data) => {
+              this.ccObject.datatype = data.datatype
+              this.modelInstance.editCC(this.ccObject)
+              this.$emit('saveSuccess', cc)
+              this.isEdit = false
+            })
           }, () => {
             this.$emit('saveError')
           })

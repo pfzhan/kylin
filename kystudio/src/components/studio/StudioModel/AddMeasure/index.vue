@@ -48,9 +48,9 @@
                   <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
                 </el-option>
               </el-option-group>
-              <el-option-group key="ccolumn" :label="$t('ccolumns')">
+              <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="getCCGroups.length">
                 <el-option
-                  v-for="item in ccGroups"
+                  v-for="item in getCCGroups"
                   :key="item.guid"
                   :label="item.tableAlias + '.' + item.columnName"
                   :value="item.tableAlias + '.' + item.columnName">
@@ -97,9 +97,9 @@
                 <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
               </el-option>
             </el-option-group>
-            <el-option-group key="ccolumn" :label="$t('ccolumns')">
+            <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="getCCGroups.length">
               <el-option
-                v-for="item in ccGroups"
+                v-for="item in getCCGroups"
                 :key="item.guid"
                 :label="item.tableAlias + '.' + item.columnName"
                 :value="item.tableAlias + '.' + item.columnName">
@@ -249,6 +249,16 @@ export default class AddMeasure extends Vue {
       return_type: [{ required: true, message: this.$t('requiredreturn_type'), trigger: 'change' }],
       expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
     }
+  }
+  get getCCGroups () {
+    if (this.ccGroups.length) {
+      if (this.measure.expression === 'SUM(column)' || this.measure.expression === 'TOP_N') {
+        return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase()))
+      } else {
+        return this.ccGroups
+      }
+    }
+    return []
   }
   validateName (rule, value, callback) {
     if (!value) {
