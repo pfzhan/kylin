@@ -1735,7 +1735,12 @@ export default class ModelEdit extends Vue {
                   type: 'success',
                   duration: 0,
                   showClose: true,
-                  message: `${this.$t('kylinLang.common.buildSuccess')}<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+                  message: (
+                    <div>
+                      <span>{this.$t('kylinLang.common.buildSuccess')}</span>
+                      <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+                    </div>
+                  )
                 })
               }
             }
