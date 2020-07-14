@@ -280,7 +280,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
             jobManager.mergeSegmentJob(seg1, MODEL_ID, "ADMIN");
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("No executable job is generated", e.getMessage());
+            Assert.assertEquals("No executable job is generated.", e.getMessage());
         }
     }
 
