@@ -201,11 +201,11 @@ public class CnMessage extends Message {
     }
 
     public String getINVALID_DIMENSION_NAME() {
-        return "非法维度名称 '%s', 仅支持字母, 数字和下划线";
+        return "非法维度名称 '%s'， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持100 个字符。";
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "非法度量名称 '%s', 仅支持字母, 数字和下划线";
+        return "非法度量名称 '%s'， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持100 个字符。";
     }
 
     public String getMODEL_ID_NOT_FOUND() {
@@ -1356,28 +1356,28 @@ public class CnMessage extends Message {
         return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
     }
 
-    public String getADD_JOB_CHECK_FAIL(){
-        return "添加job失败，并发处理时间冲突";
+    public String getADD_JOB_CHECK_FAIL() {
+        return "添加job失败，并发处理时间冲突。";
     }
 
-    public String getADD_JOB_EXCEPTION(){
-        return "没有可执行的任务生成";
+    public String getADD_JOB_EXCEPTION() {
+        return "没有可执行的任务生成。";
     }
 
     public String getADD_JOB_ABANDON() {
-        return "添加job失败，该节点不是构建节点";
+        return "添加job失败，该节点不是构建节点。";
     }
 
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
-        return "添加任务失败，segment的索引未对齐";
+        return "添加任务失败，segment的索引未对齐。";
     }
 
     public String getADD_JOB_CHECK_SEGMENT_READY_FAIL() {
-        return "添加任务失败，没有ready状态的Segment.";
+        return "添加任务失败，没有ready状态的Segment。";
     }
 
     public String getADD_JOB_CHECK_LAYOUT_FAIL() {
-        return "添加任务失败，没有需要构建的layout";
+        return "添加任务失败，没有需要构建的layout。";
     }
 
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {

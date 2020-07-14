@@ -514,7 +514,7 @@ public class NModelController extends NBasicController {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         String newAlias = modelRenameRequest.getNewModelName();
-        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
+        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL)) {
             throw new KylinException(INVALID_MODEL_NAME,
                     String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
         }
@@ -575,7 +575,7 @@ public class NModelController extends NBasicController {
         String newModelName = request.getNewModelName();
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
-        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
+        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL)) {
             throw new KylinException(INVALID_MODEL_NAME,
                     String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
         }

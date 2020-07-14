@@ -234,7 +234,9 @@ public class ModelService extends BasicService {
 
     private static final String LAST_MODIFY = "last_modify";
 
-    public static final String VALID_NAME_FOR_MODEL_DIMENSION_MEASURE = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
+    public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
+
+    public static final String VALID_NAME_FOR_DIMENSION_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
 
     @Setter
     @Autowired
@@ -1584,12 +1586,15 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkModelDimensions(ModelRequest request) {
+    @VisibleForTesting
+    public void checkModelDimensions(ModelRequest request) {
         Set<String> dimensionNames = new HashSet<>();
 
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
+            dimension.setName(StringUtils.trim(dimension.getName()));
             // check if the dimension name is valid
-            if (!StringUtils.containsOnly(dimension.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
+            if (StringUtils.length(dimension.getName()) > 100
+                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(dimension.getName()).matches())
                 throw new KylinException(INVALID_NAME,
                         String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName()));
 
@@ -1602,13 +1607,16 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkModelMeasures(ModelRequest request) {
+    @VisibleForTesting
+    public void checkModelMeasures(ModelRequest request) {
         Set<String> measureNames = new HashSet<>();
         Set<SimplifiedMeasure> measures = new HashSet<>();
 
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
+            measure.setName(StringUtils.trim(measure.getName()));
             // check if the measure name is valid
-            if (!StringUtils.containsOnly(measure.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
+            if (StringUtils.length(measure.getName()) > 100
+                    || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(measure.getName()).matches())
                 throw new KylinException(INVALID_NAME,
                         String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName()));
 
@@ -2081,7 +2089,7 @@ public class ModelService extends BasicService {
         if (StringUtils.isEmpty(modelAlias)) {
             throw new KylinException(EMPTY_MODEL_NAME, msg.getEMPTY_MODEL_NAME());
         }
-        if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
+        if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL)) {
             throw new KylinException(INVALID_MODEL_NAME, String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
         }
     }

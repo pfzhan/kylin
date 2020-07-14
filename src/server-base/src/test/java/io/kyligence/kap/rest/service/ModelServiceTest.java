@@ -3164,7 +3164,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertTrue(StringUtils.contains(ex.getMessage(),
-                    "Invalid dimension name 'CAL_DT1@!', only letters, numbers and underlines are supported."));
+                    "Invalid dimension name 'CAL_DT1@!', only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
+        }
+
+        StringBuilder name = new StringBuilder();
+        for (int i = 0; i < 101; ++i)
+            name.append('a');
+        dimension.setName(name.toString());
+        try {
+            modelService.createModel(modelRequest.getProject(), modelRequest);
+        } catch (Exception ex) {
+            Assert.assertEquals(KylinException.class, ex.getClass());
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "100 characters at maximum."));
         }
 
         namedColumns.remove(dimension);
@@ -3185,7 +3196,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "Invalid measure name 'illegal_measure_name@!', only letters, numbers and underlines are supported."));
+                    "Invalid measure name 'illegal_measure_name@!', only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
         }
 
         // duplicate measure name
@@ -4104,6 +4115,39 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(originJsonModel, requestJson);
 
+    }
+
+    @Test
+    public void testCheckModelDimensionNameAndMeasureName(){
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+
+        List<NDataModel.NamedColumn> namedColumns = modelRequest.getAllNamedColumns().stream()
+                .filter(col -> col.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList());
+
+        NDataModel.NamedColumn dimension = new NDataModel.NamedColumn();
+        dimension.setId(38);
+        dimension.setName("aaa中文 () （） % ? acfz ABNZ 0 8 2 _ -- end");
+        dimension.setAliasDotColumn("TEST_CAL_DT.CAL_DT");
+        dimension.setStatus(NDataModel.ColumnStatus.DIMENSION);
+
+        namedColumns.add(dimension);
+        modelRequest.setSimplifiedDimensions(namedColumns);
+
+        List<SimplifiedMeasure> measures = Lists.newArrayList();
+        SimplifiedMeasure measure1 = new SimplifiedMeasure();
+        measure1.setName("ssa中文 () kkk?（） % ? dirz AHRZ 2 5 9 _ -- end");
+        measure1.setExpression("COUNT_DISTINCT");
+        measure1.setReturnType("hllc(10)");
+        ParameterResponse parameterResponse = new ParameterResponse("column", "TEST_KYLIN_FACT");
+        measure1.setParameterValue(Lists.newArrayList(parameterResponse));
+        measures.add(measure1);
+        modelRequest.setSimplifiedMeasures(measures);
+
+        modelService.checkModelDimensions(modelRequest);
+        modelService.checkModelMeasures(modelRequest);
     }
 
 }

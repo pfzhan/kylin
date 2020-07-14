@@ -201,11 +201,11 @@ public class Message {
     }
 
     public String getINVALID_DIMENSION_NAME() {
-        return "Invalid dimension name '%s', only letters, numbers and underlines are supported.";
+        return "Invalid dimension name '%s', only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). 100 characters at maximum.";
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "Invalid measure name '%s', only letters, numbers and underlines are supported.";
+        return "Invalid measure name '%s', only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). 100 characters at maximum.";
     }
 
     public String getMODEL_ID_NOT_FOUND() {
@@ -1350,6 +1350,7 @@ public class Message {
     public String getFAILED_INIT_PASSWORD_ENCODER() {
         return "PASSWORD ENCODER init failed, please check configuration item kylin.security.user-password-encoder";
     }
+
     public String getINVALID_INTEGER_FORMAT() {
         return "Failed to rewrite the model settings, %s parameter value must be non-negative integer.";
     }
@@ -1458,23 +1459,23 @@ public class Message {
     }
 
     public String getADD_JOB_CHECK_FAIL() {
-        return "Add Job failed due to processing time conflict";
+        return "Add Job failed due to processing time conflict.";
     }
 
     public String getADD_JOB_EXCEPTION() {
-        return "No executable job is generated";
+        return "No executable job is generated.";
     }
 
     public String getADD_JOB_ABANDON() {
-        return "Create Job failed due to only job node is allowed";
+        return "Create Job failed due to only job node is allowed.";
     }
 
     public String getADD_JOB_CHECK_SEGMENT_FAIL() {
-        return "Add Job failed due to segment indexes are not aligned";
+        return "Add Job failed due to segment indexes are not aligned.";
     }
 
     public String getADD_JOB_CHECK_SEGMENT_READY_FAIL() {
-        return "Add Job failed due to no segment is ready";
+        return "Add Job failed due to no segment is ready.";
     }
 
     public String getADD_JOB_CHECK_LAYOUT_FAIL() {
