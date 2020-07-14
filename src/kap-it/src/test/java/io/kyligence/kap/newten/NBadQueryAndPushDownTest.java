@@ -35,6 +35,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -42,6 +43,7 @@ import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.After;
@@ -83,6 +85,26 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
         } catch (Exception sqlException) {
             Assert.assertTrue(sqlException instanceof SQLException);
             Assert.assertTrue(ExceptionUtils.getRootCause(sqlException) instanceof SqlValidatorException);
+        }
+    }
+
+    @Test
+    public void testPushdownCCWithFn() throws Exception {
+        final String sql = "select LSTG_FORMAT_NAME,sum(NEST4) from TEST_KYLIN_FACT where ( not { fn convert( \"LSTG_FORMAT_NAME\", SQL_WVARCHAR ) } = 'ABIN' or \"LSTG_FORMAT_NAME\" is null) group by LSTG_FORMAT_NAME limit 1";
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
+
+        // success
+        pushDownSql(DEFAULT_PROJECT_NAME, sql, 10, 0, null, true);
+
+        // failed
+        try (SetAndUnsetSystemProp converters = new SetAndUnsetSystemProp("kylin.query.pushdown.converter-class-names", "org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,io.kyligence.kap.query.security.TableViewPrepender,org.apache.kylin.source.adhocquery.HivePushDownConverter")) {
+            pushDownSql(DEFAULT_PROJECT_NAME, sql, 10, 0, null, true);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof AnalysisException);
+            Assert.assertTrue(e.getMessage().contains("cannot resolve '`NEST4`' given input columns"));
         }
     }
 
