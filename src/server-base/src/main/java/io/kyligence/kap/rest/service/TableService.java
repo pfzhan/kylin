@@ -1086,18 +1086,18 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     void innerReloadTable(String projectName, String tableIdentity, boolean needBuild) throws Exception {
-        val dataflowManager = getDataflowManager(projectName);
         val tableManager = getTableManager(projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
         Preconditions.checkNotNull(originTable);
 
         val project = getProjectManager().getProject(projectName);
         val context = calcReloadContext(projectName, tableIdentity);
-        for (val model : dataflowManager.listUnderliningDataModels()) {
+        Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
+        for (val model : affectedModels) {
             updateBrokenModel(project, model, context, needBuild);
         }
         mergeTable(projectName, context, true);
-        for (val model : dataflowManager.listUnderliningDataModels()) {
+        for (val model : affectedModels) {
             updateModelByReloadTable(project, model, context, needBuild);
         }
 
@@ -1115,13 +1115,25 @@ public class TableService extends BasicService {
         mergeTable(projectName, context, false);
     }
 
+    private Set<NDataModel> getAffectedModels(String projectName, ReloadTableContext context) {
+        if ((context.getAddColumns().isEmpty() && context.getRemoveColumns().isEmpty()
+                && context.getChangeTypeColumns().isEmpty())) {
+            return Sets.newHashSet();
+        }
+        if (Objects.isNull(context.getTableDesc())) {
+            return Sets.newHashSet();
+        }
+        String tableIdentity = context.getTableDesc().getIdentity();
+        List<NDataModel> allHealthModels = getDataflowManager(projectName).listUnderliningDataModels();
+        return allHealthModels.stream()
+                .filter(modelDesc -> modelDesc.getAllTables().stream()
+                        .map(TableRef::getTableIdentity)
+                        .anyMatch(tableIdentity::equalsIgnoreCase))
+                .collect(Collectors.toSet());
+    }
+
     void updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context, boolean needBuild)
             throws Exception {
-        if (!context.getRemoveAffectedModels().containsKey(model.getId())
-                && !context.getChangeTypeAffectedModels().containsKey(model.getId())) {
-            return;
-        }
-
         val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
 
         if (!removeAffectedModel.isBroken()) {
@@ -1140,18 +1152,13 @@ public class TableService extends BasicService {
         modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumns());
     }
 
-    void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
+    private void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
             boolean needBuild) throws Exception {
         val projectName = project.getName();
 
         val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
         val changeTypeAffectedModel = context.getChangeTypeAffectedModel(model.getId());
         if (removeAffectedModel.isBroken()) {
-            return;
-        }
-
-        if (context.getAddColumns().isEmpty() && context.getRemoveColumns().isEmpty()
-                && context.getChangeTypeColumns().isEmpty()) {
             return;
         }
 
