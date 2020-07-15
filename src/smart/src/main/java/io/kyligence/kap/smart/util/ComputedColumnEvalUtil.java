@@ -28,10 +28,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -66,14 +67,6 @@ public class ComputedColumnEvalUtil {
         throw new IllegalAccessError();
     }
 
-    private static void throwIllegalStateException(List<ComputedColumnDesc> computedColumns, Exception e) {
-        Preconditions.checkNotNull(computedColumns);
-        // other exception occurs, fail directly
-        throw new IllegalStateException("Cannot evaluate data type of computed column "
-                + computedColumns.stream().map(ComputedColumnDesc::getInnerExpression).collect(Collectors.joining(","))
-                + " due to unsupported expression.", e);
-    }
-
     public static void evaluateExprAndTypeBatch(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
         evalDataTypeOfCCInAuto(computedColumns, nDataModel, 0, computedColumns.size());
         computedColumns.removeIf(cc -> cc.getDatatype().equals("ANY"));
@@ -106,24 +99,29 @@ public class ComputedColumnEvalUtil {
 
     private static void evalDataTypeOfCCInManual(List<ComputedColumnDesc> computedColumns, NDataModel nDataModel,
             int start, int end) {
-        try {
-            evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSession(), nDataModel, start, end);
-        } catch (AnalysisException e) {
-            Matcher matcher = PATTERN_COLUMN.matcher(e.getMessage());
-            if (matcher.find()) {
-                String str = matcher.group(2).replace(NSparkCubingUtil.SEPARATOR, ".");
-                if (KylinConfig.getInstanceFromEnv().isUTEnv()) { // for test
-                    throw new IllegalStateException("Cannot find column " //
-                            + matcher.group(1).replace(NSparkCubingUtil.SEPARATOR, ".")
-                            + ", please check whether schema of related table has changed.", e);
-                } else {
-                    throw new IllegalStateException("Cannot find column " //
-                            + str.substring(0, str.lastIndexOf('.')) + "." + matcher.group(1)
-                            + ", please check whether schema of related table has changed.", e);
+        for (int i = start; i < end; i++) {
+            try {
+                evalDataTypeOfCC(computedColumns, SparderEnv.getSparkSession(), nDataModel, i, i+1);
+            } catch (AnalysisException e) {
+                Matcher matcher = PATTERN_COLUMN.matcher(e.getMessage());
+                if (matcher.find()) {
+                    String str = matcher.group(2).replace(NSparkCubingUtil.SEPARATOR, ".");
+                    if (KylinConfig.getInstanceFromEnv().isUTEnv()) { // for test
+                        throw new IllegalCCExpressionException("Cannot find column " //
+                                + matcher.group(1).replace(NSparkCubingUtil.SEPARATOR, ".")
+                                + ", please check whether schema of related table has changed.");
+                    } else {
+                        throw new IllegalCCExpressionException("Cannot find column " //
+                                + str.substring(0, str.lastIndexOf('.')) + "." + matcher.group(1)
+                                + ", please check whether schema of related table has changed.");
+                    }
                 }
-            }
 
-            throwIllegalStateException(computedColumns, e);
+                Preconditions.checkNotNull(computedColumns.get(i));
+                throw new IllegalCCExpressionException(String.format(MsgPicker.getMsg().getCheckCCExpression(),
+                                computedColumns.get(i).getTableAlias() + "." + computedColumns.get(i).getColumnName(),
+                                computedColumns.get(i).getExpression()));
+            }
         }
     }
 

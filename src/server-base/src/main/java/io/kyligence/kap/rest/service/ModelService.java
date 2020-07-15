@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
@@ -2191,7 +2191,7 @@ public class ModelService extends BasicService {
                 error.append(String.format(MsgPicker.getMsg().getCHECK_CC_AMBIGUITY(), name));
                 error.append("\r\n");
             });
-            throw new KylinException(DUPLICATE_COMPUTER_COLUMN_NAME, error.toString());
+            throw new KylinException(DUPLICATE_COMPUTED_COLUMN_NAME, error.toString());
         }
     }
 

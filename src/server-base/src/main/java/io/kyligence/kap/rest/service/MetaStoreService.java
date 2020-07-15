@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ConflictItem;
 import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ModelMetadataConflict;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_EXPRESSION;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -504,12 +504,12 @@ public class MetaStoreService extends BasicService {
                 message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED(),
                         srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(),
                         badModelException.getAdvise());
-                throw new KylinException(DUPLICATE_COMPUTER_COLUMN_EXPRESSION, message);
+                throw new KylinException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, message);
             case SAME_NAME_DIFF_EXPR:
                 message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED(), srcModelName,
                         badModelException.getBadCC(), badModelException.getConflictingModel(),
                         badModelException.getAdvise());
-                throw new KylinException(DUPLICATE_COMPUTER_COLUMN_NAME, message);
+                throw new KylinException(DUPLICATE_COMPUTED_COLUMN_NAME, message);
             default:
                 throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED, exception);
             }

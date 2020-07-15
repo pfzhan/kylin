@@ -548,7 +548,7 @@ public class NTableController extends NBasicController {
 
     @PostMapping(value = "/reload", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) throws Exception {
+    public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) throws KylinException {
         try {
             checkProjectName(request.getProject());
             if (StringUtils.isEmpty(request.getTable())) {

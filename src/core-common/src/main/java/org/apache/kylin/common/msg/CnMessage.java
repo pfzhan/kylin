@@ -284,6 +284,10 @@ public class CnMessage extends Message {
         return "可计算列 {0} 定义的数据类型 {2} 与实际类型{1} 不符，请修改后进行重试";
     }
 
+    public String getCheckCCExpression() {
+        return "可计算列 %s 表达式 %s 校验失败。";
+    }
+
     public String getMODEL_METADATA_PACKAGE_INVALID() {
         return "解析失败，请检查模型数据包是否完整。";
     }
@@ -395,6 +399,10 @@ public class CnMessage extends Message {
 
     public String getFAILED_FOR_NO_SAMPLING_TABLE() {
         return "没有传入采样表名称（database.table），请至少提供一张表";
+    }
+
+    public String getRELOAD_TABLE_RETRY() {
+        return "%s源表 %s 中列 %s 的数据类型发生了变更。请删除可计算列或修改数据类型后再试。";
     }
 
     // Cube Desc
@@ -1386,5 +1394,10 @@ public class CnMessage extends Message {
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
         return "当前暂不可重载表。存在运行中的任务，任务对象为： %s。请等任务完成后再重载，或手动终止任务。";
+    }
+
+    // Punctuations
+    public String getCOMMA() {
+        return "，";
     }
 }

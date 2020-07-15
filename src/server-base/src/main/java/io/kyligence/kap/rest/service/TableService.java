@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATED_COLUM
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_CATALOG_CACHE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
@@ -57,8 +58,11 @@ import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -1177,8 +1181,18 @@ public class TableService extends BasicService {
         request.setColumnsFetcher((tableRef, isFilterCC) -> TableRef.filterColumns(
                 tableRef.getIdentity().equals(context.getTableDesc().getIdentity()) ? context.getTableDesc() : tableRef,
                 isFilterCC));
-
-        modelService.updateDataModelSemantic(projectName, request);
+        try {
+            modelService.updateDataModelSemantic(projectName, request);
+        } catch (TransactionException e) {
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            if (root instanceof IllegalCCExpressionException) {
+                String tableName = context.getTableDesc().getName();
+                String columnNames = String.join(MsgPicker.getMsg().getCOMMA(), context.getChangeTypeColumns());
+                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String.format(
+                        MsgPicker.getMsg().getRELOAD_TABLE_RETRY(), root.getMessage(), tableName, columnNames));
+            }
+            throw e;
+        }
 
         if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getUpdatedLayouts())) {
             indexPlanService.reloadLayouts(projectName, changeTypeAffectedModel.getModelId(),

@@ -276,6 +276,10 @@ public class Message {
         return "The actual data type of computed column {0} is {1}, but defined as {2}. Please modify and try again.";
     }
 
+    public String getCheckCCExpression() {
+        return "Failed to validate the expression '%2$s' in computed column '%1$s'.";
+    }
+
     public String getMODEL_METADATA_PACKAGE_INVALID() {
         return "Parsing the file failed. Please check that the model package is complete.";
     }
@@ -537,6 +541,10 @@ public class Message {
 
     public String getFAILED_FOR_NO_SAMPLING_TABLE() {
         return "Please input at least one table(database.table) for sampling!";
+    }
+
+    public String getRELOAD_TABLE_RETRY() {
+        return "%1$s The data type of column %3$s in table %2$s has been changed. Please try deleting the computed column or changing the data type.";
     }
 
     // Cube Desc
@@ -1488,5 +1496,10 @@ public class Message {
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
         return "The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): %s. Please try reloading until all the jobs are completed, or manually discard the jobs.";
+    }
+
+    // Punctuations
+    public String getCOMMA() {
+        return ", ";
     }
 }

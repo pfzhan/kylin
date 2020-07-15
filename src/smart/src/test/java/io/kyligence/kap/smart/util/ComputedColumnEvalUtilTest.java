@@ -159,13 +159,15 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         // case 2: unsupported computed column expression
         try {
             ComputedColumnDesc cc = new ComputedColumnDesc();
-            cc.setInnerExpression("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)");
+            cc.setExpression("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)");
             cc.setColumnName("CC_2");
+            cc.setTableAlias(dataModel.getRootFactTableName().split("\\.")[1]);
             ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("Cannot evaluate data type of computed column " //
-                    + "SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4) due to unsupported expression.",
+            Assert.assertEquals("Failed to validate the expression " +
+                            "'SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)' " +
+                            "in computed column 'TEST_KYLIN_FACT.CC_2'.",
                     e.getMessage());
         }
     }
