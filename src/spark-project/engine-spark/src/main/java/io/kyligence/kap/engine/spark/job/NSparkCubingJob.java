@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -33,7 +35,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -190,5 +194,14 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         }
 
         return true;
+    }
+
+    @Override
+    protected void onExecuteFinished(ExecuteResult result) throws JobStoppedException {
+        super.onExecuteFinished(result);
+
+        // post cubing job finished event with project and model Id
+        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
+                .post(new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter()));
     }
 }

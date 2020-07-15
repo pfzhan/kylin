@@ -26,7 +26,6 @@ package io.kyligence.kap.newten;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -36,18 +35,19 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -67,6 +67,12 @@ import lombok.val;
 public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
+
+    @BeforeClass
+    public static void beforeAll() {
+        // load NSparkMergingJob class
+        new NSparkMergingJob();
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -91,11 +97,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
-        Class clazz = ExecutableAddSegmentHandler.class;
-        Method method = clazz.getDeclaredMethod("autoMergeSegments", String.class, String.class, String.class);
-        method.setAccessible(true);
-        method.invoke(new ExecutableAddSegmentHandler(DEFAULT_PROJECT, df.getUuid(), "ADMIN", null, null),
-                DEFAULT_PROJECT, df.getUuid(), "ADMIN");
+        SegmentAutoMergeUtil.autoMergeSegments(DEFAULT_PROJECT, df.getUuid(), "ADMIN");
     }
 
     private void createDataloadingRange() throws IOException {

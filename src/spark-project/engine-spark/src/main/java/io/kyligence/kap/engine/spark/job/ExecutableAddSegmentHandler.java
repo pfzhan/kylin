@@ -29,9 +29,7 @@ import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
@@ -43,7 +41,6 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
@@ -69,9 +66,6 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
                 .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         markDFOnlineIfNecessary(dfMgr.getDataflow(dataflowId));
-        handleRetention(project, getModelId());
-        //TODO: take care of this
-        autoMergeSegments(project, getModelId(), getOwner());
     }
 
     @Override
@@ -97,28 +91,6 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         dfMgr.updateDataflow(dfUpdate);
 
         markDFOnlineIfNecessary(dfMgr.getDataflow(df.getId()));
-
-        //TODO: take care of this
-        handleRetention(getProject(), getModelId());
-        autoMergeSegments(getProject(), getModelId(), getOwner());
-    }
-
-    private void autoMergeSegments(String project, String modelId, String owner) {
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val df = dfManager.getDataflow(modelId);
-        Segments segments = df.getSegments();
-        SegmentRange rangeToMerge = null;
-        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
-        Preconditions.checkState(segmentConfig != null);
-        rangeToMerge = segments.autoMergeSegments(segmentConfig);
-        if (rangeToMerge == null) {
-            return;
-        } else {
-            NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .mergeSegments(df, rangeToMerge, true);
-            addJob(mergeSeg.getId(), JobTypeEnum.INDEX_MERGE);
-        }
-
     }
 
     private void markDFOnlineIfNecessary(NDataflow dataflow) {
@@ -164,9 +136,4 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         return true;
     }
 
-    private void handleRetention(String project, String modelId) {
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val df = dfManager.getDataflow(modelId);
-        dfManager.handleRetention(df);
-    }
 }
