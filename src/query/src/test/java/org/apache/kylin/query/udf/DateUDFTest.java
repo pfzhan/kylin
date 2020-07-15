@@ -60,20 +60,20 @@ public class DateUDFTest extends HotLoadKylinPropertiesTestCase {
     @Test
     public void testDateDiffUDF() throws Exception {
         DateDiffUDF dateDiffUDF = new DateDiffUDF();
-        assertEquals(-35, dateDiffUDF.DATEDIFF(Date.valueOf("2019-06-28"), Date.valueOf("2019-08-02")));
+        assertEquals(-35, (long) dateDiffUDF.DATEDIFF(Date.valueOf("2019-06-28"), Date.valueOf("2019-08-02")));
     }
 
     @Test
     public void testDatePartUDF() throws Exception {
         DatePartUDF datePartUDF = new DatePartUDF();
-        assertEquals(2019, datePartUDF.DATE_PART("year", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(5, datePartUDF.DATE_PART("month", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(9, datePartUDF.DATE_PART("day", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(11, datePartUDF.DATE_PART("hour", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(49, datePartUDF.DATE_PART("minute", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(45, datePartUDF.DATE_PART("seconds", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(2019, datePartUDF.DATE_PART("year", Date.valueOf("2019-05-09")));
-        assertEquals(5, datePartUDF.DATE_PART("month", Date.valueOf("2019-05-09")));
-        assertEquals(9, datePartUDF.DATE_PART("day", Date.valueOf("2019-05-09")));
+        assertEquals(2019, (long) datePartUDF.DATE_PART("year", Timestamp.valueOf("2019-05-09 11:49:45")));
+        assertEquals(5, (long) datePartUDF.DATE_PART("month", Timestamp.valueOf("2019-05-09 11:49:45")));
+        assertEquals(9, (long) datePartUDF.DATE_PART("day", Timestamp.valueOf("2019-05-09 11:49:45")));
+        assertEquals(11, (long) datePartUDF.DATE_PART("hour", Timestamp.valueOf("2019-05-09 11:49:45")));
+        assertEquals(49, (long) datePartUDF.DATE_PART("minute", Timestamp.valueOf("2019-05-09 11:49:45")));
+        assertEquals(45, (long) datePartUDF.DATE_PART("seconds", Timestamp.valueOf("2019-05-09 11:49:45")));
+        assertEquals(2019, (long) datePartUDF.DATE_PART("year", Date.valueOf("2019-05-09")));
+        assertEquals(5, (long) datePartUDF.DATE_PART("month", Date.valueOf("2019-05-09")));
+        assertEquals(9, (long) datePartUDF.DATE_PART("day", Date.valueOf("2019-05-09")));
     }
 }

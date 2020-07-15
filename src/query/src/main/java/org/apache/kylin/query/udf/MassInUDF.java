@@ -47,7 +47,7 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 public class MassInUDF {
 
-    public boolean MASSIN(@Parameter(name = "col") Object col, @Parameter(name = "filterTable") String filterTable) {
+    public Boolean MASSIN(@Parameter(name = "col") Object col, @Parameter(name = "filterTable") String filterTable) {
         return true;
     }
 }

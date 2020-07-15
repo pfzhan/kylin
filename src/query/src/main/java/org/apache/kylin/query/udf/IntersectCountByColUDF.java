@@ -45,7 +45,7 @@ package org.apache.kylin.query.udf;
 import java.util.List;
 
 public class IntersectCountByColUDF {
-    public long INTERSECT_COUNT_BY_COL(List maps) throws CalciteNotSupportException {
+    public Long INTERSECT_COUNT_BY_COL(List maps) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 }

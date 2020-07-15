@@ -46,7 +46,7 @@ import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.sql.type.NotConstant;
 
 public class SparkMiscUDF implements NotConstant {
-    public long CRC32(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {
+    public Long CRC32(@Parameter(name = "str1") String exp) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 

@@ -79,15 +79,15 @@ public class InitCapbUDF {
         return newS.toString();
     }
 
-    public boolean isNumber(int c){
+    public Boolean isNumber(int c){
         return c > 47 && c < 58;
     }
 
-    public boolean isUppercase(int c){
+    public Boolean isUppercase(int c){
         return c > 64 && c < 91;
     }
 
-    public boolean isLowerCase(int c){
+    public Boolean isLowerCase(int c){
         return c > 96 && c < 123;
     }
 

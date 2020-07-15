@@ -49,27 +49,27 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 public class IsNullUDF {
 
-    public boolean ISNULL(@Parameter(name = "str") String expression) {
+    public Boolean ISNULL(@Parameter(name = "str") String expression) {
         return expression == null ;
     }
 
-    public boolean ISNULL(@Parameter(name = "num") Integer expression) {
+    public Boolean ISNULL(@Parameter(name = "num") Integer expression) {
         return expression == null ;
     }
 
-    public boolean ISNULL(@Parameter(name = "num") Double expression) {
+    public Boolean ISNULL(@Parameter(name = "num") Double expression) {
         return expression == null ;
     }
 
-    public boolean ISNULL(@Parameter(name = "date") Date expression) {
+    public Boolean ISNULL(@Parameter(name = "date") Date expression) {
         return expression == null ;
     }
 
-    public boolean ISNULL(@Parameter(name = "date") Timestamp expression) {
+    public Boolean ISNULL(@Parameter(name = "date") Timestamp expression) {
         return expression == null ;
     }
 
-    public boolean ISNULL(@Parameter(name = "boolean") Boolean expression) {
+    public Boolean ISNULL(@Parameter(name = "boolean") Boolean expression) {
         return expression == null ;
     }
 }

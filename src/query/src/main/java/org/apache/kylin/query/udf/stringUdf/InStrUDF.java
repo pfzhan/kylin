@@ -46,7 +46,7 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 public class InStrUDF {
 
-    public int INSTR(@Parameter(name = "str") String s1, @Parameter(name = "subStr") String s2) {
+    public Integer INSTR(@Parameter(name = "str") String s1, @Parameter(name = "subStr") String s2) {
         return s1.indexOf(s2) + 1;
     }
 

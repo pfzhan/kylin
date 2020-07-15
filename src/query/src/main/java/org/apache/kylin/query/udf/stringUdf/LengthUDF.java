@@ -46,7 +46,7 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 public class LengthUDF {
 
-    public int LENGTH(@Parameter(name = "str") String s) {
+    public Integer LENGTH(@Parameter(name = "str") String s) {
         return s.length();
     }
 }

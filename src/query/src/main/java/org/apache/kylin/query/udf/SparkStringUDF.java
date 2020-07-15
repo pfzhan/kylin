@@ -59,7 +59,7 @@ public class SparkStringUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public int FIND_IN_SET(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Integer FIND_IN_SET(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
@@ -67,15 +67,15 @@ public class SparkStringUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public int LEVENSHTEIN(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Integer LEVENSHTEIN(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public int LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "num3") Integer exp3) throws CalciteNotSupportException {
+    public Integer LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2, @Parameter(name = "num3") Integer exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public int LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Integer LOCATE(@Parameter(name = "str1") String exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 

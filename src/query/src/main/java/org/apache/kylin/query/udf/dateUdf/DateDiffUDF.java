@@ -48,7 +48,7 @@ import java.sql.Date;
 
 public class DateDiffUDF {
 
-    public long DATEDIFF(@Parameter(name = "date") Date date1, @Parameter(name = "date") Date date2) {
+    public Long DATEDIFF(@Parameter(name = "date") Date date1, @Parameter(name = "date") Date date2) {
         return (date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
     }
 }

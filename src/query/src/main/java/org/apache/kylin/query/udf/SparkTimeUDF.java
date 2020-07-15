@@ -89,12 +89,12 @@ public class SparkTimeUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public double MONTHS_BETWEEN(@Parameter(name = "t1") Object exp1, @Parameter(name = "t2") Object exp2)
+    public Double MONTHS_BETWEEN(@Parameter(name = "t1") Object exp1, @Parameter(name = "t2") Object exp2)
             throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public double MONTHS_BETWEEN(@Parameter(name = "t1") Object exp1, @Parameter(name = "t2") Object exp2,
+    public Double MONTHS_BETWEEN(@Parameter(name = "t1") Object exp1, @Parameter(name = "t2") Object exp2,
             @Parameter(name = "t2") Boolean exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
@@ -104,7 +104,7 @@ public class SparkTimeUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public int WEEKOFYEAR(@Parameter(name = "t1") Object exp1) throws CalciteNotSupportException {
+    public Integer WEEKOFYEAR(@Parameter(name = "t1") Object exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 }

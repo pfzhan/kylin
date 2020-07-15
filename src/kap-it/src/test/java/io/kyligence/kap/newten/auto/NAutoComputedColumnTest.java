@@ -1051,6 +1051,20 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         }
     }
 
+    @Test
+    public void testProposeSparkUDFCC() {
+        String sql = "select count(CBRT(test_kylin_fact.price)) from test_kylin_fact";
+
+        val smartContext = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[]{sql});
+        val smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runWithContext();
+        Assert.assertEquals(1, smartContext.getModelContexts().size());
+        val targetModel = smartContext.getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, targetModel.getComputedColumnDescs().size());
+        val cc = targetModel.getComputedColumnDescs().get(0);
+        Assert.assertEquals("CBRT(TEST_KYLIN_FACT.PRICE)", cc.getExpression());
+    }
+
     private void mockTableExtDesc(String tableIdentity, String proj, String[] colNames, int[] cardinalityList) {
         final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), proj);
         final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);

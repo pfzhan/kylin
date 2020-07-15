@@ -55,11 +55,11 @@ public class SparkLeafUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public long INPUT_FILE_BLOCK_LENGTH() throws CalciteNotSupportException {
+    public Long INPUT_FILE_BLOCK_LENGTH() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public long INPUT_FILE_BLOCK_START() throws CalciteNotSupportException {
+    public Long INPUT_FILE_BLOCK_START() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
@@ -67,7 +67,7 @@ public class SparkLeafUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public long MONOTONICALLY_INCREASING_ID() throws CalciteNotSupportException {
+    public Long MONOTONICALLY_INCREASING_ID() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
@@ -75,7 +75,7 @@ public class SparkLeafUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
-    public int SPARK_PARTITION_ID() throws CalciteNotSupportException {
+    public Integer SPARK_PARTITION_ID() throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 }
