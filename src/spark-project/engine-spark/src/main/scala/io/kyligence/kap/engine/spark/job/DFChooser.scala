@@ -97,7 +97,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     df.take(rows).foreach(row => {
       var i = 0
       for (i <- 0 until length) {
-        if (!columns(i).contains(DFBuilderHelper.ENCODE_SUFFIX) && !cols.get(i).getColumnDesc.isComputedColumn) {
+        if (!columns(i).contains(DFBuilderHelper.ENCODE_SUFFIX)) {
           val columnName = cols.get(i).getCanonicalName
           val value = row.get(i)
           val strValue = if (value == null) null

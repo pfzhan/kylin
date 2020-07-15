@@ -24,10 +24,13 @@
 package io.kyligence.kap.metadata.sourceusage;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,6 +40,10 @@ import org.junit.rules.ExpectedException;
 
 import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
 public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before
@@ -63,18 +70,54 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(sourceUsageRecord);
         sourceUsageManager.updateSourceUsage();
         SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-        Assert.assertEquals(739275L, usage.getCurrentCapacity());
+        Assert.assertEquals(1131588L, usage.getCurrentCapacity());
+        Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
         // -1 means UNLIMITED
         Assert.assertEquals(-1L, usage.getLicenseCapacity());
         SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail = usage.getProjectCapacity("default");
         Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, projectCapacityDetail.getStatus());
 
-        SourceUsageRecord.TableCapacityDetail testMeasureTableDetail = projectCapacityDetail.getTableByName("DEFAULT.TEST_MEASURE");
+        SourceUsageRecord.TableCapacityDetail testMeasureTableDetail = projectCapacityDetail
+                .getTableByName("DEFAULT.TEST_MEASURE");
         Assert.assertEquals(SourceUsageRecord.TableKind.FACT, testMeasureTableDetail.getTableKind());
         Assert.assertEquals(100L, testMeasureTableDetail.getCapacity());
 
-        SourceUsageRecord.TableCapacityDetail testCountryTableDetail = projectCapacityDetail.getTableByName("DEFAULT.TEST_COUNTRY");
+        SourceUsageRecord.TableCapacityDetail testCountryTableDetail = projectCapacityDetail
+                .getTableByName("DEFAULT.TEST_COUNTRY");
         Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, testCountryTableDetail.getTableKind());
+    }
+
+    @Test
+    public void testCCIncludedInSourceUsage() {
+        String project = "cc_test";
+        SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
+        sourceUsageManager.updateSourceUsage();
+
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        NDataflow dataflow = dfManager.getDataflow("0d146f1a-bdd3-4548-87ac-21c2c6f9a0da");
+        NDataSegment dataSegment = dataflow.getLastSegment();
+        Map<String, Long> columnSourceBytesMap = dataSegment.getColumnSourceBytes();
+        Assert.assertEquals(7, columnSourceBytesMap.size());
+
+        Set<TblColRef> usedColumns = new NCubeJoinedFlatTableDesc(dataSegment).getUsedColumns();
+        Assert.assertEquals(7, usedColumns.size());
+        TblColRef tblColRef = (TblColRef) usedColumns.toArray()[6];
+        Assert.assertTrue(tblColRef.getColumnDesc().isComputedColumn());
+        String ccName = "SSB.LINEORDER.CC_TOTAL_TAX";
+        Assert.assertEquals(ccName, tblColRef.getCanonicalName());
+
+        SourceUsageRecord sourceUsageRecord = sourceUsageManager.getLatestRecord();
+        SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail = sourceUsageRecord.getProjectCapacity(project);
+        Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, projectCapacityDetail.getStatus());
+        SourceUsageRecord.TableCapacityDetail tableCapacityDetail = projectCapacityDetail
+                .getTableByName("SSB.LINEORDER");
+        SourceUsageRecord.TableCapacityDetail tableCapacityDetail1 = projectCapacityDetail
+                .getTableByName("SSB.CUSTOMER");
+        // assert all used columns is calculated
+        Assert.assertEquals(7, tableCapacityDetail.getColumns().length + tableCapacityDetail1.getColumns().length);
+        // assert CC is calculated
+        SourceUsageRecord.ColumnCapacityDetail columnCapacityDetail = tableCapacityDetail.getColumnByName(ccName);
+        Assert.assertEquals(62240L, columnCapacityDetail.getMaxSourceBytes());
     }
 
     @Test
@@ -99,8 +142,9 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         sourceUsageRecord.setCapacityStatus(SourceUsageRecord.CapacityStatus.OVERCAPACITY);
         sourceUsageManager.updateSourceUsage(sourceUsageRecord);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The amount of data volume used（0/0) exceeds the license’s limit. Build index and load data is unavailable.\n" +
-                "Please contact Kyligence, or try deleting some segments.");
+        thrown.expectMessage(
+                "The amount of data volume used（0/0) exceeds the license’s limit. Build index and load data is unavailable.\n"
+                        + "Please contact Kyligence, or try deleting some segments.");
         sourceUsageManager.checkIsOverCapacity("default");
     }
 

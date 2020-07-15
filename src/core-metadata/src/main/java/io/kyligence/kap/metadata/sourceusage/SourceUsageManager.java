@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -104,8 +103,7 @@ public class SourceUsageManager {
         Map<String, Long> columnSourceBytes = Maps.newHashMap();
         Set<TblColRef> allColumns;
         try {
-            Set<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(segment).getUsedColumns();
-            allColumns = columnRefList.stream().filter(col -> !col.getColumnDesc().isComputedColumn()).collect(Collectors.toSet());
+            allColumns = new NCubeJoinedFlatTableDesc(segment).getUsedColumns();
         } catch (Exception e) {
             return columnSourceBytes;
         }
@@ -290,8 +288,7 @@ public class SourceUsageManager {
         NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).get(0);
         Set<TblColRef> allColumns = Sets.newHashSet();
         try {
-            Set<TblColRef> columnRefList = new NCubeJoinedFlatTableDesc(dataSegment).getUsedColumns();
-            allColumns = columnRefList.stream().filter(col -> !col.getColumnDesc().isComputedColumn()).collect(Collectors.toSet());
+            allColumns = new NCubeJoinedFlatTableDesc(dataSegment).getUsedColumns();
         } catch (Exception e) {
             logger.error("Failed to get all columns' TblColRef for segment: {}", dataSegment, e);
             projectDetail.setStatus(CapacityStatus.ERROR);

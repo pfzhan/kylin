@@ -281,14 +281,14 @@ public class AccessServiceTest extends ServiceTestBase {
     @Test
     public void testGetGrantedProjectsOfUser() throws IOException {
         List<String> result = accessService.getGrantedProjectsOfUser("ADMIN");
-        Assert.assertEquals(17, result.size());
+        Assert.assertEquals(18, result.size());
     }
 
     @Test
     public void testGetGrantedProjectsOfUserOrGroup() throws IOException {
         // admin user
         List<String> result = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
-        Assert.assertEquals(17, result.size());
+        Assert.assertEquals(18, result.size());
 
         // normal user
         result = accessService.getGrantedProjectsOfUserOrGroup("ANALYST", true);
@@ -331,7 +331,7 @@ public class AccessServiceTest extends ServiceTestBase {
         List<String> projects = accessService.getGrantedProjectsOfUserOrGroup("ADMIN", true);
         List<SidPermissionWithAclResponse> responses = accessService.getUserOrGroupAclPermissions(projects, "ADMIN",
                 true);
-        Assert.assertEquals(17, responses.size());
+        Assert.assertEquals(18, responses.size());
         Assert.assertTrue(responses.stream().allMatch(response -> "ADMIN".equals(response.getProjectPermission())));
 
         // test normal group
