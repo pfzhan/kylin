@@ -1056,10 +1056,8 @@ public class ModelService extends BasicService {
         copy.setUuid(newModelId);
         copy.setLastModified(System.currentTimeMillis());
         copy.setMvcc(-1);
-        Set<Long> toBeDeletedLayouts = copy.getToBeDeletedIndexes()
-                .stream()
-                .flatMap(indexEntity -> indexEntity.getLayouts().stream())
-                .map(LayoutEntity::getId)
+        Set<Long> toBeDeletedLayouts = copy.getToBeDeletedIndexes().stream()
+                .flatMap(indexEntity -> indexEntity.getLayouts().stream()).map(LayoutEntity::getId)
                 .collect(Collectors.toSet());
         copy.removeLayouts(toBeDeletedLayouts, true, true);
         indexPlanManager.createIndexPlan(copy);
@@ -1295,7 +1293,8 @@ public class ModelService extends BasicService {
             String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
             QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
             queryParams.setKylinConfig(QueryUtil.getKylinConfig(dataModel.getProject()));
-            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject()));
+            queryParams.setAclInfo(
+                    AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject(), getCurrentUserGroups()));
             String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
             ss.sql(pushdownSql);
         } catch (Exception e) {
@@ -2140,7 +2139,7 @@ public class ModelService extends BasicService {
             //replace computed columns with basic columns
             ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
             String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc,
-                    AclPermissionUtil.prepareQueryContextACLInfo(project));
+                    AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             cc.setInnerExpression(innerExpression);
 
             //check by data source, this could be slow
@@ -2221,7 +2220,7 @@ public class ModelService extends BasicService {
         String originFilterCondition = model.getFilterCondition();
         if (StringUtils.isNotEmpty(originFilterCondition)) {
             String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition,
-                    AclPermissionUtil.prepareQueryContextACLInfo(project));
+                    AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             String filterConditionAddTableName = addTableNameIfNotExist(newFilterCondition, model);
             model.setFilterCondition(filterConditionAddTableName);
         }
@@ -2231,7 +2230,7 @@ public class ModelService extends BasicService {
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
             String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc,
-                    AclPermissionUtil.prepareQueryContextACLInfo(project));
+                    AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             ccDesc.setInnerExpression(ccExpression);
             TblColRef tblColRef = model.findColumn(ccDesc.getTableAlias(), ccDesc.getColumnName());
             tblColRef.getColumnDesc().setComputedColumn(ccExpression);
@@ -3062,7 +3061,8 @@ public class ModelService extends BasicService {
     }
 
     public List<NDataModel> updateReponseAcl(List<NDataModel> models, String project) {
-        if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project)) {
+        Set<String> groups = getCurrentUserGroups();
+        if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project, groups)) {
             for (val model : models) {
                 NDataModelAclParams aclParams = new NDataModelAclParams();
                 aclParams.setUnauthorizedTables(Sets.newHashSet());
@@ -3081,7 +3081,7 @@ public class ModelService extends BasicService {
         var auths = getAclTCRManager(project).getAuthTablesAndColumns(project, username, true);
         allAuthTables.addAll(auths.getTables());
         allAuthColumns.addAll(auths.getColumns());
-        Set<String> groups = AclPermissionUtil.getCurrentUserGroups();
+
         for (val group : groups) {
             auths = getAclTCRManager(project).getAuthTablesAndColumns(project, group, false);
             allAuthTables.addAll(auths.getTables());
@@ -3220,4 +3220,5 @@ public class ModelService extends BasicService {
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
         return partitionDateFormat;
     }
+
 }

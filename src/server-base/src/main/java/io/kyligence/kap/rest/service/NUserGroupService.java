@@ -28,9 +28,11 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -252,5 +254,24 @@ public class NUserGroupService implements IUserGroupService {
         result.put("user", userNames);
         result.put("group", groupNames);
         return result;
+    }
+
+    public Set<String> listUserGroups(String username) {
+        try {
+            List<String> groups = getAllUserGroups();
+            Set<String> result = new HashSet<>();
+            for (String group : groups) {
+                val users = getGroupMembersByName(group);
+                for (val user : users) {
+                    if (StringUtils.equalsIgnoreCase(username, user.getUsername())) {
+                        result.add(group);
+                        break;
+                    }
+                }
+            }
+            return result;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

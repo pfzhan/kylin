@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.rest.metrics;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.common.metric.QueryMetrics;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -46,7 +46,9 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -98,7 +100,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         exceptionRule.expectMessage("Query metric context is not started");
 
         QueryMetricsContext.collect(Mockito.mock(SQLRequest.class), Mockito.mock(SQLResponse.class),
-                Mockito.mock(QueryContext.class));
+                Mockito.mock(QueryContext.class), Mockito.mock(HashSet.class));
     }
 
     @Test
@@ -122,7 +124,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setServer("localhost:7070");
         response.setSuite("suite_1");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
         Assert.assertEquals("Other error", influxdbTags.get("error_type"));
@@ -152,7 +155,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setException(true);
         response.setHitExceptionCache(true);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
         Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, influxdbTags.get("error_type"));
@@ -179,7 +183,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setHitExceptionCache(true);
         response.setEngineType("HIVE");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
         Assert.assertTrue(influxdbTags.containsKey("error_type"));
@@ -211,7 +216,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setTotalScanBytes(QueryContext.calScannedValueWithDefault(response.getScanBytes()));
         response.setTotalScanRows(QueryContext.calScannedValueWithDefault(response.getScanRows()));
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         // assert tags
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
@@ -253,7 +259,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = new SQLResponse(null, null, 0, false, null, true, true);
         response.setEngineType("CONSTANTS");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         // assert tags
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
@@ -296,7 +303,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setNativeRealizations(Lists.newArrayList(aggIndex, tableIndex));
         response.setEngineType("NATIVE");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         // assert query metric tags
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
@@ -346,7 +354,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setEngineType("HIVE");
 
         queryContext.getMetrics().setCorrectedSql(massageSql(request));
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
         Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
@@ -375,7 +384,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setEngineType("HIVE");
         response.setStorageCacheUsed(true);
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
         Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
@@ -402,7 +412,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setSuite("suite_1");
         response.setEngineType("HIVE");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
@@ -440,7 +451,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setSuite("suite_1");
         response.setEngineType("HIVE");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
@@ -467,7 +479,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setHitExceptionCache(true);
         response.setEngineType("HIVE");
 
-        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext,
+                Sets.newHashSet("ROLE_ADMIN"));
         Assert.assertEquals(startTime, metricsContext.getQueryTime());
     }
 }

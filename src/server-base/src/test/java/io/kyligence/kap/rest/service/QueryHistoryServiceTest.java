@@ -36,6 +36,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -83,6 +84,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
     @BeforeClass
     public static void setUpBeforeClass() {
         staticCreateTestMetadata();
@@ -92,13 +96,15 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     public void setUp() {
         createTestMetadata();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
-        ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(queryHistoryService, "modelService", modelService);
-
+        ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(tableService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
+        ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(queryHistoryService, "modelService", modelService);
+        ReflectionTestUtils.setField(queryHistoryService, "userGroupService", userGroupService);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
     }

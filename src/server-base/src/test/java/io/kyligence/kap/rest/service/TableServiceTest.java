@@ -75,6 +75,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.TableRefresh;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -140,6 +141,9 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
     @Before
     public void setup() {
         super.setup();
@@ -150,7 +154,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
-
+        ReflectionTestUtils.setField(tableService, "userGroupService", userGroupService);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -1166,6 +1170,6 @@ public class TableServiceTest extends CSVSourceTestCase {
         List<TableDesc> tables = tableService.getTableDesc("newten", true, "TEST_COUNTRY", "DEFAULT", true);
         Assert.assertEquals(tables.size(), 1);
 
-        Assert.assertEquals(((TableDescResponse)tables.get(0)).getJodID(), "949afe5d-0221-420f-92db-cdd91cb31ac8");
+        Assert.assertEquals(((TableDescResponse) tables.get(0)).getJodID(), "949afe5d-0221-420f-92db-cdd91cb31ac8");
     }
 }

@@ -42,6 +42,7 @@
 
 package org.apache.kylin.rest.util;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.util.Collection;
@@ -53,10 +54,10 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
@@ -79,8 +80,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-
 public class AclPermissionUtil {
 
     private AclPermissionUtil() {
@@ -101,19 +100,6 @@ public class AclPermissionUtil {
         return Objects.isNull(auth) ? null : auth.getName();
     }
 
-    public static Set<String> getCurrentUserGroups() {
-        Set<String> groups = Sets.newHashSet();
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (Objects.isNull(auth)) {
-            return groups;
-        }
-        Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
-        for (GrantedAuthority authority : authorities) {
-            groups.add(authority.getAuthority());
-        }
-        return groups;
-    }
-
     private static MutableAclRecord getProjectAcl(String project) {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
@@ -121,12 +107,13 @@ public class AclPermissionUtil {
         return AclManager.getInstance(KylinConfig.getInstanceFromEnv()).readAcl(new ObjectIdentityImpl(ae));
     }
 
-    public static Set<String> getCurrentUserGroupsInProject(String project) {
-        return filterGroupsInProject(getCurrentUserGroups(), project);
+    public static Set<String> getCurrentUserGroupsInProject(String project, Set<String> groups) {
+        return filterGroupsInProject(groups, project);
     }
 
     public static Set<String> getUserGroupsInProject(ManagedUser user, String project) {
-        Set<String> groups = user.getAuthorities().stream().map(SimpleGrantedAuthority::toString).collect(Collectors.toSet());
+        Set<String> groups = user.getAuthorities().stream().map(SimpleGrantedAuthority::toString)
+                .collect(Collectors.toSet());
         return filterGroupsInProject(groups, project);
     }
 
@@ -167,21 +154,21 @@ public class AclPermissionUtil {
                 .anyMatch(Constant.ROLE_ADMIN::equals);
     }
 
-    public static boolean canUseACLGreenChannel(String project) {
-        return canUseACLGreenChannelInQuery(project);
+    public static boolean canUseACLGreenChannel(String project, Set<String> groups) {
+        return canUseACLGreenChannelInQuery(project, groups);
     }
 
-    public static boolean canUseACLGreenChannelInQuery(String project) {
-        return !KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin() || isAdminInProject(project);
+    public static boolean canUseACLGreenChannelInQuery(String project, Set<String> groups) {
+        return !KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin() || isAdminInProject(project, groups);
     }
 
-    public static boolean isAdminInProject(String project) {
+    public static boolean isAdminInProject(String project, Set<String> usergroups) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (Objects.isNull(auth)) {
             return false;
         }
 
-        Set<String> groups = getCurrentUserGroupsInProject(project);
+        Set<String> groups = getCurrentUserGroupsInProject(project, usergroups);
         return isSpecificPermissionInProject(auth.getName(), groups, project, ADMINISTRATION);
     }
 
@@ -190,7 +177,8 @@ public class AclPermissionUtil {
         return isSpecificPermissionInProject(user.getUsername(), groups, project, aclPermission);
     }
 
-    public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject, String project, Permission aclPermission) {
+    public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject,
+            String project, Permission aclPermission) {
         MutableAclRecord acl = getProjectAcl(project);
         if (Objects.isNull(acl)) {
             return false;
@@ -238,22 +226,23 @@ public class AclPermissionUtil {
         }
     }
 
-    public static boolean isAclUpdatable(String project) {
-        return (isAdmin()
-                || (isAdminInProject(project) && KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()));
+    public static boolean isAclUpdatable(String project, Set<String> groups) {
+        return (isAdmin() || (isAdminInProject(project, groups)
+                && KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()));
     }
 
-    public static void checkAclUpdatable(String project) {
-        if (!AclPermissionUtil.isAclUpdatable(project)) {
+    public static void checkAclUpdatable(String project, Set<String> groups) {
+        if (!AclPermissionUtil.isAclUpdatable(project, groups)) {
             if (KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()) {
-                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN());
+                throw new KylinException(PERMISSION_DENIED,
+                        MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN());
             } else {
                 throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN());
             }
         }
     }
 
-    public static QueryContext.AclInfo prepareQueryContextACLInfo(String project) {
-        return new QueryContext.AclInfo(getCurrentUsername(), getCurrentUserGroups(), isAdminInProject(project));
+    public static QueryContext.AclInfo prepareQueryContextACLInfo(String project, Set<String> groups) {
+        return new QueryContext.AclInfo(getCurrentUsername(), groups, isAdminInProject(project, groups));
     }
 }

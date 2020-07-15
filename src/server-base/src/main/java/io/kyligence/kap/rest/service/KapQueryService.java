@@ -110,7 +110,7 @@ public class KapQueryService extends QueryService {
 
         if (QueryMetricsContext.isStarted()) {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
-                    QueryContext.current());
+                    QueryContext.current(), getCurrentUserGroups());
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
         }

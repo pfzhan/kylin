@@ -42,11 +42,12 @@
 
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.metadata.user.ManagedUser;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 public interface IUserGroupService {
     //need project to indicate user's permission.only global admin and project admin can get.
@@ -59,6 +60,8 @@ public interface IUserGroupService {
     List<ManagedUser> getGroupMembersByName(String name) throws IOException;
 
     List<String> getAllUserGroups() throws IOException;
+
+    Set<String> listUserGroups(String username);
 
     void addGroup(String name) throws IOException;
 

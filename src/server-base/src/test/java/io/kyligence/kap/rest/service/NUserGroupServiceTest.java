@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import lombok.var;
 
 public class NUserGroupServiceTest extends ServiceTestBase {
 
@@ -57,6 +58,10 @@ public class NUserGroupServiceTest extends ServiceTestBase {
     @Autowired
     @Qualifier("userService")
     private UserService userService;
+
+    @Autowired
+    @Qualifier("aclTCRService")
+    private AclTCRService aclTCRService;
 
     @Test
     public void testBasic() throws IOException {
@@ -137,10 +142,27 @@ public class NUserGroupServiceTest extends ServiceTestBase {
             userGroupService.modifyGroupUsers("UNKNOWN", Arrays.asList("ADMIN"));
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause().getCause() instanceof KylinException);
-            Assert.assertTrue(
-                    StringUtils.equals(e.getCause().getCause().getMessage(), "Invalid values in parameter “group_name“. The value UNKNOWN doesn’t exist."));
+            Assert.assertTrue(StringUtils.equals(e.getCause().getCause().getMessage(),
+                    "Invalid values in parameter “group_name“. The value UNKNOWN doesn’t exist."));
         } catch (Exception e) {
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testListUserGroups() throws IOException {
+        userGroupService.addGroup("t1");
+        userGroupService.addGroup("t2");
+        userGroupService.modifyGroupUsers("t1", Arrays.asList("ADMIN"));
+        userGroupService.modifyGroupUsers("t2", Arrays.asList("ADMIN"));
+        var groups = aclTCRService.getCurrentUserGroups();
+        Assert.assertEquals(2, groups.size());
+        Assert.assertTrue(groups.contains("t1"));
+        Assert.assertTrue(groups.contains("t2"));
+        userGroupService.addGroup("t3");
+        userGroupService.modifyGroupUsers("t3", Arrays.asList("ADMIN"));
+        groups = aclTCRService.getCurrentUserGroups();
+        Assert.assertEquals(3, groups.size());
+        Assert.assertTrue(groups.contains("t3"));
     }
 }

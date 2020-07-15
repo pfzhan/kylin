@@ -33,6 +33,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -73,6 +74,9 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
     @Before
     public void setUp() {
         createTestMetadata();
@@ -80,6 +84,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(favoriteRuleService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(favoriteRuleService, "userGroupService", userGroupService);
     }
 
     @After

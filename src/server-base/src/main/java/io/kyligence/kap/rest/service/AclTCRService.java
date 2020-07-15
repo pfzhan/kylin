@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -77,8 +78,6 @@ import io.kyligence.kap.rest.response.AclTCRResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
-
 @Component("aclTCRService")
 public class AclTCRService extends BasicService {
 
@@ -121,12 +120,13 @@ public class AclTCRService extends BasicService {
         getAclTCRManager(project).unloadTable(dbTblName);
     }
 
-    public List<AclTCRResponse> getAclTCRResponse(String project, String sid, boolean principal,
-            boolean authorizedOnly) throws IOException {
+    public List<AclTCRResponse> getAclTCRResponse(String project, String sid, boolean principal, boolean authorizedOnly)
+            throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         AclTCRManager aclTCRManager = getAclTCRManager(project);
 
-        boolean userWithGlobalAdminPermission = principal && (accessService.isGlobalAdmin(sid) || accessService.hasGlobalAdminGroup(sid));
+        boolean userWithGlobalAdminPermission = principal
+                && (accessService.isGlobalAdmin(sid) || accessService.hasGlobalAdminGroup(sid));
         boolean adminGroup = !principal && ROLE_ADMIN.equals(sid);
         if (userWithGlobalAdminPermission || adminGroup) {
             return getAclTCRResponse(aclTCRManager.getAllDbAclTable(project));
@@ -523,7 +523,7 @@ public class AclTCRService extends BasicService {
 
     @VisibleForTesting
     boolean canUseACLGreenChannel(String project) {
-        return AclPermissionUtil.canUseACLGreenChannel(project);
+        return AclPermissionUtil.canUseACLGreenChannel(project, getCurrentUserGroups());
     }
 
     @VisibleForTesting

@@ -106,7 +106,7 @@ public class AclTCRController extends NBasicController {
             @RequestParam("project") String project, //
             @RequestBody List<AclTCRRequest> requests) throws IOException {
         checkProjectName(project);
-        AclPermissionUtil.checkAclUpdatable(project);
+        AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             updateSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
@@ -120,8 +120,9 @@ public class AclTCRController extends NBasicController {
 
     @GetMapping(value = "/updatable")
     @ResponseBody
-    public EnvelopeResponse<Boolean> getAllowAclUpdatable(@RequestParam("project") String project) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AclPermissionUtil.isAclUpdatable(project), "");
+    public EnvelopeResponse<Boolean> getAllowAclUpdatable(@RequestParam("project") String project) throws IOException {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                AclPermissionUtil.isAclUpdatable(project, aclTCRService.getCurrentUserGroups()), "");
     }
 
     private List<AclTCRResponse> getProjectSidTCR(String project, String sid, boolean principal, boolean authorizedOnly)

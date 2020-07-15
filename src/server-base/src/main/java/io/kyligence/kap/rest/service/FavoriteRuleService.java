@@ -142,7 +142,7 @@ public class FavoriteRuleService extends BasicService {
 
         // add user info before invoking row-filter and hack-select-star
         QueryContext context = QueryContext.current();
-        context.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+        context.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
         // parse file to sqls
         for (MultipartFile file : files) {
             String fileName = file.getOriginalFilename();
@@ -227,7 +227,7 @@ public class FavoriteRuleService extends BasicService {
             }
             QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0,
                     DEFAULT_SCHEMA, false);
-            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             // massage sql and expand CC columns
             String correctedSql = QueryUtil.massageSqlAndExpandCC(queryParams);
             sqls.add(correctedSql);
@@ -240,7 +240,7 @@ public class FavoriteRuleService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0, DEFAULT_SCHEMA,
                 false);
-        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
         String correctedSql = QueryUtil.massageSql(queryParams);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);

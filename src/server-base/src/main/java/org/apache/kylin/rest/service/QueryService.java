@@ -73,7 +73,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -154,6 +153,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.SchemaMetaData;
@@ -240,7 +240,8 @@ public class QueryService extends BasicService {
             QueryExec queryExec = newQueryExec(sqlRequest.getProject());
             QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlRequest.getSql(),
                     queryExec.getSchema(), BackdoorToggles.getPrepareOnly(), false, false);
-            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject(),
+                    userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownQuery(queryParams);
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
@@ -598,7 +599,8 @@ public class QueryService extends BasicService {
                 QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                         sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                         queryExec.getSchema(), true);
-                queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
+                queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject(),
+                        userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
                 String correctedSql = QueryUtil.massageSql(queryParams);
 
                 //CAUTION: should not change sqlRequest content!
@@ -654,7 +656,8 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
-        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
+                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);
@@ -671,7 +674,8 @@ public class QueryService extends BasicService {
                 sqlRequest.getLimit(), sqlRequest.getOffset());
         QueryParams queryParams = new QueryParams(sqlRequest.getProject(), massagedSql, defaultSchema, isPrepare,
                 sqlException, sqlRequest.isForcedToPushDown(), true, sqlRequest.getLimit(), sqlRequest.getOffset());
-        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject()));
+        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject(),
+                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
 
         return PushDownUtil.tryPushDownQuery(queryParams);
     }
@@ -682,7 +686,8 @@ public class QueryService extends BasicService {
             return Collections.emptyList();
         }
 
-        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
+                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
@@ -724,7 +729,8 @@ public class QueryService extends BasicService {
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
-        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project));
+        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
+                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
         Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData);
         Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project);
@@ -825,7 +831,8 @@ public class QueryService extends BasicService {
         return tbl2ccNames;
     }
 
-    private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta, SetMultimap<String, String> tbl2ccNames) {
+    private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta,
+            SetMultimap<String, String> tbl2ccNames) {
         // check for cc exposing
         // exposeComputedColumn=True, expose columns anyway
         if (projectInstance.getConfig().exposeComputedColumn()) {
@@ -845,7 +852,8 @@ public class QueryService extends BasicService {
      * @param table only support table alias like "TEST_COUNT" or table indentity "default.TEST_COUNT"
      * @return
      */
-    private boolean isComputedColumn(String project, String ccName, String table, SetMultimap<String, String> tbl2ccNames) {
+    private boolean isComputedColumn(String project, String ccName, String table,
+            SetMultimap<String, String> tbl2ccNames) {
 
         return CollectionUtils.isNotEmpty(tbl2ccNames.get(table.toUpperCase()))
                 && tbl2ccNames.get(table.toUpperCase()).contains(ccName.toUpperCase());

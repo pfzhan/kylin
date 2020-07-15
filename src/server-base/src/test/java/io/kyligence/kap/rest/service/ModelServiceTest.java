@@ -110,6 +110,7 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.util.BrokenEntityProxy;
@@ -245,6 +246,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
 
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
+
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
     private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
@@ -259,6 +264,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
+        ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         Mockito.doReturn(new OptRecLayoutsResponse()).when(optRecService).getOptRecLayoutsResponse(Mockito.anyString(),
                 Mockito.anyString());
         modelService.setSemanticUpdater(semanticService);

@@ -42,15 +42,14 @@
 
 package org.apache.kylin.rest.service;
 
+import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
+
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Set;
 
-import io.kyligence.kap.common.metrics.service.MonitorDao;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import lombok.val;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,6 +58,7 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.support.PropertyComparator;
@@ -67,9 +67,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.client.RestTemplate;
 
 import com.google.common.base.CaseFormat;
 
+import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -80,18 +82,22 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import org.springframework.web.client.RestTemplate;
-
-import javax.servlet.http.HttpServletRequest;
-
-import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
+import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import lombok.val;
 
 public abstract class BasicService {
 
     @Autowired
     @Qualifier("normalRestTemplate")
     private RestTemplate restTemplate;
+
+    @Autowired
+    @Qualifier("userGroupService")
+    protected IUserGroupService userGroupService;
 
     public KylinConfig getConfig() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -142,7 +148,6 @@ public abstract class BasicService {
     public NProjectManager getProjectManager() {
         return NProjectManager.getInstance(getConfig());
     }
-
 
     public NExecutableManager getExecutableManager(String project) {
         return NExecutableManager.getInstance(getConfig(), project);
@@ -209,5 +214,9 @@ public abstract class BasicService {
         headers.remove(ACCEPT_ENCODING);
         return restTemplate.exchange(url, HttpMethod.valueOf(request.getMethod()), new HttpEntity<>(body, headers),
                 byte[].class);
+    }
+
+    public Set<String> getCurrentUserGroups() {
+        return userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername());
     }
 }

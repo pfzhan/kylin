@@ -28,10 +28,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TimeZone;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
@@ -51,12 +50,14 @@ import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 
@@ -90,10 +91,10 @@ public class QueryMetricsContext extends QueryMetrics {
     }
 
     public static QueryMetricsContext collect(final SQLRequest request, final SQLResponse response,
-            final QueryContext context) {
+            final QueryContext context, final Set<String> groups) {
         final QueryMetricsContext current = obtainCurrentQueryMetrics();
 
-        current.doCollect(request, response, context);
+        current.doCollect(request, response, context, groups);
 
         return current;
     }
@@ -108,11 +109,12 @@ public class QueryMetricsContext extends QueryMetrics {
         return current;
     }
 
-    private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
+    private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context,
+            final Set<String> groups) {
         // set sql
         this.sql = context.getMetrics().getCorrectedSql();
 
-        if(StringUtils.isEmpty(this.sql) && response.isStorageCacheUsed()) {
+        if (StringUtils.isEmpty(this.sql) && response.isStorageCacheUsed()) {
             String defaultSchema = "DEFAULT";
             try {
                 defaultSchema = new QueryExec(request.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
@@ -121,10 +123,10 @@ public class QueryMetricsContext extends QueryMetrics {
             }
             QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(request.getProject()), request.getSql(),
                     request.getProject(), request.getLimit(), request.getOffset(), defaultSchema, false);
-            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(request.getProject()));
+            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(request.getProject(), groups));
             this.sql = QueryUtil.massageSql(queryParams);
         }
-        if(StringUtils.isEmpty(this.sql))
+        if (StringUtils.isEmpty(this.sql))
             this.sql = request.getSql();
 
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
@@ -211,8 +213,6 @@ public class QueryMetricsContext extends QueryMetrics {
         }
     }
 
-
-
     private void collectRealizationMetrics(final SQLResponse response) {
         if (CollectionUtils.isEmpty(response.getNativeRealizations())) {
             return;
@@ -250,8 +250,7 @@ public class QueryMetricsContext extends QueryMetrics {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
                 .put(QueryHistory.SUITE, suite) //
-                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit))
-                .put(QueryHistory.MONTH, month)
+                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit)).put(QueryHistory.MONTH, month)
                 .put(QueryHistory.IS_TABLE_INDEX_USED, String.valueOf(tableIndexUsed))
                 .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(aggIndexUsed))
                 .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(tableSnapshotUsed));

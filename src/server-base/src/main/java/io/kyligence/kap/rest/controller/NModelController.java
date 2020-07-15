@@ -926,11 +926,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(
-                buildSegmentsRequest.getProject(),
-                modelId,
-                buildSegmentsRequest.getSegmentIds(),
-                buildSegmentsRequest.getIndexIds(),
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+                modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
                 buildSegmentsRequest.isParallelBuildBySegment());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -941,12 +938,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponseWithFailure> addAllIndexesToSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(
-                buildSegmentsRequest.getProject(),
-                modelId,
-                buildSegmentsRequest.getSegmentIds(),
-                null,
-                buildSegmentsRequest.isParallelBuildBySegment());
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+                modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

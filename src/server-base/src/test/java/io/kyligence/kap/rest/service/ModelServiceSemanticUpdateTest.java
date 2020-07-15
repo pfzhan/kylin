@@ -40,6 +40,7 @@ import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.CoreMatchers;
@@ -114,6 +115,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
     @Before
     public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
@@ -144,6 +148,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
     }
 
     @After

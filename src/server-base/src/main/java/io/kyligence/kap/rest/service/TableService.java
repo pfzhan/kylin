@@ -57,9 +57,6 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.guava20.shaded.common.graph.Graph;
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -115,6 +112,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -133,6 +132,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
 import io.kyligence.kap.metadata.model.schema.AffectedModelContext;
 import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
 import io.kyligence.kap.metadata.model.schema.SchemaNode;
@@ -200,7 +200,7 @@ public class TableService extends BasicService {
         List<TableDesc> tables = Lists.newArrayList();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
-            val tableDesc = nTableMetadataManager.getTableDesc(database + "." + tableName);
+            val tableDesc= nTableMetadataManager.getTableDesc(database + "." + tableName);
             if (tableDesc != null)
                 tables.add(tableDesc);
         } else {
@@ -389,9 +389,10 @@ public class TableService extends BasicService {
             throws IOException {
         List<TableDesc> descs = new ArrayList<>();
         val dataflowManager = getDataflowManager(project);
+        val groups = getCurrentUserGroups();
         final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
-                AclPermissionUtil.getCurrentUserGroups());
-        final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project);
+                groups);
+        final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups);
         for (val originTable : tables) {
             TableDesc table = getAuthorizedTableDesc(project, isAclGreen, originTable, aclTCRS);
             if (Objects.isNull(table)) {
@@ -637,7 +638,8 @@ public class TableService extends BasicService {
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(newSegment, model, getUsername()));
+        getSourceUsageManager().licenseCheckWrap(project,
+                () -> jobManager.addSegmentJob(newSegment, model, getUsername()));
     }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
@@ -776,7 +778,8 @@ public class TableService extends BasicService {
                 NDataflow df = dataflowManager.getDataflow(indexPlan.getUuid());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
-                getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(dataSegment, modelId, getUsername()));
+                getSourceUsageManager().licenseCheckWrap(project,
+                        () -> jobManager.addSegmentJob(dataSegment, modelId, getUsername()));
 
                 logger.info(
                         "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
@@ -1135,11 +1138,8 @@ public class TableService extends BasicService {
         }
         String tableIdentity = context.getTableDesc().getIdentity();
         List<NDataModel> allHealthModels = getDataflowManager(projectName).listUnderliningDataModels();
-        return allHealthModels.stream()
-                .filter(modelDesc -> modelDesc.getAllTables().stream()
-                        .map(TableRef::getTableIdentity)
-                        .anyMatch(tableIdentity::equalsIgnoreCase))
-                .collect(Collectors.toSet());
+        return allHealthModels.stream().filter(modelDesc -> modelDesc.getAllTables().stream()
+                .map(TableRef::getTableIdentity).anyMatch(tableIdentity::equalsIgnoreCase)).collect(Collectors.toSet());
     }
 
     void updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context, boolean needBuild)
@@ -1188,8 +1188,8 @@ public class TableService extends BasicService {
             if (root instanceof IllegalCCExpressionException) {
                 String tableName = context.getTableDesc().getName();
                 String columnNames = String.join(MsgPicker.getMsg().getCOMMA(), context.getChangeTypeColumns());
-                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String.format(
-                        MsgPicker.getMsg().getRELOAD_TABLE_RETRY(), root.getMessage(), tableName, columnNames));
+                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String
+                        .format(MsgPicker.getMsg().getRELOAD_TABLE_RETRY(), root.getMessage(), tableName, columnNames));
             }
             throw e;
         }
@@ -1199,7 +1199,8 @@ public class TableService extends BasicService {
                     changeTypeAffectedModel.getUpdatedLayouts());
             val jobManager = getJobManager(projectName);
             if (needBuild) {
-                getSourceUsageManager().licenseCheckWrap(projectName, () -> jobManager.checkAndAddIndexJob(model.getId(), getUsername()));
+                getSourceUsageManager().licenseCheckWrap(projectName,
+                        () -> jobManager.checkAndAddIndexJob(model.getId(), getUsername()));
             }
         }
     }

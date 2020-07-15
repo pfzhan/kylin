@@ -60,7 +60,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -117,6 +116,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
@@ -133,6 +133,7 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 import net.sf.ehcache.CacheManager;
 
@@ -160,6 +161,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    @Mock
+    protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
+
     private int pushdownCount;
 
     @BeforeClass
@@ -181,6 +185,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
+        ReflectionTestUtils.setField(queryService, "userGroupService", userGroupService);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
         pushdownCount = 0;
@@ -196,7 +201,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryResult queryResult = Mockito.mock(QueryResult.class);
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
-        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
     }
 
     private void stubQueryConnectionSQLException(final String sql, final String project) throws Exception {
@@ -205,7 +210,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryResult queryResult = Mockito.mock(QueryResult.class);
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
-        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
         // mock PushDownUtil
@@ -229,7 +234,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryResult queryResult = Mockito.mock(QueryResult.class);
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
-        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
         QueryContext.current().setPushdownEngine("HIVE");
@@ -238,8 +243,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLRequest sqlRequest = new SQLRequest();
         sqlRequest.setSql(sql);
         sqlRequest.setProject(project);
-        Mockito.when(queryService.tryPushDownSelectQuery(sqlRequest, null, sqlException, false))
-                .thenThrow(new SQLException("push down error"));
+        Mockito.doThrow(new SQLException("push down error")).when(queryService).tryPushDownSelectQuery(sqlRequest, null,
+                sqlException, false);
     }
 
     private void stubQueryConnectionException(final String project) throws Exception {
@@ -292,7 +297,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(queryExec.executeQuery(correctedSql))
                 .thenThrow(new RuntimeException("shouldnt execute queryexec"));
-        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST)).when(queryService).tryPushDownSelectQuery(sqlRequest, null, null, false);
