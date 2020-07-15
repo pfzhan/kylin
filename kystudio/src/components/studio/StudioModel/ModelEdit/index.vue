@@ -1231,7 +1231,7 @@ export default class ModelEdit extends Vue {
       })
     } else if (type === 'measure') {
       this.measureObj = {
-        name: '',
+        name: this.currentDragColumnData.columnName, // 默认列名
         expression: 'SUM(column)',
         parameterValue: {type: 'column', value: fullName, table_guid: null},
         convertedColumns: [],

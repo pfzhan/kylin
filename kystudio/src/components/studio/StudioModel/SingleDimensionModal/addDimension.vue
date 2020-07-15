@@ -9,7 +9,7 @@
       </div> -->
       <el-form v-if="isFormShow" :model="dimensionInfo" :rules="rules"  ref="dimensionForm" label-width="100px" label-position="top" class="demo-ruleForm">
         <el-form-item :label="$t('dimensionName')" prop="name">
-          <el-input v-model="dimensionInfo.name" ></el-input>
+          <el-input v-model.trim="dimensionInfo.name" ></el-input>
         </el-form-item>
         <el-form-item :label="$t('dimensionCandidate')" prop="column">
           <div class="measure-flex-row">
@@ -53,7 +53,7 @@ import vuex from '../../../../store'
 import locales from './locales'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import store, { types } from './store'
-import { NamedRegex } from 'config'
+import { NamedRegex1 } from 'config'
 import { objectClone } from 'util/index'
 vuex.registerModule(['modals', 'SingleDimensionModal'], store)
 @Component({
@@ -110,10 +110,12 @@ export default class SingleDimensionModal extends Vue {
     ]
   }
   checkName (rule, value, callback) {
-    if (!NamedRegex.test(value)) {
-      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    if (!NamedRegex1.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
     } else if (!this.modelInstance.checkSameEditDimensionName(this.dimensionInfo)) {
       callback(new Error(this.$t('sameName')))
+    } else if (value.length > 100) {
+      callback(new Error(this.$t('kylinLang.common.nameMaxLen')))
     } else {
       callback()
     }

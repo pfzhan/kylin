@@ -234,6 +234,16 @@ export default class BatchMeasureModal extends Vue {
   tableHeaderTops = []
   scrollTableList = []
   targetFixedTable = null
+  checkHasSameName (arr, val) {
+    let flag = false
+    for (let i = 0; i < arr.length; i++) {
+      if (arr.name === val) {
+        flag = true
+        break
+      }
+    }
+    return flag
+  }
   submit () {
     let allMeasureArr = []
     let columns = []
@@ -247,8 +257,9 @@ export default class BatchMeasureModal extends Vue {
     columns.forEach((column) => {
       if (column.isMeasureCol) {
         if (column.SUM.value && !column.SUM.isShouldDisable) {
+          // 如果存在同名的，添加上表别名，如果不同名，就是列名+函数
           const measure = {
-            name: column.table_alias + '_' + column.name + '_SUM',
+            name: this.checkHasSameName(allMeasureArr, column.name + '_SUM') ? column.name + '_SUM_' + column.table_alias : column.name + '_SUM',
             guid: sampleGuid(),
             expression: 'SUM',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
@@ -258,7 +269,7 @@ export default class BatchMeasureModal extends Vue {
         }
         if (column.MIN.value && !column.MIN.isShouldDisable) {
           const measure = {
-            name: column.table_alias + '_' + column.name + '_MIN',
+            name: this.checkHasSameName(allMeasureArr, column.name + '_MIN') ? column.name + '_MIN_' + column.table_alias : column.name + '_MIN',
             guid: sampleGuid(),
             expression: 'MIN',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
@@ -268,7 +279,7 @@ export default class BatchMeasureModal extends Vue {
         }
         if (column.MAX.value && !column.MAX.isShouldDisable) {
           const measure = {
-            name: column.table_alias + '_' + column.name + '_MAX',
+            name: this.checkHasSameName(allMeasureArr, column.name + '_MAX') ? column.name + '_MAX_' + column.table_alias : column.name + '_MAX',
             guid: sampleGuid(),
             expression: 'MAX',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
@@ -278,7 +289,7 @@ export default class BatchMeasureModal extends Vue {
         }
         if (column.COUNT.value && !column.COUNT.isShouldDisable) {
           const measure = {
-            name: column.table_alias + '_' + column.name + '_COUNT',
+            name: this.checkHasSameName(allMeasureArr, column.name + '_COUNT') ? column.name + '_COUNT_' + column.table_alias : column.name + '_COUNT',
             guid: sampleGuid(),
             expression: 'COUNT',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],

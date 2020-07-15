@@ -47,10 +47,11 @@
                     :render-header="renderNameHeader">
                     <template slot-scope="scope">
                       <div @click.stop>
-                        <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
                         </el-input>
-                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                         <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                        <div v-else-if="scope.row.validateNameMaxLen" class="ky-form-error">{{$t('kylinLang.common.nameMaxLen')}}</div>
                       </div>
                     </template>
                   </el-table-column>
@@ -110,9 +111,9 @@
                     :render-header="renderNameHeader">
                     <template slot-scope="scope">
                       <div @click.stop>
-                        <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
                         </el-input>
-                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                         <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
                       </div>
                     </template>
@@ -172,9 +173,9 @@
                       :render-header="renderNameHeader">
                       <template slot-scope="scope">
                         <div @click.stop>
-                          <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                          <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
                           </el-input>
-                          <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                          <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                           <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
                         </div>
                       </template>
@@ -202,48 +203,48 @@
           </div>
           <div v-show="searchChar.trim()">
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
-              border
-              :empty-text="emptyText"
-              :row-class-name="(para) => tableRowClassName(para, searchTable)"
-              :data="searchTable.columns" :ref="searchTable.guid"
-              @row-click="(row) => {rowClick(row, searchTable.guid)}"
-              @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
-              @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
-              <el-table-column
-                type="selection"
-                align="center"
-                width="44">
-              </el-table-column>
-              <el-table-column
-                prop="alias"
-                :label="$t('name')">
-                <template slot-scope="scope">
-                  <div @click.stop>
-                    <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
-                    </el-input>
-                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
-                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column
-                prop="column"
-                :label="$t('column')">
-                <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
-              </el-table-column>
-              <el-table-column
-                show-overflow-tooltip
-                prop="expression"
-                :label="$t('expression')">
-              </el-table-column>
-              <el-table-column
-                show-overflow-tooltip
-                :label="$t('datatype')"
-                prop="datatype"
-                width="110">
-              </el-table-column>
-            </el-table>
-            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+                  border
+                  :empty-text="emptyText"
+                  :row-class-name="(para) => tableRowClassName(para, searchTable)"
+                  :data="searchTable.columns" :ref="searchTable.guid"
+                  @row-click="(row) => {rowClick(row, searchTable.guid)}"
+                  @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
+                  @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
+                  <el-table-column
+                    type="selection"
+                    align="center"
+                    width="44">
+                  </el-table-column>
+                  <el-table-column
+                    prop="alias"
+                    :label="$t('name')">
+                    <template slot-scope="scope">
+                      <div @click.stop>
+                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
+                        </el-input>
+                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
+                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="column"
+                    :label="$t('column')">
+                    <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    prop="expression"
+                    :label="$t('expression')">
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    :label="$t('datatype')"
+                    prop="datatype"
+                    width="110">
+                  </el-table-column>
+                </el-table>
+                <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </div>
       </div>
@@ -263,7 +264,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { NamedRegex, pageCount } from '../../../../config'
+import { NamedRegex1, pageCount } from '../../../../config'
 import { objectClone, sampleGuid, filterObjectArray, countObjWithSomeKey } from '../../../../util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
@@ -319,7 +320,7 @@ export default class DimensionsModal extends Vue {
   errorGuidList = []
 
   filterErrorContent (table) {
-    return this.isClickSubmit && table.columns.filter(item => item.validateSameName || item.validateNameRule).length
+    return this.isClickSubmit && table.columns.filter(item => item.validateSameName || item.validateNameRule || item.validateNameMaxLen).length
   }
 
   get emptyText () {
@@ -428,7 +429,9 @@ export default class DimensionsModal extends Vue {
     this.ccTable.columns.forEach((col) => {
       let len = this.usedColumns.length
       this.$set(col, 'column', col.columnName)
-      this.$set(col, 'alias', col.tableAlias + '_' + col.columnName)
+      // this.$set(col, 'alias', col.tableAlias + '_' + col.columnName)
+      // 默认采用列名，同名校验等，手动拼接表名
+      this.$set(col, 'alias', col.columnName)
       this.$set(col, 'isSelected', false)
       this.$set(col, 'guid', null)
       for (let i = 0; i < len; i++) {
@@ -459,7 +462,9 @@ export default class DimensionsModal extends Vue {
       this.$set(table, 'isIndeterminate', false)
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
-        this.$set(col, 'alias', table.alias + '_' + col.name)
+        // this.$set(col, 'alias', table.alias + '_' + col.name)
+        // 默认采用列名
+        this.$set(col, 'alias', col.name)
         this.$set(col, 'isSelected', false)
         this.$set(col, 'guid', null)
         let len = this.usedColumns.length
@@ -495,6 +500,7 @@ export default class DimensionsModal extends Vue {
       columns.forEach((col) => {
         this.$set(col, 'validateNameRule', false)
         this.$set(col, 'validateSameName', false)
+        this.$set(col, 'validateNameMaxLen', false)
         this.isClickSubmit = false
         if (countObjWithSomeKey(columns, 'alias', col.alias) > 1) {
           hasPassValidate = false
@@ -504,14 +510,18 @@ export default class DimensionsModal extends Vue {
           hasPassValidate = false
           this.$set(col, 'validateNameRule', true)
           this.errorGuidList.push(col.guid || col.table_guid)
+        } else if (col.alias.length > 100) {
+          hasPassValidate = false
+          this.$set(col, 'validateNameMaxLen', true)
+          this.errorGuidList.push(col.guid || col.table_guid)
         }
       })
       return hasPassValidate
     }
   }
-  // 检测name是否符合规范
+  // 检测name是否符合规范，2020-06-28 新加几种校验规则
   checkDimensionNameRegex (alias) {
-    if (!NamedRegex.test(alias)) {
+    if (!NamedRegex1.test(alias)) {
       return false
     }
     return true

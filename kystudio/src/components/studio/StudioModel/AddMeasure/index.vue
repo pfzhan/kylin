@@ -3,7 +3,7 @@
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
-          <el-input v-guide.measureNameInput class="measures-width" size="medium" v-model="measure.name" @blur="upperCaseName"></el-input>
+          <el-input v-guide.measureNameInput class="measures-width" size="medium" v-model.trim="measure.name"></el-input>
         </div>
       </el-form-item>
       <el-form-item :label="$t('expression')" prop="expression">
@@ -125,7 +125,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { measuresDataType, measureSumAndTopNDataType, measurePercenDataType } from '../../../../config'
 import { objectClone, sampleGuid } from '../../../../util/index'
-import { NamedRegex } from 'config'
+import { NamedRegex1 } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import $ from 'jquery'
 @Component({
@@ -263,14 +263,21 @@ export default class AddMeasure extends Vue {
   validateName (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
+    } else if (value.length > 100) {
+      callback(new Error(this.$t('kylinLang.common.nameMaxLen')))
     } else {
-      if (!NamedRegex.test(value)) {
-        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+      if (!NamedRegex1.test(value)) {
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
       }
       if (this.modelInstance.all_measures.length) {
         let isResuse = false
         for (let i = 0; i < this.modelInstance.all_measures.length; i++) {
-          if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && this.measure.guid !== this.modelInstance.all_measures[i].guid) {
+          /* if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && this.measure.guid !== this.modelInstance.all_measures[i].guid) {
+            isResuse = true
+            break
+          } */
+          // 大小写敏感
+          if (this.modelInstance.all_measures[i].name === this.measure.name && this.measure.guid !== this.modelInstance.all_measures[i].guid) {
             isResuse = true
             break
           }
@@ -293,10 +300,10 @@ export default class AddMeasure extends Vue {
       callback()
     }
   }
-
-  upperCaseName () {
+  // 取消之前的约定，不用再统一传大写
+  /* upperCaseName () {
     this.measure.name = this.measure.name.toLocaleUpperCase()
-  }
+  } */
 
   changeExpression () {
     this.measure.return_type = ''
