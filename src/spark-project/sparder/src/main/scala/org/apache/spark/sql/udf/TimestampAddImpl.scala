@@ -37,16 +37,23 @@ object TimestampAddImpl {
 
   private def calendar: Calendar = localCalendar.get()
 
+  val TIME_UNIT = Set("HOUR", "MINUTE", "SECOND", "MILLISECOND", "MICROSECOND", "SQL_TSI_SECOND",
+    "SQL_TSI_MINUTE", "SQL_TSI_HOUR", "SQL_TSI_MICROSECOND", "FRAC_SECOND", "SQL_TSI_FRAC_SECOND")
+
   // add int on DateType
-  def evaluate(unit: String, increment: Int, time: Int): Int = {
+  def evaluate(unit: String, increment: Int, time: Int): Any = {
     calendar.clear()
     addTime("DAY", time, calendar)
     addTime(unit, increment, calendar)
-    DateTimeUtils.millisToDays(calendar.getTimeInMillis)
+    if (TIME_UNIT.contains(unit.toUpperCase)) {
+      DateTimeUtils.fromMillis(calendar.getTimeInMillis)
+    } else {
+      DateTimeUtils.millisToDays(calendar.getTimeInMillis)
+    }
   }
 
   // add long on DateType
-  def evaluate(unit: String, increment: Long, time: Int): Int = {
+  def evaluate(unit: String, increment: Long, time: Int): Any = {
     if (increment > Int.MaxValue) throw new IllegalArgumentException(s"Increment($increment) is greater than Int.MaxValue")
     else evaluate(unit, increment.intValue(), time)
   }

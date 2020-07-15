@@ -44,29 +44,47 @@ class TimestampAddTest extends SparderBaseFunSuite with SharedSparkSession with 
     // YEAR
     verifyResult("select timestampadd('YEAR', 1 , date'2016-02-29')", Seq("2017-02-28"))
 
+    verifyResult("select timestampadd('SQL_TSI_YEAR', 1 , date'2016-02-29')", Seq("2017-02-28"))
+
     // QUARTER
-    verifyResult("select timestampadd('QUARTER', 1L , date'2016-02-29')", Seq("2016-05-29"))
+    verifyResult("select timestampadd('QUARTER', 1L , date'2016-02-29')", Seq("2016-05-31"))
+
+    verifyResult("select timestampadd('SQL_TSI_QUARTER', 1L , date'2016-02-29')", Seq("2016-05-31"))
 
     // MONTH
     verifyResult("select timestampadd('MONTH', 1 , date'2016-01-31')", Seq("2016-02-29"))
 
+    verifyResult("select timestampadd('SQL_TSI_MONTH', 1 , date'2016-01-31')", Seq("2016-02-29"))
+
     // WEEK
     verifyResult("select timestampadd('WEEK', 1L , date'2016-01-31')", Seq("2016-02-07"))
+
+    verifyResult("select timestampadd('SQL_TSI_WEEK', 1L , date'2016-01-31')", Seq("2016-02-07"))
 
     // DAY
     verifyResult("select timestampadd('DAY', 1 , date'2016-01-31')", Seq("2016-02-01"))
 
+    verifyResult("select timestampadd('SQL_TSI_DAY', 1 , date'2016-01-31')", Seq("2016-02-01"))
+
     // HOUR
-    verifyResult("select timestampadd('HOUR', 1L , date'2016-01-31')", Seq("2016-01-31"))
+    verifyResult("select timestampadd('HOUR', 1L , date'2016-01-31')", Seq("2016-01-31 01:00:00.0"))
+
+    verifyResult("select timestampadd('SQL_TSI_HOUR', 1L , date'2016-01-31')", Seq("2016-01-31 01:00:00.0"))
 
     // MINUTE
-    verifyResult("select timestampadd('MINUTE', 1 , date'2016-01-31')", Seq("2016-01-31"))
+    verifyResult("select timestampadd('MINUTE', 1 , date'2016-01-31')", Seq("2016-01-31 00:01:00.0"))
+
+    verifyResult("select timestampadd('SQL_TSI_MINUTE', 1 , date'2016-01-31')", Seq("2016-01-31 00:01:00.0"))
 
     // SECOND
-    verifyResult("select timestampadd('SECOND', 1L , date'2016-01-31')", Seq("2016-01-31"))
+    verifyResult("select timestampadd('SECOND', 1L , date'2016-01-31')", Seq("2016-01-31 00:00:01.0"))
+
+    verifyResult("select timestampadd('SQL_TSI_SECOND', 1L , date'2016-01-31')", Seq("2016-01-31 00:00:01.0"))
 
     // FRAC_SECOND
-    verifyResult("select timestampadd('FRAC_SECOND', 1 , date'2016-01-31')", Seq("2016-01-31"))
+    verifyResult("select timestampadd('FRAC_SECOND', 1 , date'2016-01-31')", Seq("2016-01-31 00:00:00.001"))
+
+    verifyResult("select timestampadd('SQL_TSI_FRAC_SECOND', 1 , date'2016-01-31')", Seq("2016-01-31 00:00:00.001"))
   }
 
   test("test add on timestamp") {
@@ -74,7 +92,7 @@ class TimestampAddTest extends SparderBaseFunSuite with SharedSparkSession with 
     verifyResult("select timestampadd('YEAR', 1 , timestamp'2016-02-29 01:01:01.001')", Seq("2017-02-28 01:01:01.001"))
 
     // QUARTER
-    verifyResult("select timestampadd('QUARTER', 1L , timestamp'2016-02-29 01:01:01.001')", Seq("2016-05-29 01:01:01.001"))
+    verifyResult("select timestampadd('QUARTER', 1L , timestamp'2016-02-29 01:01:01.001')", Seq("2016-05-31 01:01:01.001"))
 
     // MONTH
     verifyResult("select timestampadd('MONTH', 1 , timestamp'2016-01-31 01:01:01.001')", Seq("2016-02-29 01:01:01.001"))

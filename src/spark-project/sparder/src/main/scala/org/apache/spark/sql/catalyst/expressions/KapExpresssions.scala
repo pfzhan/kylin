@@ -26,11 +26,12 @@ package org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
+import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode, FalseLiteral}
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
-import org.apache.spark.sql.catalyst.expressions.codegen.Block._
+
 import scala.collection.JavaConverters._
 
 // Returns the date that is num_months after start_date.
@@ -210,11 +211,20 @@ case class KapDayOfWeek(a: Expression)
 
 case class TimestampAdd(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
 
-  override def dataType: DataType = right.dataType
+  override def dataType: DataType = getResultDataType
 
   override def inputTypes: Seq[AbstractDataType] =
     Seq(StringType, TypeCollection(IntegerType, LongType), TypeCollection(DateType, TimestampType))
 
+  def getResultDataType(): DataType = {
+    if (left.isInstanceOf[Literal] && left.asInstanceOf[Literal].value != null) {
+      val unit = left.asInstanceOf[Literal].value.toString.toUpperCase
+      if (TimestampAddImpl.TIME_UNIT.contains(unit) && right.dataType.isInstanceOf[DateType]) {
+        return TimestampType
+      }
+    }
+    right.dataType
+  }
 
   override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
     (mid.dataType, right.dataType) match {
