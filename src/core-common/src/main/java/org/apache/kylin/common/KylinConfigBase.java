@@ -1712,6 +1712,11 @@ public abstract class KylinConfigBase implements Serializable {
                 TimeUnit.MILLISECONDS);
     }
 
+    public long getSourceUsageSurvivalTimeThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.garbage.storage.sourceusage-survival-time-threshold", "30d"),
+                TimeUnit.MILLISECONDS);
+    }
+
     public long getStorageQuotaSize() {
         return ((Double) (Double.parseDouble(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024
                 * 1024)).longValue();

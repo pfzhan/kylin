@@ -27,6 +27,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.CuratorOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
+import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -92,6 +93,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
                     projectsToCleanup = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
                             .stream().map(ProjectInstance::getName).collect(Collectors.toList());
                 }
+                new SourceUsageCleaner().cleanup();
                 for (String projName : projectsToCleanup) {
                     try {
                         GarbageCleaner.unsafeCleanupMetadataManually(projName);

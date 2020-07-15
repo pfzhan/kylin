@@ -425,7 +425,10 @@ public class SourceUsageManager {
     private void createOrUpdate(SourceUsageRecord usageRecord) {
         long now = System.currentTimeMillis();
         String currentDate = DateFormat.formatToCompactDateStr(now);
-        String resPath = ResourceStore.HISTORY_SOURCE_USAGE + PATH_DELIMITER + currentDate + ".json";
+        String resPath = StringUtils.isEmpty(usageRecord.getResPath())
+                ? ResourceStore.HISTORY_SOURCE_USAGE + PATH_DELIMITER + currentDate + ".json"
+                : usageRecord.getResPath();
+        usageRecord.setResPath(resPath);
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 ResourceStore resourceStore = getStore();
@@ -512,6 +515,15 @@ public class SourceUsageManager {
     public List<SourceUsageRecord> getLatestRecordByMs(long msAgo) {
         long from = System.currentTimeMillis() - msAgo;
         return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, from, Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
+    }
+
+    public List<SourceUsageRecord> getAllRecords() {
+        return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, 0,
+                Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
+    }
+
+    public void delSourceUsage(String path) {
+        ResourceStore.getKylinMetaStore(config).deleteResource(path);
     }
 
     public List<SourceUsageRecord> getLatestRecordByHours(int hoursAgo) {

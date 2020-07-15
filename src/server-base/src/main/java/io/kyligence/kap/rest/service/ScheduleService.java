@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -69,6 +70,7 @@ public class ScheduleService {
                 backupService.backupAll();
                 queryHistoryService.cleanQueryHistories();
                 rawRecService.deleteRawRecItems();
+                new SourceUsageCleaner().cleanup();
             }
             projectService.garbageCleanup();
 

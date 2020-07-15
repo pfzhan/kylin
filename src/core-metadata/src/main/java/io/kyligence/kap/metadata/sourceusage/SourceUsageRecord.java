@@ -69,6 +69,13 @@ public class SourceUsageRecord extends RootPersistentEntity implements IKeepName
     @JsonProperty("capacity_status")
     private CapacityStatus capacityStatus = CapacityStatus.OK;
 
+    @JsonProperty("res_path")
+    private String resPath;
+
+    public String getResourcePath() {
+        return resPath;
+    }
+
     public SourceUsageRecord() {
         capacityDetails = new ProjectCapacityDetail[0];
     }
