@@ -49,7 +49,7 @@ public class DynamicQueryTest extends NAutoTestBase {
         queryExec.setPrepareParam(0, 2);
         val resultSet = queryExec.executeQuery(sql);
         Assert.assertTrue(resultSet.getRows().size() > 0);
-        Assert.assertEquals(resultSet.getRows().get(0).get(0), "105");
+        Assert.assertEquals("105.5", resultSet.getRows().get(0).get(0));
     }
 
     @Test
