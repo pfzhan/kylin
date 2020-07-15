@@ -549,13 +549,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         double[] pendingDurations2 = getPendingDurations(jobId);
         Assert.assertArrayEquals(durations, durations2);
         DefaultChainedExecutable stopJob = (DefaultChainedExecutable) executableManager.getJob(jobId);
-        pendingDurations[0] = pendingDurations[0] + 1000;
-        for (int i = 1; i < pendingDurations.length; i++) {
-            ExecutableState state = stopJob.getTasks().get(i - 1).getStatus();
-            if (state.isNotProgressing()) {
-                pendingDurations[i] = pendingDurations[i] + 1000;
-            }
-        }
         Assert.assertArrayEquals(pendingDurations, pendingDurations2, 50);
     }
 
@@ -1395,7 +1388,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(context1.getStepRecords().get(0).getDuration(),
                 context2.getStepRecords().get(0).getDuration());
         Assert.assertEquals(0, context2.getStepRecords().get(1).getDuration());
-        Assert.assertEquals(context1.getRecord().getWaitTime() + interval, context2.getRecord().getWaitTime(), 100);
+        Assert.assertEquals(context1.getRecord().getWaitTime(), context2.getRecord().getWaitTime(), 100);
         if (stepType == ExecutableState.READY) {
             Assert.assertEquals(context1.getStepRecords().get(0).getWaitTime() + interval,
                     context2.getStepRecords().get(0).getWaitTime(), 100);
@@ -1422,7 +1415,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(context.getStepRecords().get(0).getDuration() > 0);
         Assert.assertEquals(0, context.getStepRecords().get(1).getDuration());
         Assert.assertTrue(context.getRecord().getWaitTime() >= 0);
-        Assert.assertTrue(context.getStepRecords().get(0).getWaitTime() > 0);
+        Assert.assertTrue(context.getStepRecords().get(0).getWaitTime() == 0);
         Assert.assertEquals(0, context.getStepRecords().get(1).getWaitTime());
     }
 
@@ -1433,8 +1426,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(context1.getStepRecords().get(0).getDuration(),
                 context2.getStepRecords().get(0).getDuration());
         Assert.assertEquals(0, context2.getStepRecords().get(1).getDuration());
-        Assert.assertEquals(context1.getRecord().getWaitTime() + interval, context2.getRecord().getWaitTime(), 100);
-        Assert.assertEquals(context1.getStepRecords().get(0).getWaitTime() + 1000,
+        Assert.assertEquals(context1.getRecord().getWaitTime(), context2.getRecord().getWaitTime(), 100);
+        Assert.assertEquals(context1.getStepRecords().get(0).getWaitTime(),
                 context2.getStepRecords().get(0).getWaitTime(), 100);
         Assert.assertEquals(0, context2.getStepRecords().get(1).getWaitTime());
 
