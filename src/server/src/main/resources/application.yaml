@@ -26,7 +26,7 @@ server:
   context-path: "/kylin"
   tomcat:
     max-http-header-size: 5242880
-    max-http-post-size: 10MB
+    max-http-post-size: 10485760
     access-log-enabled: true
     access-log-pattern: '%h %l %u %t "%r" %s %b %D'
     basedir: "${KYLIN_HOME}"
