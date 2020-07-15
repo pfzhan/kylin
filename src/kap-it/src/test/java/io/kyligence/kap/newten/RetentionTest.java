@@ -24,8 +24,6 @@
 package io.kyligence.kap.newten;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -36,7 +34,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -75,15 +72,10 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         dataflowManager.updateDataflow(update);
     }
 
-    private void mockAddSegmentSuccess()
-            throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+    private void mockAddSegmentSuccess() {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
-        Class clazz = ExecutableAddSegmentHandler.class;
-        Method method = clazz.getDeclaredMethod("handleRetention", String.class, String.class);
-        method.setAccessible(true);
-        method.invoke(new ExecutableAddSegmentHandler(DEFAULT_PROJECT, df.getUuid(), "", null, null), DEFAULT_PROJECT,
-                df.getUuid());
+        dataflowManager.handleRetention(df);
     }
 
     private NDataLoadingRange createDataloadingRange() throws IOException {
