@@ -203,48 +203,48 @@
           </div>
           <div v-show="searchChar.trim()">
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
-                  border
-                  :empty-text="emptyText"
-                  :row-class-name="(para) => tableRowClassName(para, searchTable)"
-                  :data="searchTable.columns" :ref="searchTable.guid"
-                  @row-click="(row) => {rowClick(row, searchTable.guid)}"
-                  @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
-                  @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
-                  <el-table-column
-                    type="selection"
-                    align="center"
-                    width="44">
-                  </el-table-column>
-                  <el-table-column
-                    prop="alias"
-                    :label="$t('name')">
-                    <template slot-scope="scope">
-                      <div @click.stop>
-                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
-                        </el-input>
-                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
-                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                      </div>
-                    </template>
-                  </el-table-column>
-                  <el-table-column
-                    prop="column"
-                    :label="$t('column')">
-                    <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
-                  </el-table-column>
-                  <el-table-column
-                    show-overflow-tooltip
-                    prop="expression"
-                    :label="$t('expression')">
-                  </el-table-column>
-                  <el-table-column
-                    show-overflow-tooltip
-                    :label="$t('datatype')"
-                    prop="datatype"
-                    width="110">
-                  </el-table-column>
-                </el-table>
-                <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+              border
+              :empty-text="emptyText"
+              :row-class-name="(para) => tableRowClassName(para, searchTable)"
+              :data="searchTable.columns" :ref="searchTable.guid"
+              @row-click="(row) => {rowClick(row, searchTable.guid)}"
+              @select-all="(selection) => {selectAllCurrentPager(selection, searchTable.guid)}"
+              @select="(selection, row) => {selectionChange(selection, row, searchTable.guid)}">
+              <el-table-column
+                type="selection"
+                align="center"
+                width="44">
+              </el-table-column>
+              <el-table-column
+                prop="alias"
+                :render-header="renderNameHeader">
+                <template slot-scope="scope">
+                  <div @click.stop>
+                    <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
+                    </el-input>
+                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
+                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="column"
+                :label="$t('column')">
+                <template slot-scope="scope">{{scope.row.name || scope.row.column}}</template>
+              </el-table-column>
+              <el-table-column
+                show-overflow-tooltip
+                prop="expression"
+                :label="$t('expression')">
+              </el-table-column>
+              <el-table-column
+                show-overflow-tooltip
+                :label="$t('datatype')"
+                prop="datatype"
+                width="110">
+              </el-table-column>
+            </el-table>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </div>
       </div>
