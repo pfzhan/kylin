@@ -2885,7 +2885,7 @@ public class ModelService extends BasicService {
             model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
             Set<Integer> modifiedSet = semanticUpdater.updateModelColumns(model, modelRequest, false);
             affectedLayouts = getAffectedLayouts(oldDataModel.getProject(), oldDataModel.getId(), modifiedSet);
-            checkNestedComputedColumn(oldDataModel, modifiedSet);
+            checkNestedComputedColumn(model, modifiedSet);
         }
         String originFilterCondition = model.getFilterCondition();
         try {

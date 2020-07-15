@@ -637,6 +637,9 @@ public class ModelSemanticHelper extends BasicService {
             dataflowManager.fillDfManually(df, segmentRanges);
         }
 
+        if (saveOnly)
+            return;
+
         JobManager.getInstance(config, project).addFullIndexJob(modelId, getUsername());
     }
 
