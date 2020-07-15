@@ -247,7 +247,6 @@ public class NModelController extends NBasicController {
             throws Exception {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
-//        modelService.approveSuggestModel(request.getProject(), request.getNewModels(), request.getRecommendations());
         try {
             modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getRecommendations());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

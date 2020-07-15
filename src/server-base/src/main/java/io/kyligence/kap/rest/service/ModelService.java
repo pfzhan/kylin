@@ -52,6 +52,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
+import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 
 import java.io.IOException;
@@ -1415,7 +1416,11 @@ public class ModelService extends BasicService {
             return null;
         }
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        val msg = MsgPicker.getMsg();
         int limit = kylinConfig.getSuggestModelSqlLimit();
+        if (sqls.size() > limit) {
+            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, msg.getSQL_NUMBER_EXCEEDS_LIMIT());
+        }
         Preconditions.checkState(sqls.size() <= limit,
                 "Suggest Model sql size " + sqls.size() + " is larger than " + limit);
         AbstractSemiAutoContext proposeContext = reuseExistedModel
