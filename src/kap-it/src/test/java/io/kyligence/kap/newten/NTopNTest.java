@@ -34,7 +34,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedSegmentRange;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -68,7 +67,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

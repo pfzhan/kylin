@@ -41,7 +41,6 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -99,7 +98,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/file_pruning");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

@@ -30,7 +30,6 @@ import java.util.List;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Before;
@@ -49,7 +48,7 @@ public class NMultipleCuboidsTest extends NLocalWithSparkSessionTest {
         System.setProperty("kylin.engine.spark.cache-threshold", "2");
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(getTestConfig()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

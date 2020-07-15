@@ -33,7 +33,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,7 +46,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
     public void setup() {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

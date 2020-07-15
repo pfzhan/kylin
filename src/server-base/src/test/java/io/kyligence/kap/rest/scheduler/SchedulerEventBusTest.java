@@ -41,7 +41,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -106,8 +105,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(favoriteQueryService, "aclEvaluate", aclEvaluate);
         // init DefaultScheduler
         System.setProperty("kylin.job.max-local-consumption-ratio", "10");
-        NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
-        NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()));
+        NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()));
 
         SchedulerEventBusFactory.getInstance(getTestConfig()).register(jobSchedulerListener);
     }

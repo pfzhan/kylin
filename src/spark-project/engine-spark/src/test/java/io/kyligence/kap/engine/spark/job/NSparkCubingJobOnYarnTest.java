@@ -36,7 +36,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
@@ -58,7 +57,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         System.setProperty("kylin.hadoop.conf.dir",
                 "../examples/test_case_data/sandbox");
         System.setProperty("SPARK_HOME", "../../build/spark");

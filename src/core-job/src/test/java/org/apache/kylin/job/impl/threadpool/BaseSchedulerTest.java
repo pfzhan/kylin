@@ -53,7 +53,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Mockito;
@@ -103,7 +102,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
     void startScheduler() {
         scheduler = NDefaultScheduler.getInstance(project);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

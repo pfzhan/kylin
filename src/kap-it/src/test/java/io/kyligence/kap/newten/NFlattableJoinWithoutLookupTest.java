@@ -31,7 +31,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -60,7 +59,7 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
         this.createTestMetadata("src/test/resources/ut_meta/flattable_without_join_lookup");
         dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

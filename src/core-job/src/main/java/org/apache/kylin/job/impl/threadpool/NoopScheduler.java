@@ -47,7 +47,6 @@ import org.apache.kylin.job.Scheduler;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.lock.JobLock;
 
 /**
  */
@@ -57,7 +56,7 @@ public class NoopScheduler implements Scheduler<AbstractExecutable> {
     }
 
     @Override
-    public void init(JobEngineConfig jobEngineConfig, JobLock jobLock) throws SchedulerException {
+    public void init(JobEngineConfig jobEngineConfig) throws SchedulerException {
     }
 
     @Override

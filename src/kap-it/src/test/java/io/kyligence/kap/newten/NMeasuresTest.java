@@ -50,7 +50,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.percentile.PercentileSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -104,7 +103,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

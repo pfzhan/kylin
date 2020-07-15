@@ -41,7 +41,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.lock.JobLock;
 import org.apache.kylin.job.runners.FetcherRunner;
 import org.apache.kylin.job.runners.JobCheckRunner;
 import org.apache.kylin.job.runners.LicenseCapacityCheckRunner;
@@ -68,7 +67,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
 
     @Getter
     private String project;
-    private JobLock jobLock;
     private ScheduledExecutorService fetcherPool;
     private ExecutorService jobPool;
     @Getter
@@ -132,13 +130,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     }
 
     @Override
-    public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) {
+    public synchronized void init(JobEngineConfig jobEngineConfig) {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         if (!config.isUTEnv()) {
             this.epochId = EpochManager.getInstance(config).getEpochId(project);
         }
-        jobLock = lock;
 
         String serverMode = jobEngineConfig.getServerMode();
         if (!("job".equalsIgnoreCase(serverMode) || "all".equalsIgnoreCase(serverMode))) {
@@ -153,10 +150,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         }
 
         this.jobEngineConfig = jobEngineConfig;
-
-        if (!jobLock.lockJobEngine()) {
-            throw new IllegalStateException("Cannot start job scheduler due to lack of job lock");
-        }
 
         //load all executable, set them to a consistent status
         fetcherPool = Executors.newScheduledThreadPool(1,
@@ -213,7 +206,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     private void releaseResources() {
         initialized.set(false);
         hasStarted.set(false);
-        jobLock.unlockJobEngine();
         memoryRemaining.release(currentPrjUsingMemory.get());
     }
 

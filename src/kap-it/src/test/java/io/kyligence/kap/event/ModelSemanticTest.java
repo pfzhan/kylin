@@ -40,7 +40,6 @@ import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -122,7 +121,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         NDefaultScheduler.destroyInstance();
         val scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(getTestConfig()));
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfManager.getDataflow(MODEL_ID);

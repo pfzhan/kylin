@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -75,7 +74,7 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
         }
         NDefaultScheduler.destroyInstance();
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(getTestConfig()));
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");

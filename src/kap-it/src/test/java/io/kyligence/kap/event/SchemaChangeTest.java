@@ -46,7 +46,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -161,7 +160,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         projectManager.forceDropProject("bad_query_test");
 
         val scheduler = NDefaultScheduler.getInstance(PROJECT);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
 
         val config = KylinConfig.getInstanceFromEnv();
         val dsMgr = NDataflowManager.getInstance(config, PROJECT);

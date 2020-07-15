@@ -31,7 +31,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
@@ -50,7 +49,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }

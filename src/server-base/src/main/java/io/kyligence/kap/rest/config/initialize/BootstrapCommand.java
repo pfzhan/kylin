@@ -31,7 +31,6 @@ import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.stereotype.Component;
 
@@ -58,7 +57,7 @@ public class BootstrapCommand implements Runnable {
     void initProject(KylinConfig config, final ProjectInstance project) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project.getName());
-            scheduler.init(new JobEngineConfig(config), new MockJobLock());
+            scheduler.init(new JobEngineConfig(config));
             if (!scheduler.hasStarted()) {
                 throw new RuntimeException("Scheduler for " + project.getName() + " has not been started");
             }

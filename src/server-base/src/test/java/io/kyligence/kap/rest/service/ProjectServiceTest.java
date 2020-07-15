@@ -61,7 +61,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -551,7 +550,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         }, project);
 
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(getTestConfig()));
         Assert.assertTrue(scheduler.hasStarted());
 
         UnitOfWork.doInTransactionWithRetry(() -> {

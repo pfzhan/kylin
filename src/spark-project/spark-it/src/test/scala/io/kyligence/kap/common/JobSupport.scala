@@ -69,8 +69,7 @@ trait JobSupport
     System.setProperty("kylin.job.scheduler.poll-interval-second",
                        schedulerInterval)
     scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
-    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv),
-                   new MockJobLock)
+    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv))
     if (!scheduler.hasStarted) {
       throw new RuntimeException("scheduler has not been started")
     }

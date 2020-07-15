@@ -30,7 +30,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +80,7 @@ public class EpochChangedListener implements IKeep {
             logger.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-                scheduler.init(new JobEngineConfig(kylinConfig), new MockJobLock());
+                scheduler.init(new JobEngineConfig(kylinConfig));
                 if (!scheduler.hasStarted()) {
                     throw new RuntimeException("Scheduler for " + project + " has not been started");
                 }

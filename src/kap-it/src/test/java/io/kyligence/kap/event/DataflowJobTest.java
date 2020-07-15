@@ -35,7 +35,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
@@ -76,7 +75,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         this.createTestMetadata();
         NDefaultScheduler.destroyInstance();
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+        scheduler.init(new JobEngineConfig(getTestConfig()));
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
