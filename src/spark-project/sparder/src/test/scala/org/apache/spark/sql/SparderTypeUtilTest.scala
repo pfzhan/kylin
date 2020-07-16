@@ -45,7 +45,8 @@ class SparderTypeUtilTest extends SparderBaseFunSuite {
     DataType.getType("bigint"),
     DataType.getType("float"),
     DataType.getType("double"),
-    DataType.getType("decimal(38,19)")
+    DataType.getType("decimal(38,19)"),
+    DataType.getType("numeric(5,4)")
   )
 
 

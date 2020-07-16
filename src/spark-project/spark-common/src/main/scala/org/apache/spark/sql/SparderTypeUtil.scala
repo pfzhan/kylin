@@ -70,7 +70,7 @@ object SparderTypeUtil extends Logging {
       case tp if tp.startsWith("hllc") => LongType
       case tp if tp.startsWith("percentile") => DoubleType
       case tp if tp.startsWith("bitmap") => LongType
-      case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
+      case "decimal" | "numeric" => DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => IntegerType
       case "time" => LongType
       case "timestamp" => LongType
@@ -96,7 +96,7 @@ object SparderTypeUtil extends Logging {
   def toSparkType(dataTp: DataType, isSum: Boolean = false): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
       // org.apache.spark.sql.catalyst.expressions.aggregate.Sum#resultType
-      case "decimal" =>
+      case "decimal"|"numeric" =>
         if (isSum) {
           val i = dataTp.getPrecision + 10
           DecimalType(Math.min(DecimalType.MAX_PRECISION, i), dataTp.getScale)
@@ -368,7 +368,7 @@ object SparderTypeUtil extends Logging {
 
   def kylinRawTableSQLTypeToSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
-      case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
+      case "decimal" | "numeric" => DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => DateType
       case "time" => DateType
       case "timestamp" => TimestampType
