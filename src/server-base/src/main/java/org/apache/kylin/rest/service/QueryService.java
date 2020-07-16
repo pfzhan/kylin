@@ -44,10 +44,12 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -70,9 +72,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -133,6 +138,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -153,7 +159,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.SchemaMetaData;
@@ -187,6 +192,9 @@ public class QueryService extends BasicService {
 
     @Autowired
     protected AclEvaluate aclEvaluate;
+
+    @Autowired
+    private AccessService accessService;
 
     @Autowired
     private ClusterManager clusterManager;
@@ -345,12 +353,16 @@ public class QueryService extends BasicService {
         String log = report.oldStyleLog();
         logger.info(log);
         logger.info(report.jsonStyleLog());
+        if (request.getExecuteAs() != null)
+            logger.info(String.format("[EXECUTE AS USER]: User [%s] executes the sql as user [%s].",
+                    user, request.getExecuteAs()));
         return log;
     }
 
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
         sqlRequest.setQueryStartTime(System.currentTimeMillis());
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
+        checkIfExecuteUserValid(sqlRequest);
         final QueryContext queryContext = QueryContext.current();
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
             // validate queryId with UUID.fromString
@@ -359,13 +371,33 @@ public class QueryService extends BasicService {
         try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
             long t = System.currentTimeMillis();
             logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
-            sqlRequest.setUsername(getUsername());
+            if (sqlRequest.getExecuteAs() != null)
+                sqlRequest.setUsername(sqlRequest.getExecuteAs());
+            else
+                sqlRequest.setUsername(getUsername());
             QueryLimiter.tryAcquire();
             return queryWithCache(sqlRequest, isQueryInspect);
         } finally {
             QueryLimiter.release();
             QueryContext.current().close();
         }
+    }
+
+    private void checkIfExecuteUserValid(SQLRequest sqlRequest) {
+        String executeUser = sqlRequest.getExecuteAs();
+        if (executeUser == null)
+            return;
+        if (!KylinConfig.getInstanceFromEnv().isExecuteAsEnabled()) {
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getEXECUTE_AS_NOT_ENABLED());
+        }
+        // check whether service account has all read privileges
+        final AclTCRManager aclTCRManager = AclTCRManager.getInstance(
+                KylinConfig.getInstanceFromEnv(), sqlRequest.getProject());
+        String username = AclPermissionUtil.getCurrentUsername();
+        Set<String> groups = getCurrentUserGroups();
+        if (!AclPermissionUtil.isAdmin() && !aclTCRManager.isAllTablesAuthorized(username, groups))
+            throw new KylinException(PERMISSION_DENIED, String.format(
+                    MsgPicker.getMsg().getSERVICE_ACCOUNT_NOT_ALLOWED(), username, sqlRequest.getProject()));
     }
 
     private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
@@ -581,7 +613,7 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
-        QueryExec queryExec = newQueryExec(sqlRequest.getProject());
+        QueryExec queryExec = newQueryExec(sqlRequest.getProject(), sqlRequest.getExecuteAs());
 
         if (sqlRequest.isForcedToPushDown()) {
             return pushDownQuery(null, sqlRequest, queryExec.getSchema());
@@ -656,8 +688,28 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
-        QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
-                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+        return newQueryExec(project, null);
+    }
+
+    public QueryExec newQueryExec(String project, String executeAs) {
+        if (executeAs != null) {
+            Set<String> groupsOfExecuteUser;
+            boolean hasAdminPermission = false;
+            try {
+                groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(executeAs);
+                Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
+                hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(
+                        executeAs, groupsInProject, project, ADMINISTRATION);
+            } catch (Exception UsernameNotFoundException) {
+                throw new KylinException(INVALID_USER_NAME,
+                        String.format(MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
+            }
+            QueryContext.current().setAclInfo(
+                    new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission));
+        } else {
+            QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
+                    userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+        }
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);

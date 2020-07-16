@@ -202,6 +202,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
     }
 
     private void stubQueryConnectionSQLException(final String sql, final String project) throws Exception {
@@ -211,6 +214,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
         Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
         // mock PushDownUtil
@@ -235,6 +241,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
         QueryContext.current().setPushdownEngine("HIVE");
@@ -249,6 +258,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private void stubQueryConnectionException(final String project) throws Exception {
         Mockito.when(queryService.newQueryExec(project))
+                .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
+        Mockito.when(queryService.newQueryExec(project, null))
                 .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
     }
 
@@ -298,6 +309,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryExec.executeQuery(correctedSql))
                 .thenThrow(new RuntimeException("shouldnt execute queryexec"));
         Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.doAnswer(x->queryExec).when(queryService).newQueryExec(project, null);
+        Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST)).when(queryService).tryPushDownSelectQuery(sqlRequest, null, null, false);

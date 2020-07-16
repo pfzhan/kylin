@@ -117,7 +117,7 @@ public class AclPermissionUtil {
         return filterGroupsInProject(groups, project);
     }
 
-    private static Set<String> filterGroupsInProject(Set<String> groups, String project) {
+    public static Set<String> filterGroupsInProject(Set<String> groups, String project) {
         MutableAclRecord acl = getProjectAcl(project);
         if (Objects.isNull(acl)) {
             return groups;

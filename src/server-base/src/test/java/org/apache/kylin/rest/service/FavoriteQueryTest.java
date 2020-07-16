@@ -129,6 +129,7 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(throwable);
         Mockito.when(queryService.newQueryExec(PROJECT)).thenReturn(queryExec);
+        Mockito.when(queryService.newQueryExec(PROJECT, null)).thenReturn(queryExec);
     }
 
     @Test

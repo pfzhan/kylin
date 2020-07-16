@@ -559,4 +559,9 @@ public class AclTCRManager {
         aclTCRDigest.setColumns(columns);
         return aclTCRDigest;
     }
+
+    public boolean isAllTablesAuthorized(String username, Set<String> groups) {
+        final List<AclTCR> all = getAclTCRs(username, groups);
+        return isTablesAuthorized(all);
+    }
 }

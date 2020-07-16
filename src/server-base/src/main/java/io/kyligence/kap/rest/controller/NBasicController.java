@@ -289,7 +289,7 @@ public class NBasicController {
         setDownloadResponse(file, file.getName(), contentType, response);
     }
 
-    public boolean isAdmin() {
+    protected static boolean isAdmin() {
         boolean isAdmin = false;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {

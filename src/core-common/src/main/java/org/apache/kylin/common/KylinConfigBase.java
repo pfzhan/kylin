@@ -1431,6 +1431,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.query.calcite.extras-props.");
     }
 
+    public boolean isExecuteAsEnabled() {
+        return Boolean.valueOf(this.getOptional("kylin.query.query-with-execute-as", FALSE));
+    }
+
     // ============================================================================
     // SERVER
     // ============================================================================

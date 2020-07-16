@@ -730,6 +730,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getSuggestModelSqlLimit", new PropertiesEntity("kylin.model.suggest-model-sql-limit", "200", 200));
         map.put("getIntersectFilterOrSeparator", new PropertiesEntity("kylin.query.intersect.separator", "|", "|"));
         map.put("getBitmapValuesUpperBound", new PropertiesEntity("kylin.query.bitmap-values-upper-bound", "10000000", 10000000));
+        map.put("isExecuteAsEnabled", new PropertiesEntity("kylin.query.query-with-execute-as", "false", false));
     }
 
     @Before
@@ -750,7 +751,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(370, methodsCount);
+        Assert.assertEquals(371, methodsCount);
     }
 
     @Test

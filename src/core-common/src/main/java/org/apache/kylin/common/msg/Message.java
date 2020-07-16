@@ -408,6 +408,18 @@ public class Message {
         return "Invalid username or password.";
     }
 
+    public String getINVALID_EXECUTE_AS_USER() {
+        return "User [%s] in the executeAs field does not exist";
+    }
+
+    public String getSERVICE_ACCOUNT_NOT_ALLOWED() {
+        return "User [%s] does not have permissions for all tables, rows, and columns in the project [%s] and cannot use the executeAs parameter";
+    }
+
+    public String getEXECUTE_AS_NOT_ENABLED() {
+        return "Configuration item \"kylin.query.query-with-execute-as\" is not enabled. So you cannot use the \"executeAs\" parameter now";
+    }
+
     public String getUSER_BE_LOCKED(long seconds) {
         return "Invalid username or password. Please try again after " + formatSeconds(seconds) + ".";
     }

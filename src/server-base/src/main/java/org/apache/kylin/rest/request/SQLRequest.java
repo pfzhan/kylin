@@ -75,6 +75,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private String queryId;
     private String project;
     private String username = "";
+    private String executeAs;
     private Integer offset = 0;
     private Integer limit = 0;
     private boolean acceptPartial = false;
