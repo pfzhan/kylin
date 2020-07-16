@@ -125,7 +125,10 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("simplified_dimensions")
     public List<SimplifiedNamedColumn> getNamedColumns() {
-        NTableMetadataManager tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
+        NTableMetadataManager tableMetadata = null;
+        if (!isBroken()) {
+            tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
+        }
 
         List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
         for (NamedColumn col : getAllNamedColumns()) {
@@ -141,7 +144,7 @@ public class NDataModelResponse extends NDataModel {
         SimplifiedNamedColumn simplifiedDimension = new SimplifiedNamedColumn(col);
 
         TblColRef colRef = findColumnByAlias(simplifiedDimension.getAliasDotColumn());
-        if (colRef == null) {
+        if (colRef == null || tableMetadata == null) {
             return simplifiedDimension;
         }
         TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
@@ -283,11 +286,15 @@ public class NDataModelResponse extends NDataModel {
     @JsonGetter("selected_columns")
     public List<SimplifiedNamedColumn> getSelectedColumns() {
         List<SimplifiedNamedColumn> selectedColumns = Lists.newArrayList();
-        NTableMetadataManager tableMetadata = NTableMetadataManager.getInstance(getConfig(), getProject());
+        NTableMetadataManager tableMetadata = null;
+        if (!isBroken()) {
+            tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
+        }
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
             TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());
-            if (simplifiedNamedColumn.getStatus() == ColumnStatus.DIMENSION && colRef != null) {
+            if (simplifiedNamedColumn.getStatus() == ColumnStatus.DIMENSION && colRef != null
+                    && tableMetadata != null) {
                 TableExtDesc tableExt = tableMetadata.getTableExtIfExists(colRef.getTableRef().getTableDesc());
                 TableExtDesc.ColumnStats columnStats = Objects.isNull(tableExt) ? null
                         : tableExt.getColumnStatsByName(colRef.getName());
