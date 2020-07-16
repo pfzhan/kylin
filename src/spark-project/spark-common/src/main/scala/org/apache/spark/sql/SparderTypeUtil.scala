@@ -275,7 +275,7 @@ object SparderTypeUtil extends Logging {
     case (ts: java.sql.Timestamp, _) => DateFormat.castTimestampToString(ts.getTime)
     case (dt: java.sql.Date, _) => DateFormat.formatToDateStr(dt.getTime)
     case (value: mutable.WrappedArray.ofRef[Any], _) =>
-      s"[${value.array.mkString(",")}]"
+      value.array.map(v => convertToStringWithCalciteType(v, relType)).mkString("[", ",", "]")
     case (other, _) => other.toString
   }
 

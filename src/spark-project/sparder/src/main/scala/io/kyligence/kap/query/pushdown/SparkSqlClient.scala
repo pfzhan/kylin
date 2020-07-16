@@ -42,6 +42,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 object SparkSqlClient {
   val DEFAULT_DB: String = "spark.sql.default.database"
@@ -96,11 +97,7 @@ object SparkSqlClient {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
-      val rowList = df.collect().map(_.toSeq.map {
-        case null => null
-        case value: Timestamp => DateFormat.castTimestampToString(value.getTime)
-        case value: Any => value.toString
-      }.asJava).toSeq.asJava
+      val rowList = df.collect().map(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
@@ -121,6 +118,13 @@ object SparkSqlClient {
       df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
       HadoopUtil.setCurrentConfiguration(null)
     }
+  }
+
+  private def rawValueToString(value: Any): String = value match {
+    case null => null
+    case value: Timestamp => DateFormat.castTimestampToString(value.getTime)
+    case value: mutable.WrappedArray.ofRef[Any] => value.array.map(v => rawValueToString(v)).mkString("[", ",", "]")
+    case value: Any => value.toString
   }
 }
 
