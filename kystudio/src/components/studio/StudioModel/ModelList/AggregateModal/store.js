@@ -52,11 +52,11 @@ const initialState = JSON.stringify({
 export default {
   state: JSON.parse(initialState),
   getters: {
-    dimensions (state) {
+    dimensions: state => () => {
       return getDimensions(state.model)
     },
     dimensionIdMapping (state, getters) {
-      return getMapping(getters.dimensions)
+      return getMapping(getters.dimensions())
     },
     measures (state) {
       return getMeasures(state.model)
@@ -186,9 +186,10 @@ function getDimensions (model) {
     return model.simplified_dimensions
       .filter(column => column.status === 'DIMENSION')
       .map(dimension => ({
+        ...dimension,
         label: dimension.column,
         value: dimension.column,
-        id: dimension.id
+        isCheck: false
       }))
   } else {
     return []
@@ -196,7 +197,7 @@ function getDimensions (model) {
 }
 
 function getMeasures (model) {
-  return model ? model.simplified_measures.map(measure => ({label: measure.name, value: measure.name, id: measure.id})) : []
+  return model ? model.simplified_measures.map(measure => ({...measure, label: measure.name, value: measure.name})) : []
 }
 
 export { types }

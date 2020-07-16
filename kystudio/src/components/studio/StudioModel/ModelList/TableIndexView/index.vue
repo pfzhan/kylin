@@ -58,14 +58,11 @@
             prop="column">
           </el-table-column>
           <el-table-column
-          :label="$t('sort')"
-          prop="sort"
-          width="60"
-          align="center">
-          <template slot-scope="scope">
-            <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
-          </template>
-            </el-table-column>
+            :label="$t('cardinality')"
+            prop="cardinality"
+            width="100"
+            align="center">
+          </el-table-column>
           <el-table-column
           label="Shard"
           align="center"
@@ -219,6 +216,7 @@ export default class TableIndexView extends Vue {
       let newitem = {
         id: index.detailCurrentCount * index.detailCurrentPage + i + 1,
         column: item.key,
+        cardinality: item.cardinality,
         sort: index.sort_by_columns.indexOf(item.key) + 1 || '',
         shared: index.shard_by_columns.includes(item.key)
       }

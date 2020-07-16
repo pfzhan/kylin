@@ -63,13 +63,20 @@
         <template v-if="aggregate.activeTab === 'dimension'">
           <!-- Include聚合组 -->
           <div class="row ksd-mb-15">
-            <div class="title font-medium ksd-mb-10">{{$t('include')}}({{aggregate.includes.length}})</div>
-            <div class="content">{{aggregate.includes.join(', ')}}</div>
+            <div class="title font-medium ksd-mb-5">{{$t('include')}}({{aggregate.includes.length}})</div>
+            <div class="content">
+              <el-tag :class="['ksd-mr-5', 'ksd-mt-5', {'is-used': showSelectedIncludes(aggregate, item)}]" size="mini" v-for="(item, index) in getIncludesDimension(aggregate)" :key="index">{{item}}</el-tag>
+              <!-- {{aggregate.includes.join(', ')}} -->
+              <span class="show-more" v-if="aggregate.showIncludeMore" @click="toggleMore(aggregate, 'Include')">{{$t('showAll')}}<i class="icon el-icon-ksd-more_01"></i></span>
+            </div>
           </div>
           <!-- Mandatory聚合组 -->
           <div class="row ksd-mb-15">
-            <div class="title font-medium ksd-mb-10">{{$t('mandatory')}}({{aggregate.mandatory.length}})</div>
-            <div class="content">{{aggregate.mandatory.join(', ')}}</div>
+            <div class="title font-medium ksd-mb-5">{{$t('mandatory')}}({{aggregate.mandatory.length}})</div>
+            <div class="content">
+              <el-tag class="ksd-mr-5 ksd-mt-5 is-used" size="mini" v-for="(item, index) in aggregate.mandatory" :key="index">{{item}}</el-tag>
+              <!-- {{aggregate.mandatory.join(', ')}} -->
+            </div>
           </div>
           <!-- Hierarchy聚合组 -->
           <div class="row ksd-mb-15">
@@ -77,7 +84,10 @@
             <div class="list content"
               v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
               :key="`hierarchy-${hierarchyRowIdx}`">
-              {{$t('group') + `-${hierarchyRowIdx + 1}`}}: <span>{{hierarchy.items.join(', ')}}</span>
+              {{$t('group') + `${hierarchyRowIdx + 1}`}}: <span>
+                <el-tag class="ksd-mr-5 ksd-mt-5 is-used" size="mini" v-for="(item, index) in hierarchy.items" :key="index">{{item}}</el-tag>
+                <!-- {{hierarchy.items.join(', ')}} -->
+              </span>
             </div>
           </div>
           <!-- Joint聚合组 -->
@@ -86,14 +96,22 @@
             <div class="list content"
               v-for="(joint, jointRowIdx) in aggregate.jointArray"
               :key="`joint-${jointRowIdx}`">
-              {{$t('group') + `-${jointRowIdx + 1}`}}: <span>{{joint.items.join(', ')}}</span>
+              {{$t('group') + `-${jointRowIdx + 1}`}}: <span>
+                <el-tag :class="['ksd-mr-5', 'ksd-mt-5', 'is-used']" size="mini" v-for="(item, index) in joint.items" :key="index">{{item}}</el-tag>
+                <!-- {{joint.items.join(', ')}} -->
+              </span>
+              <p class="cardinality-multiple"><span>{{$t('cardinalityMultiple')}}</span><span>{{getMultipleCardinality(aggregateIdx, jointRowIdx)}}</span></p>
             </div>
           </div>
         </template>
         <template v-else>
           <div class="row ksd-mb-15">
-            <div class="title font-medium ksd-mb-10">{{$t('includeMeasure')}}</div>
-            <div class="content">{{aggregate.measures.join(', ')}}</div>
+            <div class="title font-medium ksd-mb-5">{{$t('includeMeasure')}}</div>
+            <div class="content">
+              <el-tag :class="['ksd-mr-5', 'ksd-mt-5', 'is-used']" size="mini" v-for="(item, index) in getAggregateMeasures(aggregate)" :key="index">{{item}}</el-tag>
+              <!-- {{aggregate.measures.join(', ')}} -->
+              <span class="show-more" v-if="aggregate.showMeasureMore" @click="toggleMore(aggregate, 'Measure')">{{$t('showAll')}}<i class="icon el-icon-ksd-more_01"></i></span>
+            </div>
           </div>
         </template>
       </div>
@@ -166,6 +184,10 @@ export default class AggregateView extends Vue {
     {name: 'measures', key: 'measure', size: 0, total: 0, target: 'measures'}
   ]
   isLoading = false
+  tagMaxLength = {
+    includes: 20,
+    measure: 20
+  }
   get dimensions () {
     if (this.model) {
       return this.model.simplified_dimensions
@@ -181,6 +203,29 @@ export default class AggregateView extends Vue {
   }
   get measures () {
     return this.model ? this.model.simplified_measures.map(measure => ({label: measure.name, value: measure.name, id: measure.id})) : []
+  }
+  getIncludesDimension (aggregate) {
+    if (aggregate.showIncludeMore) {
+      return aggregate.includes.slice(0, this.tagMaxLength.includes)
+    } else {
+      return aggregate.includes
+    }
+  }
+  getAggregateMeasures (aggregate) {
+    if (aggregate.showMeasureMore) {
+      return aggregate.measures.slice(0, this.tagMaxLength.measure)
+    } else {
+      return aggregate.measures
+    }
+  }
+  getMultipleCardinality (aggregateIdx, jointRowIdx) {
+    const dimensionList = this.model ? this.model.simplified_dimensions.filter(column => column.status === 'DIMENSION') : []
+    const joint = this.aggregationGroups[aggregateIdx].jointArray[jointRowIdx].items
+    const valueList = dimensionList.filter(it => joint.includes(it.column)).map(d => d.cardinality)
+    return valueList.length ? valueList.reduce((prev, next) => prev * next) : '--'
+  }
+  showSelectedIncludes (aggregate, currentItem) {
+    return [...aggregate.mandatory, ...aggregate.hierarchyArray.map(it => it.items).flat(), ...aggregate.jointArray.map(it => it.items).flat()].includes(currentItem)
   }
   totalSize (name) {
     return this[name].length
@@ -288,6 +333,8 @@ export default class AggregateView extends Vue {
             const items = hierarchyGroup.map(hierarchy => nameMapping[hierarchy])
             return { id: groupIdx, items }
           })
+          aggregationGroup.showIncludeMore = aggregationGroup.includes.length > this.tagMaxLength.includes
+          aggregationGroup.showMeasureMore = aggregationGroup.measures.length > this.tagMaxLength.measure
           return aggregationGroup
         })
       }
@@ -309,6 +356,10 @@ export default class AggregateView extends Vue {
       const detailContents = this.$el.querySelectorAll('.agg-detail-block .agg-detail')
       this.$el.querySelector('.agg-detail-block').scrollTop = detailContents[index].offsetTop - 15
     })
+  }
+  // 是否展示更多维度或度量
+  toggleMore (aggregate, type) {
+    aggregate[`show${type}More`] = !aggregate[`show${type}More`]
   }
 }
 </script>
@@ -360,6 +411,11 @@ export default class AggregateView extends Vue {
     position: relative;
     .content {
       color: @color-text-regular;
+      .is-used {
+        background-color: #EAFFEA;
+        color: #4CB050;
+        border: 1px solid #4CB050;
+      }
     }
     .icon-group i:hover {
       color: @base-color;
@@ -392,6 +448,20 @@ export default class AggregateView extends Vue {
             color: @text-disabled-color;
           }
         }
+      }
+      .show-more {
+        color: #0988DE;
+        font-size: 12px;
+        cursor: pointer;
+        .icon {
+          margin-left: 5px;
+          font-size: 10px;
+        }
+      }
+      .cardinality-multiple {
+        font-size: 12px;
+        color: @text-normal-color;
+        margin-top: 5px;
       }
     }
     .empty-block {

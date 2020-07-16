@@ -26,13 +26,15 @@
       <!-- list 区 begin -->
       <div class="ky-simple-table">
         <el-row class="table-header table-row ksd-mt-10">
-          <el-col :span="21">{{$t('dimension')}}</el-col>
+          <el-col :span="18">{{$t('dimension')}}</el-col>
+          <el-col :span="3" class="ksd-left">{{$t('cardinality')}}</el-col>
           <el-col :span="3">Shard by</el-col>
         </el-row>
         <div class="table-content" v-scroll.observe.reactive @scroll-bottom="scrollLoad">
           <transition-group name="flip-list" tag="div">
             <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
-              <el-col :span="21" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
+              <el-col :span="18" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
+              <el-col :span="3" class="ksd-left">{{col.cardinality}}</el-col>
               <el-col :span="3">
                 <div class="action-list" @click="toggleColumnShard(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
                   <i class="el-icon-success" v-if="!col.isUsed" :class="{active: col.isShared}"></i>
@@ -68,7 +70,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { indexOfObjWithSomeKey, filterObjectArray, topArrByArr, handleSuccessAsync } from 'util/index'
+import { indexOfObjWithSomeKey, filterObjectArray, handleSuccessAsync } from 'util/index'
 import { handleError, kapMessage, handleSuccess } from 'util/business'
 
 vuex.registerModule(['modals', 'AggAdvancedModal'], store)
@@ -172,6 +174,7 @@ export default class AggregateModal extends Vue {
       return this.model.simplified_dimensions
         .filter(column => column.status === 'DIMENSION')
         .map(dimension => ({
+          ...dimension,
           label: dimension.column,
           value: dimension.column,
           id: dimension.id
@@ -280,9 +283,9 @@ export default class AggregateModal extends Vue {
   getAllColumns () {
     this.allColumns = []
     let result = []
-    let modelUsedTables = this.getDimensions() || []
+    let modelUsedTables = [...this.getDimensions()] || []
     modelUsedTables.forEach((col) => {
-      result.push(col.value)
+      result.push({...col, fullName: col.value})
     })
     // cc列也要放到这里
     /* let ccColumns = this.model && this.model.computed_columns || []
@@ -290,17 +293,24 @@ export default class AggregateModal extends Vue {
       result.push(col.tableAlias + '.' + col.columnName)
     }) */
     if (this.aggIndexAdvancedMeta.shard_by_columns) {
-      result = topArrByArr(result, this.aggIndexAdvancedMeta.shard_by_columns)
+      // result = topArrByArr(result, this.aggIndexAdvancedMeta.shard_by_columns)
+      const selected = this.aggIndexAdvancedMeta.shard_by_columns.map(item => {
+        const index = result.findIndex(it => it.value === item)
+        return {...result[index]}
+      })
+      const unSort = result.filter(item => !this.aggIndexAdvancedMeta.shard_by_columns.includes(item.fullName))
+      result = [...selected, ...unSort]
     }
-    result.forEach((i, index) => {
-      let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false, colorful: false}
-      if (this.aggIndexAdvancedMeta.shard_by_columns.indexOf(i) >= 0) {
+    result.forEach((item, index) => {
+      let obj = {...item, isSorted: false, isUsed: false, isShared: false, colorful: false}
+      if (this.aggIndexAdvancedMeta.shard_by_columns.indexOf(item.fullName) >= 0) {
         obj.isSorted = true
         obj.isUsed = true
         obj.isShared = true
       }
       this.allColumns.push(obj)
     })
+    console.log(this.allColumns)
   }
 
   pagerChange (pager) {

@@ -8,7 +8,8 @@ export default {
     delIndex: 'Delete Index',
     aggTableIndexTips: 'No table indexes defined. Please add dimensions or measures which would be used to answer detail queries in SQL.',
     tableIndex: 'Table Index',
-    addTableIndex: 'Add Table Index'
+    addTableIndex: 'Add Table Index',
+    cardinality: 'Cardinality'
   },
   'zh-cn': {
     viewAll: '查看所有',
@@ -22,6 +23,7 @@ export default {
     delIndex: '删除索引',
     aggTableIndexTips: '当前无明细索引。请将需要回答SQL中的明细查询的列设为明细索引。',
     tableIndex: '明细索引',
-    addTableIndex: '添加明细索引'
+    addTableIndex: '添加明细索引',
+    cardinality: '基数'
   }
 }

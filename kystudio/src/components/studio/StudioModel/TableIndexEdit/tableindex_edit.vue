@@ -8,31 +8,46 @@
       </el-form> -->
       <!-- <div class="ky-line ksd-mtb-10"></div> -->
       <div>
-        <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
-        <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+        <!-- <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button> -->
+        <div class="header">
+          <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+        </div>
        <div class="ky-simple-table">
           <el-row class="table-header table-row ksd-mt-10">
-            <el-col :span="15">{{$t('kylinLang.model.columnName')}}</el-col>
-            <el-col :span="3">{{$t('select')}}</el-col>
-            <el-col :span="3">{{$t('sort')}}</el-col>
-            <el-col :span="3">Shard</el-col>
+            <el-col :span="1"><el-checkbox v-model="isSelectAllTableIndex" :indeterminate="getSelectedColumns.length !== 0 && allColumns.length > getSelectedColumns.length" @change="selectAllTableIndex" size="small" /></el-col>
+            <el-col :span="14" class="column-name">{{$t('kylinLang.model.columnName')}}</el-col>
+            <el-col :span="3" class="cardinality-item">{{$t('cardinality')}}</el-col>
+            <el-col :span="3">ShardBy</el-col>
+            <el-col :span="3">{{$t('order')}}</el-col>
           </el-row>
-          <div class="table-content"  v-scroll.observe.reactive @scroll-bottom="scrollLoad">
+          <div class="table-content" v-scroll.observe.reactive @scroll-bottom="scrollLoad">
             <transition-group name="flip-list" tag="div">
-                <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
-                  <el-col :span="15" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
-                  <el-col :span="3" @click.native="toggleDisplay(col)"><i class="el-icon-success" :class="{active: col.isUsed}" ></i></el-col>
-                  <el-col :span="3">
-                    <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
+                <el-row v-for="(col, index) in searchAllColumns" :key="col.fullName" class="table-row">
+                  <el-col :span="1"><el-checkbox size="small" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
+                  <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}</el-col>
+                  <el-col :span="3" class="cardinality-item">{{col.cardinality}}</el-col>
+                  <el-col :span="3" @click.native="toggleShard(col)">
+                     <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
+                  </el-col>
+                  <el-col :span="3" class="order-actions">
+                    <!-- <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
                       <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
                       <span class="up-down" :class="{hide: searchColumn}">
                         <i v-visible="col.isUsed && col.isSorted && !checkIsTopSort(col)" @click.stop="upRow(col)" class="el-icon-ksd-arrow_up"></i>
                         <i v-visible="col.isUsed && col.isSorted && !checkIsBottomSort(col)" @click.stop="downRow(col)" class="el-icon-ksd-arrow_down"></i>
                       </span>
-                    </div>
-                  </el-col>
-                  <el-col :span="3" @click.native="toggleShard(col)">
-                    <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
+                    </div> -->
+                    <template  v-if="col.isUsed">
+                      <el-tooltip :content="$t('moveTop')" effect="dark" placement="top">
+                        <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0}]" @click="topRow(col)"></span>
+                      </el-tooltip>
+                      <el-tooltip :content="$t('moveUp')" effect="dark" placement="top">
+                        <span :class="['icon', 'el-icon-ksd-move_up', {'is-disabled': index === 0}]" @click="upRow(col)"></span>
+                      </el-tooltip>
+                      <el-tooltip :content="$t('moveDown')" effect="dark" placement="top">
+                        <span :class="['icon', 'el-icon-ksd-move_down', {'is-disabled': !searchAllColumns[index + 1] || !searchAllColumns[index + 1].isUsed}]" @click="downRow(col)"></span>
+                      </el-tooltip>
+                    </template>
                   </el-col>
                 </el-row>
               </transition-group>
@@ -55,7 +70,7 @@
   import { NamedRegex } from 'config'
   import { BuildIndexStatus } from 'config/model'
   import { handleError, kapMessage, handleSuccess, kapConfirm } from 'util/business'
-  import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray, topArrByArr } from 'util/index'
+  import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -106,6 +121,15 @@
       ]
     }
     cloneMeta = ''
+    isSelectAllTableIndex = false
+    get getSelectedColumns () {
+      return this.allColumns.filter(it => it.isUsed)
+    }
+    topRow (col) {
+      let index = this.getRowIndex(col, 'fullName')
+      this.allColumns.splice(0, 0, col)
+      this.allColumns.splice(index + 1, 1)
+    }
     upRow (col) {
       let i = this.getRowIndex(col, 'fullName')
       this.allColumns.splice(i - 1, 0, col)
@@ -212,29 +236,36 @@
       this.allColumns = []
       // let result = []
       let result = this.modelInstance.selected_columns.map((c) => {
-        return c.column
+        return { fullName: c.column, cardinality: c.cardinality }
       })
       // let modelUsedTables = this.modelInstance && this.modelInstance.getTableColumns() || []
       // modelUsedTables.forEach((col) => {
       //   result.push(col.full_colname)
       // })
+      if (this.tableIndexMeta.sort_by_columns) {
+        // result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
+        const selected = this.tableIndexMeta.sort_by_columns.map(item => {
+          const index = result.findIndex(it => it.fullName === item)
+          return {fullName: item, cardinality: result[index].cardinality}
+        })
+        const unSort = result.filter(item => !this.tableIndexMeta.sort_by_columns.includes(item.fullName))
+        result = [...selected, ...unSort]
+      }
       // cc列也要放到这里
       // let ccColumns = this.modelInstance && this.modelInstance.computed_columns || []
       // ccColumns.forEach((col) => {
       //   result.push(col.tableAlias + '.' + col.columnName)
       // })
-      if (this.tableIndexMeta.sort_by_columns) {
-        result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
-      }
-      result.forEach((i, index) => {
-        let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false, colorful: false}
-        if (this.tableIndexMeta.sort_by_columns.indexOf(i) >= 0) {
+      console.log(result, this.modelInstance.selected_columns, 222)
+      result.forEach((ctx, index) => {
+        let obj = {fullName: ctx.fullName, cardinality: ctx.cardinality, isSorted: false, isUsed: false, isShared: false, colorful: false}
+        if (this.tableIndexMeta.sort_by_columns.indexOf(ctx.fullName) >= 0) {
           obj.isSorted = true
         }
-        if (this.tableIndexMeta.col_order.indexOf(i) >= 0) {
+        if (this.tableIndexMeta.col_order.indexOf(ctx.fullName) >= 0) {
           obj.isUsed = true
         }
-        if (this.tableIndexMeta.shard_by_columns.indexOf(i) >= 0) {
+        if (this.tableIndexMeta.shard_by_columns.indexOf(ctx.fullName) >= 0) {
           obj.isShared = true
         }
         this.allColumns.push(obj)
@@ -384,6 +415,20 @@
         this.confirmSubmit(isLoadData)
       }
     }
+    selectAllTableIndex (v) {
+      this.isSelectAllTableIndex = v
+      this.allColumns.forEach(item => {
+        item.isUsed = v
+      })
+    }
+    selectTableIndex (status, col) {
+      const selectedColumns = this.getSelectedColumns
+      const unSelected = this.allColumns.filter(it => !it.isUsed)
+      col.isSorted = status
+      this.allColumns = [...selectedColumns, ...unSelected]
+      selectedColumns.length === this.allColumns.length && (this.isSelectAllTableIndex = true)
+      unSelected.length === this.allColumns.length && (this.isSelectAllTableIndex = false)
+    }
   }
 </script>
 <style lang="less">
@@ -391,6 +436,9 @@
   .table-edit-dialog {
     .el-dialog {
       min-width: 600px;
+      .header {
+        text-align: right;
+      }
     }
     .flip-list-move {
       transition: transform .5s;
@@ -460,6 +508,37 @@
       li {
         margin-top:20px;
         height:32px;
+      }
+    }
+    .ky-simple-table {
+      .el-col {
+        &:first-child {
+          text-overflow: initial;
+        }
+      }
+      .order-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .table-row {
+        .column-name {
+          text-align: left;
+        }
+        .cardinality-item {
+          text-align: right;
+        }
+        .icon {
+          cursor: pointer;
+          margin-left: 10px;
+          &:first-child {
+            margin-left: 0;
+          }
+          &.is-disabled {
+            pointer-events: none;
+            color: @text-disabled-color;
+          }
+        }
       }
     }
   }
