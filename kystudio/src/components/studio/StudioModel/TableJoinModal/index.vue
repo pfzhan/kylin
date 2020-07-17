@@ -144,7 +144,7 @@ export default class TableJoinModal extends Vue {
       } else { // 无join数据的情况,设置默认值
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
-        this.$set(this.joinColumns, 'op', ['EQUAL'])
+        this.$set(this.joinColumns, 'op', [''])
       }
       // 拖动添加默认填充
       // 如果添加的是重复的连接条件不做处理
@@ -169,21 +169,22 @@ export default class TableJoinModal extends Vue {
           this.joinColumns.primary_key[0] = this.form.pColumnName
         }
       }
-      // if (this.form.fColumnName && this.form.pColumnName) {
-      //   if (this.joinColumns.op[0]) {
-      //     this.joinColumns.op.push('EQUAL')
-      //   } else {
-      //     this.joinColumns.op[0] = 'EQUAL'
-      //   }
-      // }
+      if (this.form.fColumnName && this.form.pColumnName) {
+        if (this.joinColumns.op[0]) {
+          this.joinColumns.op.push('EQUAL')
+        } else {
+          this.joinColumns.op[0] = 'EQUAL'
+        }
+      }
     } else {
       this.showDetails = false
       this.isErrorValue = []
     }
   }
+  @Watch('joinType')
   @Watch('joinColumns', {deep: true})
   changeJoinCondition (oldVal, newVal) {
-    let type = this.checkNoEqualRelation(newVal) && this.checkLinkCompelete()
+    let type = this.checkNoEqualRelation(this.joinColumns) && this.checkLinkCompelete()
     this.disableSaveBtn = !type
   }
   get getDetails () {
@@ -337,43 +338,56 @@ export default class TableJoinModal extends Vue {
     let less_than = joins.filter(it => it.op === 'LESS_THAN' && it.fk && it.pk)
     // let equals = joins.filter(it => it.op === 'EQUAL' && it.fk && it.pk)
     // 两张表仅可使用同一连接条件一次
-    let correctTableName = (pid, fid) => {
-      return {
-        pTable: this.form.tables[pid].name.replace(/^(\w+)\./, ''),
-        tTable: this.form.tables[fid].name.replace(/^(\w+)\./, '')
-      }
+    const pAlias = this.form.tables[this.form.pid].name.split('.')[1]
+    const currentJoin = {
+      foreign_key: joinColumns.foreign_key,
+      op: joinColumns.op,
+      primary_key: joinColumns.primary_key.map(it => it.replace(/^(\w+)\./, `${pAlias}.`)),
+      type: this.joinType
     }
-    let fk = joinColumns.foreign_key.map(it => it.replace(/(\w+)\./, `${correctTableName(this.form.pid, this.form.fid).tTable}.`))
-    let pk = joinColumns.primary_key.map(it => it.replace(/(\w+)\./, `${correctTableName(this.form.pid, this.form.fid).pTable}.`))
-    let combination = fk.map((item, index) => `${item}&${pk[index]}`)
-    let joinInfoHistory = Object.keys(this.form.modelInstance.linkUsedColumns).filter(it => it.indexOf(this.form.fid) >= 0 && it !== `${this.form.pid}${this.form.fid}`)
-    if (joinInfoHistory.length) {
-      let tables = []
-      joinInfoHistory.map(item => this.form.modelInstance.linkUsedColumns[item]).forEach((list, idx) => {
-        let joinId = joinInfoHistory[idx]
-        let start = joinId.indexOf(this.form.fid)
-        let uid = []
-        if (start === 0) {
-          uid = [joinId.slice(0, this.form.fid.length), joinId.slice(this.form.fid.length, joinId.length)]
-        } else {
-          uid = [joinId.slice(joinId.length - this.form.fid.length, joinId.length), joinId.slice(0, joinId.length - this.form.fid.length)]
-        }
-        for (let i = 0; i <= list.length / 2 - 1; i++) {
-          tables.push(`${list[i + list.length / 2].replace(/(\w+)\./, `${correctTableName(uid[1], uid[0]).tTable}.`)}&${list[i].replace(/(\w+)\./, `${correctTableName(uid[1], uid[0]).pTable}.`)}`)
-        }
-      })
-      if (tables.length) {
-        let cludesIndex = []
-        combination.forEach((v, index) => {
-          tables.includes(v) && cludesIndex.push(index)
-        })
-        if (cludesIndex.length) {
-          this.errorFlag = [...this.errorFlag, ...cludesIndex]
-          this.isErrorValue.push(4)
-          flag = false
-        }
-      }
+
+    if (this.form.modelInstance.compareModelLink(this.form, currentJoin)) {
+      // this.errorFlag = [...this.errorFlag, ...cludesIndex]
+      this.isErrorValue.push(4)
+      flag = false
     }
+    // let correctTableName = (pid, fid) => {
+    //   return {
+    //     pTable: this.form.tables[pid].name.replace(/^(\w+)\./, ''),
+    //     tTable: this.form.tables[fid].name.replace(/^(\w+)\./, '')
+    //   }
+    // }
+    // let fk = joinColumns.foreign_key.map(it => it.replace(/(\w+)\./, `${correctTableName(this.form.pid, this.form.fid).tTable}.`))
+    // let pk = joinColumns.primary_key.map(it => it.replace(/(\w+)\./, `${correctTableName(this.form.pid, this.form.fid).pTable}.`))
+    // let combination = fk.map((item, index) => `${item}&${pk[index]}`)
+    // let joinInfoHistory = Object.keys(this.form.modelInstance.linkUsedColumns).filter(it => it.indexOf(this.form.fid) >= 0 && it !== `${this.form.pid}${this.form.fid}`)
+    // if (joinInfoHistory.length) {
+    //   let tables = []
+    //   joinInfoHistory.map(item => this.form.modelInstance.linkUsedColumns[item]).forEach((list, idx) => {
+    //     let joinId = joinInfoHistory[idx]
+    //     let start = joinId.indexOf(this.form.fid)
+    //     let uid = []
+    //     if (start === 0) {
+    //       uid = [joinId.slice(0, this.form.fid.length), joinId.slice(this.form.fid.length, joinId.length)]
+    //     } else {
+    //       uid = [joinId.slice(joinId.length - this.form.fid.length, joinId.length), joinId.slice(0, joinId.length - this.form.fid.length)]
+    //     }
+    //     for (let i = 0; i <= list.length / 2 - 1; i++) {
+    //       tables.push(`${list[i + list.length / 2].replace(/(\w+)\./, `${correctTableName(uid[1], uid[0]).tTable}.`)}&${list[i].replace(/(\w+)\./, `${correctTableName(uid[1], uid[0]).pTable}.`)}`)
+    //     }
+    //   })
+    //   if (tables.length) {
+    //     let cludesIndex = []
+    //     combination.forEach((v, index) => {
+    //       tables.includes(v) && cludesIndex.push(index)
+    //     })
+    //     if (cludesIndex.length) {
+    //       this.errorFlag = [...this.errorFlag, ...cludesIndex]
+    //       this.isErrorValue.push(4)
+    //       flag = false
+    //     }
+    //   }
+    // }
     // 至少有一个equal连接关系
     if (!joinColumns.op.includes('EQUAL')) {
       this.isErrorValue.push(3)

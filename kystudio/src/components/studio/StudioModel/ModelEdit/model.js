@@ -195,7 +195,7 @@ class NModel {
   // 自动布局
   renderPosition () {
     // 自动布局前先理顺链表方向
-    this._arrangeLinks()
+    // this._arrangeLinks()
     const layers = this.autoCalcLayer()
     if (layers && layers.length > 0) {
       const baseL = modelRenderConfig.baseLeft
@@ -985,7 +985,7 @@ class NModel {
       this._updateAllMeasuresCCToNewFactTable()
       this._updateAllNamedColumnsCCToNewFactTable()
       this._updateCCToNewFactTable()
-      this._arrangeLinks()
+      // this._arrangeLinks()
     } else if (t.name === this.fact_table) {
       this.fact_table = '' // fact 改为 lookup 需要将它设置为空
     }
@@ -1477,6 +1477,33 @@ class NModel {
     }
     this._mount.hasBrokenLinkedTable = false
     return null
+  }
+  // 判断同一张表join关系是否相同
+  compareModelLink (table, joinColumns) {
+    let guidTableNameMap = {}
+    const {fid, pid} = table
+    const linkList = []
+    const connInfo = Object.keys(this.allConnInfo).filter(item => item.split('$')[1] === fid && item.split('$')[0] !== pid).map(it => it.split('$')[0])
+    connInfo.forEach(item => {
+      const tableName = this.tables[item].name
+      if (tableName in guidTableNameMap) {
+        guidTableNameMap[tableName].push(item)
+      } else {
+        guidTableNameMap[tableName] = [item]
+      }
+    })
+    if (this.tables[pid].name in guidTableNameMap && guidTableNameMap[this.tables[pid].name].length) {
+      guidTableNameMap[this.tables[pid].name].forEach(item => {
+        const tableInfo = this.getTableByGuid(item)
+        const tableName = tableInfo.name.split('.')[1]
+        const { join } = tableInfo.getJoinInfo()
+        let link = join.foreign_key.map((it, index) => `${it}/${join.op[index]}/${join.primary_key[index].replace(/^(\w+)\./, `${tableName}.`)}/${join.type}`).sort()
+        linkList.push(link.join('&'))
+      })
+    }
+
+    const currentJoin = joinColumns.foreign_key.map((f, index) => `${f}/${joinColumns.op[index]}/${joinColumns.primary_key[index]}/${joinColumns.type}`).sort().join('&')
+    return linkList.includes(currentJoin)
   }
 }
 
