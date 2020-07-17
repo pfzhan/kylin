@@ -469,6 +469,7 @@ case class IntersectCountByCol(children: Expression*) extends Expression {
     val ic = IntersectCountByColImpl.getClass.getName.stripSuffix("$")
 
     val builder = new StringBuilder()
+    builder.append(s"$list.clear();\n")
     codes.map(_.value).foreach { code =>
         builder.append(s"$list.add($code);\n")
     }
