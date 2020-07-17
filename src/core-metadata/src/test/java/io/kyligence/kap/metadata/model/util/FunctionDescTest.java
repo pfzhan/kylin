@@ -24,11 +24,13 @@
 package io.kyligence.kap.metadata.model.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -39,6 +41,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class FunctionDescTest extends NLocalFileMetadataTestCase {
 
@@ -76,8 +80,8 @@ public class FunctionDescTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRewriteFieldName() {
-        FunctionDesc function = FunctionDesc.newInstance("count",
-                newParameters(model.findColumn("TRANS_ID")), "bigint");
+        FunctionDesc function = FunctionDesc.newInstance("count", newParameters(model.findColumn("TRANS_ID")),
+                "bigint");
         Assert.assertEquals("_KY_COUNT_TEST_KYLIN_FACT_TRANS_ID_", function.getRewriteFieldName());
 
         FunctionDesc function1 = FunctionDesc.newInstance("count", newParameters("1"), "bigint");
@@ -118,10 +122,41 @@ public class FunctionDescTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(DataType.getType("bigint"), sum1.getReturnDataType());
         Assert.assertEquals(DataType.getType("bigint"), sum1.getRewriteFieldType());
 
-        FunctionDesc max = FunctionDesc.newInstance("MAX",
-                newParameters(TblColRef.mockup(null, 0, "col", "integer")), "bigint");
+        FunctionDesc max = FunctionDesc.newInstance("MAX", newParameters(TblColRef.mockup(null, 0, "col", "integer")),
+                "bigint");
         Assert.assertEquals(DataType.getType("bigint"), max.getReturnDataType());
         Assert.assertEquals(DataType.getType("integer"), max.getRewriteFieldType());
+    }
+
+    @Test
+    public void testIsDatatypeSuitable() {
+        List<DataType> allDataTypes = Stream
+                .of("short", "long", "int4", "long8", "byte", "binary", "numeric", "datetime", "time", "real", "any",
+                        "varchar", "char", "integer", "tinyint", "smallint", "bigint", "float", "decimal", "double",
+                        "array", "timestamp", "date", "string", "boolean", "int")
+                .map(DataType::getType).collect(Collectors.toList());
+
+        List<String> allFunctions = Arrays.asList("SUM", "MIN", "MAX", "COUNT", "COLLECT_SET", "COUNT_DISTINCT",
+                "PERCENTILE_APPROX", "TOP_N");
+
+        Map<String, List<DataType>> funcSuitableDataTypeMap = new HashMap<>();
+        funcSuitableDataTypeMap.put("SUM",
+                Stream.of("tinyint", "smallint", "integer", "bigint", "float", "double", "decimal")
+                        .map(DataType::getType).collect(Collectors.toList()));
+        funcSuitableDataTypeMap.put("TOP_N",
+                Stream.of("tinyint", "smallint", "integer", "bigint", "float", "double", "decimal")
+                        .map(DataType::getType).collect(Collectors.toList()));
+        funcSuitableDataTypeMap.put("PERCENTILE_APPROX", Stream.of("tinyint", "smallint", "integer", "bigint")
+                .map(DataType::getType).collect(Collectors.toList()));
+
+        for (DataType dataType : allDataTypes) {
+            for (String function : allFunctions) {
+                FunctionDesc functionDesc = FunctionDesc.newInstance(function,
+                        newParameters(TblColRef.mockup(null, 0, "col", dataType.getName())), null);
+                Assert.assertEquals(functionDesc.isDatatypeSuitable(dataType),
+                        funcSuitableDataTypeMap.getOrDefault(function, allDataTypes).contains(dataType));
+            }
+        }
     }
 
     private static List<ParameterDesc> newParameters(Object... objs) {
