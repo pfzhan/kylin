@@ -146,7 +146,7 @@ public class JdbcRawRecStore {
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
                     .and(table.state, isIn(RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED))
-                    .orderBy(table.cost.descending()) //
+                    .orderBy(table.cost.descending(), table.hitCount.descending(), table.id.descending()) //
                     .limit(topN) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
