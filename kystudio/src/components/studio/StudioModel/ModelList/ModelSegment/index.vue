@@ -56,6 +56,12 @@
       <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip width="130" prop="start_time" sortable="custom">
+          <template slot-scope="scope">{{segmentTime(scope.row, scope.row.startTime) | toServerGMTDate}}</template>
+        </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.endTime')" show-overflow-tooltip width="130" prop="end_time" sortable="custom">
+          <template slot-scope="scope">{{segmentTime(scope.row,scope.row.endTime) | toServerGMTDate}}</template>
+        </el-table-column>
         <el-table-column
           header-align="right"
           align="right"
@@ -84,12 +90,6 @@
         </el-table-column>
         <el-table-column :label="$t('storageSize')" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" width="130" prop="start_time" sortable="custom">
-          <template slot-scope="scope">{{segmentTime(scope.row, scope.row.startTime) | toServerGMTDate}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" width="130" prop="end_time" sortable="custom">
-          <template slot-scope="scope">{{segmentTime(scope.row,scope.row.endTime) | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column align="left" class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
