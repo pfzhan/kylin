@@ -51,7 +51,7 @@ public interface QueryHistoryMapper extends IKeep {
     int delete(DeleteStatementProvider deleteStatement);
 
     @InsertProvider(type = SqlProviderAdapter.class, method = "insert")
-    @Options(useGeneratedKeys = true, keyProperty = "record.id", keyColumn = "id")
+    @Options(useGeneratedKeys = true, keyProperty = "record.id")
     int insert(InsertStatementProvider<QueryMetrics> insertStatement);
 
     @SelectProvider(type = SqlProviderAdapter.class, method = "select")

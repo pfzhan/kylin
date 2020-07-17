@@ -33,12 +33,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class QueryMetrics {
+public class QueryMetrics implements IKeep {
 
     protected static final Logger logger = LoggerFactory.getLogger(QueryMetrics.class);
 

@@ -94,7 +94,7 @@ public class QueryHistoryAccessCLI {
         try {
             cli = new QueryHistoryAccessCLI();
         } catch (Exception e) {
-            logger.error("Test failed.");
+            logger.error("Test failed.", e);
             System.exit(1);
         }
 

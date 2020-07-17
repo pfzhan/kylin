@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,7 +39,7 @@ import lombok.Setter;
 @SuppressWarnings("serial")
 @Getter
 @Setter
-public class QueryHistory {
+public class QueryHistory implements IKeep {
     public static final String ADJ_SLOW = "Slow";
     public static final String QUERY_HISTORY_SUCCEEDED = "SUCCEEDED";
     public static final String QUERY_HISTORY_FAILED = "FAILED";
