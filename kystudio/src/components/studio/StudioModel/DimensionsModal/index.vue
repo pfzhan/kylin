@@ -451,7 +451,14 @@ export default class DimensionsModal extends Vue {
     this.getRenderCCData()
     this.factTable = []
     this.lookupTable = []
-    Object.values(this.tables).forEach((table) => {
+    const tableValue = Object.values(this.tables)
+    tableValue.forEach((table, idx) => {
+      const names = []
+      if (idx > 0) {
+        for (let j = 0; j < idx; j++) {
+          names.push(...tableValue[j].columns.map(it => it.alias))
+        }
+      }
       if (table.kind === 'FACT') {
         this.factTable.push(table)
       } else {
@@ -462,9 +469,11 @@ export default class DimensionsModal extends Vue {
       this.$set(table, 'isIndeterminate', false)
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
-        // this.$set(col, 'alias', table.alias + '_' + col.name)
-        // 默认采用列名
-        this.$set(col, 'alias', col.name)
+        if (names.includes(col.name)) {
+          this.$set(col, 'alias', table.alias + '_' + col.name)
+        } else {
+          this.$set(col, 'alias', col.name)
+        }
         this.$set(col, 'isSelected', false)
         this.$set(col, 'guid', null)
         let len = this.usedColumns.length

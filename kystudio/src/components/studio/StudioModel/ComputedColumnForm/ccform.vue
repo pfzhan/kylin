@@ -11,7 +11,7 @@
     </el-form-item>
     <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
       <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-ksd-what"></i></common-tip></span>
-      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression" :read-only="!isEdit">
+      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression" :read-only="!isEdit" @input="changeExpression">
       </kap-editor>
     </el-form-item>
     <div class="ky-sql-check-msg" v-if="errorMsg">
@@ -185,6 +185,9 @@ export default class CCForm extends Vue {
   }
   editCC () {
     this.isEdit = true
+  }
+  changeExpression () {
+    this.errorMsg && (this.errorMsg = '')
   }
   setAutoCompleteData (data) {
     let ad = data.map((col) => {
