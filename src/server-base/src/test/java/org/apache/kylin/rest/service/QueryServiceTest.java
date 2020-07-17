@@ -412,6 +412,28 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(log.contains("mock_model_alias2"));
     }
 
+    private void mockOLAPContextForEmptyLayout() {
+        val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
+
+        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("default");
+        // mock empty index realization
+        OLAPContext mock = new OLAPContext(1);
+        NDataModel mockModel1 = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel1.getUuid()).thenReturn("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Mockito.when(mockModel1.getAlias()).thenReturn("mock_model_alias1");
+        Mockito.doReturn(mockModel1).when(modelManager).getDataModelDesc("mock_model1");
+        IRealization mockRealization1 = Mockito.mock(IRealization.class);
+        Mockito.when(mockRealization1.getModel()).thenReturn(mockModel1);
+        mock.realization = mockRealization1;
+        mock.storageContext.setEmptyLayout(true);
+        mock.storageContext.setCandidate(NLayoutCandidate.EMPTY);
+        mock.storageContext.setCuboidLayoutId(null);
+        mock.storageContext.setPrunedSegments(Lists.newArrayList());
+        OLAPContext.registerContext(mock);
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+    }
+
     private void mockOLAPContext() {
         val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default"));
 
@@ -822,6 +844,23 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
         SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertEquals("CONSTANTS", response.getEngineType());
+    }
+
+    @Test
+    public void testQueryWithEmptyLayout() throws SQLException {
+        String sql = "select price*item_count from test_kylin_fact where cal_dt = '2020-01-01' limit 100";
+        stubQueryConnection(sql, "default");
+        mockOLAPContextForEmptyLayout();
+
+        SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql(sql);
+        SQLResponse response = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals(1, response.getNativeRealizations().size());
+        NativeQueryRealization realization = response.getNativeRealizations().get(0);
+        Assert.assertEquals("mock_model_alias1", realization.getModelAlias());
+        Assert.assertNull(realization.getLayoutId());
+        Assert.assertNull(realization.getIndexType());
     }
 
     @Test

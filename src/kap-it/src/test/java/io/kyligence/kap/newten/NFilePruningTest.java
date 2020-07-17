@@ -526,6 +526,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         val context = ContextUtil.listContexts().get(0);
         if (emptyLayout) {
             Assert.assertTrue(context.storageContext.isEmptyLayout());
+            Assert.assertNull(context.storageContext.getCuboidLayoutId());
             return numScanFiles;
         }
         df.collect();

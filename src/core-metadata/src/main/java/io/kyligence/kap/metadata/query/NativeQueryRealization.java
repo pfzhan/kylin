@@ -51,7 +51,7 @@ public class NativeQueryRealization implements Serializable {
     @Setter
     private NDataModelAclParams aclParams;
 
-    public NativeQueryRealization(String modelId, String modelAlias, long layoutId, String indexType,
+    public NativeQueryRealization(String modelId, String modelAlias, Long layoutId, String indexType,
             boolean isPartialMatchModel) {
         this.modelId = modelId;
         this.modelAlias = modelAlias;

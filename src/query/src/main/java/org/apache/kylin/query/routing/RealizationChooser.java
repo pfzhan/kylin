@@ -432,6 +432,7 @@ public class RealizationChooser {
     private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
                                             Set<FunctionDesc> metrics, NLayoutCandidate selectedCandidate, List<NDataSegment> prunedSegments) {
         if (CollectionUtils.isEmpty(prunedSegments)) {
+            context.setCuboidLayoutId(null);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;

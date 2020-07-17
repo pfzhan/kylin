@@ -1070,7 +1070,7 @@ public class QueryService extends BasicService {
                     logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
                     final String realizationType;
                     if (ctx.storageContext.isEmptyLayout()) {
-                        continue;
+                        realizationType = null;
                     } else if (ctx.storageContext.isUseSnapshot()) {
                         realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
                     } else if (ctx.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
