@@ -62,7 +62,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component("rawRecService")
 public class RawRecService {
-    private static final long MILLIS_PER_DAY = 1000 * 60 * 60 * 24L;
 
     public void generateRawRecommendations(String project, List<QueryHistory> queryHistories) {
         if (queryHistories == null || queryHistories.isEmpty()) {
@@ -113,9 +112,9 @@ public class RawRecService {
                 .collect(Collectors.toList());
         for (ProjectInstance projectInstance : projectInstances) {
             String project = projectInstance.getName();
-//            if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
-//                continue;
-//            }
+            if (!kylinConfig.isUTEnv() && !epochMgr.checkEpochOwner(project)) {
+                continue;
+            }
             try {
                 log.info("Running update cost for project<{}>", project);
                 RawRecManager.getInstance(project).updateAllCost(project);
@@ -219,7 +218,6 @@ public class RawRecService {
         recItem.setMaxTime(maxTime);
         recItem.setMinTime(minTime);
 
-        recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - MILLIS_PER_DAY));
         recItem.setLayoutMetric(layoutMetric);
         recItem.setHitCount(hitCount);
     }
@@ -345,8 +343,7 @@ public class RawRecService {
         Thread.currentThread().setName("DeleteRawRecItemsInDB");
         for (ProjectInstance instance : projectInstances) {
             try {
-                RawRecManager.getInstance(instance.getName())
-                        .deleteAllOutDated(instance.getName());
+                RawRecManager.getInstance(instance.getName()).deleteAllOutDated(instance.getName());
             } catch (Exception e) {
                 log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
             }

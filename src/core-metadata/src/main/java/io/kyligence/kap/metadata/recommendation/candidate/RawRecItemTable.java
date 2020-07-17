@@ -59,7 +59,7 @@ public class RawRecItemTable extends SqlTable implements IKeep {
     public final SqlColumn<LayoutMetric> layoutMetric = column("layout_metric", JDBCType.VARCHAR,
             LayoutMetricHandler.class.getName());
     public final SqlColumn<Double> cost = column("cost", JDBCType.DOUBLE);
-    public final SqlColumn<Double> totalLatencyOfLastDay = column("total_latency_of_last_day");
+    public final SqlColumn<Double> totalLatencyOfLastDay = column("total_latency_of_last_day", JDBCType.DOUBLE);
     public final SqlColumn<Integer> hitCount = column("hit_count", JDBCType.INTEGER);
     public final SqlColumn<Double> totalTime = column("total_time", JDBCType.DOUBLE);
     public final SqlColumn<Double> maxTime = column("max_time", JDBCType.DOUBLE);
