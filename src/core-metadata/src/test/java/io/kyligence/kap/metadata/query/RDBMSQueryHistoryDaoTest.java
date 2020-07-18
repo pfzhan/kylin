@@ -424,6 +424,24 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testDeleteQueryHistoryForProject() throws Exception {
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 1L, false, "other"));
+
+        // before delete
+        List<QueryHistory> queryHistoryList = queryHistoryDAO.getAllQueryHistories();
+        Assert.assertEquals(4, queryHistoryList.size());
+
+        // after delete
+        queryHistoryDAO.deleteQueryHistoryForProject(PROJECT);
+        queryHistoryList = queryHistoryDAO.getAllQueryHistories();
+        Assert.assertEquals(1, queryHistoryList.size());
+        Assert.assertEquals("other", queryHistoryList.get(0).getProjectName());
+    }
+
+    @Test
     public void testUpdateQueryHistoryInfo() throws Exception {
         QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
         QueryMetrics queryMetrics2 = createQueryMetrics(1580397912000L, 2L, false, PROJECT);

@@ -80,8 +80,8 @@ public class QueryHistoryAccessCLI {
             queryHistoryDAO.insert(queryMetrics);
 
             // clean test data
-            queryHistoryDAO.deleteAllQueryHistory();
-            queryHistoryDAO.deleteAllQueryHistoryRealization();
+            queryHistoryDAO.deleteQueryHistoryForProject(PROJECT);
+            queryHistoryDAO.deleteAllQueryHistoryRealizationForProject(PROJECT);
         } catch (Exception e) {
             logger.error(FAIL_LOG, e);
             return false;

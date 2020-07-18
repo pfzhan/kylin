@@ -103,6 +103,14 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         jdbcQueryHisStore.deleteQueryHistoryRealization();
     }
 
+    public void deleteQueryHistoryForProject(String project) {
+        jdbcQueryHisStore.deleteQueryHistory(project);
+    }
+
+    public void deleteAllQueryHistoryRealizationForProject(String project) {
+        jdbcQueryHisStore.deleteQueryHistoryRealization(project);
+    }
+
     public void deleteQueryHistoriesIfMaxSizeReached() {
         QueryHistory queryHistory = jdbcQueryHisStore
                 .queryOldestQueryHistory(KylinConfig.getInstanceFromEnv().getQueryHistoryMaxSize());
