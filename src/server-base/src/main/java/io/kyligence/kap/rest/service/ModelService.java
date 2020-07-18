@@ -77,8 +77,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
-
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -559,9 +557,6 @@ public class ModelService extends BasicService {
             ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName,
                     inconsistentSegmentCount);
             boolean isScd2ForbiddenOnline = checkSCD2ForbiddenOnline(modelDesc, projectName);
-            //check all scd2 model must be offline when scd2 turn off
-            modelResponseStatus = checkScd2StatusConsistence(isScd2ForbiddenOnline, modelDesc, projectName,
-                    modelResponseStatus);
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
@@ -611,20 +606,7 @@ public class ModelService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    private ModelStatusToDisplayEnum checkScd2StatusConsistence(boolean isScd2Forbidden, NDataModel modelDesc,
-            String projectName, ModelStatusToDisplayEnum status) {
-        if (isScd2Forbidden && isListContains(getModelNonOffOnlineStatus(), status)) {
-            offlineModelsInProjectById(projectName, Sets.newHashSet(modelDesc.getId()));
-            NDataModel nDataModel = getModelById(modelDesc.getId(), projectName);
-            long inconsistentSegmentCount = getDataflowManager(projectName).getDataflow(nDataModel.getId())
-                    .getSegments(SegmentStatusEnum.WARNING).size();
-            return convertModelStatusToDisplay(nDataModel, projectName, inconsistentSegmentCount);
-        } else {
-            return status;
-        }
-    }
-
-    private ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName,
+    public ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName,
             long inconsistentSegmentCount) {
         RealizationStatusEnum modelStatus = modelDesc.isBroken() ? RealizationStatusEnum.BROKEN
                 : getModelStatus(modelDesc.getUuid(), projectName);
@@ -1033,22 +1015,22 @@ public class ModelService extends BasicService {
         NDataModelManager dataModelManager = getDataModelManager(project);
         NDataModel dataModelDesc = getModelById(modelId, project);
         //copyForWrite nDataModel do init,but can not set new modelname
-        NDataModel nDataModel;
-        try {
-            nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(dataModelDesc), NDataModel.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        NDataModel nDataModel = semanticUpdater.deepCopyModel(dataModelDesc);
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setAlias(newModelName);
         nDataModel.setLastModified(System.currentTimeMillis());
         nDataModel.setMvcc(-1);
         changeModelOwner(nDataModel);
         val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
-        cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid());
+
+        boolean forbiddenOnline = checkSCD2ForbiddenOnline(nDataModel, project);
+        RealizationStatusEnum realizationStatusEnum = forbiddenOnline ? RealizationStatusEnum.OFFLINE
+                : RealizationStatusEnum.ONLINE;
+        cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid(), realizationStatusEnum);
     }
 
-    private void cloneIndexPlan(String modelId, String project, String owner, String newModelId) {
+    private void cloneIndexPlan(String modelId, String project, String owner, String newModelId,
+            RealizationStatusEnum realizationStatusEnum) {
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -1061,9 +1043,8 @@ public class ModelService extends BasicService {
                 .collect(Collectors.toSet());
         copy.removeLayouts(toBeDeletedLayouts, true, true);
         indexPlanManager.createIndexPlan(copy);
-        NDataflow nDataflow = new NDataflow();
-        nDataflow.setStatus(RealizationStatusEnum.ONLINE);
-        dataflowManager.createDataflow(copy, owner);
+
+        dataflowManager.createDataflow(copy, owner, realizationStatusEnum);
     }
 
     @Transaction(project = 0)
@@ -1504,7 +1485,7 @@ public class ModelService extends BasicService {
             throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getINVALID_CREATE_MODEL());
         }
 
-        preProcessBeforeModelSave(dataModel, project, modelRequest);
+        preProcessBeforeModelSave(dataModel, project);
         checkFlatTableSql(dataModel);
         return dataModel;
     }
@@ -1888,7 +1869,7 @@ public class ModelService extends BasicService {
     }
 
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
-            List<Long> indexIds, boolean parallelBuildBySegment) throws Exception {
+            List<Long> indexIds, boolean parallelBuildBySegment) {
         aclEvaluate.checkProjectOperationPermission(project);
         val jobManager = getJobManager(project);
         val dfManger = getDataflowManager(project);
@@ -2199,23 +2180,9 @@ public class ModelService extends BasicService {
         }
     }
 
-    /**
-     * process when model is inited, but before save
-     * @param initedModel
-     * @param modelRequest
-     */
-    private void preProcessBeforeInitedModelSave(NDataModel initedModel, @Nullable ModelRequest modelRequest) {
-        if (Objects.isNull(modelRequest)) {
-            return;
-        }
-        semanticUpdater.convertNonEquiJoinCond(initedModel, modelRequest);
-    }
-
-    void preProcessBeforeModelSave(NDataModel model, String project, @Nullable ModelRequest modelRequest) {
+    void preProcessBeforeModelSave(NDataModel model, String project) {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
-
-        preProcessBeforeInitedModelSave(model, modelRequest);
 
         String originFilterCondition = model.getFilterCondition();
         if (StringUtils.isNotEmpty(originFilterCondition)) {
@@ -2466,7 +2433,7 @@ public class ModelService extends BasicService {
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
 
-        preProcessBeforeModelSave(copyModel, project, request);
+        preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
 
         val affectedLayoutSet = getAffectedLayouts(project, modelId, modifiedSet);

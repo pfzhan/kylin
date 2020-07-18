@@ -45,6 +45,9 @@ public class JoinDescNonEquiCompBean {
 
     @Override
     public boolean equals(Object o2) {
+        if (Objects.isNull(o2)) {
+            return false;
+        }
 
         JoinDesc joinDesc2 = ((JoinDescNonEquiCompBean) o2).getJoinDesc();
 

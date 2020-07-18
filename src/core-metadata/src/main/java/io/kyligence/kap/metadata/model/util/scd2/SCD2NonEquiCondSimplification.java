@@ -60,6 +60,10 @@ public class SCD2NonEquiCondSimplification {
      */
     public SimplifiedJoinDesc convertToSimplifiedSCD2Cond(@Nullable JoinDesc joinDesc) throws SCD2Exception {
 
+        if (Objects.isNull(joinDesc)) {
+            return null;
+        }
+
         NonEquiJoinCondition nonEquiJoinCondition = joinDesc.getNonEquiJoinCondition();
         //null, or is not `and` cond
         if (Objects.isNull(nonEquiJoinCondition) || nonEquiJoinCondition.getOp() != SqlKind.AND) {

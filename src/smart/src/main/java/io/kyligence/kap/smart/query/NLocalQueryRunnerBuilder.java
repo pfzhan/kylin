@@ -32,6 +32,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -106,7 +107,7 @@ class NLocalQueryRunnerBuilder {
         indexPlan.setUuid(dataModel.getUuid());
         indexPlan.setProject(projectName);
         indexPlan.setDescription(StringUtils.EMPTY);
-        NDataflow dataflow = NDataflow.create(indexPlan);
+        NDataflow dataflow = NDataflow.create(indexPlan, RealizationStatusEnum.ONLINE);
         dataflow.setProject(projectName);
         mockupResources.put(indexPlan.getResourcePath(), indexPlan);
         mockupResources.put(dataflow.getResourcePath(), dataflow);

@@ -77,14 +77,13 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     public static final String REALIZATION_TYPE = "NCUBE";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
 
-    public static NDataflow create(IndexPlan plan) {
+    public static NDataflow create(IndexPlan plan, RealizationStatusEnum realizationStatusEnum) {
         NDataflow df = new NDataflow();
-
         df.config = (KylinConfigExt) plan.getConfig();
         df.setUuid(plan.getUuid());
         df.setCreateTimeUTC(System.currentTimeMillis());
         df.setSegments(new Segments<>());
-        df.setStatus(RealizationStatusEnum.ONLINE);
+        df.setStatus(realizationStatusEnum);
 
         return df;
     }

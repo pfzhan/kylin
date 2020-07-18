@@ -74,11 +74,13 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -98,6 +100,7 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -175,6 +178,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
@@ -226,6 +231,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     private TableService tableService = Mockito.spy(new TableService());
 
     @Autowired
+    private TableExtService tableExtService = Mockito.spy(new TableExtService());
+
+    @Autowired
     private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @InjectMocks
@@ -248,7 +256,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
-
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
@@ -884,6 +891,31 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, originIndexPlan.getToBeDeletedIndexes().size());
         IndexPlan clonedIndexPlan = indexPlanManager.getIndexPlan(newModels.get(0).getUuid());
         Assert.assertEquals(0, clonedIndexPlan.getToBeDeletedIndexes().size());
+    }
+
+    @Test
+    public void testCloneSCD2Model() throws Exception {
+        final String randomUser = RandomStringUtils.randomAlphabetic(5);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(randomUser, "123456", Constant.ROLE_ADMIN));
+
+        String projectName = "default";
+
+        val scd2Model = createNonEquiJoinModel(projectName, "scd2_non_equi");
+
+        //turn off scd2 model
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
+        });
+
+        modelService.cloneModel(scd2Model.getId(), "clone_scd2_non_equi", projectName);
+
+        List<NDataModelResponse> newModels = modelService.getModels("clone_scd2_non_equi", projectName, true, "", null,
+                "last_modify", true);
+
+        Assert.assertTrue(newModels.size() == 1);
+
+        Assert.assertEquals(newModels.get(0).getStatus(), ModelStatusToDisplayEnum.OFFLINE);
     }
 
     @Test
@@ -1656,6 +1688,122 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
+    private List<NonEquiJoinCondition.SimplifiedNonEquiJoinCondition> genNonEquiJoinCond() {
+        NonEquiJoinCondition.SimplifiedNonEquiJoinCondition join1 = new NonEquiJoinCondition.SimplifiedNonEquiJoinCondition(
+                "TEST_KYLIN_FACT.SELLER_ID", "TEST_ORDER.TEST_EXTENDED_COLUMN", SqlKind.GREATER_THAN_OR_EQUAL);
+        NonEquiJoinCondition.SimplifiedNonEquiJoinCondition join2 = new NonEquiJoinCondition.SimplifiedNonEquiJoinCondition(
+                "TEST_KYLIN_FACT.SELLER_ID", "TEST_ORDER.BUYER_ID", SqlKind.LESS_THAN);
+        return Arrays.asList(join1, join2);
+    }
+
+    private NDataModel createNonEquiJoinModel(String projectName, String modelName) throws Exception {
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+
+        NDataModel model = modelManager.getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        model.setPartitionDesc(null);
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject(projectName);
+        modelRequest.setAlias(modelName);
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        modelRequest.getSimplifiedJoinTableDescs().get(0).getSimplifiedJoinDesc()
+                .setSimplifiedNonEquiJoinConditions(genNonEquiJoinCond());
+
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        return newModel;
+    }
+
+    @Test
+    public void testCreateModelNonEquiJoin() throws Exception {
+
+        val newModel = createNonEquiJoinModel("default", "non_equi_join");
+        String sql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(newModel.getJoinTables().get(0).getJoin(),
+                genNonEquiJoinCond());
+        Assert.assertEquals(sql,
+                "select * from  \"DEFAULT\".\"TEST_KYLIN_FACT\" AS \"TEST_KYLIN_FACT\" LEFT JOIN \"DEFAULT\".\"TEST_ORDER\" AS \"TEST_ORDER\" ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\" AND (\"TEST_KYLIN_FACT\".\"SELLER_ID\">=\"TEST_ORDER\".\"TEST_EXTENDED_COLUMN\") AND (\"TEST_KYLIN_FACT\".\"SELLER_ID\"<\"TEST_ORDER\".\"BUYER_ID\")");
+
+        Assert.assertTrue(newModel.getJoinTables().get(0).getJoin().isNonEquiJoin());
+    }
+
+    @Test
+    public void testModelNonEquiJoinBrokenRepair() throws Exception {
+        /* 1.create scd2 model
+         * 2.turn off scd2 configuration
+         * 3.unload fact table , model become broken
+         * 4.reload the fact table, model should be offline when model is scd2 and scd2 is turned off
+         */
+
+        BiFunction<String, String, NDataModel> getModel = ((project, modelId) -> NDataModelManager
+                .getInstance(getTestConfig(), project).getDataModelDesc(modelId));
+        Function<NDataModel, ModelStatusToDisplayEnum> getModelDisplayStatus = (modelId) -> {
+            long inconsistentSegmentCount = NDataflowManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), modelId.getProject()).getDataflow(modelId.getId())
+                    .getSegments(SegmentStatusEnum.WARNING).size();
+            return modelService.convertModelStatusToDisplay(modelId, modelId.getProject(), inconsistentSegmentCount);
+        };
+        String projectName = "default";
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+
+        Function<String, ModelRequest> modelRequestSupplier = (modelId) -> {
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    projectName);
+            NDataModel model = modelManager.getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+            model.setPartitionDesc(null);
+            model.setManagementType(ManagementType.MODEL_BASED);
+            ModelRequest modelRequest = new ModelRequest(model);
+            modelRequest.setProject(projectName);
+            modelRequest.setUuid(null);
+            modelRequest.setLastModified(0L);
+            return modelRequest;
+        };
+        ModelRequest scd2ModelRequest = modelRequestSupplier.apply("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        scd2ModelRequest.setAlias("non_equi_model");
+        scd2ModelRequest.getSimplifiedJoinTableDescs().get(0).getSimplifiedJoinDesc()
+                .setSimplifiedNonEquiJoinConditions(genNonEquiJoinCond());
+
+        ModelRequest normalModelRequest = modelRequestSupplier.apply("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        normalModelRequest.setAlias("equi_model");
+
+        val scd2Model = modelService.createModel(scd2ModelRequest.getProject(), scd2ModelRequest);
+        val normalModel = modelService.createModel(normalModelRequest.getProject(), normalModelRequest);
+
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
+        });
+
+        await().atMost(60, TimeUnit.SECONDS).untilAsserted(() -> {
+            Assert.assertEquals(getModelDisplayStatus.apply(scd2Model), ModelStatusToDisplayEnum.ONLINE);
+            Assert.assertEquals(getModelDisplayStatus.apply(normalModel), ModelStatusToDisplayEnum.ONLINE);
+        });
+
+        Assert.assertTrue(SCD2CondChecker.INSTANCE.isScd2Model(scd2Model));
+
+        //online -> broken
+        tableService.unloadTable(projectName, "DEFAULT.TEST_KYLIN_FACT", false);
+
+        await().atMost(60, TimeUnit.SECONDS).untilAsserted(() -> {
+            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, scd2Model.getUuid())),
+                    ModelStatusToDisplayEnum.BROKEN);
+            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, normalModel.getUuid())),
+                    ModelStatusToDisplayEnum.BROKEN);
+        });
+
+        //broken -> repair
+        tableExtService.loadTables(new String[] { "DEFAULT.TEST_KYLIN_FACT" }, projectName);
+
+        NDataflowManager.getInstance(getTestConfig(), projectName).getDataflow(scd2Model.getId());
+        await().atMost(60 * 2, TimeUnit.SECONDS).untilAsserted(() -> {
+            //normal model should be online
+            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, normalModel.getUuid())),
+                    ModelStatusToDisplayEnum.ONLINE);
+            Assert.assertEquals(getModelDisplayStatus.apply(getModel.apply(projectName, scd2Model.getUuid())),
+                    ModelStatusToDisplayEnum.OFFLINE);
+        });
+
     }
 
     private void testGetLatestData() throws Exception {
@@ -2804,19 +2952,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         newCCs2.add(ccDesc2);
         updated.setComputedColumnDescs(newCCs2);
 
-        ModelRequest modelRequest = null;
         Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
-        modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
+        modelService.preProcessBeforeModelSave(updated, "default");
         Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT` + 1) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2");
-        modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
+        modelService.preProcessBeforeModelSave(updated, "default");
         Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT` + 2) * 2",
                 ccDesc2.getInnerExpression());
 
         ccDesc2.setExpression("CC1 * 3");
-        modelService.preProcessBeforeModelSave(updated, "default", modelRequest);
+        modelService.preProcessBeforeModelSave(updated, "default");
         Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT` + 2) * 3",
                 ccDesc2.getInnerExpression());
     }
@@ -3759,7 +3906,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         model.getComputedColumnDescs().add(ccDesc);
 
-        modelService.preProcessBeforeModelSave(model, project, null);
+        modelService.preProcessBeforeModelSave(model, project);
     }
 
     @Test
@@ -4103,8 +4250,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         NDataModel nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelResponse), NDataModel.class);
         String modelJson = JsonUtil.writeValueAsString(nDataModel.getJoinTables());
-
         Assert.assertEquals(responseJson, modelJson);
+
+        //3. test deep copy model
+        Assert.assertEquals(JsonUtil.writeValueAsString(nDataModel),
+                JsonUtil.writeValueAsString(semanticService.deepCopyModel(nDataModel)));
 
     }
 

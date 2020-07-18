@@ -126,4 +126,10 @@ public class SCD2SimplificationConvertUtil {
         return joinTableDescs;
 
     }
+
+    public static List<JoinTableDesc> deepCopyJoinTables(List<JoinTableDesc> joinTables) {
+
+        return convertSimplified2JoinTables(simplifiedJoinTablesConvert(joinTables));
+
+    }
 }

@@ -46,6 +46,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
@@ -97,6 +98,7 @@ import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManager
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -110,18 +112,34 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ModelSemanticHelper extends BasicService {
 
+    public NDataModel deepCopyModel(NDataModel originModel) {
+        NDataModel nDataModel;
+        try {
+            nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(originModel), NDataModel.class);
+            nDataModel.setJoinTables(SCD2SimplificationConvertUtil.deepCopyJoinTables(originModel.getJoinTables()));
+        } catch (IOException e) {
+            throw new KylinException(CommonErrorCode.FAILED_PARSE_JSON, e);
+        }
+        return nDataModel;
+    }
+
     public NDataModel convertToDataModel(ModelRequest modelRequest) {
         List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
         NDataModel dataModel;
         try {
             dataModel = JsonUtil.deepCopy(modelRequest, NDataModel.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new KylinException(CommonErrorCode.FAILED_PARSE_JSON, e);
         }
         dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
         dataModel.setProject(modelRequest.getProject());
         dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
         dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
+
+        dataModel.init(getConfig(), getTableManager(modelRequest.getProject()).getAllTablesMap(),
+                getDataflowManager(modelRequest.getProject()).listUnderliningDataModels(), modelRequest.getProject());
+        convertNonEquiJoinCond(dataModel, modelRequest);
+
         return dataModel;
     }
 

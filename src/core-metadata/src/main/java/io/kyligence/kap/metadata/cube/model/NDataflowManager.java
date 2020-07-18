@@ -24,18 +24,24 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.val;
-import lombok.var;
+import static java.util.stream.Collectors.groupingBy;
+import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -56,23 +62,19 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
-import static java.util.stream.Collectors.groupingBy;
-import static org.apache.kylin.common.exception.SystemErrorCode.FAILED_MERGE_SEGMENT;
+import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
+import lombok.var;
 
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);
@@ -255,7 +257,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow createDataflow(IndexPlan plan, String owner) {
-        NDataflow df = NDataflow.create(plan);
+        return createDataflow(plan, owner, RealizationStatusEnum.ONLINE);
+    }
+
+    public NDataflow createDataflow(IndexPlan plan, String owner, RealizationStatusEnum realizationStatusEnum) {
+        NDataflow df = NDataflow.create(plan, realizationStatusEnum);
+        df.setStatus(realizationStatusEnum);
         df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
 
         // save dataflow
