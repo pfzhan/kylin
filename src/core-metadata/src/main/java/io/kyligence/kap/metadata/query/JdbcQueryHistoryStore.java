@@ -491,8 +491,8 @@ public class JdbcQueryHistoryStore {
         }
 
         if (StringUtils.isNotEmpty(request.getSql())) {
-            filterSql = filterSql.and(queryHistoryTable.sql, isLike(request.getSql()),
-                    or(queryHistoryTable.queryId, isLike(request.getSql())));
+            filterSql = filterSql.and(queryHistoryTable.sql, isLike("%" + request.getSql() + "%"),
+                    or(queryHistoryTable.queryId, isLike("%" + request.getSql() + "%")));
         }
 
         if (request.getRealizations() != null && !request.getRealizations().isEmpty()) {

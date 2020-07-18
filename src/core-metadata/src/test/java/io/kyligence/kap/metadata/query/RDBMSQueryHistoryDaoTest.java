@@ -149,6 +149,50 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetQueryHistoriesfilterBySql() throws Exception {
+        QueryMetrics queryMetrics1 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics1.setSql("select 2 LIMIT 500\n");
+        queryHistoryDAO.insert(queryMetrics1);
+
+        QueryMetrics queryMetrics2 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics2.setSql("select 1 LIMIT 500\n");
+        queryHistoryDAO.insert(queryMetrics2);
+
+        QueryMetrics queryMetrics3 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics3.setSql("select count(*) from KYLIN_SALES group by BUYER_ID LIMIT 500");
+        queryHistoryDAO.insert(queryMetrics3);
+
+        QueryMetrics queryMetrics4 = createQueryMetrics(1580311512000L, 1L, true, PROJECT);
+        queryMetrics4.setSql("select count(*) from KYLIN_SALES");
+        queryHistoryDAO.insert(queryMetrics4);
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+        queryHistoryRequest.setProject(PROJECT);
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+
+        queryHistoryRequest.setSql("count");
+        List<QueryHistory> queryHistoryList1 = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10,
+                0);
+        Assert.assertEquals(2, queryHistoryList1.size());
+
+        queryHistoryRequest.setSql("LIMIT");
+        List<QueryHistory> queryHistoryList2 = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10,
+                0);
+        Assert.assertEquals(3, queryHistoryList2.size());
+
+        queryHistoryRequest.setSql("select 1");
+        List<QueryHistory> queryHistoryList3 = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10,
+                0);
+        Assert.assertEquals(1, queryHistoryList3.size());
+
+        queryHistoryRequest.setSql("6a9a151f");
+        List<QueryHistory> queryHistoryList4 = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10,
+                0);
+        Assert.assertEquals(4, queryHistoryList4.size());
+    }
+
+    @Test
     public void getQueryHistoriesById() {
         Assert.assertEquals(1, queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT)));
         Assert.assertEquals(1, queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, PROJECT)));

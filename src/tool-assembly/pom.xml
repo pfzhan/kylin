@@ -191,6 +191,8 @@
                                     <include>org.apache.curator:curator-recipes</include>
                                     <include>org.apache.curator:curator-client</include>
                                     <include>org.apache.curator:curator-x-discovery</include>
+                                    <include>org.mybatis:mybatis</include>
+                                    <include>org.mybatis.dynamic-sql:mybatis-dynamic-sql</include>
                                     <include>javax.servlet:*</include>
                                 </includes>
                             </artifactSet>
