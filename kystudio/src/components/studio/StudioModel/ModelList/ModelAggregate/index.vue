@@ -158,7 +158,7 @@
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
-        <recommendations :modelDesc="model" v-else/>
+        <recommendations :modelDesc="model" @accept="acceptRecommend" v-else/>
       </div>
     </div>
 
@@ -748,6 +748,7 @@ export default class ModelAggregate extends Vue {
     await this.freshIndexGraph()
     await this.loadAggIndices()
     this.isLoading = false
+    console.log(this.model, 333)
   }
   async refreshIndexGraphAfterSubmitSetting () {
     this.isLoading = true
@@ -831,6 +832,12 @@ export default class ModelAggregate extends Vue {
     this.moveEvent.curW = this.moveEvent.w
     document.removeEventListener('mousemove', this.handlerMoveEvent)
     document.removeEventListener('mouseup', this.handlerUpEvent)
+  }
+
+  // 优化建议通过后刷新索引列表
+  async acceptRecommend () {
+    await this.loadAggIndices()
+    this.model.total_indexes = this.totalSize
   }
 }
 </script>

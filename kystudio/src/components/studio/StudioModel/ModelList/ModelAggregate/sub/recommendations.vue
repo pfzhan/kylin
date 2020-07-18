@@ -581,6 +581,8 @@ export default class IndexList extends Vue {
     this.accessApi(ids, legacy_ids, names).then(() => {
       this.isLoading = false
       this.showValidate = false
+    }).catch(e => {
+      this.isLoading = false
     })
   }
 
@@ -611,6 +613,7 @@ export default class IndexList extends Vue {
                }</a></span>
           })
           this.getRecommendations()
+          this.$emit('accept')
           resolve()
         } catch (e) {
           reject()
@@ -686,7 +689,7 @@ export default class IndexList extends Vue {
     line-height: 18px;
   }
 }
-.el-table.index-details-table, .el-table.validate-table {
+.el-table.index-details-table {
   .cell {
     height: 28px;
     line-height: 28px;
@@ -728,6 +731,23 @@ export default class IndexList extends Vue {
   margin-top: 10px;
   .el-form-item__content {
     line-height: 23px;
+  }
+  .cell {
+    height: initial;
+  }
+  .el-table__expanded-cell {
+    padding: 10px;
+    font-size: 12px;
+    color: @text-title-color;
+    p {
+      margin-bottom: 5px;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    .label {
+      color: @text-normal-color;
+    }
   }
 }
 .layout-details {

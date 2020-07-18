@@ -221,7 +221,7 @@ export default class AggregateView extends Vue {
   getMultipleCardinality (aggregateIdx, jointRowIdx) {
     const dimensionList = this.model ? this.model.simplified_dimensions.filter(column => column.status === 'DIMENSION') : []
     const joint = this.aggregationGroups[aggregateIdx].jointArray[jointRowIdx].items
-    const valueList = dimensionList.filter(it => joint.includes(it.column)).map(d => d.cardinality)
+    const valueList = dimensionList.filter(it => joint.includes(it.column)).map(d => d.cardinality).filter(it => !!it)
     return valueList.length ? valueList.reduce((prev, next) => prev * next) : '--'
   }
   showSelectedIncludes (aggregate, currentItem) {

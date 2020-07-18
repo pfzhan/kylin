@@ -79,7 +79,7 @@
                         <div class="ksd-mb-10">
                           <span class="title font-medium include-title">{{$t('include')}}</span>
                           <div class="row ksd-fright ky-no-br-space">
-                            <el-button plain class="ksd-ml-10" size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAll')}}</el-button>
+                            <el-button plain class="ksd-ml-10" size="mini" @click="handleRemoveAllIncludes(aggregateIdx, aggregateIdx + 1, aggregate.id)">{{$t('clearAll')}}</el-button>
                             <el-button plain size="mini" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-icon-ksd-table_edit ksd-mr-5"></i>{{$t('edit')}}</el-button>
                           </div>
                         </div>
@@ -273,7 +273,7 @@
                 <el-table-column
                   prop="value"
                   show-overflow-tooltip
-                  label="Date">
+                  :label="currentSelectedTag.ctx">
                 </el-table-column>
               </el-table>
               <p class="title">{{$t('sample')}}</p>
@@ -284,20 +284,24 @@
                 tooltip-effect="dark"
                 style="width: 100%">
                 <el-table-column
-                  type="index"
+                  width="60"
+                  prop="key"
                   show-overflow-tooltip
-                  label="ID">
+                >
                 </el-table-column>
                 <el-table-column
                   prop="value"
                   show-overflow-tooltip
-                  label="Date">
+                  :label="currentSelectedTag.ctx">
                 </el-table-column>
               </el-table>
             </template>
             <template v-else>
               <div class="noData">
-                <template v-if="!currentSelectedTag.ctx">
+                <template v-if="currentSelectedTag.isCC">
+                  <i class="icon el-icon-ksd-select"></i><p class="tip">{{$t('ccDimensionTip')}}</p>
+                </template>
+                <template v-else-if="!currentSelectedTag.ctx">
                   <i class="icon el-icon-ksd-select"></i><p class="tip">{{$t('noSelectDimensionTip')}}</p>
                 </template>
                 <template v-else-if="!currentSelectedTag.data.simple">
@@ -459,7 +463,7 @@
       :visible="true"
       v-if="editMeasure"
     >
-      <div class="action-layout">
+      <div class="action-measure-layout">
         <!-- <p class="alert">{{$t('editIncludeDimensionTip')}}</p> -->
         <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
       </div>
@@ -616,7 +620,7 @@ export default class AggregateModal extends Vue {
 
   getMultipleCardinality (aggregateIdx, jointRowIdx) {
     const jointData = this.form.aggregateArray[aggregateIdx].jointArray[jointRowIdx].items
-    let valueList = this.dimensions().filter(it => jointData.includes(it.column)).map(item => item.cardinality)
+    let valueList = this.dimensions().filter(it => jointData.includes(it.column)).map(item => item.cardinality).filter(it => !!it)
     return valueList.length ? valueList.reduce((prev, next) => prev * next) : '--'
   }
 
@@ -1296,19 +1300,25 @@ export default class AggregateModal extends Vue {
 
   handleClickTag (name, type, aggregateIdx) {
     let data = null
+    let isCC = false
     if (type === 'measure') {
       data = this.measures.filter(it => it.name === name)[0]
     } else {
       data = this.dimensions().filter(it => it.column === name)[0]
       const columns = ['cardinality', 'max_length_value', 'max_value', 'min_length_value', 'min_value', 'null_count']
       this.characteristicsData = columns.map(it => ({column: it, value: data[it]}))
-      this.sampleData = data.simple ? data.simple.map(it => ({value: it})) : []
+      const ccList = this.model.computed_columns.map(it => `${it.tableAlias}.${it.columnName}`)
+      isCC = ccList.includes(name)
+      this.characteristicsData.unshift({column: 'column', value: name.split('.')[1]})
+      this.sampleData = data.simple ? data.simple.map((it, index) => ({key: index + 1, value: it})) : []
+      this.sampleData.unshift({key: 'ID', value: name.split('.')[1]})
     }
     this.currentSelectedTag = {
       ctx: name,
       type: type,
       aggregateIdx,
-      data
+      data,
+      isCC
     }
   }
 
@@ -1377,11 +1387,12 @@ export default class AggregateModal extends Vue {
 
   // 筛选包含维度的列名
   filterChange () {
-    this.includeDimensions = this.dimensions().filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName) > -1)
+    this.includeDimensions = this.dimensions().filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1)
   }
 
   clearFilter () {
     this.includeDimensions = this.dimensions()
+    this.isSelectAllDimensions = false
   }
 
   // 编辑度量
@@ -1410,12 +1421,14 @@ export default class AggregateModal extends Vue {
 
   // 筛选度量
   filterMeasure () {
-    this.measureList = this.measures.filter(item => item.name.toLocaleLowerCase().indexOf(this.searchMeasure) > -1).map(it => ({...it, isCheck: it.name === 'COUNT_ALL'}))
+    this.measureList = this.measures.filter(item => item.name.toLocaleLowerCase().indexOf(this.searchMeasure.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: it.name === 'COUNT_ALL'}))
+    this.isSelectAllMeasure = false
   }
 
   // 清除筛选内容
   clearMeasureFilter () {
     this.measureList = this.measures.map(it => ({...it, isCheck: it.name === 'COUNT_ALL'}))
+    this.isSelectAllMeasure = false
   }
 
   // 保存度量
@@ -1659,6 +1672,20 @@ export default class AggregateModal extends Vue {
     }
     .statistics_list_table {
       margin-bottom: 30px;
+      .el-table__header-wrapper {
+        display: none;
+      }
+      .el-table__body-wrapper {
+        .el-table__row {
+          &:first-child {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            &:hover {
+              background-color: transparent;
+            }
+          }
+        }
+      }
     }
   }
   .aggregate-group {
@@ -1951,6 +1978,11 @@ export default class AggregateModal extends Vue {
         cursor: pointer;
       }
     }
+  }
+}
+.edit-measures {
+  .action-measure-layout {
+    text-align: right;
   }
 }
 .measure-table {
