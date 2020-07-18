@@ -37,11 +37,32 @@ INPUT_ROOT = './metadata'
 OUTPUT_ROOT = './newten_meta'
 TABLE_BLACK_LIST = []
 DEFAULT_AUTHORIZED = 1
+BYPASS_PROJECT_LIST = []
+BYPASS_MODEL_LIST = []
+OFFLINE_MODEL_LIST = []
 
 table_content_dict = {}
 model_content_dict = {}
 cube_model_dict = {}
 model_raw_table_dict = {}
+
+release_notes = [{
+    "version": "1.0",
+    "release_notes": [
+        "1. kafka stream project(kylin.source.default=1) will append project to BYPASS_PROJECT_LIST",
+        "2. cc in lookup table will append model to BYPASS_MODEL_LIST",
+        "3. cc in join condition will append model to BYPASS_MODEL_LIST",
+        "4. cc in partition date column will append model to BYPASS_MODEL_LIST",
+        "5. partition_date_format should not empty "
+        "while partition_date_column exists will append model to BYPASS_MODEL_LIST",
+        "6. table is fact table in partition model and is also dimension table in other models "
+        "will append other models to OFFLINE_MODEL_LIST",
+        "7. cc has same name with different expression or cc has different name with same expression "
+        "in same fact table will append model to BYPASS_MODEL_LIST (actually it is also impossible in ke3)",
+        "8. not supported measures corr, semi additive will remove from cube",
+        "9. update lookup table's kind to FACT"
+    ]
+}]
 
 PROJECT_TEMPALTE = '''
 {
@@ -193,6 +214,8 @@ def prepare_project():
             os.makedirs(OUTPUT_ROOT + '/_global/project')
         project_json = json.loads(PROJECT_TEMPALTE)
         plain_project_name = project_name.split('.')[0]
+        if plain_project_name in BYPASS_PROJECT_LIST:
+            continue
         with open(INPUT_ROOT + '/project/' + project_name) as project_file:
             project_origin_json = json.load(project_file)
             project_json['uuid'] = project_origin_json['uuid']
@@ -280,9 +303,9 @@ def migrate_table_index(index_plan_json, model_json, raw_table_list):
         sort_by_ids = []
         for col in raw_table['columns']:
             col_id = col_id_dict[col['table'] + '.' + col['column']]
-            if col['is_sortby']:
+            if col.get('is_sortby'):
                 sort_by_ids.append(col_id)
-            if col['is_shardby']:
+            if col.get('is_shardby'):
                 shard_by_ids.append(col_id)
             all_ids.append(col_id)
         dim_ids = list(all_ids)
@@ -502,6 +525,10 @@ class ProjectMigrator:
         for cube_name in self.cubes:
             try:
                 model_name = cube_model_dict[cube_name]
+                if model_name in BYPASS_MODEL_LIST:
+                    logging.warning("skip cube %s because model %s in bypass model list", cube_name, model_name)
+                    continue
+
                 with open(INPUT_ROOT + '/cube_desc/' + cube_name + '.json') as cube_file:
                     cube_json = json.load(cube_file)
                 with open(INPUT_ROOT + '/model_desc/' + model_name + '.json') as model_file:
@@ -545,9 +572,23 @@ class ProjectMigrator:
             model_json['uuid'] = uuid
             model_json['alias'] = cube_json['name']
             model_json['join_tables'] = model_json['lookups']
+            for table in model_json['join_tables']:
+                table['kind'] = 'LOOKUP'
+
             self.model_all_named_columns(model_json, cube_json, self.project)
+
+            # skip corr and semi additive measure
+            measures = cube_json['measures']
+            illegal_measures = [measure for measure in measures if measure['function']['expression'] == 'CORR'
+                                or measure['function'].get('semi_additive_info')]
+
+            if illegal_measures:
+                logging.warning("model %s's measures %s is not support will be remove", model_name,
+                                ", ".join([m['name'] for m in illegal_measures]))
+
             model_json['all_measures'] = [
-                self.migrate_measure(x, 100000 + i) for i, x in enumerate(cube_json['measures'])]
+                self.migrate_measure(x, 100000 + i) for i, x in enumerate(cube_json['measures'])
+                if x not in illegal_measures]
             model_json['management_type'] = 'MODEL_BASED'
             if 'partition_desc' in model_json:
                 model_json['partition_desc']['partition_type'] = 'APPEND'
@@ -573,6 +614,8 @@ class ProjectMigrator:
         with open(OUTPUT_ROOT + '/' + self.project + '/dataflow/' + uuid + '.json', 'w') as new_cube_file:
             dataflow_json = json.loads(DATAFLOW_TEMPLATE)
             dataflow_json['uuid'] = uuid
+            if model_name in OFFLINE_MODEL_LIST:
+                dataflow_json['status'] = 'OFFLINE'
             json.dump(dataflow_json, new_cube_file, indent=2)
 
     def migrate_aggregation_groups(self, index_plan_json, model_json, aggregation_groups_json):
@@ -642,15 +685,48 @@ class ProjectMigrator:
         dimensions = {}
         name_count = {}
         includes = []
+
+        def get_include_full_name(col_name):
+            if len(col_name.split('.')) == 1:
+                dimension_list = model_json.get('dimensions') or []
+                for dimension in dimension_list:
+                    if any(filter(lambda c: c == col_name, dimension.get('columns') or [])):
+                        return dimension['table'] + "." + col_name
+            return col_name
+
+        for agg_group in cube_json['aggregation_groups']:
+            for i, include in enumerate(agg_group['includes']):
+                include = get_include_full_name(include)
+                agg_group['includes'][i] = include
+
+            for i, hierarchy_dims in enumerate(agg_group['select_rule']['hierarchy_dims']):
+                for j, hierarchy in enumerate(hierarchy_dims):
+                    hierarchy = get_include_full_name(hierarchy)
+                    agg_group['select_rule']['hierarchy_dims'][i][j] = hierarchy
+
+            for i, mandatory in enumerate(agg_group['select_rule']['mandatory_dims']):
+                mandatory = get_include_full_name(mandatory)
+                agg_group['select_rule']['mandatory_dims'][i] = mandatory
+
+            for i, joint_dims in enumerate(agg_group['select_rule']['joint_dims']):
+                for j, joint in enumerate(joint_dims):
+                    joint = get_include_full_name(joint)
+                    agg_group['select_rule']['joint_dims'][i][j] = joint
+
+        for i, rowkey in enumerate(cube_json['rowkey']['rowkey_columns']):
+            column = get_include_full_name(rowkey['column'])
+            cube_json['rowkey']['rowkey_columns'][i]['column'] = column
+
         for x in cube_json['aggregation_groups']:
-            includes += x['includes']
+            includes.extend(x['includes'])
+
         includes = list(set(includes))
         for x in includes:
             dimensions[x] = {'name': x.split('.')[1]}
         for x in cube_json['dimensions']:
             dim_key = x['table'] + '.' + \
                       x['derived'][0] if x['column'] is None else x['table'] + '.' + x['column']
-            dimensions[dim_key] = {'name': x['name']}
+            dimensions[dim_key] = {'name': x['name'] if x['name'] else x['column'] if x['column'] else x['derived'][0]}
         for x in dimensions.keys():
             name = dimensions[x]['name']
             count = name_count.get(name, 0)
@@ -676,6 +752,163 @@ class ProjectMigrator:
         model_json['all_named_columns'] = columns
 
 
+def check_project():
+    for project_file in os.listdir(os.path.join(INPUT_ROOT, "project")):
+        project_name = project_file.split(".")[0]
+        project_checker = ProjectChecker(project_name)
+        project_checker.check()
+
+
+class ProjectChecker:
+    """
+    1. kafka stream project(kylin.source.default=1) will append project to BYPASS_PROJECT_LIST
+    2. cc in lookup table will append model to BYPASS_MODEL_LIST
+    3. cc in join condition will append model to BYPASS_MODEL_LIST
+    4. cc in partition date column will append model to BYPASS_MODEL_LIST
+    5. partition_date_format should not empty while partition_date_column exists will append model to BYPASS_MODEL_LIST
+    6. table is fact table in partition model and is also dimension table in other models
+    will append other models to OFFLINE_MODEL_LIST
+    7. cc has same name with different expression or cc has different name with same expression in same fact table
+    will append model to BYPASS_MODEL_LIST (actually it is also impossible in ke3)
+    """
+    project_name = None
+    models = []
+    tables = []
+    bypass = False
+
+    def __init__(self, project_name):
+        self.project_name = project_name
+        with open(os.path.join(INPUT_ROOT, "project", project_name + ".json")) as project_file:
+            project_json = json.load(project_file)
+            if project_json.get('override_kylin_properties').get('kylin.source.default') == '1':
+                BYPASS_PROJECT_LIST.append(project_name)
+                logging.warning("project %s is streaming project will bypass", self.project_name)
+
+            self.models = project_json.get('models') or []
+            self.tables = project_json.get('tables') or []
+
+    def check(self):
+        computed_columns_list = []
+        from collections import defaultdict
+        model_table_dict = defaultdict(dict)
+
+        for model in self.models:
+            with open(os.path.join(INPUT_ROOT, "model_desc", model + ".json")) as model_file:
+                model_json = json.load(model_file)
+                computed_columns = model_json.get('computed_columns') or []
+                # check cc in lookup table
+                cc_not_in_fact_table_list = [cc for cc in computed_columns if
+                                             cc['tableIdentity'] != model_json['fact_table']]
+
+                if cc_not_in_fact_table_list:
+                    logging.warning("project %s model %s has computed column %s in lookup table",
+                                    self.project_name, model, ", ".join([cc['columnName'] for cc in
+                                                                         cc_not_in_fact_table_list]))
+                    BYPASS_MODEL_LIST.append(model)
+                else:
+                    computed_columns_list.append({
+                        "model": model,
+                        "computed_columns": computed_columns
+                    })
+
+                # check cc in join condition
+                lookups = model_json.get('lookups') or []
+
+                import itertools
+                join_columns = list(itertools.chain(*[list(itertools.chain(
+                    lookup['join']['primary_key'], lookup['join']['foreign_key'])) for lookup in lookups]))
+
+                cc_in_join_condition = [cc for cc in computed_columns if "{tableAlias}.{columnName}".format(
+                    tableAlias=cc['tableAlias'], columnName=cc['columnName']) in join_columns]
+
+                if cc_in_join_condition:
+                    BYPASS_MODEL_LIST.append(model)
+                    logging.warning(
+                        "project %s find computed column %s in model %s lookups's join column", self.project_name,
+                        ", ".join([cc['columnName'] for cc in cc_in_join_condition]), model)
+
+                # check cc in partition date column && partition_date_format exists
+                if model_json.get('partition_desc') and model_json.get('partition_desc').get('partition_date_column'):
+                    partition_date_column = model_json.get('partition_desc').get('partition_date_column')
+
+                    if not model_json.get('partition_desc').get('partition_date_format'):
+                        BYPASS_MODEL_LIST.append(model)
+                        logging.warning(
+                            "project %s find partition_date_format is empty in model %s", self.project_name,  model)
+
+                    cc_in_partition_date_column = [cc for cc in computed_columns if "{tableAlias}.{columnName}".format(
+                        tableAlias=cc['tableAlias'], columnName=cc['columnName']) == partition_date_column]
+                    if cc_in_partition_date_column:
+                        BYPASS_MODEL_LIST.append(model)
+                        logging.warning(
+                            "project %s find computed column %s in model %s partition date column", self.project_name,
+                            ", ".join([cc['columnName'] for cc in cc_in_partition_date_column]), model)
+
+                model_table_dict[model] = {
+                    "fact_table": model_json['fact_table'],
+                    "lookup_tables": [lookup['table'] for lookup in model_json['lookups']],
+                    "is_partition": model_json.get('partition_desc') and
+                                    model_json['partition_desc'].get('partition_type') == 'TIME'
+                }
+
+        # check table is fact table and dimension table (in partition model)
+        for model, table in model_table_dict.items():
+            if table['is_partition']:
+                dim_table_models = [k for k, v in model_table_dict.items() if table['fact_table'] in v['lookup_tables']]
+                if dim_table_models:
+                    OFFLINE_MODEL_LIST.extend(dim_table_models)
+                    logging.warning(
+                        "project %s find model %s's fact table %s is lookup table in "
+                        "model %s", self.project_name, model, table['fact_table'], ", ".join(dim_table_models))
+
+        from collections import defaultdict
+        cc_model_name_dict = defaultdict(list)
+        expression_model_name_dict = defaultdict(list)
+        model_cc_expression = defaultdict(list)
+        for computed_columns_item in computed_columns_list:
+            model = computed_columns_item['model']
+            computed_columns = computed_columns_item['computed_columns']
+            for cc in computed_columns:
+                cc_name = "{table_name}.{columnName}".format(table_name=cc['tableAlias'], columnName=cc['columnName'])
+                cc_model_name_dict[cc_name].append(model)
+                expression = re.sub(r'\n', '', cc['expression'])
+                expression_model_name_dict[expression].append(model)
+                model_cc_expression[model].append({
+                    'columnName': cc_name,
+                    'expression': expression,
+                })
+
+        # check same name cc with different expression in same fact table
+        for cc_name, model_name_list in cc_model_name_dict.items():
+            expressions = set()
+            for model_name in model_name_list:
+                expressions.update((item['expression'] for item
+                                    in model_cc_expression[model_name] if item['columnName'] == cc_name))
+            if len(expressions) > 1:
+                BYPASS_MODEL_LIST.extend(model_name_list)
+                logging.warning(
+                    "project %s find same name computed column %s with different expression "
+                    "in different fact table in modes %s",
+                    self.project_name, cc_name.split(".")[1], ", ".join(model_name_list))
+
+        # check different name with same expression in same fact table
+        for expression, model_name_list in expression_model_name_dict.items():
+            cc_names = set()
+            for model_name in model_name_list:
+                cc_names.update((item['columnName'] for item
+                                 in model_cc_expression[model_name] if item['expression'] == expression))
+
+            from itertools import groupby
+            for fact_table, cc_name_iterator in groupby(cc_names, lambda cc: cc.split('.')[0]):
+                cc_name_list = list(cc_name_iterator)
+                if len(cc_name_list) > 1:
+                    BYPASS_MODEL_LIST.extend(model_name_list)
+                    logging.warning(
+                        "project %s find different name computed column with same expression %s "
+                        "in different fact table in modes %s",
+                        self.project_name, expression, ", ".join(model_name_list))
+
+
 if __name__ == "__main__":
 
     help_info = """please keep with 'kylin.acl.project-internal-default-permission-granted' in kylin.properties"""
@@ -696,6 +929,7 @@ if __name__ == "__main__":
     migrate_user()
     migrate_user_group()
     migrate_role_permission()
+    check_project()
     pms = prepare_project()
     prepare_cube_model()
     for pm in pms:
