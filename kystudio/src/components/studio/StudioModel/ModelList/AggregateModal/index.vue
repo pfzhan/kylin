@@ -414,7 +414,7 @@
       </div>
       <div class="ky-simple-table">
         <el-row class="table-header table-row ksd-mt-10">
-          <el-col :span="1"><el-checkbox v-model="isSelectAllDimensions" :indeterminate="getSelectedIncludeDimensions.length > 0 && getSelectedIncludeDimensions.length < includeDimensions.length" @change="selectAllIncludes" size="small"/></el-col>
+          <el-col :span="1"><el-checkbox v-model="isSelectAllDimensions" :indeterminate="getSelectedIncludeDimensions.length > 0 && getSelectedIncludeDimensions.length < dimensions().length" @change="selectAllIncludes" size="small"/></el-col>
           <el-col :span="5">{{$t('th_name')}}</el-col>
           <el-col :span="5">{{$t('th_column')}}</el-col>
           <el-col :span="5">{{$t('th_dataType')}}</el-col>
@@ -424,7 +424,7 @@
         </el-row>
         <transition-group name="flip-list" tag="div">
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
-            <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="selectIncludDimensions"/></el-col>
+            <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
             <el-col :span="5" :title="item.name">{{item.name}}</el-col>
             <el-col :span="5" :title="item.column">{{item.column}}</el-col>
             <el-col :span="5">{{item.type}}</el-col>
@@ -469,14 +469,14 @@
       </div>
       <div class="ky-simple-table measure-table">
         <el-row class="table-header table-row ksd-mt-10">
-          <el-col :span="1"><el-checkbox v-model="isSelectAllMeasure" :indeterminate="getSelectedMeasures.length > 0 && getSelectedMeasures.length < measureList.length" @change="selectAllMeasures" size="small"/></el-col>
+          <el-col :span="1"><el-checkbox v-model="isSelectAllMeasure" :indeterminate="getSelectedMeasures.length > 0 && getSelectedMeasures.length < measures.length" @change="selectAllMeasures" size="small"/></el-col>
           <el-col :span="5">{{$t('th_name')}}</el-col>
           <el-col :span="3">{{$t('expression')}}</el-col>
           <el-col :span="12">{{$t('parameters')}}</el-col>
           <el-col :span="3">{{$t('returnType')}}</el-col>
         </el-row>
         <el-row class="table-row" v-for="item in measureList" :key="item.id">
-          <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" :disabled="item.name === 'COUNT_ALL'" @change="changeMeasureBox"/></el-col>
+          <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" :disabled="item.name === 'COUNT_ALL'" @change="(type) => changeMeasureBox(item, type)"/></el-col>
           <el-col :span="5" :title="item.name">{{item.name}}</el-col>
           <el-col :span="3">{{item.expression}}</el-col>
           <el-col :span="12" :title="JSON.stringify(item.parameter_value)">{{JSON.stringify(item.parameter_value)}}</el-col>
@@ -586,6 +586,7 @@ export default class AggregateModal extends Vue {
   measureList = []
   editMeasure = false
   isSelectAllMeasure = false
+  selectedMeasures = []
   searchMeasure = ''
 
   get clearTips () {
@@ -612,10 +613,10 @@ export default class AggregateModal extends Vue {
     return Object.keys(dimensionMaps)
   }
   get getSelectedIncludeDimensions () {
-    return this.includeDimensions.filter(it => it.isCheck)
+    return this.selectedIncludeDimension
   }
   get getSelectedMeasures () {
-    return this.measureList.filter(item => item.isCheck)
+    return this.selectedMeasures
   }
 
   getMultipleCardinality (aggregateIdx, jointRowIdx) {
@@ -1305,7 +1306,7 @@ export default class AggregateModal extends Vue {
       data = this.measures.filter(it => it.name === name)[0]
     } else {
       data = this.dimensions().filter(it => it.column === name)[0]
-      const columns = ['cardinality', 'max_length_value', 'max_value', 'min_length_value', 'min_value', 'null_count']
+      const columns = ['cardinality', 'max_value', 'min_value', 'null_count']
       this.characteristicsData = columns.map(it => ({column: it, value: data[it]}))
       const ccList = this.model.computed_columns.map(it => `${it.tableAlias}.${it.columnName}`)
       isCC = ccList.includes(name)
@@ -1336,6 +1337,7 @@ export default class AggregateModal extends Vue {
     if (includes.length !== dimensions.length) {
       this.isSelectAllDimensions = false
     }
+    this.selectedIncludeDimension = includes
     this.includeDimensions = [...includes, ...dimensions.filter(it => !this.form.aggregateArray[aggregateIdx].includes.includes(it.label))]
     this.currentAggregateInfo = {
       aggregateIdx,
@@ -1346,33 +1348,68 @@ export default class AggregateModal extends Vue {
   // 全选或取消全选 includes 维度
   selectAllIncludes (v) {
     if (v) {
-      this.includeDimensions.forEach(it => (it.isCheck = true))
+      this.includeDimensions.forEach(it => {
+        it.isCheck = true
+        this.collectSelectedDimensions(it, true)
+      })
     } else {
-      this.includeDimensions.forEach(it => (it.isCheck = false))
+      this.includeDimensions.forEach(it => {
+        it.isCheck = false
+        this.collectSelectedDimensions(it, false)
+      })
+    }
+  }
+
+  // 收集已勾选的维度
+  collectSelectedDimensions (item, type) {
+    const list = this.selectedIncludeDimension.filter(it => it.label === item.label)
+    if (type) {
+      if (!list.length) {
+        this.selectedIncludeDimension.push(item)
+      }
+    } else {
+      if (list.length) {
+        const index = this.selectedIncludeDimension.findIndex(dimension => dimension.label === item.label)
+        this.selectedIncludeDimension.splice(index, 1)
+      }
     }
   }
 
   // 选择包含维度
-  selectIncludDimensions () {
+  selectIncludDimensions (item, val) {
+    this.collectSelectedDimensions(item, val)
+    this.orderIncludeDimensions()
+  }
+
+  // 将勾选的include度量排在前面
+  orderIncludeDimensions () {
     const unSelected = this.includeDimensions.filter(it => !it.isCheck)
-    this.includeDimensions = [...this.getSelectedIncludeDimensions, ...unSelected]
-    !unSelected.length && (this.isSelectAllDimensions = true)
+    const selected = this.includeDimensions.filter(it => it.isCheck)
+    this.includeDimensions = [...selected, ...unSelected]
+    selected.length === this.dimensions().length && (this.isSelectAllDimensions = true)
     unSelected.length === this.includeDimensions.length && (this.isSelectAllDimensions = false)
   }
 
   // 移动（置顶、上移、下移）
   moveTo (type, scope) {
     const index = this.includeDimensions.findIndex(it => it.id === scope.id)
+    const idx = this.selectedIncludeDimension.findIndex(it => it.id === scope.id)
     if (index < 0) return
     if (type === 'up') {
       this.includeDimensions.splice(index - 1, 0, scope)
       this.includeDimensions.splice(index + 1, 1)
+      this.selectedIncludeDimension.splice(idx - 1, 0, scope)
+      this.selectedIncludeDimension.splice(idx + 1, 1)
     } else if (type === 'down') {
       this.includeDimensions.splice(index + 2, 0, scope)
       this.includeDimensions.splice(index, 1)
+      this.selectedIncludeDimension.splice(idx + 2, 0, scope)
+      this.selectedIncludeDimension.splice(idx, 1)
     } else if (type === 'top') {
       this.includeDimensions.splice(0, 0, scope)
       this.includeDimensions.splice(index + 1, 1)
+      this.selectedIncludeDimension.splice(0, 0, scope)
+      this.selectedIncludeDimension.splice(idx + 1, 1)
     }
   }
 
@@ -1380,6 +1417,12 @@ export default class AggregateModal extends Vue {
   saveIncludes () {
     const allDimensions = this.getSelectedIncludeDimensions.map(dimension => dimension.label)
     const { aggregateIdx, id } = this.currentAggregateInfo
+    const unExistDimensions = this.form.aggregateArray[aggregateIdx].includes.filter(item => !allDimensions.includes(item))
+    if (unExistDimensions.length) {
+      unExistDimensions.forEach(v => {
+        this.handleRemoveIncludeRules(v, aggregateIdx)
+      })
+    }
     this.handleInput(`aggregateArray.${aggregateIdx}.includes`, allDimensions, id)
     this.editIncludeDimension = false
     this.currentSelectedTag.ctx = ''
@@ -1387,12 +1430,15 @@ export default class AggregateModal extends Vue {
 
   // 筛选包含维度的列名
   filterChange () {
-    this.includeDimensions = this.dimensions().filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1)
+    const selectedItems = this.selectedIncludeDimension.map(it => it.label)
+    this.includeDimensions = this.dimensions().filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: selectedItems.includes(it.label)}))
+    this.orderIncludeDimensions()
   }
 
   clearFilter () {
-    this.includeDimensions = this.dimensions()
-    this.isSelectAllDimensions = false
+    const selectedItems = this.selectedIncludeDimension.map(it => it.label)
+    const unSelectedD = this.dimensions().filter(it => !selectedItems.includes(it.label))
+    this.includeDimensions = [...this.selectedIncludeDimension, ...unSelectedD]
   }
 
   // 编辑度量
@@ -1400,6 +1446,7 @@ export default class AggregateModal extends Vue {
     this.searchMeasure = ''
     this.editMeasure = true
     const selectedMeasure = this.form.aggregateArray[aggregateIdx].measures
+    this.selectedMeasures = selectedMeasure
     this.measureList = this.measures.map(it => ({...it, isCheck: it.name === 'COUNT_ALL' || selectedMeasure.includes(it.name)}))
     selectedMeasure.length === this.measureList.length && (this.isSelectAllMeasure = true)
     this.currentAggregateInfo = {
@@ -1410,34 +1457,58 @@ export default class AggregateModal extends Vue {
 
   selectAllMeasures (type) {
     this.isSelectAllMeasure = type
-    type ? this.measureList.forEach(it => (it.isCheck = true)) : this.measureList.forEach(it => (it.name !== 'COUNT_ALL' && (it.isCheck = false)))
+    if (type) {
+      this.measureList.forEach(it => {
+        it.isCheck = true
+        this.collectSelectedMeasures(it, type)
+      })
+    } else {
+      this.measureList.forEach(it => {
+        it.name !== 'COUNT_ALL' && (it.isCheck = false)
+        this.collectSelectedMeasures(it, type)
+      })
+    }
   }
 
-  changeMeasureBox () {
+  // 收集已勾选的度量
+  collectSelectedMeasures (item, type) {
+    const list = this.selectedMeasures.filter(it => it === item.name)
+    if (type) {
+      if (!list.length) {
+        this.selectedMeasures.push(item.name)
+      }
+    } else {
+      if (list.length) {
+        const index = this.selectedMeasures.findIndex(measure => measure === item.label)
+        this.selectedMeasures.splice(index, 1)
+      }
+    }
+  }
+
+  changeMeasureBox (item, type) {
     const unSelectMeasure = this.measureList.filter(it => !it.isCheck)
+    this.collectSelectedMeasures(item, type)
     this.getSelectedMeasures.length === this.measureList.length && (this.isSelectAllMeasure = true)
     unSelectMeasure.length === this.measureList.length && (this.isSelectAllMeasure = false)
   }
 
   // 筛选度量
   filterMeasure () {
-    this.measureList = this.measures.filter(item => item.name.toLocaleLowerCase().indexOf(this.searchMeasure.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: it.name === 'COUNT_ALL'}))
-    this.isSelectAllMeasure = false
+    this.measureList = this.measures.filter(item => item.name.toLocaleLowerCase().indexOf(this.searchMeasure.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: it.name === 'COUNT_ALL' || this.selectedMeasures.includes(it.name)}))
   }
 
   // 清除筛选内容
   clearMeasureFilter () {
-    this.measureList = this.measures.map(it => ({...it, isCheck: it.name === 'COUNT_ALL'}))
-    this.isSelectAllMeasure = false
+    this.measureList = this.measures.map(it => ({...it, isCheck: it.name === 'COUNT_ALL' || this.selectedMeasures.includes(it.name)}))
   }
 
   // 保存度量
   saveMeasures () {
     this.editMeasure = false
     const { aggregateIdx } = this.currentAggregateInfo
-    let measures = this.getSelectedMeasures.map(it => it.value)
+    let measures = this.getSelectedMeasures
     !measures.includes('COUNT_ALL') && measures.unshift('COUNT_ALL')
-    this.form.aggregateArray[aggregateIdx].measures = measures
+    this.$set(this.form.aggregateArray[aggregateIdx], 'measures', measures)
   }
 
   updated () {
