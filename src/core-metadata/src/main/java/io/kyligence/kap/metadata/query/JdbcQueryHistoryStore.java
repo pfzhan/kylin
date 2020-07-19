@@ -330,6 +330,8 @@ public class JdbcQueryHistoryStore {
             session.commit();
             log.info("Delete {} row query history for project [{}] takes {} ms", deleteRows, project,
                     System.currentTimeMillis() - startTime);
+        } catch (Exception e) {
+            log.error("Fail to delete query history for project [{}]", project, e);
         }
     }
 
@@ -386,6 +388,8 @@ public class JdbcQueryHistoryStore {
             session.commit();
             log.info("Delete {} row query history realization takes {} ms", deleteRows,
                     System.currentTimeMillis() - startTime);
+        } catch (Exception e) {
+            log.error("Fail to delete query history realization for project [{}]", project, e);
         }
     }
 

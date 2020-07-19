@@ -36,7 +36,6 @@ import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -61,7 +60,6 @@ public class ProjectDropListenerTest {
     }
 
     @Test
-    @Ignore
     public void testDeleteProjectStorage() throws IOException {
         val project = "drop_project";
         val kylinConfig = KylinConfig.getInstanceFromEnv();

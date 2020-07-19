@@ -75,7 +75,6 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -541,7 +540,6 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    @Ignore
     public void testDropProject() {
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
