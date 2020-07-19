@@ -22,7 +22,6 @@
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
 
--- varchar(256) cannot replaced by org.apache.kylin.source.adhocquery.HivePushDownConverter.CAST_PATTERN
 
 select
 count(distinct (CASE WHEN xx > 0 THEN CAST(ORDER_ID AS VARCHAR(256)) || LSTG_FORMAT_NAME else null end)) as DIST_CNT

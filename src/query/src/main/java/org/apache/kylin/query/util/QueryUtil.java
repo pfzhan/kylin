@@ -49,7 +49,6 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.query.util.RestoreFromComputedColumn;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -59,20 +58,20 @@ import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.security.TransformWithAcl;
 import io.kyligence.kap.query.util.CommentParser;
+import io.kyligence.kap.query.util.RestoreFromComputedColumn;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- */
+@Slf4j
 public class QueryUtil {
 
-    protected static final Logger logger = LoggerFactory.getLogger(QueryUtil.class);
+    private static final Pattern SELECT_PATTERN = Pattern.compile("^select", Pattern.CASE_INSENSITIVE);
+    private static final Pattern LIMIT_PATTERN = Pattern.compile("(limit\\s+[0-9;]+)$", Pattern.CASE_INSENSITIVE);
 
     static List<IQueryTransformer> queryTransformers = Collections.emptyList();
     static List<IPushDownConverter> pushDownConverters = Collections.emptyList();
@@ -92,10 +91,9 @@ public class QueryUtil {
 
     public static String massageSqlAndExpandCC(QueryParams queryParams) {
         String massaged = massageSql(queryParams);
-        return new RestoreFromComputedColumn().convert(
-                massaged, queryParams.getProject(), queryParams.getDefaultSchema(), queryParams.isPrepare());
+        return new RestoreFromComputedColumn().convert(massaged, queryParams.getProject(),
+                queryParams.getDefaultSchema());
     }
-
 
     private static String transformSql(QueryParams queryParams) {
         // customizable SQL transformation
@@ -103,7 +101,7 @@ public class QueryUtil {
         String sql = queryParams.getSql();
         for (IQueryTransformer t : queryTransformers) {
             if (Thread.currentThread().isInterrupted()) {
-                logger.error("SQL transformation is timeout and interrupted before {}", t.getClass());
+                log.error("SQL transformation is timeout and interrupted before {}", t.getClass());
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("SQL transformation is timeout");
             }
@@ -164,7 +162,7 @@ public class QueryUtil {
         }
 
         queryTransformers = Collections.unmodifiableList(transformers);
-        logger.debug("SQL transformer: {}", queryTransformers);
+        log.debug("SQL transformer: {}", queryTransformers);
     }
 
     public static String massagePushDownSql(QueryParams queryParams) {
@@ -174,14 +172,15 @@ public class QueryUtil {
         initPushDownConvertersIfNeeded(queryParams.getKylinConfig());
         for (IPushDownConverter converter : pushDownConverters) {
             if (Thread.currentThread().isInterrupted()) {
-                logger.error("Push-down SQL conver transformation is timeout and interrupted before {}", converter.getClass());
+                log.error("Push-down SQL conver transformation is timeout and interrupted before {}",
+                        converter.getClass());
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("Push-down SQL convert is timeout");
             }
             if (converter instanceof TransformWithAcl) {
                 ((TransformWithAcl) converter).setAclInfo(queryParams.getAclInfo());
             }
-            sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema(), queryParams.isPrepare());
+            sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
         return sql;
     }
@@ -263,9 +262,25 @@ public class QueryUtil {
         try {
             return new CommentParser(sql).Input();
         } catch (Exception ex) {
-            logger.error("Something unexpected while removing comments in the query, return original query", ex);
+            log.error("Something unexpected while removing comments in the query, return original query", ex);
             return sql;
         }
+    }
+
+    public static String addLimit(String originString) {
+        Matcher selectMatcher = SELECT_PATTERN.matcher(originString);
+        Matcher limitMatcher = LIMIT_PATTERN.matcher(originString);
+        String replacedString = originString;
+
+        if (selectMatcher.find() && !limitMatcher.find()) {
+            if (originString.endsWith(";")) {
+                replacedString = originString.replaceAll(";+$", "");
+            }
+
+            replacedString = replacedString.concat(" limit 1");
+        }
+
+        return replacedString;
     }
 
     public static KylinConfig getKylinConfig(String project) {

@@ -77,6 +77,11 @@ TOKEN :
 | < TIMESTAMPADD : "TIMESTAMPADD" >
 | < TIMESTAMPDIFF : "TIMESTAMPDIFF" >
 | < EXTRACT : "EXTRACT" >
+| < OVERLAY : "OVERLAY" >
+| < PLACING : "PLACING" >
+| < GROUPING : "GROUPING" >
+| < SETS : "SETS" >
+| < PI : "PI" >
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "'", "\t", "\n", "\r", "\"", ".",
     "=", ">", "<", "?", ":", "!", "+", "-", "*", "/", "%", "|", "^", "$" ])+ >
 }
@@ -150,6 +155,8 @@ String Expression() :
     (
         innerString = EscapeExpress()
     | innerString = SubstringExpression()
+    | innerString = OverlayExpression()
+    | innerString = GroupingSetsExpression()
     | innerString = TsDiffOrAddExpression()
     | innerString = CastExpression()
     | innerString = ExtractExpression()
@@ -160,6 +167,7 @@ String Expression() :
     | innerString = BangEqual()
     | innerString = Comma()
     | innerString = Space()
+    | innerString = PiFunction()
     | innerString = Punctuation()
     | innerString = From()
     | innerString = For()
@@ -446,6 +454,78 @@ String SubstringExpression():
     }
 }
 
+String OverlayExpression():
+{
+    String functionName;
+    List<String> parameters = Lists.newArrayList();
+    List<String> params = Lists.newArrayList();
+}
+{
+    < OVERLAY>
+    {
+        functionName = getToken(0).image;
+    }
+    (< SPACE >)* <LPAREN> (< SPACE >)*
+    {
+       parameters.add(ParameterExpression().trim());
+    }
+    (< SPACE >)* <PLACING> (< SPACE >)*
+    {
+        parameters.add(ParameterExpression().trim());
+    }
+    (< SPACE >)* (<FROM> | <COMMA>) (<SPACE> )*
+    {
+        parameters.add(ParameterExpression().trim());
+    }
+    (
+        (< SPACE >)* (< FOR > | <COMMA>) (< SPACE >)*
+        {
+           parameters.add(ParameterExpression().trim());
+        }
+    )?
+    (< SPACE >)* < RPAREN >
+    {
+        return dialect.transformFN(functionName, parameters.toArray(new String [ 0 ]));
+    }
+}
+
+String GroupingSetsExpression() :
+{
+    String function;
+    List <String> parameters = Lists.newArrayList();
+}
+{
+    <GROUPING>
+    {
+        function = getToken(0).image;
+    }
+    (
+        (<SPACE>)*
+        <SETS>
+        {
+            log.trace("recognized grouping sets");
+            function = getToken(0).image;
+        }
+    )?
+    {
+        log.trace("recognized grouping function");
+    }
+    (<SPACE>)* <LPAREN> (< SPACE >)*
+    {
+        parameters.add(ParameterExpression().trim());
+    }
+    (
+        (< SPACE >)* <COMMA> (< SPACE >)*
+        {
+            parameters.add(ParameterExpression().trim());
+        }
+    )*
+    (<SPACE>)* <RPAREN>
+    {
+        return dialect.transformFN(function, parameters.toArray(new String [ 0 ]));
+    }
+}
+
 String CeilFloorExpress() :
 {
      String functionName;
@@ -478,6 +558,21 @@ String CeilFloorExpress() :
     <RPAREN>
     {
         return dialect.transformFN(functionName, parameters.toArray(new String [ 0 ]));
+    }
+}
+
+String PiFunction() :
+{
+    String function;
+}
+{
+    <PI>
+    {
+        function = getToken(0).image;
+    }
+    (<SPACE> )* <LPAREN> (<SPACE>)* <RPAREN>
+    {
+        return String.format("%s()", function);
     }
 }
 
@@ -538,6 +633,8 @@ String ParameterExpression() :
     (
         innerString = EscapeExpress()
     | innerString = SubstringExpression()
+    | innerString = OverlayExpression()
+    | innerString = GroupingSetsExpression()
     | innerString = CastExpression()
     | innerString = TsDiffOrAddExpression()
     | innerString = ExtractExpression()
@@ -546,6 +643,7 @@ String ParameterExpression() :
     | innerString = QuotedString()
     | innerString = DoubleQuotedString()
     | innerString = Space()
+    | innerString = PiFunction()
     | innerString = Punctuation()
     | innerString = Any()
     )

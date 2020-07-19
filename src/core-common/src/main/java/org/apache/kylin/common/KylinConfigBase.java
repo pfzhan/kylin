@@ -1350,7 +1350,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getPushDownConverterClassNames() {
         return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
-                new String[] { "org.apache.kylin.source.adhocquery.HivePushDownConverter" });
+                new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
+                        "org.apache.kylin.query.util.PowerBIConverter",
+                        "io.kyligence.kap.query.util.RestoreFromComputedColumn",
+                        "io.kyligence.kap.query.security.TableViewPrepender",
+                        "io.kyligence.kap.query.util.SparkSQLFunctionConverter" });
     }
 
     public String getPartitionCheckRunnerClassName() {

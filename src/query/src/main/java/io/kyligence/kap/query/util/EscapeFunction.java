@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.List;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 public class EscapeFunction {
 
@@ -32,6 +35,7 @@ public class EscapeFunction {
     private static final String FLOOR_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
     private static final String SUBSTRING_EXCEPTION_MSG = "substring/substr only support substring(col from start for len) or substring(col from start)";
     private static final String SUBSTR_EXCEPTION_MSG = "substring/substr only support substr(col from start for len) or substr(col from start)";
+    private static final String OVERLAY_EXCEPTION_MSG = "overlay only support overlay(exp1 placing exp2 from start for len) or overlay(exp1 placing exp2 from start)";
 
     /* Function conversion implementations */
     /*
@@ -117,9 +121,17 @@ public class EscapeFunction {
             return normalFN("LN", args);
         }),
 
-        PI(args -> {
-            checkArgs(args, 0);
-            return "PI";
+        EXTRACT(args -> {
+            checkArgs(args, 3);
+            String function = args[0];
+            if (function.equalsIgnoreCase("DAY")) {
+                function = "DAYOFMONTH";
+            } else if (function.equalsIgnoreCase("DOW")) {
+                function = "DAYOFWEEK";
+            } else if (function.equalsIgnoreCase("DOY")) {
+                function = "DAYOFYEAR";
+            }
+            return normalFN(function, new String[] { args[2] });
         }),
 
         CURRENT_DATE(args -> {
@@ -219,6 +231,51 @@ public class EscapeFunction {
             return normalFN("SUBSTRING", args);
         }),
 
+        OVERLAY_SPARK(args -> {
+            Preconditions.checkArgument(args.length == 3 || args.length == 4, EscapeFunction.OVERLAY_EXCEPTION_MSG);
+            List<String> newArgs = Lists.newArrayList();
+            newArgs.add(String.format("SUBSTRING(%s, %s, %s - 1)", args[0], 0, args[2]));
+            newArgs.add(args[1]);
+            if (args.length == 3) {
+                newArgs.add(String.format("SUBSTRING(%s, %s + CHAR_LENGTH(%s))", args[0], args[2], args[1]));
+            } else {
+                newArgs.add(String.format("SUBSTRING(%s, %s + %s)", args[0], args[2], args[3]));
+            }
+            return normalFN("CONCAT", newArgs.toArray(new String[0]));
+        }),
+
+        OVERLAY(args -> {
+            Preconditions.checkArgument(args.length == 3 || args.length == 4, EscapeFunction.OVERLAY_EXCEPTION_MSG);
+            String newArg;
+            if (args.length == 3) {
+                newArg = String.format("%s PLACING %s FROM %s", args[0], args[1], args[2]);
+            } else {
+                newArg = String.format("%s PLACING %s FROM %s for %s", args[0], args[1], args[2], args[3]);
+            }
+            return normalFN("OVERLAY", new String[] { newArg });
+        }),
+
+        GROUPING(args -> {
+            Preconditions.checkArgument(args.length > 0);
+            return normalFN("GROUPING", args);
+        }),
+
+        SETS_SPARK(args -> {
+            // group by grouping sets(...)
+            Preconditions.checkArgument(args.length > 0);
+            String groupByColumns = args[0].trim();
+            if (groupByColumns.startsWith("(") && groupByColumns.endsWith(")")) {
+                groupByColumns = groupByColumns.substring(1, groupByColumns.length() - 1);
+            }
+            return String.format("%s grouping sets(%s)", groupByColumns, String.join(",", args));
+        }),
+
+        SETS(args -> {
+            // group by grouping sets(...)
+            Preconditions.checkArgument(args.length > 0);
+            return String.format("grouping sets(%s)", String.join(",", args));
+        }),
+
         CEIL2(args -> {
             Preconditions.checkArgument(args.length == 1 || args.length == 2, EscapeFunction.CEIL_EXCEPTION_MSG);
             if (args.length == 1) {
@@ -255,7 +312,7 @@ public class EscapeFunction {
             String convert(String[] args);
         }
 
-        private IConvert innerCvt;
+        private final IConvert innerCvt;
 
         FnConversion(IConvert convert) {
             this.innerCvt = convert;

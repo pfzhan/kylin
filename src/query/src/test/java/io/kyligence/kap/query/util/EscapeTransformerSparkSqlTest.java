@@ -248,6 +248,56 @@ public class EscapeTransformerSparkSqlTest {
     }
 
     @Test
+    public void testOverlayReplace() {
+        String originSQL = "select overlay(myStr1   PLACING myStr2   FROM  myInteger) from tableA";
+        String expectedSQL = "select CONCAT(SUBSTRING(myStr1, 0, myInteger - 1), myStr2, SUBSTRING(myStr1, myInteger + CHAR_LENGTH(myStr2))) from tableA";
+        String replacedString = transformer.transform(originSQL);
+        Assert.assertEquals(expectedSQL, replacedString);
+
+        originSQL = "select overlay(myStr1 PLACING myStr2 FROM myInteger FOR myInteger2) from tableA";
+        expectedSQL = "select CONCAT(SUBSTRING(myStr1, 0, myInteger - 1), myStr2, SUBSTRING(myStr1, myInteger + myInteger2)) from tableA";
+        replacedString = transformer.transform(originSQL);
+        Assert.assertEquals(expectedSQL, replacedString);
+    }
+
+    @Test
+    public void testGroupingSets() {
+        String originSQL = "select sum(price) as GMV group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));";
+        String expectedSQL = "select sum(price) as GMV group by lstg_format_name, cal_dt, slr_segment_cd grouping sets((lstg_format_name, cal_dt, slr_segment_cd),(cal_dt, slr_segment_cd),(lstg_format_name, slr_segment_cd));";
+        String transformedSQL = transformer.transform(originSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testGroupingFunction() {
+        String originSQL = "select\n"
+                + "(case grouping(cal_dt) when 1 then 'ALL' else cast(cal_dt as varchar(256)) end) as dt,\n"
+                + "(case grouping(slr_segment_cd) when 1 then 'ALL' else cast(slr_segment_cd as varchar(256)) end) as cd,\n"
+                + "(case grouping(lstg_format_name) when 1 then 'ALL' else lstg_format_name end) as name,\n"
+                + "sum(price) as GMV, count(*) as TRANS_CNT from test_kylin_fact\n"
+                + "where cal_dt between '2012-01-01' and '2012-02-01'\n"
+                + "group by grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd))";
+        String expectedSQL = "select\n"
+                + "(case GROUPING(cal_dt) when 1 then 'ALL' else cast(cal_dt as varchar(256)) end) as dt,\n"
+                + "(case GROUPING(slr_segment_cd) when 1 then 'ALL' else cast(slr_segment_cd as varchar(256)) end) as cd,\n"
+                + "(case GROUPING(lstg_format_name) when 1 then 'ALL' else lstg_format_name end) as name,\n"
+                + "sum(price) as GMV, count(*) as TRANS_CNT from test_kylin_fact\n"
+                + "where cal_dt between '2012-01-01' and '2012-02-01'\n"
+                + "group by lstg_format_name, cal_dt, slr_segment_cd grouping sets((lstg_format_name, cal_dt, slr_segment_cd),(cal_dt, slr_segment_cd),(lstg_format_name, slr_segment_cd))";
+        String transformedSQL = transformer.transform(originSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testPI() {
+        String originalSQL = "select sum({fn pi()}), count(pi() + price), lstg_format_name  from test_kylin_fact";
+        String expectedSQL = "select sum(pi()), count(pi() + price), lstg_format_name  from test_kylin_fact";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
     public void escapeTSTest() {
 
         String originalSQL = "select {ts '2013-01-01 00:00:00'}, {d '2013-01-01'}, {t '00:00:00'}";

@@ -57,7 +57,7 @@ public class PowerBIConverter implements QueryUtil.IQueryTransformer, IPushDownC
             Pattern.CASE_INSENSITIVE);
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         return handleSumOfFnConvert(originSql);
     }
 

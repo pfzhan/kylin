@@ -24,16 +24,13 @@
 
 package io.kyligence.kap.query.security;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.acl.AclTCRManager;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import lombok.var;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -51,12 +48,17 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.rest.constant.Constant;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import lombok.val;
+import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TableViewPrepender extends TransformWithAcl implements IKeep {
@@ -72,7 +74,7 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
     }
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         Map<String, String> filters = Maps.newHashMap();
         Multimap<String, String> authorizedColumns = ArrayListMultimap.create();
         if (KylinConfig.getInstanceFromEnv().isAclTCREnabled() && !hasAdminPermission()) {
@@ -102,18 +104,18 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         if (Objects.isNull(aclInfo) || Objects.isNull(aclInfo.getGroups())) {
             return false;
         }
-        return aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals)
-                || aclInfo.isHasAdminPermission();
+        return aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || aclInfo.isHasAdminPermission();
     }
 
     private AclTCRManager getAclTCRManager(String project) {
         return AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
-    private static Map<String, String> getAllUsedTableViews(Set<String> usedTables, Map<String, String> filters, Multimap<String, String> columns) {
-        val tableViews = Maps.<String, String>newHashMap();
+    private static Map<String, String> getAllUsedTableViews(Set<String> usedTables, Map<String, String> filters,
+            Multimap<String, String> columns) {
+        val tableViews = Maps.<String, String> newHashMap();
 
-        val allTables = Sets.<String>newHashSet();
+        val allTables = Sets.<String> newHashSet();
         allTables.addAll(filters.keySet());
         allTables.addAll(columns.keySet());
         usedTables.retainAll(allTables);
@@ -149,9 +151,8 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         return " WHERE " + filterCond;
     }
 
-    public static String prependTableViews(String sql, String defaultSchema,
-                                           Map<String, String> filters,
-                                           Multimap<String, String> columns) {
+    public static String prependTableViews(String sql, String defaultSchema, Map<String, String> filters,
+            Multimap<String, String> columns) {
         if (filters.isEmpty() && columns.isEmpty()) {
             return sql;
         }
@@ -162,8 +163,8 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         val withClauses = tableIdentifierFinder.getWithClauses();
 
         // extract needed info
-        val usedTables = Sets.<String>newHashSet();
-        val realTableIdentifiers = Lists.<SqlIdentifier>newArrayList();
+        val usedTables = Sets.<String> newHashSet();
+        val realTableIdentifiers = Lists.<SqlIdentifier> newArrayList();
         collectNeededInfo(defaultSchema, allTableIdentifiers, withClauses, usedTables, realTableIdentifiers);
 
         val tableViews = getAllUsedTableViews(usedTables, filters, columns);
@@ -190,7 +191,8 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         return sb.toString();
     }
 
-    private static String generateWithClausePrefix(Map<String, String> tableViews, Map<String, String> tableAliasMap, Set<String> withAlias) {
+    private static String generateWithClausePrefix(Map<String, String> tableViews, Map<String, String> tableAliasMap,
+            Set<String> withAlias) {
         val sb = new StringBuilder("WITH ");
         for (Map.Entry<String, String> tableView : tableViews.entrySet()) {
             val tableIdentity = tableView.getKey();
@@ -215,29 +217,31 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         return sb.toString();
     }
 
-    private static Pair<String, Map<String, String>> replaceSqlBody(String defaultSchema, String sql, 
-                                                                    List<SqlIdentifier> realTableIdentifiers,
-                                                                    Map<String, List<SqlIdentifier>> withClauses,
-                                                                    Map<String, String> tableViews) {
+    private static Pair<String, Map<String, String>> replaceSqlBody(String defaultSchema, String sql,
+            List<SqlIdentifier> realTableIdentifiers, Map<String, List<SqlIdentifier>> withClauses,
+            Map<String, String> tableViews) {
         // 1. contains two tables with same table name but in different schema
         // 2. with clause has the same alias with table view
-        val sqlIdentifierWithSameTableName = findSameTableNameInDifferentSchema(defaultSchema, realTableIdentifiers, tableViews);
-        val conflictAliasOnWith = findExistedTableNameAliasInWithClause(defaultSchema, withClauses, tableViews.keySet());
+        val sqlIdentifierWithSameTableName = findSameTableNameInDifferentSchema(defaultSchema, realTableIdentifiers,
+                tableViews);
+        val conflictAliasOnWith = findExistedTableNameAliasInWithClause(defaultSchema, withClauses,
+                tableViews.keySet());
 
-        val tableIdentifiersToBeReplaced = Sets.<SqlIdentifier>newHashSet();
+        val tableIdentifiersToBeReplaced = Sets.<SqlIdentifier> newHashSet();
         tableIdentifiersToBeReplaced.addAll(sqlIdentifierWithSameTableName);
         tableIdentifiersToBeReplaced.addAll(conflictAliasOnWith);
 
         if (tableIdentifiersToBeReplaced.isEmpty())
-            return Pair.newPair(sql, Maps.<String, String>newHashMap());
+            return Pair.newPair(sql, Maps.<String, String> newHashMap());
 
         val sortedResult = tableIdentifiersToBeReplaced.stream().map(tobeReplaced -> {
             Pair<Integer, Integer> position = CalciteParser.getReplacePos(tobeReplaced, sql);
             return Pair.newPair(tobeReplaced, position);
-        }).sorted((o1, o2) -> o2.getSecond().getFirst().compareTo(o1.getSecond().getFirst())).collect(Collectors.toList());
+        }).sorted((o1, o2) -> o2.getSecond().getFirst().compareTo(o1.getSecond().getFirst()))
+                .collect(Collectors.toList());
 
         var result = sql;
-        val tableAliasMap = Maps.<String, String>newHashMap();
+        val tableAliasMap = Maps.<String, String> newHashMap();
 
         for (Pair<SqlIdentifier, Pair<Integer, Integer>> toBeReplaced : sortedResult) {
             val tableIdentifier = toBeReplaced.getFirst();
@@ -258,15 +262,13 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
     }
 
     private static List<SqlIdentifier> findExistedTableNameAliasInWithClause(String defaultSchema,
-                                                                             Map<String, List<SqlIdentifier>> withClauses,
-                                                                             Set<String> tableViewIdentities) {
+            Map<String, List<SqlIdentifier>> withClauses, Set<String> tableViewIdentities) {
         if (withClauses.isEmpty())
             return Lists.newArrayList();
 
-        val tableNames = tableViewIdentities.stream()
-                .map(tableIdentity -> tableIdentity.split("\\.")[1])
+        val tableNames = tableViewIdentities.stream().map(tableIdentity -> tableIdentity.split("\\.")[1])
                 .collect(Collectors.toSet());
-        val tableToBeReplaced = Lists.<SqlIdentifier>newArrayList();
+        val tableToBeReplaced = Lists.<SqlIdentifier> newArrayList();
 
         for (Map.Entry<String, List<SqlIdentifier>> withClause : withClauses.entrySet()) {
             val alias = withClause.getKey();
@@ -291,10 +293,9 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
     }
 
     private static List<SqlIdentifier> findSameTableNameInDifferentSchema(String defaultSchema,
-                                                                          List<SqlIdentifier> tableIdentifiers,
-                                                                          Map<String, String> tableViews) {
-        val tableToBeReplaced = Lists.<SqlIdentifier>newArrayList();
-        val tableNameMap = Maps.<String, Map<String, List<SqlIdentifier>>>newHashMap();
+            List<SqlIdentifier> tableIdentifiers, Map<String, String> tableViews) {
+        val tableToBeReplaced = Lists.<SqlIdentifier> newArrayList();
+        val tableNameMap = Maps.<String, Map<String, List<SqlIdentifier>>> newHashMap();
         for (SqlIdentifier tableIdentifier : tableIdentifiers) {
             val tableInfo = getTableInfo(defaultSchema, tableIdentifier);
 
@@ -346,11 +347,9 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         return null;
     }
 
-    private static void collectNeededInfo(String defaultSchema,
-                                          List<SqlIdentifier> tableIdentifiers,
-                                          Map<String, List<SqlIdentifier>> withClauses,
-                                          Set<String> queryUsedTables,
-                                          List<SqlIdentifier> realTableIdentifiers) {
+    private static void collectNeededInfo(String defaultSchema, List<SqlIdentifier> tableIdentifiers,
+            Map<String, List<SqlIdentifier>> withClauses, Set<String> queryUsedTables,
+            List<SqlIdentifier> realTableIdentifiers) {
         for (SqlIdentifier tableIdentifier : tableIdentifiers) {
             val tableInfo = getTableInfo(defaultSchema, tableIdentifier);
             if (tableInfo == null)
@@ -368,7 +367,7 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
         for (Map.Entry<String, List<SqlIdentifier>> withClause : withClauses.entrySet()) {
             val withAlias = withClause.getKey();
             var tableIdentifiersInWith = withClause.getValue();
-            val realTableIdentifiersInWith = Lists.<SqlIdentifier>newArrayList();
+            val realTableIdentifiersInWith = Lists.<SqlIdentifier> newArrayList();
 
             val allAliasExceptCurrent = Sets.newHashSet(withClauses.keySet());
             allAliasExceptCurrent.remove(withAlias);
@@ -439,20 +438,20 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
                     return null;
 
                 switch (sqlFrom.getKind()) {
-                    case AS:
-                        visitSqlFrom(sqlFrom);
-                        break;
-                    case JOIN:
-                        val sqlJoin = (SqlJoin) sqlFrom;
-                        visitSqlFrom(sqlJoin.getLeft());
-                        visitSqlFrom(sqlJoin.getRight());
-                        break;
-                    case VALUES:
-                    case OVER:
-                        break;
-                    default:
-                        visitSqlFrom(sqlFrom);
-                        break;
+                case AS:
+                    visitSqlFrom(sqlFrom);
+                    break;
+                case JOIN:
+                    val sqlJoin = (SqlJoin) sqlFrom;
+                    visitSqlFrom(sqlJoin.getLeft());
+                    visitSqlFrom(sqlJoin.getRight());
+                    break;
+                case VALUES:
+                case OVER:
+                    break;
+                default:
+                    visitSqlFrom(sqlFrom);
+                    break;
                 }
 
                 val sqlWhere = sqlSelect.getWhere();
@@ -469,7 +468,8 @@ public class TableViewPrepender extends TransformWithAcl implements IKeep {
                 }
             } else if (sqlCall instanceof SqlWithItem) {
                 val sqlWithItem = (SqlWithItem) sqlCall;
-                withClauses.put(sqlWithItem.name.toString(), new TableIdentifierFinder(sqlWithItem.query).getTableIdentifiers());
+                withClauses.put(sqlWithItem.name.toString(),
+                        new TableIdentifierFinder(sqlWithItem.query).getTableIdentifiers());
             } else {
                 sqlCall.getOperator().acceptCall(this, sqlCall);
             }

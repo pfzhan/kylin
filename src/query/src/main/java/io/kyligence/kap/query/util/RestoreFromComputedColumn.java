@@ -89,7 +89,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
     private static final Logger logger = LoggerFactory.getLogger(RestoreFromComputedColumn.class);
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         try {
 
             String sql = originSql;
@@ -312,7 +312,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             String ccExpression = CalciteParser.replaceAliasInExpr(computedColumnDesc.getExpression(),
                     matchInfo.getAliasMapping().inverse());
             // intend to handle situation like KE-15939
-            String replaceExpression = columnUsage.addAlias ? ccExpression + " AS " + computedColumnDesc.getColumnName() : ccExpression;
+            String replaceExpression = columnUsage.addAlias ? ccExpression + " AS " + computedColumnDesc.getColumnName()
+                    : ccExpression;
 
             Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(column, inputSql);
             int begin = startEndPos.getFirst();
@@ -429,7 +430,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         }
     }
 
-    static private class ColumnUsage{
+    static private class ColumnUsage {
         SqlIdentifier sqlIdentifier;
         boolean addAlias;
 

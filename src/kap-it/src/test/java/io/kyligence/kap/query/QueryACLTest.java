@@ -314,7 +314,7 @@ public class QueryACLTest extends NAutoTestBase {
         proposeAndBuildIndex(new String[]{sql});
         prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
         prepender.setAclInfo(new QueryContext.AclInfo(USER1, Sets.newHashSet(GROUP1), false));
-        val result = prepender.convert(sql, PROJECT, "DEFAULT", false);
+        val result = prepender.convert(sql, PROJECT, "DEFAULT");
         val expected = "with test_kylin_fact as (select lstg_format_name, item_count, price, cal_dt from \"default\".test_kylin_fact WHERE ((CAL_DT=DATE '2012-01-01') AND ((LSTG_FORMAT_NAME='FP-GTC') OR (LSTG_FORMAT_NAME='ABIN')))) " + sql;
         Assert.assertEquals(expected.toUpperCase(), result.toUpperCase());
 
@@ -378,7 +378,7 @@ public class QueryACLTest extends NAutoTestBase {
         aclTCRManager.updateAclTCR(generateRowACLData(aclMap), USER1, true);
         prepareQueryContextUserInfo(USER1, Sets.newHashSet(GROUP1), false);
         prepender.setAclInfo(new QueryContext.AclInfo(USER1, Sets.newHashSet(GROUP1), false));
-        val tranformedResult = prepender.convert(sql, PROJECT, DEFAULT_SCHEMA, false);
+        val tranformedResult = prepender.convert(sql, PROJECT, DEFAULT_SCHEMA);
         val expectedPattern = "WITH TEST_CAL_DT AS \\(SELECT CAL_DT, YEAR_BEG_DT FROM EDW\\.TEST_CAL_DT WHERE \\(\\(YEAR_BEG_DT=DATE '2013-01-01'\\) OR \\(YEAR_BEG_DT=DATE '2012-01-01'\\)\\)\\), " +
                 "TEST_KYLIN_FACT_[a-zA-Z0-9]{5} AS \\(SELECT ITEM_COUNT, PRICE, CAL_DT, SELLER_ID " +
                 "FROM \"DEFAULT\"\\.TEST_KYLIN_FACT WHERE \\(\\(CAL_DT=DATE '2012-01-02'\\) OR \\(CAL_DT=DATE '2012-01-01'\\)\\)\\),  " +

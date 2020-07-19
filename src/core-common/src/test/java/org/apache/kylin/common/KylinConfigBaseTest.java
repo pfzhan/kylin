@@ -433,9 +433,12 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl"));
 
         map.put("getPushDownConverterClassNames",
-                new PropertiesEntity("kylin.query.pushdown.converter-class-names",
-                        "org.apache.kylin.source.adhocquery.HivePushDownConverter",
-                        new String[] { "org.apache.kylin.source.adhocquery.HivePushDownConverter" }));
+                new PropertiesEntity("kylin.query.pushdown.converter-class-names", "",
+                        new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
+                                "org.apache.kylin.query.util.PowerBIConverter",
+                                "io.kyligence.kap.query.util.RestoreFromComputedColumn",
+                                "io.kyligence.kap.query.security.TableViewPrepender",
+                                "io.kyligence.kap.query.util.SparkSQLFunctionConverter" }));
 
         map.put("isPushdownQueryCacheEnabled",
                 new PropertiesEntity("kylin.query.pushdown.cache-enabled", "false", false));
@@ -710,26 +713,40 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("isGuardianEnabled", new PropertiesEntity("kylin.guardian.enabled", "false", false));
         map.put("getGuardianCheckInterval", new PropertiesEntity("kylin.guardian.check-interval", "1min", 60L));
-        map.put("getGuardianCheckInitDelay", new PropertiesEntity("kylin.guardian.check-init-delay", "5min", 5*60L));
+        map.put("getGuardianCheckInitDelay", new PropertiesEntity("kylin.guardian.check-init-delay", "5min", 5 * 60L));
         map.put("isGuardianHAEnabled", new PropertiesEntity("kylin.guardian.ha-enabled", "true", true));
         map.put("getGuardianHACheckInterval", new PropertiesEntity("kylin.guardian.ha-check-interval", "1min", 60L));
-        map.put("getGuardianHACheckInitDelay", new PropertiesEntity("kylin.guardian.ha-check-init-delay", "5min", 5*60L));
-        map.put("getGuardianHealthCheckers", new PropertiesEntity("kylin.guardian.checkers", "io.kyligence.kap.tool.daemon.checker.KEProcessChecker", "io.kyligence.kap.tool.daemon.checker.KEProcessChecker"));
+        map.put("getGuardianHACheckInitDelay",
+                new PropertiesEntity("kylin.guardian.ha-check-init-delay", "5min", 5 * 60L));
+        map.put("getGuardianHealthCheckers",
+                new PropertiesEntity("kylin.guardian.checkers", "io.kyligence.kap.tool.daemon.checker.KEProcessChecker",
+                        "io.kyligence.kap.tool.daemon.checker.KEProcessChecker"));
         map.put("getGuardianFullGCCheckFactor", new PropertiesEntity("kylin.guardian.full-gc-check-factor", "5", 5));
-        map.put("isFullGCRatioBeyondRestartEnabled", new PropertiesEntity("kylin.guardian.full-gc-duration-ratio-restart-enabled", "true", true));
-        map.put("getGuardianFullGCRatioThreshold", new PropertiesEntity("kylin.guardian.full-gc-duration-ratio-threshold", "60", 60.0));
-        map.put("isDowngradeOnFullGCBusyEnable", new PropertiesEntity("kylin.guardian.downgrade-on-full-gc-busy-enabled", "true", true));
-        map.put("getGuardianFullGCHighWatermark", new PropertiesEntity("kylin.guardian.full-gc-busy-high-watermark", "40", 40.0));
-        map.put("getGuardianFullGCLowWatermark", new PropertiesEntity("kylin.guardian.full-gc-busy-low-watermark", "20", 20.0));
+        map.put("isFullGCRatioBeyondRestartEnabled",
+                new PropertiesEntity("kylin.guardian.full-gc-duration-ratio-restart-enabled", "true", true));
+        map.put("getGuardianFullGCRatioThreshold",
+                new PropertiesEntity("kylin.guardian.full-gc-duration-ratio-threshold", "60", 60.0));
+        map.put("isDowngradeOnFullGCBusyEnable",
+                new PropertiesEntity("kylin.guardian.downgrade-on-full-gc-busy-enabled", "true", true));
+        map.put("getGuardianFullGCHighWatermark",
+                new PropertiesEntity("kylin.guardian.full-gc-busy-high-watermark", "40", 40.0));
+        map.put("getGuardianFullGCLowWatermark",
+                new PropertiesEntity("kylin.guardian.full-gc-busy-low-watermark", "20", 20.0));
         map.put("getGuardianApiFailThreshold", new PropertiesEntity("kylin.guardian.api-fail-threshold", "3", 3));
-        map.put("isSparkFailRestartKeEnabled", new PropertiesEntity("kylin.guardian.restart-spark-fail-restart-enabled", "true", true));
-        map.put("getGuardianSparkFailThreshold", new PropertiesEntity("kylin.guardian.restart-spark-fail-threshold", "3", 3));
-        map.put("getDowngradeParallelQueryThreshold", new PropertiesEntity("kylin.downgrade-mode.parallel-query-threshold", "10", 10));
-        map.put("isSlowQueryKillFailedRestartKeEnabled", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-restart-enabled", "true", true));
-        map.put("getGuardianSlowQueryKillFailedThreshold", new PropertiesEntity("kylin.guardian.kill-slow-query-fail-threshold", "3", 3));
+        map.put("isSparkFailRestartKeEnabled",
+                new PropertiesEntity("kylin.guardian.restart-spark-fail-restart-enabled", "true", true));
+        map.put("getGuardianSparkFailThreshold",
+                new PropertiesEntity("kylin.guardian.restart-spark-fail-threshold", "3", 3));
+        map.put("getDowngradeParallelQueryThreshold",
+                new PropertiesEntity("kylin.downgrade-mode.parallel-query-threshold", "10", 10));
+        map.put("isSlowQueryKillFailedRestartKeEnabled",
+                new PropertiesEntity("kylin.guardian.kill-slow-query-fail-restart-enabled", "true", true));
+        map.put("getGuardianSlowQueryKillFailedThreshold",
+                new PropertiesEntity("kylin.guardian.kill-slow-query-fail-threshold", "3", 3));
         map.put("getSuggestModelSqlLimit", new PropertiesEntity("kylin.model.suggest-model-sql-limit", "200", 200));
         map.put("getIntersectFilterOrSeparator", new PropertiesEntity("kylin.query.intersect.separator", "|", "|"));
-        map.put("getBitmapValuesUpperBound", new PropertiesEntity("kylin.query.bitmap-values-upper-bound", "10000000", 10000000));
+        map.put("getBitmapValuesUpperBound",
+                new PropertiesEntity("kylin.query.bitmap-values-upper-bound", "10000000", 10000000));
         map.put("isExecuteAsEnabled", new PropertiesEntity("kylin.query.query-with-execute-as", "false", false));
         map.put("getSourceUsageSurvivalTimeThreshold",
                 new PropertiesEntity("kylin.garbage.storage.sourceusage-survival-time-threshold", "90d", 7776000000L));

@@ -291,7 +291,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdatePushDownProjectConfig() throws Exception {
         val request = new PushDownProjectConfigRequest();
-        request.setConverterClassNames("org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        request.setConverterClassNames("io.kyligence.kap.query.util.SparkSQLFunctionConverter");
         request.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
 
         Mockito.doNothing().when(projectService).updatePushDownProjectConfig("default", request);

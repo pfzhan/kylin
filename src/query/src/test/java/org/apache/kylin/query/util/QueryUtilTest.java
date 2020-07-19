@@ -350,4 +350,14 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expected, QueryUtil.massageSqlAndExpandCC(queryParams));
     }
 
+    @Test
+    public void testAddLimit() {
+        String originString = "select t.TRANS_ID from (\n"
+                + "    select * from test_kylin_fact s inner join TEST_ACCOUNT a \n"
+                + "        on s.BUYER_ID = a.ACCOUNT_ID inner join TEST_COUNTRY c on c.COUNTRY = a.ACCOUNT_COUNTRY\n"
+                + "     limit 10000)t\n";
+        String replacedString = QueryUtil.addLimit(originString);
+        Assert.assertEquals(originString.concat(" limit 1"), replacedString);
+    }
+
 }

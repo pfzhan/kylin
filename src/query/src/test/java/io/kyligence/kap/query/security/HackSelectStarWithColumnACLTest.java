@@ -68,8 +68,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
         transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
         String sql = transformer.convert(
-                "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA,
-                false);
+                "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA);
         String expectSQL = "select \"T1\".\"PRICE\", \"T1\".\"ITEM_COUNT\", \"T1\".\"ORDER_ID\", "
                 + "\"T2\".\"ORDER_ID\", \"T2\".\"BUYER_ID\", \"T2\".\"TEST_DATE_ENC\" "
                 + "from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
@@ -102,7 +101,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         tableMetadataManager.updateTableDesc(tableDesc);
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
         transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
-        String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA, false);
+        String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA);
         String expected = "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", " //
                 + "\"TEST_KYLIN_FACT\".\"PRICE\", " //
                 + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\", " //
@@ -138,7 +137,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         tableMetadataManager.updateTableDesc(tableDesc);
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
         transformer.setAclInfo(new QueryContext.AclInfo("u1", Sets.newHashSet("g1"), false));
-        String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA, false);
+        String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA);
         String expected = "select `TEST_KYLIN_FACT`.`ORDER_ID`, " //
                 + "`TEST_KYLIN_FACT`.`PRICE`, " //
                 + "`TEST_KYLIN_FACT`.`ITEM_COUNT`, " //
@@ -152,7 +151,7 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
     public void testExplainSyntax() {
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
         String sql = "explain plan for select * from t";
-        assertRoughlyEquals(sql, transformer.convert("explain plan for select * from t", PROJECT, SCHEMA, true));
+        assertRoughlyEquals(sql, transformer.convert("explain plan for select * from t", PROJECT, SCHEMA));
     }
 
     @Test

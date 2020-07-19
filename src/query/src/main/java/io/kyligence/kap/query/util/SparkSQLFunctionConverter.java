@@ -29,14 +29,14 @@ import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import io.kyligence.kap.common.obf.IKeep;
 
 public class SparkSQLFunctionConverter extends EscapeTransformer implements IPushDownConverter, IKeep {
-    
+
     public SparkSQLFunctionConverter() {
         super();
         setFunctionDialect(EscapeDialect.SPARK_SQL);
     }
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         return transform(originSql);
     }
 

@@ -87,23 +87,21 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testPushDownQuery() throws Exception {
         Class.forName("org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.runner-class-name",
+        overwriteSystemProp("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        System.setProperty("kylin.query.pushdown.converter-class-names",
-                "org.apache.kylin.source.adhocquery.HivePushDownConverter");
-        System.setProperty("kylin.query.pushdown-enabled", "true");
-        System.setProperty("kylin.query.pushdown.cache-enabled", "true");
-        System.setProperty("kylin.query.cache-threshold-duration", "0");
+        overwriteSystemProp("kylin.query.pushdown-enabled", "true");
+        overwriteSystemProp("kylin.query.pushdown.cache-enabled", "true");
+        overwriteSystemProp("kylin.query.cache-threshold-duration", "0");
 
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
-        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
-        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
-        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
-        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.username", "sa");
+        overwriteSystemProp("kylin.query.pushdown.jdbc.password", "");
 
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("Default");
@@ -139,14 +137,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andDo(MockMvcResultHandlers.print()).andReturn();
 
         h2Connection.close();
-        System.clearProperty("kylin.query.pushdown.runner-class-name");
-        System.clearProperty("kylin.query.pushdown.converter-class-names");
-        System.clearProperty("kylin.query.pushdown-enabled");
-        System.clearProperty("kylin.query.pushdown.jdbc.url");
-        System.clearProperty("kylin.query.pushdown.jdbc.driver");
-        System.clearProperty("kylin.query.pushdown.jdbc.username");
-        System.clearProperty("kylin.query.pushdown.jdbc.password");
-        System.clearProperty("kylin.query.pushdown.cache-enabled");
     }
 
     @Test

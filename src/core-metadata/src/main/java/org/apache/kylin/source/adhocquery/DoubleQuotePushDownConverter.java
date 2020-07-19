@@ -135,7 +135,7 @@ public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
 
     //End DoubleQuoteSqlIdentifierConvert.class
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
 
         return convertDoubleQuote(originSql);
     }

@@ -46,5 +46,5 @@ package org.apache.kylin.source.adhocquery;
  */
 public interface IPushDownConverter {
 
-    String convert(String originSql, String project, String defaultSchema, boolean isPrepare);
+    String convert(String originSql, String project, String defaultSchema);
 }

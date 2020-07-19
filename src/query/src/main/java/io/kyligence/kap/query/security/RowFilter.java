@@ -62,7 +62,7 @@ public class RowFilter extends TransformWithAcl implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         return transform(originSql, project, defaultSchema);
     }
 

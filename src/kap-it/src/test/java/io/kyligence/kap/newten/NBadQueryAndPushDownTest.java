@@ -99,7 +99,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
 
         // failed for wrong pushdown converter order
         overwriteSystemProp("kylin.query.pushdown.converter-class-names",
-                "io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.security.TableViewPrepender,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+                "io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.query.util.PowerBIConverter,io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.security.TableViewPrepender");
         try {
             pushDownSql(DEFAULT_PROJECT_NAME, sql, 10, 0, null, true);
             Assert.fail();
@@ -160,7 +160,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
     @Test
     public void testPushDownNonEquiSql() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
-                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter");
         File sqlFile = new File("src/test/resources/query/sql_pushdown/query11.sql");
         String sql = new String(Files.readAllBytes(sqlFile.toPath()), StandardCharsets.UTF_8);
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "false");
@@ -180,7 +180,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
-                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter");
 
         String prjName = "tdvt";
         // timstampDiff
@@ -215,7 +215,7 @@ public class NBadQueryAndPushDownTest extends NLocalWithSparkSessionTest {
                 "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_ENABLED, "true");
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.converter-class-names",
-                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter,org.apache.kylin.source.adhocquery.HivePushDownConverter");
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn,io.kyligence.kap.query.util.SparkSQLFunctionConverter");
 
         String prjName = "tdvt";
         // timstampDiff

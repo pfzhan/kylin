@@ -56,6 +56,9 @@ public abstract class EscapeDialect {
                     FnConversion.CURRENT_TIME, //
                     FnConversion.CURRENT_TIMESTAMP, //
                     FnConversion.CONVERT, //
+                    FnConversion.OVERLAY, //
+                    FnConversion.SETS, //
+                    FnConversion.GROUPING, //
                     FnConversion.TRIM, //
                     FnConversion.TIMESTAMPADD, //
                     FnConversion.TIMESTAMPDIFF, //
@@ -67,8 +70,8 @@ public abstract class EscapeDialect {
                     FnConversion.DAYOFWEEK, //
                     FnConversion.HOUR, //
                     FnConversion.MINUTE, //
-                    FnConversion.SECOND, //
-                    FnConversion.PI);
+                    FnConversion.SECOND //
+            );
 
             register(FN_LENGTH_ALIAS, FnConversion.FN_LENGTH);
             register(FN_WEEK, FnConversion.WEEK_CALCITE);
@@ -94,6 +97,7 @@ public abstract class EscapeDialect {
             registerAll(FnConversion.LEFT, //
                     FnConversion.RIGHT, //
                     FnConversion.CONVERT, //
+                    FnConversion.GROUPING, //
                     FnConversion.LOG, //
                     FnConversion.CURRENT_DATE, //
                     FnConversion.CURRENT_TIME, //
@@ -118,6 +122,8 @@ public abstract class EscapeDialect {
             register(FN_FLOOR, FnConversion.FLOOR2);
             register(FN_SUBSTR, FnConversion.SUSTR);
             register(FN_SUBSTRING, FnConversion.SUSTRING);
+            register("OVERLAY", FnConversion.OVERLAY_SPARK);
+            register("SETS", FnConversion.SETS_SPARK);
         }
 
         @Override
@@ -158,6 +164,7 @@ public abstract class EscapeDialect {
             registerAll(FnConversion.LEFT, //
                     FnConversion.RIGHT, //
                     FnConversion.CONVERT, //
+                    FnConversion.GROUPING, //
                     FnConversion.LOG, //
                     FnConversion.CURRENT_DATE, //
                     FnConversion.CURRENT_TIME, //
@@ -182,6 +189,8 @@ public abstract class EscapeDialect {
             register(FN_FLOOR, FnConversion.FLOOR2);
             register(FN_SUBSTR, FnConversion.SUSTR);
             register(FN_SUBSTRING, FnConversion.SUSTRING);
+            register("OVERLAY", FnConversion.OVERLAY_SPARK);
+            register("SETS", FnConversion.SETS_SPARK);
         }
 
         @Override
@@ -209,7 +218,7 @@ public abstract class EscapeDialect {
      * base of function dialects
      */
 
-    private Map<String, FnConversion> registeredFunction = new HashMap<>();
+    private final Map<String, FnConversion> registeredFunction = new HashMap<>();
 
     public EscapeDialect() {
         init();

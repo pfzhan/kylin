@@ -128,7 +128,7 @@ public class CognosParenthesesEscapeTransformer implements QueryUtil.IQueryTrans
     }
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         return transform(originSql, project, defaultSchema);
     }
 }

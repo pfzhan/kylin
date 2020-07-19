@@ -60,7 +60,7 @@ public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKe
     private static final String SELECT_STAR = "*";
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         return transform(originSql, project, defaultSchema);
     }
 
@@ -88,7 +88,8 @@ public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKe
         return result.toString();
     }
 
-    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema, QueryContext.AclInfo aclInfo) {
+    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema,
+            QueryContext.AclInfo aclInfo) {
         StringBuilder newSelectClause = new StringBuilder();
         List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema, aclInfo);
         if (CollectionUtils.isEmpty(allCols)) {
@@ -104,7 +105,8 @@ public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKe
         return newSelectClause.toString();
     }
 
-    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema, QueryContext.AclInfo aclInfo) {
+    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema,
+            QueryContext.AclInfo aclInfo) {
         List<String> cols = new ArrayList<>();
         String user = Objects.nonNull(aclInfo) ? aclInfo.getUsername() : null;
         Set<String> groups = Objects.nonNull(aclInfo) ? aclInfo.getGroups() : null;
