@@ -80,6 +80,9 @@ export default {
     }
   },
   actions: {
+    [types.LOAD_DATASOURCE_OF_MODEL]: function ({ comit }, para) {
+      return api.datasource.loadDataSourceOfModel(para)
+    },
     [types.LOAD_DATASOURCE]: function ({ commit }, para) {
       return api.datasource.loadDataSource(para.isExt, para.project, para.datasource)
         .then((response) => {

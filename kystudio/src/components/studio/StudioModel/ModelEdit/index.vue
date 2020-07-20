@@ -497,7 +497,7 @@ import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
-import { isIE, groupData, objectClone, filterObjectArray } from '../../../../util'
+import { isIE, groupData, objectClone, filterObjectArray, handleSuccessAsync } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import BatchMeasureModal from '../BatchMeasureModal/index.vue'
@@ -538,7 +538,7 @@ import { NamedRegex } from '../../../../config'
     }),
     ...mapActions({
       getModelByModelName: 'LOAD_MODEL_INFO',
-      loadDataSourceByProject: 'LOAD_DATASOURCE',
+      loadDataSourceByModel: 'LOAD_DATASOURCE_OF_MODEL',
       saveModel: 'SAVE_MODEL',
       updataModel: 'UPDATE_MODEL',
       getAboutKap: 'GET_ABOUTKAP'
@@ -1573,62 +1573,70 @@ export default class ModelEdit extends Vue {
       this.$emit('saveRequestEnd')
     })
   }
-  mounted () {
+  async mounted () {
     this.globalLoading.show()
     this.$el.onselectstart = function (e) {
       return false
     }
-    this.clearDatasourceCache(this.currentSelectedProject) // 清空 当前project下的 datasource缓存
-    this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true}).then((res) => { // 初始化project数据
-      handleSuccess(res, (data) => {
-        this.datasource = data
-        this.initModelDesc((data) => { // 初始化模型数据
-          if ('visible' in this.modelData && !this.modelData.visible) {
-            this.showNoAuthorityContent(this.modelData)
-            return
-          }
-          try {
-            this.modelInstance = new NModel(Object.assign(data, {
-              project: this.currentSelectedProject,
-              renderDom: this.renderBox
-            }), this.modelRender, this)
-            if (this.isSchemaBrokenModel) {
-              kapConfirm(this.$t('brokenEditTip'), {
-                showCancelButton: false,
-                type: 'warning'
-              })
-              this.hiddenAllPanels()
-              this.hiddenAllPanelIconsInBroken()
-            } else {
-              this.initAllPanels()
-            }
-            this.modelInstance.bindConnClickEvent((ptable, ftable) => {
-              // 设置连接弹出框数据
-              this.callJoinDialog({
-                pid: ptable.guid,
-                fid: ftable.guid,
-                primaryTable: ptable,
-                tables: this.modelRender.tables
-              })
-            })
-          } catch (e) {
-            this.globalLoading.hide()
-            kapConfirm(this.$t('canNotRepairBrokenTip'), {
-              type: 'warning',
-              showCancelButton: false,
-              confirmButtonText: this.$t('kylinLang.common.exit')
-            }).then(() => {
-              this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
-            })
-          }
-        })
-      })
-    }, (err) => {
-      handleError(err)
-      this.globalLoading.hide()
-    })
+    // 注册保存事件
     this.$on('saveModel', () => {
       this.generateModelData()
+    })
+    this.clearDatasourceCache(this.currentSelectedProject) // 清空 当前project下的 datasource缓存
+    // 如果是 edit 需要获取模型使用的 table 信息
+    try {
+      if (this.extraoption.modelName && this.extraoption.action === 'edit') {
+        // 初始化project数据
+        const result = await this.loadDataSourceByModel({ project: this.currentSelectedProject, model_name: this.extraoption.modelName })
+        this.datasource = await handleSuccessAsync(result)
+      }
+    } catch (err) {
+      handleError(err)
+      this.globalLoading.hide()
+      return false
+    }
+    this.initModelDesc((data) => { // 初始化模型数据
+      if ('visible' in this.modelData && !this.modelData.visible) {
+        this.showNoAuthorityContent(this.modelData)
+        return
+      }
+      try {
+        let modelInfo = objectClone(data) // 全量模型用到的数据库表
+        modelInfo.global_datasource = {}
+        modelInfo.global_datasource[this.currentSelectedProject] = this.datasource
+        this.modelInstance = new NModel(Object.assign(modelInfo, {
+          project: this.currentSelectedProject,
+          renderDom: this.renderBox
+        }), this.modelRender, this)
+        if (this.isSchemaBrokenModel) {
+          kapConfirm(this.$t('brokenEditTip'), {
+            showCancelButton: false,
+            type: 'warning'
+          })
+          this.hiddenAllPanels()
+          this.hiddenAllPanelIconsInBroken()
+        } else {
+          this.initAllPanels()
+        }
+        this.modelInstance.bindConnClickEvent((ptable, ftable) => {
+          // 设置连接弹出框数据
+          this.callJoinDialog({
+            pid: ptable.guid,
+            fid: ftable.guid,
+            primaryTable: ptable,
+            tables: this.modelRender.tables
+          })
+        })
+      } catch (e) {
+        this.globalLoading.hide()
+        kapConfirm(this.$t('canNotRepairBrokenTip'), {
+          type: 'warning',
+          showCancelButton: false,
+          confirmButtonText: this.$t('kylinLang.common.exit')
+        }).then(() => {
+          this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+        })
+      }
     })
   }
   // 展示model无权限的相关table和columns信息

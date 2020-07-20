@@ -5,6 +5,9 @@ import { apiUrl } from '../config'
 Vue.use(VueResource)
 
 export default {
+  loadDataSourceOfModel: (data) => {
+    return Vue.resource(apiUrl + 'tables/model_tables').get({ project: data.project, model_name: data.model_name })
+  },
   loadDataSource: (ext, project, database) => {
     return Vue.resource(apiUrl + 'tables').get({ext, project, database})
   },

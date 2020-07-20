@@ -95,8 +95,9 @@ class NModel {
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
     this.management_type = options.management_type || 'MODEL_BASED'
-    this.globalDataSource = store.state.datasource.dataSource // 全局数据源表数据
-    this.datasource = options.simplified_tables || [] // 当前模型使用的数据源表数据
+    this.globalDataSource = store.state.datasource.dataSource // 全局数据源表数据，新拖入时，需要从这里这个数据中取遍历
+    // 能从模型详情接口里取到 simplified_tables 字段，就取这个字段，取不到的时候，取编辑模型时，模型使用到的 table 的信息这个接口里的返回
+    this.datasource = options.simplified_tables || (options.global_datasource && options.global_datasource[this.project] ? options.global_datasource[this.project] : []) || [] // 当前模型使用的数据源表数据
     if (_) {
       this.vm = _
       this._mount = _mount // 挂载对象
@@ -1152,6 +1153,7 @@ class NModel {
       return []
     }
     let tableNamed = tableFullName.split('.')
+    // 先看当前模型中使用的tables 字段是否能匹配上，如果匹配上了
     const currentDatasource = this.globalDataSource[this.project]
     let result = null
     if (currentDatasource) {
