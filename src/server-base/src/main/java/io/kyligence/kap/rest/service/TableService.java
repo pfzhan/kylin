@@ -1795,4 +1795,15 @@ public class TableService extends BasicService {
         return result;
     }
 
+    public List<TableDesc> getTablesOfModel(String project, String modelAlias) {
+        aclEvaluate.checkProjectReadPermission(project);
+        NDataModel model = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        if (Objects.isNull(model)) {
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+        }
+        List<String> usedTableNames = Lists.newArrayList();
+        usedTableNames.add(model.getRootFactTableName());
+        usedTableNames.addAll(model.getJoinTables().stream().map(JoinTableDesc::getTable).collect(Collectors.toList()));
+        return usedTableNames.stream().map(getTableManager(project)::getTableDesc).filter(Objects::nonNull).collect(Collectors.toList());
+    }
 }

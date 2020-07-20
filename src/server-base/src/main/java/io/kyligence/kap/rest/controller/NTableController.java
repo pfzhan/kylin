@@ -604,6 +604,14 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(response.getCode(), response, response.getMsg());
     }
 
+    @GetMapping(value = "/model_tables")
+    @ResponseBody
+    public EnvelopeResponse getModelTables(@RequestParam("project") String project, @RequestParam("model_name") String modelName) {
+        checkProjectName(project);
+        val res = tableService.getTablesOfModel(project, modelName);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+    }
+
     private void checkRefreshParam(Map refreshRequest) {
         val message = MsgPicker.getMsg();
         Object tables = refreshRequest.get("tables");

@@ -1172,4 +1172,23 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(((TableDescResponse) tables.get(0)).getJodID(), "949afe5d-0221-420f-92db-cdd91cb31ac8");
     }
+
+    @Test
+    public void testGetModelTables() {
+        String project = "default";
+        // normal model
+        String modelName = "nmodel_basic";
+        List<TableDesc> tableDescs = tableService.getTablesOfModel(project, modelName);
+        Assert.assertEquals(10, tableDescs.size());
+
+        // table deleted
+        tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", Boolean.FALSE);
+        tableDescs = tableService.getTablesOfModel(project, modelName);
+        Assert.assertEquals(9, tableDescs.size());
+
+        // model not exist
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Data Model with name 'nomodel' not found.");
+        tableService.getTablesOfModel(project, "nomodel");
+    }
 }
