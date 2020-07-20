@@ -25,7 +25,6 @@ package io.kyligence.kap.tool.routine;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.tool.CuratorOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
@@ -40,7 +39,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 @Getter
@@ -67,19 +65,6 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            if (new CuratorOperator().isJobNodeExist()) {
-                System.out.println("Please confirm that no job/all node is running!");
-                return;
-            }
-            Scanner scanner = new Scanner(System.in);
-            System.out.println("No job/all node is running?:(Y/N)");
-            String s = scanner.next();
-            if (!s.equalsIgnoreCase("Y")) {
-                System.out.println("Job/all node should not be running when execute routintool!");
-                return;
-            }
-        }
         if (printUsage(optionsHelper)) {
             return;
         }
