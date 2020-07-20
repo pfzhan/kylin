@@ -96,10 +96,7 @@ public class ExecutableOutputPO implements Serializable {
         if (startTime == 0) {
             startTime = time;
         }
-        if (endTime > 0) {
-            waitTime += time - endTime;
-            endTime = 0;
-        }
+        endTime = 0;
     }
 
     public void addEndTime(long time) {
