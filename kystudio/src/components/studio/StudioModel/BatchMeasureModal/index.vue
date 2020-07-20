@@ -299,7 +299,8 @@ export default class BatchMeasureModal extends Vue {
         }
       }
     })
-    this.modelDesc.all_measures = [...allMeasureArr]
+    this.$set(this.modelDesc, 'all_measures', allMeasureArr)
+    this.$emit('betchMeasures', allMeasureArr)
     this.handleClose(true)
   }
   handleClose (isSubmit, data) {

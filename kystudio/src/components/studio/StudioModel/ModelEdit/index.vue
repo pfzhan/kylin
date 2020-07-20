@@ -372,7 +372,7 @@
      
     <ModelSaveConfig/>
     <DimensionModal/>
-    <BatchMeasureModal/>
+    <BatchMeasureModal @betchMeasures="updateBetchMeasure"/>
     <TableJoinModal/>
     <AddMeasure
       :isShow="measureVisible"
@@ -1787,6 +1787,9 @@ export default class ModelEdit extends Vue {
         handleError(res)
       })
     }, 1500000)
+  }
+  updateBetchMeasure (val) {
+    this.modelInstance.all_measures = val
   }
   created () {
     // 心跳请求，保持用户 active
