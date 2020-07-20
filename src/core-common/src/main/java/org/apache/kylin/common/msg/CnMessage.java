@@ -201,11 +201,11 @@ public class CnMessage extends Message {
     }
 
     public String getINVALID_DIMENSION_NAME() {
-        return "非法维度名称 '%s'， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持100 个字符。";
+        return "'%s'维度名称无效， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持100 个字符。";
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "非法度量名称 '%s'， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持100 个字符。";
+        return "'%s'度量名称无效， 支持中文、英文、数字、空格、特殊字符（_ -()%%?）。最多支持100 个字符。";
     }
 
     public String getMODEL_ID_NOT_FOUND() {

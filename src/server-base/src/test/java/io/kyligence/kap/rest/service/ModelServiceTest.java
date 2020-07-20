@@ -3319,7 +3319,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertTrue(StringUtils.contains(ex.getMessage(),
-                    "Invalid dimension name 'CAL_DT1@!', only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
+                    "The dimension name 'CAL_DT1@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
         }
 
         StringBuilder name = new StringBuilder();
@@ -3351,7 +3351,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "Invalid measure name 'illegal_measure_name@!', only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
+                    "The measure name 'illegal_measure_name@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
         }
 
         // duplicate measure name
