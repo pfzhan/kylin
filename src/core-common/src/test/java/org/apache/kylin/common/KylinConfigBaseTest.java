@@ -731,6 +731,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getIntersectFilterOrSeparator", new PropertiesEntity("kylin.query.intersect.separator", "|", "|"));
         map.put("getBitmapValuesUpperBound", new PropertiesEntity("kylin.query.bitmap-values-upper-bound", "10000000", 10000000));
         map.put("isExecuteAsEnabled", new PropertiesEntity("kylin.query.query-with-execute-as", "false", false));
+        map.put("getSourceUsageSurvivalTimeThreshold",
+                new PropertiesEntity("kylin.garbage.storage.sourceusage-survival-time-threshold", "90d", 7776000000L));
     }
 
     @Before
