@@ -339,6 +339,14 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Test
+    public void testParenthesis() {
+        RestoreFromComputedColumn converter = new RestoreFromComputedColumn();
+        String originSql = "select F.PRICE * F.ITEM_COUNT AS DEAL_AMOUNT from test_kylin_fact F group by (F.PRICE * F.ITEM_COUNT) limit 100";
+        String ccSql = "select deal_amount from test_kylin_fact F group by deal_amount limit 100";
+        check(converter, originSql, ccSql);
+    }
+
     private void check(RestoreFromComputedColumn converter, String originSql, String ccSql) {
         String transform = converter.convert(ccSql, "default", "DEFAULT", false);
         Assert.assertEquals(originSql, transform);

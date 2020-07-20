@@ -170,6 +170,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
     private static class ReplaceRange {
 
         String replaceExpr;
+        boolean addAlias;
 
         int beginPos;
         int endPos;
@@ -188,6 +189,9 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
      * @return
      */
     private static boolean needParenthesis(String originSql, List<SqlNode> topColumns, ReplaceRange replaceRange) {
+        if (replaceRange.addAlias) {
+            return false;
+        }
 
         boolean topColumn = false;
 
@@ -320,6 +324,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
             replaceRange.column = column;
             replaceRange.replaceExpr = replaceExpression;
+            replaceRange.addAlias = columnUsage.addAlias;
 
             toBeReplacedUsages.add(replaceRange);
         }
