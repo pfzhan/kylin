@@ -97,7 +97,14 @@ class NModel {
     this.management_type = options.management_type || 'MODEL_BASED'
     this.globalDataSource = store.state.datasource.dataSource // 全局数据源表数据，新拖入时，需要从这里这个数据中取遍历
     // 能从模型详情接口里取到 simplified_tables 字段，就取这个字段，取不到的时候，取编辑模型时，模型使用到的 table 的信息这个接口里的返回
-    this.datasource = options.simplified_tables || (options.global_datasource && options.global_datasource[this.project] ? options.global_datasource[this.project] : []) || [] // 当前模型使用的数据源表数据
+    this.datasource = []
+    if (options.simplified_tables && options.simplified_tables.length) {
+      this.datasource = options.simplified_tables
+    } else {
+      if (options.global_datasource && options.global_datasource[options.project] && options.global_datasource[options.project].length) {
+        this.datasource = options.global_datasource[options.project]
+      }
+    }
     if (_) {
       this.vm = _
       this._mount = _mount // 挂载对象

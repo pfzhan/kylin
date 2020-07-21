@@ -1589,6 +1589,9 @@ export default class ModelEdit extends Vue {
         // 初始化project数据
         const result = await this.loadDataSourceByModel({ project: this.currentSelectedProject, model_name: this.extraoption.modelName })
         this.datasource = await handleSuccessAsync(result)
+        this.datasource.forEach((item) => {
+          item.table = item.database + '.' + item.name
+        })
       }
     } catch (err) {
       handleError(err)
