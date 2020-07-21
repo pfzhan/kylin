@@ -31,6 +31,8 @@ import com.google.common.collect.Lists;
 
 public class EscapeFunction {
 
+    private static final String SUBSTRING_FUNCTION = "SUBSTRING";
+
     private static final String CEIL_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
     private static final String FLOOR_EXCEPTION_MSG = "ceil function only support ceil(numeric) or ceil(datetime to timeunit)";
     private static final String SUBSTRING_EXCEPTION_MSG = "substring/substr only support substring(col from start for len) or substring(col from start)";
@@ -45,7 +47,7 @@ public class EscapeFunction {
         LEFT(args -> {
             checkArgs(args, 2);
             String[] newArgs = new String[] { args[0], "1", args[1] };
-            return normalFN("SUBSTRING", newArgs);
+            return normalFN(SUBSTRING_FUNCTION, newArgs);
         }),
 
         RIGHT(args -> {
@@ -54,7 +56,7 @@ public class EscapeFunction {
             String rightOffset = args[1];
             String[] newArgs = new String[] { origStrRef, "CHAR_LENGTH(" + origStrRef + ") + 1 - " + rightOffset,
                     "" + rightOffset };
-            return normalFN("SUBSTRING", newArgs);
+            return normalFN(SUBSTRING_FUNCTION, newArgs);
         }),
 
         TRIM(args -> {
@@ -223,12 +225,12 @@ public class EscapeFunction {
 
         SUSTRING(args -> {
             Preconditions.checkArgument(args.length == 2 || args.length == 3, EscapeFunction.SUBSTRING_EXCEPTION_MSG);
-            return normalFN("SUBSTRING", args);
+            return normalFN(SUBSTRING_FUNCTION, args);
         }),
 
         SUSTR(args -> {
             Preconditions.checkArgument(args.length == 2 || args.length == 3, EscapeFunction.SUBSTR_EXCEPTION_MSG);
-            return normalFN("SUBSTRING", args);
+            return normalFN(SUBSTRING_FUNCTION, args);
         }),
 
         OVERLAY_SPARK(args -> {

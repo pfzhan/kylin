@@ -40,13 +40,12 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * <pre>
@@ -64,8 +63,8 @@ import io.kyligence.kap.common.obf.IKeep;
  * </P>and visit SqlIdentifier with
  * {@link DoubleQuoteSqlIdentifierConvert}
  */
+@Slf4j
 public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DoubleQuotePushDownConverter.class);
 
     //inner class for convert SqlIdentifier with DoubleQuote
     private static class DoubleQuoteSqlIdentifierConvert {
@@ -147,7 +146,7 @@ public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
             DoubleQuoteSqlIdentifierConvert sqlIdentifierConvert = new DoubleQuoteSqlIdentifierConvert(originSql);
             sqlParsed = sqlIdentifierConvert.convert();
         } catch (Exception e) {
-            LOGGER.warn("convert sql:{} with double quoted with exception {} ", originSql, e);
+            log.warn("convert sql:{} with double quoted with exception", originSql, e);
         }
         return sqlParsed;
     }

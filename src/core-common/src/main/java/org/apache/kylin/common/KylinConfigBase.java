@@ -214,7 +214,7 @@ public abstract class KylinConfigBase implements Serializable {
         return properties;
     }
 
-    final protected Map<String, String> getPropertiesByPrefix(String prefix) {
+    protected final Map<String, String> getPropertiesByPrefix(String prefix) {
         Map<String, String> result = Maps.newLinkedHashMap();
         for (Entry<Object, Object> entry : getAllProperties().entrySet()) {
             String key = (String) entry.getKey();
@@ -231,7 +231,7 @@ public abstract class KylinConfigBase implements Serializable {
         return result;
     }
 
-    final protected String[] getOptionalStringArray(String prop, String[] dft) {
+    protected final String[] getOptionalStringArray(String prop, String[] dft) {
         final String property = getOptional(prop);
         if (!StringUtils.isBlank(property)) {
             return property.split("\\s*,\\s*");
@@ -240,7 +240,7 @@ public abstract class KylinConfigBase implements Serializable {
         }
     }
 
-    final protected String[] getSystemStringArray(String prop, String[] dft) {
+    protected final String[] getSystemStringArray(String prop, String[] dft) {
         final String property = System.getProperty(prop);
         if (!StringUtils.isBlank(property)) {
             return property.split("\\s*,\\s*");
@@ -249,7 +249,7 @@ public abstract class KylinConfigBase implements Serializable {
         }
     }
 
-    final protected int[] getOptionalIntArray(String prop, String[] dft) {
+    protected final int[] getOptionalIntArray(String prop, String[] dft) {
         String[] strArray = getOptionalStringArray(prop, dft);
         int[] intArray = new int[strArray.length];
         for (int i = 0; i < strArray.length; i++) {
@@ -258,7 +258,7 @@ public abstract class KylinConfigBase implements Serializable {
         return intArray;
     }
 
-    final protected String getRequired(String prop) {
+    protected final String getRequired(String prop) {
         String r = getOptional(prop);
         if (StringUtils.isEmpty(r)) {
             throw new IllegalArgumentException("missing '" + prop + "' in conf/kylin.properties");
@@ -269,7 +269,7 @@ public abstract class KylinConfigBase implements Serializable {
     /**
      * Use with care, properties should be read-only. This is for testing only.
      */
-    final public void setProperty(String key, String value) {
+    public final void setProperty(String key, String value) {
         logger.trace("KylinConfig was updated with " + key + "=" + value);
         properties.setProperty(BCC.check(key), value);
     }

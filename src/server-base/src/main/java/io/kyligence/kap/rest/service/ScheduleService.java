@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,12 +31,17 @@ import org.springframework.stereotype.Service;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class ScheduleService {
+
+    private static final String GLOBAL = "global";
 
     @Autowired
     MetadataBackupService backupService;
@@ -61,7 +63,7 @@ public class ScheduleService {
 
         EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
 
         String oldThreadName = Thread.currentThread().getName();
         try {
@@ -84,13 +86,13 @@ public class ScheduleService {
             Thread.currentThread().setName(oldThreadName);
         }
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
     }
 
     @Scheduled(cron = "${kylin.metadata.top-recs-filter-cron:0 0 0 * * *}")
     public void selectTopRec() {
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
 
         String oldThreadName = Thread.currentThread().getName();
         try {
@@ -104,6 +106,6 @@ public class ScheduleService {
             Thread.currentThread().setName(oldThreadName);
         }
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, "global");
+        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
     }
 }
