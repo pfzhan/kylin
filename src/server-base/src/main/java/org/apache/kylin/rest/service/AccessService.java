@@ -132,10 +132,6 @@ public class AccessService extends BasicService {
     protected UserService userService;
 
     @Autowired
-    @Qualifier("userGroupService")
-    private IUserGroupService userGroupService;
-
-    @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
