@@ -286,11 +286,11 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         columnUsages.sort((item1, item2) -> {
             SqlIdentifier column1 = item1.sqlIdentifier;
             SqlIdentifier column2 = item2.sqlIdentifier;
-            int linegap = column1.getParserPosition().getLineNum() - column1.getParserPosition().getLineNum();
+            int linegap = column2.getParserPosition().getLineNum() - column1.getParserPosition().getLineNum();
             if (linegap != 0)
                 return linegap;
 
-            return column2.getParserPosition().getColumnNum() - column2.getParserPosition().getColumnNum();
+            return column2.getParserPosition().getColumnNum() - column1.getParserPosition().getColumnNum();
         });
 
         List<ReplaceRange> toBeReplacedUsages = Lists.newArrayList();
