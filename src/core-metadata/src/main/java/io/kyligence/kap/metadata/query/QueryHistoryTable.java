@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.query;
 
-import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
@@ -95,44 +94,29 @@ public class QueryHistoryTable extends SqlTable implements IKeep {
 
         @Override
         public QueryHistoryInfo getResult(ResultSet rs, String columnName) throws SQLException {
-            QueryHistoryInfo queryHistoryInfo = null;
             if (rs.getBytes(columnName) == null) {
                 return null;
             }
-            try {
-                queryHistoryInfo = JsonUtil.readValue(rs.getBytes(columnName), QueryHistoryInfo.class);
-            } catch (IOException e) {
-                logger.error("Fail to parse json", e);
-            }
-            return queryHistoryInfo;
+
+            return JsonUtil.readValueQuietly(rs.getBytes(columnName), QueryHistoryInfo.class);
         }
 
         @Override
         public QueryHistoryInfo getResult(ResultSet rs, int columnIndex) throws SQLException {
-            QueryHistoryInfo queryHistoryInfo = null;
             if (rs.getBytes(columnIndex) == null) {
                 return null;
             }
-            try {
-                queryHistoryInfo = JsonUtil.readValue(rs.getBytes(columnIndex), QueryHistoryInfo.class);
-            } catch (IOException e) {
-                logger.error("Fail to parse json", e);
-            }
-            return queryHistoryInfo;
+
+            return JsonUtil.readValueQuietly(rs.getBytes(columnIndex), QueryHistoryInfo.class);
         }
 
         @Override
         public QueryHistoryInfo getResult(CallableStatement cs, int columnIndex) throws SQLException {
-            QueryHistoryInfo queryHistoryInfo = null;
             if (cs.getBytes(columnIndex) == null) {
                 return null;
             }
-            try {
-                queryHistoryInfo = JsonUtil.readValue(cs.getBytes(columnIndex), QueryHistoryInfo.class);
-            } catch (IOException e) {
-                logger.error("Fail to parse json", e);
-            }
-            return queryHistoryInfo;
+
+            return JsonUtil.readValueQuietly(cs.getBytes(columnIndex), QueryHistoryInfo.class);
         }
     }
 

@@ -76,6 +76,8 @@ public class JdbcQueryHistoryStore {
     public static final String MONTH = "month";
     public static final String WEEK = "week";
     public static final String DAY = "day";
+    public static final String COUNT = "count";
+    public static final String DELETE_REALIZATION_LOG = "Delete {} row query history realization takes {} ms";
 
     private final QueryHistoryTable queryHistoryTable;
     private final QueryHistoryRealizationTable queryHistoryRealizationTable;
@@ -234,7 +236,7 @@ public class JdbcQueryHistoryStore {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             QueryStatisticsMapper mapper = session.getMapper(QueryStatisticsMapper.class);
             SelectStatementProvider statementProvider = select(queryHistoryRealizationTable.model,
-                    count(queryHistoryRealizationTable.queryId).as("count")) //
+                    count(queryHistoryRealizationTable.queryId).as(COUNT)) //
                             .from(queryHistoryRealizationTable) //
                             .where(queryHistoryRealizationTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
                             .and(queryHistoryRealizationTable.queryTime, isLessThan(endTime)) //
@@ -343,8 +345,7 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history realization takes {} ms", deleteRows,
-                    System.currentTimeMillis() - startTime);
+            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
         }
     }
 
@@ -357,8 +358,7 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history realization takes {} ms", deleteRows,
-                    System.currentTimeMillis() - startTime);
+            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
         }
     }
 
@@ -372,8 +372,7 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history realization takes {} ms", deleteRows,
-                    System.currentTimeMillis() - startTime);
+            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
         }
     }
 
@@ -386,8 +385,7 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history realization takes {} ms", deleteRows,
-                    System.currentTimeMillis() - startTime);
+            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
         } catch (Exception e) {
             log.error("Fail to delete query history realization for project [{}]", project, e);
         }
@@ -428,7 +426,7 @@ public class JdbcQueryHistoryStore {
                 .map(queryHistoryTable.queryStatus).toPropertyWhenPresent("queryStatus", queryMetrics::getQueryStatus) //
                 .map(queryHistoryTable.indexHit).toPropertyWhenPresent("indexHit", queryMetrics::isIndexHit) //
                 .map(queryHistoryTable.queryTime).toPropertyWhenPresent("queryTime", queryMetrics::getQueryTime) //
-                .map(queryHistoryTable.month).toPropertyWhenPresent("month", queryMetrics::getMonth) //
+                .map(queryHistoryTable.month).toPropertyWhenPresent(MONTH, queryMetrics::getMonth) //
                 .map(queryHistoryTable.queryFirstDayOfMonth)
                 .toPropertyWhenPresent("queryFirstDayOfMonth", queryMetrics::getQueryFirstDayOfMonth) //
                 .map(queryHistoryTable.queryFirstDayOfWeek)
@@ -469,7 +467,7 @@ public class JdbcQueryHistoryStore {
     }
 
     private SelectStatementProvider queryQueryHistoriesSizeProvider(QueryHistoryRequest request) {
-        return filterByConditions(select(count(queryHistoryTable.queryId).as("count")).from(queryHistoryTable), request)
+        return filterByConditions(select(count(queryHistoryTable.queryId).as(COUNT)).from(queryHistoryTable), request)
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
@@ -536,7 +534,7 @@ public class JdbcQueryHistoryStore {
             String project) {
         switch (timeDimension) {
         case MONTH:
-            return select(queryHistoryTable.queryFirstDayOfMonth.as("time"), count(queryHistoryTable.id).as("count")) //
+            return select(queryHistoryTable.queryFirstDayOfMonth.as("time"), count(queryHistoryTable.id).as(COUNT)) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
                     .and(queryHistoryTable.queryTime, isLessThan(endTime)) //
@@ -544,7 +542,7 @@ public class JdbcQueryHistoryStore {
                     .groupBy(queryHistoryTable.queryFirstDayOfMonth) //
                     .build().render(RenderingStrategies.MYBATIS3);
         case WEEK:
-            return select(queryHistoryTable.queryFirstDayOfWeek.as("time"), count(queryHistoryTable.id).as("count")) //
+            return select(queryHistoryTable.queryFirstDayOfWeek.as("time"), count(queryHistoryTable.id).as(COUNT)) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
                     .and(queryHistoryTable.queryTime, isLessThan(endTime)) //
@@ -552,7 +550,7 @@ public class JdbcQueryHistoryStore {
                     .groupBy(queryHistoryTable.queryFirstDayOfWeek) //
                     .build().render(RenderingStrategies.MYBATIS3);
         default:
-            return select(queryHistoryTable.queryDay.as("time"), count(queryHistoryTable.id).as("count")) //
+            return select(queryHistoryTable.queryDay.as("time"), count(queryHistoryTable.id).as(COUNT)) //
                     .from(queryHistoryTable) //
                     .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //
                     .and(queryHistoryTable.queryTime, isLessThan(endTime)) //

@@ -98,6 +98,14 @@ public class JsonUtil {
         }
     }
 
+    public static <T> T readValueQuietly(byte[] src, Class<T> valueType) {
+        try {
+            return readValue(src, valueType);
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read " + valueType.getName(), e);
+        }
+    }
+
     public static <T> T readValue(String content, Class<T> valueType) throws IOException {
         return mapper.readValue(content, valueType);
     }

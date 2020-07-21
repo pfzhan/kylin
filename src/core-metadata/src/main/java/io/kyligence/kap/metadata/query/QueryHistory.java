@@ -32,7 +32,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -52,7 +51,7 @@ public class QueryHistory implements IKeep {
     public static final String QUERY_MEASUREMENT_SURFIX = "query_history";
     public static final String REALIZATION_MEASUREMENT_SURFIX = "query_history_realization";
 
-    public static final String ID = "id";
+    public static final String QUERY_HISTORY_ID = "id";
     public static final String PROJECT_NAME = "project_name";
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";
@@ -91,83 +90,64 @@ public class QueryHistory implements IKeep {
     public static final String OTHER_ERROR = "Other error";
 
     @JsonProperty(SQL_TEXT)
-    @Column(name = SQL_TEXT)
     private String sql;
 
     @JsonProperty(SQL_PATTERN)
-    @Column(name = SQL_PATTERN)
     private String sqlPattern;
 
     @JsonProperty(QUERY_TIME)
-    @Column(name = QUERY_TIME)
     private long queryTime;
 
     @JsonProperty(QUERY_DURATION)
-    @Column(name = QUERY_DURATION)
     private long duration;
 
     // this field is composed of modelId, layout id and index type
     // it's written as modelId#layoutId#indexType
-    @Column(name = REALIZATIONS)
     private String queryRealizations;
 
     @JsonProperty(QUERY_SERVER)
-    @Column(name = QUERY_SERVER, tag = true)
     private String hostName;
 
     @JsonProperty(SUBMITTER)
-    @Column(name = SUBMITTER, tag = true)
     private String querySubmitter;
 
     @JsonProperty(QUERY_STATUS)
-    @Column(name = QUERY_STATUS)
     private String queryStatus;
 
     //query details
     @JsonProperty(QUERY_ID)
-    @Column(name = QUERY_ID)
     private String queryId;
 
-    @JsonProperty(ID)
-    @Column(name = ID)
+    @JsonProperty(QUERY_HISTORY_ID)
     private long id;
 
     @JsonProperty(TOTAL_SCAN_COUNT)
-    @Column(name = TOTAL_SCAN_COUNT)
     private long totalScanCount;
 
     @JsonProperty(TOTAL_SCAN_BYTES)
-    @Column(name = TOTAL_SCAN_BYTES)
     private long totalScanBytes;
 
     @JsonProperty(RESULT_ROW_COUNT)
-    @Column(name = RESULT_ROW_COUNT)
     private long resultRowCount;
 
     @JsonProperty(IS_CACHE_HIT)
-    @Column(name = IS_CACHE_HIT)
     private boolean cacheHit;
 
     @JsonProperty(IS_INDEX_HIT)
-    @Column(name = IS_INDEX_HIT)
     private boolean indexHit;
 
     @JsonProperty(ENGINE_TYPE)
-    @Column(name = ENGINE_TYPE)
     private String engineType;
 
     @JsonProperty(PROJECT_NAME)
-    @Column(name = PROJECT_NAME)
     private String projectName;
 
     @JsonProperty("realizations")
     private List<NativeQueryRealization> nativeQueryRealizations;
 
-    @Column(name = "count")
     private int count;
 
     @JsonProperty(ERROR_TYPE)
-    @Column(name = ERROR_TYPE)
     private String errorType;
 
     private QueryHistoryInfo queryHistoryInfo;

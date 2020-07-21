@@ -163,7 +163,7 @@ public class NDataModelResponse extends NDataModel {
                 simplifiedDimension.setMaxLengthValue(columnStats.getMaxLengthValue());
                 simplifiedDimension.setMinLengthValue(columnStats.getMinLengthValue());
 
-                List simple = Lists.newArrayList();
+                ArrayList<String> simple = Lists.newArrayList();
                 tableExt.getSampleRows().stream()
                         .forEach(row -> simple.add(row[tableExt.getAllColumnStats().indexOf(columnStats)]));
                 simplifiedDimension.setSimple(simple);
@@ -234,7 +234,7 @@ public class NDataModelResponse extends NDataModel {
     @EqualsAndHashCode
     @ToString
     public static class SimplifiedNamedColumn extends NamedColumn implements Serializable, IKeep {
-        
+
         public SimplifiedNamedColumn(NamedColumn namedColumn) {
             this.id = namedColumn.getId();
             this.aliasDotColumn = namedColumn.getAliasDotColumn();
@@ -267,7 +267,7 @@ public class NDataModelResponse extends NDataModel {
         private String type;
 
         @JsonProperty("simple")
-        private List simple;
+        private ArrayList<String> simple;
     }
 
     /**

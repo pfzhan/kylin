@@ -23,12 +23,13 @@
  */
 package org.apache.kylin.common;
 
+import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.val;
 
-public class Singletons {
+public class Singletons implements Serializable {
 
     transient ConcurrentHashMap<Class<?>, Object> instances = null;
     transient ConcurrentHashMap<Class<?>, ConcurrentHashMap<String, Object>> instancesByPrj = null;
