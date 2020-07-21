@@ -79,32 +79,32 @@ public class DataType implements Serializable {
     private static final String TYPE_PATTEN_TAIL = "\\s*" //
             + "(?:" + "[(]" + "([\\d\\s,]+)" + "[)]" + ")?";
 
-    public static final String VARCHAR = "varchar";
-    public static final String CHAR = "char";
-    public static final String INTEGER = "integer";
-    public static final String TINY_INT = "tinyint";
-    public static final String SMALL_INT = "smallint";
-    public static final String BIGINT = "bigint";
-    public static final String FLOAT = "float";
-    public static final String DECIMAL = "decimal";
-    public static final String DOUBLE = "double";
-    public static final String NUMERIC = "numeric";
-    public static final String TIMESTAMP = "timestamp";
-    public static final String DATETIME = "datetime";
-    public static final String DATE = "date";
-    public static final String TIME = "time";
-    public static final String REAL = "real";
-    public static final String ANY_STR = "any";
-    public static final String STRING = "string";
-    public static final String BOOLEAN = "boolean";
-    public static final String BYTE = "byte";
-    public static final String BINARY = "binary";
-    public static final String INT = "int";
-    public static final String SHORT = "short";
-    public static final String LONG = "long";
-    public static final String INT4 = "int4";
-    public static final String LONG8 = "long8";
-    public static final String ARRAY = "array";
+    private static final String VARCHAR = "varchar";
+    private static final String CHAR = "char";
+    private static final String INTEGER = "integer";
+    private static final String TINY_INT = "tinyint";
+    private static final String SMALL_INT = "smallint";
+    private static final String BIGINT = "bigint";
+    private static final String FLOAT = "float";
+    private static final String DECIMAL = "decimal";
+    private static final String DOUBLE = "double";
+    private static final String NUMERIC = "numeric";
+    private static final String TIMESTAMP = "timestamp";
+    private static final String DATETIME = "datetime";
+    private static final String DATE = "date";
+    private static final String TIME = "time";
+    private static final String REAL = "real";
+    private static final String ANY_STR = "any";
+    private static final String STRING = "string";
+    private static final String BOOLEAN = "boolean";
+    private static final String BYTE = "byte";
+    private static final String BINARY = "binary";
+    private static final String INT = "int";
+    private static final String SHORT = "short";
+    private static final String LONG = "long";
+    private static final String INT4 = "int4";
+    private static final String LONG8 = "long8";
+    private static final String ARRAY = "array";
 
     public static synchronized void register(String... typeNames) {
         VALID_TYPES.addAll(Arrays.asList(typeNames));

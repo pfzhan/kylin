@@ -37,11 +37,17 @@ public class LayoutRecommendationResponse extends LayoutRecommendationItem imple
     @JsonProperty("id")
     private long id;
 
+    @JsonProperty("item_id")
+    private long itemId;
+
     @JsonProperty("data_size")
     private long dataSize;
 
     @JsonProperty("usage")
     private long usage;
+
+    @JsonProperty("create_time")
+    private long createTime;
 
     @JsonProperty("columns_and_measures_size")
     private int columnsAndMeasuresSize;

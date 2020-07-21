@@ -71,8 +71,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
 
-import static org.apache.kylin.metadata.datatype.DataType.*;
-
 /**
  */
 @SuppressWarnings("serial")
@@ -84,12 +82,12 @@ public class  FunctionDesc implements Serializable {
         r.expression = (expression == null) ? null : expression.toUpperCase();
         r.parameters = parameters;
         r.returnType = returnType;
-        r.returnDataType = getType(returnType);
+        r.returnDataType = DataType.getType(returnType);
         return r;
     }
 
     public static FunctionDesc newCountOne() {
-        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), BIGINT);
+        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), TYPE_BIGINT);
     }
 
     public static String proposeReturnType(String expression, String colDataType) {
@@ -102,14 +100,14 @@ public class  FunctionDesc implements Serializable {
         switch (expression) {
         case FunctionDesc.FUNC_SUM:
             if (colDataType != null) {
-                DataType type = getType(returnType);
+                DataType type = DataType.getType(returnType);
                 if (type.isIntegerFamily()) {
-                    returnType = BIGINT;
+                    returnType = TYPE_BIGINT;
                 } else if (type.isDecimal()) {
                     //same with org.apache.spark.sql.catalyst.expressions.aggregate.Sum
                     returnType = String.format("decimal(%d,%d)",
-                            decimalBoundedPrecision(type.getPrecision() + 10),
-                            decimalBoundedScale(type.getScale()));
+                            DataType.decimalBoundedPrecision(type.getPrecision() + 10),
+                            DataType.decimalBoundedScale(type.getScale()));
                 }
             } else {
                 returnType = "decimal(19,4)";
@@ -120,6 +118,8 @@ public class  FunctionDesc implements Serializable {
         }
         return returnType;
     }
+
+    public static final String TYPE_BIGINT = "bigint";
 
     public static final String FUNC_SUM = "SUM";
     public static final String FUNC_MIN = "MIN";
@@ -153,7 +153,7 @@ public class  FunctionDesc implements Serializable {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_TOP_N, "topn(100, 4)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, FUNC_COUNT_DISTINCT_BIT_MAP);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
-        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, BIGINT);
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, TYPE_BIGINT);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COLLECT_SET, "ARRAY");
     }
 
@@ -188,16 +188,16 @@ public class  FunctionDesc implements Serializable {
         for (ParameterDesc p : getParameters()) {
             if (p.isColumnType()) {
                 TblColRef colRef = model.findColumn(p.getValue());
-                returnDataType = getType(proposeReturnType(expression, colRef.getDatatype()));
+                returnDataType = DataType.getType(proposeReturnType(expression, colRef.getDatatype()));
                 p.setValue(colRef.getIdentity());
                 p.setColRef(colRef);
             }
         }
         if (returnDataType == null) {
-            returnDataType = getType(BIGINT);
+            returnDataType = DataType.getType(TYPE_BIGINT);
         }
         if (!StringUtils.isEmpty(returnType)) {
-            returnDataType = getType(returnType);
+            returnDataType = DataType.getType(returnType);
         }
         returnType = returnDataType.toString();
     }
@@ -206,7 +206,7 @@ public class  FunctionDesc implements Serializable {
         if (isDimensionAsMetric && isCountDistinct()) {
             // create DimCountDis
             measureType = MeasureTypeFactory.createNoRewriteFieldsMeasureType(getExpression(), getReturnDataType());
-            returnDataType = getType("dim_dc");
+            returnDataType = DataType.getType("dim_dc");
         } else {
             measureType = MeasureTypeFactory.create(getExpression(), getReturnDataType());
         }
@@ -259,12 +259,12 @@ public class  FunctionDesc implements Serializable {
 
                 return getColRefs().get(0).getType();
             } else if (isCount()) {
-                return getType(BIGINT);
+                return DataType.getType(TYPE_BIGINT);
             } else {
                 throw new IllegalArgumentException("unknown measure type " + getMeasureType());
             }
         } else {
-            return ANY;
+            return DataType.ANY;
         }
     }
 
@@ -399,11 +399,11 @@ public class  FunctionDesc implements Serializable {
         switch (expression) {
         case FUNC_SUM:
         case FUNC_TOP_N:
-            List<String> suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT,
-                    FLOAT, DOUBLE, DECIMAL);
+            List<String> suitableTypes = Arrays.asList("tinyint", "smallint", "integer", "bigint", "float", "double",
+                    "decimal");
             return suitableTypes.contains(dataType.getName());
         case FUNC_PERCENTILE:
-            suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT);
+            suitableTypes = Arrays.asList("tinyint", "smallint", "integer", "bigint");
             return suitableTypes.contains(dataType.getName());
         default:
             return true;
