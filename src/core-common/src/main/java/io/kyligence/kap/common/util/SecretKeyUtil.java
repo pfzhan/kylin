@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -87,7 +88,7 @@ public class SecretKeyUtil {
     public static void initKGSecretKey() throws IOException, NoSuchAlgorithmException {
         File kgSecretKeyFile = new File(KylinConfig.getKylinHome(), KG_SECRET_KEY_FILE_NAME);
         if (kgSecretKeyFile.exists()) {
-            kgSecretKeyFile.delete();
+            Files.delete(kgSecretKeyFile.toPath());
         }
 
         if (null == kgSecretKey) {
@@ -130,7 +131,9 @@ public class SecretKeyUtil {
         File kgSecretKeyFile = new File(KylinConfig.getKylinHome(), KG_SECRET_KEY_FILE_NAME);
         try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(kgSecretKeyFile))) {
             byte[] keyBytes = new byte[16];
-            bis.read(keyBytes);
+            if (bis.read(keyBytes) < 1) {
+                throw new RuntimeException(String.format("%s file is empty!", KG_SECRET_KEY_FILE_NAME));
+            }
             return new SecretKeySpec(keyBytes, ENCRYPTION_ALGORITHM_AES);
         }
     }

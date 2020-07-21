@@ -28,9 +28,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.session.web.http.SaveSessionException;
@@ -43,11 +40,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Slf4j
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE+1)
 public class LoginLogFilter extends OncePerRequestFilter {
-    private static final Logger logger = LoggerFactory.getLogger(LoginLogFilter.class);
 
     @Getter
     @Setter

@@ -61,7 +61,7 @@ public class HealthController extends NBasicController {
 
     private static final int MAX_TOKEN_LENGTH = 64;
 
-    private static final long VALIDATION_DURATION = 20 * 1000;
+    private static final long VALIDATION_DURATION = 20L * 1000;
 
     @Getter
     private static String KE_PID;
