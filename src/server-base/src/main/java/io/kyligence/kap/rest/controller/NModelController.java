@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.exception.IllegalCCExpressionException;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -491,10 +490,7 @@ public class NModelController extends NBasicController {
             throw new KylinException(FAILED_UPDATE_MODEL, e);
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            if (root instanceof IllegalCCExpressionException) {
-                throw new KylinException(FAILED_UPDATE_MODEL, root.getMessage());
-            }
-            throw e;
+            throw new KylinException(FAILED_UPDATE_MODEL, root.getMessage());
         }
     }
 

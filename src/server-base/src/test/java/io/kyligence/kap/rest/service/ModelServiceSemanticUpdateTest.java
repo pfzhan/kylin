@@ -276,7 +276,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof IllegalStateException);
                 Assert.assertEquals(
-                        "Cannot init measure TEST_MEASURE_WITH_CC: Column not found by TEST_KYLIN_FACT.TEST_CC_1",
+                        "Cannot init measure TEST_MEASURE_WITH_CC: Column 'TEST_KYLIN_FACT.TEST_CC_1' not found in any table.",
                         e.getMessage());
             }
 
@@ -285,10 +285,10 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();
-            Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == colIdOfCC).findFirst()
-                    .get().isExist());
-            Assert.assertTrue(model.getAllMeasures().stream().filter(m -> m.getId() == measureIdOfCC).findFirst()
-                    .get().isTomb());
+            Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == colIdOfCC).findFirst().get()
+                    .isExist());
+            Assert.assertTrue(
+                    model.getAllMeasures().stream().filter(m -> m.getId() == measureIdOfCC).findFirst().get().isTomb());
         }
     }
 
@@ -507,7 +507,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         request.getComputedColumnDescs().remove(ccDesc);
 
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("table index 20000020000 contains invalid column 25. table index can only contain columns added to model.");
+        thrown.expectMessage(
+                "table index 20000020000 contains invalid column 25. table index can only contain columns added to model.");
         modelService.updateDataModelSemantic("default", request);
     }
 
@@ -552,12 +553,12 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         // modify expression of cc TEST_KYLIN_FACT.NEST5
         val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
                 .findFirst().orElse(null);
-        originCC.setExpression(originCC.getExpression()+"+1");
+        originCC.setExpression(originCC.getExpression() + "+1");
         modelService.updateDataModelSemantic("default", request);
         // new indexes
         val newPlan = indexPlanManager.getIndexPlan(modelId);
-        val newIndexId = newPlan.getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
-                .findFirst().map(LayoutEntity::getId).orElse(-2L);
+        val newIndexId = newPlan.getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol)).findFirst()
+                .map(LayoutEntity::getId).orElse(-2L);
         Assert.assertTrue(newIndexId > oldIndexId);
     }
 
@@ -592,21 +593,20 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         selectRule.jointDims = new Integer[0][0];
         newAggregationGroup.setSelectRule(selectRule);
         indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default")
-                        .modelId(modelId)
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
         // old indexes
         val indexCol = Arrays.asList(transId, nest5SumId);
-        val oldIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
-                .findFirst().map(LayoutEntity::getId).orElse(-1L);
+        val oldIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-1L);
         // modify expression of cc TEST_KYLIN_FACT.NEST5
         val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
                 .findFirst().orElse(null);
-        originCC.setExpression(originCC.getExpression()+"+1");
+        originCC.setExpression(originCC.getExpression() + "+1");
         modelService.updateDataModelSemantic("default", request);
         // new indexes
-        val newIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol))
-                .findFirst().map(LayoutEntity::getId).orElse(-2L);
+        val newIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-2L);
         Assert.assertTrue(newIndexId > oldIndexId);
     }
 
@@ -624,9 +624,11 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         modelService.updateDataModelSemantic("default", request);
         // expect a KylinException when modify cc used by a nested cc
         request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.getComputedColumnDescs().get(10).setExpression(request.getComputedColumnDescs().get(10).getExpression()+"+1");
+        request.getComputedColumnDescs().get(10)
+                .setExpression(request.getComputedColumnDescs().get(10).getExpression() + "+1");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("nested computed column TEST_KYLIN_FACT.NEST6 still contains computed column TEST_KYLIN_FACT.NEST5");
+        thrown.expectMessage(
+                "nested computed column TEST_KYLIN_FACT.NEST6 still contains computed column TEST_KYLIN_FACT.NEST5");
         modelService.checkBeforeModelSave(request);
     }
 
@@ -674,7 +676,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
         val executables = getRunningExecutables("default", null);
         Assert.assertEquals(1, executables.size());
-        Assert.assertTrue(((NSparkCubingJob)executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
         Assert.assertEquals(tableIndexCount,
                 cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
@@ -943,7 +945,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         val executables = getRunningExecutables("default", null);
         Assert.assertEquals(1, executables.size());
-        Assert.assertTrue(((NSparkCubingJob)executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
         val cube = indePlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         for (LayoutEntity layout : cube.getWhitelistLayouts()) {
@@ -980,7 +982,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
-        Assert.assertTrue(((NSparkCubingJob)executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
         val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(df.getUuid());
         Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getLayoutsMap().size());
@@ -999,7 +1001,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                     .filter(layoutEntity -> 20000020001L == layoutEntity.getId()).collect(Collectors.toSet());
             copyForWrite.markIndexesToBeDeleted(copyForWrite.getUuid(), toBeDeletedSet);
             copyForWrite.removeLayouts(Sets.newHashSet(20000020001L), true, true);
-                });
+        });
 
         modelManager.updateDataModel(originModel.getUuid(), model -> model.setAllNamedColumns(
                 model.getAllNamedColumns().stream().filter(m -> m.getId() != 25).collect(Collectors.toList())));

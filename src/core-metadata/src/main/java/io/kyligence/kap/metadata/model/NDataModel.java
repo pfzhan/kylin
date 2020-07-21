@@ -534,7 +534,8 @@ public class NDataModel extends RootPersistentEntity {
         TableRef tableRef = findTable(table);
         TblColRef result = tableRef.getColumn(column.toUpperCase());
         if (result == null)
-            throw new IllegalArgumentException("Column not found by " + table + "." + column);
+            throw new RuntimeException(String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(),
+                    String.format("%s.%s", table, column)));
         return result;
     }
 
@@ -557,8 +558,7 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         if (result == null)
-            throw new IllegalArgumentException("Column not found by " + input);
-
+            throw new RuntimeException(String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), input));
         return result;
     }
 
@@ -1356,7 +1356,7 @@ public class NDataModel extends RootPersistentEntity {
                 continue;
             }
 
-            for (TblColRef tblColRef: measure.getFunction().getColRefs()) {
+            for (TblColRef tblColRef : measure.getFunction().getColRefs()) {
                 if (tblColRef != null) {
                     for (NamedColumn namedColumn : allNamedColumns) {
                         if (namedColumn.getAliasDotColumn().equalsIgnoreCase(tblColRef.getAliasDotName())) {
