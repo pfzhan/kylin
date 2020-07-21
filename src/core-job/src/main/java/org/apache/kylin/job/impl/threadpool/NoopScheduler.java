@@ -57,6 +57,7 @@ public class NoopScheduler implements Scheduler<AbstractExecutable> {
 
     @Override
     public void init(JobEngineConfig jobEngineConfig) throws SchedulerException {
+        //do nothing
     }
 
     @Override

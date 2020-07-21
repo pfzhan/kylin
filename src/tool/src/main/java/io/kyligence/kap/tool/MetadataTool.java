@@ -38,10 +38,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
@@ -287,12 +289,7 @@ public class MetadataTool extends ExecutableApplication {
         if (StringUtils.isBlank(project)) {
             logger.info("start to copy all projects from ResourceStore.");
             val auditLogStore = resourceStore.getAuditLogStore();
-            long offset = 0;
-            if (kylinConfig.isUTEnv())
-                offset = auditLogStore.getMaxId();
-            else
-                offset = auditLogStore.getStartId() == 0 ? resourceStore.getOffset() : auditLogStore.getStartId();
-            long finalOffset = offset;
+            long finalOffset = getOffset(auditLogStore);
             UnitOfAllWorks.doInTransaction(() -> {
                 backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
@@ -301,18 +298,7 @@ public class MetadataTool extends ExecutableApplication {
                 if (projectFolders == null) {
                     return null;
                 }
-                for (String projectPath : projectFolders) {
-                    if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)
-                            || projectPath.equals(ResourceStore.METASTORE_IMAGE)) {
-                        continue;
-                    }
-                    // The "_global" directory is already included in the full backup
-                    copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
-                    if (Thread.currentThread().isInterrupted()) {
-                        throw new InterruptedException("metadata task is interrupt");
-                    }
-                }
-
+                backupProjects(projectFolders, backupResourceStore, excludeTableExd);
                 val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
                 if (uuid != null) {
                     backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
@@ -340,6 +326,30 @@ public class MetadataTool extends ExecutableApplication {
         backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
         backupMetadataStore.dump(backupResourceStore);
         logger.info("backup successfully at {}", backupPath);
+    }
+    
+    private long getOffset(AuditLogStore auditLogStore) {
+        long offset = 0;
+        if (kylinConfig.isUTEnv())
+            offset = auditLogStore.getMaxId();
+        else
+            offset = auditLogStore.getStartId() == 0 ? resourceStore.getOffset() : auditLogStore.getStartId();
+        return offset;
+    }
+    
+    private void backupProjects(NavigableSet<String> projectFolders, ResourceStore backupResourceStore,
+            boolean excludeTableExd) throws InterruptedException {
+        for (String projectPath : projectFolders) {
+            if (projectPath.equals(ResourceStore.METASTORE_UUID_TAG)
+                    || projectPath.equals(ResourceStore.METASTORE_IMAGE)) {
+                continue;
+            }
+            // The "_global" directory is already included in the full backup
+            copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("metadata task is interrupt");
+            }
+        }
     }
 
     private Map remoteBackup(String address, String backupPath, String project, boolean compress) throws Exception {

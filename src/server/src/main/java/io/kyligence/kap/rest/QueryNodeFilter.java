@@ -200,12 +200,7 @@ public class QueryNodeFilter implements Filter {
                 val exchange = restTemplate.exchange(
                         "http://all" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),
                         HttpMethod.valueOf(servletRequest.getMethod()), new HttpEntity<>(body, headers), byte[].class);
-                try {
-                    ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                    store.getAuditLogStore().catchupManuallyWithTimeOut(store);
-                } catch (Exception e) {
-                    log.error("Failed to catchup manually.", e);
-                }
+                tryCatchUp();
                 responseHeaders = exchange.getHeaders();
                 responseBody = exchange.getBody();
                 responseStatus = exchange.getStatusCodeValue();
@@ -243,7 +238,17 @@ public class QueryNodeFilter implements Filter {
             return;
         }
         throw new RuntimeException("unknown status");
+    }  
+    
+    private void tryCatchUp() {
+        try {
+            ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+        } catch (Exception e) {
+            log.error("Failed to catchup manually.", e);
+        }
     }
+
 
     @Override
     public void destroy() {

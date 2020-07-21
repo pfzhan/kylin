@@ -92,7 +92,7 @@ public class RestClient {
     private static final int HTTP_SOCKET_TIMEOUT_MS = 120000;
 
     public static final String SCHEME_HTTP = "http://";
-
+    private static final String ROUTED = "routed";
     public static final String KYLIN_API_PATH = "/kylin/api";
 
     public static boolean matchFullRestPattern(String uri) {
@@ -285,7 +285,7 @@ public class RestClient {
     public HttpResponse updateUser(Object object) throws IOException {
         String url = baseUrl + "/user/update_user";
         HttpPost post = newPost(url);
-        post.addHeader("routed", "true");
+        post.addHeader(ROUTED, "true");
         String jsonMsg = JsonUtil.writeValueAsIndentString(object);
         post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
         HttpResponse response = null;
@@ -305,7 +305,7 @@ public class RestClient {
     public HttpResponse updateSourceUsage() throws IOException {
         String url = baseUrl + "/system/capacity/refresh_all";
         HttpPut put = newPut(url);
-        put.addHeader("routed", "true");
+        put.addHeader(ROUTED, "true");
         HttpResponse response = null;
         try {
             response = client.execute(put);
@@ -335,7 +335,7 @@ public class RestClient {
     public HttpResponse notifyCatchUp() throws IOException {
         String url = baseUrl + "/audit_log";
         HttpPost post = newPost(url);
-        post.addHeader("routed", "true");
+        post.addHeader(ROUTED, "true");
         HttpResponse response = null;
         try {
             response = client.execute(post);
