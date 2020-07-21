@@ -71,6 +71,16 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
 
+import static org.apache.kylin.metadata.datatype.DataType.ANY;
+import static org.apache.kylin.metadata.datatype.DataType.BIGINT;
+import static org.apache.kylin.metadata.datatype.DataType.DECIMAL;
+import static org.apache.kylin.metadata.datatype.DataType.DOUBLE;
+import static org.apache.kylin.metadata.datatype.DataType.FLOAT;
+import static org.apache.kylin.metadata.datatype.DataType.INTEGER;
+import static org.apache.kylin.metadata.datatype.DataType.SMALL_INT;
+import static org.apache.kylin.metadata.datatype.DataType.TINY_INT;
+
+
 /**
  */
 @SuppressWarnings("serial")
@@ -87,7 +97,7 @@ public class  FunctionDesc implements Serializable {
     }
 
     public static FunctionDesc newCountOne() {
-        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), TYPE_BIGINT);
+        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), BIGINT);
     }
 
     public static String proposeReturnType(String expression, String colDataType) {
@@ -102,7 +112,7 @@ public class  FunctionDesc implements Serializable {
             if (colDataType != null) {
                 DataType type = DataType.getType(returnType);
                 if (type.isIntegerFamily()) {
-                    returnType = TYPE_BIGINT;
+                    returnType = BIGINT;
                 } else if (type.isDecimal()) {
                     //same with org.apache.spark.sql.catalyst.expressions.aggregate.Sum
                     returnType = String.format("decimal(%d,%d)",
@@ -118,8 +128,6 @@ public class  FunctionDesc implements Serializable {
         }
         return returnType;
     }
-
-    public static final String TYPE_BIGINT = "bigint";
 
     public static final String FUNC_SUM = "SUM";
     public static final String FUNC_MIN = "MIN";
@@ -153,7 +161,7 @@ public class  FunctionDesc implements Serializable {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_TOP_N, "topn(100, 4)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, FUNC_COUNT_DISTINCT_BIT_MAP);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
-        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, TYPE_BIGINT);
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, BIGINT);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COLLECT_SET, "ARRAY");
     }
 
@@ -194,7 +202,7 @@ public class  FunctionDesc implements Serializable {
             }
         }
         if (returnDataType == null) {
-            returnDataType = DataType.getType(TYPE_BIGINT);
+            returnDataType = DataType.getType(BIGINT);
         }
         if (!StringUtils.isEmpty(returnType)) {
             returnDataType = DataType.getType(returnType);
@@ -259,12 +267,12 @@ public class  FunctionDesc implements Serializable {
 
                 return getColRefs().get(0).getType();
             } else if (isCount()) {
-                return DataType.getType(TYPE_BIGINT);
+                return DataType.getType(BIGINT);
             } else {
                 throw new IllegalArgumentException("unknown measure type " + getMeasureType());
             }
         } else {
-            return DataType.ANY;
+            return ANY;
         }
     }
 
@@ -399,11 +407,11 @@ public class  FunctionDesc implements Serializable {
         switch (expression) {
         case FUNC_SUM:
         case FUNC_TOP_N:
-            List<String> suitableTypes = Arrays.asList("tinyint", "smallint", "integer", "bigint", "float", "double",
-                    "decimal");
+            List<String> suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT,
+                    FLOAT, DOUBLE, DECIMAL);
             return suitableTypes.contains(dataType.getName());
         case FUNC_PERCENTILE:
-            suitableTypes = Arrays.asList("tinyint", "smallint", "integer", "bigint");
+            suitableTypes = Arrays.asList(TINY_INT, SMALL_INT, INTEGER, BIGINT);
             return suitableTypes.contains(dataType.getName());
         default:
             return true;
