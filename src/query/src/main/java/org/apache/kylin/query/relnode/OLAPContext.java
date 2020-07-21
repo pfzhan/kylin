@@ -84,9 +84,9 @@ public class OLAPContext {
 
     public static final String PRM_ACCEPT_PARTIAL_RESULT = "AcceptPartialResult";
 
-    static final ThreadLocal<Map<String, String>> _localPrarameters = new ThreadLocal<Map<String, String>>();
+    static final ThreadLocal<Map<String, String>> _localPrarameters = new ThreadLocal<>();
 
-    static final ThreadLocal<Map<Integer, OLAPContext>> _localContexts = new ThreadLocal<Map<Integer, OLAPContext>>();
+    static final ThreadLocal<Map<Integer, OLAPContext>> _localContexts = new ThreadLocal<>();
 
     public static void setParameters(Map<String, String> parameters) {
         _localPrarameters.set(parameters);
@@ -98,7 +98,7 @@ public class OLAPContext {
 
     public static void registerContext(OLAPContext ctx) {
         if (_localContexts.get() == null) {
-            Map<Integer, OLAPContext> contextMap = new HashMap<Integer, OLAPContext>();
+            Map<Integer, OLAPContext> contextMap = new HashMap<>();
             _localContexts.set(contextMap);
         }
         _localContexts.get().put(ctx.id, ctx);
@@ -197,7 +197,7 @@ public class OLAPContext {
     private Set<TblColRef> innerFilterColumns = Sets.newLinkedHashSet();
     @Setter
     @Getter
-    private Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    private Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
 
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
@@ -205,7 +205,8 @@ public class OLAPContext {
     @Getter
     private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
-    public List<RexNode> expandedFilterConditions = new LinkedList<>();
+    @Getter
+    private List<RexNode> expandedFilterConditions = new LinkedList<>();
     public List<JoinDesc> joins = new LinkedList<>();
     @Getter
     @Setter

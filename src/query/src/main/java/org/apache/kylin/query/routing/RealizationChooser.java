@@ -260,7 +260,7 @@ public class RealizationChooser {
         }
 
         val selectedSegments = Lists.<NDataSegment>newArrayList();
-        val filterConditions = olapContext.expandedFilterConditions;
+        val filterConditions = olapContext.getExpandedFilterConditions();
         val relOptCluster = olapContext.firstTableScan.getCluster();
         val rexBuilder = relOptCluster.getRexBuilder();
         val rexSimplify = new RexSimplify(relOptCluster.getRexBuilder(),

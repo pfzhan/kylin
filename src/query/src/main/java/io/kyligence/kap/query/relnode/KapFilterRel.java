@@ -166,7 +166,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
         this.condition.accept(visitor);
         if (isHeterogeneousSegmentEnabled(this.context)) {
-            context.expandedFilterConditions.add(this.condition.accept(new FilterConditionExpander(this)));
+            context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
         }
         for (TblColRef tblColRef : filterColumns) {
             if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
@@ -235,7 +235,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
             this.condition.accept(visitor);
             if (isHeterogeneousSegmentEnabled(context)) {
-                context.expandedFilterConditions.add(this.condition.accept(new FilterConditionExpander(this)));
+                context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(this)));
             }
             // optimize the filter, the optimization has to be segment-irrelevant
             for (TblColRef tblColRef : filterColumns) {

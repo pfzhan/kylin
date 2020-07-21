@@ -39,6 +39,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_M
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
@@ -748,26 +749,7 @@ public class ModelService extends BasicService {
             }
         }
         List<NDataSegment> indexFiltered = new LinkedList<>();
-        segs.forEach(segment -> {
-            if (allToComplement) {
-                // find seg that does not have all indexes
-                if (segment.getSegDetails().getLayouts().size() != allIndexes.size()) {
-                    indexFiltered.add(segment);
-                }
-            } else if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
-                // find seg that has all required indexes
-                if (segment.getLayoutIds().containsAll(withAllIndexes)) {
-                    indexFiltered.add(segment);
-                }
-            } else if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
-                // find seg that miss any of the indexes
-                if (!segment.getLayoutIds().containsAll(withoutAnyIndexes)) {
-                    indexFiltered.add(segment);
-                }
-            } else {
-                indexFiltered.add(segment);
-            }
-        });
+        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement, allIndexes, indexFiltered, segment));
 
         segmentResponseList = indexFiltered.stream()
                 .filter(segment -> !StringUtils.isNotEmpty(status)
@@ -777,6 +759,27 @@ public class ModelService extends BasicService {
                 StringUtils.isEmpty(sortBy) ? "create_time" : sortBy, reverse);
         segmentResponseList.sort(comparator);
         return segmentResponseList;
+    }
+
+    private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement, Set<Long> allIndexes, List<NDataSegment> indexFiltered, NDataSegment segment) {
+        if (allToComplement) {
+            // find seg that does not have all indexes
+            if (segment.getSegDetails().getLayouts().size() != allIndexes.size()) {
+                indexFiltered.add(segment);
+            }
+        } else if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
+            // find seg that has all required indexes
+            if (segment.getLayoutIds().containsAll(withAllIndexes)) {
+                indexFiltered.add(segment);
+            }
+        } else if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
+            // find seg that miss any of the indexes
+            if (!segment.getLayoutIds().containsAll(withoutAnyIndexes)) {
+                indexFiltered.add(segment);
+            }
+        } else {
+            indexFiltered.add(segment);
+        }
     }
 
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
@@ -1871,30 +1874,39 @@ public class ModelService extends BasicService {
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds, boolean parallelBuildBySegment) {
         aclEvaluate.checkProjectOperationPermission(project);
-        val jobManager = getJobManager(project);
         val dfManger = getDataflowManager(project);
-
         NDataflow dataflow = dfManger.getDataflow(modelId);
-        JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
-        List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
         if (parallelBuildBySegment) {
-            for (String segmentId : segmentIds) {
-                try {
-                    JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-                            getSourceUsageManager().licenseCheckWrap(project,
-                                    () -> jobManager.addRelatedIndexJob(modelId, getUsername(),
-                                            Sets.newHashSet(segmentId),
-                                            indexIds == null ? null : new HashSet<>(indexIds))));
-                    jobs.add(jobInfo);
-                } catch (JobSubmissionException e) {
-                    result.addFailedSeg(dataflow, e);
-                }
-            }
+            return addIndexesToSegmentsParallelly(project, modelId, segmentIds, indexIds, dataflow);
         } else {
+            val jobManager = getJobManager(project);
+            JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
+            List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
             try {
                 JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getSourceUsageManager().licenseCheckWrap(project,
                                 () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentIds),
+                                        indexIds == null ? null : new HashSet<>(indexIds))));
+                jobs.add(jobInfo);
+            } catch (JobSubmissionException e) {
+                result.addFailedSeg(dataflow, e);
+            }
+            result.setJobs(jobs);
+            return result;
+        }
+    }
+
+    private JobInfoResponseWithFailure addIndexesToSegmentsParallelly(
+            String project, String modelId, List<String> segmentIds, List<Long> indexIds, NDataflow dataflow) {
+        JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
+        List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
+        val jobManager = getJobManager(project);
+        for (String segmentId : segmentIds) {
+            try {
+                JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
+                        getSourceUsageManager().licenseCheckWrap(project,
+                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(),
+                                        Sets.newHashSet(segmentId),
                                         indexIds == null ? null : new HashSet<>(indexIds))));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
@@ -1972,9 +1984,6 @@ public class ModelService extends BasicService {
             res.add(constructIncrementBuild(project, modelId, hole.getStart(), hole.getEnd(), format, needBuild));
         }
         res.add(constructIncrementBuild(project, modelId, start, end, format, needBuild));
-        //TODO need to index build?
-        //        res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
-        //                getSourceUsageManager().licenseCheckWrap(project, () -> getEventManager(project).postAddCuboidEvents(modelId, getUsername()))));
         return res;
     }
 
@@ -2162,10 +2171,12 @@ public class ModelService extends BasicService {
 
         for (TableRef table : model.getAllTables()) {
             for (TblColRef tblColRef : table.getColumns()) {
-                if (!tblColRef.getColumnDesc().isComputedColumn()) {
-                    if (ccColumnNames.contains(tblColRef.getName())) {
-                        ambiguousCCNameSet.add(tblColRef.getName());
-                    }
+                if (tblColRef.getColumnDesc().isComputedColumn()) {
+                    continue;
+                }
+
+                if (ccColumnNames.contains(tblColRef.getName())) {
+                    ambiguousCCNameSet.add(tblColRef.getName());
                 }
             }
         }
@@ -3126,7 +3137,7 @@ public class ModelService extends BasicService {
         }
 
         if (errorSb.length() > 0) {
-            throw new RuntimeException(errorSb.toString());
+            throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, errorSb.toString());
         }
     }
 
