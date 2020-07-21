@@ -50,7 +50,7 @@ public class RelColumnMetaDataExtractor {
         return new StructField(
                 fieldName,
                 relDataType.getSqlTypeName().getJdbcOrdinal(),
-                relDataType.getFullTypeString(),
+                relDataType.getSqlTypeName().getName(),
                 getPrecision(relDataType),
                 getScale(relDataType),
                 relDataType.isNullable());
