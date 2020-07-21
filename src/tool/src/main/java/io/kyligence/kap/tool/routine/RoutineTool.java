@@ -24,6 +24,7 @@
 package io.kyligence.kap.tool.routine;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
@@ -78,7 +79,10 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
                     projectsToCleanup = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
                             .stream().map(ProjectInstance::getName).collect(Collectors.toList());
                 }
-                new SourceUsageCleaner().cleanup();
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    new SourceUsageCleaner().cleanup();
+                    return null;
+                }, UnitOfWork.GLOBAL_UNIT);
                 for (String projName : projectsToCleanup) {
                     try {
                         GarbageCleaner.unsafeCleanupMetadataManually(projName);

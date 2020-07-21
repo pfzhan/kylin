@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +72,10 @@ public class ScheduleService {
                 backupService.backupAll();
                 queryHistoryService.cleanQueryHistories();
                 rawRecService.deleteRawRecItems();
-                new SourceUsageCleaner().cleanup();
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                    new SourceUsageCleaner().cleanup();
+                    return null;
+                }, UnitOfWork.GLOBAL_UNIT);
             }
             projectService.garbageCleanup();
 
