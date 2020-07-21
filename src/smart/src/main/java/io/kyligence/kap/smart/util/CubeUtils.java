@@ -30,7 +30,6 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -59,7 +58,7 @@ public class CubeUtils {
 
     public static FunctionDesc newCountStarFuncDesc(NDataModel modelDesc) {
         return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")),
-                DataType.BIGINT);
+                FunctionDesc.TYPE_BIGINT);
     }
 
     public static NDataModel.Measure newMeasure(FunctionDesc func, String name, int id) {
