@@ -91,6 +91,8 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     private AclUtil aclUtil = Mockito.spy(AclUtil.class);
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    @Mock
+    private IUserGroupService userGroupService = Mockito.spy(IUserGroupService.class);
 
     @BeforeClass
     public static void setupResource() {
@@ -106,6 +108,7 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     public void setup() {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(queryService, "userGroupService", userGroupService);
         System.setProperty("kylin.query.cache-enabled", "false");
 
         SecurityContextHolder.getContext()
@@ -128,8 +131,8 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     private void mockQueryException(QueryService queryService, String sql, Throwable throwable) throws Exception {
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(throwable);
-        Mockito.when(queryService.newQueryExec(PROJECT)).thenReturn(queryExec);
-        Mockito.when(queryService.newQueryExec(PROJECT, null)).thenReturn(queryExec);
+        Mockito.doReturn(queryExec).when(queryService).newQueryExec(PROJECT);
+        Mockito.doReturn(queryExec).when(queryService).newQueryExec(PROJECT, null);
     }
 
     @Test

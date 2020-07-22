@@ -247,8 +247,7 @@ public class QueryService extends BasicService {
             QueryExec queryExec = newQueryExec(sqlRequest.getProject());
             QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlRequest.getSql(),
                     queryExec.getSchema(), BackdoorToggles.getPrepareOnly(), false, false);
-            queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject(),
-                    userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+            queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownQuery(queryParams);
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
@@ -630,8 +629,7 @@ public class QueryService extends BasicService {
                 QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                         sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
                         queryExec.getSchema(), true);
-                queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject(),
-                        userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+                queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
                 String correctedSql = QueryUtil.massageSql(queryParams);
 
                 //CAUTION: should not change sqlRequest content!
@@ -691,27 +689,29 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project, String executeAs) {
-        if (executeAs != null) {
-            Set<String> groupsOfExecuteUser;
-            boolean hasAdminPermission = false;
-            try {
-                groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(executeAs);
-                Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
-                hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(executeAs, groupsInProject,
-                        project, ADMINISTRATION);
-            } catch (Exception UsernameNotFoundException) {
-                throw new KylinException(INVALID_USER_NAME,
-                        String.format(MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
-            }
-            QueryContext.current()
-                    .setAclInfo(new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission));
-        } else {
-            QueryContext.current().setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project,
-                    userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
-        }
+        QueryContext.current().setAclInfo(getExecuteAclInfo(project, executeAs));
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);
+    }
+
+    private QueryContext.AclInfo getExecuteAclInfo(String project, String executeAs) {
+        if (executeAs == null)
+            return AclPermissionUtil.prepareQueryContextACLInfo(project,
+                    userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername()));
+
+        Set<String> groupsOfExecuteUser;
+        boolean hasAdminPermission = false;
+        try {
+            groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(executeAs);
+            Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
+            hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(
+                    executeAs, groupsInProject, project, ADMINISTRATION);
+        } catch (Exception UsernameNotFoundException) {
+            throw new KylinException(INVALID_USER_NAME,
+                    String.format(MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
+        }
+        return new QueryContext.AclInfo(executeAs, groupsOfExecuteUser, hasAdminPermission);
     }
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
@@ -730,8 +730,7 @@ public class QueryService extends BasicService {
                 sqlRequest.getLimit(), sqlRequest.getOffset());
         QueryParams queryParams = new QueryParams(sqlRequest.getProject(), massagedSql, defaultSchema, isPrepare,
                 sqlException, sqlRequest.isForcedToPushDown(), true, sqlRequest.getLimit(), sqlRequest.getOffset());
-        queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(sqlRequest.getProject(),
-                userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername())));
+        queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
 
         return PushDownUtil.tryPushDownQuery(queryParams);
     }
