@@ -38,6 +38,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -87,11 +88,11 @@ public class RawRecService {
         List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContextV2);
         saveDimensionAndMeasure(dimensionRecItems, measureRecItems, project);
 
-        ArrayListMultimap<Long, QueryHistory> layoutToQHMap = ArrayListMultimap.create();
+        ArrayListMultimap<String, QueryHistory> layoutToQHMap = ArrayListMultimap.create();
         for (AccelerateInfo accelerateInfo : semiContextV2.getAccelerateInfoMap().values()) {
             for (AccelerateInfo.QueryLayoutRelation layout : accelerateInfo.getRelatedLayouts()) {
                 List<QueryHistory> queryHistoryList = queryHistoryMap.get(layout.getSql());
-                layoutToQHMap.putAll(layout.getLayoutId(), queryHistoryList);
+                layoutToQHMap.putAll(layout.getModelId() + "_" + layout.getLayoutId(), queryHistoryList);
             }
         }
 
@@ -136,7 +137,7 @@ public class RawRecService {
     }
 
     List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
-            ArrayListMultimap<Long, QueryHistory> layoutToQHMap) {
+            ArrayListMultimap<String, QueryHistory> layoutToQHMap) {
         val mgr = RawRecManager.getInstance(semiContextV2.getProject());
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
@@ -174,7 +175,7 @@ public class RawRecService {
                     recItem.setUniqueFlag(layoutItem.getUuid());
                     recItem.setDependIDs(layoutItem.genDependIds());
                 }
-                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout().getId());
+                updateLayoutStatistic(recItem, layoutToQHMap, layoutItem.getLayout());
                 if (recItem.getLayoutMetric() != null) {
                     rawRecItems.add(recItem);
                 }
@@ -183,9 +184,9 @@ public class RawRecService {
         return rawRecItems;
     }
 
-    private void updateLayoutStatistic(RawRecItem recItem, ArrayListMultimap<Long, QueryHistory> layoutToQHMap,
-            long layoutId) {
-        List<QueryHistory> queryHistories = layoutToQHMap.get(layoutId);
+    private void updateLayoutStatistic(RawRecItem recItem, ArrayListMultimap<String, QueryHistory> layoutToQHMap,
+            LayoutEntity layout) {
+        List<QueryHistory> queryHistories = layoutToQHMap.get(layout.getModel().getId() + "_" + layout.getId());
         if (CollectionUtils.isEmpty(queryHistories)) {
             return;
         }

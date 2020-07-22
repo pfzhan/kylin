@@ -31,7 +31,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
@@ -39,7 +45,10 @@ import lombok.val;
 
 public class NBasicSemiV2Test extends SemiAutoTestBase {
 
+    private static final long QUERY_TIME = 1595520000000L;
+
     private JdbcRawRecStore jdbcRawRecStore;
+    RawRecService rawRecommendation;
 
     @Before
     public void setup() throws Exception {
@@ -47,6 +56,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+        rawRecommendation = new RawRecService();
     }
 
     @Override
@@ -91,5 +101,49 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertTrue(ccRecItemMap.containsKey(oneCCUuid));
         Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE",
                 ccRecItemMap.get(oneCCUuid).getCc().getExpression());
+    }
+
+    @Test
+    public void testGenerateRawRecommendationsLayoutMetric() {
+        // prepare two origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact", "select name from test_country" });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runWithContext();
+        List<NDataModel> originModels = smartContext.getOriginModels();
+
+        // generate raw recommendations for origin model
+        rawRecommendation.generateRawRecommendations(getProject(), queryHistories());
+
+        // check raw recommendations layoutMetric
+        List<RawRecItem> countryRawRecItems = jdbcRawRecStore.listAll(getProject(), originModels.get(0).getUuid(), 0,
+                10);
+        Assert.assertEquals(2, countryRawRecItems.size());
+        List<RawRecItem> factRawRecItems = jdbcRawRecStore.listAll(getProject(), originModels.get(1).getUuid(), 0, 10);
+        Assert.assertEquals(2, factRawRecItems.size());
+
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(1).getType());
+        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(3).getType());
+        Assert.assertEquals(1, jdbcRawRecStore.queryById(3).getLayoutMetric().getFrequencyMap().getDateFrequency()
+                .get(QUERY_TIME).intValue());
+
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(2).getType());
+        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(4).getType());
+        Assert.assertEquals(1, jdbcRawRecStore.queryById(4).getLayoutMetric().getFrequencyMap().getDateFrequency()
+                .get(QUERY_TIME).intValue());
+    }
+
+    private List<QueryHistory> queryHistories() {
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select CAL_DT from test_kylin_fact");
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setId(1);
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setQueryTime(QUERY_TIME);
+        queryHistory2.setSql("select country from test_country");
+        queryHistory2.setId(1);
+
+        return Lists.newArrayList(queryHistory1, queryHistory2);
     }
 }
