@@ -189,7 +189,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertNotNull(projectInstance2);
-        Assert.assertTrue(projectInstance2.isSemiAutoMode());
+        Assert.assertFalse(projectInstance2.isSemiAutoMode());
         Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
         projectManager.dropProject("project11");
     }

@@ -148,10 +148,10 @@ public class ProjectService extends BasicService {
             overrideProps = Maps.newLinkedHashMap();
         }
         if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            overrideProps.put("kylin.metadata.semi-automatic-mode", "true");
-            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, "true");
+            overrideProps.put("kylin.metadata.semi-automatic-mode", KylinConfig.FALSE);
+            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.TRUE);
         } else {
-            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, "false");
+            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.FALSE);
         }
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
