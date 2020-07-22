@@ -217,34 +217,65 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
     Seq(StringType, TypeCollection(IntegerType, LongType), TypeCollection(DateType, TimestampType))
 
   def getResultDataType(): DataType = {
-    if (left.isInstanceOf[Literal] && left.asInstanceOf[Literal].value != null) {
-      val unit = left.asInstanceOf[Literal].value.toString.toUpperCase
-      if (TimestampAddImpl.TIME_UNIT.contains(unit) && right.dataType.isInstanceOf[DateType]) {
-        return TimestampType
-      }
+    if (canConvertTimestamp()) {
+      TimestampType
+    } else {
+      right.dataType
     }
-    right.dataType
   }
 
   override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
     (mid.dataType, right.dataType) match {
-      case (IntegerType, DateType) => TimestampAddImpl.evaluate(input1.toString, input2.asInstanceOf[Int], input3.asInstanceOf[Int])
+      case (IntegerType, DateType) =>
+        if (canConvertTimestamp()) {
+          TimestampAddImpl.evaluateTimestamp(input1.toString, input2.asInstanceOf[Int], input3.asInstanceOf[Int])
+        } else {
+          TimestampAddImpl.evaluateDays(input1.toString, input2.asInstanceOf[Int], input3.asInstanceOf[Int])
+        }
       case (LongType, DateType) =>
-        TimestampAddImpl.evaluate(input1.toString, input2.asInstanceOf[Long], input3.asInstanceOf[Int])
-      case (IntegerType, TimestampType) => TimestampAddImpl.evaluate(input1.toString, input2.asInstanceOf[Int], input3.asInstanceOf[Long])
+        if (canConvertTimestamp()) {
+          TimestampAddImpl.evaluateTimestamp(input1.toString, input2.asInstanceOf[Long], input3.asInstanceOf[Int])
+        } else {
+          TimestampAddImpl.evaluateDays(input1.toString, input2.asInstanceOf[Long], input3.asInstanceOf[Int])
+        }
+      case (IntegerType, TimestampType) =>
+        TimestampAddImpl.evaluateTimestamp(input1.toString, input2.asInstanceOf[Int], input3.asInstanceOf[Long])
       case (LongType, TimestampType) =>
-        TimestampAddImpl.evaluate(input1.toString, input2.asInstanceOf[Long], input3.asInstanceOf[Long])
+        TimestampAddImpl.evaluateTimestamp(input1.toString, input2.asInstanceOf[Long], input3.asInstanceOf[Long])
     }
   }
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val ta = TimestampAddImpl.getClass.getName.stripSuffix("$")
-    defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
-      s"""$ta.evaluate($arg1.toString(), $arg2, $arg3)"""
-    })
+    (mid.dataType, right.dataType) match {
+      case ((IntegerType, DateType) | (LongType, DateType)) =>
+        if (canConvertTimestamp()) {
+          defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
+            s"""$ta.evaluateTimestamp($arg1.toString(), $arg2, $arg3)"""
+          })
+        } else {
+          defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
+            s"""$ta.evaluateDays($arg1.toString(), $arg2, $arg3)"""
+          })
+        }
+      case (IntegerType, TimestampType) | (LongType, TimestampType) =>
+        defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
+          s"""$ta.evaluateTimestamp($arg1.toString(), $arg2, $arg3)"""
+        })
+    }
   }
 
   override def children: Seq[Expression] = Seq(left, mid, right)
+
+  def canConvertTimestamp(): Boolean = {
+    if (left.isInstanceOf[Literal] && left.asInstanceOf[Literal].value != null) {
+      val unit = left.asInstanceOf[Literal].value.toString.toUpperCase
+      if (TimestampAddImpl.TIME_UNIT.contains(unit) && right.dataType.isInstanceOf[DateType]) {
+        return true
+      }
+    }
+    false
+  }
 }
 
 case class TimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {

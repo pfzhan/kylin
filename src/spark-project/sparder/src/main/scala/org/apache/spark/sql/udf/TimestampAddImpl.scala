@@ -40,26 +40,32 @@ object TimestampAddImpl {
   val TIME_UNIT = Set("HOUR", "MINUTE", "SECOND", "MILLISECOND", "MICROSECOND", "SQL_TSI_SECOND",
     "SQL_TSI_MINUTE", "SQL_TSI_HOUR", "SQL_TSI_MICROSECOND", "FRAC_SECOND", "SQL_TSI_FRAC_SECOND")
 
-  // add int on DateType
-  def evaluate(unit: String, increment: Int, time: Int): Any = {
+  def evaluateDays(unit: String, increment: Int, time: Int): Int = {
     calendar.clear()
     addTime("DAY", time, calendar)
     addTime(unit, increment, calendar)
-    if (TIME_UNIT.contains(unit.toUpperCase)) {
-      DateTimeUtils.fromMillis(calendar.getTimeInMillis)
-    } else {
-      DateTimeUtils.millisToDays(calendar.getTimeInMillis)
-    }
+    DateTimeUtils.millisToDays(calendar.getTimeInMillis)
   }
 
-  // add long on DateType
-  def evaluate(unit: String, increment: Long, time: Int): Any = {
+  def evaluateTimestamp(unit: String, increment: Int, time: Int): Long = {
+    calendar.clear()
+    addTime("DAY", time, calendar)
+    addTime(unit, increment, calendar)
+    DateTimeUtils.fromMillis(calendar.getTimeInMillis)
+  }
+
+  def evaluateDays(unit: String, increment: Long, time: Int): Int = {
     if (increment > Int.MaxValue) throw new IllegalArgumentException(s"Increment($increment) is greater than Int.MaxValue")
-    else evaluate(unit, increment.intValue(), time)
+    evaluateDays(unit, increment.intValue(), time)
+  }
+
+  def evaluateTimestamp(unit: String, increment: Long, time: Int): Long = {
+    if (increment > Int.MaxValue) throw new IllegalArgumentException(s"Increment($increment) is greater than Int.MaxValue")
+    evaluateTimestamp(unit, increment.intValue(), time)
   }
 
   // add int on TimestampType (NanoSecond)
-  def evaluate(unit: String, increment: Int, time: Long): Long = {
+  def evaluateTimestamp(unit: String, increment: Int, time: Long): Long = {
     calendar.clear()
     calendar.setTimeInMillis(time / MICROS_PER_MILLIS)
     addTime(unit, increment, calendar)
@@ -67,9 +73,9 @@ object TimestampAddImpl {
   }
 
   // add long on TimestampType (NanoSecond)
-  def evaluate(unit: String, increment: Long, time: Long): Long = {
+  def evaluateTimestamp(unit: String, increment: Long, time: Long): Long = {
     if (increment > Int.MaxValue) throw new IllegalArgumentException(s"Increment($increment) is greater than Int.MaxValue")
-    else evaluate(unit, increment.intValue(), time)
+    else evaluateTimestamp(unit, increment.intValue(), time)
   }
 
 
