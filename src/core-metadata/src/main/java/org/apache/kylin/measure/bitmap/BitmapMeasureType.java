@@ -66,12 +66,12 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 
 import com.google.common.collect.ImmutableMap;
 
+
 /**
  * Created by sunyerui on 15/12/10.
  */
 public class BitmapMeasureType extends MeasureType<BitmapCounter> {
     public static final String FUNC_COUNT_DISTINCT = FunctionDesc.FUNC_COUNT_DISTINCT;
-    public static final String FUNC_INTERSECT_COUNT_DISTINCT = "INTERSECT_COUNT";
     public static final String DATATYPE_BITMAP = "bitmap";
 
     public static class Factory extends MeasureTypeFactory<BitmapCounter> {
@@ -212,7 +212,8 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
         Iterator<FunctionDesc> iterator = unmatchedAggregations.iterator();
         while (iterator.hasNext()) {
             FunctionDesc functionDesc = iterator.next();
-            if (functionDesc.getExpression().equals(FUNC_INTERSECT_COUNT_DISTINCT)) {
+            if (functionDesc.getExpression().equals(FunctionDesc.FUNC_INTERSECT_COUNT)
+                    || functionDesc.getExpression().equals(FunctionDesc.FUNC_BITMAP_UUID)) {
                 TblColRef countDistinctCol = functionDesc.getParameters().get(0).getColRef();
                 boolean equals = bitmap.getFunction().getParameters().get(0).getColRef().equals(countDistinctCol);
                 if (equals) {

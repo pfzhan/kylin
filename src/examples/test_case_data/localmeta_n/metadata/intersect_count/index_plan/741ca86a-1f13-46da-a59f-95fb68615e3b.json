@@ -93,6 +93,26 @@
           "storage_type": 20
         }
       ]
+    },
+    {
+      "id": 40000,
+      "dimensions": [
+        1
+      ],
+      "measures": [
+        100004
+      ],
+      "layouts": [
+        {
+          "id": 40001,
+          "auto": true,
+          "col_order": [
+            1,
+            100004
+          ],
+          "storage_type": 20
+        }
+      ]
     }
   ],
   "dictionaries": [

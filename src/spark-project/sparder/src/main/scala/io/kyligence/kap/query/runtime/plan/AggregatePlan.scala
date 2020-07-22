@@ -46,7 +46,7 @@ import scala.collection.JavaConverters._
 // scalastyle:off
 object AggregatePlan extends LogEx {
   val binaryMeasureType =
-    List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT")
+    List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT", "BITMAP_UUID")
 
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel,
@@ -131,12 +131,10 @@ object AggregatePlan extends LogEx {
               .approx_count_distinct(columnName.head, dataType.getPrecision)
               .alias(aggName)
           } else {
-            if (call.name.equalsIgnoreCase(FunctionDesc.FUNC_COUNT_DISTINCT)) {
               KapFunctions.precise_count_distinct(columnName.head).alias(aggName)
-            } else {
-              KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)
-            }
           }
+        } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_BITMAP_UUID)) {
+          KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)
         } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT)) {
           require(columnName.size >= 3, s"Input columns size ${columnName.size} don't greater than or equal to 3.")
           val columns = columnName.slice(0, 3).zipWithIndex.map {

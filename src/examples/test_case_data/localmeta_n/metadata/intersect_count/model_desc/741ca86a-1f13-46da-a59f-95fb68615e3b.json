@@ -95,6 +95,18 @@
         ],
         "returntype": "bitmap"
       }
+    },
+    {
+      "id": 100004,
+      "name": "HLLC_SELLER_ID",
+      "function": {
+        "expression": "COUNT_DISTINCT",
+        "parameters": [{
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.SELLER_ID"
+        }],
+        "returntype": "hllc(10)"
+      }
     }
   ],
   "column_correlations": [],

@@ -68,7 +68,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -423,7 +422,7 @@ public class RealizationChooser {
             FunctionDesc func = it.next();
             if (FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(func.getExpression())) {
                 it.remove();
-            } else if (BitmapMeasureType.FUNC_INTERSECT_COUNT_DISTINCT.equalsIgnoreCase(func.getExpression())) {
+            } else if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
                 TblColRef col = func.getColRefs().get(1);
                 context.getGroupByColumns().add(col);
             }
@@ -462,6 +461,11 @@ public class RealizationChooser {
                                     .getParameters().get(0).equals(measureDesc.getFunction().getParameters().get(0)))
                             .forEach(measureDesc -> metrics.add(measureDesc.getFunction()));
                     dimensions.add(func.getParameters().get(1).getColRef());
+                } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase(func.getExpression())) {
+                    dataflow.getMeasures().stream()
+                            .filter(measureDesc -> measureDesc.getFunction().getReturnType().equals("bitmap") && func
+                                    .getParameters().get(0).equals(measureDesc.getFunction().getParameters().get(0)))
+                            .forEach(measureDesc -> metrics.add(measureDesc.getFunction()));
                 } else {
                     FunctionDesc aggrFuncFromDataflowDesc = dataflow.findAggrFuncFromDataflowDesc(func);
                     metrics.add(aggrFuncFromDataflowDesc);

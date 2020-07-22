@@ -115,6 +115,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         for (Map.Entry<String, MeasureTypeFactory> entry : udafFactories.entrySet()) {
             AGGR_FUNC_MAP.put(entry.getKey(), entry.getValue().getAggrFunctionName());
         }
+        AGGR_FUNC_MAP.put("BITMAP_UUID", "BITMAP_UUID");
     }
 
     static String getSqlFuncName(AggregateCall aggCall) {
@@ -429,7 +430,8 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 if (aggFunc.equals(internalTopn))
                     return internalTopn;
             }
-            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(aggFunc.getExpression())) {
+            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(aggFunc.getExpression())
+                    || FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase(aggFunc.getExpression())) {
                 if (m.getFunction().getReturnType().equals("bitmap")
                         && aggFunc.getParameters().get(0).equals(m.getFunction().getParameters().get(0)))
                     return m.getFunction();

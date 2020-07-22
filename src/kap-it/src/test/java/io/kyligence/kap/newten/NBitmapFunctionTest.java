@@ -92,6 +92,8 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         testIntersectValue();
 
         testExplodeIntersectValue();
+
+        testHllcCanNotAnswerBitmapUUID();
     }
 
     private void testDateType() throws SQLException {
@@ -307,6 +309,19 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("100", result.get(5));
         Assert.assertEquals("101", result.get(6));
         Assert.assertEquals("211", result.get(7));
+    }
+
+    private void testHllcCanNotAnswerBitmapUUID() throws SQLException {
+        String query = "select intersect_count_by_col(Array[t1.a1]), LSTG_FORMAT_NAME from" +
+                " (select bitmap_uuid(SELLER_ID) as a1, LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME) t1" +
+                " order by LSTG_FORMAT_NAME";
+        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("855,ABIN", result.get(0));
+        Assert.assertEquals("896,Auction", result.get(1));
+        Assert.assertEquals("858,FP-GTC", result.get(2));
+        Assert.assertEquals("870,FP-non GTC", result.get(3));
+        Assert.assertEquals("855,Others", result.get(4));
     }
 
 }
