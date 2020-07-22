@@ -199,7 +199,9 @@ public class NonEquiJoinCondition implements Serializable {
     @Setter
     @Getter
     @NoArgsConstructor
-    public static class SimplifiedNonEquiJoinCondition {
+    public static final class SimplifiedNonEquiJoinCondition implements Serializable {
+
+        private static final long serialVersionUID = -1577556052145832500L;
 
         @JsonProperty("foreign_key")
         private String foreignKey;

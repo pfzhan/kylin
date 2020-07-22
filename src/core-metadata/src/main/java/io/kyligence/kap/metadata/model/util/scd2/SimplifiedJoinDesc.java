@@ -30,10 +30,14 @@ import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class SimplifiedJoinDesc extends JoinDesc {
+
+    private static final long serialVersionUID = 3422512377209976139L;
 
     @JsonProperty("simplified_non_equi_join_conditions")
     private List<NonEquiJoinCondition.SimplifiedNonEquiJoinCondition> simplifiedNonEquiJoinConditions;

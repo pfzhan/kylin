@@ -466,9 +466,9 @@ public class ProjectService extends BasicService {
                     copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name",
                             defaultPushDownRunner);
                 }
-                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "true");
+                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", KylinConfig.TRUE);
             } else {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", "false");
+                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown-enabled", KylinConfig.FALSE);
             }
         });
     }
@@ -478,9 +478,9 @@ public class ProjectService extends BasicService {
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest, ModelService modelService) {
         getProjectManager().updateProject(project, copyForWrite -> {
             if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "true");
+                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", KylinConfig.TRUE);
             } else {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
+                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", KylinConfig.FALSE);
                 modelService.offlineSCD2ModelsInProjectById(project);
             }
         });

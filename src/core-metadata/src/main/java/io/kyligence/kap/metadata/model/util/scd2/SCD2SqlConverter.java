@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
@@ -51,7 +52,7 @@ public class SCD2SqlConverter {
         StringBuilder sb = new StringBuilder();
 
         sb.append("select * from ").append(toJoinDescQuotedString(joinDesc))
-                .append(" AND " + genNonEquiWithSimplified(simplifiedNonEquiJoinConditions));
+                .append(" " + SqlKind.AND.sql + " " + genNonEquiWithSimplified(simplifiedNonEquiJoinConditions));
 
         return sb.toString();
     }
@@ -72,14 +73,12 @@ public class SCD2SqlConverter {
 
     private String genNonEquiWithSimplified(List<NonEquiJoinCondition.SimplifiedNonEquiJoinCondition> simplified) {
 
-        String simpleExpr = simplified.stream()
+        return simplified.stream()
                 .map(simplifiedNonEquiJoinCondition -> "("
                         + quotedColumnStr(simplifiedNonEquiJoinCondition.getForeignKey())
                         + simplifiedNonEquiJoinCondition.getOp().sql
                         + quotedColumnStr(simplifiedNonEquiJoinCondition.getPrimaryKey()) + ")")
-                .collect(Collectors.joining(" AND "));
-
-        return simpleExpr;
+                .collect(Collectors.joining(" " + SqlKind.AND.sql + " "));
 
     }
 
@@ -94,7 +93,7 @@ public class SCD2SqlConverter {
             String fk = quotedColumnStr(join.getForeignKey()[i]);
             String pk = quotedColumnStr(join.getPrimaryKey()[i]);
             if (i > 0) {
-                result.append(" AND ");
+                result.append(" " + SqlKind.AND.sql + " ");
             }
             result.append(fk).append("=").append(pk);
         }
