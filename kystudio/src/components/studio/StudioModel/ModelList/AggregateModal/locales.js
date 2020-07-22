@@ -58,7 +58,7 @@ export default {
     needCheck: 'Pending',
     mandatoryDesc: 'If a dimension is set to a mandatory dimension, only the index with this dimension will be calculated.',
     hierarchyDesc: 'If there is a hierarchical relationship between the dimensions, you can set it as a hierarchy dimension.',
-    jointDesc: 'If there are dimensions that will be used at the same time, you can set them as joint dimensions.',
+    jointDesc: 'For dimensions which the possible combination in between don’t really matters, you may add them as joint dimension. If sampling for source table has been done, the product of joint dimensions would be calculated as a reference.',
     saveAndBuild: 'Save and Build Index',
     colon: ': ',
     edit: 'Edit',
@@ -95,7 +95,7 @@ export default {
     min_length_value: 'Min Length Value',
     min_value: 'Min Value',
     null_count: 'Null Count',
-    cardinalityMultiple: 'Cardinal product：'
+    cardinalityMultiple: 'The Product of Cardinality：'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -156,7 +156,7 @@ export default {
     needCheck: '待检测',
     mandatoryDesc: '若有维度被设置成必需维度，则只有包含此维度的索引会被生成。',
     hierarchyDesc: '若维度间存在层级关系，您可以将其设置为层级维度。',
-    jointDesc: '若有维度会被同时使用，您可以将其设置为联合维度。',
+    jointDesc: '不关心相互之间各种组合方式的维度可加入联合维度。若开启表抽样，会自动计算基数乘积，供设置时参考。',
     saveAndBuild: '保存并构建索引',
     colon: '：',
     edit: '编辑',

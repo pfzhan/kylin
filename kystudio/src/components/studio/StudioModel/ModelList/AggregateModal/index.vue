@@ -1733,7 +1733,6 @@ export default class AggregateModal extends Vue {
       text-align: center;
       .icon {
         font-size: 36px;
-        border: 1px dashed @text-title-color;
       }
       .tip {
         margin-top: 10px;
