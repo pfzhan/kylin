@@ -30,7 +30,6 @@ export default {
     newModelTips: 'You can select the new models you want and expand to see which SQL these models come from. Click the Submit button and the new models will be added to the model list, which you can view and edit on the model page.',
     originModelTips: 'You can observe the number of new recommendations for existing models and expand to see which SQL these recommendations come from. The new recommendations have been added to the recommendation lists of the corresponding models, where you can accept the required recommendations.',
     existedAnsweredModels: 'Some of the imported SQLs could be answered by existing models. Do you want to convert these SQLS to recommendations of the existing models? Otherwise, new models will be created.',
-    editSqlTips: 'You have unfinished modifications.',
     th_name: 'Name',
     th_type: 'Type',
     measure: 'Measure',
@@ -61,7 +60,12 @@ export default {
     preview: 'Preview',
     model: 'Model',
     sqlOverSizeTip: 'Up to 200 SQLs could be uploaded at a time. Please try selecting fewer files to upload.',
-    recommendationTip: 'Please note that the selected recommendations would be affective immediately after proceeding'
+    recommendationTip: 'Please note that the selected recommendations would be affective immediately after proceeding',
+    editSqlTips: 'You have unsaved edits. Do you want to continue?',
+    confirmEditSqlText: 'Save and Continue',
+    noRecommendsTip: 'No valid recommendation. Existing models might already include the same indexes.',
+    noModelDetailsTip: 'The selected model’s dimension, measure, computed column, aggregate index would be shown here.',
+    noOriginDetailsTip: 'The selected recommendation’s dimension, measure, computed column would be shown here.'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -94,7 +98,6 @@ export default {
     newModelTips: '您可以勾选需要的新模型，并展开查看该模型来自于哪些SQL。点击提交按钮，所勾选的模型将会被加入模型列表，您可以在模型页面进行查看和编辑。',
     originModelTips: '您可以查看已有模型的新增建议数量，并展开查看它们来自于哪些SQL。新增优化建议已经被加入对应模型的优化建议列表中，您可以在对应模型的优化建议中选择并通过需要的建议。',
     existedAnsweredModels: '当前已有模型可回答部分导入的SQL。是否将这部分SQL转换成对应模型的优化建议？或对这部分SQL创建新的模型。',
-    editSqlTips: '你有未完成的修改。',
     th_name: '名称',
     th_type: '类型',
     th_column: '列',
@@ -125,6 +128,11 @@ export default {
     preview: '预览',
     model: '模型',
     sqlOverSizeTip: '一次最多可上传 200 条 SQL。请重新上传。',
-    recommendationTip: '请注意，所选的优化建议将立即生效'
+    recommendationTip: '请注意，所选的优化建议将立即生效',
+    editSqlTips: 'SQL 编辑尚未保存，是否继续？',
+    confirmEditSqlText: '保存并继续',
+    noRecommendsTip: '没有有效的优化建议。现有模型可能已包含相同的索引。',
+    noModelDetailsTip: '选中模型包含的维度、度量、可计算列、聚合索引等信息会显示在这里。',
+    noOriginDetailsTip: '选中优化建议包含的维度、度量、可计算列等信息会显示在这里。'
   }
 }

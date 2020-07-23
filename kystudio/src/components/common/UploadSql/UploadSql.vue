@@ -8,7 +8,7 @@
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @close="handleClose"
-      class="importSqlDialog">
+      :class="['importSqlDialog', {'is-step3': uploadFlag==='step3'}]">
       <span slot="title" class="ky-list-title">{{uploadTitle}}</span>
       <div class="upload-block" v-if="uploadFlag==='step1'">
         <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
@@ -101,12 +101,12 @@
           </div>
         </el-col>
       </el-row>
-      <div v-if="uploadFlag==='step3'">
+      <div :class="['review-sql-model', {'new-model': !isShowTabModels && isShowSuggestModels, 'origin-model': !isShowTabModels && isShowOriginModels}]" v-if="uploadFlag==='step3'">
         <el-alert class="recommendation-alert" :title="$t('recommendationTip')" type="warning" :closable="false" show-icon v-if="isShowOriginModels || isShowTabModels"></el-alert>
-        <div class="ky-list-title ksd-mb-10" v-if="isShowSuggestModels">
+        <div class="ky-list-title" v-if="isShowSuggestModels">
           {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
         </div>
-        <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
+        <div class="ky-list-title" v-if="isShowOriginModels">
           {{$t('recommendations')}} ({{selectRecommends.length}}/{{originModels.length}})
         </div>
         <SuggestModel
@@ -123,7 +123,7 @@
           :maxHeight="365"
           @getSelectRecommends="getSelectRecommends"
           :isOriginModelsTable="true" />
-        <el-tabs v-model="modelType" v-if="isShowTabModels">
+        <el-tabs class="upload-tabs" v-model="modelType" v-if="isShowTabModels">
           <el-tab-pane :label="$t('model') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
             <SuggestModel
               tableRef="modelsTable"
@@ -880,6 +880,11 @@ export default class UploadSqlModel extends Vue {
     background-color: @base-background-color-1;
   }
   .importSqlDialog {
+    &.is-step3 {
+      .el-dialog__body {
+        padding: 20px 20px 0;
+      }
+    }
     .ksd-null-pic-text {
       margin: 122.5px 0;
     }
@@ -1059,6 +1064,48 @@ export default class UploadSqlModel extends Vue {
     }
     .recommendation-alert {
       margin-bottom: 10px;
+    }
+    .review-sql-model {
+      height: 100%;
+      .upload-tabs {
+        height: calc(~'100% - 47px');
+        .el-tabs__header {
+          margin-bottom: 0;
+        }
+        .el-tabs__content {
+          height: calc(~'100% - 30px');
+          #pane-suggest {
+            height: 100%
+          }
+        }
+      }
+    }
+    .review-sql-model.new-model {
+      .ky-list-title {
+        padding: 4px 0;
+        box-sizing: border-box;
+        border-bottom: 1px solid #dddddd;
+      }
+      .model-layout {
+        height: calc(~'100% - 30px');
+        // .model-table {
+        //   height: 100%;
+        //   .el-table__body-wrapper {
+        //     max-height: calc(~'100% - 36px');
+        //     overflow-y: auto;
+        //   }
+        // }
+      }
+    }
+    .review-sql-model.origin-model {
+      .ky-list-title {
+        padding: 4px 0;
+        box-sizing: border-box;
+        border-bottom: 1px solid #dddddd;
+      }
+      .model-layout {
+        height: calc(~'100% - 75px');
+      }
     }
   }
 </style>
