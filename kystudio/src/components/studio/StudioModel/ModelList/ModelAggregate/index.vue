@@ -59,7 +59,11 @@
                   <i class="el-icon-ksd-what"></i>
                 </el-tooltip>: {{getDataRange}}
               </div>
-              <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-2">{{$t('viewIncomplete')}}</div>
+              <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-5">
+                <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
+                  <i class="el-icon-ksd-complete"></i>
+                </el-tooltip>
+              </div>
             </div>
             <div class="clearfix" v-if="isShowAggregateAction">
               <el-button icon="el-icon-ksd-icon_build-index" :disabled="!checkedList.length" v-if="datasourceActions.includes('buildIndex')" class="ksd-mb-10 ksd-fleft" size="small" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
@@ -172,7 +176,7 @@
       @close="resetDetail"
       :visible.sync="indexDetailShow">
       <div class="ksd-mb-10 ksd-fs-12">{{$t('modifiedTime')}}: {{cuboidDetail.modifiedTime || showTableIndexDetail.modifiedTime}}</div>
-      <el-table class="cuboid-content" :data="cuboidDetail.cuboidContent" border v-if="detailType === 'aggDetail'">
+      <el-table class="cuboid-content" :data="cuboidDetail.cuboidContent" size="small" border v-if="detailType === 'aggDetail'">
         <el-table-column type="index" :label="$t('order')" width="64">
         </el-table-column>
         <el-table-column prop="content" show-overflow-tooltip :label="$t('content')">
@@ -188,7 +192,7 @@
       </el-table>
       <div v-else>
           <el-table
-          size="medium"
+          size="small"
           :data="showTableIndexDetail.renderData"
           border class="table-index-detail">
           <el-table-column

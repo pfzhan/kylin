@@ -2,14 +2,14 @@
    <el-dialog
     :title="title"
     limited-area
-    width="960px"
+    width="1050px"
     :visible="isShow"
     v-if="isShow"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     @close="closeModal()">
       <div class="ksd-mb-10" v-html="subTitle"></div>
-      <el-table border :data="segments" @selection-change="handleSelectSegments" :empty-text="emptyText" @sort-change="handleSortChange">
+      <el-table border :data="segments" size="small" @selection-change="handleSelectSegments" :empty-text="emptyText" @sort-change="handleSortChange">
         <el-table-column type="selection" :selectable="selectable" width="44">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom">
@@ -19,6 +19,7 @@
           <template slot-scope="scope">{{segmentTime(scope.row,scope.row.segRange.date_range_end) | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column
+          width="165"
           header-align="right"
           align="right"
           sortable="custom"
@@ -29,19 +30,19 @@
               <span>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" :label="$t('kylinLang.common.status')">
+        <el-table-column width="90" prop="status" :label="$t('kylinLang.common.status')">
           <template slot-scope="scope">
             <el-tag size="mini" :type="getTagType(scope.row)">{{scope.row.status_to_display}}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="last_modified_time" show-overflow-tooltip :label="$t('modifyTime')">
+        <el-table-column width="140" prop="last_modified_time" show-overflow-tooltip :label="$t('modifyTime')">
           <template slot-scope="scope">
             <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('sourceRecords')" align="right" prop="row_count" sortable="custom">
+        <el-table-column width="140" :label="$t('sourceRecords')" align="right" prop="row_count" sortable="custom">
         </el-table-column>
-        <el-table-column :label="$t('storageSize')" align="right" prop="storage" sortable="custom">
+        <el-table-column width="130" :label="$t('storageSize')" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
       </el-table>
