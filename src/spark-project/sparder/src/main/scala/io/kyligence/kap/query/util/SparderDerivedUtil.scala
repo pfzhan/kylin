@@ -130,13 +130,18 @@ case class SparderDerivedUtil(gtInfoTableName: String,
   }
 
   def indexOnTheGTValues(col: TblColRef): Int = {
-    val cuboidDims = layoutCandidate.getCuboidLayout.getColumns
-    val cuboidIdx = cuboidDims.indexOf(col)
+    val cuboidIdx = indexOnTheCuboidValues(col)
     if (gtColIdx.contains(cuboidIdx)) {
       cuboidIdx
     } else {
       -1
     }
+  }
+
+  def indexOnTheCuboidValues(col: TblColRef): Int = {
+    val cuboidDims = layoutCandidate.getCuboidLayout.getColumns
+    val cuboidIdx = cuboidDims.indexOf(col)
+    cuboidIdx
   }
 
   def joinDerived(dataFrame: DataFrame): DataFrame = {
@@ -238,7 +243,7 @@ case class SparderDerivedUtil(gtInfoTableName: String,
 
     var joinCol = colOrigin
     for (simplifiedCond <- simplifiedConds) {
-      val colFk = col(gTInfoNames.apply(indexOnTheGTValues(simplifiedCond.getFk)))
+      val colFk = col(gTInfoNames.apply(indexOnTheCuboidValues(simplifiedCond.getFk)))
       val colPk = col(newNameLookupDf.schema.fieldNames.apply(simplifiedCond.getPk.getColumnDesc.getZeroBasedIndex))
       val colOp = simplifiedCond.getOp
 

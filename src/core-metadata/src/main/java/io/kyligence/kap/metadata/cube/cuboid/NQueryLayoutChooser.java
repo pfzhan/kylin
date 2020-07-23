@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -66,6 +65,8 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
+import lombok.val;
 
 public class NQueryLayoutChooser {
     private static final Logger logger = LoggerFactory.getLogger(NQueryLayoutChooser.class);
@@ -390,6 +391,11 @@ public class NQueryLayoutChooser {
         return id == null ? -1 : candidate.getCuboidLayout().getColOrder().indexOf(id);
     }
 
+    private static boolean matchNonEquiJoinFks(final IndexEntity indexEntity, final JoinDesc joinDesc) {
+        return joinDesc.isNonEquiJoin() && indexEntity
+                .dimensionsDerive(SCD2NonEquiCondSimplification.INSTANCE.extractFksFromNonEquiJoinDesc(joinDesc));
+    }
+
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
                                           Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
@@ -412,7 +418,7 @@ public class NQueryLayoutChooser {
                 } else if (indexEntity.dimensionsDerive(foreignKeyColumns)
                         && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
 
-                    DeriveInfo.DeriveType deriveType = joinByPKSide.isNonEquiJoin()
+                    DeriveInfo.DeriveType deriveType = matchNonEquiJoinFks(indexEntity, joinByPKSide)
                             ? DeriveInfo.DeriveType.LOOKUP_NON_EQUI
                             : DeriveInfo.DeriveType.LOOKUP;
                     needDeriveCollector.put(unmatchedDim,

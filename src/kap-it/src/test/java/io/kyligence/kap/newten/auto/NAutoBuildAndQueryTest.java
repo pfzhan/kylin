@@ -419,13 +419,22 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
-        //left join
-        compareDerived(TEST_FOLDER, 0, JoinType.LEFT);
-        //inner join
-        compareDerived(TEST_FOLDER, 0, JoinType.INNER);
+        {
+            //left join
+            compareDerived(TEST_FOLDER, 0, JoinType.LEFT);
+            //inner join
+            compareDerived(TEST_FOLDER, 0, JoinType.INNER);
+        }
 
         for (int i = 2; i < 5; i++) {
             Assert.assertFalse(SCD2CondChecker.INSTANCE.isScd2Model(proposeSCD2Model(TEST_FOLDER, i, JoinType.LEFT)));
+        }
+
+        {
+            //left join
+            compareDerived(TEST_FOLDER, 5, JoinType.LEFT);
+            //inner join
+            compareDerived(TEST_FOLDER, 5, JoinType.INNER);
         }
     }
 

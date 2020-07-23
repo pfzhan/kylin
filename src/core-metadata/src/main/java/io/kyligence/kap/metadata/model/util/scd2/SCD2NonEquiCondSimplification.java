@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.calcite.sql.SqlKind;
@@ -41,6 +42,7 @@ import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.NonEquiJoinConditionType;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
@@ -125,6 +127,17 @@ public class SCD2NonEquiCondSimplification {
 
         return simplifiedFksPks;
 
+    }
+
+    public TblColRef[] extractFksFromNonEquiJoinDesc(@Nonnull JoinDesc joinDesc) {
+        Preconditions.checkNotNull(joinDesc, "joinDesc is null");
+
+        List<TblColRef> fkList = convertToSimplifiedSCD2Cond(joinDesc).getSimplifiedNonEquiJoinConditions().stream()
+                .map(SimplifiedNonEquiJoinCondition::getFk).distinct().collect(Collectors.toList());
+
+        TblColRef[] fks = new TblColRef[fkList.size()];
+        fkList.toArray(fks);
+        return fks;
     }
 
     boolean simplifiedSCD2CondConvertChecker(@Nullable JoinDesc joinDesc) {
