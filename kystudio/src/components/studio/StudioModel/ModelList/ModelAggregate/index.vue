@@ -127,7 +127,7 @@
                   <span>{{$t(scope.row.status)}}</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('kylinLang.common.action')" width="83">
+              <el-table-column :label="$t('kylinLang.common.action')" fixed="right" width="83">
                 <template slot-scope="scope">
                   <common-tip :content="$t('viewDetail')">
                     <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>

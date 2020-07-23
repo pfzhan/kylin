@@ -88,10 +88,10 @@
         </el-table-column>
         <el-table-column :label="$t('sourceRecords')" width="140" align="right" prop="row_count" sortable="custom">
         </el-table-column>
-        <el-table-column :label="$t('storageSize')" align="right" prop="storage" sortable="custom">
+        <el-table-column :label="$t('storageSize')" min-width="140" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column align="left" class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
+        <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
             <common-tip :content="$t('showDetail')">
               <i class="el-icon-ksd-details" @click="handleShowDetail(scope.row)"></i>
