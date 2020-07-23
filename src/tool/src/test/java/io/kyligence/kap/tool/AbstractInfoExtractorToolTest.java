@@ -26,7 +26,6 @@ package io.kyligence.kap.tool;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -79,7 +78,7 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(mock.getBooleanOption(optionsHelper, MockInfoExtractorTool.OPTION_COMPRESS, true));
         Assert.assertEquals(2000, mock.getLongOption(optionsHelper, MockInfoExtractorTool.OPTION_START_TIME, 1000L));
 
-        Option OPTION_THREADS = OptionBuilder.withArgName("threads").hasArg().isRequired(false)
+        Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg().isRequired(false)
                 .withDescription("Specify number of threads for parallel extraction.").create("threads");
         Assert.assertEquals(4, mock.getLongOption(optionsHelper, OPTION_THREADS, 4));
     }

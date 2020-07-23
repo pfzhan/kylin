@@ -33,8 +33,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.tool.OptionBuilder;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -61,10 +61,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MigrateJobTool extends ExecutableApplication implements IKeep {
-    private static final Option OPTION_HELP = OptionBuilder.hasArg(false).withDescription("print help message.")
+    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false).withDescription("print help message.")
             .isRequired(false).withLongOpt("help").create("h");
 
-    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("dir")
+    private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("dir")
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");
 
     private static final Map<String, String> JOB_TYPE_HANDLER_MAP = new HashMap<>();

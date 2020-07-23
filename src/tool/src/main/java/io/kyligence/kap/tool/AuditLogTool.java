@@ -42,7 +42,6 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
@@ -69,25 +68,25 @@ import lombok.val;
 public class AuditLogTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
-    private static final Option OPTION_START_TIME = OptionBuilder.hasArg().withArgName("START_TIMESTAMP")
+    private static final Option OPTION_START_TIME = OptionBuilder.getInstance().hasArg().withArgName("START_TIMESTAMP")
             .withDescription("Specify the start timestamp (sec) (optional)").isRequired(false).create("startTime");
 
-    private static final Option OPTION_END_TIME = OptionBuilder.hasArg().withArgName("END_TIMESTAMP")
+    private static final Option OPTION_END_TIME = OptionBuilder.getInstance().hasArg().withArgName("END_TIMESTAMP")
             .withDescription("Specify the end timestamp (sec) (optional)").isRequired(false).create("endTime");
 
-    private static final Option OPTION_JOB = OptionBuilder.hasArg().withArgName("JOB_ID")
+    private static final Option OPTION_JOB = OptionBuilder.getInstance().hasArg().withArgName("JOB_ID")
             .withDescription("Specify the job (optional)").isRequired(false).create("job");
 
-    private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("OPTION_PROJECT")
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("OPTION_PROJECT")
             .withDescription("Specify project (optional)").isRequired(false).create("project");
 
-    private static final Option OPTION_RESTORE = OptionBuilder.withDescription("Restore audit log from local path")
+    private static final Option OPTION_RESTORE = OptionBuilder.getInstance().withDescription("Restore audit log from local path")
             .isRequired(false).create("restore");
 
-    private static final Option OPTION_TABLE = OptionBuilder.hasArg().withArgName("TABLE_NAME")
+    private static final Option OPTION_TABLE = OptionBuilder.getInstance().hasArg().withArgName("TABLE_NAME")
             .withDescription("Specify the table (optional)").isRequired(false).create("table");
 
-    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("DESTINATION_DIR")
+    private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("DESTINATION_DIR")
             .withDescription("Specify the directory for audit log backup or restore").isRequired(true).create("dir");
 
     private static final int BATCH_SIZE = 5000;

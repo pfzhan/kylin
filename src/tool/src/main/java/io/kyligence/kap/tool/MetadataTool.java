@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
@@ -92,25 +91,25 @@ public class MetadataTool extends ExecutableApplication {
     private static final String GLOBAL = "global";
 
     @SuppressWarnings("static-access")
-    private static final Option OPERATE_BACKUP = OptionBuilder
+    private static final Option OPERATE_BACKUP = OptionBuilder.getInstance()
             .withDescription("Backup metadata to local path or HDFS path").isRequired(false).create("backup");
 
-    private static final Option OPERATE_COMPRESS = OptionBuilder
+    private static final Option OPERATE_COMPRESS = OptionBuilder.getInstance()
             .withDescription("Backup compressed metadata to HDFS path").isRequired(false).create("compress");
 
-    private static final Option OPERATE_RESTORE = OptionBuilder
+    private static final Option OPERATE_RESTORE = OptionBuilder.getInstance()
             .withDescription("Restore metadata from local path or HDFS path").isRequired(false).create("restore");
 
-    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("DIRECTORY_PATH")
+    private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("DIRECTORY_PATH")
             .withDescription("Specify the target directory for backup and restore").isRequired(false).create("dir");
 
-    private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("PROJECT_NAME")
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("PROJECT_NAME")
             .withDescription("Specify project level backup and restore (optional)").isRequired(false).create("project");
 
-    private static final Option FOLDER_NAME = OptionBuilder.hasArg().withArgName("FOLDER_NAME")
+    private static final Option FOLDER_NAME = OptionBuilder.getInstance().hasArg().withArgName("FOLDER_NAME")
             .withDescription("Specify the folder name for backup").isRequired(false).create("folder");
 
-    private static final Option OPTION_EXCLUDE_TABLE_EXD = OptionBuilder
+    private static final Option OPTION_EXCLUDE_TABLE_EXD = OptionBuilder.getInstance()
             .withDescription("Exclude metadata {project}/table_exd directory").isRequired(false)
             .create("excludeTableExd");
 

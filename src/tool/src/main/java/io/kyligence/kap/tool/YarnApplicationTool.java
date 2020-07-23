@@ -31,7 +31,6 @@ import java.io.File;
 import java.util.List;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -55,13 +54,13 @@ import lombok.val;
 public class YarnApplicationTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
-    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("DESTINATION_DIR")
+    private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("DESTINATION_DIR")
             .withDescription("Specify the file to save yarn application id").isRequired(true).create("dir");
 
-    private static final Option OPTION_JOB = OptionBuilder.hasArg().withArgName("JOB_ID")
+    private static final Option OPTION_JOB = OptionBuilder.getInstance().hasArg().withArgName("JOB_ID")
             .withDescription("Specify the job").isRequired(true).create("job");
 
-    private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("OPTION_PROJECT")
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("OPTION_PROJECT")
             .withDescription("Specify project").isRequired(true).create("project");
 
     private final Options options;

@@ -38,7 +38,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
@@ -86,13 +85,13 @@ public class RollbackTool extends ExecutableApplication {
     @SuppressWarnings("static-access")
     private static final String HDFS_METADATA_URL_FORMATTER = "kylin_metadata@hdfs,path=%s";
 
-    private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("PROJECT_NAME")
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("PROJECT_NAME")
             .withDescription("Specify project level for time travel (optional)").isRequired(false).create("project");
 
-    private static final Option OPTION_SKIP_CHECK_DATA = OptionBuilder.hasArg().withArgName("SKIP_CHECK_DATA")
+    private static final Option OPTION_SKIP_CHECK_DATA = OptionBuilder.getInstance().hasArg().withArgName("SKIP_CHECK_DATA")
             .withDescription("Skip check storage data available (optional)").isRequired(false).create("skipCheckData");
 
-    private static final Option OPTION_TIMESTAMP = OptionBuilder.hasArg().withArgName("TIME")
+    private static final Option OPTION_TIMESTAMP = OptionBuilder.getInstance().hasArg().withArgName("TIME")
             .withDescription("Specify the travel time(must required)").isRequired(true).create("time");
 
     private final Options options;

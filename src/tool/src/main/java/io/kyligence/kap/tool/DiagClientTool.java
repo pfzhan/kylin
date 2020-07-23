@@ -30,7 +30,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -51,38 +50,38 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_PROJECT = OptionBuilder.withArgName("project").hasArg().isRequired(false)
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().withArgName("project").hasArg().isRequired(false)
             .withDescription("Specify realizations in which project to extract").create("project");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CONF = OptionBuilder.withArgName("includeConf").hasArg().isRequired(false)
+    private static final Option OPTION_CONF = OptionBuilder.getInstance().withArgName("includeConf").hasArg().isRequired(false)
             .withDescription("Specify whether to include conf files to extract. Default true.").create("includeConf");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_META = OptionBuilder.withArgName("includeMeta").hasArg().isRequired(false)
+    private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg().isRequired(false)
             .withDescription("Specify whether to include metadata to extract. Default true.").create("includeMeta");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_LOG = OptionBuilder.withArgName("includeLog").hasArg().isRequired(false)
+    private static final Option OPTION_LOG = OptionBuilder.getInstance().withArgName("includeLog").hasArg().isRequired(false)
             .withDescription("Specify whether to include logs to extract. Default true.").create("includeLog");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_SPARK = OptionBuilder.withArgName("includeSpark").hasArg().isRequired(false)
+    private static final Option OPTION_SPARK = OptionBuilder.getInstance().withArgName("includeSpark").hasArg().isRequired(false)
             .withDescription("Specify whether to include spark conf to extract. Default false.").create("includeSpark");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CLIENT = OptionBuilder.withArgName("includeClient").hasArg().isRequired(false)
+    private static final Option OPTION_CLIENT = OptionBuilder.getInstance().withArgName("includeClient").hasArg().isRequired(false)
             .withDescription("Specify whether to include client info to extract. Default true.")
             .create("includeClient");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_THREADS = OptionBuilder.withArgName("threads").hasArg().isRequired(false)
+    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg().isRequired(false)
             .withDescription("Specify number of threads for parallel extraction.").create("threads");
 
     // Problem category
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CATE_BASE = OptionBuilder.withArgName("base").hasArg().isRequired(false)
+    private static final Option OPTION_CATE_BASE = OptionBuilder.getInstance().withArgName("base").hasArg().isRequired(false)
             .withDescription("package components include base").create("base");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CATE_QUERY = OptionBuilder.withArgName("query").hasArg().isRequired(false)
+    private static final Option OPTION_CATE_QUERY = OptionBuilder.getInstance().withArgName("query").hasArg().isRequired(false)
             .withDescription("package components include slow and failed query").create("query");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CATE_META = OptionBuilder.withArgName("meta").hasArg().isRequired(false)
+    private static final Option OPTION_CATE_META = OptionBuilder.getInstance().withArgName("meta").hasArg().isRequired(false)
             .withDescription("package components include wrong metadata operation").create("meta");
 
     private static final int DEFAULT_PARALLEL_SIZE = 4;

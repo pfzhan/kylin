@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.tool.general;
 
+import io.kyligence.kap.tool.OptionBuilder;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -43,19 +43,20 @@ public class CryptTool extends ExecutableApplication {
     private final Options options;
 
     public CryptTool() {
-        OptionBuilder.withArgName("ENCRYPT_METHOD");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Specify the encrypt method: [AES, BCrypt]");
-        OptionBuilder.isRequired();
-        OptionBuilder.withLongOpt("encrypt-method");
-        optionEncryptMethod = OptionBuilder.create("e");
+        OptionBuilder optionBuilder = OptionBuilder.getInstance();
+        optionBuilder.withArgName("ENCRYPT_METHOD");
+        optionBuilder.hasArg();
+        optionBuilder.withDescription("Specify the encrypt method: [AES, BCrypt]");
+        optionBuilder.isRequired();
+        optionBuilder.withLongOpt("encrypt-method");
+        optionEncryptMethod = optionBuilder.create("e");
 
-        OptionBuilder.withArgName("CHAR_SEQUENCE");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Specify the char sequence to be encrypted");
-        OptionBuilder.isRequired();
-        OptionBuilder.withLongOpt("char-sequence");
-        optionCharSequence = OptionBuilder.create("s");
+        optionBuilder.withArgName("CHAR_SEQUENCE");
+        optionBuilder.hasArg();
+        optionBuilder.withDescription("Specify the char sequence to be encrypted");
+        optionBuilder.isRequired();
+        optionBuilder.withLongOpt("char-sequence");
+        optionCharSequence = optionBuilder.create("s");
 
         options = new Options();
         options.addOption(optionEncryptMethod);

@@ -40,7 +40,6 @@ import javax.xml.bind.DatatypeConverter;
 
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -68,34 +67,34 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_DEST = OptionBuilder.withArgName("destDir").hasArg().isRequired(true)
+    static final Option OPTION_DEST = OptionBuilder.getInstance().withArgName("destDir").hasArg().isRequired(true)
             .withDescription("specify the dest dir to save the related information").create("destDir");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_START_TIME = OptionBuilder.withArgName("startTime").hasArg().isRequired(false)
+    static final Option OPTION_START_TIME = OptionBuilder.getInstance().withArgName("startTime").hasArg().isRequired(false)
             .withDescription("specify the start of time range to extract logs. ").create("startTime");
     @SuppressWarnings("static-access")
-    static final Option OPTION_END_TIME = OptionBuilder.withArgName("endTime").hasArg().isRequired(false)
+    static final Option OPTION_END_TIME = OptionBuilder.getInstance().withArgName("endTime").hasArg().isRequired(false)
             .withDescription("specify the end of time range to extract logs. ").create("endTime");
     @SuppressWarnings("static-access")
-    static final Option OPTION_CURRENT_TIME = OptionBuilder.withArgName("currentTime").hasArg().isRequired(false)
+    static final Option OPTION_CURRENT_TIME = OptionBuilder.getInstance().withArgName("currentTime").hasArg().isRequired(false)
             .withDescription(
                     "specify the current of time from client to fix diff between client and server and timezone problem. ")
             .create("currentTime");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_COMPRESS = OptionBuilder.withArgName("compress").hasArg().isRequired(false)
+    static final Option OPTION_COMPRESS = OptionBuilder.getInstance().withArgName("compress").hasArg().isRequired(false)
             .withDescription("specify whether to compress the output with zip. Default true.").create("compress");
     @SuppressWarnings("static-access")
-    static final Option OPTION_SUBMODULE = OptionBuilder.withArgName("submodule").hasArg().isRequired(false)
+    static final Option OPTION_SUBMODULE = OptionBuilder.getInstance().withArgName("submodule").hasArg().isRequired(false)
             .withDescription("specify whether this is a submodule of other CLI tool").create("submodule");
     @SuppressWarnings("static-access")
-    static final Option OPTION_SYSTEM_ENV = OptionBuilder.withArgName("systemProp").hasArg().isRequired(false)
+    static final Option OPTION_SYSTEM_ENV = OptionBuilder.getInstance().withArgName("systemProp").hasArg().isRequired(false)
             .withDescription("specify whether to include system env and properties to extract. Default false.")
             .create("systemProp");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_META_SUBPROCESS = OptionBuilder.withArgName("subProcessMeta").isRequired(false)
+    static final Option OPTION_META_SUBPROCESS = OptionBuilder.getInstance().withArgName("subProcessMeta").isRequired(false)
             .withDescription("Specify whether using sub process to dump metadata").create("subProcessMeta");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";

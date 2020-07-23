@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -53,29 +52,29 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_JOB_ID = OptionBuilder.withArgName("job").hasArg().isRequired(true)
+    private static final Option OPTION_JOB_ID = OptionBuilder.getInstance().withArgName("job").hasArg().isRequired(true)
             .withDescription("specify the Job ID to extract information. ").create("job");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_INCLUDE_YARN_LOGS = OptionBuilder.withArgName("includeYarnLogs").hasArg()
+    private static final Option OPTION_INCLUDE_YARN_LOGS = OptionBuilder.getInstance().withArgName("includeYarnLogs").hasArg()
             .isRequired(false)
             .withDescription("set this to true if want to extract related yarn logs too. Default true")
             .create("includeYarnLogs");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_INCLUDE_CLIENT = OptionBuilder.withArgName("includeClient").hasArg()
+    private static final Option OPTION_INCLUDE_CLIENT = OptionBuilder.getInstance().withArgName("includeClient").hasArg()
             .isRequired(false).withDescription("Specify whether to include client info to extract. Default true.")
             .create("includeClient");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_INCLUDE_CONF = OptionBuilder.withArgName("includeConf").hasArg()
+    private static final Option OPTION_INCLUDE_CONF = OptionBuilder.getInstance().withArgName("includeConf").hasArg()
             .isRequired(false).withDescription("Specify whether to include conf files to extract. Default true.")
             .create("includeConf");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_THREADS = OptionBuilder.withArgName("threads").hasArg().isRequired(false)
+    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg().isRequired(false)
             .withDescription("Specify number of threads for parallel extraction.").create("threads");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_META = OptionBuilder.withArgName("includeMeta").hasArg().isRequired(false)
+    private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg().isRequired(false)
             .withDescription("Specify whether to include metadata to extract. Default true.").create("includeMeta");
 
     private static final String OPT_JOB = "-job";

@@ -47,7 +47,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -97,6 +96,7 @@ import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.tool.OptionBuilder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -110,17 +110,17 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
 
     private Map<String, String> renameProjectMap = new HashMap<>();
 
-    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("dir")
+    private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("dir")
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");
 
-    private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("project_name")
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("project_name")
             .withDescription("Specify project (optional)").isRequired(false).withLongOpt("project").create("p");
 
-    private static final Option OPTION_COLLECT_ONLY = OptionBuilder.hasArg().withArgName("true/false")
+    private static final Option OPTION_COLLECT_ONLY = OptionBuilder.getInstance().hasArg().withArgName("true/false")
             .withDescription("collect only, show rename resource.(default true)").isRequired(false)
             .withLongOpt("collect-only").create("collect");
 
-    private static final Option OPTION_HELP = OptionBuilder.hasArg(false).withDescription("print help message.")
+    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false).withDescription("print help message.")
             .isRequired(false).withLongOpt("help").create("h");
 
     private KylinConfig fileSystemConfig = KylinConfig.getInstanceFromEnv();
