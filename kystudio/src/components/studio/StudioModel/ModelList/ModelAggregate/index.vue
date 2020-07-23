@@ -208,7 +208,7 @@
           <el-table-column
           :label="$t('sort')"
           prop="sort"
-          width="60"
+          width="70"
           align="center">
           <template slot-scope="scope">
             <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
