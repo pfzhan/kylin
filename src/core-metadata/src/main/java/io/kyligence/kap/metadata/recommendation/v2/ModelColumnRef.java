@@ -50,7 +50,7 @@ public class ModelColumnRef extends ColumnRef {
     }
 
     public void init() {
-
+        //do nothing
     }
 
     @Override

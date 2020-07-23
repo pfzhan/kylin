@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -31,8 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -41,6 +41,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -48,11 +49,10 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import static java.util.stream.Collectors.groupingBy;
 
 @Slf4j
 public class NModelSelectProposer extends NAbstractProposer {
@@ -76,7 +76,7 @@ public class NModelSelectProposer extends NAbstractProposer {
         }
 
         val allSubModelContexts = Lists.<AbstractContext.NModelContext>newArrayList();
-        Set<String> selectedModel = Sets.newHashSet();
+        Map<String, AbstractContext.NModelContext> selectedModel = Maps.newHashMap();
         selectModelForModelContext(modelContexts, allSubModelContexts, selectedModel);
         if (CollectionUtils.isNotEmpty(allSubModelContexts)) {
             selectModelForModelContext(allSubModelContexts, Lists.newArrayList(), selectedModel);
@@ -85,8 +85,9 @@ public class NModelSelectProposer extends NAbstractProposer {
         proposeContext.handleExceptionAfterModelSelect();
     }
 
-    private void selectModelForModelContext(List<AbstractContext.NModelContext> modelContexts, List<AbstractContext.NModelContext> allSubModelContexts, Set<String> selectedModel) {
+    private void selectModelForModelContext(List<AbstractContext.NModelContext> modelContexts, List<AbstractContext.NModelContext> allSubModelContexts, Map<String, AbstractContext.NModelContext> selectedModel) {
         val modelContextIterator = modelContexts.listIterator();
+        Set<AbstractContext.NModelContext> mergedModelContexts = Sets.newHashSet();
         while (modelContextIterator.hasNext()) {
             val modelContext = modelContextIterator.next();
             ModelTree modelTree = modelContext.getModelTree();
@@ -105,26 +106,43 @@ public class NModelSelectProposer extends NAbstractProposer {
                 continue;
             }
 
-            if (selectedModel.contains(model.getUuid()) && !modelContext.isSnapshotSelected()) {
-                // original model is allowed to be selected one context in batch
-                // to avoid modification conflict
-                log.info("An existing model({}) compatible to more than one modelTree, "
-                        + "in order to avoid modification conflict, ignore this match.", model.getId());
+            if (selectedModel.keySet().contains(model.getUuid()) && !modelContext.isSnapshotSelected()) {
+                if (KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
+                    AbstractContext.NModelContext anotherModelContext = selectedModel.get(model.getUuid());
+                    AbstractContext.NModelContext newModelContext = new GreedyModelTreesBuilder.TreeBuilder(
+                            model.getRootFactTable().getTableDesc(),
+                            NTableMetadataManager.getInstance(dataModelManager.getConfig(), project).getAllTablesMap(),
+                            proposeContext).mergeModelContext(proposeContext, modelContext, anotherModelContext);
+                    setModelContextModel(newModelContext, model);
+                    mergedModelContexts.add(modelContext);
+                    mergedModelContexts.add(anotherModelContext);
+                    modelContextIterator.add(newModelContext);
+                    selectedModel.put(model.getUuid(), newModelContext);
+                } else {
+                    // original model is allowed to be selected one context in batch
+                    // to avoid modification conflict
+                    log.info("An existing model({}) compatible to more than one modelTree, "
+                            + "in order to avoid modification conflict, ignore this match.", model.getId());
+                }
                 continue;
             }
             // found matched, then use it
-            modelContext.setOriginModel(model);
-            NDataModel targetModel = dataModelManager.copyBySerialization(model);
-            initModel(targetModel);
-            targetModel.getComputedColumnDescs().forEach(cc -> {
-                modelContext.getUsedCC().put(cc.getExpression(), cc);
-            });
-            modelContext.setTargetModel(targetModel);
-
+            setModelContextModel(modelContext, model);
             if (!modelContext.isSnapshotSelected()) {
-                selectedModel.add(model.getUuid());
+                selectedModel.put(model.getUuid(), modelContext);
             }
         }
+        modelContexts.removeAll(mergedModelContexts);
+    }
+
+    private void setModelContextModel(AbstractContext.NModelContext modelContext, NDataModel model) {
+        modelContext.setOriginModel(model);
+        NDataModel targetModel = dataModelManager.copyBySerialization(model);
+        initModel(targetModel);
+        targetModel.getComputedColumnDescs().forEach(cc -> {
+            modelContext.getUsedCC().put(cc.getExpression(), cc);
+        });
+        modelContext.setTargetModel(targetModel);
     }
 
     private List<AbstractContext.NModelContext> splitModelContext(AbstractContext.NModelContext modelContext) {

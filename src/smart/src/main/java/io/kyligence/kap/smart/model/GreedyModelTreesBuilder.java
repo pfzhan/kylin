@@ -131,7 +131,7 @@ public class GreedyModelTreesBuilder {
 
         private Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
 
-        private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, AbstractContext proposeContext) {
+        public TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, AbstractContext proposeContext) {
             this.rootFact = rootFact;
             this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
             this.proposeContext = proposeContext;
@@ -223,18 +223,23 @@ public class GreedyModelTreesBuilder {
 
             List<ModelTree> result = Lists.newArrayList();
             while (!ctxs.isEmpty()) {
-                result.add(buildOne(ctxs));
+                result.add(buildOne(ctxs, false));
             }
             return result;
         }
 
-        private ModelTree buildOne(List<OLAPContext> inputCtxs) {
+        private ModelTree buildOne(List<OLAPContext> inputCtxs, boolean forceMerge) {
             Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
             Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
             List<OLAPContext> usedCtxs = Lists.newArrayList();
             List<OLAPContext> ctxsNeedMerge = Lists.newArrayList();
             inputCtxs.removeIf(Objects::isNull);
-            inputCtxs.stream().filter(ctx -> matchContext(usedCtxs, ctx)).filter(ctx -> {
+            inputCtxs.stream().filter(ctx -> {
+                if (forceMerge) {
+                    return true;
+                }
+                return matchContext(usedCtxs, ctx);
+            }).filter(ctx -> {
                 if (ctx.joins.isEmpty()) {// Digest single table contexts(no joins)
                     innerTableRefAlias.putAll(getUniqueTblAliasBasedOnPosInGraph(ctx, dict));
                     correctedTableAlias.putAll(correctTableAlias(innerTableRefAlias, rootFact));
@@ -306,6 +311,13 @@ public class GreedyModelTreesBuilder {
         static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
                 Map<TableRef, String> tableRef2Alias, Map<String, TableRef> aliasRefMap) {
             mergeJoins(ctx.joins, alias2JoinTables, tableRef2Alias, aliasRefMap);
+        }
+
+        public AbstractContext.NModelContext mergeModelContext(AbstractContext proposeContext,
+                AbstractContext.NModelContext modelContext, AbstractContext.NModelContext another) {
+            List<OLAPContext> olapCtxs = Lists.newArrayList(modelContext.getModelTree().getOlapContexts());
+            olapCtxs.addAll(another.getModelTree().getOlapContexts());
+            return new AbstractContext.NModelContext(proposeContext, buildOne(olapCtxs, true));
         }
 
         private static void mergeJoins(List<JoinDesc> joins, Map<String, JoinTableDesc> alias2JoinTables,

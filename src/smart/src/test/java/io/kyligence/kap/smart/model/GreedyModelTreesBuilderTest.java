@@ -32,14 +32,14 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.common.NAutoTestOnLearnKylinData;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
-public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
+public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
 
     @Ignore("Cannot propose in PureExpertMode")
     @Test
@@ -87,8 +87,13 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
         getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
     }
 
+    /**
+     *  acceleration A , A <-> B , A <-> B <-> C when exist model A <-> B <-> C
+     *
+     *  expect all accelerate succeed.
+     */
     @Test
-    public void testPartialJoinInSemiAutoMode() {
+    public void testPartialJoinInSemiAutoModeContainEachOther() {
         getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
 
         String[] sqls = new String[] {
@@ -129,6 +134,219 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
         Collections.sort(columns);
         Assert.assertArrayEquals(columns.toArray(),
                 new String[] { "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.TRANS_ID" });
+        smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isNotSucceed());
+        });
+
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
+    }
+
+    /**
+     *  acceleration A <-> B , A <-> C, A <-> D when exist model A <-> B <-> C
+     *
+     *  expect A <-> B , A <-> C accelerate succeed, A <-> D accelerate failed.
+     */
+    @Test
+    public void testPartialJoinInSemiAutoModeContainFail() {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
+
+        String[] sqls = new String[] {
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
+                "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
+                "select test_kylin_fact.CAL_DT from test_kylin_fact inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID"};
+
+        // create model A join B join C
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY"
+                });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        // accelerate
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+
+        // validation results
+        Assert.assertEquals(2, smartMaster2.getContext().getModelContexts().size());
+
+        Assert.assertFalse(smartMaster2.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+        Assert.assertFalse(smartMaster2.getContext().getAccelerateInfoMap().get(sqls[1]).isNotSucceed());
+        Assert.assertTrue(smartMaster2.getContext().getAccelerateInfoMap().get(sqls[2]).isNotSucceed());
+
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
+    }
+
+    /**
+     *  acceleration A <-> B , A <-> C, A <-> D when exist model A <-> B <-> C <-> D
+     *
+     *  expect A <-> B , A <-> C, A <-> D accelerate succeed.
+     */
+    @Test
+    public void testPartialJoinInSemiAutoModeNotContainEachOther() {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
+
+        String[] sqls = new String[] {
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
+                "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
+                "select test_kylin_fact.CAL_DT from test_kylin_fact inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID"};
+
+        // create model A join B join C join D
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID"
+                });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        // accelerate
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+
+        // validation results, all accelerate succeed.
+        Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
+
+        smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isNotSucceed());
+        });
+
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
+    }
+
+    /**
+     *  acceleration A <-> B , A <-> C, D when exist model A <-> B <-> C, D
+     *
+     *  expect all accelerate succeed.
+     */
+    @Test
+    public void testPartialJoinInSemiAutoModeWithMultiModel() {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
+
+        String[] sqls = new String[] {
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
+                "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
+                "select TEST_ORDER.ORDER_ID from TEST_ORDER"};
+
+        // create model A join B join C, D
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
+                        "select TEST_ORDER.ORDER_ID from TEST_ORDER"
+                });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        // accelerate
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+
+        // validation results, all accelerate succeed.
+        Assert.assertEquals(2, smartMaster2.getContext().getModelContexts().size());
+
+        smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isNotSucceed());
+        });
+
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
+    }
+
+
+    /**
+     *  acceleration A <-> B , A -> D when exist model A <-> B <-> C -> D
+     *
+     *  expect all accelerate succeed.
+     */
+    @Test
+    public void testPartialJoinInSemiAutoModeMixInnerJoinAndLeftJoin() {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
+
+        String[] sqls = new String[] {
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
+                "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
+                "select test_kylin_fact.CAL_DT from test_kylin_fact left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" };
+
+        // create model A join B join C left join D
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
+                "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        // accelerate
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+
+        // validation results, all accelerate succeed.
+        Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
+        smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isNotSucceed());
+        });
+
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
+    }
+
+    /**
+     *  acceleration A <-> B , A <-> B' when exist model B' <-> A <-> B
+     *
+     *  expect all accelerate succeed.
+     */
+    @Test
+    public void testPartialJoinInSemiAutoModeTableOfSameName() {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
+
+        String[] sqls = new String[] {
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account1 on test_kylin_fact.seller_id = account1.account_id",
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account2 on test_kylin_fact.ORDER_ID = account2.ACCOUNT_SELLER_LEVEL" };
+
+        // create model A join B join C
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account1 on test_kylin_fact.seller_id = account1.account_id inner join test_account as account2 on test_kylin_fact.ORDER_ID = account2.ACCOUNT_SELLER_LEVEL "
+                });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        // accelerate
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+
+        // validation results, all accelerate succeed.
+        Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
+        smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
+            Assert.assertFalse(accelerateInfo.isNotSucceed());
+        });
+
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
+    }
+
+    @Test
+    public void testPartialJoinInSemiAutoModeWithCC() {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "true");
+
+        String[] sqls = new String[] {
+                "select count(test_kylin_fact.trans_ID+1),count(test_kylin_fact.trans_id+1) from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
+                "select count(test_kylin_fact.TRANS_ID+1) from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY"};
+
+        // create model A join B join C
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
+                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY"
+                });
+        val smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
+
+        // accelerate
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
+        val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
+        val smartMaster2 = new NSmartMaster(context2);
+        smartMaster2.runSuggestModel();
+
+        // validation results
+        Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
         smartMaster2.getContext().getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
             Assert.assertFalse(accelerateInfo.isNotSucceed());
         });
