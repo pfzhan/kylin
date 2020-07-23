@@ -119,7 +119,30 @@ request:
         table_name: SUPPLIER
         authorized_column_num: 0
         total_column_num: 7
-    authorized_table_num: 5
-    total_table_num: 5
+      - authorized: true
+        columns:
+          - {authorized: true, column_name: D_DATEKEY}
+          - {authorized: true, column_name: D_DATE}
+          - {authorized: true, column_name: D_DAYOFWEEK}
+          - {authorized: true, column_name: D_MONTH}
+          - {authorized: true, column_name: D_YEAR}
+          - {authorized: true, column_name: D_YEARMONTHNUM}
+          - {authorized: true, column_name: D_YEARMONTH}
+          - {authorized: true, column_name: D_DAYNUMINWEEK}
+          - {authorized: true, column_name: D_DAYNUMINMONTH}
+          - {authorized: true, column_name: D_DAYNUMINYEAR}
+          - {authorized: true, column_name: D_MONTHNUMINYEAR}
+          - {authorized: true, column_name: D_WEEKNUMINYEAR}
+          - {authorized: true, column_name: D_SELLINGSEASON}
+          - {authorized: true, column_name: D_LASTDAYINWEEKFL}
+          - {authorized: true, column_name: D_LASTDAYINMONTHFL}
+          - {authorized: true, column_name: D_HOLIDAYFL}
+          - {authorized: true, column_name: D_WEEKDAYFL}
+        rows: []
+        table_name: DATES
+        authorized_column_num: 0
+        total_column_num: 17
+    authorized_table_num: 6
+    total_table_num: 6
     database_name: SSB
   url: acl/sid/User/$resident_user?project=$project_name

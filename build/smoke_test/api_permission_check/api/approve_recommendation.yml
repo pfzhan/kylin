@@ -21,14 +21,14 @@
 ## (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
-name: 预批准优化建议
+name: 批准优化建议
 request:
   headers:
     Content-Type: application/json;charset=utf-8
-    accept: application/vnd.apache.kylin+json
+    accept: application/vnd.apache.kylin-v4+json
     authorization: Basic $role
   json:
     ids: [1]
     project: $project_name
   method: POST
-  url: recommendations/${get_model_uuid($resident_model,$project_name)/validation
+  url: recommendations/${get_model_uuid($resident_model,$project_name)}

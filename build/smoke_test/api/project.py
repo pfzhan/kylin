@@ -24,6 +24,7 @@
 import json
 
 import requests
+
 from config import common_config
 
 
@@ -39,6 +40,18 @@ class Project:
 
         payload = project_desc_data
         response = requests.request('POST', url, json=payload, headers=self.headers, verify=False)
+        return response
+
+    def enable_semi_automatic_mode(self, project_name):
+        url = self.base_url + '/projects/{project_name}/project_general_info'.format(project_name=project_name)
+        payload = {
+            "project": project_name,
+            "alias": project_name,
+            "description": "a test project",
+            "maintain_model_type": "MANUAL_MAINTAIN",
+            "semi_automatic_mode": True
+        }
+        response = requests.request('PUT', url, json=payload, headers=self.headers, verify=False)
         return response
 
     def set_source_type(self, project_name):
@@ -84,3 +97,8 @@ class Project:
         req_url = self.base_url + '/access/ProjectInstance/' + project_uuid
         payload = {'permission': 'ADMINISTRATION', 'principal': True, 'sid': username}
         return requests.post(url=req_url, json=payload, headers=self.headers)
+
+    def garbage_clean(self, project_name):
+        # trigger QueryHistoryAccelerateScheduler
+        req_url = self.base_url + '/projects/{}/storage'.format(project_name)
+        return requests.put(url=req_url, headers=self.headers)

@@ -65,13 +65,13 @@ class TestExpertMode:
             return
         # exit venv for starting newten in python2.6 instead of python3.6
         os.system('deactivate')
-        # kylin start
-        os.system('bash -vx ' + bin_path + ' start')
         try_time = 60
         while try_time:
             pid_line = os.popen('lsof -t -i:' + str(port)).read()
             if pid_line:
                 break
+            # kylin start
+            os.system('bash -vx ' + bin_path + ' start')
             time.sleep(10)
             try_time -= 1
         time.sleep(120)
@@ -105,6 +105,12 @@ class TestExpertMode:
         project = Project(headers_admin)
         # create project
         resp = project.create_project(config.project_desc)
+        assert resp.status_code == 200
+
+        # enable semi automatic mode
+        # io.kyligence.kap.rest.controller.NProjectController#updateProjectGeneralInfo
+        time.sleep(5)
+        resp = project.enable_semi_automatic_mode(config.project_name)
         assert resp.status_code == 200
 
         # set source type
@@ -337,6 +343,10 @@ class TestExpertMode:
     @pytest.mark.p1
     def test_job_diagnosis(self, config):
         headers_test = self._headers_authorized(common_config.base_headers, config.auth_of_test)
+        project = Project()
+        project.garbage_clean(config.project_name)
+        time.sleep(10)
+
         job = Job(headers_test)
 
         resp = job.get_jobs(config.project_name)

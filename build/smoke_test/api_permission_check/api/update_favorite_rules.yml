@@ -40,4 +40,4 @@ request:
     user_groups: [ROLE_ADMIN]
     project: $project_name
   method: PUT
-  url: query/favorite_queries/rules?project=$project_name
+  url: projects/$project_name/favorite_rules

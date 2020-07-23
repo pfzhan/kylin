@@ -314,6 +314,8 @@ teststeps:
     variables:
       database: SSB
       table: DATES
+    setup_hooks:
+      - ${load_table($project_name)}
     validate:
       - eq:
           - status_code
@@ -435,12 +437,13 @@ teststeps:
       - eq:
           - status_code
           - 200
-  - api: api/get_waiting_jobs.yml
-    name: 获取与特定project相关的等待中的任务
-    validate:
-      - eq:
-          - status_code
-          - 200
+# Deprecated
+#  - api: api/get_waiting_jobs.yml
+#    name: 获取与特定project相关的等待中的任务
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
   - api: api/get_waiting_jobs_group_model.yml
     name: 获取与特定model相关的等待中的任务
     validate:
@@ -492,7 +495,7 @@ teststeps:
   - api: api/restart_or_stop_job.yml
     name: 重启，暂停job
     variables:
-      job_id: $job_id
+      job_id: ${get_running_job_id_by_status($project_name)}
       act: DISCARD
     validate:
       - eq:
@@ -502,7 +505,7 @@ teststeps:
   - api: api/delete_job_by_job_id.yml
     name: 删除job
     variables:
-      job_id: $job_id
+      job_id: ${get_finished_job_id_by_status($project_name)}
     validate:
       - eq:
           - status_code
@@ -907,12 +910,20 @@ teststeps:
           - 200
   - api: api/prepare_reload_table.yml
     name: 获取重载table的影响
+    variables:
+      table: SSB.P_LINEORDER
+    setup_hooks:
+      - ${await_all_table_job_finished($project_name, $table)}
     validate:
       - eq:
           - status_code
           - 200
   - api: api/reload_table.yml
     name: 重载table
+    variables:
+      table: SSB.P_LINEORDER
+    setup_hooks:
+      - ${await_all_table_job_finished($project_name, $table)}
     validate:
       - eq:
           - status_code
@@ -1156,6 +1167,8 @@ teststeps:
 
   - api: api/update_user_acl.yml
     name: 更新用户acl权限信息
+    setup_hooks:
+      - ${load_table($project_name)}
     validate:
       - eq:
           - status_code
@@ -1318,12 +1331,13 @@ teststeps:
           - status_code
           - 200
 
-  - api: api/get_recommendation_detail.yml
-    name: 模型的优化建议详情
-    validate:
-      - eq:
-          - status_code
-          - 200
+# should generate recommendation first io.kyligence.kap.rest.service.OptRecService#getSingleOptRecDetail
+#  - api: api/get_recommendation_detail.yml
+#    name: 模型的优化建议详情
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
 
   - api: api/get_recommendation.yml
     name: 模型的优化建议
@@ -1332,30 +1346,31 @@ teststeps:
           - status_code
           - 200
 
-  - api: api/delete_recommendation.yml
-    name: 删除优化建议
-    validate:
-      - eq:
-          - status_code
-          - 200
+# do not support delete special recommendation
+#  - api: api/delete_recommendation.yml
+#    name: 删除优化建议
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
 
-  - api: api/delete_all_recommendation.yml
-      name: 删除所有优化建议
-      validate:
-        - eq:
-            - status_code
-            - 200
-
-  - api: api/prepare_approve_recommendation.yml
-      name: 预批准优化建议
-      validate:
-        - eq:
-            - status_code
-            - 200
-
-  - api: api/approve_recommendation.yml
-      name: 批准优化建议
-      validate:
-        - eq:
-            - status_code
-            - 200
+#  - api: api/delete_all_recommendation.yml
+#    name: 删除所有优化建议
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+#
+#  - api: api/prepare_approve_recommendation.yml
+#    name: 预批准优化建议
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+#
+#  - api: api/approve_recommendation.yml
+#    name: 批准优化建议
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200

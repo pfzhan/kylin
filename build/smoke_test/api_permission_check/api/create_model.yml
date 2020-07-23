@@ -41,6 +41,14 @@ request:
         column: P_LINEORDER.LO_ORDERKEY
         status: DIMENSION
         datatype: bigint
+      - name: P_LINEORDER_LO_LINENUMBER
+        column: P_LINEORDER.LO_LINENUMBER
+        status: DIMENSION
+        datatype: bigint
+      - name: P_LINEORDER_LO_PARTKEY
+        column: P_LINEORDER.LO_PARTKEY
+        status: DIMENSION
+        datatype: integer
     simplified_measures: []
     computed_columns: []
     last_modified: 0

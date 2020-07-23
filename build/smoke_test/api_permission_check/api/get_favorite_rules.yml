@@ -28,4 +28,4 @@ request:
     accept: application/vnd.apache.kylin-v4-public+json
     authorization: Basic $role
   method: GET
-  url: query/favorite_queries/rules?project=$project_name
+  url: projects/$project_name/favorite_rules

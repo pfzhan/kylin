@@ -387,3 +387,91 @@ def get_recommendation_detail(model_name, project_name):
     payload = ""
 
     requests.request("GET", url, data=payload, headers=headers, params=querystring).json()
+
+
+def await_all_table_job_finished(project_name, table_name):
+    url = base_url + "/jobs?project={project}&time_filter=4".format(project=project_name)
+
+    finished_status = ['SUCCEED', 'DISCARDED', 'SUICIDAL', 'FINISHED']
+    from datetime import datetime
+    start = datetime.now()
+    # 1 minutes
+    while (datetime.now() - start).total_seconds() < 60 * 1:
+        jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
+
+        if not jobs or not any(filter(lambda job: job.get('target_model') == table_name
+                                      and job.get('job_status') not in finished_status, jobs)):
+            return
+
+        time.sleep(10)
+
+    # discard all jobs
+    jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
+
+    unfinished_jobs = list(filter(lambda job: job.get('status') not in finished_status, jobs))
+    discard_job(project_name, list(map(lambda job: job.get('id'), unfinished_jobs)))
+
+
+def get_running_job_id_by_status(project_name):
+    statuses = ['PENDING', 'RUNNING', 'ERROR', 'STOPPED']
+    url = base_url + "/jobs?project={project}&time_filter=4".format(project=project_name)
+    jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
+    ret = next(filter(lambda job: job.get('job_status') in statuses, jobs), None)
+
+    if ret:
+        return ret.get('id')
+
+    load_table(project_name, ['SSB.P_LINEORDER'])
+
+    time.sleep(10)
+    jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
+    ret = next(filter(lambda job: job.get('job_status') in statuses, jobs))
+
+    return ret.get('id')
+
+
+def get_finished_job_id_by_status(project_name, statuses=None):
+    statuses = ['SUCCEED', 'DISCARDED', 'SUICIDAL', 'FINISHED']
+    url = base_url + "/jobs?project={project}&time_filter=4".format(project=project_name)
+    jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
+    ret = next(filter(lambda job: job.get('job_status') in statuses, jobs), None)
+
+    if ret:
+        return ret.get('id')
+
+    load_table(project_name, ['SSB.P_LINEORDER'])
+
+    await_all_table_job_finished(project_name, table_name='SSB.P_LINEORDER')
+
+    time.sleep(10)
+    jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
+    ret = next(filter(lambda job: job.get('job_status') in statuses, jobs))
+
+    return ret.get('id')
+
+
+def load_table(project_name, tables=None):
+    if not tables:
+        tables = ['SSB.DATES']
+    url = base_url + "/tables"
+    payload = {
+        "data_source_type": 9,
+        "databases": [],
+        "need_sampling": True,
+        "project": project_name,
+        "sampling_rows": 20000000,
+        "tables": tables
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers).json()
+
+
+def discard_job(project_name, job_ids):
+    url = base_url + "/jobs/status"
+    payload = {
+        "action": 'DISCARD',
+        "job_ids": job_ids,
+        "project": project_name
+    }
+
+    response = requests.request("PUT", url, json=payload, headers=headers).json()

@@ -32,6 +32,6 @@ request:
     need_build: false
     need_sample: true
     project: $project_name
-    table: SSB.P_LINEORDER
+    table: $table
   method: POST
   url: tables/reload

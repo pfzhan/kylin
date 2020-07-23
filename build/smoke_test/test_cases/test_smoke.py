@@ -70,6 +70,11 @@ class TestSmoke:
         response = project.get_projects()
         assert response.status_code == 200
 
+        # enable semi automatic mode
+        time.sleep(5)
+        resp = project.enable_semi_automatic_mode(config.project_name)
+        assert resp.status_code == 200
+
     @pytest.mark.smoketest
     def test_set_source_type(self, config):
         # set source type
@@ -157,6 +162,10 @@ class TestSmoke:
 
     @pytest.mark.smoketest
     def test_diagnostic_package(self, config):
+        project = Project()
+        project.garbage_clean(config.project_name)
+        time.sleep(10)
+
         kylin_home = os.environ.get('KYLIN_HOME')
         full_diagnosis_dir = os.path.join(kylin_home, TEST_FULL_DIAGNOSIS)
         if os.path.exists(full_diagnosis_dir):
