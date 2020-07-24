@@ -54,7 +54,6 @@ import lombok.NoArgsConstructor;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
-@NoArgsConstructor
 public class AbstractDateDimEnc extends DimensionEncoding {
     private static final long serialVersionUID = 1L;
 
@@ -67,6 +66,9 @@ public class AbstractDateDimEnc extends DimensionEncoding {
     // ============================================================================
     private int fixedLen;
     private IValueCodec codec;
+
+    public AbstractDateDimEnc() {
+    }
 
     protected AbstractDateDimEnc(int fixedLen, IValueCodec codec) {
         this.fixedLen = fixedLen;
