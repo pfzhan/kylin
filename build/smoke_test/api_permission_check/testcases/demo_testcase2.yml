@@ -1374,3 +1374,10 @@ teststeps:
 #      - eq:
 #          - status_code
 #          - 200
+
+  - api: api/get_model_tables.yml
+    name: 获取一个模型用到的表
+    validate:
+      - eq:
+          - status_code
+          - 200
