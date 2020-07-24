@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
+import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapSumExprRules;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptRule;
@@ -71,7 +72,8 @@ public class HepUtils {
             KapSumExprRules.SUM_CONSTANT_CONVERT_RULE_NEW,
             KapSumExprRules.SUM_TRANS_CAST_TO_THEN_RULE,
             KapProjectRule.INSTANCE,
-            KapAggregateRule.INSTANCE
+            KapAggregateRule.INSTANCE,
+            KapJoinRule.EQUAL_NULL_SAFE_INSTANT
     );
     private HepUtils() {
     }

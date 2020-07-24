@@ -66,6 +66,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     private Set<OLAPContext> subContexts = Sets.newHashSet();
     private boolean isPreCalJoin = true;
     private boolean aboveTopPreCalcJoin = false;
+    private boolean joinCondEqualNullSafe = false;
 
     public KapJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition,
             ImmutableIntList leftKeys, ImmutableIntList rightKeys, Set<CorrelationId> variablesSet,
@@ -123,7 +124,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             } else if (leftState.hasFreeTable() && rightState.hasFreeTable() && (isCrossJoin()
                     || hasSameFirstTable(leftState, rightState) || isRightSideIncrementalTable(rightState)
                     || RexUtils.joinMoreThanOneTable(this)
-                    || !RexUtils.isMerelyTableColumnReference(this, condition))) {
+                    || !RexUtils.isMerelyTableColumnReference(this, condition)
+                    || joinCondEqualNullSafe)) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 olapContextImplementor.allocateContext((KapRel) right, this);
                 leftState.setHasFreeTable(false);
@@ -361,5 +363,13 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
                     "RowType=" + this.rowType.getFieldCount() + ", ColumnRowType=" + columns.size());
         }
         return new ColumnRowType(columns);
+    }
+
+    public boolean isJoinCondEqualNullSafe() {
+        return joinCondEqualNullSafe;
+    }
+
+    public void setJoinCondEqualNullSafe(boolean joinCondEqualNullSafe) {
+        this.joinCondEqualNullSafe = joinCondEqualNullSafe;
     }
 }

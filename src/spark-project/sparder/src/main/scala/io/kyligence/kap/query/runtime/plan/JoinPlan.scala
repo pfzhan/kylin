@@ -66,19 +66,28 @@ object JoinPlan {
     rel.getLeftKeys.asScala
       .zip(rel.getRightKeys.asScala)
       .foreach(tuple => {
+        val col1 = col(lSchemaNames.apply(tuple._1))
+        val col2 = col(rSchemaNames.apply(tuple._2))
+        val equalCond = makeEqualCond(col1, col2, rel.isJoinCondEqualNullSafe)
+
         if (joinCol == null) {
-          joinCol = col(lSchemaNames.apply(tuple._1))
-            .equalTo(col(rSchemaNames.apply(tuple._2)))
+          joinCol = equalCond
         } else {
-          joinCol = joinCol.and(
-            col(lSchemaNames.apply(tuple._1))
-              .equalTo(col(rSchemaNames.apply(tuple._2))))
+          joinCol = joinCol.and(equalCond)
         }
       })
     if (joinCol == null) {
       newLDataFrame.crossJoin(newRDataFrame)
     } else {
       newLDataFrame.join(newRDataFrame, joinCol, rel.getJoinType.lowerName)
+    }
+  }
+
+  def makeEqualCond(col1: Column, col2: Column, nullSafe: Boolean): Column = {
+    if (nullSafe) {
+      col1.eqNullSafe(col2)
+    } else {
+      col1.equalTo(col2)
     }
   }
 }

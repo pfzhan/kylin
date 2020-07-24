@@ -34,13 +34,16 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -56,11 +59,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.kyligence.kap.query.util.SumExpressionUtil.supportAggregateFunction;
 
 /**
  * sql: select sum(case when LSTG_FORMAT_NAME='ABIN' then price else null end) from KYLIN_SALES;
@@ -103,82 +108,193 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
         return checkSumCaseExpression(oldAgg, oldProject);
     }
 
-    @Override
     public void onMatch(RelOptRuleCall ruleCall) {
         try {
             RelBuilder relBuilder = ruleCall.builder();
-            Aggregate oldAgg = ruleCall.rel(0);
-            Project oldProject = ruleCall.rel(1);
+            Aggregate originalAgg = ruleCall.rel(0);
+            Project originalProject = ruleCall.rel(1);
 
-            ContextUtil.dumpCalcitePlan("old plan", oldAgg, logger);
-
-            // #0 Set base input
-            relBuilder.push(oldProject.getInput());
-
-            // Locate basic sum expression info
-            List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(oldAgg, oldProject);
+            List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(originalAgg, originalProject);
+            List<AggExpression> nonSumCaseExprs = aggExpressions.stream().filter(e -> !e.isSumCase()).collect(Collectors.toList());
             List<AggExpression> sumCaseExprs = aggExpressions.stream().filter(AggExpression::isSumCase).collect(Collectors.toList());
-            Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups =
-                    SumExpressionUtil.collectGroupExprAndGroup(oldAgg, oldProject);
-            List<GroupExpression> groupExpressions = groups.getFirst();
-            ImmutableList<ImmutableBitSet> newGroupSets = groups.getSecond();
 
-            // #1 Build bottom project
-            List<RexNode> bottomProjectList = buildBottomProject(relBuilder, oldProject, groupExpressions, aggExpressions);
-            relBuilder.project(bottomProjectList);
+            // extract the sum case when agg part from original agg rel
+            // and do the sum case when expr transformation
+            Aggregate sumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject, sumCaseExprs);
+            RelNode transformedSumCaseAgg = transformSumExprAggregate(relBuilder, sumCaseAgg, (Project) sumCaseAgg.getInput(0));
 
-            // #2 Build bottom aggregate
-            ImmutableBitSet.Builder groupSetBuilder = ImmutableBitSet.builder();
-            for (GroupExpression group : groupExpressions) {
-                for (int i = 0; i < group.getBottomAggInput().length; i++) {
-                    groupSetBuilder.set(group.getBottomAggInput()[i]);
-                }
+            // in case there is no other no sum case when agg calls, do transform and return
+            if (nonSumCaseExprs.isEmpty()) {
+                ruleCall.transformTo(transformedSumCaseAgg);
+                return;
             }
-            for (AggExpression aggExpression : sumCaseExprs) {
-                for (int i = 0; i < aggExpression.getBottomAggConditionsInput().length; i++) {
-                    int conditionIdx = aggExpression.getBottomAggConditionsInput()[i];
-                    groupSetBuilder.set(conditionIdx);
-                }
-            }
-            ImmutableBitSet bottomAggGroupSet = groupSetBuilder.build();
-            RelBuilder.GroupKey groupKey = relBuilder.groupKey(bottomAggGroupSet, null);
-            List<AggregateCall> aggCalls = buildBottomAggregate(relBuilder,
-                    aggExpressions, bottomAggGroupSet.cardinality());
-            relBuilder.aggregate(groupKey, aggCalls);
 
-            // #3 ReBuild top project
-            for (GroupExpression groupExpression : groupExpressions) {
-                for (int i = 0; i < groupExpression.getTopProjInput().length; i++) {
-                    int groupIdx = groupExpression.getBottomAggInput()[i];
-                    groupExpression.getTopProjInput()[i] = bottomAggGroupSet.indexOf(groupIdx);
-                }
-            }
-            for (AggExpression aggExpression : sumCaseExprs) {
-                for (int i = 0; i < aggExpression.getTopProjConditionsInput().length; i++) {
-                    int conditionIdx = aggExpression.getBottomAggConditionsInput()[i];
-                    aggExpression.getTopProjConditionsInput()[i] = bottomAggGroupSet.indexOf(conditionIdx);
-                }
-            }
-            List<RexNode> caseProjList = buildTopProject(relBuilder, oldProject, aggExpressions, groupExpressions);
+            // otherwise we are going to extract out the non sum case when agg part
+            Aggregate nonSumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject, nonSumCaseExprs);
+            // and join with the sum case when agg part by the group keys
+            RelNode joined = joinSumCaseAggAndNonSumCaseAggRel(relBuilder, transformedSumCaseAgg, nonSumCaseAgg, originalAgg);
 
-            relBuilder.project(caseProjList);
-
-            // #4 ReBuild top aggregate
-            ImmutableBitSet.Builder topGroupSetBuilder = ImmutableBitSet.builder();
-            for (int i = 0; i < groupExpressions.size(); i++) {
-                topGroupSetBuilder.set(i);
-            }
-            ImmutableBitSet topGroupSet = topGroupSetBuilder.build();
-            List<AggregateCall> topAggregates = buildTopAggregate(oldAgg.getAggCallList(),
-                    topGroupSet.cardinality(), aggExpressions);
-            RelBuilder.GroupKey topGroupKey = relBuilder.groupKey(topGroupSet, newGroupSets);
-            relBuilder.aggregate(topGroupKey, topAggregates);
-            RelNode relNode = relBuilder.build();
-            ContextUtil.dumpCalcitePlan("new plan", relNode, logger);
-            ruleCall.transformTo(relNode);
+            ContextUtil.dumpCalcitePlan("new plan", joined, logger);
+            ruleCall.transformTo(joined);
         } catch (Exception | Error e) {
             logger.error("sql cannot apply sum case when rule ", e);
         }
+    }
+
+    /**
+     * join two aggregate rels by their group by keys
+     * an additional project will be added on top of the joined rel
+     * to make sure the output fields are identical to the original aggregate rel fields
+     * @param relBuilder
+     * @param sumCaseAgg
+     * @param nonSumCaseAgg
+     * @param originalAgg
+     * @return
+     */
+    private RelNode joinSumCaseAggAndNonSumCaseAggRel(RelBuilder relBuilder, RelNode sumCaseAgg, Aggregate nonSumCaseAgg, Aggregate originalAgg) {
+        relBuilder.push(nonSumCaseAgg);
+        relBuilder.push(sumCaseAgg);
+        List<RelDataTypeField> leftFields = nonSumCaseAgg.getRowType().getFieldList();
+        List<RelDataTypeField> rightFields = sumCaseAgg.getRowType().getFieldList();
+        int nonAggExprListSize = leftFields.size() - nonSumCaseAgg.getAggCallList().size();
+        List<RexNode> joinConds = new LinkedList<>();
+        RexBuilder rexBuilder = relBuilder.getRexBuilder();
+        // join by group keys
+        for (int i = 0; i < nonAggExprListSize; i++) {
+            joinConds.add(
+                    rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                            rexBuilder.makeInputRef(leftFields.get(i).getType(), i),
+                            rexBuilder.makeInputRef(leftFields.get(i).getType(), i+leftFields.size())
+                    )
+            );
+        }
+        relBuilder.join(JoinRelType.INNER, joinConds);
+
+        List<RexNode> projectNodes = new LinkedList<>();
+        // fill group keys
+        for (int i = 0; i < nonAggExprListSize; i++) {
+            projectNodes.add(rexBuilder.makeInputRef(leftFields.get(i).getType(), i));
+        }
+        // fill in agg calls
+        for (int i = 0, j = 0, k = 0; i < originalAgg.getAggCallList().size(); i++) {
+            if (j < nonSumCaseAgg.getAggCallList().size() && originalAgg.getAggCallList().get(i) == nonSumCaseAgg.getAggCallList().get(j)) {
+                projectNodes.add(rexBuilder.makeInputRef(leftFields.get(nonAggExprListSize + j).getType(), nonAggExprListSize + j));
+                j++;
+            } else {
+                projectNodes.add(rexBuilder.makeInputRef(rightFields.get(nonAggExprListSize + k).getType(), leftFields.size() + nonAggExprListSize + k));
+                k++;
+            }
+        }
+        relBuilder.project(projectNodes);
+        return relBuilder.build();
+    }
+
+    /**
+     * clone and strip off hep vertex
+     * @param rel
+     * @return
+     */
+    private RelNode cloneRelNode(RelNode rel) {
+        if (rel instanceof HepRelVertex) {
+            return cloneRelNode(((HepRelVertex) rel).getCurrentRel());
+        }
+        return rel.copy(rel.getTraitSet(), rel.getInputs().stream().map(this::cloneRelNode).collect(Collectors.toList()));
+    }
+
+    /**
+     * extract part of the aggregate calls from original aggregate rel
+     * and build a new aggregate rel with those agg calls
+     * @param relBuilder
+     * @param oriAgg
+     * @param oriProject
+     * @param aggExprs the agg exprs to extract
+     * @return
+     */
+    private Aggregate extractPartialAggregateCalls(RelBuilder relBuilder, Aggregate oriAgg, Project oriProject, List<AggExpression> aggExprs) {
+        Set<Integer> nonSumInputIdxes = aggExprs.stream().flatMap(e -> e.getAggCall().getArgList().stream()).collect(Collectors.toSet());
+        nonSumInputIdxes.addAll(oriAgg.getGroupSet().asList());
+        // preserve the original project exprs for simplicity
+        // clone input rel node since we may create multiple copy of aggregates
+        relBuilder.push(cloneRelNode(oriProject.getInput()));
+        List<RexNode> newChildExps = new ArrayList<>(oriProject.getChildExps().size());
+        for (int i = 0; i < oriProject.getChildExps().size(); i++) {
+            if (nonSumInputIdxes.contains(i)) {
+                newChildExps.add(oriProject.getChildExps().get(i));
+            } else {
+                // simply fill zero values for values that we are not going to use
+                newChildExps.add(relBuilder.getRexBuilder().makeZeroLiteral(oriProject.getChildExps().get(i).getType()));
+            }
+        }
+        relBuilder.project(newChildExps);
+        relBuilder.aggregate(relBuilder.groupKey(oriAgg.getGroupSet(), oriAgg.getGroupSets()), aggExprs.stream().map(AggExpression::getAggCall).collect(Collectors.toList()));
+        return (Aggregate) relBuilder.build();
+    }
+
+    private RelNode transformSumExprAggregate(RelBuilder relBuilder, Aggregate oldAgg, Project oldProject) {
+        // #0 Set base input
+        relBuilder.push(oldProject.getInput());
+
+        // Locate basic sum expression info
+        List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(oldAgg, oldProject);
+        List<AggExpression> sumCaseExprs = aggExpressions.stream().filter(AggExpression::isSumCase).collect(Collectors.toList());
+        Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups =
+                SumExpressionUtil.collectGroupExprAndGroup(oldAgg, oldProject);
+        List<GroupExpression> groupExpressions = groups.getFirst();
+        ImmutableList<ImmutableBitSet> newGroupSets = groups.getSecond();
+
+        // #1 Build bottom project
+        List<RexNode> bottomProjectList = buildBottomProject(relBuilder, oldProject, groupExpressions, aggExpressions);
+        relBuilder.project(bottomProjectList);
+
+        // #2 Build bottom aggregate
+        ImmutableBitSet.Builder groupSetBuilder = ImmutableBitSet.builder();
+        for (GroupExpression group : groupExpressions) {
+            for (int i = 0; i < group.getBottomAggInput().length; i++) {
+                groupSetBuilder.set(group.getBottomAggInput()[i]);
+            }
+        }
+        for (AggExpression aggExpression : sumCaseExprs) {
+            for (int i = 0; i < aggExpression.getBottomAggConditionsInput().length; i++) {
+                int conditionIdx = aggExpression.getBottomAggConditionsInput()[i];
+                groupSetBuilder.set(conditionIdx);
+            }
+        }
+        ImmutableBitSet bottomAggGroupSet = groupSetBuilder.build();
+        RelBuilder.GroupKey groupKey = relBuilder.groupKey(bottomAggGroupSet, null);
+        List<AggregateCall> aggCalls = buildBottomAggregate(relBuilder,
+                aggExpressions, bottomAggGroupSet.cardinality());
+        relBuilder.aggregate(groupKey, aggCalls);
+
+        // #3 ReBuild top project
+        for (GroupExpression groupExpression : groupExpressions) {
+            for (int i = 0; i < groupExpression.getTopProjInput().length; i++) {
+                int groupIdx = groupExpression.getBottomAggInput()[i];
+                groupExpression.getTopProjInput()[i] = bottomAggGroupSet.indexOf(groupIdx);
+            }
+        }
+        for (AggExpression aggExpression : sumCaseExprs) {
+            for (int i = 0; i < aggExpression.getTopProjConditionsInput().length; i++) {
+                int conditionIdx = aggExpression.getBottomAggConditionsInput()[i];
+                aggExpression.getTopProjConditionsInput()[i] = bottomAggGroupSet.indexOf(conditionIdx);
+            }
+        }
+        List<RexNode> caseProjList = buildTopProject(relBuilder, oldProject, aggExpressions, groupExpressions);
+
+        relBuilder.project(caseProjList);
+
+        // #4 ReBuild top aggregate
+        ImmutableBitSet.Builder topGroupSetBuilder = ImmutableBitSet.builder();
+        for (int i = 0; i < groupExpressions.size(); i++) {
+            topGroupSetBuilder.set(i);
+        }
+        ImmutableBitSet topGroupSet = topGroupSetBuilder.build();
+        List<AggregateCall> topAggregates = buildTopAggregate(oldAgg.getAggCallList(),
+                topGroupSet.cardinality(), aggExpressions);
+        RelBuilder.GroupKey topGroupKey = relBuilder.groupKey(topGroupSet, newGroupSets);
+        relBuilder.aggregate(topGroupKey, topAggregates);
+        RelNode relNode = relBuilder.build();
+        ContextUtil.dumpCalcitePlan("new plan", relNode, logger);
+        return relNode;
     }
 
     private List<RexNode> buildBottomProject(RelBuilder relBuilder, Project oldProject,
@@ -328,8 +444,13 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
         return topAggregates;
     }
 
+    /**
+     * return true if there is any sum case when agg call
+     * @param oldAgg
+     * @param oldProject
+     * @return
+     */
     public static boolean checkSumCaseExpression(Aggregate oldAgg, Project oldProject) {
-        boolean hasSumCaseExpression = false;
         for (AggregateCall call : oldAgg.getAggCallList()) {
             if (call.getArgList().size() > 1) {
                 return false; // Only support aggregate with 0 or 1 argument
@@ -337,17 +458,13 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             if (call.getArgList().isEmpty()) {
                 continue;
             }
-            if (!supportAggregateFunction(call)) {
-                return false;
-            }
-
-            if (hasSumCaseExpression)
-                continue;
 
             int input = call.getArgList().get(0);
             RexNode expression = oldProject.getChildExps().get(input);
-            hasSumCaseExpression = SumExpressionUtil.hasSumCaseWhen(call, expression);
+            if (SumExpressionUtil.hasSumCaseWhen(call, expression)) {
+                return true;
+            }
         }
-        return hasSumCaseExpression;
+        return false;
     }
 }

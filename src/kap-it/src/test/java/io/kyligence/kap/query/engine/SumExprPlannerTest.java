@@ -185,7 +185,7 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
     public void testAllCases() throws IOException {
         openSumCaseWhen();
         List<Pair<String, String>> queries = reaALLSQLs(defaultProject, "query/sql_sum_expr", null);
-        Assert.assertEquals("Please adjust expected value, if SQLs are added or removed ", 29, queries.size());
+        Assert.assertEquals("Please adjust expected value, if SQLs are added or removed ", 30, queries.size());
         queries.forEach(e ->checkSQL(defaultProject, e.getSecond(), e.getFirst(), null));
     }
 

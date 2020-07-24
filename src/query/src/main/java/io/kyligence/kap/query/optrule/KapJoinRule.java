@@ -32,6 +32,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -60,17 +61,20 @@ public class KapJoinRule extends ConverterRule implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(KapJoinRule.class);
 
     public static final ConverterRule INSTANCE = new KapJoinRule();
-    public static final ConverterRule NON_EQUI_INSTANCE = new KapJoinRule(true);
+    public static final ConverterRule NON_EQUI_INSTANCE = new KapJoinRule(true, false);
+    public static final ConverterRule EQUAL_NULL_SAFE_INSTANT = new KapJoinRule(false, true);
 
     private boolean isQueryNonEquiJoinModelEnabled;
+    private boolean joinCondEqualNullSafe;
 
     public KapJoinRule() {
-        this(false);
+        this(false, false);
     }
 
-    public KapJoinRule(boolean isQueryNonEquiJoinModelEnabled) {
+    public KapJoinRule(boolean isQueryNonEquiJoinModelEnabled, boolean joinCondEqualNullSafe) {
         super(LogicalJoin.class, Convention.NONE, KapRel.CONVENTION, "KapJoinRule");
         this.isQueryNonEquiJoinModelEnabled = isQueryNonEquiJoinModelEnabled;
+        this.joinCondEqualNullSafe = joinCondEqualNullSafe;
     }
 
     @Override
@@ -80,8 +84,8 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         RelNode right = join.getInput(1);
 
         RelTraitSet traitSet = join.getTraitSet().replace(KapRel.CONVENTION);
-        left = convert(left, left.getTraitSet().replace(KapRel.CONVENTION));
-        right = convert(right, right.getTraitSet().replace(KapRel.CONVENTION));
+        left = left instanceof HepRelVertex ? left : convert(left, left.getTraitSet().replace(KapRel.CONVENTION));
+        right = right instanceof HepRelVertex ? right : convert(right, right.getTraitSet().replace(KapRel.CONVENTION));
 
         final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
 
@@ -105,6 +109,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
                 newRel = new KapJoinRel(join.getCluster(), traitSet, left, right,
                         info.getEquiCondition(left, right, join.getCluster().getRexBuilder()), info.leftKeys,
                         info.rightKeys, join.getVariablesSet(), join.getJoinType());
+                ((KapJoinRel) newRel).setJoinCondEqualNullSafe(joinCondEqualNullSafe);
             }
             if (!info.isEqui()) {
                 newRel = new KapFilterRel(join.getCluster(), newRel.getTraitSet(), newRel,
