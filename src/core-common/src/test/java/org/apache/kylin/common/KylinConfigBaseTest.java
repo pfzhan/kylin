@@ -774,6 +774,22 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetHdfsWorkingDirDefaultCase() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setMetadataUrl("test");
+        String dir = config.getHdfsWorkingDirectory();
+        Assert.assertTrue(dir.endsWith("examples/test_metadata/working-dir/test/"));
+    }
+
+    @Test
+    public void testGetHdfsWorkingDirWhenDataDirSet() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.env.hdfs-data-working-dir", "/test/data");
+        String dir = config.getHdfsWorkingDirectory();
+        Assert.assertEquals("/test/data/", dir);
+    }
+
+    @Test
     public void test() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Class<? extends KylinConfig> configClass = config.getClass();

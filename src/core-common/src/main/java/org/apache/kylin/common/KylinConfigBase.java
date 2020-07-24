@@ -96,6 +96,7 @@ public abstract class KylinConfigBase implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(KylinConfigBase.class);
 
     private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
+    private static final String DATA_WORKING_DIR_PROP = "kylin.env.hdfs-data-working-dir";
     private static final String KYLIN_ROOT = "/kylin";
 
     public static final long REJECT_SIMILARITY_THRESHOLD = 100_000_000L;
@@ -356,7 +357,13 @@ public abstract class KylinConfigBase implements Serializable {
         if (cachedHdfsWorkingDirectory != null)
             return cachedHdfsWorkingDirectory;
 
-        String root = getOptional(WORKING_DIR_PROP, KYLIN_ROOT);
+        String root = getOptional(DATA_WORKING_DIR_PROP, null);
+        boolean compriseMetaId = false;
+
+        if (root == null) {
+            root = getOptional(WORKING_DIR_PROP, KYLIN_ROOT);
+            compriseMetaId = true;
+        }
 
         Path path = new Path(root);
         if (!path.isAbsolute())
@@ -365,9 +372,11 @@ public abstract class KylinConfigBase implements Serializable {
         // make sure path is qualified
         path = makeQualified(path);
 
-        // append metadata-url prefix
-        String metaId = getMetadataUrlPrefix().replace(':', '-').replace('/', '-');
-        root = new Path(path, metaId).toString();
+        if (compriseMetaId) {
+            // if configuration WORKING_DIR_PROP_V2 dose not exist, append metadata-url prefix
+            String metaId = getMetadataUrlPrefix().replace(':', '-').replace('/', '-');
+            root = new Path(path, metaId).toString();
+        }
 
         if (!root.endsWith("/"))
             root += "/";
