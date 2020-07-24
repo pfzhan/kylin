@@ -152,8 +152,8 @@
                   <common-tip :content="$t('viewDetail')">
                     <i :class="['sub-icon', 'el-icon-ksd-desc', {'is-disabled': ['ERROR'].includes(scope.row.status)}]" @click="!['ERROR'].includes(scope.row.status) && showDetail(scope.row)"></i>
                   </common-tip>
-                  <common-tip :content="$t('kylinLang.common.refresh')">
-                    <i class="sub-icon el-icon-ksd-restart" v-if="['ERROR', 'TENTATIVE'].includes(scope.row.status)" @click="refreshProjectCapacity(scope.row)"></i>
+                  <common-tip :content="$t('kylinLang.common.refresh')" :disabled="scope.row.refresh">
+                    <i :class="['sub-icon', scope.row.refresh ? 'el-icon-loading' : 'el-icon-ksd-restart']" v-if="['ERROR', 'TENTATIVE'].includes(scope.row.status)" @click="!scope.row.refresh && refreshProjectCapacity(scope.row)"></i>
                   </common-tip>
                 </template>
               </el-table-column>
@@ -382,7 +382,7 @@ export default class SystemCapacity extends Vue {
       reverse: this.projectCapacity.reverse,
       status: status.join(',')
     }).then(data => {
-      this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail}
+      this.projectCapacity = {...this.projectCapacity, totalSize: data.size, list: data.capacity_detail.map(it => ({...it, refresh: false}))}
     })
   }
 
@@ -600,8 +600,12 @@ export default class SystemCapacity extends Vue {
 
   // 刷新单个项目占比及数据量
   refreshProjectCapacity (row) {
+    row.refresh = true
     this.refreshSingleProjectCapacity({project: row.name}).then(() => {
+      row.refresh = false
       this.getProjectList()
+    }).catch(() => {
+      row.refresh = false
     })
   }
 

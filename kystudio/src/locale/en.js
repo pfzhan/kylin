@@ -515,6 +515,9 @@ exports.default = {
     capacityOverPrecent: 'The amount of data volume used {capacity} has reached 80% of the license limit. To ensure the availability of build index and data load, please contact Kyligence, or try deleting some segments.',
     overThirtyDays: 'Failed to fetch data volume used for over 30 days. Build index and load data is unavailable. Please contact Kyligence for support.',
     noJobNodes: 'There is no active Job node. The build jobs and metadata operations cannot be submitted temporarily. ',
+    failAndOverCapacityTip: 'The amount of capacity used (data volume {capacity}) exceeds the license’s limit. Meanwhile, can’t fetch some project’s capacity. Please try refreshing on the top bar, or contact Kyligence.',
+    failAndOverNodesTip: 'The amount of capacity used (nodes {nodes}) exceeds the license’s limit. Meanwhile, can’t fetch some project’s capacity. Please try refreshing on the top bar, or contact Kyligence.',
+    bothOverAndFailFetch: 'The amount of capacity used (data volume {capacity}，nodes {nodes}) exceeds the license’s limit. Meanwhile, can’t fetch some project’s capacity. Please try refreshing on the top bar, or contact Kyligence.',
     capacityFailTip: 'Failed to fetch data volume used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence.',
     nodesFailTip: 'Failed to fetch nodes used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence.',
     bothCapacityAndNodesFail: 'Failed to fetch data volume used and nodes used. Please try refreshing on the top bar. If problem still exists, please contact Kyligence.'

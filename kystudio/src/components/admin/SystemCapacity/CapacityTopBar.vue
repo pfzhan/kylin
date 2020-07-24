@@ -192,8 +192,14 @@
     // padding-right: 20px;
     .active-nodes {
       position: relative;
+      &:hover {
+        color: @text-normal-color !important;
+      }
       .server-status {
         font-weight: bold;
+        &:hover {
+          color: @base-color;
+        }
       }
       .flag {
         width: 10px;

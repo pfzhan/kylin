@@ -266,14 +266,24 @@ export default {
       })
     },
     globalAlertNotice ({state, getters, commit}) {
-      // 0高危（当获取失败超 30 天 & 容量超额（已使用数据量超额 & 节点超额） & 无活跃 All节点时）> 1获取失败 > 2警告 > 3正常
+      // 0获取失败 > 1高危（容量超额（已使用数据量超额 & 节点超额） & 无活跃 All节点时）> 2超过80%警告 > 3正常
       const capacity = `${filterElements.dataSize(state.systemCapacityInfo.current_capacity)}/${filterElements.dataSize(state.systemCapacityInfo.capacity)}`
       const nodes = `${state.systemNodeInfo.current_node}/${state.systemNodeInfo.node}`
       let alertType = () => {
         // if (state.systemCapacityInfo.error_over_thirty_days) {
         //   return { flag: 0, status: 'overThirtyDays', text: 'overThirtyDays', query: { capacity } }
         // }
-        if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
+        const capacityOver = state.systemCapacityInfo.current_capacity > state.systemCapacityInfo.capacity && state.systemCapacityInfo.capacity !== -1
+        const nodeOver = state.systemNodeInfo.current_node > state.systemNodeInfo.node && state.systemNodeInfo.node !== -1
+        if ((state.systemCapacityInfo.fail || state.systemNodeInfo.fail) && (capacityOver || nodeOver)) {
+          if ((state.systemCapacityInfo.fail || state.systemNodeInfo.fail) && capacityOver && nodeOver) {
+            return { flag: 1, status: 'failApiAndOver', text: 'bothOverAndFailFetch', query: { capacity, nodes } }
+          } else if ((state.systemCapacityInfo.fail || state.systemNodeInfo.fail) && capacityOver) {
+            return { flag: 1, status: 'failApiAndOver', text: 'failAndOverCapacityTip', query: { capacity } }
+          } else {
+            return { flag: 1, status: 'failApiAndOver', text: 'failAndOverNodesTip', query: { nodes } }
+          }
+        } else if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
           // let times = 30
           if (state.systemCapacityInfo.fail && state.systemNodeInfo.fail) {
             // times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
