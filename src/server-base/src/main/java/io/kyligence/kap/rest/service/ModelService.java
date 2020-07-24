@@ -711,11 +711,6 @@ public class ModelService extends BasicService {
         }
     }
 
-    public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String status) {
-        return getSegmentsResponse(modelId, project, "0", String.valueOf(Long.MAX_VALUE - 1), status, null, null, false,
-                "last_modify", true);
-    }
-
     public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
             String status, String sortBy, boolean reverse) {
         return getSegmentsResponse(modelId, project, start, end, status, null, null, false, sortBy, reverse);
