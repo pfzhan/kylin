@@ -55,7 +55,6 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
@@ -143,7 +142,7 @@ public class ModelSemanticHelper extends BasicService {
         return dataModel;
     }
 
-    public void convertNonEquiJoinCond(final NDataModel dataModel, final ModelRequest request) {
+    private void convertNonEquiJoinCond(final NDataModel dataModel, final ModelRequest request) {
 
         final List<SimplifiedJoinTableDesc> requestJoinTableDescs = request.getSimplifiedJoinTableDescs();
         if (CollectionUtils.isEmpty(requestJoinTableDescs)) {
@@ -158,61 +157,23 @@ public class ModelSemanticHelper extends BasicService {
         for (int i = 0; i < requestJoinTableDescs.size(); i++) {
             final JoinDesc modelJoinDesc = dataModel.getJoinTables().get(i).getJoin();
             final SimplifiedJoinDesc requestJoinDesc = requestJoinTableDescs.get(i).getSimplifiedJoinDesc();
-            List<NonEquiJoinCondition.SimplifiedNonEquiJoinCondition> simplifiedNonEquiJoinConditions = requestJoinDesc
-                    .getSimplifiedNonEquiJoinConditions();
-            //1. if non-equi condition is not exists, continue
-            if (CollectionUtils.isEmpty(simplifiedNonEquiJoinConditions)) {
+
+            if (CollectionUtils.isEmpty(requestJoinDesc.getSimplifiedNonEquiJoinConditions())) {
                 continue;
             }
 
+            //1. check scd2 turn on when non-equi join exists
             if (!isScd2Enabled) {
                 throw new KylinException(QueryErrorCode.SCD2_SAVE_MODEL_WHEN_DISABLED, "please turn on scd2 config");
             }
 
-            //2. check equi join condition
-            if (!SCD2CondChecker.INSTANCE.checkSCD2EquiJoinCond(requestJoinDesc.getForeignKey(),
-                    requestJoinDesc.getPrimaryKey())) {
-                throw new KylinException(QueryErrorCode.SCD2_EMPTY_EQUI_JOIN, "SCD2 must have one equi join conditon");
-            }
-            if (!SCD2CondChecker.INSTANCE
-                    .checkSCD2NonEquiJoinCondPair(requestJoinDesc.getSimplifiedNonEquiJoinConditions())) {
-                throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_FK_PK_PAIR,
-                        "SCD2 non-equi condition must be pair");
-            }
-            if (!SCD2CondChecker.INSTANCE.checkFkPkPairUnique(requestJoinDesc)) {
-                throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_FK_PK_PAIR, "SCD2 condition must be unqiue");
-            }
+            //2. check request equi join condition
+            checkRequestNonEquiJoinConds(requestJoinDesc);
 
-            //3. convert this join to sql , include equi join cond
-            String nonEquiSql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(modelJoinDesc,
-                    requestJoinDesc.getSimplifiedNonEquiJoinConditions());
+            //3. suggest nonEquiModel
+            final JoinDesc suggModelJoin = suggNonEquiJoinModel(dataModel.getProject(), modelJoinDesc, requestJoinDesc);
 
-            //4. use suggest model to gen join desc
-            BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
-            AbstractContext context = new NSmartContext(KylinConfig.getInstanceFromEnv(), dataModel.getProject(),
-                    new String[] { nonEquiSql });
-            NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runSuggestModel();
-
-            List<AbstractContext.NModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
-            if (CollectionUtils.isEmpty(suggModelContexts)
-                    || Objects.isNull(suggModelContexts.get(0).getTargetModel())) {
-
-                AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(nonEquiSql);
-                if (Objects.nonNull(accelerateInfo)) {
-                    log.error("scd2 suggest error, sql:{}", nonEquiSql, accelerateInfo.getFailedCause());
-                }
-                throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR, "it has illegal join condition");
-            }
-
-            if (suggModelContexts.size() != 1) {
-                throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR,
-                        "scd2 suggest more than one model:" + nonEquiSql);
-            }
-
-            JoinDesc suggModelJoin = suggModelContexts.get(0).getTargetModel().getJoinTables().get(0).getJoin();
-
-            //5. update dataModel
+            //4. update dataModel
             try {
 
                 SCD2NonEquiCondSimplification.INSTANCE.convertToSimplifiedSCD2Cond(suggModelJoin);
@@ -223,6 +184,7 @@ public class ModelSemanticHelper extends BasicService {
                 throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR, Throwables.getRootCause(e).getMessage());
             }
 
+            //5. check same join conditions
             if (scd2NonEquiCondSets.contains(new JoinDescNonEquiCompBean(requestJoinDesc))) {
                 throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_CONDITION, "duplicate join edge");
             } else {
@@ -231,6 +193,50 @@ public class ModelSemanticHelper extends BasicService {
 
         }
 
+    }
+
+    private void checkRequestNonEquiJoinConds(final SimplifiedJoinDesc requestJoinDesc) {
+
+        if (!SCD2CondChecker.INSTANCE.checkSCD2EquiJoinCond(requestJoinDesc.getForeignKey(),
+                requestJoinDesc.getPrimaryKey())) {
+            throw new KylinException(QueryErrorCode.SCD2_EMPTY_EQUI_JOIN, "SCD2 must have one equi join conditon");
+        }
+        if (!SCD2CondChecker.INSTANCE
+                .checkSCD2NonEquiJoinCondPair(requestJoinDesc.getSimplifiedNonEquiJoinConditions())) {
+            throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_FK_PK_PAIR, "SCD2 non-equi condition must be pair");
+        }
+        if (!SCD2CondChecker.INSTANCE.checkFkPkPairUnique(requestJoinDesc)) {
+            throw new KylinException(QueryErrorCode.SCD2_DUPLICATE_FK_PK_PAIR, "SCD2 condition must be unqiue");
+        }
+    }
+
+    private JoinDesc suggNonEquiJoinModel(final String project, final JoinDesc modelJoinDesc,
+            final SimplifiedJoinDesc requestJoinDesc) {
+        String nonEquiSql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(modelJoinDesc,
+                requestJoinDesc.getSimplifiedNonEquiJoinConditions());
+
+        BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
+        AbstractContext context = new NSmartContext(KylinConfig.getInstanceFromEnv(), project,
+                new String[] { nonEquiSql });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runSuggestModel();
+
+        List<AbstractContext.NModelContext> suggModelContexts = smartMaster.getContext().getModelContexts();
+        if (CollectionUtils.isEmpty(suggModelContexts) || Objects.isNull(suggModelContexts.get(0).getTargetModel())) {
+
+            AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(nonEquiSql);
+            if (Objects.nonNull(accelerateInfo)) {
+                log.error("scd2 suggest error, sql:{}", nonEquiSql, accelerateInfo.getFailedCause());
+            }
+            throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR, "it has illegal join condition");
+        }
+
+        if (suggModelContexts.size() != 1) {
+            throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR,
+                    "scd2 suggest more than one model:" + nonEquiSql);
+        }
+
+        return suggModelContexts.get(0).getTargetModel().getJoinTables().get(0).getJoin();
     }
 
     private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel,
