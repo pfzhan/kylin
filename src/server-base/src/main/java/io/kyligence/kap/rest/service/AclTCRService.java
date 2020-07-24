@@ -156,6 +156,47 @@ public class AclTCRService extends BasicService {
         }, project);
     }
 
+    private void checkAclTCRRequestDataBaseValid(AclTCRRequest db, Set<String> requestDatabases) {
+        Message msg = MsgPicker.getMsg();
+        if (StringUtils.isEmpty(db.getDatabaseName())) {
+            throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_DATABASE_NAME());
+        }
+        if (requestDatabases.contains(db.getDatabaseName())) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(msg.getDATABASE_PARAMETER_DUPLICATE(), db.getDatabaseName()));
+        }
+        requestDatabases.add(db.getDatabaseName());
+        if (CollectionUtils.isEmpty(db.getTables())) {
+            throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_LIST());
+        }
+    }
+
+    private void checkAclTCRRequestTableValid(AclTCRRequest db, AclTCRRequest.Table table, Set<String> requestTables) {
+        Message msg = MsgPicker.getMsg();
+        if (StringUtils.isEmpty(table.getTableName())) {
+            throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
+        }
+        String tableName = String.format(IDENTIFIER_FORMAT, db.getDatabaseName(), table.getTableName());
+        if (requestTables.contains(tableName)) {
+            throw new KylinException(INVALID_PARAMETER, String.format(msg.getTABLE_PARAMETER_DUPLICATE(), tableName));
+        }
+        requestTables.add(tableName);
+        if (table.getRows() == null) {
+            throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ROW_LIST());
+        }
+        table.getRows().forEach(row -> {
+            if (StringUtils.isEmpty(row.getColumnName())) {
+                throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
+            }
+            if (CollectionUtils.isEmpty(row.getItems())) {
+                throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ITEMS());
+            }
+        });
+        if (CollectionUtils.isEmpty(table.getColumns())) {
+            throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_LIST());
+        }
+    }
+
     private void checkAClTCRRequestParameterValid(Set<String> databases, Set<String> tables, Set<String> columns,
             List<AclTCRRequest> requests) {
         Message msg = MsgPicker.getMsg();
@@ -164,41 +205,10 @@ public class AclTCRService extends BasicService {
         Set<String> requestColumns = Sets.newHashSet();
 
         requests.forEach(db -> {
-            if (StringUtils.isEmpty(db.getDatabaseName())) {
-                throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_DATABASE_NAME());
-            }
-            if (requestDatabases.contains(db.getDatabaseName())) {
-                throw new KylinException(INVALID_PARAMETER,
-                        String.format(msg.getDATABASE_PARAMETER_DUPLICATE(), db.getDatabaseName()));
-            }
-            requestDatabases.add(db.getDatabaseName());
-            if (CollectionUtils.isEmpty(db.getTables())) {
-                throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_LIST());
-            }
+            checkAclTCRRequestDataBaseValid(db, requestDatabases);
             db.getTables().forEach(table -> {
-                if (StringUtils.isEmpty(table.getTableName())) {
-                    throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_TABLE_NAME());
-                }
+                checkAclTCRRequestTableValid(db, table, requestTables);
                 String tableName = String.format(IDENTIFIER_FORMAT, db.getDatabaseName(), table.getTableName());
-                if (requestTables.contains(tableName)) {
-                    throw new KylinException(INVALID_PARAMETER,
-                            String.format(msg.getTABLE_PARAMETER_DUPLICATE(), tableName));
-                }
-                requestTables.add(tableName);
-                if (table.getRows() == null) {
-                    throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ROW_LIST());
-                }
-                table.getRows().forEach(row -> {
-                    if (StringUtils.isEmpty(row.getColumnName())) {
-                        throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_NAME());
-                    }
-                    if (CollectionUtils.isEmpty(row.getItems())) {
-                        throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_ITEMS());
-                    }
-                });
-                if (CollectionUtils.isEmpty(table.getColumns())) {
-                    throw new KylinException(EMPTY_PARAMETER, msg.getEMPTY_COLUMN_LIST());
-                }
                 table.getColumns().forEach(column -> {
                     String columnName = String.format(IDENTIFIER_FORMAT, tableName, column.getColumnName());
                     if (StringUtils.isEmpty(column.getColumnName())) {

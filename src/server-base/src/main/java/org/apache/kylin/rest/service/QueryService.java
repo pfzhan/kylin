@@ -408,9 +408,8 @@ public class QueryService extends BasicService {
         }
     }
 
-    public SQLResponse queryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+    private void checkSqlRequest(SQLRequest sqlRequest) {
         Message msg = MsgPicker.getMsg();
-
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String serverMode = kylinConfig.getServerMode();
         if (!kylinConfig.isQueryNode()) {
@@ -419,16 +418,19 @@ public class QueryService extends BasicService {
         if (StringUtils.isBlank(sqlRequest.getProject())) {
             throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
         }
-
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
         }
-
         if (StringUtils.isBlank(sqlRequest.getSql())) {
             throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());
         }
+    }
+
+    public SQLResponse queryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+        checkSqlRequest(sqlRequest);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
         if (sqlRequest.getBackdoorToggles() != null)
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
@@ -705,8 +707,8 @@ public class QueryService extends BasicService {
         try {
             groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(executeAs);
             Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
-            hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(
-                    executeAs, groupsInProject, project, ADMINISTRATION);
+            hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(executeAs, groupsInProject, project,
+                    ADMINISTRATION);
         } catch (Exception UsernameNotFoundException) {
             throw new KylinException(INVALID_USER_NAME,
                     String.format(MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
