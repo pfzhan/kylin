@@ -25,22 +25,58 @@
 ##
 
 cdh_mapreduce_path=$CDH_MR2_HOME
+cdh_mapreduce_path_first="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce"
+cdh_mapreduce_path_second="/usr/lib/hadoop-mapreduce"
+cdh_version=`hadoop version | head -1 | awk -F '-' '{print $2}'`
+
+function quit {
+    echo "$@"
+    if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
+        echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
+    fi
+    exit 1
+}
+
+function get_cdh_version_from_common_jar() {
+    hadoop_common_path=`find ${cdh_mapreduce_path}/../hadoop/ -maxdepth 1 -name "hadoop-common-*.jar" -not -name "*test*" | tail -1`
+    hadoop_common_jar=${hadoop_common_path##*-}
+    echo "${hadoop_common_jar%.*}"
+}
+
+function set_cdh_mapreduce_path_with_hadoop_version_command() {
+    cdh_mapreduce_path=${cdh_mapreduce_path_first}
+    cdh_version_from_jar=`get_cdh_version_from_common_jar`
+
+     # check cdh version from hadoop version command equals cdh version from common jar
+    if [[ "${cdh_version}" == "${cdh_version_from_jar}" ]]; then
+        return
+    fi
+
+    cdh_mapreduce_path=${cdh_mapreduce_path_second}
+    cdh_version_from_jar=`get_cdh_version_from_common_jar`
+    if [[ "${cdh_version}" != "${cdh_version_from_jar}" ]]; then
+        quit "Get cdh mapreduce path failed, please set CDH_MR2_HOME environment variable."
+    fi
+}
 
 if [[ -z ${cdh_mapreduce_path} ]]
 then
-    if [[ -d "/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce" ]]
-    then
-        cdh_mapreduce_path="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce"
+    if [[ "${cdh_version}" == cdh* ]]; then
+        set_cdh_mapreduce_path_with_hadoop_version_command
     else
-        cdh_mapreduce_path="/usr/lib/hadoop-mapreduce"
+        if [[ -d "${cdh_mapreduce_path_first}" ]]; then
+            cdh_mapreduce_path=${cdh_mapreduce_path_first}
+        else
+            cdh_mapreduce_path=${cdh_mapreduce_path_second}
+        fi
     fi
 fi
 
-function isCDH_6_1() {
-    hadoop_common_file=`find ${cdh_mapreduce_path}/../../jars/ -maxdepth 1 -name "hadoop-common-*.jar" -not -name "*test*" | tail -1`
-    cdh_version=${hadoop_common_file##*/}
+function is_cdh_6_x() {
+    hadoop_common_file=`find ${cdh_mapreduce_path}/../hadoop/ -maxdepth 1 -name "hadoop-common-*.jar" -not -name "*test*" | tail -1`
+    cdh_version=${hadoop_common_file##*-}
 
-    if [[ "${cdh_version}" == hadoop-common-3.*-cdh6.1* ]]; then
+    if [[ "${cdh_version}" == cdh6.* ]]; then
         echo 1
         return 1
     fi
@@ -59,7 +95,7 @@ then
     fi
 fi
 
-function isHDP_3_1() {
+function is_hdp_3_1() {
     hadoop_common_file="`find ${hdp_hadoop_path}/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
     hdp_version=${hadoop_common_file##*/}
 
@@ -72,7 +108,7 @@ function isHDP_3_1() {
     return 0
 }
 
-function isHDP_2_6() {
+function is_hdp_2_6() {
     hadoop_common_file="`find ${hdp_hadoop_path}/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
     hdp_version=${hadoop_common_file##*/}
 
@@ -85,7 +121,7 @@ function isHDP_2_6() {
     return 0
 }
 
-function isFI_C90() {
+function is_fi_c90() {
     ## FusionInsight platform C70/C90.
     if [[ -n "$BIGDATA_CLIENT_HOME" ]]; then
         hadoop_common_file="`find ${BIGDATA_CLIENT_HOME}/HDFS/hadoop/share/hadoop/common/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
