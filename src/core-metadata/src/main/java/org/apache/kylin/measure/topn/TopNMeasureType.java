@@ -327,8 +327,8 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             return false;
         }
 
-        // Top N style query can only has one order by field.
-        if (digest.sortColumns.size() != 1) {
+        // Top N style query can only has one order by field and must be descending order.
+        if (digest.sortColumns.size() != 1 || digest.sortOrders.get(0) != SQLDigest.OrderEnum.DESCENDING) {
             return false;
         }
         TblColRef sortCol = digest.sortColumns.get(0);

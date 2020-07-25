@@ -105,6 +105,28 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testTopNCannotAnswerAscendingTopnQuery() throws Exception {
+        String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
+        NDataflow dataflow = dfMgr.getDataflow(dfID);
+        buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
+                Sets.newHashSet(dataflow.getIndexPlan().getCuboidLayout(101001L)), true);
+
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        List<Pair<String, String>> query = new ArrayList<>();
+        String sql1 = "select sum(PRICE) from TEST_TOP_N group by SELLER_ID,TRANS_ID order by sum(PRICE) limit 1";
+        String sql2 = "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) limit 1";
+        query.add(Pair.newPair("topn_with_multi_dim", sql1));
+        query.add(Pair.newPair("topn_with_one_dim", sql2));
+
+        try {
+            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause().getCause().getMessage().contains("No realization found for OLAPContext"));
+        }
+    }
+
+    @Test
     public void testTopNCanNotAnswerNonTopNStyleQuery() throws Exception {
         dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304",
                 copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
