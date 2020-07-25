@@ -204,6 +204,28 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotEquals(0, files);
     }
 
+    @Test
+    public void testCleanupPreserveTableDescLastSnapshot() throws Exception {
+        val cleaner = new StorageCleaner(true, Collections.singletonList("default"));
+
+        for (NDataflow dataflow : NDataflowManager.getInstance(getTestConfig(), "default").listAllDataflows()) {
+            NDataflowManager.getInstance(getTestConfig(), "default").dropDataflow(dataflow.getId());
+        }
+
+        val countryTableSnapshotPath = "default/table_snapshot/DEFAULT.TEST_COUNTRY/b4849638-4eb5-44f5-b776-0619813fb676";
+        val countryTableDesc = NTableMetadataManager.getInstance(getTestConfig(), "default").getTableDesc("DEFAULT.TEST_COUNTRY");
+        countryTableDesc.setLastSnapshotPath(countryTableSnapshotPath);
+        NTableMetadataManager.getInstance(getTestConfig(), "default").updateTableDesc(countryTableDesc);
+
+        cleaner.execute();
+
+        // test if table snapshot is preserved
+        val snapshots = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")
+                + "/default" + HadoopUtil.SNAPSHOT_STORAGE_ROOT), null, true);
+        Assert.assertEquals(1, snapshots.size());
+        Assert.assertTrue(snapshots.iterator().next().getAbsolutePath().contains(countryTableSnapshotPath));
+    }
+
     private void prepare() throws IOException {
         val config = getTestConfig();
         config.setProperty("kylin.garbage.storage.cuboid-layout-survival-time-threshold", "0s");

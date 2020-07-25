@@ -355,16 +355,19 @@ public class StorageCleaner {
             val activeTableExdDir = Sets.<String> newHashSet();
             val activeDictTableDir = Sets.<String> newHashSet();
             val activeSnapshotTableDir = Sets.<String> newHashSet();
+            val activeSnapshotDir = Sets.<String> newHashSet();
             tableManager.listAllTables().forEach(table -> {
                 Arrays.stream(table.getColumns())
                         .map(column -> getDictDir(project) + "/" + table.getIdentity() + "/" + column.getName())
                         .forEach(activeDictDir::add);
                 activeTableExdDir.add(project + ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + table.getIdentity());
                 activeSnapshotTableDir.add(project + SNAPSHOT_STORAGE_ROOT + "/" + table.getIdentity());
+                if (table.getLastSnapshotPath() != null) {
+                    activeSnapshotDir.add(table.getLastSnapshotPath());
+                }
                 activeDictTableDir.add(getDictDir(project) + "/" + table.getIdentity());
             });
 
-            val activeSnapshotDir = Sets.<String> newHashSet();
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream()
                     .flatMap(segment -> segment.getSnapshots().values().stream()).forEach(activeSnapshotDir::add));
