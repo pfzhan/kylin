@@ -140,11 +140,11 @@ public class NRecommendationController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OptRecDetailResponse> getOptimizeRecommendations(
             @PathVariable(value = "model") String modelId, @PathVariable(value = "item_id") Integer itemId,
-            @RequestParam(value = "project") String project) {
+            @RequestParam(value = "project") String project, @RequestParam(value = "is_add") boolean isAdd) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optRecService.getSingleOptRecDetail(project, modelId, itemId), "");
+                optRecService.getSingleOptRecDetail(project, modelId, itemId, isAdd), "");
     }
 }

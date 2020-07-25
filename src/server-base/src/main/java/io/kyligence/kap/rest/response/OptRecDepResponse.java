@@ -29,8 +29,10 @@ import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class OptRecDepResponse implements Serializable {
     @JsonProperty("item_id")
     private long itemId;
@@ -46,4 +48,10 @@ public class OptRecDepResponse implements Serializable {
 
     @JsonProperty("add")
     private boolean add = true;
+
+    public OptRecDepResponse(int version, String name, boolean add) {
+        this.version = version;
+        this.name = name;
+        this.add = add;
+    }
 }

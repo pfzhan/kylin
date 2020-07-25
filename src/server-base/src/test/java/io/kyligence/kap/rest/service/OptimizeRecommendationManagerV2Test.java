@@ -127,6 +127,7 @@ public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
 
     @After
     public void tearDown() {
+        recommendationManager.cleanAll(id);
         this.cleanupTestMetadata();
     }
 
@@ -181,7 +182,6 @@ public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
                 r.setHitCount(r.getId());
             }
         });
-        recommendationManager.cleanAll(id);
 
         OptimizeRecommendationV2 recommendationV2 = new OptimizeRecommendationV2();
         recommendationV2.setUuid(id);

@@ -131,12 +131,18 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
     }
 
     @Test
-    public void testGetSingleOptRecDetail_AggLayout() {
+    public void testGetSingleOptRecDetail_AggLayout_V1() {
+        val detailResponse = service.getSingleOptRecDetail(projectDefault, id, findFromOriginLayout(1000001L), false);
+        Assert.assertEquals("[11]", detailResponse.getLayoutItemIds().toString());
+    }
+
+    @Test
+    public void testGetSingleOptRecDetail_AggLayout_V2() {
         val response = service.getOptRecLayoutsResponse(projectDefault, id);
         val addLayoutsResponse = response.getLayouts().stream().filter(l -> l.getType().isAdd())
                 .sorted(Comparator.comparingLong(LayoutRecommendationResponse::getItemId)).collect(Collectors.toList());
         Assert.assertEquals(12, addLayoutsResponse.size());
-        val detailResponse = service.getSingleOptRecDetail(projectDefault, id, findFromOriginLayout(1000001L));
+        val detailResponse = service.getSingleOptRecDetail(projectDefault, id, findFromOriginLayout(1000001L), true);
         Assert.assertEquals(2, detailResponse.getColumnItems().size());
         Assert.assertEquals(1, detailResponse.getColumnItems().stream().filter(OptRecDepResponse::isAdd).count());
         Assert.assertEquals(2, detailResponse.getDimensionItems().size());
@@ -147,12 +153,19 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
     }
 
     @Test
-    public void testGetSingleOptRecDetail_TableLayout() {
+    public void testGetSingleOptRecDetail_TableLayout_V1() {
+        val detailResponse = service.getSingleOptRecDetail(projectDefault, id, findFromOriginLayout(20003000001L),
+                false);
+        Assert.assertEquals("[21]", detailResponse.getLayoutItemIds().toString());
+    }
+
+    @Test
+    public void testGetSingleOptRecDetail_TableLayout_V2() {
         val response = service.getOptRecLayoutsResponse(projectDefault, id);
         val addLayoutsResponse = response.getLayouts().stream().filter(l -> l.getType().isAdd())
                 .sorted(Comparator.comparingLong(LayoutRecommendationResponse::getItemId)).collect(Collectors.toList());
         Assert.assertEquals(12, addLayoutsResponse.size());
-        val detailResponse = service.getSingleOptRecDetail(projectDefault, id, findFromOriginLayout(20003000001L));
+        val detailResponse = service.getSingleOptRecDetail(projectDefault, id, findFromOriginLayout(20003000001L), true);
         Assert.assertEquals(5, detailResponse.getColumnItems().size());
         Assert.assertEquals(1, detailResponse.getColumnItems().stream().filter(OptRecDepResponse::isAdd).count());
         Assert.assertEquals(5, detailResponse.getDimensionItems().size());
@@ -625,7 +638,20 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
     }
 
     @Test
-    public void testDelete() {
+    public void testDelete_V1() {
+        // before delete 
+        Assert.assertEquals(12, recommendationManager.getOptimizeRecommendation(id).getLayoutRecommendations().size());
+
+        // after delete
+        OptRecRequest request = new OptRecRequest();
+        request.setModelId(id);
+        request.setLegacyIds(Lists.newArrayList(0, 1, 2));
+        service.delete(projectDefault, request);
+        Assert.assertEquals(9, recommendationManager.getOptimizeRecommendation(id).getLayoutRecommendations().size());
+    }
+
+    @Test
+    public void testDelete_V2() {
         OptRecRequest request = new OptRecRequest();
         request.setModelId(id);
         request.setIds(Lists.newArrayList(11, 12, 13, 14, 15));

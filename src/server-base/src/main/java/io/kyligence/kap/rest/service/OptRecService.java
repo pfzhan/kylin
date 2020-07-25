@@ -242,7 +242,7 @@ public class OptRecService extends BasicService {
         checkProjectMode(project);
         OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(),
                 project, request.getModelId());
-        verifier.setFailLayoutItems(request.getIds().stream().map(Long::new).collect(Collectors.toSet()));
+        verifier.setFailLayoutItems(request.getLegacyIds().stream().map(Long::new).collect(Collectors.toSet()));
         verifier.verify();
         OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -421,6 +421,7 @@ public class OptRecService extends BasicService {
         response.setSource(LayoutRecommendationItem.QUERY_HISTORY);
         response.setVersion(V2);
         response.setLastModifyTime(raw.getUpdateTime());
+        response.setAdd(true);
         return response;
     }
 
@@ -436,4 +437,44 @@ public class OptRecService extends BasicService {
         return optRecLayoutResponse;
     }
 
+    public OptRecDetailResponse getSingleOptRecDetail(String project, String modelId, int id, boolean isAdd) {
+        if (isAdd) {
+            return getSingleOptRecDetail(project, modelId, id);
+        } else {
+            // is delete
+            OptRecDetailResponse detailResponse = new OptRecDetailResponse();
+            List<OptRecDepResponse> dimensionItems = Lists.newArrayList();
+            List<OptRecDepResponse> measureItems = Lists.newArrayList();
+
+            for (LayoutRecommendationItem item : OptimizeRecommendationManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(modelId)
+                    .getLayoutRecommendations()) {
+                if (item.getItemId() == id) {
+                    collectDimAndMeaItems(item, dimensionItems, measureItems, project, modelId);
+                    break;
+                }
+            }
+            detailResponse.setLayoutItemIds(Lists.newArrayList(id));
+            detailResponse.setDimensionItems(dimensionItems);
+            detailResponse.setMeasureItems(measureItems);
+            detailResponse.setColumnItems(Lists.newArrayList());
+            return detailResponse;
+        }
+    }
+
+    private void collectDimAndMeaItems(LayoutRecommendationItem item, List<OptRecDepResponse> dimensionItems,
+            List<OptRecDepResponse> measureItems, String project, String modelId) {
+        NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        for (int colId : item.getLayout().getColOrder()) {
+            NDataModel.NamedColumn namedColumn = dataModelDesc.getEffectiveNamedColumns().get(colId);
+            if (namedColumn != null && namedColumn.isDimension()) {
+                dimensionItems.add(new OptRecDepResponse(2, namedColumn.getName(), false));
+                continue;
+            }
+            String measureName = dataModelDesc.getMeasureNameByMeasureId(colId);
+            if (measureName != null) {
+                measureItems.add(new OptRecDepResponse(2, measureName, false));
+            }
+        }
+    }
 }
