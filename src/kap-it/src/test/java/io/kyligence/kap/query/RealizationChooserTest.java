@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.query;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
+import java.sql.SQLException;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
@@ -44,13 +46,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
-
-import java.sql.SQLException;
-import java.util.List;
 
 public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
@@ -158,7 +158,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
         val project = "heterogeneous_segment";
         val dfId = "747f864b-9721-4b97-acde-0aa8e8656cba";
-        val expectedRanges = Lists.<Pair<String, String>>newArrayList();
+        val expectedRanges = Lists.<Pair<String, String>> newArrayList();
         val segmentRange1 = Pair.newPair("2012-01-01", "2012-01-02");
         val segmentRange2 = Pair.newPair("2012-01-02", "2012-01-03");
         val segmentRange3 = Pair.newPair("2012-01-03", "2012-01-04");
@@ -178,13 +178,15 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             // segments do not have common layout
         }
 
-        val sql1_date = sql + "where cal_dt = DATE '2012-01-01' or (cal_dt >= DATE '2012-01-02' and cal_dt < DATE '2012-01-04') group by cal_dt";
+        val sql1_date = sql
+                + "where cal_dt = DATE '2012-01-01' or (cal_dt >= DATE '2012-01-02' and cal_dt < DATE '2012-01-04') group by cal_dt";
         expectedRanges.add(segmentRange1);
         expectedRanges.add(segmentRange2);
         expectedRanges.add(segmentRange3);
         assertPrunedSegmentsRange(project, sql1_date, dfId, expectedRanges, layout_20001);
 
-        val sql1_date_string = sql + "where cal_dt = '2012-01-01' or (cal_dt >= '2012-01-02' and cal_dt < '2012-01-04') group by cal_dt";
+        val sql1_date_string = sql
+                + "where cal_dt = '2012-01-01' or (cal_dt >= '2012-01-02' and cal_dt < '2012-01-04') group by cal_dt";
         assertPrunedSegmentsRange(project, sql1_date_string, dfId, expectedRanges, layout_20001);
 
         val sql2_date = sql + "where cal_dt >= DATE '2012-01-03' and cal_dt < DATE '2012-01-10' group by cal_dt";
@@ -197,9 +199,9 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         val sql2_date_string = sql + "where cal_dt >= '2012-01-03' and cal_dt < '2012-01-10' group by cal_dt";
         assertPrunedSegmentsRange(project, sql2_date_string, dfId, expectedRanges, layout_10001);
 
-        val sql3_no_layout = "select trans_id from test_kylin_fact " +
-                "inner join test_account on test_kylin_fact.seller_id = test_account.account_id " +
-                "where cal_dt > '2012-01-03' and cal_dt < '2012-01-05'";
+        val sql3_no_layout = "select trans_id from test_kylin_fact "
+                + "inner join test_account on test_kylin_fact.seller_id = test_account.account_id "
+                + "where cal_dt > '2012-01-03' and cal_dt < '2012-01-05'";
         try {
             assertPrunedSegmentsRange(project, sql3_no_layout, dfId, expectedRanges, -1L);
         } catch (NoRealizationFoundException ex) {
@@ -209,14 +211,14 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         expectedRanges.clear();
         expectedRanges.add(segmentRange1);
         expectedRanges.add(segmentRange2);
-        val sql4_table_index = "select trans_id from test_kylin_fact " +
-                "inner join test_account on test_kylin_fact.seller_id = test_account.account_id " +
-                "where cal_dt > '2012-01-01' and cal_dt < '2012-01-03'";
+        val sql4_table_index = "select trans_id from test_kylin_fact "
+                + "inner join test_account on test_kylin_fact.seller_id = test_account.account_id "
+                + "where cal_dt > '2012-01-01' and cal_dt < '2012-01-03'";
         assertPrunedSegmentsRange(project, sql4_table_index, dfId, expectedRanges, layout_20000000001);
 
-        val sql5 = "select trans_id, sum(price) " +
-                "from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id " +
-                "where cal_dt > '2012-01-03' and cal_dt < '2012-01-06' group by trans_id";
+        val sql5 = "select trans_id, sum(price) "
+                + "from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id "
+                + "where cal_dt > '2012-01-03' and cal_dt < '2012-01-06' group by trans_id";
         try {
             assertPrunedSegmentsRange(project, sql5, dfId, expectedRanges, -1L);
         } catch (NoRealizationFoundException ex) {
@@ -224,7 +226,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    private void assertPrunedSegmentsRange(String project, String sql, String dfId, List<Pair<String, String>> expectedRanges, long expectedLayoutId) throws SQLException {
+    private void assertPrunedSegmentsRange(String project, String sql, String dfId,
+            List<Pair<String, String>> expectedRanges, long expectedLayoutId) throws SQLException {
         val proposeContext = new NSmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runWithContext();
@@ -249,5 +252,32 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(expectedRange.getFirst(), start);
             Assert.assertEquals(expectedRange.getSecond(), end);
         }
+    }
+
+    @Test
+    public void testNonEquiJoinMatch() {
+        //   TEST_KYLIN_FACT
+        //              \
+        //             TEST_ACCOUNT  on equi-join
+        //                  \
+        //              SELLER_ACCOUNT  on non-equi-join
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        // 1. create small inner-join model
+        String sql = "select sum(ITEM_COUNT) as ITEM_CNT\n" + "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n"
+                + "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n"
+                + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" + "INNER JOIN TEST_ORDER as TEST_ORDER\n"
+                + "ON SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL = TEST_ORDER.BUYER_ID "
+                + "AND SELLER_ACCOUNT.ACCOUNT_COUNTRY>=TEST_ORDER.TEST_EXTENDED_COLUMN "
+                + "AND SELLER_ACCOUNT.ACCOUNT_COUNTRY<TEST_ORDER.TEST_TIME_ENC";
+        val proposeContext = new NSmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.runWithContext();
+
+        Assert.assertEquals(smartMaster.getContext().getModelContexts().size(), 1);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+
+        Assert.assertEquals(context.joins.get(1).getFKSide().getTableIdentity(), "DEFAULT.TEST_ACCOUNT");
     }
 }

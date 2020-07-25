@@ -613,6 +613,14 @@ public class NDataModel extends RootPersistentEntity {
         throw new IllegalArgumentException("Table not found by " + tableIdentity + " in model " + uuid);
     }
 
+    public void initJoinDesc(KylinConfig config, Map<String, TableDesc> tables) {
+        this.config = config;
+
+        initJoinTablesForUpgrade();
+        initTableAlias(tables);
+        initJoinColumns();
+    }
+
     public void init(KylinConfig config, Map<String, TableDesc> tables) {
         this.config = config;
 

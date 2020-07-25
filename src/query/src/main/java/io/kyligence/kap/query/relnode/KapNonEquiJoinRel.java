@@ -57,6 +57,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -220,8 +221,16 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         joinDescBuilder.setType(joinType);
 
         RexNode nonEquvCond = joinInfo.getRemaining(new RexBuilder(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT)));
-        joinDescBuilder.setForeignTableRef(((KapRel) left).getColumnRowType().getColumnByIndex(0).getTableRef());
-        joinDescBuilder.setPrimaryTableRef(((KapRel) right).getColumnRowType().getColumnByIndex(0).getTableRef());
+
+        //by default, extract foreign table form equi-join keys
+        if (CollectionUtils.isNotEmpty(leftCols) && CollectionUtils.isNotEmpty(rightCols)) {
+            joinDescBuilder.setForeignTableRef(leftCols.iterator().next().getTableRef());
+            joinDescBuilder.setPrimaryTableRef(rightCols.iterator().next().getTableRef());
+        } else {
+            joinDescBuilder.setForeignTableRef(((KapRel) left).getColumnRowType().getColumnByIndex(0).getTableRef());
+            joinDescBuilder.setPrimaryTableRef(((KapRel) right).getColumnRowType().getColumnByIndex(0).getTableRef());
+        }
+
         NonEquiJoinCondition nonEquiJoinCondition = doBuildJoin(nonEquvCond);
         nonEquiJoinCondition
                 .setExpr(RexToTblColRefTranslator.translateRexNode(condition, columnRowType).getParserDescription());

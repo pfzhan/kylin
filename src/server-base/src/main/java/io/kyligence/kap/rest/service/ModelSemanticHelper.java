@@ -135,8 +135,7 @@ public class ModelSemanticHelper extends BasicService {
         dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
         dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
 
-        dataModel.init(getConfig(), getTableManager(modelRequest.getProject()).getAllTablesMap(),
-                getDataflowManager(modelRequest.getProject()).listUnderliningDataModels(), modelRequest.getProject());
+        dataModel.initJoinDesc(KylinConfig.getInstanceFromEnv(), getTableManager(modelRequest.getProject()).getAllTablesMap());
         convertNonEquiJoinCond(dataModel, modelRequest);
 
         return dataModel;
