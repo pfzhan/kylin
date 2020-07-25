@@ -41,6 +41,9 @@ import java.util.Objects;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.rest.request.MetadataCleanupRequest;
+import io.kyligence.kap.rest.request.StorageCleanupRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -53,6 +56,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -138,6 +142,25 @@ public class NMetaStoreController extends NBasicController {
             throw new RuntimeException(rootCause);
         }
 
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/cleanup")
+    @ResponseBody
+    public EnvelopeResponse<String> cleanUpMetaStore(@RequestBody MetadataCleanupRequest request) throws Exception {
+        String project = request.getProject();
+        if (!UnitOfWork.GLOBAL_UNIT.equals(project)) {
+            checkProjectName(project);
+        }
+        metaStoreService.cleanupMeta(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/cleanup_storage")
+    @ResponseBody
+    public EnvelopeResponse<String> cleanupStorage(@RequestBody StorageCleanupRequest request) throws Exception {
+
+        metaStoreService.cleanupStorage(request.getProjectsToClean(), request.isCleanupStorage());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

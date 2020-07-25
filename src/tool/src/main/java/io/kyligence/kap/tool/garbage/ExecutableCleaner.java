@@ -31,12 +31,18 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ExecutableCleaner implements MetadataCleaner {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExecutableCleaner.class);
+
     @Override
     public void cleanup(String project) {
+
+        logger.info("Start to clean executable in project {}", project);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
@@ -59,5 +65,6 @@ public class ExecutableCleaner implements MetadataCleaner {
         for (AbstractExecutable executable : filteredExecutables) {
             executableManager.deleteJob(executable.getId());
         }
+        logger.info("Clean executable in project {} finished", project);
     }
 }

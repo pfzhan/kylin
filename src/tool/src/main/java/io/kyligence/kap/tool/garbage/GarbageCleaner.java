@@ -29,13 +29,16 @@ import org.apache.kylin.common.KylinConfig;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GarbageCleaner {
+
+    private static final Logger logger = LoggerFactory.getLogger(GarbageCleaner.class);
 
     private GarbageCleaner() {
     }
@@ -56,7 +59,7 @@ public class GarbageCleaner {
         SnapshotCleaner snapshotCleaner = new SnapshotCleaner(project);
         snapshotCleaner.checkStaleSnapshots();
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             doCleanupMetadataManually(project, snapshotCleaner);
             return 0;
         }, project);
@@ -112,7 +115,6 @@ public class GarbageCleaner {
             if (!instance.isExpertMode()) {
                 new IndexCleaner().cleanup(project);
             }
-
             new ExecutableCleaner().cleanup(project);
             snapshotCleaner.cleanup(project);
             return 0;

@@ -31,10 +31,14 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BrokenModelCleaner implements MetadataCleaner {
+    private static final Logger logger = LoggerFactory.getLogger(BrokenModelCleaner.class);
     @Override
     public void cleanup(String project) {
+        logger.info("Start to clean broken model in project {}", project);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -47,5 +51,7 @@ public class BrokenModelCleaner implements MetadataCleaner {
                 dataModelManager.dropModel(dataModelManager.getDataModelDesc(model.getId()));
             }
         }
+        logger.info("Clean broken model in project {} finished", project);
+
     }
 }

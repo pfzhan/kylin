@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -242,7 +243,7 @@ public class StorageCleaner {
                 }
             }
             if (timeMachineEnabled) {
-                UnitOfWork.doInTransactionWithRetry(() -> {
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     ResourceStore threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                     RawResource raw = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
                     long mvcc = raw == null ? -1 : raw.getMvcc();

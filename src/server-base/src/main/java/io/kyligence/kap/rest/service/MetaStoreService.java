@@ -48,6 +48,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
+import io.kyligence.kap.tool.routine.RoutineTool;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -516,5 +519,23 @@ public class MetaStoreService extends BasicService {
 
         }
         throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED, exception);
+    }
+
+    public void cleanupMeta(String project) {
+        RoutineTool routineTool = new RoutineTool();
+        if (project.equals(UnitOfWork.GLOBAL_UNIT)) {
+            routineTool.cleanGlobalMeta();
+            QueryHisStoreUtil.cleanQueryHistory();
+
+        } else {
+            routineTool.cleanMetaByProject(project);
+        }
+    }
+
+    public void cleanupStorage(String[] projectsToClean, boolean cleanupStorage) {
+        RoutineTool routineTool = new RoutineTool();
+        routineTool.setProjects(projectsToClean);
+        routineTool.setStorageCleanup(cleanupStorage);
+        routineTool.cleanStorage();
     }
 }

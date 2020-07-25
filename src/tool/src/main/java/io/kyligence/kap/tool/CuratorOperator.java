@@ -63,13 +63,20 @@ public class CuratorOperator implements AutoCloseable {
 
     public boolean isJobNodeExist() throws Exception {
         String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
-        String nodePath = "/kylin/" + identifier + "/services/all";
-        Stat stat = zkClient.checkExists().forPath(nodePath);
-        if (stat == null) {
+        String allNodePath = "/kylin/" + identifier + "/services/all";
+        String jobNodePath = "/kylin/" + identifier + "/services/job";
+
+        Stat allNodestat = zkClient.checkExists().forPath(allNodePath);
+        Stat jobNodestat = zkClient.checkExists().forPath(jobNodePath);
+
+        if (allNodestat == null && jobNodestat == null) {
             return false;
         }
-        List<String> childNodes = zkClient.getChildren().forPath(nodePath);
-        return childNodes != null && !childNodes.isEmpty();
+        List<String> childAllNodes = zkClient.getChildren().forPath(allNodePath);
+        List<String> childJobNodes = zkClient.getChildren().forPath(jobNodePath);
+
+        return (childAllNodes != null && !childAllNodes.isEmpty())
+                || (childJobNodes != null && !childJobNodes.isEmpty());
     }
 
     @Override

@@ -40,6 +40,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -60,7 +61,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -282,32 +282,6 @@ public class QueryHistoryService extends BasicService {
     }
 
     public void cleanQueryHistories() {
-        String oldThreadName = Thread.currentThread().getName();
-
-        try {
-            Thread.currentThread().setName("QueryHistoryCleanWorker");
-            val config = KylinConfig.getInstanceFromEnv();
-            val projectManager = NProjectManager.getInstance(config);
-            getQueryHistoryDao().deleteQueryHistoriesIfMaxSizeReached();
-            getQueryHistoryDao().deleteQueryHistoriesIfRetainTimeReached();
-            for (ProjectInstance project : projectManager.listAllProjects()) {
-                if (!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
-                    continue;
-                try {
-                    long startTime = System.currentTimeMillis();
-                    logger.info("Start to delete query histories that are beyond max size for project<{}>",
-                            project.getName());
-                    getQueryHistoryDao().deleteQueryHistoriesIfProjectMaxSizeReached(project.getName());
-                    logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
-                            System.currentTimeMillis() - startTime);
-                } catch (Exception e) {
-                    logger.error("clean query histories<" + project.getName() + "> failed", e);
-                }
-            }
-
-        } finally {
-            Thread.currentThread().setName(oldThreadName);
-        }
-
+        QueryHisStoreUtil.cleanQueryHistory();
     }
 }

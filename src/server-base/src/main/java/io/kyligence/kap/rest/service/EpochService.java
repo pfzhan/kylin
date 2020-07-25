@@ -27,8 +27,10 @@ package io.kyligence.kap.rest.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -48,7 +50,7 @@ public class EpochService extends BasicService {
 
     public void updateEpoch(List<String> projects, boolean force, boolean client) throws Exception {
         if (!client)
-          aclEvaluate.checkIsGlobalAdmin();
+            aclEvaluate.checkIsGlobalAdmin();
 
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
 
@@ -65,5 +67,15 @@ public class EpochService extends BasicService {
             else
                 epochMgr.updateEpoch(project);
         }
+    }
+
+    public void updateAllEpochs(boolean force, boolean client) throws Exception {
+        if (!client)
+            aclEvaluate.checkIsGlobalAdmin();
+        NProjectManager projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<String> prjs = projectMgr.listAllProjects().stream().map(ProjectInstance::getName)
+                .collect(Collectors.toList());
+        prjs.add(UnitOfWork.GLOBAL_UNIT);
+        updateEpoch(prjs, force, client);
     }
 }

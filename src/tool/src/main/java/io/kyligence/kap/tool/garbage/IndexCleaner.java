@@ -38,11 +38,15 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class IndexCleaner implements MetadataCleaner {
+    private static final Logger logger = LoggerFactory.getLogger(IndexCleaner.class);
 
     public void cleanup(String project) {
+        logger.info("Start to clean index in project {}", project);
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val projectInstance = NProjectManager.getInstance(config).getProject(project);
@@ -70,6 +74,7 @@ public class IndexCleaner implements MetadataCleaner {
                 cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
             }
         }
+        logger.info("Clean index in project {} finished", project);
     }
 
     private void transferToRecommendation(String modelId, String project, Map<Long, GarbageLayoutType> garbageLayouts) {

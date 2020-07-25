@@ -33,6 +33,11 @@ import java.util.Properties;
 
 import javax.sql.DataSource;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import lombok.val;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
@@ -47,6 +52,8 @@ import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.query.QueryHistoryMapper;
 import io.kyligence.kap.metadata.query.QueryHistoryRealizationMapper;
 import io.kyligence.kap.metadata.query.QueryStatisticsMapper;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,5 +154,38 @@ public class QueryHisStoreUtil {
                     String.format(properties.getProperty(CREATE_QUERY_HISTORY_REALIZATION_INDEX2),
                             qhRealizationTableName, qhRealizationTableName).getBytes())));
         }
+    }
+
+    public static void cleanQueryHistory() {
+        String oldThreadName = Thread.currentThread().getName();
+
+        try {
+            Thread.currentThread().setName("QueryHistoryCleanWorker");
+            val config = KylinConfig.getInstanceFromEnv();
+            val projectManager = NProjectManager.getInstance(config);
+            getQueryHistoryDao().deleteQueryHistoriesIfMaxSizeReached();
+            getQueryHistoryDao().deleteQueryHistoriesIfRetainTimeReached();
+            for (ProjectInstance project : projectManager.listAllProjects()) {
+                if (!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
+                    continue;
+                try {
+                    long startTime = System.currentTimeMillis();
+                    logger.info("Start to delete query histories that are beyond max size for project<{}>",
+                            project.getName());
+                    getQueryHistoryDao().deleteQueryHistoriesIfProjectMaxSizeReached(project.getName());
+                    logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
+                            System.currentTimeMillis() - startTime);
+                } catch (Exception e) {
+                    logger.error("clean query histories<" + project.getName() + "> failed", e);
+                }
+            }
+
+        } finally {
+            Thread.currentThread().setName(oldThreadName);
+        }
+    }
+
+    private static QueryHistoryDAO getQueryHistoryDao() {
+        return RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
     }
 }

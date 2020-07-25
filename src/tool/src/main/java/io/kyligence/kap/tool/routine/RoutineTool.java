@@ -25,19 +25,26 @@ package io.kyligence.kap.tool.routine;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
+import io.kyligence.kap.tool.CuratorOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,7 +56,8 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
     private boolean metadataCleanup;
     private String[] projects = new String[0];
 
-    private static final Option OPTION_CLEANUP_METADATA = new Option("m", "metadata", false, "cleanup metadata garbage after check.");
+    private static final Option OPTION_CLEANUP_METADATA = new Option("m", "metadata", false,
+            "cleanup metadata garbage after check.");
     private static final Option OPTION_CLEANUP = new Option("c", "cleanup", false, "cleanup hdfs garbage after check.");
     private static final Option OPTION_PROJECTS = new Option("p", "projects", true, "specify projects to cleanup.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
@@ -70,26 +78,71 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
             return;
         }
         initOptionValues(optionsHelper);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        EpochManager epochManager = EpochManager.getInstance(kylinConfig);
+        List<ProjectInstance> instances = NProjectManager.getInstance(kylinConfig).listAllProjects();
+        boolean epochChanged = false;
+        System.out.println("Start to cleanup metadata");
+        List<String> projectsToCleanup = Arrays.asList(projects);
+        if (projectsToCleanup.isEmpty()) {
+            projectsToCleanup = instances.stream().map(ProjectInstance::getName).collect(Collectors.toList());
+        }
+        RestClient restClient = null;
+        boolean jobNodeExist = false;
+        if (!kylinConfig.isUTEnv()) {
+            jobNodeExist = new CuratorOperator().isJobNodeExist();
+            if (!jobNodeExist) {
+                epochChanged = true;
+                System.setProperty("kylin.server.leader-race.enabled", "false");
+                for (val prj : projectsToCleanup) {
+                    epochManager.forceUpdateEpoch(prj);
+                }
+                epochManager.forceUpdateEpoch(UnitOfWork.GLOBAL_UNIT);
+            } else {
+                if (epochManager.getEpochOwner(UnitOfWork.GLOBAL_UNIT) == null) {
+                    System.out.println("Illegal state, please wait a minute and try again");
+                    return;
+                }
+                restClient = new RestClient(
+                        epochManager.getHostAndPort(epochManager.getEpochOwner(UnitOfWork.GLOBAL_UNIT)));
+            }
+        }
+        doCleanup(jobNodeExist, restClient, epochChanged, projectsToCleanup);
 
-        if (metadataCleanup) {
+    }
+
+    private void doCleanup(boolean jobNodeExist, RestClient restClient, boolean epochChanged,
+            List<String> projectsToCleanup) {
+        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        try {
+            if (metadataCleanup) {
+                cleanMeta(jobNodeExist, projectsToCleanup, restClient);
+            }
+            cleanStorage(jobNodeExist, projectsToCleanup, restClient);
+        } catch (Exception e) {
+            log.error("Failed to execute routintool", e);
+        } finally {
+            System.clearProperty("kylin.server.leader-race.enabled");
+            if (epochChanged) {
+                for (val prj : projectsToCleanup) {
+                    epochManager.forceUpdateEpoch(prj);
+                }
+                epochManager.forceUpdateEpoch(UnitOfWork.GLOBAL_UNIT);
+            }
+
+        }
+
+    }
+
+    private void cleanMeta(boolean jobNodeExist, List<String> projectsToCleanup, RestClient restClient)
+            throws IOException {
+        if (!jobNodeExist) {
             try {
-                System.out.println("Start to cleanup metadata");
-                List<String> projectsToCleanup = Arrays.asList(projects);
-                if (projectsToCleanup.isEmpty()) {
-                    projectsToCleanup = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
-                            .stream().map(ProjectInstance::getName).collect(Collectors.toList());
-                }
-                UnitOfWork.doInTransactionWithRetry(() -> {
-                    new SourceUsageCleaner().cleanup();
-                    return null;
-                }, UnitOfWork.GLOBAL_UNIT);
+                cleanGlobalMeta();
                 for (String projName : projectsToCleanup) {
-                    try {
-                        GarbageCleaner.unsafeCleanupMetadataManually(projName);
-                    } catch (Exception e) {
-                        log.error("Project[{}] cleanup Metadata failed", projName, e);
-                    }
+                    cleanMetaByProject(projName);
                 }
+                QueryHisStoreUtil.cleanQueryHistory();
                 System.out.println("Metadata cleanup finished");
             } catch (Exception e) {
                 log.error("Metadata cleanup failed", e);
@@ -97,8 +150,48 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
                         + "Metadata cleanup failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                         + StorageCleaner.ANSI_RESET);
             }
+        } else {
+            for (String projName : projectsToCleanup) {
+                restClient.cleanUpMetadata(projName);
+            }
+            restClient.cleanUpMetadata(UnitOfWork.GLOBAL_UNIT);
         }
+    }
 
+    private void cleanStorage(boolean jobNodeExist, List<String> projectsToCleanup, RestClient restClient)
+            throws IOException {
+        if (!jobNodeExist) {
+            cleanStorage();
+        } else {
+            restClient.cleanStorage(storageCleanup, projectsToCleanup.toArray(new String[projectsToCleanup.size()]));
+        }
+    }
+
+    public void cleanGlobalMeta() {
+        log.info("Start to clean up global meta");
+        try {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                new SourceUsageCleaner().cleanup();
+                return null;
+            }, UnitOfWork.GLOBAL_UNIT);
+        } catch (Exception e) {
+            log.error("Failed to clean global meta", e);
+        }
+        log.info("Clean up global meta finished");
+
+    }
+
+    public void cleanMetaByProject(String projectName) {
+        log.info("Start to clean up {} meta", projectName);
+        try {
+            GarbageCleaner.unsafeCleanupMetadataManually(projectName);
+        } catch (Exception e) {
+            log.error("Project[{}] cleanup Metadata failed", projectName, e);
+        }
+        log.info("Clean up {} meta finished", projectName);
+    }
+
+    public void cleanStorage() {
         try {
             StorageCleaner storageCleaner = new StorageCleaner(storageCleanup, Arrays.asList(projects));
             System.out.println("Start to cleanup HDFS");
@@ -127,8 +220,11 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         if (optionsHelper.hasOption(OPTION_PROJECTS)) {
             this.projects = optionsHelper.getOptionValue(OPTION_PROJECTS).split(",");
         }
-        log.info("RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
-        System.out.println("RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+        log.info("RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup
+                + (projects.length > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+        System.out.println(
+                "RoutineTool has option metadata cleanup: " + metadataCleanup + " storage cleanup: " + storageCleanup
+                        + (projects.length > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
     }
 
     public static void main(String[] args) {
@@ -137,4 +233,11 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         System.exit(0);
     }
 
+    public void setProjects(String[] projects) {
+        this.projects = projects;
+    }
+
+    public void setStorageCleanup(boolean storageCleanup) {
+        this.storageCleanup = storageCleanup;
+    }
 }

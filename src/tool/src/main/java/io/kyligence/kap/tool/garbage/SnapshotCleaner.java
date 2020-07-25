@@ -35,6 +35,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -44,6 +46,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SnapshotCleaner implements MetadataCleaner {
+    private static final Logger logger = LoggerFactory.getLogger(SnapshotCleaner.class);
 
     private String project;
     private Set<String> staleDataFlowIds = new HashSet<>();
@@ -83,6 +86,7 @@ public class SnapshotCleaner implements MetadataCleaner {
 
     @Override
     public void cleanup(String project) {
+        logger.info("Start to clean snapshot in project {}", project);
         // remove stale table snapshots from dataflow segments
         NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (String staleDataFlowId : staleDataFlowIds) {
@@ -114,5 +118,6 @@ public class SnapshotCleaner implements MetadataCleaner {
                 tblMgr.updateTableDesc(copy);
             }
         }
+        logger.info("Clean snapshot in project {} finished", project);
     }
 }
