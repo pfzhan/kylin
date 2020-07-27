@@ -12,7 +12,7 @@
           size="small" plain @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
         </p>
         <p class="operator" v-if="isWorkspace">
-          <el-form :inline="true" class="demo-form-inline">
+          <el-form :inline="true" @submit.native.prevent class="demo-form-inline">
             <el-form-item v-show="showHtrace">
               <el-checkbox v-model="isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
             </el-form-item><el-form-item>
