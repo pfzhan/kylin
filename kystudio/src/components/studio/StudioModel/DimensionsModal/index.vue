@@ -136,7 +136,8 @@
                     width="100">
                   </el-table-column>
                   <el-table-column
-                  :render-header="renderCommentHeader">
+                    prop="comment"
+                    :render-header="renderCommentHeader">
                   </el-table-column>
                 </el-table>
               </div>
