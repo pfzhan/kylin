@@ -8,6 +8,7 @@ export const lowUsageStorageTypes = [
   'MONTH'
 ]
 export const autoMergeTypes = [
+  'HOUR',
   'DAY',
   'WEEK',
   'MONTH',
@@ -15,9 +16,11 @@ export const autoMergeTypes = [
   'YEAR'
 ]
 export const volatileTypes = [
+  'HOUR',
   'DAY',
   'WEEK',
   'MONTH',
+  'QUARTER',
   'YEAR'
 ]
 export const retentionTypes = [

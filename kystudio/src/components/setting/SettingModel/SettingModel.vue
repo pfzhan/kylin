@@ -233,8 +233,8 @@ export default class SettingStorage extends Vue {
   isEdit = false
   step = 'stepOne'
   // settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
-  mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
-  units = [{label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'year', value: 'YEAR'}]
+  mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']
+  units = [{label: 'hour', value: 'HOUR'}, {label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'quarter', value: 'QUARTER'}, {label: 'year', value: 'YEAR'}]
   baseCuboidValid = [{label: 'true', value: 0}, {label: 'false', value: 1}]
   modelSettingForm = JSON.parse(initialSettingForm)
   activeRow = null
