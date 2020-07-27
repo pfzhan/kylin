@@ -26,8 +26,6 @@
 
 source ${KYLIN_HOME}/sbin/prepare-hadoop-env.sh
 
-checkAndCopyFIHiveSite
-
 BYPASS=${SPARK_HOME}/jars/replace-jars-bypass
 
 # only replace when has Kerberos

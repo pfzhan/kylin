@@ -54,9 +54,6 @@ function fetchKylinHadoopConf() {
     fi
 
     if [[ -d ${kylin_hadoop_conf_dir} ]]; then
-        if [ -n "$FI_ENV_PLATFORM" ]; then
-            checkAndCopyFIHiveSite
-        fi
         return
     fi
 
