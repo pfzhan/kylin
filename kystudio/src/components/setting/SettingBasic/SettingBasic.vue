@@ -17,7 +17,10 @@
         <div class="setting-value fixed"><i :class="projectIcon"></i>{{$t(project.maintain_model_type)}}</div>
       </div>
       <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN' && this.$store.state.config.platform !== 'iframe'">
-        <span class="setting-label font-medium">{{$t('enableSemiAutomatic')}}</span>
+        <span class="setting-label font-medium">
+          {{$t('enableSemiAutomatic')}}
+          <span class="beta-label">BETA</span> :
+        </span>
         <span class="setting-value fixed">
           <el-switch
             size="small"
@@ -291,7 +294,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleError, handleSuccess, handleSuccessAsync, kapConfirm, objectClone } from '../../../util'
+import { handleError, handleSuccess, handleSuccessAsync, objectClone } from '../../../util'
 import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
@@ -321,6 +324,9 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       getFavoriteRules: 'GET_FAVORITE_RULES',
       getUserAndGroups: 'GET_USER_AND_GROUPS',
       updateFavoriteRules: 'UPDATE_FAVORITE_RULES'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   locales
@@ -458,9 +464,28 @@ export default class SettingBasic extends Vue {
         case 'basic-info': {
           const submitData = _getProjectGeneralInfo(this.form)
           if (!submitData.semi_automatic_mode) {
-            await kapConfirm(this.$t('turnOffTips'), {confirmButtonText: this.$t('confirmClose'), type: '', dangerouslyUseHTMLString: true})
+            await this.callGlobalDetailDialog({
+              msg: this.$t('turnOffTips'),
+              title: this.$t('turnOff') + this.$t('enableSemiAutomatic'),
+              dialogType: 'warning',
+              isBeta: true,
+              showDetailBtn: false,
+              dangerouslyUseHTMLString: true,
+              needConcelReject: true,
+              submitText: this.$t('confirmClose')
+            })
             await this.updateProjectGeneralInfo(submitData); break
           } else {
+            await this.callGlobalDetailDialog({
+              msg: this.$t('turnOnTips'),
+              title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
+              dialogType: 'warning',
+              isBeta: true,
+              showDetailBtn: false,
+              dangerouslyUseHTMLString: true,
+              needConcelReject: true,
+              submitText: this.$t('confirmOpen')
+            })
             await this.updateProjectGeneralInfo(submitData); break
           }
         }
@@ -631,6 +656,19 @@ export default class SettingBasic extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .basic-setting {
+  .beta-label {
+    display: inline-block;
+    height: 18px;
+    line-height: 9px;
+    background: #EFDBFF;
+    color: #531DAB;
+    font-size: 11px;
+    font-family: Lato-Bold, Lato;
+    font-weight: bold;
+    border-radius: 2px;
+    padding: 5px;
+    box-sizing: border-box;
+  }
   .clearfix .setting-value,
   .clearfix .setting-input {
     width: calc(~'100% - 114px');

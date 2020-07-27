@@ -3,19 +3,23 @@
     :class="{'hide-bottom-border-top': hideBottomLine}"
     :width="wid"
     :before-close="() => handleClose('close')"
-    :title="title || $t('kylinLang.common.notice')"
     :close-on-click-modal="false"
     :append-to-body="true"
     :visible.sync="isShow"
     limited-area
     :custom-class="customClass"
     :close-on-press-escape="false">
+    <span slot="title">
+      <span class="ksd-title-label">{{title || $t('kylinLang.common.notice')}}</span>
+      <span v-if="isBeta" class="beta-label">BETA</span>
+    </span>
     <el-alert
       :type="dialogType"
       :show-background="false"
       :closable="false"
       :show-icon="showIcon">
-      <span class="confirm-msg" style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
+      <span class="confirm-msg" v-if="dangerouslyUseHTMLString" style="word-break: break-word;" v-html="msg"></span>
+      <span class="confirm-msg" v-else style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
       <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn" class="show-detail">{{$t('kylinLang.common.seeDetail')}}
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -107,6 +111,8 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
   computed: {
     ...mapState('DetailDialogModal', {
       title: state => state.title,
+      isBeta: state => state.isBeta,
+      dangerouslyUseHTMLString: state => state.dangerouslyUseHTMLString,
       wid: state => state.wid,
       hideBottomLine: state => state.hideBottomLine,
       details: state => state.details,
@@ -269,6 +275,21 @@ export default class DetailDialogModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .global-dialog-box {
+  .beta-label {
+    display: inline-block;
+    height: 20px;
+    line-height: 20px;
+    background: #EFDBFF;
+    color: #531DAB;
+    font-size: 11px;
+    font-family: Lato-Bold, Lato;
+    font-weight: bold;
+    border-radius: 2px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    position: relative;
+    top: -2px;
+  }
   .detail-table {
     .highlight-row {
       background: @warning-color-2;
