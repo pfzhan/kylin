@@ -86,7 +86,7 @@
               <div class="operatorBox" v-if="isEditSql">
                 <div class="btn-group ksd-fright ky-no-br-space">
                   <el-button size="small" plain @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
-                  <el-button size="small" :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+                  <el-button size="small" :loading="validateLoading" @click="validateWhiteSql">{{$t('kylinLang.common.save')}}</el-button>
                 </div>
               </div>
             </div>
@@ -539,8 +539,15 @@ export default class UploadSqlModel extends Vue {
       this.hideModal()
     })
   }
-  submitSqls () {
+  async submitSqls () {
     const unCheckedSQL = this.whiteSqlData.capable_sql_num - this.finalSelectSqls.length
+    if (this.isEditSql) {
+      await kapWarn(this.$t('editSqlTips'), {
+        type: 'warning',
+        closeOnClickModal: false,
+        confirmButtonText: this.$t('confirmEditSqlText')
+      })
+    }
     if (unCheckedSQL) {
       kapConfirm(this.$t('submitConfirm', {unCheckedSQL: unCheckedSQL}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
         this.submit()
@@ -692,8 +699,12 @@ export default class UploadSqlModel extends Vue {
   }
   async editWhiteSql (sqlObj) {
     if (this.isEditSql) {
-      kapWarn(this.$t('editSqlTips'))
-      return
+      await kapWarn(this.$t('editSqlTips'), {
+        type: 'warning',
+        closeOnClickModal: false,
+        confirmButtonText: this.$t('confirmEditSqlText')
+      })
+      await this.validateWhiteSql()
     }
     this.isEditSql = true
     this.inputHeight = 382
@@ -707,6 +718,7 @@ export default class UploadSqlModel extends Vue {
     let formatterSql
     if (this.sqlFormatterObj[sqlObj.id]) {
       formatterSql = this.sqlFormatterObj[sqlObj.id]
+      this.whiteSql = formatterSql
       this.$refs.whiteInputBox && this.$refs.whiteInputBox.$emit('input', formatterSql)
     } else {
       this.showLoading()
@@ -722,8 +734,12 @@ export default class UploadSqlModel extends Vue {
   }
   async activeSql (sqlObj) {
     if (this.isEditSql) {
-      kapWarn(this.$t('editSqlTips'))
-      return
+      await kapWarn(this.$t('editSqlTips'), {
+        type: 'warning',
+        closeOnClickModal: false,
+        confirmButtonText: this.$t('confirmEditSqlText')
+      })
+      await this.validateWhiteSql()
     }
     this.activeSqlObj = sqlObj
     this.isEditSql = false
@@ -740,6 +756,7 @@ export default class UploadSqlModel extends Vue {
     if (this.sqlFormatterObj[sqlObj.id]) {
       formatterSql = this.sqlFormatterObj[sqlObj.id]
       this.$refs.whiteInputBox && this.$refs.whiteInputBox.$emit('input', formatterSql)
+      this.whiteSql = formatterSql
     } else {
       this.showLoading()
       const res = await this.formatSql({sqls: [sqlObj.sql]})
@@ -794,41 +811,49 @@ export default class UploadSqlModel extends Vue {
     this.isReadOnly = true
   }
   validateWhiteSql () {
-    this.validateLoading = true
-    this.validateWhite({sql: this.whiteSql, project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.validateLoading = false
-        if (data.capable) {
-          this.$message({
-            type: 'success',
-            message: this.$t('kylinLang.common.actionSuccess')
-          })
-          this.whiteMessages = []
-          this.inputHeight = 424
-          this.isWhiteErrorMessage = false
-          this.isEditSql = false
-          this.isReadOnly = true
-          for (const key in this.whiteSqlData.data) {
-            if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
-              this.whiteSqlData.data[key].sql = this.whiteSql
-              this.sqlFormatterObj[this.activeSqlObj.id] = this.whiteSql
-              if (!this.whiteSqlData.data[key].capable) {
-                this.whiteSqlData.data[key].capable = true
-                this.whiteSqlData.data[key].sql_advices = []
-                this.whiteSqlData.capable_sql_num++
-              }
-              break
-            }
+    return new Promise((resolve, reject) => {
+      this.validateLoading = true
+      this.validateWhite({sql: this.whiteSql, project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, (data, code) => {
+          if (code !== '000') {
+            return reject()
           }
-        } else {
-          this.whiteMessages = data.sql_advices
-          this.inputHeight = 424 - 140
-          this.isWhiteErrorMessage = true
-        }
+          this.validateLoading = false
+          if (data.capable) {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.actionSuccess')
+            })
+            this.whiteMessages = []
+            this.inputHeight = 424
+            this.isWhiteErrorMessage = false
+            this.isEditSql = false
+            this.isReadOnly = true
+            for (const key in this.whiteSqlData.data) {
+              if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
+                this.whiteSqlData.data[key].sql = this.whiteSql
+                this.sqlFormatterObj[this.activeSqlObj.id] = this.whiteSql
+                if (!this.whiteSqlData.data[key].capable) {
+                  this.whiteSqlData.data[key].capable = true
+                  this.whiteSqlData.data[key].sql_advices = []
+                  this.whiteSqlData.capable_sql_num++
+                }
+                break
+              }
+            }
+            resolve()
+          } else {
+            this.whiteMessages = data.sql_advices
+            this.inputHeight = 424 - 140
+            this.isWhiteErrorMessage = true
+            reject()
+          }
+        })
+      }, (res) => {
+        this.validateLoading = false
+        handleError(res)
+        reject()
       })
-    }, (res) => {
-      this.validateLoading = false
-      handleError(res)
     })
   }
   submitFiles () {
