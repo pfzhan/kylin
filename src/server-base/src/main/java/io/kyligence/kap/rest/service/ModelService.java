@@ -1827,9 +1827,7 @@ public class ModelService extends BasicService {
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
         res.addAll(refreshSegmentById(modelId, project,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
-                        .toArray(new String[0])));
-        res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(), getSourceUsageManager()
-                .licenseCheckWrap(project, () -> getJobManager(project).addFullIndexJob(modelId, getUsername()))));
+                        .toArray(new String[0]), true));
         return res;
     }
 
@@ -2393,6 +2391,12 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public List<JobInfoResponse.JobInfo> refreshSegmentById(String modelId, String project, String[] ids) {
+        return refreshSegmentById(modelId, project, ids, false);
+    }
+
+    @Transaction(project = 1)
+    public List<JobInfoResponse.JobInfo> refreshSegmentById(String modelId, String project, String[] ids,
+                                                            boolean refreshAllLayouts) {
         aclEvaluate.checkProjectOperationPermission(project);
         checkSegmentsExist(modelId, project, ids);
         checkSegmentsStatus(modelId, project, ids, SegmentStatusEnumToDisplay.LOADING,
@@ -2415,7 +2419,7 @@ public class ModelService extends BasicService {
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
 
             String jobId = getSourceUsageManager().licenseCheckWrap(project,
-                    () -> jobManager.refreshSegmentJob(newSeg, modelId, getUsername()));
+                    () -> jobManager.refreshSegmentJob(newSeg, modelId, getUsername(), refreshAllLayouts));
 
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), jobId));
         }

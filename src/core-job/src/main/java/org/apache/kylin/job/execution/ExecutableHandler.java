@@ -25,6 +25,8 @@
 package org.apache.kylin.job.execution;
 
 
+import java.util.HashMap;
+
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
@@ -78,7 +80,7 @@ public abstract class ExecutableHandler implements IKeepNames {
         if (segmentId != null) {
             segment.setId(segmentId);
         }
-        manager.addJob(segment, modelId, owner, jobTypeEnum);
+        manager.addJob(segment, modelId, owner, jobTypeEnum, new HashMap<>());
     }
 
     protected DefaultChainedExecutableOnModel getExecutable() {

@@ -206,8 +206,11 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_INSERT_ACCELERATE_QUERY_BLACKLIST("KE-10027005"), //
     EMPTY_REC_RULE_VALUE("KE-10027003"), //
 
-    // 00031XXX query result
-    FAILED_OBTAIN_QUERY_RESULT("KE-10031001"); //
+    // 10031XXX query result
+    FAILED_OBTAIN_QUERY_RESULT("KE-10031001"),
+
+    // 10032xxx add job result
+    FAILED_CREATE_JOB("KE-10032001"); //
 
     private final ErrorCode errorCode;
 

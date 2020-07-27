@@ -24,7 +24,7 @@
 package org.apache.kylin.job.handler;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_ADD_JOB_CHECK;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.job.execution.AbstractExecutable.DEPENDENT_FILES;
 
 import java.util.HashMap;
@@ -125,7 +125,7 @@ public abstract class AbstractJobHandler {
 
         JobSubmissionException jobSubmissionException = new JobSubmissionException(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         for (String failedSeg : failedSegs) {
-            jobSubmissionException.addJobFailInfo(failedSeg, new KylinException(FAILED_ADD_JOB_CHECK, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
+            jobSubmissionException.addJobFailInfo(failedSeg, new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
         }
         throw jobSubmissionException;
     }

@@ -29,14 +29,14 @@ import org.apache.kylin.common.exception.KylinException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_ADD_JOB_CHECK;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
 public class JobSubmissionException extends KylinException {
 
     private Map<String, KylinException> segmentFailInfos = new HashMap<>();
 
     public JobSubmissionException(String msg) {
-        super(FAILED_ADD_JOB_CHECK, msg);
+        super(FAILED_CREATE_JOB, msg);
     }
 
     public void addJobFailInfo(String segId, KylinException error) {

@@ -1502,6 +1502,10 @@ public class Message {
         return "Add Job failed due to no layout is to be built.";
     }
 
+    public String getADD_JOB_CHECK_INDEX_FAIL() {
+        return "Failed to add Job due to layout is empty in this segment.";
+    }
+
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
         return String.format("The table metadata can’t be reloaded now. Column %s already exists in table %s.", column, table);
     }

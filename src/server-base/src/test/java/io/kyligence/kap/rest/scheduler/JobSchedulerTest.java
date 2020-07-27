@@ -221,7 +221,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(seg);
         dfManager.updateDataflow(update);
         val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN");
+        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN", true);
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
         Assert.assertEquals(19, executables.get(0).getParam(NBatchConstants.P_LAYOUT_IDS).split(",").length);

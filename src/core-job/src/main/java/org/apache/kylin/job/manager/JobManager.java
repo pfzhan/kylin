@@ -25,9 +25,11 @@
 package org.apache.kylin.job.manager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_ADD_JOB_ABANDON;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,6 +49,7 @@ import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -114,28 +117,40 @@ public class JobManager {
     }
 
     public String mergeSegmentJob(NDataSegment newSegment, String modelId, String userName) {
-        return addJob(newSegment, modelId, userName, JobTypeEnum.INDEX_MERGE);
+        return addJob(newSegment, modelId, userName, JobTypeEnum.INDEX_MERGE, new HashMap<>());
     }
 
     public String refreshSegmentJob(NDataSegment newSegment, String modelId, String userName) {
-        return addJob(newSegment, modelId, userName, JobTypeEnum.INDEX_REFRESH);
+        return refreshSegmentJob(newSegment, modelId, userName, false);
     }
 
-    public String addJob(NDataSegment newSegment, String modelId, String userName, JobTypeEnum jobTypeEnum) {
+    public String refreshSegmentJob(NDataSegment newSegment, String modelId, String userName, boolean refreshAllLayouts) {
+        HashMap<String, Object> condition = Maps.newHashMap();
+        condition.put(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS, refreshAllLayouts);
+        return addJob(newSegment, modelId, userName, JobTypeEnum.INDEX_REFRESH, condition);
+    }
+
+    public String addJob(NDataSegment newSegment, String modelId, String userName, JobTypeEnum jobTypeEnum,
+                         Map<String, Object> condition) {
         HashSet<String> targetSegments = Sets.newHashSet();
         if (newSegment != null) {
             targetSegments.add(newSegment.getId());
         }
-        return addJob(modelId, userName, targetSegments, null, jobTypeEnum);
+        return addJob(modelId, userName, targetSegments, null, jobTypeEnum, condition);
     }
 
     public String addJob(String modelId, String userName, Set<String> targetSegments, Set<Long> targetLayouts,
-                         JobTypeEnum jobTypeEnum) {
+                         JobTypeEnum jobTypeEnum){
+        return addJob(modelId, userName, targetSegments, targetLayouts, jobTypeEnum, new HashMap<>());
+    }
+
+    public String addJob(String modelId, String userName, Set<String> targetSegments, Set<Long> targetLayouts,
+                         JobTypeEnum jobTypeEnum, Map<String, Object> condition) {
         if (!config.isJobNode() && !config.isUTEnv()) {
-            throw new KylinException(FAILED_ADD_JOB_ABANDON, MsgPicker.getMsg().getADD_JOB_ABANDON());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_ABANDON());
         }
         checkNotNull(project);
-        val jobParam = new JobParam(targetSegments, targetLayouts, userName, modelId, project, jobTypeEnum);
+        val jobParam = new JobParam(targetSegments, targetLayouts, userName, modelId, project, jobTypeEnum, condition);
         ExecutableUtil.computLayouts(jobParam);
         AbstractJobHandler handler;
         switch (jobTypeEnum) {

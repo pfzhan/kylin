@@ -25,11 +25,13 @@
 package org.apache.kylin.job.model;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.kylin.job.execution.JobTypeEnum;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -59,6 +61,10 @@ public class JobParam {
 
     private JobTypeEnum jobTypeEnum;
 
+    /**
+     * Some additional params in different jobTypes
+     */
+    private Map<String, Object> condition = Maps.newHashMap();
 
     /**
      * compute result
@@ -67,15 +73,21 @@ public class JobParam {
 
     private HashSet<LayoutEntity> deleteLayouts;
 
+    public static class ConditionConstant {
+        public static String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";
+    }
 
     public JobParam(Set<String> segments, Set<Long> targetLayouts, String owner, String model, String project,
-                    JobTypeEnum jobTypeEnum) {
+                    JobTypeEnum jobTypeEnum, Map<String, Object> condition) {
         this.targetSegments = segments;
         this.owner = owner;
         this.model = model;
         this.project = project;
         this.jobTypeEnum = jobTypeEnum;
         this.jobId = UUID.randomUUID().toString();
+        if (condition != null) {
+            this.condition = condition;
+        }
         if (targetLayouts != null) {
             this.targetLayouts = targetLayouts;
         }

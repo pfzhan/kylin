@@ -43,7 +43,7 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_CREATE_JOB_EXCEPTION;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
 import java.util.HashSet;
 import java.util.List;
@@ -107,10 +107,11 @@ public class ExecutableUtil {
                 .filter(segment -> segment.getStatus().equals(SegmentStatusEnum.READY) || segment.getStatus().equals(SegmentStatusEnum.WARNING))
                 .collect(Collectors.toList());
         if (segments.size() != 1) {
-            throw new KylinException(FAILED_CREATE_JOB_EXCEPTION, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
         }
         HashSet<LayoutEntity> layouts = Sets.newHashSet();
-        if (segments.get(0).getLayoutsMap().isEmpty()) {
+        val refreshAll = (Boolean) jobParam.getCondition().get(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS);
+        if(refreshAll) {
             IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
                     .getIndexPlan(jobParam.getModel());
             indexPlan.getAllLayouts().forEach(layout -> {
@@ -118,6 +119,8 @@ public class ExecutableUtil {
                     layouts.add(layout);
                 }
             });
+        } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
         } else {
             segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
         }
@@ -145,7 +148,7 @@ public class ExecutableUtil {
         }
         if (CollectionUtils.isEmpty(jobParam.getProcessLayouts()) && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
             log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB_EXCEPTION, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
         }
     }
 
@@ -161,7 +164,7 @@ public class ExecutableUtil {
         if (readySegs.isEmpty()) {
             log.warn("JobParam {} is no longer valid because no ready segment exists in target index_plan {}", jobParam,
                     jobParam.getModel());
-            throw new KylinException(FAILED_CREATE_JOB_EXCEPTION, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
         }
         val mixLayouts = SegmentUtils.mixLayouts(readySegs);
         var allLayouts = indexPlan.getAllLayouts();
@@ -197,7 +200,7 @@ public class ExecutableUtil {
                 .collect(Collectors.toList());
         if (oldSegs.size() == 0) {
             log.warn("JobParam {} is no longer valid because no old segment ready", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB_EXCEPTION, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
         }
 
         for (Map.Entry<Long, NDataLayout> cuboid : oldSegs.get(0).getLayoutsMap()
@@ -206,7 +209,7 @@ public class ExecutableUtil {
         }
         if (layouts.isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
             log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB_EXCEPTION, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
+            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
         }
         jobParam.setProcessLayouts(layouts);
     }

@@ -24,7 +24,7 @@
 
 package org.apache.kylin.job.handler;
 
-import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_ADD_JOB_INDEX_ALIGNED;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
 
 import java.util.HashSet;
@@ -81,7 +81,7 @@ public class MergeSegmentHandler extends AbstractJobHandler {
             if (seg.getSegRange().overlaps(newSegment.getSegRange()) &&
                     !seg.getLayoutsMap().keySet().equals(layoutIds)) {
                 log.warn("Segment's layout is not matched,segID:{}, {} -> {}", seg.getId(), layoutIds, seg.getLayoutsMap().keySet());
-                throw new KylinException(FAILED_ADD_JOB_INDEX_ALIGNED, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_FAIL());
+                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_FAIL());
             }
         }
     }

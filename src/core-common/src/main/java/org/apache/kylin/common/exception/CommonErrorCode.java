@@ -64,14 +64,7 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     FAILED_PARSE_JSON("KE-00028001"), //
 
     // 00028XXX source usage
-    LICENSE_OVER_CAPACITY("KE-00028001"),
-
-    // 00029XXX job
-    FAILED_ADD_JOB_CHECK("KE-00029001"),
-    FAILED_CREATE_JOB_EXCEPTION("KE-00029002"),
-    FAILED_ADD_VALID_JOB("KE-00029003"),
-    FAILED_ADD_JOB_ABANDON("KE-00029004"),
-    FAILED_ADD_JOB_INDEX_ALIGNED("KE-00029005"),;
+    LICENSE_OVER_CAPACITY("KE-00028001");
 
     private final ErrorCode errorCode;
 

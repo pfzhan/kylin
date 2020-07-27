@@ -1388,6 +1388,10 @@ public class CnMessage extends Message {
         return "添加任务失败，没有需要构建的layout。";
     }
 
+    public String getADD_JOB_CHECK_INDEX_FAIL() {
+        return "添加任务失败，该segment的索引数是空.";
+    }
+
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
         return String.format("当前暂不可重载表。表 %s 中已经存在列 %s。", table, column);
     }
