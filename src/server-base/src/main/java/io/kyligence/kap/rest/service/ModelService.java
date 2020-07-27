@@ -2004,6 +2004,7 @@ public class ModelService extends BasicService {
             val request = convertToRequest(model);
             request.setProject(project);
             request.setPartitionDesc(partitionDesc);
+            request.setSaveOnly(true);
             updateDataModelSemantic(project, request);
         }
     }

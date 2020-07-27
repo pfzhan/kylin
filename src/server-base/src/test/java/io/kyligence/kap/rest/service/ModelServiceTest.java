@@ -78,8 +78,6 @@ import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -214,6 +212,7 @@ import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import javax.annotation.Nullable;
 import lombok.val;
 import lombok.var;
 
@@ -4306,6 +4305,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         modelService.checkModelDimensions(modelRequest);
         modelService.checkModelMeasures(modelRequest);
+    }
+
+    @Test
+    public void testUpdatePartitionColumn() throws IOException {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelMgr.updateDataModel(modelId, model -> {
+            model.setManagementType(ManagementType.MODEL_BASED);
+        });
+        modelService.updatePartitionColumn(project, modelId, null);
+        val runningExecutables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getRunningExecutables(project, modelId);
+        Assert.assertEquals(0, runningExecutables.size());
     }
 
 }
