@@ -33,9 +33,11 @@ fi
 
 function help {
     echo "usage: metastore.sh backup METADATA_BACKUP_PATH(the default path is KYLIN_HOME/meta_backups/)"
-    echo "       metastore.sh restore METADATA_RESTORE_PATH"
+    echo "       metastore.sh overwrite METADATA_OVERWRITE_PATH"
+    echo "       metastore.sh update METADATA_UPDATE_PATH"
     echo "       metastore.sh backup-project PROJECT_NAME METADATA_BACKUP_PATH(the default path is KYLIN_HOME/meta_backups/)"
-    echo "       metastore.sh restore-project PROJECT_NAME METADATA_RESTORE_PATH"
+    echo "       metastore.sh overwrite-project PROJECT_NAME METADATA_OVERWRITE_PATH"
+    echo "       metastore.sh update-project PROJECT_NAME METADATA_UPDATE_PATH"
     exit 1
 }
 
@@ -62,9 +64,9 @@ function printRestoreResult() {
     error=$1
 
     if [[ $error == 0 ]]; then
-        echo -e "${YELLOW}Restore succeed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+        echo -e "${YELLOW}Overwrite/Update succeed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
     else
-        echo -e "${YELLOW}Restore failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+        echo -e "${YELLOW}Overwrite/Update failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
     fi
 }
 
@@ -86,11 +88,20 @@ then
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool ${BACKUP_OPTS}
     printBackupResult $?
 
-elif [ "$1" == "restore" ]
+elif [ "$1" == "overwrite" ]
 then
     if [ $# -eq 2 ]; then
         path=`cd $2 && pwd -P`
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path}
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -overwrite -dir ${path}
+        printRestoreResult $?
+    else
+       help
+    fi
+elif [ "$1" == "update" ]
+then
+    if [ $# -eq 2 ]; then
+        path=`cd $2 && pwd -P`
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -update -dir ${path}
         printRestoreResult $?
     else
        help
@@ -110,11 +121,20 @@ then
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool ${BACKUP_OPTS}
     printBackupResult $?
 
-elif [ "$1" == "restore-project" ]
+elif [ "$1" == "overwrite-project" ]
 then
     if [ $# -eq 3 ]; then
         path=`cd $3 && pwd -P`
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -overwrite -dir ${path} -project $2
+        printRestoreResult $?
+    else
+        help
+    fi
+elif [ "$1" == "update-project" ]
+then
+    if [ $# -eq 3 ]; then
+        path=`cd $3 && pwd -P`
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -update -dir ${path} -project $2
         printRestoreResult $?
     else
         help

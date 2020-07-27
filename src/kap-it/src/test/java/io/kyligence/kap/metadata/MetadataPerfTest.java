@@ -153,7 +153,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         log.info("start restore for {}", getTestConfig().getMetadataUrl());
         log.info("restore dir is {}", file.getAbsolutePath());
         val tool = new MetadataTool(getTestConfig());
-        tool.execute(new String[] { "-restore", "-dir", file.getAbsolutePath() });
+        tool.execute(new String[] { "-overwrite", "-dir", file.getAbsolutePath() });
         log.info("restore finished for {}", getTestConfig().getMetadataUrl());
         long end = System.currentTimeMillis();
         log.info("usage time: {} seconds", (end - start) / 1000.0);

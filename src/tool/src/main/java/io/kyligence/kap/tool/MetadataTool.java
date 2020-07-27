@@ -43,7 +43,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -73,6 +72,7 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.ImageDesc;
+import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.common.util.MetadataChecker;
@@ -97,8 +97,12 @@ public class MetadataTool extends ExecutableApplication {
     private static final Option OPERATE_COMPRESS = OptionBuilder.getInstance()
             .withDescription("Backup compressed metadata to HDFS path").isRequired(false).create("compress");
 
-    private static final Option OPERATE_RESTORE = OptionBuilder.getInstance()
-            .withDescription("Restore metadata from local path or HDFS path").isRequired(false).create("restore");
+    private static final Option OPERATE_OVERWRITE = OptionBuilder.getInstance()
+            .withDescription("Restore overwrite metadata from local path or HDFS path").isRequired(false)
+            .create("overwrite");
+
+    private static final Option OPERATE_UPDATE = OptionBuilder.getInstance()
+            .withDescription("Restore update metadata from local path or HDFS path").isRequired(false).create("update");
 
     private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("DIRECTORY_PATH")
             .withDescription("Specify the target directory for backup and restore").isRequired(false).create("dir");
@@ -138,7 +142,8 @@ public class MetadataTool extends ExecutableApplication {
         final OptionGroup optionGroup = new OptionGroup();
         optionGroup.setRequired(true);
         optionGroup.addOption(OPERATE_BACKUP);
-        optionGroup.addOption(OPERATE_RESTORE);
+        optionGroup.addOption(OPERATE_OVERWRITE);
+        optionGroup.addOption(OPERATE_UPDATE);
 
         options.addOptionGroup(optionGroup);
         options.addOption(OPTION_DIR);
@@ -164,7 +169,7 @@ public class MetadataTool extends ExecutableApplication {
 
     public static void restore(KylinConfig kylinConfig, String folder) throws IOException {
         val tool = new MetadataTool(kylinConfig);
-        tool.execute(new String[] { "-restore", "-dir", folder });
+        tool.execute(new String[] { "-overwrite", "-dir", folder });
     }
 
     public static void main(String[] args) throws Exception {
@@ -237,8 +242,10 @@ public class MetadataTool extends ExecutableApplication {
                 }
             }
 
-        } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
-            restore(optionsHelper);
+        } else if (optionsHelper.hasOption(OPERATE_OVERWRITE)) {
+            restore(optionsHelper, true);
+        } else if (optionsHelper.hasOption(OPERATE_UPDATE)) {
+            restore(optionsHelper, false);
         } else {
             throw new KylinException(INVALID_SHELL_PARAMETER, "The input parameters are wrong");
         }
@@ -326,7 +333,7 @@ public class MetadataTool extends ExecutableApplication {
         backupMetadataStore.dump(backupResourceStore);
         logger.info("backup successfully at {}", backupPath);
     }
-    
+
     private long getOffset(AuditLogStore auditLogStore) {
         long offset = 0;
         if (kylinConfig.isUTEnv())
@@ -335,7 +342,7 @@ public class MetadataTool extends ExecutableApplication {
             offset = auditLogStore.getStartId() == 0 ? resourceStore.getOffset() : auditLogStore.getStartId();
         return offset;
     }
-    
+
     private void backupProjects(NavigableSet<String> projectFolders, ResourceStore backupResourceStore,
             boolean excludeTableExd) throws InterruptedException {
         for (String projectPath : projectFolders) {
@@ -390,7 +397,7 @@ public class MetadataTool extends ExecutableApplication {
         }
     }
 
-    private void restore(OptionsHelper optionsHelper) throws IOException {
+    private void restore(OptionsHelper optionsHelper, boolean delete) throws IOException {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val restorePath = optionsHelper.getOptionValue(OPTION_DIR);
 
@@ -407,12 +414,13 @@ public class MetadataTool extends ExecutableApplication {
         if (!verifyResult.isQualified()) {
             throw new RuntimeException(verifyResult.getResultMessage() + "\n the metadata dir is not qualified");
         }
-        restore(resourceStore, restoreResourceStore, project);
+        restore(resourceStore, restoreResourceStore, project, delete);
         backup(kylinConfig);
 
     }
 
-    public static void restore(ResourceStore currentResourceStore, ResourceStore restoreResourceStore, String project) {
+    public static void restore(ResourceStore currentResourceStore, ResourceStore restoreResourceStore, String project,
+            boolean delete) {
         if (StringUtils.isBlank(project)) {
             logger.info("start to restore all projects");
             var srcProjectFolders = restoreResourceStore.listResources("/");
@@ -429,9 +437,8 @@ public class MetadataTool extends ExecutableApplication {
                 val projectName = Paths.get(projectPath).getName(0).toString();
                 val destResources = currentResourceStore.listResourcesRecursively(projectPath);
                 val srcResources = restoreResourceStore.listResourcesRecursively(projectPath);
-                UnitOfWork.doInTransactionWithRetry(
-                        () -> doRestore(currentResourceStore, restoreResourceStore, destResources, srcResources),
-                        projectName, 1);
+                UnitOfWork.doInTransactionWithRetry(() -> doRestore(currentResourceStore, restoreResourceStore,
+                        destResources, srcResources, delete), projectName, 1);
             }
 
         } else {
@@ -452,22 +459,22 @@ public class MetadataTool extends ExecutableApplication {
             Set<String> finalGlobalDestResources = globalDestResources;
 
             UnitOfWork.doInTransactionWithRetry(() -> doRestore(currentResourceStore, restoreResourceStore,
-                    finalGlobalDestResources, globalSrcResources), UnitOfWork.GLOBAL_UNIT, 1);
+                    finalGlobalDestResources, globalSrcResources, delete), UnitOfWork.GLOBAL_UNIT, 1);
 
             val projectPath = "/" + project;
             val destResources = currentResourceStore.listResourcesRecursively(projectPath);
             val srcResources = restoreResourceStore.listResourcesRecursively(projectPath);
 
             UnitOfWork.doInTransactionWithRetry(
-                    () -> doRestore(currentResourceStore, restoreResourceStore, destResources, srcResources), project,
-                    1);
+                    () -> doRestore(currentResourceStore, restoreResourceStore, destResources, srcResources, delete),
+                    project, 1);
         }
 
         logger.info("restore successfully");
     }
 
     private static int doRestore(ResourceStore currentResourceStore, ResourceStore restoreResourceStore,
-            Set<String> destResources, Set<String> srcResources) throws IOException {
+            Set<String> destResources, Set<String> srcResources, boolean delete) throws IOException {
         val threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
 
         //check destResources and srcResources are null,because  Sets.difference(srcResources, destResources) will report NullPointerException
@@ -486,10 +493,11 @@ public class MetadataTool extends ExecutableApplication {
             val metadataRaw = restoreResourceStore.getResource(res);
             threadViewRS.checkAndPutResource(res, metadataRaw.getByteSource(), raw.getMvcc());
         }
-
-        val deleteRes = Sets.difference(destResources, srcResources);
-        for (val res : deleteRes) {
-            threadViewRS.deleteResource(res);
+        if (delete) {
+            val deleteRes = Sets.difference(destResources, srcResources);
+            for (val res : deleteRes) {
+                threadViewRS.deleteResource(res);
+            }
         }
 
         return 0;
