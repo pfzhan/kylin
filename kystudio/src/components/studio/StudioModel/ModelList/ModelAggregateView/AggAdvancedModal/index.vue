@@ -310,7 +310,6 @@ export default class AggregateModal extends Vue {
       }
       this.allColumns.push(obj)
     })
-    console.log(this.allColumns)
   }
 
   pagerChange (pager) {

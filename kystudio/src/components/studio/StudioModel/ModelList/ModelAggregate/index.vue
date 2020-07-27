@@ -752,7 +752,6 @@ export default class ModelAggregate extends Vue {
     await this.freshIndexGraph()
     await this.loadAggIndices()
     this.isLoading = false
-    console.log(this.model, 333)
   }
   async refreshIndexGraphAfterSubmitSetting () {
     this.isLoading = true

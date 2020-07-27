@@ -76,6 +76,7 @@ export default {
     ccDimensionTip: 'Neither statistics nor sample data is available for the selected dimension (column).',
     editIncludeDimensions: 'Edit Included Dimensions',
     editIncludeDimensionTip: 'To enhance the query performance, please move the frequently used dimensions to the top of the list, in descending order of cardinality.',
+    editMeasuresTip: 'Please select columns for detail query. To enhance the query performance, please move the frequently used dimensions to the top of the list, and set a column with relatively large cardinality as ShardBy.',
     searchIncludeDimension: 'Search dimension or column name',
     moveTop: 'Move to top',
     moveUp: 'Move up',
@@ -95,7 +96,8 @@ export default {
     min_length_value: 'Min Length Value',
     min_value: 'Min Value',
     null_count: 'Null Count',
-    cardinalityMultiple: 'The Product of Cardinality：'
+    cardinalityMultiple: 'The Product of Cardinality：',
+    noIncludesTip: 'No included dimensions.'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -174,6 +176,7 @@ export default {
     noSelectMeasureTip: '选中度量的属性会显示在这里。',
     editIncludeDimensions: '编辑包含维度',
     editIncludeDimensionTip: '请将常用的维度按基数从大到小排列在前面，以提高查询效率。',
+    editMeasuresTip: '请选择添加哪些列用于回答明细查询。为了提高查询效率，请将查询中常用的列排在前面，并将基数较大的设置为 ShardBy 列。',
     searchIncludeDimension: '搜索维度名称或列名',
     moveTop: '置顶',
     moveUp: '上移',
@@ -193,6 +196,7 @@ export default {
     min_length_value: '最小长度值',
     min_value: '最小值',
     null_count: '空值计数',
-    cardinalityMultiple: '基数乘积：'
+    cardinalityMultiple: '基数乘积：',
+    noIncludesTip: '当前没有添加包含维度。'
   }
 }

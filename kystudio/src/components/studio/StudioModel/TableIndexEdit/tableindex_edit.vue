@@ -256,7 +256,6 @@
       // ccColumns.forEach((col) => {
       //   result.push(col.tableAlias + '.' + col.columnName)
       // })
-      console.log(result, this.modelInstance.selected_columns, 222)
       result.forEach((ctx, index) => {
         let obj = {fullName: ctx.fullName, cardinality: ctx.cardinality, isSorted: false, isUsed: false, isShared: false, colorful: false}
         if (this.tableIndexMeta.sort_by_columns.indexOf(ctx.fullName) >= 0) {

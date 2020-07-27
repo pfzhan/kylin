@@ -103,7 +103,13 @@
                           </el-option>
                         </el-select> -->
                         <div class="include-agg">
-                          <el-tag :class="{'is-active': currentSelectedTag.ctx === item && currentSelectedTag.aggregateIdx === aggregateIdx, 'is-used': showSelectedIncludes(aggregate, item)}" size="small" v-for="(item, index) in aggregate.includes" :key="index" @click.native="handleClickTag(item, aggregate.activeTab, aggregateIdx)">{{item}}</el-tag>
+                          <template v-if="aggregate.includes.length">
+                            <el-tag :class="{'is-active': currentSelectedTag.ctx === item && currentSelectedTag.aggregateIdx === aggregateIdx, 'is-used': showSelectedIncludes(aggregate, item)}" size="small" v-for="(item, index) in aggregate.includes" :key="index" closable @click.native="handleClickTag(item, aggregate.activeTab, aggregateIdx)" @close.stop="removeIncludesTag(item, aggregateIdx)">{{item}}</el-tag>
+                          </template>
+                          <div class="no-includes" v-else>
+                            <span>{{$t('noIncludesTip')}}</span>
+                            <span class="add-includes-btn" @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-icon-ksd-table_add ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
+                          </div>
                         </div>
                       </div>
                       <!-- Mandatory聚合组 -->
@@ -410,7 +416,9 @@
     >
       <div class="action-layout">
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
-        <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+        <div class="filter-dimension">
+          <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+        </div>
       </div>
       <div class="ky-simple-table">
         <el-row class="table-header table-row ksd-mt-10">
@@ -432,7 +440,10 @@
             <el-col :span="3" :title="item.comment">{{item.comment}}</el-col>
             <el-col :span="2" class="order-actions">
               <template v-if="item.isCheck">
-                <el-tooltip :content="$t('moveTop')" effect="dark" placement="top">
+                <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0}]" @click="moveTo('top', item)"></span>
+                <span :class="['icon', 'el-icon-ksd-move_up', {'is-disabled': index === 0}]" @click="moveTo('up', item)"></span>
+                <span :class="['icon', 'el-icon-ksd-move_down', {'is-disabled': !includeDimensions[index + 1] || !includeDimensions[index + 1].isCheck}]" @click="moveTo('down', item)"></span>
+                <!-- <el-tooltip :content="$t('moveTop')" effect="dark" placement="top">
                   <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0}]" @click="moveTo('top', item)"></span>
                 </el-tooltip>
                 <el-tooltip :content="$t('moveUp')" effect="dark" placement="top">
@@ -440,7 +451,7 @@
                 </el-tooltip>
                 <el-tooltip :content="$t('moveDown')" effect="dark" placement="top">
                   <span :class="['icon', 'el-icon-ksd-move_down', {'is-disabled': !includeDimensions[index + 1] || !includeDimensions[index + 1].isCheck}]" @click="moveTo('down', item)"></span>
-                </el-tooltip>
+                </el-tooltip> -->
               </template>
             </el-col>
           </el-row>
@@ -464,8 +475,10 @@
       v-if="editMeasure"
     >
       <div class="action-measure-layout">
-        <!-- <p class="alert">{{$t('editIncludeDimensionTip')}}</p> -->
-        <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+        <p class="alert">{{$t('editMeasuresTip')}}</p>
+        <div class="filter-measure">
+          <el-input v-model="searchMeasure" v-global-key-event.enter.debounce="filterMeasure" @clear="clearMeasureFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+        </div>
       </div>
       <div class="ky-simple-table measure-table">
         <el-row class="table-header table-row ksd-mt-10">
@@ -957,6 +970,13 @@ export default class AggregateModal extends Vue {
     const rootKey = key.split('.')[0]
     this.setModalForm({[rootKey]: set(this.form, key, value)[rootKey]})
     this.isNeedCheck = true
+  }
+  // 移除 includes tags
+  removeIncludesTag (value, aggregateIdx) {
+    let includes = this.form.aggregateArray[aggregateIdx].includes
+    const index = includes.findIndex(it => it === value)
+    index >= 0 && includes.splice(index, 1)
+    this.handleRemoveIncludeRules(value, aggregateIdx)
   }
   handleRemoveIncludeRules (removedValue, aggregateIdx, id) {
     const { aggregateArray = [] } = this.form
@@ -1783,6 +1803,7 @@ export default class AggregateModal extends Vue {
       border: 1px solid #cccccc;
       padding: 5px 10px;
       box-sizing: border-box;
+      position: relative;
       .el-tag {
         margin-right: 5px;
         margin-top: 5px;
@@ -1800,6 +1821,18 @@ export default class AggregateModal extends Vue {
       .is-active {
         background-color: #0988DE;
         color: @fff;
+      }
+    }
+    .no-includes {
+      color: @text-placeholder-color;
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      .add-includes-btn {
+        color: #0988DE;
+        cursor: pointer;
       }
     }
     .header {
@@ -2005,17 +2038,20 @@ export default class AggregateModal extends Vue {
   }
 }
 .edit-includes-dimensions {
+  .el-dialog__body {
+    max-height: 500px;
+    overflow-y: auto;
+  }
   .flip-list-move {
     transition: transform .5s;
   }
   .action-layout {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    .filter-dimension {
+      text-align: right;
+    }
   }
   .alert {
     margin-bottom: 10px;
-    display: inline-block;
   }
   .ky-simple-table {
     .order-actions {
@@ -2053,7 +2089,10 @@ export default class AggregateModal extends Vue {
 }
 .edit-measures {
   .action-measure-layout {
-    text-align: right;
+    .filter-measure {
+      margin-top: 5px;
+      text-align: right;
+    }
   }
 }
 .measure-table {
