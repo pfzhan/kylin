@@ -121,7 +121,6 @@
                 type="datetime"
                 class="ksd-mr-5"
                 v-model="modelBuildMeta.dataRangeVal[0]"
-                :is-auto-complete="true"
                 :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                 @change="resetError"
                 value-format="timestamp"
@@ -131,7 +130,6 @@
               <el-date-picker
                 type="datetime"
                 v-model="modelBuildMeta.dataRangeVal[1]"
-                :is-auto-complete="true"
                 :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                 value-format="timestamp"
                 @change="resetError"
