@@ -2,7 +2,7 @@
   <el-dialog append-to-body limited-area :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="720px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <p class="join-notices"><i :class="[!isErrorValue.length ? 'el-icon-ksd-alert' : 'el-icon-ksd-error_01 is-error']"></i>{{$t(!isErrorValue.length ? 'joinNotice' : 'joinErrorNotice')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('details')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></p>
     <div class="detail-content" v-if="showDetails">
-      <p :class="[item.isError && 'is-error']" v-for="item in getDetails" :key="item.value">{{item.text}}</p>
+      <p :class="[item.isError && 'is-error']" v-for="item in getDetails" :key="item.value"><i class="point">•</i>{{item.text}}</p>
     </div>
     <p class="title-label ksd-mt-15">{{$t('tableJoin')}}</p>
     <el-row :gutter="10">
@@ -38,7 +38,7 @@
           </el-select>
         </el-form-item>
         <el-select size="small" :class="['join-type', {'is-error': errorFlag.includes(val)}]" :placeholder="$t('kylinLang.common.pleaseSelect')" v-model="joinColumns.op[val]">
-          <el-option :value="item.value" :label="item.label" :disabled="['GREATER_THAN_OR_EQUAL', 'LESS_THAN'].includes(item.value) && !scd2_enabled" v-for="item in columnsLinkKind" :key="'joinColumnstype' + item.value"></el-option>
+          <el-option :value="item.value" :label="item.label" v-for="item in getColumnsLinkKind" :key="'joinColumnstype' + item.value"></el-option>
         </el-select>
         <el-form-item :prop="'primary_key.' + val" :rules="[{validator: checkIsBrokenPrimaryKey, trigger: 'change'}]">
           <el-select size="small" :class="['primary-select', {'is-error': errorFlag.includes(val)}]" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
@@ -237,6 +237,9 @@ export default class TableJoinModal extends Vue {
   }
   get pTable () {
     return this.form.tables && this.form.tables[this.selectP] || []
+  }
+  get getColumnsLinkKind () {
+    return !this.scd2_enabled ? [{label: '=', value: 'EQUAL'}] : this.columnsLinkKind
   }
   checkIsBrokenPrimaryKey (rule, value, callback) {
     if (value) {
@@ -504,10 +507,10 @@ export default class TableJoinModal extends Vue {
     .arrow {
       transform: rotate(90deg);
       margin-left: 3px;
-      font-size: 8px;
+      font-size: 7px;
       color: @base-color;
       position: absolute;
-      top: 5px;
+      top: 4px;
     }
     .is-error {
       color: @error-color-1;
@@ -518,10 +521,14 @@ export default class TableJoinModal extends Vue {
   }
   .detail-content {
     background-color: @base-background-color-1;
-    padding: 10px 20px;
+    padding: 10px 15px;
     box-sizing: border-box;
     font-size: 12px;
     color: @text-normal-color;
+    .point {
+      // color: @text-normal-color;
+      margin-right: 5px;
+    }
   }
   .title-label {
     color: @text-title-color;
