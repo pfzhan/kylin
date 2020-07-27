@@ -8,7 +8,8 @@ export default {
     usersCount: 'User Number',
     delGroupTitle: 'Delete Group',
     userGroupsList: 'User Group List',
-    groupFilter: 'User Group Search'
+    groupFilter: 'User Group Search',
+    userGroup: 'User Group'
   },
   'zh-cn': {
     newGroup: '新建组',
@@ -19,6 +20,7 @@ export default {
     usersCount: '用户数',
     delGroupTitle: '删除用户组',
     userGroupsList: '用户组列表',
-    groupFilter: '搜索用户组'
+    groupFilter: '搜索用户组',
+    userGroup: '用户组'
   }
 }
