@@ -178,15 +178,17 @@ class FilePruner(val session: SparkSession,
   }
 
   def getShardSpec: Option[ShardSpec] = {
-    val segs = dataflow.getQueryableSegments
-    val shardNum = segs.getLatestReadySegment.getLayout(layout.getId).getPartitionNum
+    val segIds = options.getOrElse("prunedSegments", throw new RuntimeException("empty prunedSegments")).split(',')
+    val segs = dataflow.getQueryableSegments.asScala.filter(seg => segIds.contains(seg.getId))
+    assert(segs.nonEmpty, "No queryable segments")
+    val shardNum = segs.head.getLayout(layout.getId).getPartitionNum
 
     if (layout.getShardByColumns.isEmpty ||
-      segs.asScala.exists(_.getLayout(layout.getId).getPartitionNum != shardNum)) {
+      segs.exists(_.getLayout(layout.getId).getPartitionNum != shardNum)) {
       logInfo("Shard by column is empty or segments have a different number of shards, skip shard join opt.")
       None
     } else {
-      val sortColumns = if (segs.size() == 1) {
+      val sortColumns = if (segs.length == 1) {
         layout.getOrderedDimensions.keySet.asScala.map(_.toString).toSeq
       } else {
         logInfo("Sort order will lost in multi segments.")
