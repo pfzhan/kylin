@@ -13,10 +13,10 @@ export default {
       callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
     } else if (/^\s+|\s+$/.test(value)) {  // 首尾不能有空字符
       callback(new Error(this.$t('kylinLang.user.noStartWithSpace')))
-    } else if (/[\u4E00-\u9FA5]/g.test(value)) {  // 不能有中文字符
-      callback(new Error(this.$t('kylinLang.user.noChineseCharacters')))
     } else if (/[\\\\/:*?><"\\|]/g.test(value)) {  // 不能有\/:*?"<>|等非法字符
-      callback(new Error(this.$t('kylinLang.user.otherCharacters')))
+      callback(new Error(this.$t('kylinLang.user.notOtherChars')))
+    } else if (/[^\\x00-\\xff]/g.test(value)) {  //  仅支持英文字符
+      callback(new Error(this.$t('kylinLang.user.onlyEnglishChars')))
     } else {
       callback()
     }
@@ -29,10 +29,10 @@ export default {
       callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
     } else if (/^\s+|\s+$/.test(value)) {  // 首尾不能有空字符
       callback(new Error(this.$t('kylinLang.user.noStartWithSpace')))
-    } else if (/[\u4E00-\u9FA5]/g.test(value)) {  // 不能有中文字符
-      callback(new Error(this.$t('kylinLang.user.noChineseCharacters')))
     } else if (/[\\\\/:*?><"\\|]/g.test(value)) {  // 不能有\/:*?"<>|等非法字符
-      callback(new Error(this.$t('kylinLang.user.otherCharacters')))
+      callback(new Error(this.$t('kylinLang.user.notOtherChars')))
+    } else if (/[^\\x00-\\xff]/g.test(value)) {  //  仅支持英文字符
+      callback(new Error(this.$t('kylinLang.user.onlyEnglishChars')))
     } else {
       callback()
     }

@@ -133,11 +133,11 @@ exports.default = {
     noResults: '搜索结果为空',
     checkNoChange: '未检测到任何改动',
     // 格式提示
-    nameFormatValidTip: '名称格式有误，命名支持数字、字母和下划线的组合。',
+    nameFormatValidTip: '仅支持数字、字母和下划线。',
     nameFormatValidTip1: '项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。',
     nameFormatValidTip2: '支持中文、英文、数字、空格、特殊字符（_ -()%?）',
     nameMaxLen: '最多支持 100 个字符',
-    projectPlaceholder: '项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。',
+    projectPlaceholder: '仅支持数字、字母和下划线，并以数字或字母开头',
     // userNameFormatValidTip: '用户名只能包含数字，字母，@，点和下划线。',
     // userGroupNameFormatValidTip: '用户组名只能包含字母，数字，@，点和下划线。',
     userNameFormatValidTip: '用户名称中只能包含字母，数字，空格或下划线，并且以数字或字母开头。',
@@ -193,7 +193,7 @@ exports.default = {
     dot: '。',
     sqlLimitTip: '当前默认仅展示前100行 SQL 语句，请点击复制按钮获取完整的查询语句',
     sqlPartLimitTip: '当前默认仅展示部分 SQL 语句，请点击复制按钮获取完整的查询语句',
-    overLengthTip: '不得超过50字符',
+    overLengthTip: '最多支持 50 个字符。',
     dataDirectory: '数据源',
     useOldPasswordTip: '您正在使用系统自动生成的密码登录，请修改密码。',
     searchDimensionName: '搜索维度名称',
@@ -476,10 +476,12 @@ exports.default = {
   },
   user: {
     tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)',
-    noStartWithPeriod: '用户名 / 用户组名不能以英文句号开头(.)',
-    noStartWithSpace: '用户名 / 用户组名不能以空格开头或结尾',
-    noChineseCharacters: '用户名 / 用户组中不能使用中文符号',
-    otherCharacters: '用户名 / 用户组名中不能包含如下符号: 反斜杠(\\) 斜杠(/) 冒号(:) 星号(*) 问号(?) 引号(“) 小于号(<) 大于号(>) 垂直线(|)'
+    noStartWithPeriod: '不支持使用 . 开头',
+    noStartWithSpace: '不支持首尾有空字符',
+    noChineseCharacters: '不支持中文符号',
+    otherCharacters: '不支持中文和特殊字符（ /:\\*?"<>|）',
+    onlyEnglishChars: '仅支持英文字符',
+    notOtherChars: '不支持特殊字符（ /:\\*?"<>|）'
   },
   system: {
     evaluationStatement: '您正在使用 Kyligence Enterprise 试用版。如果您对我们的产品满意，需要专业的产品、咨询或服务，欢迎<a href="mailto:g-ent-lic@kyligence.io">联系我们</a>。您将获得来自 Apache Kylin 核心小组的帮助。',

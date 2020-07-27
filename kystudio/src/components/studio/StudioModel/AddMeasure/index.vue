@@ -3,7 +3,7 @@
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
-          <el-input v-guide.measureNameInput class="measures-width" size="medium" v-model.trim="measure.name"></el-input>
+          <el-input v-guide.measureNameInput class="measures-width" size="medium" v-model.trim="measure.name" :placeholder="$t('kylinLang.common.nameFormatValidTip2')"></el-input>
         </div>
       </el-form-item>
       <el-form-item :label="$t('expression')" prop="expression">

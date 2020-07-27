@@ -24,7 +24,7 @@ export default {
     passwordValid2: 'Contains at least one letter',
     passwordValid3: 'Contains at least one symbol (~!@#$%^&*(){}|:"<>?[];\',./`)',
     passwordValid4: 'Contains at least 8 characters',
-    usernamePld: 'Not support Chinese, nor special symbols (/:*?"<>|)'
+    usernamePld: 'Not support Chinese characters, nor special symbols (/:\\*?"<>|)'
   },
   'zh-cn': {
     addUser: '添加用户',
@@ -51,6 +51,6 @@ export default {
     passwordValid2: '至少包含一个字母',
     passwordValid3: '至少包含一个特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`）',
     passwordValid4: '长度至少 8 位',
-    usernamePld: '不支持中文和特殊字符（/:*?"<>|）'
+    usernamePld: '不支持中文和特殊字符（/:\\*?"<>|）'
   }
 }

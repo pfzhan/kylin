@@ -3,7 +3,7 @@
       <el-form :model="createModelMeta" @submit.native.prevent @keyup.enter.native="submit" :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
         <el-form-item prop="newName">
           <span slot="label">{{$t('kylinLang.model.modelName')}}<common-tip :content="$t('kylinLang.model.modelNameTips')"><i class="el-icon-ksd-what ksd-ml-5"></i></common-tip></span>
-          <el-input v-guide.inputModelName name="modelName" v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
+          <el-input v-guide.inputModelName name="modelName" :placeholder="$t('kylinLang.common.nameFormatValidTip')" v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc">
          <el-input

@@ -4,7 +4,7 @@
   <el-form :model="ccObject" :class="{'editCC': !isEdit, 'cc-block': !isPureForm}" label-position="top" :rules="ccRules" ref="ccForm">
     <el-form-item prop="columnName" class="ksd-mb-10 ksd-mt-10">
       <span slot="label">{{$t('columnName')}}: <el-tooltip :content="ccObject.columnName" effect="dark" placement="top"><span v-show="!isEdit" class="column-name">{{ccObject.columnName}}</span></el-tooltip></span>
-      <el-input class="measures-width" size="medium" v-model="ccObject.columnName" :disabled="isEdited" v-if="isEdit" @blur="upperCaseCCName"></el-input>
+      <el-input class="measures-width" size="medium" v-model="ccObject.columnName" :disabled="isEdited" v-if="isEdit" :placeholder="$t('kylinLang.common.nameFormatValidTip')" @blur="upperCaseCCName"></el-input>
     </el-form-item>
     <el-form-item prop="datatype" class="ksd-mb-10" v-if="!isEdit">
       <span slot="label">{{$t('returnType')}}<span>: {{ccObject.datatype}}</span></span>
@@ -50,8 +50,36 @@ import { NamedRegex } from 'config'
     })
   },
   locales: {
-    'en': {conditionExpress: 'Note that select one column should contain its table name(or alias table name).', numberNameFormatValidTip: 'Invalid computed column name', sameName: 'Has same computed column name', columnName: 'Column Name', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.'},
-    'zh-cn': {conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。', numberNameFormatValidTip: '无效的可计算列列名', sameName: '有同名的可计算列', columnName: '列名', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure 名称已被使用', requiredCCName: '请输入名称', requiredReturnType: '请选择返回类型', requiredExpress: '请输入表达式。'}
+    'en': {
+      conditionExpress: 'Note that select one column should contain its table name(or alias table name).',
+      numberNameFormatValidTip: 'Invalid computed column name',
+      sameName: 'Has same computed column name',
+      columnName: 'Column Name',
+      name: 'Name',
+      expression: 'Expression',
+      returnType: 'Return Type',
+      paramValue: 'Param Value',
+      nameReuse: 'The measure name is reused.',
+      requiredCCName: 'The column name is required.',
+      requiredReturnType: 'The return type is required.',
+      requiredExpress: 'The expression is required.',
+      onlyStartLetters: 'Only supports starting with a letter'
+    },
+    'zh-cn': {
+      conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。',
+      numberNameFormatValidTip: '无效的可计算列列名',
+      sameName: '有同名的可计算列',
+      columnName: '列名',
+      name: '名称',
+      expression: '表达式',
+      returnType: '返回类型',
+      paramValue: '参数值',
+      nameReuse: 'Measure 名称已被使用',
+      requiredCCName: '请输入名称',
+      requiredReturnType: '请选择返回类型',
+      requiredExpress: '请输入表达式。',
+      onlyStartLetters: '仅支持字母开头'
+    }
   }
 })
 export default class CCForm extends Vue {
@@ -76,8 +104,11 @@ export default class CCForm extends Vue {
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
   checkCCName (rule, value, callback) {
-    if (/^\d|^_+/.test(value) || !NamedRegex.test(value.toUpperCase())) {
-      return callback(new Error(this.$t('numberNameFormatValidTip')))
+    if (!NamedRegex.test(value.toUpperCase())) {
+      return callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    }
+    if (/^\d|^_+/.test(value)) {
+      return callback(new Error(this.$t('onlyStartLetters')))
     }
     if (!this.isEdited && !this.modelInstance.checkSameCCName(value.toUpperCase())) {
       return callback(new Error(this.$t('sameName')))
