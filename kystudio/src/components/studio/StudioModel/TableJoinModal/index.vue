@@ -27,7 +27,7 @@
     <!-- <div class="ky-line ksd-mt-15"></div> -->
     <!-- 列的关联 -->
     <p class="title-label ksd-mt-20 ksd-mb-5">{{$t('columnsJoin')}}</p>
-    <el-form class="join-form" ref="conditionForm" :model="joinColumns">
+    <el-form class="join-form clearfix" ref="conditionForm" :model="joinColumns">
       <el-form-item v-for="(key, val) in joinColumns.foreign_key" :key="val" class="ksd-mb-6">
         <el-form-item :prop="'foreign_key.' + val" :rules="[{validator: checkIsBrokenForeignKey, trigger: 'change'}]">
           <el-select size="small" :class="['foreign-select', {'is-error': errorFlag.includes(val)}]" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
@@ -48,7 +48,7 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
+        <el-button  type="primary" class="ksd-ml-10" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
@@ -276,21 +276,32 @@ export default class TableJoinModal extends Vue {
   }
   // 添加condition关联列的框
   addJoinConditionColumns () {
+    this.$refs.conditionForm.clearValidate()
     this.joinColumns.foreign_key.unshift('')
     this.joinColumns.primary_key.unshift('')
     this.joinColumns.op.unshift('EQUAL')
+    this.$nextTick(() => {
+      this.$refs.conditionForm.validate()
+    })
   }
   // 删除condition关联列的框
   removeJoinConditionColumn (i) {
+    this.$refs.conditionForm.clearValidate()
     if (this.joinColumns.foreign_key.length === 1) {
       this.joinColumns.foreign_key.splice(0, 1, '')
       this.joinColumns.op.splice(0, 1, 'EQUAL')
       this.joinColumns.primary_key.splice(0, 1, '')
+      this.$nextTick(() => {
+        this.$refs.conditionForm.validate()
+      })
       return
     }
     this.joinColumns.foreign_key.splice(i, 1)
     this.joinColumns.primary_key.splice(i, 1)
     this.joinColumns.op.splice(i, 1)
+    this.$nextTick(() => {
+      this.$refs.conditionForm.validate()
+    })
   }
   removeDuplicateCondition () {
     let obj = {}
@@ -535,6 +546,7 @@ export default class TableJoinModal extends Vue {
     .el-form-item {
       display: inline-block;
       margin-bottom: 0;
+      float: left;
     }
     .foreign-select, .primary-select {
       width: 273px;
@@ -552,6 +564,7 @@ export default class TableJoinModal extends Vue {
     .join-type {
       width: 60px;
       margin: 0 5px;
+      float: left;
       &.is-error {
         .el-input__inner {
           border:solid 1px @color-danger;
