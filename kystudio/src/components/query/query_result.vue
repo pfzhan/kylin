@@ -1,6 +1,13 @@
 <template>
   <div class="result_box">
     <div class="ksd-title-label-small ksd-mb-10">{{$t('extraoptionrmation')}}</div>
+    <el-alert
+      :title="$t('noModelRangeTips')"
+      type="warning"
+      class="ksd-mb-10"
+      v-if="isShowNotModelRangeTips"
+      show-icon>
+    </el-alert>
     <div class="resultTipsLine">
       <div class="resultTips">
         <p class="resultText">
@@ -126,7 +133,8 @@ import moment from 'moment'
       extraoptionrmation: 'Query Information',
       queryResults: 'Query Results',
       exportCSV: 'Export to CSV',
-      linkToSpark: 'Jump to Spark Web UI'
+      linkToSpark: 'Jump to Spark Web UI',
+      noModelRangeTips: 'The query is out of the data range for serving queries. Please add segment accordingly.'
     },
     'zh-cn': {
       username: '用户名',
@@ -143,7 +151,8 @@ import moment from 'moment'
       extraoptionrmation: '查询信息',
       queryResults: '查询结果',
       exportCSV: '导出 CSV',
-      linkToSpark: '跳转至 Spark 任务详情'
+      linkToSpark: '跳转至 Spark 任务详情',
+      noModelRangeTips: '当前查询不在模型服务的数据范围内。请添加相应 Segment。'
     }
   },
   filters: {
@@ -258,6 +267,9 @@ export default class queryResult extends Vue {
     } else {
       return ''
     }
+  }
+  get isShowNotModelRangeTips () {
+    return this.extraoption.realizations && this.extraoption.realizations.length && this.extraoption.realizations[0].layoutId === null
   }
   filterTableData () {
     if (this.resultFilter) {
