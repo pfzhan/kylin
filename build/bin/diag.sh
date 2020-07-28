@@ -100,7 +100,7 @@ function runTool() {
     if [[ -n ${TIME_ZONE} ]]; then
         TIME_ZONE="-Duser.timezone=${TIME_ZONE}"
     fi
-    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${DIAG_JAVA_OPTS} ${KYLIN_KERBEROS_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-${version}.jar:${SPARK_HOME}/jars/*" $@
+    java -Xms${JAVA_VM_XMS_TOOL} -Xmx${JAVA_VM_XMX_TOOL} ${DIAG_JAVA_OPTS} ${KYLIN_KERBEROS_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-${version}.jar:${SPARK_HOME}/jars/*" $@
     exit $?
 }
 
