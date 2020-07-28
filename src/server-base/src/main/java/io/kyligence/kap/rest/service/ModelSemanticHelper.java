@@ -39,6 +39,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -99,7 +100,6 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -215,8 +215,8 @@ public class ModelSemanticHelper extends BasicService {
                 requestJoinDesc.getSimplifiedNonEquiJoinConditions());
 
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
-        AbstractContext context = new NSmartContext(KylinConfig.getInstanceFromEnv(), project,
-                new String[] { nonEquiSql });
+        AbstractContext context =
+                new ModelCreateContextOfSemiMode(KylinConfig.getInstanceFromEnv(), project, new String[] { nonEquiSql });
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runSuggestModel();
 
