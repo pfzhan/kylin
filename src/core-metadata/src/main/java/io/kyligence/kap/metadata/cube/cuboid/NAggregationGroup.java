@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.cube.model.SelectRule;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -48,7 +49,6 @@ import com.google.common.math.LongMath;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.cube.model.TooManyCuboidException;
 
 /**
  * to compatible with legacy aggregation group in pre-newten
@@ -286,9 +286,9 @@ public class NAggregationGroup implements Serializable {
             if (this.getDimCap() > 0 || ruleBasedAggIndex.getGlobalDimCap() > 0) {
                 try {
                     NCuboidScheduler cuboidScheduler = new NKECuboidScheduler(ruleBasedAggIndex.getIndexPlan(),
-                            ruleBasedAggIndex);
+                            ruleBasedAggIndex, true);
                     combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
-                } catch (TooManyCuboidException oe) {
+                } catch (OutOfMaxCombinationException oe) {
                     return Long.MAX_VALUE;
                 }
             } else {

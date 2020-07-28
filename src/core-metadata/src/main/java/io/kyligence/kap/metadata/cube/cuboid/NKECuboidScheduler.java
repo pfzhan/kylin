@@ -41,7 +41,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
-import org.apache.kylin.cube.model.TooManyCuboidException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
@@ -78,6 +77,15 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         } else {
             this.allCuboidIds = buildTreeBottomUp(newCuboidSet);
         }
+    }
+
+    NKECuboidScheduler(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex, Boolean skipAllCuboids) {
+        super(indexPlan, ruleBasedAggIndex);
+
+        this.max = ruleBasedAggIndex.getFullMask();
+        this.measureSize = ruleBasedAggIndex.getMeasures().size();
+        this.isBaseCuboidValid = ruleBasedAggIndex.getIndexPlan().getConfig().isBaseCuboidAlwaysValid();
+        this.allCuboidIds = new CuboidSet();
     }
 
     @Override
@@ -162,7 +170,6 @@ public class NKECuboidScheduler extends NCuboidScheduler {
      * @return Cuboid collection
      */
     private Set<CuboidBigInteger> buildTreeBottomUp(SetCreator setCreatorFunc) {
-        int forward = ruleBasedAggIndex.getParentForward();
         KylinConfig config = indexPlan.getConfig();
         long maxCombination = config.getCubeAggrGroupMaxCombination() * 10;
         maxCombination = maxCombination < 0 ? Long.MAX_VALUE : maxCombination;
@@ -171,14 +178,14 @@ public class NKECuboidScheduler extends NCuboidScheduler {
 
         // build tree structure
         Set<CuboidBigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(new CuboidBigInteger(BigInteger.ZERO)),
-                setCreatorFunc); // lowest level cuboids
+                setCreatorFunc, maxCombination); // lowest level cuboids
         while (!children.isEmpty()) {
-            if (cuboidHolder.size() > maxCombination) {
+            if (cuboidHolder.size() + children.size() > maxCombination) {
                 throw new OutOfMaxCombinationException("Too many cuboids for the cube. Cuboid combination reached "
-                        + cuboidHolder.size() + " and limit is " + maxCombination + ". Abort calculation.");
+                        + (cuboidHolder.size() + children.size()) + " and limit is " + maxCombination + ". Abort calculation.");
             }
             cuboidHolder.addAll(children);
-            children = getOnTreeParentsByLayer(children, setCreatorFunc);
+            children = getOnTreeParentsByLayer(children, setCreatorFunc, maxCombination);
         }
 
         if (isBaseCuboidValid) {
@@ -195,8 +202,7 @@ public class NKECuboidScheduler extends NCuboidScheduler {
      * @return all parents cuboids
      */
     private Set<CuboidBigInteger> getOnTreeParentsByLayer(Collection<CuboidBigInteger> children,
-            SetCreator setCreatorFunc) {
-        //debugPrint(children, "children");
+            SetCreator setCreatorFunc, long maxCombination) {
         Set<CuboidBigInteger> parents = setCreatorFunc.create();
         for (CuboidBigInteger child : children) {
             parents.addAll(getOnTreeParents(child, setCreatorFunc));
@@ -204,10 +210,16 @@ public class NKECuboidScheduler extends NCuboidScheduler {
 
         //debugPrint(parents, "parents");
         val filteredParents = Iterators.filter(parents.iterator(), new Predicate<CuboidBigInteger>() {
+            private int cuboidCount = 0;
+
             @Override
             public boolean apply(@Nullable CuboidBigInteger cuboidId) {
                 if (cuboidId == null) {
                     return false;
+                }
+                if (++cuboidCount > maxCombination) {
+                    throw new OutOfMaxCombinationException("Too many cuboids for the cube. Cuboid combination reached "
+                            + (cuboidCount) + "and limit is " + maxCombination + ". Abort calculation.");
                 }
 
                 BigInteger cuboidBits = cuboidId.getDimMeas();
@@ -267,8 +279,8 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         Set<CuboidBigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(new CuboidBigInteger(BigInteger.ZERO)),
                 agg, newHashSet); // lowest level cuboids
         while (!children.isEmpty()) {
-            if (cuboidHolder.size() > indexPlan.getConfig().getCubeAggrGroupMaxCombination()) {
-                throw new TooManyCuboidException("Holder size larger than kylin.cube.aggrgroup.max-combination");
+            if (cuboidHolder.size() + children.size() > indexPlan.getConfig().getCubeAggrGroupMaxCombination()) {
+                throw new OutOfMaxCombinationException("Holder size larger than kylin.cube.aggrgroup.max-combination");
             }
             cuboidHolder.addAll(children);
             children = getOnTreeParentsByLayer(children, agg, newHashSet);

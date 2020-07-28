@@ -159,10 +159,10 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testMaxCombination() {
-        System.setProperty("kylin.cube.aggrgroup.max-combination", "1");
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         val cube = mgr.getIndexPlanByModelAlias("nmodel_basic_inner");
         try {
+            System.setProperty("kylin.cube.aggrgroup.max-combination", "1");
             cube.getSpanningTree();
             Assert.fail();
         } catch (Exception e) {
