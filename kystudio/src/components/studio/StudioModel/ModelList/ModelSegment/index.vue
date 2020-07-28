@@ -287,7 +287,7 @@ export default class ModelSegment extends Vue {
     if (type === 'refresh') {
       return typeList(['ONLINE', 'WARNING'])
     } else if (type === 'merge') {
-      return typeList(['ONLINE'])
+      return typeList(['ONLINE', 'WARNING'])
     } else if (type === 'delete') {
       return typeList(['ONLINE', 'LOADING', 'REFRESHING', 'MERGING', 'WARNING'])
     }
