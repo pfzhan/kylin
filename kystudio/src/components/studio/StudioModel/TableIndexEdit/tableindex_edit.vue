@@ -10,6 +10,13 @@
       <div>
         <!-- <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button> -->
         <div class="header">
+          <el-alert
+            :title="$t('tableIndexShardByTips')"
+            type="info"
+            :closable="false"
+            :show-background="false"
+            show-icon>
+          </el-alert>
           <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
        <div class="ky-simple-table">
@@ -437,6 +444,9 @@
       min-width: 600px;
       .header {
         text-align: right;
+        .el-alert--nobg {
+          text-align: left;
+        }
       }
     }
     .flip-list-move {
