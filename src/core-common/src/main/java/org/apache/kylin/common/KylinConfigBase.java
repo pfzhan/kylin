@@ -2182,4 +2182,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getBitmapValuesUpperBound() {
         return Integer.parseInt(getOptional("kylin.query.bitmap-values-upper-bound", "10000000"));
     }
+
+    public String getUIProxyLocation() {
+        return getOptional("kylin.query.ui.proxy-location", "/kylin");
+    }
 }

@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._
 
@@ -64,7 +65,8 @@ class YarnClusterManager extends IClusterManager with Logging {
     parser.availableResource(queueName)
   }
 
-  override def getTrackingUrl(applicationId: String): String = {
+  override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
+    val applicationId = sparkSession.sparkContext.applicationId
     val array = applicationId.split("_")
     if (array.length < 3) return null
     val appId = ApplicationId.newInstance(array(1).toLong, array(2).toInt)

@@ -30,6 +30,7 @@ import org.apache.spark.deploy.DeployMessages.{KillApplication, MasterStateRespo
 import org.apache.spark.deploy.master.WorkerState
 import org.apache.spark.internal.Logging
 import org.apache.spark.rpc.{RpcAddress, RpcEnv}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.Utils
 
 class StandaloneClusterManager extends IClusterManager with Logging {
@@ -61,7 +62,8 @@ class StandaloneClusterManager extends IClusterManager with Logging {
     AvailableResource(ResourceInfo(availableMem, availableCores), ResourceInfo(totalMem, totalCores))
   }
 
-  override def getTrackingUrl(applicationId: String): String = {
+  override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
+    val applicationId = sparkSession.sparkContext.applicationId
     logInfo(s"Get tracking url of application $applicationId")
     val state = masterEndpoints(0).askSync[MasterStateResponse](RequestMasterState)
     val app = state.activeApps.find(_.id == applicationId).orNull

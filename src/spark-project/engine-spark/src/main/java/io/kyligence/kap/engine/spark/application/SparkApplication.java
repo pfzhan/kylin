@@ -168,11 +168,11 @@ public abstract class SparkApplication implements Application, IKeep {
     /**
      * get tracking url by application id
      *
-     * @param applicationId
+     * @param sparkSession build sparkSession
      * @return
      */
-    public String getTrackingUrl(IClusterManager cm, String applicationId) {
-        return cm.getTrackingUrl(applicationId);
+    public String getTrackingUrl(IClusterManager cm, SparkSession sparkSession) {
+        return cm.getBuildTrackingUrl(sparkSession);
     }
 
     /**
@@ -223,10 +223,10 @@ public abstract class SparkApplication implements Application, IKeep {
         Map<String, String> extraInfo = new HashMap<>();
         extraInfo.put("yarn_app_id", applicationId);
         try {
-            String trackingUrl = getTrackingUrl(cm, applicationId);
+            String trackingUrl = getTrackingUrl(cm, ss);
             if (StringUtils.isBlank(trackingUrl)) {
-              logger.warn("Get tracking url of application {}, but empty url found.", applicationId);
-              return extraInfo;
+                logger.warn("Get tracking url of application {}, but empty url found.", applicationId);
+                return extraInfo;
             }
             if (ipAddressPreferred) {
                 trackingUrl = tryReplaceHostAddress(trackingUrl);
@@ -281,8 +281,9 @@ public abstract class SparkApplication implements Application, IKeep {
                 try {
                     while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
                         long waitTime = (long) (Math.random() * 10 * 60);
-                        logger.info("Current available resource in cluster is not sufficient, wait {} seconds.", waitTime);
-                        Thread.sleep(waitTime* 1000L);
+                        logger.info("Current available resource in cluster is not sufficient, wait {} seconds.",
+                                waitTime);
+                        Thread.sleep(waitTime * 1000L);
                     }
                 } catch (Throwable throwable) {
                     logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
@@ -300,17 +301,16 @@ public abstract class SparkApplication implements Application, IKeep {
                             return new KylinJoinSelection(session);
                         }
                     });
-                    v1.injectPostHocResolutionRule(
-                        new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
-                            @Override
-                            public Rule<LogicalPlan> apply(SparkSession session) {
-                                return new AlignmentTableStats(session);
-                            }
-                        });
+                    v1.injectPostHocResolutionRule(new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
+                        @Override
+                        public Rule<LogicalPlan> apply(SparkSession session) {
+                            return new AlignmentTableStats(session);
+                        }
+                    });
                     return BoxedUnit.UNIT;
                 }
             }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-                .getOrCreate();
+                    .getOrCreate();
 
             if (!config.isUTEnv()) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,

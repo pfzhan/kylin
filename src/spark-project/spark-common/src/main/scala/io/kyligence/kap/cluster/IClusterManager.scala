@@ -25,13 +25,14 @@ package io.kyligence.kap.cluster
 import java.util
 
 import io.kyligence.kap.common.obf.IKeep
+import org.apache.spark.sql.SparkSession
 
 trait IClusterManager extends IKeep {
   def fetchMaximumResourceAllocation: ResourceInfo
 
   def fetchQueueAvailableResource(queueName: String): AvailableResource
 
-  def getTrackingUrl(applicationId: String): String
+  def getBuildTrackingUrl(sparkSession: SparkSession): String
 
   def killApplication(jobStepId: String): Unit
 

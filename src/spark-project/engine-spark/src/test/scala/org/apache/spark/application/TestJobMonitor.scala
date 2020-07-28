@@ -33,6 +33,7 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.scheduler.KylinJobEventLoop
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.util.Utils
@@ -335,7 +336,7 @@ class MockClusterManager extends IClusterManager {
 
   override def fetchQueueAvailableResource(queueName: String): AvailableResource = null
 
-  override def getTrackingUrl(applicationId: String): String = null
+  override def getBuildTrackingUrl(sparkSession: SparkSession): String = null
 
   override def killApplication(jobStepId: String): Unit = {}
 

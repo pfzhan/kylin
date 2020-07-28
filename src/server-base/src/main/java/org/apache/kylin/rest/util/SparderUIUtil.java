@@ -42,18 +42,9 @@
 
 package org.apache.kylin.rest.util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.URI;
-import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.ui.SparkUI;
@@ -66,6 +57,15 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.URI;
+import java.util.Objects;
 
 @Component("sparderUIUtil")
 public class SparderUIUtil {
@@ -91,11 +91,10 @@ public class SparderUIUtil {
 
     private volatile String proxyBase;
 
+    private volatile String proxyLocationBase = KylinConfig.getInstanceFromEnv().getUIProxyLocation() + UI_BASE;
 
     public void proxy(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {
-
         final String currentWebUrl = getWebUrl();
-
         String uriPath = servletRequest.getRequestURI().substring(KYLIN_UI_BASE.length());
 
         if (!isProxyBaseEnabled()) {
@@ -114,7 +113,7 @@ public class SparderUIUtil {
 
     public String getSQLTrackingPath(String id) throws IOException {
         checkVersion();
-        return KYLIN_UI_BASE + (isProxyBaseEnabled() ? amSQLBase : SQL_EXECUTION_PAGE) + "?id=" + id;
+        return proxyLocationBase + (isProxyBaseEnabled() ? amSQLBase : SQL_EXECUTION_PAGE) + "?id=" + id;
     }
 
     private boolean isProxyBaseEnabled() {
@@ -125,6 +124,7 @@ public class SparderUIUtil {
         checkVersion();
         return webUrl;
     }
+
 
     private void checkVersion() throws IOException {
 
@@ -161,7 +161,7 @@ public class SparderUIUtil {
     }
 
     private void rewrite(final ClientHttpResponse response, final HttpServletResponse servletResponse,
-            final HttpMethod originMethod, final StringBuffer originUrl, final int depth) throws IOException {
+                         final HttpMethod originMethod, final StringBuffer originUrl, final int depth) throws IOException {
         if (depth <= 0) {
             final String msg = String.format("redirect exceed threshold: %d, origin request: [%s %s]",
                     REDIRECT_THRESHOLD, originMethod, originUrl);
@@ -192,11 +192,11 @@ public class SparderUIUtil {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody()))) {
             String line;
             while (Objects.nonNull(line = br.readLine())) {
-                line = line.replace("href=\"/", "href=\"" + KYLIN_UI_BASE + "/");
-                line = line.replace("href='/", "href='" + KYLIN_UI_BASE + "/");
-                line = line.replace("src=\"/", "src=\"" + KYLIN_UI_BASE + "/");
-                line = line.replace("src='/", "src='" + KYLIN_UI_BASE + "/");
-                line = line.replace(fWebUrl, KYLIN_UI_BASE);
+                line = line.replace("href=\"/", "href=\"" + proxyLocationBase + "/");
+                line = line.replace("href='/", "href='" + proxyLocationBase + "/");
+                line = line.replace("src=\"/", "src=\"" + proxyLocationBase + "/");
+                line = line.replace("src='/", "src='" + proxyLocationBase + "/");
+                line = line.replace(fWebUrl, proxyLocationBase);
                 writer.write(line);
                 writer.println();
             }
