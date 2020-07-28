@@ -190,6 +190,16 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         List<QueryHistory> queryHistoryList4 = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10,
                 0);
         Assert.assertEquals(4, queryHistoryList4.size());
+
+        for (int i = 0; i < 30; i++) {
+            queryHistoryDAO.insert(queryMetrics1);
+        }
+        Assert.assertEquals(10, queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0).size());
+        Assert.assertEquals(10, queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 1).size());
+        Assert.assertEquals(10, queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 2).size());
+        Assert.assertEquals(4, queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 3).size());
+        Assert.assertEquals(20, queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 20, 0).size());
+        Assert.assertEquals(14, queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 20, 1).size());
     }
 
     @Test

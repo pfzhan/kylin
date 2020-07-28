@@ -28,7 +28,7 @@ import java.util.List;
 
 public interface QueryHistoryDAO {
 
-    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset);
+    public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int page);
 
     public QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime, String project);
 

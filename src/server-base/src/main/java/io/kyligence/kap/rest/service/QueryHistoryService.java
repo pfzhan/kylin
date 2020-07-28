@@ -88,7 +88,7 @@ public class QueryHistoryService extends BasicService {
     public static final String WEEK = "week";
     public static final String DAY = "day";
 
-    public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
+    public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int page) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
         aclEvaluate.checkProjectReadPermission(request.getProject());
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
@@ -121,7 +121,7 @@ public class QueryHistoryService extends BasicService {
             request.setAdmin(true);
         }
 
-        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream()
+        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, page).stream()
                 .forEach(query -> {
                     if (StringUtils.isEmpty(query.getQueryRealizations())) {
                         queryHistories.add(query);
