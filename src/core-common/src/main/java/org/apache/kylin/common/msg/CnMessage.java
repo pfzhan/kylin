@@ -734,7 +734,7 @@ public class CnMessage extends Message {
     }
 
     public String getSQL_NUMBER_EXCEEDS_LIMIT() {
-        return "最多可同时导入 1000 条 SQL";
+        return "最多可同时导入 %s 条 SQL";
     }
 
     public String getSQL_FILE_TYPE_MISMATCH() {

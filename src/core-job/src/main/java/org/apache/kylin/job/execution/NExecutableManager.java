@@ -81,8 +81,8 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -181,10 +181,10 @@ public class NExecutableManager {
                 executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME));
         // dispatch job-created message out
         if (KylinConfig.getInstanceFromEnv().isUTEnv())
-            SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project));
+            EventBusFactory.getInstance().postWithLimit(new JobReadyNotifier(project));
         else
-            UnitOfWork.get().doAfterUnit(
-                    () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new JobReadyNotifier(project)));
+            UnitOfWork.get()
+                    .doAfterUnit(() -> EventBusFactory.getInstance().postWithLimit(new JobReadyNotifier(project)));
     }
 
     private void addJobOutput(ExecutablePO executable) {
@@ -207,7 +207,7 @@ public class NExecutableManager {
 
     //for ut
     @VisibleForTesting
-    public void deleteAllJob(){
+    public void deleteAllJob() {
         executableDao.deleteAllJob();
     }
 
@@ -217,8 +217,7 @@ public class NExecutableManager {
         if (org.apache.commons.lang.StringUtils.isNotBlank(model)) {
             return listExecByModelAndStatus(model, ExecutableState::isRunning, null);
         } else {
-            return getAllExecutables().stream()
-                    .filter(e -> e.getStatus().isRunning()).collect(Collectors.toList());
+            return getAllExecutables().stream().filter(e -> e.getStatus().isRunning()).collect(Collectors.toList());
         }
     }
 
@@ -321,12 +320,13 @@ public class NExecutableManager {
         return listExecByModelAndStatus(model, predicate, null).size();
     }
 
-    public long countBySegmentAndStatus(String model, Predicate<ExecutableState> predicate, HashSet<String> relatedSegments) {
+    public long countBySegmentAndStatus(String model, Predicate<ExecutableState> predicate,
+            HashSet<String> relatedSegments) {
         return listExecBySegmentAndStatus(model, predicate, null, relatedSegments).size();
     }
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                             JobTypeEnum jobType) {
+            JobTypeEnum jobType) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
@@ -334,9 +334,8 @@ public class NExecutableManager {
                 .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).collect(Collectors.toList());
     }
 
-
     public List<AbstractExecutable> listExecBySegmentAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                               JobTypeEnum jobType, HashSet<String> relatedSegments) {
+            JobTypeEnum jobType, HashSet<String> relatedSegments) {
         val relatedSegmentSet = new HashSet<>(relatedSegments);
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
@@ -635,13 +634,13 @@ public class NExecutableManager {
     }
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-                                Set<String> removeInfo, String output) {
+            Set<String> removeInfo, String output) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
             jobOutput = (Objects.equals(taskOrJobId, jobId)) ? job.getOutput()
                     : job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
-                    .map(ExecutablePO::getOutput).orElse(null);
+                            .map(ExecutablePO::getOutput).orElse(null);
             assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
@@ -863,7 +862,7 @@ public class NExecutableManager {
 
             FileStatus fileStatus = fs.getFileStatus(path);
             try (FSDataInputStream din = fs.open(path);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(din))) {
 
                 String line;
                 StringBuilder sampleData = new StringBuilder();
@@ -899,7 +898,7 @@ public class NExecutableManager {
      * @throws IOException
      */
     private String tailHdfsFileInputStream(FSDataInputStream hdfsDin, final long startPos, final long endPos,
-                                           final int nLines) throws IOException {
+            final int nLines) throws IOException {
         Preconditions.checkNotNull(hdfsDin);
         Preconditions.checkArgument(startPos < endPos && startPos >= 0);
         Preconditions.checkArgument(nLines >= 0);

@@ -24,24 +24,16 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.Map;
-
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import lombok.Getter;
 
 public abstract class AbstractSemiAutoContext extends AbstractContext {
-
-    @Getter
-    private Map<NDataModel, OptimizeRecommendation> recommendationMap = Maps.newHashMap();
 
     protected AbstractSemiAutoContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);

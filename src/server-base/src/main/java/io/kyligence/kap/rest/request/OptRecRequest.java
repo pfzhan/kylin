@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
@@ -42,11 +42,11 @@ public class OptRecRequest implements ProjectInsensitiveRequest {
     @JsonProperty("model_id")
     private String modelId;
 
-    @JsonProperty("legacy_ids")
-    private List<Integer> legacyIds = Lists.newArrayList();
+    @JsonProperty("layouts_to_remove")
+    private List<Integer> layoutIdsToRemove = Lists.newArrayList();
 
-    @JsonProperty("ids")
-    private List<Integer> ids = Lists.newArrayList();;
+    @JsonProperty("layouts_to_add")
+    private List<Integer> layoutIdsToAdd = Lists.newArrayList();;
 
     @JsonProperty("names")
     private Map<Integer, String> names = Maps.newHashMap();;

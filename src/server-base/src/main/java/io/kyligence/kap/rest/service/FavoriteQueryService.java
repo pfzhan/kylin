@@ -59,8 +59,8 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
@@ -176,11 +176,10 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,
-                                                            List<String> status) {
+            List<String> status) {
         aclEvaluate.checkProjectWritePermission(project);
         // trigger favorite scheduler to fetch latest query histories
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                .postWithLimit(new FavoriteQueryListNotifier(project));
+        EventBusFactory.getInstance().postWithLimit(new FavoriteQueryListNotifier(project));
 
         List<FavoriteQuery> favoriteQueries = getFavoriteQueryManager(project).getAll();
         if (CollectionUtils.isNotEmpty(status)) {
@@ -200,19 +199,19 @@ public class FavoriteQueryService extends BasicService {
 
         Comparator comparator;
         switch (sortBy) {
-            case LAST_QUERY_TIME:
-                comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime);
-                break;
-            case TOTAL_COUNT:
-                comparator = Comparator.comparingInt(FavoriteQuery::getTotalCount);
-                break;
-            case AVERAGE_DURATION:
-                comparator = Comparator.comparing(FavoriteQuery::getAverageDuration);
-                break;
-            default:
-                comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed();
-                favoriteQueries.sort(comparator);
-                return favoriteQueries;
+        case LAST_QUERY_TIME:
+            comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime);
+            break;
+        case TOTAL_COUNT:
+            comparator = Comparator.comparingInt(FavoriteQuery::getTotalCount);
+            break;
+        case AVERAGE_DURATION:
+            comparator = Comparator.comparing(FavoriteQuery::getAverageDuration);
+            break;
+        default:
+            comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed();
+            favoriteQueries.sort(comparator);
+            return favoriteQueries;
         }
 
         if (reverse)
@@ -422,35 +421,35 @@ public class FavoriteQueryService extends BasicService {
         Set<String> sqlSet = Sets.newHashSet(sqlList);
 
         // do auto-modeling
-        NSmartMaster.proposeForAutoMode(kylinConfig, project, sqlList.toArray(new String[0]),
-                smartContext -> {
-                    // handle blocked sql patterns
-                    Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(smartContext);
-                    if (!notAccelerated.isEmpty()) {
-                        sqlSet.removeAll(notAccelerated.keySet());
-                        updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
-                    } // case of sqls with constants
-                    if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
-                        updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-                        return;
-                    }
+        NSmartMaster.proposeForAutoMode(kylinConfig, project, sqlList.toArray(new String[0]), smartContext -> {
+            // handle blocked sql patterns
+            Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(smartContext);
+            if (!notAccelerated.isEmpty()) {
+                sqlSet.removeAll(notAccelerated.keySet());
+                updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
+            } // case of sqls with constants
+            if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                return;
+            }
 
-                    val jobManager = getJobManager(project);
-                    for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
+            val jobManager = getJobManager(project);
+            for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
-                        val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
-                        sqlSet.removeAll(sqls);
-                        IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
+                val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
+                sqlSet.removeAll(sqls);
+                IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
 
-                        if (CollectionUtils.isEmpty(sqls)) {
-                            continue;
-                        }
-                        jobList.add(getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addFullIndexJob(targetIndexPlan.getUuid(), user)));
+                if (CollectionUtils.isEmpty(sqls)) {
+                    continue;
+                }
+                jobList.add(getSourceUsageManager().licenseCheckWrap(project,
+                        () -> jobManager.addFullIndexJob(targetIndexPlan.getUuid(), user)));
 
-                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
-                    }
-                    updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-                });
+                updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
+            }
+            updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+        });
         return jobList;
     }
 
@@ -477,12 +476,12 @@ public class FavoriteQueryService extends BasicService {
 
     // only for test
     public void updateNotAcceleratedSqlStatusForTest(Map<String, AccelerateInfo> notAcceleratedSqlInfo,
-                                                     KylinConfig kylinConfig, String project) {
+            KylinConfig kylinConfig, String project) {
         updateNotAcceleratedSqlStatus(notAcceleratedSqlInfo, kylinConfig, project);
     }
 
     private void updateNotAcceleratedSqlStatus(Map<String, AccelerateInfo> notAcceleratedSqlInfo,
-                                               KylinConfig kylinConfig, String project) {
+            KylinConfig kylinConfig, String project) {
         if (MapUtils.isEmpty(notAcceleratedSqlInfo)) {
             return;
         }
@@ -518,7 +517,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private Set<String> getRelatedSqlsFromModelContext(AbstractContext.NModelContext modelContext,
-                                                       Map<String, AccelerateInfo> blockedSqlInfo) {
+            Map<String, AccelerateInfo> blockedSqlInfo) {
         Set<String> sqls = Sets.newHashSet();
         if (modelContext == null) {
             return sqls;

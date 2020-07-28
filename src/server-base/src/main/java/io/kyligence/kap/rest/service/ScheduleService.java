@@ -96,12 +96,12 @@ public class ScheduleService {
 
         String oldThreadName = Thread.currentThread().getName();
         try {
-            Thread.currentThread().setName("SelectTopRecommendations");
-            log.info("Routine task to update cost and select topN recommendations");
+            Thread.currentThread().setName("UpdateTopNRecommendations");
+            log.info("Routine task to update cost and topN recommendations");
 
-            rawRecService.updateCostAndSelectTopRec();
+            rawRecService.updateCostsAndTopNCandidates();
 
-            log.info("Updating cost and selecting topN recommendations finished.");
+            log.info("Updating cost and topN recommendations finished.");
         } finally {
             Thread.currentThread().setName(oldThreadName);
         }

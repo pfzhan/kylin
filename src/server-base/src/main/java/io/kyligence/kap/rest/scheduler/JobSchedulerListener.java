@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.rest.scheduler;
 
-import com.google.common.eventbus.Subscribe;
-import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
-import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class JobSchedulerListener {
     // only for test usage
     @Getter
@@ -43,8 +44,6 @@ public class JobSchedulerListener {
     @Getter
     @Setter
     private boolean jobFinishedNotified = false;
-
-    private static Logger logger = LoggerFactory.getLogger(JobSchedulerListener.class);
 
     @Subscribe
     public void onJobIsReady(JobReadyNotifier notifier) {
@@ -63,7 +62,7 @@ public class JobSchedulerListener {
         try {
             SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getModelId(), notifier.getOwner());
         } catch (Throwable e) {
-            logger.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getModelId(), e);
+            log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getModelId(), e);
         }
     }
 

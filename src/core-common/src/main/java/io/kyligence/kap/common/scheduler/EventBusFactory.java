@@ -29,18 +29,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.NamedThreadFactory;
 
-import com.google.common.collect.Maps;
-import com.google.common.eventbus.AsyncEventBus;
-import com.google.common.eventbus.EventBus;
-import com.google.common.util.concurrent.RateLimiter;
+import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.guava20.shaded.common.eventbus.AsyncEventBus;
+import io.kyligence.kap.guava20.shaded.common.eventbus.EventBus;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.RateLimiter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SchedulerEventBusFactory {
-    private KylinConfig kylinConfig;
+public class EventBusFactory {
+    private final KylinConfig kylinConfig;
     private static EventBus eventBus;
     private static ExecutorService executor;
 
@@ -49,18 +50,14 @@ public class SchedulerEventBusFactory {
         eventBus = new AsyncEventBus(executor);
     }
 
-    private Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
+    private final Map<String, RateLimiter> rateLimiters = Maps.newConcurrentMap();
 
-    public static SchedulerEventBusFactory getInstance(KylinConfig kylinConfig) {
-        return kylinConfig.getManager(SchedulerEventBusFactory.class);
+    public static EventBusFactory getInstance() {
+        return Singletons.getInstance(EventBusFactory.class);
     }
 
-    static SchedulerEventBusFactory newInstance(KylinConfig kylinConfig) {
-        return new SchedulerEventBusFactory(kylinConfig);
-    }
-
-    private SchedulerEventBusFactory(KylinConfig kylinConfig) {
-        this.kylinConfig = kylinConfig;
+    private EventBusFactory() {
+        this.kylinConfig = KylinConfig.getInstanceFromEnv();
     }
 
     public void register(Object listener) {
@@ -79,7 +76,7 @@ public class SchedulerEventBusFactory {
             eventBus.post(event);
     }
 
-    public void post(Object event) {
+    public void postAsync(Object event) {
         log.debug("Post event {}", event);
         eventBus.post(event);
     }

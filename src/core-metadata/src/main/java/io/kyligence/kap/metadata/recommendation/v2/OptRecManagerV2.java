@@ -32,19 +32,16 @@ import java.util.stream.Collectors;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.ParameterDesc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -57,7 +54,6 @@ import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
@@ -65,9 +61,10 @@ import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-public class OptimizeRecommendationManagerV2 {
-    private static final Logger logger = LoggerFactory.getLogger(OptimizeRecommendationManagerV2.class);
+@Slf4j
+public class OptRecManagerV2 {
 
     private static class CCConflictHandlerV2 extends ComputedColumnUtil.BasicCCConflictHandler {
         @Override
@@ -86,8 +83,6 @@ public class OptimizeRecommendationManagerV2 {
         }
     }
 
-    private CCConflictHandlerV2 ccConflictHandler = new CCConflictHandlerV2();
-
     // for user defined
     public void checkCCName(NDataModel model, ComputedColumnDesc cc) {
         val otherModels = NDataModelManager.getInstance(config, project).listAllModels().stream()
@@ -95,7 +90,7 @@ public class OptimizeRecommendationManagerV2 {
 
         for (NDataModel otherModel : otherModels) {
             for (ComputedColumnDesc existCC : otherModel.getComputedColumnDescs()) {
-                ComputedColumnUtil.singleCCConflictCheck(otherModel, model, existCC, cc, ccConflictHandler);
+                ComputedColumnUtil.singleCCConflictCheck(otherModel, model, existCC, cc, new CCConflictHandlerV2());
             }
         }
         val contains = model.getComputedColumnDescs().stream()
@@ -125,137 +120,37 @@ public class OptimizeRecommendationManagerV2 {
                 }));
     }
 
-    public static OptimizeRecommendationManagerV2 getInstance(KylinConfig config, String project) {
-        return config.getManager(project, OptimizeRecommendationManagerV2.class);
+    public static OptRecManagerV2 getInstance(String project) {
+        return Singletons.getInstance(project, OptRecManagerV2.class);
     }
 
-    // called by reflection
-    @SuppressWarnings("unused")
-    static OptimizeRecommendationManagerV2 newInstance(KylinConfig conf, String project) {
-        return new OptimizeRecommendationManagerV2(conf, project);
-    }
+    private final KylinConfig config;
+    private final String project;
 
-    private KylinConfig config;
-    private String project;
-
-    private RawRecManager getRawRecManager() {
-        return RawRecManager.getInstance(project);
-    }
-
-    private CachedCrudAssist<OptimizeRecommendationV2> crud;
-
-    public OptimizeRecommendationManagerV2(KylinConfig config, String project) {
-        init(config, project);
-    }
-
-    protected void init(KylinConfig cfg, final String project) {
-        this.config = cfg;
+    OptRecManagerV2(String project) {
+        this.config = KylinConfig.getInstanceFromEnv();
         this.project = project;
-        String resourceRootPath = "/" + project + ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION_V2;
-        this.crud = new CachedCrudAssist<OptimizeRecommendationV2>(getStore(), resourceRootPath,
-                OptimizeRecommendationV2.class) {
-            @Override
-            protected OptimizeRecommendationV2 initEntityAfterReload(OptimizeRecommendationV2 entity,
-                    String resourceName) {
-                entity.init(config, project);
-                return entity;
-            }
-        };
     }
 
-    public KylinConfig getConfig() {
-        return config;
-    }
-
-    public ResourceStore getStore() {
-        return ResourceStore.getKylinMetaStore(this.config);
-    }
-
-    public OptimizeRecommendationV2 getOptimizeRecommendationV2(String id) {
+    public OptRecV2 getOptimizeRecommendationV2(String id) {
         if (StringUtils.isEmpty(id)) {
             return null;
         }
-        return crud.get(id);
-    }
-
-    public OptimizeRecommendationV2 updateOptimizeRecommendationV2(String id,
-            OptimizeRecommendationManagerV2.OptimizeRecommendationV2Updater updater) {
-        val cached = getOptimizeRecommendationV2(id);
-        val copy = copyForWrite(cached);
-        updater.modify(copy);
-        return updateOptimizeRecommendationV2(copy);
-    }
-
-    public OptimizeRecommendationV2 copyForWrite(OptimizeRecommendationV2 recommendation) {
-        return crud.copyForWrite(recommendation);
-    }
-
-    public OptimizeRecommendationV2 createOrUpdate(String id, List<Integer> rawIds) {
-        if (rawIds == null) {
-            rawIds = Lists.newArrayList();
-        }
-        OptimizeRecommendationV2 recommendationV2 = getOptimizeRecommendationV2(id);
-        if (recommendationV2 == null) {
-            recommendationV2 = new OptimizeRecommendationV2();
-            recommendationV2.setUuid(id);
-        } else {
-            recommendationV2 = copyForWrite(recommendationV2);
-        }
-        recommendationV2.setRawIds(rawIds);
-        return updateOptimizeRecommendationV2(recommendationV2);
-    }
-
-    public void removeAll(String modelId) {
-        OptimizeRecommendationV2 recommendationV2 = getOptimizeRecommendationV2(modelId);
-        if (recommendationV2 == null) {
-            return;
-        }
-        List<Integer> rawIds = recommendationV2.getRawIds();
-        RawRecManager rawManager = RawRecManager.getInstance(project);
-        rawManager.discardByIds(rawIds);
-        createOrUpdate(modelId, Lists.newArrayList());
+        return new OptRecV2(project, id);
     }
 
     public void discardAll(String modelId) {
-        OptimizeRecommendationV2 recommendationV2 = getOptimizeRecommendationV2(modelId);
+        OptRecV2 recommendationV2 = getOptimizeRecommendationV2(modelId);
         if (recommendationV2 == null) {
             return;
         }
         List<Integer> rawIds = recommendationV2.getRawIds();
         RawRecManager rawManager = RawRecManager.getInstance(project);
         rawManager.discardByIds(rawIds);
-        createOrUpdate(modelId, Lists.newArrayList());
     }
 
-    public OptimizeRecommendationV2 updateOptimizeRecommendationV2(OptimizeRecommendationV2 recommendation) {
-        return saveOptimizeRecommendationV2(recommendation);
-    }
-
-    private OptimizeRecommendationV2 saveOptimizeRecommendationV2(OptimizeRecommendationV2 recommendation) {
-        recommendation.init(config, project);
-        crud.save(recommendation);
-        return recommendation;
-
-    }
-
-    public interface OptimizeRecommendationV2Updater {
-        void modify(OptimizeRecommendationV2 recommendation);
-    }
-
-    public void dropOptimizeRecommendationV2(String id) {
-        val recommendation = getOptimizeRecommendationV2(id);
-        if (recommendation == null) {
-            return;
-        }
-        crud.delete(recommendation);
-        logger.info("Semi-Auto-Mode project:{} deleted recommendation, id:{}", project, id);
-    }
-
-    // for test
+    @VisibleForTesting
     public List<RawRecItem> convertFromV1(OptimizeRecommendation recommendation) {
-
-        val managerV1 = OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                recommendation.getProject());
 
         val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), recommendation.getProject())
                 .getDataModelDesc(recommendation.getId());
@@ -407,23 +302,13 @@ public class OptimizeRecommendationManagerV2 {
         return rawRecItem;
     }
 
-    public RawRecItem getRawRecItem(int rawId) {
-        return getRawRecManager().queryById(rawId);
-    }
-
     public void cleanInEffective(String id) {
-        OptimizeRecommendationV2 recommendation = getOptimizeRecommendationV2(id);
+        OptRecV2 recommendation = getOptimizeRecommendationV2(id);
         if (recommendation == null) {
             return;
         }
 
-        List<Integer> inEffective = recommendation.validate();
-        getRawRecManager().removeByIds(inEffective);
-        createOrUpdate(id, difference(recommendation.getRawIds(), inEffective));
-    }
-
-    private static List<Integer> difference(List<Integer> list1, List<Integer> list2) {
-        return Sets.difference(Sets.newHashSet(list1), Sets.newHashSet(list2)).stream().sorted()
-                .collect(Collectors.toList());
+        List<Integer> inEffective = recommendation.filterBrokenRefs();
+        RawRecManager.getInstance(project).removeByIds(inEffective);
     }
 }

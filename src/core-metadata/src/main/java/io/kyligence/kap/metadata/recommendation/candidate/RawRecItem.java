@@ -28,6 +28,8 @@ import java.io.IOException;
 
 import org.apache.kylin.common.util.JsonUtil;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
@@ -85,6 +87,15 @@ public class RawRecItem implements IKeep {
 
     public boolean needCache() {
         return id != 0 && state == RawRecItem.RawRecState.INITIAL && type != RawRecType.LAYOUT;
+    }
+
+    public boolean isOutOfDate(int semanticVersion) {
+        return getSemanticVersion() < semanticVersion;
+    }
+
+    public boolean isAgg() {
+        Preconditions.checkState(RawRecItem.RawRecType.LAYOUT == getType());
+        return ((LayoutRecItemV2) getRecEntity()).isAgg();
     }
 
     /**

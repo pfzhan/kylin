@@ -28,8 +28,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 
 import java.util.List;
 
-import io.kyligence.kap.rest.service.OptRecService;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +45,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
+import io.kyligence.kap.rest.service.OptRecService;
+import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -80,13 +80,13 @@ public class NRecommendationController extends NBasicController {
     @ApiOperation(value = "validateOptimizeRecommendations", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/validation")
     @ResponseBody
-    public EnvelopeResponse<OptRecDetailResponse> validateOptimizeRecommendations(
-            @PathVariable("model") String modelId, @RequestBody OptRecRequest request) {
+    public EnvelopeResponse<OptRecDetailResponse> validateOptimizeRecommendations(@PathVariable("model") String modelId,
+            @RequestBody OptRecRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optRecService.getOptRecDetail(request.getProject(), modelId, request.getIds()), "");
+                optRecService.getOptRecDetail(request.getProject(), modelId, request.getLayoutIdsToAdd()), "");
     }
 
     @ApiOperation(value = "cleanOptimizeRecommendations", notes = "Add URL: {model}")
@@ -106,18 +106,18 @@ public class NRecommendationController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> deleteOptimizeRecommendationsV2(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project,
-            @RequestParam(value = "legacy_ids", required = false) List<Integer> legacyIds,
-            @RequestParam(value = "ids", required = false) List<Integer> ids) {
+            @RequestParam(value = "layouts_to_remove", required = false) List<Integer> layoutsToRemove,
+            @RequestParam(value = "layouts_to_add", required = false) List<Integer> layoutsToAdd) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         val request = new OptRecRequest();
         request.setModelId(modelId);
         request.setProject(project);
-        if (legacyIds != null)
-            request.setLegacyIds(legacyIds);
-        if (ids != null)
-            request.setIds(ids);
+        if (layoutsToRemove != null)
+            request.setLayoutIdsToRemove(layoutsToRemove);
+        if (layoutsToAdd != null)
+            request.setLayoutIdsToAdd(layoutsToAdd);
 
         optRecService.delete(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

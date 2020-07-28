@@ -85,7 +85,7 @@ import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 
@@ -121,8 +121,8 @@ public abstract class BasicService {
         return OptimizeRecommendationManager.getInstance(getConfig(), project);
     }
 
-    public OptimizeRecommendationManagerV2 getOptimizeRecommendationManagerV2(String project) {
-        return OptimizeRecommendationManagerV2.getInstance(getConfig(), project);
+    public OptRecManagerV2 getOptimizeRecommendationManagerV2(String project) {
+        return OptRecManagerV2.getInstance(project);
     }
 
     public NDataflowManager getDataflowManager(String project) {

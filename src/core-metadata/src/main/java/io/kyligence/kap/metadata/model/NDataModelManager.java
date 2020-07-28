@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.exception.ModelBrokenException;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -126,12 +126,10 @@ public class NDataModelManager {
 
         if (!model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
-                UnitOfWork.get()
-                        .doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                                .post(new NDataModel.ModelBrokenEvent(project, model.getUuid())));
+                UnitOfWork.get().doAfterUnit(() -> EventBusFactory.getInstance()
+                        .postAsync(new NDataModel.ModelBrokenEvent(project, model.getUuid())));
             } else {
-                SchedulerEventBusFactory.getInstance(config)
-                        .post(new NDataModel.ModelBrokenEvent(project, model.getUuid()));
+                EventBusFactory.getInstance().postAsync(new NDataModel.ModelBrokenEvent(project, model.getUuid()));
             }
         }
     }
@@ -139,12 +137,10 @@ public class NDataModelManager {
     private void postModelRepairEvent(NDataModel model) {
         if (model.isHandledAfterBroken()) {
             if (UnitOfWork.isAlreadyInTransaction()) {
-                UnitOfWork.get()
-                        .doAfterUnit(() -> SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                                .post(new NDataModel.ModelRepairEvent(project, model.getUuid())));
+                UnitOfWork.get().doAfterUnit(() -> EventBusFactory.getInstance()
+                        .postAsync(new NDataModel.ModelRepairEvent(project, model.getUuid())));
             } else {
-                SchedulerEventBusFactory.getInstance(config)
-                        .post(new NDataModel.ModelRepairEvent(project, model.getUuid()));
+                EventBusFactory.getInstance().postAsync(new NDataModel.ModelRepairEvent(project, model.getUuid()));
             }
 
         }

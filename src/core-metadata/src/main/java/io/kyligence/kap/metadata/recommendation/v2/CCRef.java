@@ -24,49 +24,21 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import java.util.List;
-
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
 @NoArgsConstructor
-public class CCRef extends ColumnRef {
-
-    private List<ColumnRef> columnRefs;
-
-    private ComputedColumnDesc cc;
+public class CCRef extends RecommendationRef {
 
     public CCRef(ComputedColumnDesc cc, int id) {
-        this.cc = cc;
-        this.id = id;
-        this.columnRefs = Lists.newArrayList();
+        this.setId(id);
+        this.setEntity(cc);
+        this.setName(cc.getFullName());
+        this.setContent(cc.getExpression());
+        this.setDataType(cc.getDatatype());
     }
 
-    @Override
-    public String getDataType() {
-        return cc.getDatatype();
-    }
-
-    @Override
-    public List<RecommendationRef> getDependencies() {
-        List<RecommendationRef> res = Lists.newArrayList();
-        res.addAll(columnRefs);
-        return res;
-    }
-
-    @Override
-    public String getContent() {
-        return cc.getExpression();
-    }
-
-    @Override
-    public String getName() {
-        return cc.getFullName();
+    public ComputedColumnDesc getCc() {
+        return (ComputedColumnDesc) getEntity();
     }
 }

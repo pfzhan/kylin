@@ -44,15 +44,12 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractSemiContextV2;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -103,10 +100,9 @@ public class RawRecService {
                 System.currentTimeMillis() - startTime);
     }
 
-    public void updateCostAndSelectTopRec() {
+    public void updateCostsAndTopNCandidates() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
-        RawRecSelection rawRecSelection = RawRecSelection.getInstance();
         List<ProjectInstance> projectInstances = NProjectManager.getInstance(kylinConfig) //
                 .listAllProjects().stream() //
                 .filter(projectInstance -> !projectInstance.isExpertMode()) //
@@ -118,20 +114,22 @@ public class RawRecService {
             }
             try {
                 log.info("Running update cost for project<{}>", project);
-                RawRecManager.getInstance(project).updateAllCost(project);
+                val rawRecManager = RawRecManager.getInstance(project);
+                rawRecManager.updateAllCost(project);
                 FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(kylinConfig, project)
                         .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
                 for (String model : projectInstance.getModels()) {
-                    log.info("Running select topN recommendation for {}/({}).", project, model);
+                    long current = System.currentTimeMillis();
+                    log.info("Running update topN raw recommendation for {}/({}).", project, model);
                     int topN = Integer.parseInt(((FavoriteRule.Condition) FavoriteRule
                             .getDefaultRule(favoriteRule, FavoriteRule.REC_SELECT_RULE_NAME).getConds().get(0))
                                     .getRightThreshold());
-                    List<Integer> bestItemsIds = rawRecSelection.selectBestLayout(topN, model, project).stream()
-                            .map(RawRecItem::getId).collect(Collectors.toList());
-                    updateRecommendationV2(project, model, bestItemsIds);
+                    rawRecManager.updateRecommendedTopN(project, model, topN);
+                    log.info("Update topN raw recommendations for project({})/model({}) takes {} ms", // 
+                            project, model, System.currentTimeMillis() - current);
                 }
             } catch (Exception e) {
-                log.error("Update cost and select topN failed for project<{}>", project, e);
+                log.error("Update cost and update topN failed for project<{}>", project, e);
             }
         }
     }
@@ -243,7 +241,8 @@ public class RawRecService {
                     item.setCreateTime(measureItem.getCreateTime());
                     item.setUpdateTime(measureItem.getCreateTime());
                     item.setRecEntity(measureItem);
-                    item.setDependIDs(measureItem.genDependIds(uniqueRecItemMap, uniqueFlag));
+                    item.setDependIDs(
+                            measureItem.genDependIds(uniqueRecItemMap, uniqueFlag, modelContext.getOriginModel()));
                 }
                 rawRecItems.add(item);
             });
@@ -322,19 +321,6 @@ public class RawRecService {
 
     private void saveLayoutRawRecItems(List<RawRecItem> layoutRecItems, String project) {
         RawRecManager.getInstance(project).saveOrUpdate(layoutRecItems);
-    }
-
-    private void updateRecommendationV2(String project, String modelId, List<Integer> rawIds) {
-        try {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
-                        .getInstance(KylinConfig.getInstanceFromEnv(), project);
-                managerV2.createOrUpdate(modelId, rawIds);
-                return null;
-            }, project);
-        } catch (Exception e) {
-            log.error("project<" + project + "> model<" + modelId + ">failed to update RecommendationV2 file.", e);
-        }
     }
 
     public void deleteRawRecItems() {

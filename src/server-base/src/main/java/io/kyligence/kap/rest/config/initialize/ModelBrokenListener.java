@@ -32,16 +32,14 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
-import com.google.common.eventbus.Subscribe;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
@@ -54,24 +52,20 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ModelBrokenListener {
-
-    private static final Logger logger = LoggerFactory.getLogger(ModelBrokenListener.class);
 
     private boolean needHandleModelBroken(String project, String modelId) {
         val config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDesc(modelId);
 
-        if (model != null && model.isBroken() && !model.isHandledAfterBroken()) {
-            return true;
-        }
-
-        return false;
+        return model != null && model.isBroken() && !model.isHandledAfterBroken();
     }
 
     @Subscribe
@@ -120,11 +114,11 @@ public class ModelBrokenListener {
 
             val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
             recommendationManager.cleanAll(model.getId());
-            val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(config, project);
-            recommendationManagerV2.removeAll(model.getId());
+            val recommendationManagerV2 = OptRecManagerV2.getInstance(project);
+            recommendationManagerV2.discardAll(model.getId());
 
-            UnitOfWork.get().doAfterUnit(
-                    () -> SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier()));
+            UnitOfWork.get()
+                    .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));
             return null;
         }, project);
     }
@@ -134,11 +128,7 @@ public class ModelBrokenListener {
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDesc(modelId);
 
-        if (model != null && !model.isBroken() && model.isHandledAfterBroken()) {
-            return true;
-        }
-
-        return false;
+        return model != null && !model.isBroken() && model.isHandledAfterBroken();
     }
 
     @Subscribe
@@ -167,7 +157,7 @@ public class ModelBrokenListener {
 
             //if scd2 turn off , model should be offline
             if (checkSCD2Disabled(project, modelId)) {
-                logger.info("model {} on {} should be offline when scd2 is turn off", modelId, project);
+                log.info("model {} on {} should be offline when scd2 is turn off", modelId, project);
                 dfUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             } else {
                 dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
@@ -182,13 +172,14 @@ public class ModelBrokenListener {
                 }
                 val jobManager = JobManager.getInstance(config, project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
-                sourceUsageManager.licenseCheckWrap(project, () -> jobManager.checkAndAddIndexJob(model.getId(), "ADMIN"));
+                sourceUsageManager.licenseCheckWrap(project,
+                        () -> jobManager.checkAndAddIndexJob(model.getId(), "ADMIN"));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
 
-            UnitOfWork.get().doAfterUnit(
-                    () -> SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier()));
+            UnitOfWork.get()
+                    .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));
 
             return null;
         }, project);

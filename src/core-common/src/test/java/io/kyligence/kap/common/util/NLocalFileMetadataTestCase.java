@@ -35,8 +35,6 @@ import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractKylinTestCase;
 import org.junit.After;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
@@ -44,7 +42,7 @@ import lombok.val;
 
 public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
-    private static final Logger logger = LoggerFactory.getLogger(NLocalFileMetadataTestCase.class);
+    public static final String H2_METADATA_URL_PATTERN = "%s@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=";
     private static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
     protected static File tempMetadataDirectory = null;
 

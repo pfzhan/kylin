@@ -40,6 +40,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -85,8 +87,8 @@ import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.rest.request.JobActionEnum;
@@ -96,7 +98,6 @@ import io.kyligence.kap.rest.response.ExecutableSortBean;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
-import javax.servlet.http.HttpServletResponse;
 import lombok.val;
 
 @Component("jobService")
@@ -135,7 +136,7 @@ public class JobService extends BasicService {
     }
 
     private DataResult<List<ExecutableResponse>> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs,
-                                                               int offset, int limit) {
+            int offset, int limit) {
         Preconditions.checkNotNull(jobFilter);
         Preconditions.checkNotNull(jobs);
 
@@ -295,65 +296,65 @@ public class JobService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         switch (timeFilter) {
-            case LAST_ONE_DAY:
-                calendar.add(Calendar.DAY_OF_MONTH, -1);
-                return calendar.getTimeInMillis();
-            case LAST_ONE_WEEK:
-                calendar.add(Calendar.WEEK_OF_MONTH, -1);
-                return calendar.getTimeInMillis();
-            case LAST_ONE_MONTH:
-                calendar.add(Calendar.MONTH, -1);
-                return calendar.getTimeInMillis();
-            case LAST_ONE_YEAR:
-                calendar.add(Calendar.YEAR, -1);
-                return calendar.getTimeInMillis();
-            case ALL:
-                return 0;
-            default:
-                throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
+        case LAST_ONE_DAY:
+            calendar.add(Calendar.DAY_OF_MONTH, -1);
+            return calendar.getTimeInMillis();
+        case LAST_ONE_WEEK:
+            calendar.add(Calendar.WEEK_OF_MONTH, -1);
+            return calendar.getTimeInMillis();
+        case LAST_ONE_MONTH:
+            calendar.add(Calendar.MONTH, -1);
+            return calendar.getTimeInMillis();
+        case LAST_ONE_YEAR:
+            calendar.add(Calendar.YEAR, -1);
+            return calendar.getTimeInMillis();
+        case ALL:
+            return 0;
+        default:
+            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
         }
     }
 
     private ExecutableState parseToExecutableState(JobStatusEnum status) {
         Message msg = MsgPicker.getMsg();
         switch (status) {
-            case SUICIDAL:
-            case DISCARDED:
-                return ExecutableState.SUICIDAL;
-            case ERROR:
-                return ExecutableState.ERROR;
-            case FINISHED:
-                return ExecutableState.SUCCEED;
-            case NEW:
-                return ExecutableState.READY;
-            case PENDING:
-                return ExecutableState.READY;
-            case RUNNING:
-                return ExecutableState.RUNNING;
-            case STOPPED:
-                return ExecutableState.PAUSED;
-            default:
-                throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
+        case SUICIDAL:
+        case DISCARDED:
+            return ExecutableState.SUICIDAL;
+        case ERROR:
+            return ExecutableState.ERROR;
+        case FINISHED:
+            return ExecutableState.SUCCEED;
+        case NEW:
+            return ExecutableState.READY;
+        case PENDING:
+            return ExecutableState.READY;
+        case RUNNING:
+            return ExecutableState.RUNNING;
+        case STOPPED:
+            return ExecutableState.PAUSED;
+        default:
+            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
     }
 
     private JobStatusEnum parseToJobStatus(ExecutableState state) {
         switch (state) {
-            case READY:
-                return JobStatusEnum.PENDING;
-            case RUNNING:
-                return JobStatusEnum.RUNNING;
-            case ERROR:
-                return JobStatusEnum.ERROR;
-            case SUCCEED:
-                return JobStatusEnum.FINISHED;
-            case PAUSED:
-                return JobStatusEnum.STOPPED;
-            case SUICIDAL:
-            case DISCARDED:
-                return JobStatusEnum.DISCARDED;
-            default:
-                throw new RuntimeException("invalid state:" + state);
+        case READY:
+            return JobStatusEnum.PENDING;
+        case RUNNING:
+            return JobStatusEnum.RUNNING;
+        case ERROR:
+            return JobStatusEnum.ERROR;
+        case SUCCEED:
+            return JobStatusEnum.FINISHED;
+        case PAUSED:
+            return JobStatusEnum.STOPPED;
+        case SUICIDAL:
+        case DISCARDED:
+            return JobStatusEnum.DISCARDED;
+        default:
+            throw new RuntimeException("invalid state:" + state);
         }
     }
 
@@ -365,27 +366,27 @@ public class JobService extends BasicService {
     @VisibleForTesting
     public void updateJobStatus(String jobId, String project, String action) throws IOException {
         val executableManager = getExecutableManager(project);
-        UnitOfWorkContext.UnitTask afterUnitTask = () -> SchedulerEventBusFactory
-                .getInstance(KylinConfig.getInstanceFromEnv()).postWithLimit(new JobReadyNotifier(project));
+        UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
+                .postWithLimit(new JobReadyNotifier(project));
         switch (JobActionEnum.valueOf(action)) {
-            case RESUME:
-                executableManager.resumeJob(jobId);
-                UnitOfWork.get().doAfterUnit(afterUnitTask);
-                NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
-                break;
-            case RESTART:
-                executableManager.restartJob(jobId);
-                UnitOfWork.get().doAfterUnit(afterUnitTask);
-                break;
-            case DISCARD:
-                discardJob(project, jobId);
-                NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
-                break;
-            case PAUSE:
-                executableManager.pauseJob(jobId);
-                break;
-            default:
-                throw new IllegalStateException("This job can not do this action: " + action);
+        case RESUME:
+            executableManager.resumeJob(jobId);
+            UnitOfWork.get().doAfterUnit(afterUnitTask);
+            NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
+            break;
+        case RESTART:
+            executableManager.restartJob(jobId);
+            UnitOfWork.get().doAfterUnit(afterUnitTask);
+            break;
+        case DISCARD:
+            discardJob(project, jobId);
+            NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
+            break;
+        case PAUSE:
+            executableManager.pauseJob(jobId);
+            break;
+        default:
+            throw new IllegalStateException("This job can not do this action: " + action);
         }
 
     }
@@ -689,7 +690,6 @@ public class JobService extends BasicService {
 
         return false;
     }
-
 
     /**
      * update the spark job info, such as yarnAppId, yarnAppUrl.

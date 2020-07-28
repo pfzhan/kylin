@@ -111,7 +111,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newLinkedHashMap();
         Map<FunctionDesc, NDataModel.Measure> candidateMeasures = Maps.newLinkedHashMap();
         Set<TblColRef> dimensionAsMeasureColumns = Sets.newHashSet();
-        private Map<String, ComputedColumnDesc> computedColumnDescMap = Maps.newHashMap();
+        private final Map<String, ComputedColumnDesc> computedColumnDescMap = Maps.newHashMap();
 
         Set<TblColRef> allTableColumns = Sets.newHashSet();
         JoinTableDesc[] joins = new JoinTableDesc[0];
@@ -119,8 +119,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         private int maxColId = -1;
         private int maxMeasureId = NDataModel.MEASURE_ID_BASE - 1;
 
-        private NDataModel dataModel;
-        private AbstractContext.NModelContext modelContext;
+        private final NDataModel dataModel;
+        private final AbstractContext.NModelContext modelContext;
 
         protected ScopeBuilder(NDataModel dataModel, AbstractContext.NModelContext modelContext) {
             this.dataModel = dataModel;
@@ -269,10 +269,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 if (cc.getUuid() != null) {
                     uniqueName = cc.getUuid();
                 } else {
-                    uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getId();
+                    uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
                 }
             } else {
-                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getId();
+                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
             }
             return uniqueName;
         }

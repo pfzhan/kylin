@@ -807,7 +807,7 @@ public class Message {
     }
 
     public String getSQL_NUMBER_EXCEEDS_LIMIT() {
-        return "Up to 1000 SQLs could be imported at a time";
+        return "Up to %s SQLs could be imported at a time";
     }
 
     public String getSQL_FILE_TYPE_MISMATCH() {
@@ -1152,8 +1152,8 @@ public class Message {
     }
 
     public String getINVALID_COMPUTER_COLUMN_NAME() {
-        return "The computed column's name:[%s] is invalid (null, start with number or underline, include symbol except char, " +
-                "number and underline), please choose another name.";
+        return "The computed column's name:[%s] is invalid (null, start with number or underline, include symbol except char, "
+                + "number and underline), please choose another name.";
     }
 
     public String getMODEL_ALIAS_DUPLICATED() {
@@ -1392,8 +1392,8 @@ public class Message {
     }
 
     public String getINVALID_MEMORY_SIZE() {
-        return "Failed to rewrite the model settings, spark-conf.spark.executor.instances parameter " +
-                "value must be a combination of non-negative integer and unit g.";
+        return "Failed to rewrite the model settings, spark-conf.spark.executor.instances parameter "
+                + "value must be a combination of non-negative integer and unit g.";
     }
 
     public String getINVALID_BOOLEAN_FORMAT() {
@@ -1405,13 +1405,13 @@ public class Message {
     }
 
     public String getINVALID_VOLATILE_RANGE_CONFIG() {
-        return "Failed to rewrite the model setting, the unit of the dynamic interval parameter must be " +
-                "one of day, week, month, and year and the value must be non-negative integer.";
+        return "Failed to rewrite the model setting, the unit of the dynamic interval parameter must be "
+                + "one of day, week, month, and year and the value must be non-negative integer.";
     }
 
     public String getINVALID_RETENTION_RANGE_CONFIG() {
-        return "Failed to rewrite the model settings, parameter value must be non-negative integer and the " +
-                "unit of parameter must be the coarsest granularity unit in the unit selected for automatic merge.";
+        return "Failed to rewrite the model settings, parameter value must be non-negative integer and the "
+                + "unit of parameter must be the coarsest granularity unit in the unit selected for automatic merge.";
     }
 
     public String getINSUFFICIENT_AUTHENTICATION() {
@@ -1523,7 +1523,8 @@ public class Message {
     }
 
     public String getTABLE_RELOAD_ADD_COLUMN_EXIST(String table, String column) {
-        return String.format("The table metadata can’t be reloaded now. Column %s already exists in table %s.", column, table);
+        return String.format("The table metadata can’t be reloaded now. Column %s already exists in table %s.", column,
+                table);
     }
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {

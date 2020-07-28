@@ -541,6 +541,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testModifyCCExistInTableIndex() throws Exception {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         var request = newSemanticRequest(modelId);
         val originPlan = indexPlanManager.getIndexPlan(modelId);
         val nest5 = request.getColumnIdByColumnName("TEST_KYLIN_FACT.NEST5");
@@ -566,6 +567,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testModifyCCExistInAggIndex() throws Exception {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         // create measure
         var request = newSemanticRequest(modelId);
         val newMeasure1 = new SimplifiedMeasure();
@@ -719,6 +721,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangeJoinType() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> {
             val joins = model.getJoinTables();
@@ -739,6 +742,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangePartitionDesc() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
@@ -761,6 +765,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangeParititionDesc_OneToNull() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
@@ -783,7 +788,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangePartitionDesc_NullToOne() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         modelMgr.updateDataModel(MODEL_ID, model -> model.setPartitionDesc(null));
 
         val originModel = modelMgr.getDataModelDesc(MODEL_ID);
@@ -813,7 +818,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangePartitionDesc_NullToOneWithNoDateRange() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         modelMgr.updateDataModel(MODEL_ID, model -> model.setPartitionDesc(null));
 
         val originModel = modelMgr.getDataModelDesc(MODEL_ID);
@@ -838,6 +843,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangePartitionDesc_ChangePartitionColumn() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         val originModel = getTestBasicModel();
 
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -863,6 +869,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testChangePartitionDesc_ChangePartitionColumn_WithDateRange() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         val originModel = getTestBasicModel();
 
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -973,6 +980,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testAllChanged() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         val originModel = getTestInnerModel();
         modelMgr.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
@@ -1244,6 +1252,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Test
     public void testUpdateDataModelParatitionDesc() {
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
         var model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNotNull(model.getPartitionDesc());
         ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();

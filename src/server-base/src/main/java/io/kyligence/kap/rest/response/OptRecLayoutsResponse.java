@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.response;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+
 import lombok.Data;
 
 @Data

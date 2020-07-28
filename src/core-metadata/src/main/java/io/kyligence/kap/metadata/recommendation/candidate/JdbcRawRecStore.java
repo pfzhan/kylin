@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
-import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
 import static org.mybatis.dynamic.sql.SqlBuilder.isNotEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.max;
@@ -133,7 +132,7 @@ public class JdbcRawRecStore {
         }
     }
 
-    public List<RawRecItem> getTopNCandidate(String project, String model, int topN) {
+    public List<RawRecItem> getAllLayoutCandidates(String project, String model) {
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         long startTime = System.currentTimeMillis();
@@ -145,7 +144,28 @@ public class JdbcRawRecStore {
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
-                    .and(table.state, isIn(RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED))
+                    .and(table.state, isEqualTo(RawRecItem.RawRecState.RECOMMENDED)).build()
+                    .render(RenderingStrategies.MYBATIS3);
+            List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
+            log.info("List existing raw recommendations on project({})/model({}, {}) takes {} ms.", project, model,
+                    semanticVersion, System.currentTimeMillis() - startTime);
+            return rawRecItems;
+        }
+    }
+
+    public List<RawRecItem> chooseTopNCandidates(String project, String model, int topN, RawRecItem.RawRecState state) {
+        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDesc(model).getSemanticVersion();
+        long startTime = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+                    .from(table) //
+                    .where(table.project, isEqualTo(project)) //
+                    .and(table.semanticVersion, isEqualTo(semanticVersion)) //
+                    .and(table.modelID, isEqualTo(model)) //
+                    .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.state, isEqualTo(state)) //
                     .orderBy(table.cost.descending(), table.hitCount.descending(), table.id.descending()) //
                     .limit(topN) //
                     .build().render(RenderingStrategies.MYBATIS3);

@@ -158,7 +158,8 @@ public class FavoriteRuleService extends BasicService {
             }
         }
         if (sqls.size() > getConfig().getFavoriteImportSqlMaxSize()) {
-            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, msg.getSQL_NUMBER_EXCEEDS_LIMIT());
+            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT,
+                    String.format(msg.getSQL_NUMBER_EXCEEDS_LIMIT(), getConfig().getFavoriteImportSqlMaxSize()));
         }
 
         List<ImportSqlResponse> sqlData = Lists.newArrayList();

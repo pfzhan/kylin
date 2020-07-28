@@ -52,7 +52,8 @@ public class CCRecItemV2 extends RecItemV2 implements Serializable {
 
     public int[] genDependIds(NDataModel dataModel) {
         Preconditions.checkArgument(cc != null, "CCRecItemV2 without computed column object.");
-        Preconditions.checkArgument(StringUtils.isNotEmpty(cc.getExpression()), "cc expression cannot be null.");
+        Preconditions.checkArgument(StringUtils.isNotEmpty(cc.getExpression()),
+                "Computed column expression cannot be null.");
         val exprIdentifiers = ComputedColumnUtil.ExprIdentifierFinder.getExprIdentifiers(cc.getExpression());
         int[] arr = new int[exprIdentifiers.size()];
         ImmutableBiMap<Integer, TblColRef> effectiveCols = dataModel.getEffectiveCols();

@@ -31,14 +31,10 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.rest.service.UserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-
-import com.google.common.eventbus.Subscribe;
 
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.obf.IKeep;
@@ -46,6 +42,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
@@ -57,8 +54,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class EpochChangedListener implements IKeep {
-
-    private static final Logger logger = LoggerFactory.getLogger(EpochChangedListener.class);
 
     private static final String GLOBAL = "_global";
 
@@ -77,7 +72,7 @@ public class EpochChangedListener implements IKeep {
             if (NDefaultScheduler.getInstance(project).hasStarted()) {
                 return;
             }
-            logger.info("start thread of project: {}", project);
+            log.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
                 scheduler.init(new JobEngineConfig(kylinConfig));
@@ -95,17 +90,17 @@ public class EpochChangedListener implements IKeep {
                 }
                 return 0;
             }, project, 1);
-            logger.info("Register project metrics for {}", project);
+            log.info("Register project metrics for {}", project);
             try {
                 NMetricsRegistry.registerProjectMetrics(kylinConfig, project);
             } catch (Exception e) {
-                logger.error("Failed to register project metrics:{}", project, e);
+                log.error("Failed to register project metrics:{}", project, e);
             }
         } else {
             //TODO need global leader
             CreateAdminUserUtils.createAllAdmins(userService, env);
             SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
-            logger.info("Register global metrics...");
+            log.info("Register global metrics...");
             NMetricsRegistry.registerGlobalMetrics(kylinConfig);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();
@@ -119,18 +114,18 @@ public class EpochChangedListener implements IKeep {
         String project = notifier.getProject();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!GLOBAL.equals(project)) {
-            logger.info("Shutdown related thread: {}", project);
+            log.info("Shutdown related thread: {}", project);
             try {
                 NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
                 QueryHistoryAccelerateScheduler.shutdownByProject(project);
                 NDefaultScheduler.shutdownByProject(project);
             } catch (Exception e) {
-                logger.warn("error when shutdown " + project + " thread", e);
+                log.warn("error when shutdown " + project + " thread", e);
             }
-            logger.info("Remove project metrics for {}", project);
+            log.info("Remove project metrics for {}", project);
             NMetricsGroup.removeProjectMetrics(project);
         } else {
-            logger.info("Remove global metrics...");
+            log.info("Remove global metrics...");
             NMetricsGroup.removeGlobalMetrics();
         }
     }

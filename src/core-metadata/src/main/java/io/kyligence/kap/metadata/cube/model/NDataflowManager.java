@@ -68,7 +68,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -554,7 +554,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public void updateDataflowDetailsLayouts(final NDataSegment seg, final List<NDataLayout> layouts) {
-        NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
         NDataSegDetails details = segDetailsManager.getForSegment(seg);
         details.setLayouts(layouts);
         NDataSegDetailsManager.getInstance(KylinConfig.getInstanceFromEnv(), project).upsertForSegment(details);
@@ -609,10 +610,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
             if (needUpdateSourceUsage(update)) {
                 if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    SchedulerEventBusFactory.getInstance(config).postWithLimit(new SourceUsageUpdateNotifier());
+                    EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier());
                 } else {
                     UnitOfWork.get().doAfterUnit(
-                            () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new SourceUsageUpdateNotifier()));
+                            () -> EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier()));
                 }
             }
         });

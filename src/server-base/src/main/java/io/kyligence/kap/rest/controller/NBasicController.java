@@ -49,9 +49,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
+import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
@@ -327,14 +327,14 @@ public class NBasicController {
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectNotSemiAuto(String project) {
         if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectUnmodifiable(String project) {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(INCORRECT_PROJECT_MODE, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 

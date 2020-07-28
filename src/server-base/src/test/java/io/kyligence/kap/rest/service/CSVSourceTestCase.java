@@ -118,8 +118,7 @@ public class CSVSourceTestCase extends ServiceTestBase {
         return spyManager(EpochManager.getInstance(getTestConfig()), EpochManager.class);
     }
 
-    public OptimizeRecommendationManager spyOptimizeRecommendationManager()
-            throws Exception {
+    public OptimizeRecommendationManager spyOptimizeRecommendationManager() throws Exception {
         return spyManagerByProject(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()),
                 OptimizeRecommendationManager.class);
     }
@@ -149,12 +148,20 @@ public class CSVSourceTestCase extends ServiceTestBase {
         exManager.deleteJob(executable.getId());
     }
 
-    <T> T spyManagerByProject(T t, Class<T> tClass) throws Exception {
+    <T> T spyManagerByProject(T t, Class<T> tClass, ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache)
+            throws Exception {
         T manager = Mockito.spy(t);
         originManager.put(manager, t);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = cache;
+        if (managersByPrjCache.get(tClass) == null) {
+            managersByPrjCache.put(tClass, new ConcurrentHashMap<>());
+        }
         managersByPrjCache.get(tClass).put(getProject(), manager);
         return manager;
+    }
+
+    <T> T spyManagerByProject(T t, Class<T> tClass) throws Exception {
+        return spyManagerByProject(t, tClass, getInstanceByProject());
     }
 
     <T> T spyManager(T t, Class<T> tClass) throws Exception {

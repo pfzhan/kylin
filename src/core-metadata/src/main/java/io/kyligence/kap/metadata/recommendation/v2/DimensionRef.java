@@ -24,61 +24,53 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import java.util.List;
+import java.util.Map;
 
-import lombok.NoArgsConstructor;
 import org.apache.kylin.common.util.JsonUtil;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Maps;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
 @NoArgsConstructor
 public class DimensionRef extends RecommendationRef {
-    private ColumnRef columnRef;
 
     public DimensionRef(int id) {
-        this.id = id;
+        this.setId(id);
     }
 
-    public DimensionRef(ColumnRef columnRef, int id, boolean existed) {
-        this.columnRef = columnRef;
-        this.id = id;
-        this.existed = existed;
+    public DimensionRef(RecommendationRef columnRef, int id, String dataType, boolean existed) {
+        this.setId(id);
+        this.setName(columnRef.getName());
+        this.setContent(buildContent(columnRef.getName(), dataType));
+        this.setDataType(dataType);
+        this.setExisted(existed);
+        this.setEntity(columnRef.getEntity());
     }
 
-    @Override
-    public List<RecommendationRef> getDependencies() {
-        return validate(Lists.newArrayList(columnRef));
+    public void init() {
+        if (getDependencies().isEmpty()) {
+            return;
+        }
+        RecommendationRef dependRef = getDependencies().get(0);
+        this.setName(dependRef.getName());
+        this.setDataType(dependRef.getDataType());
+        this.setContent(buildContent(getName(), getDataType()));
+        this.setExisted(false);
+        this.setEntity(dependRef);
     }
 
-    @Override
-    public String getContent() {
-        DimensionContent content = new DimensionContent(columnRef.getName(), columnRef.getDataType());
-        return JsonUtil.writeValueAsStringQuietly(content);
+    private String buildContent(String columnName, String dataType) {
+        Map<String, String> map = Maps.newHashMap();
+        map.put("column", columnName);
+        map.put("data_type", dataType);
+        String content;
+        try {
+            content = JsonUtil.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(e);
+        }
+        return content;
     }
-
-    @Override
-    public String getName() {
-        return columnRef.getName().replace(".", "_");
-    }
-
-    public int getColId() {
-        return columnRef.getId();
-    }
-
-    @Setter
-    @Getter
-    @AllArgsConstructor
-    public static class DimensionContent {
-        private String column;
-        @JsonProperty("data_type")
-        private String dataType;
-    }
-
 }

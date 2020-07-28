@@ -93,8 +93,7 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
 
     private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccMap, NDataModel model,
             List<Integer> columnIDs) {
-        val uniqueRecItemMap = RawRecManager.getInstance(model.getProject())
-                .listAll();
+        val uniqueRecItemMap = RawRecManager.getInstance(model.getProject()).listAll();
         List<Integer> colOrderInDB = Lists.newArrayListWithCapacity(columnIDs.size());
         columnIDs.forEach(colId -> {
             String key;
@@ -145,10 +144,10 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
             if (cc.getUuid() != null) {
                 uniqueName = cc.getUuid();
             } else {
-                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getId();
+                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
             }
         } else {
-            uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getId();
+            uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
         }
         return uniqueName;
     }

@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -52,12 +53,14 @@ public abstract class AbstractContext {
     private final SmartConfig smartConfig;
     private final String project;
     private final String[] sqlArray;
-    private ChainedProposer preProcessProposers;
-    private ChainedProposer processProposers;
+    private final ChainedProposer preProcessProposers;
+    private final ChainedProposer processProposers;
 
     @Setter
     private List<AbstractContext.NModelContext> modelContexts;
     private final Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
+    @Getter
+    private final Map<NDataModel, OptimizeRecommendation> recommendationMap = Maps.newHashMap();
 
     @Setter
     private boolean skipEvaluateCC;

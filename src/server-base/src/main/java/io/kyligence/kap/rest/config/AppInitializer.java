@@ -41,7 +41,7 @@ import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.NMetricsController;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
@@ -99,11 +99,11 @@ public class AppInitializer {
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
             // register scheduler listener
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(epochChangedListener);
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(broadcastListener);
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(sourceUsageUpdateListener);
+            EventBusFactory.getInstance().register(new JobSchedulerListener());
+            EventBusFactory.getInstance().register(new ModelBrokenListener());
+            EventBusFactory.getInstance().register(epochChangedListener);
+            EventBusFactory.getInstance().register(broadcastListener);
+            EventBusFactory.getInstance().register(sourceUsageUpdateListener);
 
             ExecutableUtils.initJobFactory();
         } else {
@@ -117,7 +117,8 @@ public class AppInitializer {
 
         if (kylinConfig.isQueryNode()) {
             if (kylinConfig.isSparderAsync()) {
-                event.getApplicationContext().publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
+                event.getApplicationContext()
+                        .publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
             } else {
                 event.getApplicationContext()
                         .publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));

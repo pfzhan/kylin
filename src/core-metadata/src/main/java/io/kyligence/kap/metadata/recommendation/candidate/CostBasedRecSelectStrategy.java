@@ -26,30 +26,18 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
-
 public class CostBasedRecSelectStrategy implements RecSelectStrategy {
-    private KylinConfig config;
-
-    public CostBasedRecSelectStrategy(KylinConfig config) {
-        this.config = config;
-    }
 
     @Override
-    public List<RawRecItem> getBestRecItem(int topn) {
-        throw new RuntimeException("Not supported");
-    }
-
-    @Override
-    public List<RawRecItem> getBestRecItemByModel(int topn, String project, String model) {
+    public List<RawRecItem> getBestRecItems(int topN, String project, String model) {
         RawRecManager rawRecManager = RawRecManager.getInstance(project);
-        return rawRecManager.getCandidatesByModelAndBenefit(project, model, topn);
+        return rawRecManager.displayTopNRecItems(project, model, topN);
     }
 
     @Override
-    public List<RawRecItem> getBestRecItemByProject(int topn, String project) {
+    public List<RawRecItem> getBestRecItems(int topN, String project) {
         RawRecManager rawRecManager = RawRecManager.getInstance(project);
-        return rawRecManager.getCandidatesByProjectAndBenefit(project, topn);
+        return rawRecManager.getCandidatesByProjectAndBenefit(project, topN);
     }
 
     public void update(RawRecItem recItem, long time) {

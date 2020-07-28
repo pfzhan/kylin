@@ -93,7 +93,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(2, measureRecItemMap.size());
         Assert.assertEquals(1, indexRexItemMap.size());
 
-        String key = "SUM__TEST_KYLIN_FACT$9";
+        String key = "SUM__TEST_KYLIN_FACT$8";
         Assert.assertTrue(measureRecItemMap.containsKey(key));
         measureRecItemMap.remove(key);
         final String measureName = measureRecItemMap.keySet().iterator().next();

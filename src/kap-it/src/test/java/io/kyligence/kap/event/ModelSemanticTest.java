@@ -157,6 +157,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                     copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 1011).collect(Collectors.toList()));
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
+        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
     }
 
     @After
@@ -311,7 +312,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         return jobs;
     }
 
-
     private long waitForJobFinished(int expectedSize) throws InterruptedException {
         NExecutableManager manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         List<Executable> jobs;
@@ -333,7 +333,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     }
 
     private List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getRunningExecutables(project, model);
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
+                model);
     }
 }

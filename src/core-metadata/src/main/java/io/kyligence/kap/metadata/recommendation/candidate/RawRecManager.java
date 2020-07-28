@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
@@ -52,8 +53,8 @@ public class RawRecManager {
     private final String project;
     private final KylinConfig kylinConfig;
     private final JdbcRawRecStore jdbcRawRecStore;
-    private Cache<String, RawRecItem> cachedRecItems;
-    private BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
+    private final Cache<String, RawRecItem> cachedRecItems;
+    private final BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
 
     // CONSTRUCTOR
     public static RawRecManager getInstance(String project) {
@@ -96,14 +97,44 @@ public class RawRecManager {
         return map;
     }
 
-    public List<RawRecItem> getCandidatesByModelAndBenefit(String project, String model, int limit) {
-        List<RawRecItem> topNCandidate = jdbcRawRecStore.getTopNCandidate(project, model, limit);
-        topNCandidate.forEach(this::updateCache);
-        return topNCandidate;
+    public List<RawRecItem> queryRecommendedLayoutRawRecItems(String model) {
+        return queryByRawRecType(model, RawRecItem.RawRecType.LAYOUT, RawRecItem.RawRecState.RECOMMENDED);
+    }
+
+    public void clearExistingCandidates(String project, String model) {
+        long start = System.currentTimeMillis();
+        List<RawRecItem> existingCandidates = jdbcRawRecStore.getAllLayoutCandidates(project, model);
+        long updateTime = System.currentTimeMillis();
+        existingCandidates.forEach(rawRecItem -> {
+            rawRecItem.setUpdateTime(updateTime);
+            rawRecItem.setState(RawRecItem.RawRecState.INITIAL);
+        });
+        jdbcRawRecStore.update(existingCandidates);
+        log.info("clear all existing candiates of project({})/model({}) takes {} ms.", //
+                project, model, System.currentTimeMillis() - start);
+    }
+
+    public List<RawRecItem> displayTopNRecItems(String project, String model, int limit) {
+        return jdbcRawRecStore.chooseTopNCandidates(project, model, limit, RawRecItem.RawRecState.RECOMMENDED);
+    }
+
+    public void updateRecommendedTopN(String project, String model, int topN) {
+        long current = System.currentTimeMillis();
+        RawRecManager rawRecManager = RawRecManager.getInstance(project);
+        rawRecManager.clearExistingCandidates(project, model);
+        List<RawRecItem> topNCandidates = jdbcRawRecStore.chooseTopNCandidates(project, model, topN,
+                RawRecItem.RawRecState.INITIAL);
+        topNCandidates.forEach(rawRecItem -> {
+            rawRecItem.setUpdateTime(current);
+            rawRecItem.setState(RawRecItem.RawRecState.RECOMMENDED);
+        });
+        rawRecManager.saveOrUpdate(topNCandidates);
+
+        topNCandidates.forEach(this::updateCache);
     }
 
     public List<RawRecItem> getCandidatesByProjectAndBenefit(String project, int limit) {
-        return null;
+        throw new NotImplementedException("get candidate raw recommendations by project not implement!");
     }
 
     public void save(RawRecItem rawRecItem) {

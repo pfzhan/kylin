@@ -77,8 +77,6 @@ public class SemiAutoTestBase extends NSuggestTestBase {
     public void setup() throws Exception {
         super.setup();
 
-        val optManager = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject());
-        optManager.listAllOptimizeRecommendationIds().forEach(optManager::dropOptimizeRecommendation);
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         dataflowManager.listAllDataflows().stream().map(RootPersistentEntity::getId)
                 .forEach(dataflowManager::dropDataflow);

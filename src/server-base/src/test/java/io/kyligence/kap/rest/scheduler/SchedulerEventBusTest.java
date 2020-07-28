@@ -30,11 +30,6 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
-import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -59,10 +54,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
+import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
@@ -108,14 +108,14 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         NDefaultScheduler.getInstance(PROJECT_NEWTEN).init(new JobEngineConfig(getTestConfig()));
         NDefaultScheduler.getInstance(PROJECT).init(new JobEngineConfig(getTestConfig()));
 
-        SchedulerEventBusFactory.getInstance(getTestConfig()).register(jobSchedulerListener);
+        EventBusFactory.getInstance().register(jobSchedulerListener);
     }
 
     @After
     public void cleanup() {
         logger.info("SchedulerEventBusTest cleanup");
-        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(jobSchedulerListener);
-        SchedulerEventBusFactory.restart();
+        EventBusFactory.getInstance().unRegister(jobSchedulerListener);
+        EventBusFactory.restart();
 
         jobSchedulerListener.setJobReadyNotified(false);
         jobSchedulerListener.setJobFinishedNotified(false);
@@ -131,7 +131,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         // only allow 10 permits per second
         System.setProperty("kylin.scheduler.schedule-limit-per-minute", "600");
 
-
         // request 10 permits per second
         for (int i = 0; i < 10; i++) {
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
@@ -143,7 +142,6 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             Thread.sleep(10);
             favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "", false, null);
         }
-
 
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }
@@ -246,7 +244,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
             return null;
         }, PROJECT);
 
-        await().atMost(60000, TimeUnit.MILLISECONDS)
+        await().atMost(120000, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> Assert.assertTrue(jobSchedulerListener.isJobReadyNotified()));
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
     }

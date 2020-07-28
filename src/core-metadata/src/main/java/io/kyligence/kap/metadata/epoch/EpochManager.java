@@ -55,9 +55,9 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -91,7 +91,7 @@ public class EpochManager implements IKeep {
 
     private KylinConfig config;
     private String identity;
-    private SchedulerEventBusFactory schedulerEventBusFactory;
+    private EventBusFactory eventBusFactory;
 
     static {
         pool = new ThreadPoolExecutor(5, 10, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>());
@@ -100,7 +100,7 @@ public class EpochManager implements IKeep {
     private EpochManager(KylinConfig cfg) {
         this.config = cfg;
         this.identity = EpochOrchestrator.getOwnerIdentity();
-        schedulerEventBusFactory = SchedulerEventBusFactory.getInstance(config);
+        eventBusFactory = EventBusFactory.getInstance();
     }
 
     //for test
@@ -288,17 +288,17 @@ public class EpochManager implements IKeep {
         Collection<String> escapedProjects = CollectionUtils.removeAll(oriEpochs, retainPrjs);
         if (!getGlobalEpoch().isMaintenanceMode()) {
             for (String prj : newEpochs) {
-                schedulerEventBusFactory.post(new ProjectControlledNotifier(prj));
+                eventBusFactory.postAsync(new ProjectControlledNotifier(prj));
             }
 
             for (String prj : escapedProjects) {
-                schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj));
+                eventBusFactory.postAsync(new ProjectEscapedNotifier(prj));
             }
         }
 
         if (!started) {
             started = true;
-            schedulerEventBusFactory.post(new EpochStartedNotifier());
+            eventBusFactory.postAsync(new EpochStartedNotifier());
         }
         logger.info("end updateAllEpochs.........");
         currentEpochs = newEpochs;
@@ -328,7 +328,7 @@ public class EpochManager implements IKeep {
             if (tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet(), false)) {
                 currentEpochs.add(project);
                 if (!getGlobalEpoch().isMaintenanceMode()) {
-                    schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                    eventBusFactory.postAsync(new ProjectControlledNotifier(project));
                 }
             }
         }
@@ -339,7 +339,7 @@ public class EpochManager implements IKeep {
         if (updateProjectEpoch(prj)) {
             currentEpochs.add(project);
             if (!getGlobalEpoch().isMaintenanceMode()) {
-                schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                eventBusFactory.postAsync(new ProjectControlledNotifier(project));
             }
         }
     }
@@ -412,7 +412,7 @@ public class EpochManager implements IKeep {
                 if (tryUpdateGlobalEpoch(Sets.newHashSet(), true)) {
                     currentEpochs.add(project);
                     if (!getGlobalEpoch().isMaintenanceMode()) {
-                        schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                        eventBusFactory.postAsync(new ProjectControlledNotifier(project));
                     }
                 }
             } catch (Exception e) {
@@ -424,7 +424,7 @@ public class EpochManager implements IKeep {
             if (updateProjectEpoch(prj, true)) {
                 currentEpochs.add(project);
                 if (!getGlobalEpoch().isMaintenanceMode()) {
-                    schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+                    eventBusFactory.postAsync(new ProjectControlledNotifier(project));
                 }
             }
         }
@@ -444,14 +444,14 @@ public class EpochManager implements IKeep {
     public void shutdownOwnedProjects() {
         List<ProjectInstance> prjs = getOwnedProjects();
         for (ProjectInstance prj : prjs) {
-            schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj.getName()));
+            eventBusFactory.postAsync(new ProjectEscapedNotifier(prj.getName()));
         }
     }
 
     public void startOwnedProjects() {
         List<ProjectInstance> prjs = getOwnedProjects();
         for (ProjectInstance prj : prjs) {
-            schedulerEventBusFactory.post(new ProjectControlledNotifier(prj.getName()));
+            eventBusFactory.postAsync(new ProjectControlledNotifier(prj.getName()));
         }
     }
 

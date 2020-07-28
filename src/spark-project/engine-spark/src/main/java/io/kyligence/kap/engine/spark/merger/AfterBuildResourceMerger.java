@@ -29,33 +29,33 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 
 @Slf4j
 public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
@@ -100,10 +100,10 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             if (config.isUTEnv()) {
-                SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier());
+                EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
             } else {
-                UnitOfWork.get().doAfterUnit(
-                        () -> SchedulerEventBusFactory.getInstance(config).post(new SourceUsageUpdateNotifier()));
+                UnitOfWork.get()
+                        .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));
             }
         }
     }

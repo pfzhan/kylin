@@ -21,14 +21,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.service;
 
-package io.kyligence.kap.metadata.recommendation.v2;
+public interface ModelUpdateListener {
 
-import lombok.Getter;
-import lombok.Setter;
+    void onUpdate(String project, String modelId);
 
-@Getter
-@Setter
-public abstract class ColumnRef extends RecommendationRef {
-    public abstract String getDataType();
 }

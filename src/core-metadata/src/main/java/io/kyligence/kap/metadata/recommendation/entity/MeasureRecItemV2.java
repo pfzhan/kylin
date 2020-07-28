@@ -26,9 +26,15 @@ package io.kyligence.kap.metadata.recommendation.entity;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
@@ -44,7 +50,14 @@ public class MeasureRecItemV2 extends RecItemV2 implements Serializable {
     @JsonProperty("param_order")
     private long[] paramOrder;
 
-    public int[] genDependIds(Map<String, RawRecItem> uniqueRecItemMap, String name) {
+    public int[] genDependIds(Map<String, RawRecItem> uniqueRecItemMap, String name, NDataModel dataModel) {
+        Set<TableRef> allTables = dataModel.getAllTableRefs();
+        Map<String, TableRef> tableMap = Maps.newHashMap();
+        allTables.forEach(tableRef -> tableMap.putIfAbsent(tableRef.getAlias(), tableRef));
+        Map<String, NDataModel.NamedColumn> namedColumnMap = Maps.newHashMap();
+        dataModel.getAllNamedColumns()
+                .forEach(namedColumn -> namedColumnMap.putIfAbsent(namedColumn.getAliasDotColumn(), namedColumn));
+
         String[] params = name.split("__");
         int[] dependIDs = new int[params.length - 1];
         for (int i = 1; i < params.length; i++) {
@@ -54,7 +67,12 @@ public class MeasureRecItemV2 extends RecItemV2 implements Serializable {
                 String[] splits = params[i].split("\\$");
                 if (splits.length == 2) {
                     try {
-                        dependIDs[i - 1] = Integer.parseInt(splits[1]);
+                        String alias = splits[0];
+                        Preconditions.checkArgument(tableMap.containsKey(alias));
+                        ColumnDesc[] columns = tableMap.get(alias).getTableDesc().getColumns();
+                        ColumnDesc dependColumn = columns[Integer.parseInt(splits[1])];
+                        String aliasDotName = String.format("%s.%s", alias, dependColumn.getName());
+                        dependIDs[i - 1] = namedColumnMap.get(aliasDotName).getId();
                     } catch (NumberFormatException e) {
                         dependIDs[i - 1] = Integer.MAX_VALUE;
                     }

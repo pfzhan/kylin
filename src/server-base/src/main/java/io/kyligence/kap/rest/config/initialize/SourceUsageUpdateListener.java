@@ -23,22 +23,21 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
-import com.google.common.eventbus.Subscribe;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.RestClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.util.concurrent.ConcurrentHashMap;
 
-@Component
-public class SourceUsageUpdateListener {
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.restclient.RestClient;
+import org.springframework.stereotype.Component;
 
-    private static final Logger logger = LoggerFactory.getLogger(SourceUsageUpdateListener.class);
+import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import lombok.extern.slf4j.Slf4j;
+
+@Component
+@Slf4j
+public class SourceUsageUpdateListener {
 
     private ConcurrentHashMap<String, RestClient> clientMap = new ConcurrentHashMap<>();
 
@@ -48,7 +47,7 @@ public class SourceUsageUpdateListener {
         EpochManager epochManager = EpochManager.getInstance(kylinConfig);
         if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(kylinConfig);
-            logger.debug("Start to update source usage...");
+            log.debug("Start to update source usage...");
             sourceUsageManager.updateSourceUsage();
         } else {
             try {
@@ -57,10 +56,10 @@ public class SourceUsageUpdateListener {
                     clientMap.clear();
                     clientMap.put(owner, new RestClient(owner));
                 }
-                logger.debug("Start to notify {} to update source usage", owner);
+                log.debug("Start to notify {} to update source usage", owner);
                 clientMap.get(owner).updateSourceUsage();
             } catch (Exception e) {
-                logger.error("Failed to update source usage using rest client", e);
+                log.error("Failed to update source usage using rest client", e);
             }
         }
     }

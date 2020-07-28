@@ -45,6 +45,10 @@ public class BrokenRefProxy implements MethodInterceptor {
         return brokenEntity;
     }
 
+    public static <T extends RecommendationRef> boolean isNullOrBroken(T entity) {
+        return entity == null || entity.isBroken();
+    }
+
     @Override
     public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) throws Throwable {
         if (methods.contains(method.getName())) {

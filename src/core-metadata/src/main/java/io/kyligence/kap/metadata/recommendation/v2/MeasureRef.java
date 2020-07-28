@@ -24,45 +24,29 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import java.util.List;
-
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 
-import com.google.common.collect.Lists;
-
-import lombok.Getter;
+import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
 @NoArgsConstructor
 public class MeasureRef extends RecommendationRef {
 
-    private List<ColumnRef> columnRefs;
-    private MeasureDesc measure;
+    public MeasureRef(MeasureDesc measure, int id, boolean existed) {
+        this.setId(id);
+        this.setEntity(measure);
+        this.setContent(JsonUtil.writeValueAsStringQuietly(measure));
+        this.setName(measure.getName());
+        this.setExisted(existed);
+    }
 
-    public MeasureRef(MeasureDesc measure, int id) {
-        this.measure = measure;
-        this.id = id;
-        this.columnRefs = Lists.newArrayList();
+    public NDataModel.Measure getMeasure() {
+        return (NDataModel.Measure) getEntity();
     }
 
     @Override
-    public List<RecommendationRef> getDependencies() {
-        List<RecommendationRef> res = Lists.newArrayList();
-        res.addAll(columnRefs);
-        return res;
-    }
-
-    @Override
-    public String getContent() {
-        return JsonUtil.writeValueAsStringQuietly(measure);
-    }
-
-    @Override
-    public String getName() {
-        return measure.getName();
+    public String getDataType() {
+        throw new IllegalStateException("Get datatype of MeasureRef is not allowed, but you can get it by getContent");
     }
 }

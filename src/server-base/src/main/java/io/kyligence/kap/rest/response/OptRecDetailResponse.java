@@ -37,12 +37,15 @@ public class OptRecDetailResponse implements Serializable {
     @JsonProperty("layout_item_ids")
     private List<Integer> layoutItemIds;
 
-    @JsonProperty("column_items")
-    private List<OptRecDepResponse> columnItems;
+    @JsonProperty("broken_layout_item_ids")
+    private List<Integer> brokenLayoutItemIds;
 
     @JsonProperty("dimension_items")
     private List<OptRecDepResponse> dimensionItems;
 
     @JsonProperty("measure_items")
     private List<OptRecDepResponse> measureItems;
+
+    @JsonProperty("cc_items")
+    private List<OptRecDepResponse> ccItems;
 }

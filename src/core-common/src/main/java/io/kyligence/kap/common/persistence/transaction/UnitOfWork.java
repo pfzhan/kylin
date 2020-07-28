@@ -52,7 +52,7 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -65,10 +65,10 @@ public class UnitOfWork {
 
     public static final long DEFAULT_EPOCH_ID = -1L;
 
-    private static SchedulerEventBusFactory factory;
+    private static EventBusFactory factory;
 
     static {
-        factory = SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv());
+        factory = EventBusFactory.getInstance();
     }
 
     static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
@@ -274,7 +274,7 @@ public class UnitOfWork {
         metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc,
                 params.getEpochId());
         if (!params.isReadonly() && !config.isUTEnv()) {
-            factory.post(new BroadcastEventReadyNotifier());
+            factory.postAsync(new BroadcastEventReadyNotifier());
         }
         try {
             // replayInTransaction in leader before release lock

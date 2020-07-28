@@ -23,14 +23,15 @@
  */
 package io.kyligence.kap.rest.broadcaster;
 
-import com.google.common.eventbus.Subscribe;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
@@ -42,7 +43,5 @@ public class BroadcastListener implements IKeep {
     public void onEventReady(BroadcastEventReadyNotifier notifier) throws IOException {
         broadcaster.announce(new Broadcaster.BroadcastEvent());
     }
-
-
 
 }

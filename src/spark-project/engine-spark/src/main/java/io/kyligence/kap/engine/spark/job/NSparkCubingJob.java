@@ -24,15 +24,14 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import lombok.val;
+import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.JobStoppedException;
@@ -45,13 +44,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
+import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.val;
 
 /**
  *
@@ -72,7 +73,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
         @Override
         protected NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                         JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+                JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
             return NSparkCubingJob.create(segments, layouts, submitter, jobType, jobId, toBeDeletedLayouts);
         }
     }
@@ -83,7 +84,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                         JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+            JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
 
         NSparkCubingJob sparkCubingJob = create(segments, layouts, submitter, jobType, jobId);
         if (CollectionUtils.isNotEmpty(toBeDeletedLayouts)) {
@@ -94,7 +95,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                         JobTypeEnum jobType, String jobId) {
+            JobTypeEnum jobType, String jobId) {
         Preconditions.checkArgument(!segments.isEmpty());
         Preconditions.checkArgument(submitter != null);
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
@@ -156,7 +157,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkCubingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
-            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY) && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)
+                    && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
                 toRemovedSegments.add(segment);
             }
         }
@@ -201,7 +203,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         super.onExecuteFinished(result);
 
         // post cubing job finished event with project and model Id
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                .post(new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter()));
+        EventBusFactory.getInstance()
+                .postAsync(new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter()));
     }
 }

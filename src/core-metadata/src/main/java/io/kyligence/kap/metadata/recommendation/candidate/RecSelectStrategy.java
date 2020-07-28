@@ -28,9 +28,7 @@ import java.util.List;
 
 public interface RecSelectStrategy {
 
-    List<RawRecItem> getBestRecItem(int topn);
+    List<RawRecItem> getBestRecItems(int topN, String project, String model);
 
-    List<RawRecItem> getBestRecItemByModel(int topn, String project, String model);
-
-    List<RawRecItem> getBestRecItemByProject(int topn, String project);
+    List<RawRecItem> getBestRecItems(int topN, String project);
 }

@@ -24,52 +24,25 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import java.util.List;
-
-import com.google.common.collect.Lists;
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Getter
 @NoArgsConstructor
-public class ModelColumnRef extends ColumnRef {
-
-    private NDataModel.NamedColumn column;
-    private String dataType;
-    private String content;
+public class ModelColumnRef extends RecommendationRef {
 
     public ModelColumnRef(NDataModel.NamedColumn column, String dataType, String content) {
-        this.column = column;
-        this.dataType = dataType;
-        this.id = column.getId();
-        this.existed = true;
-        this.content = content;
-        init();
+        this.setId(column.getId());
+        this.setName(column.getAliasDotColumn());
+        this.setContent(content);
+        this.setDataType(dataType);
+        this.setExisted(true);
+        this.setEntity(column);
     }
 
-    public void init() {
-        //do nothing
-    }
-
-    @Override
-    public String getDataType() {
-        return dataType;
-    }
-
-    @Override
-    public List<RecommendationRef> getDependencies() {
-        return Lists.newArrayList();
-    }
-
-    @Override
-    public String getContent() {
-        return content;
-    }
-
-    @Override
-    public String getName() {
-        return column.getAliasDotColumn();
+    public NDataModel.NamedColumn getColumn() {
+        Preconditions.checkArgument(getEntity() instanceof NDataModel.NamedColumn);
+        return (NDataModel.NamedColumn) getEntity();
     }
 }

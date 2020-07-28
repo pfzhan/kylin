@@ -31,28 +31,31 @@ import org.apache.commons.collections.CollectionUtils;
 
 import com.google.common.collect.Lists;
 
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
-@Setter
-public class RecommendationRef {
-    protected boolean existed;
+@Setter(AccessLevel.PROTECTED)
+@EqualsAndHashCode
+@NoArgsConstructor
+@ToString
+public abstract class RecommendationRef {
+
     // id >= 0 column in model
     // id < 0 column in rawRecItem
-    protected int id;
-
-    public List<RecommendationRef> getDependencies() {
-        return null;
-    }
-
-    public String getContent() {
-        return null;
-    }
-
-    public String getName() {
-        return null;
-    }
+    private int id;
+    private String name;
+    private String content;
+    @ToString.Exclude
+    private String dataType;
+    private boolean isBroken;
+    private boolean existed;
+    private Object entity;
+    private List<RecommendationRef> dependencies = Lists.newArrayList();
 
     protected <T extends RecommendationRef> List<RecommendationRef> validate(List<T> refs) {
         if (CollectionUtils.isEmpty(refs)) {
@@ -61,7 +64,13 @@ public class RecommendationRef {
         return refs.stream().filter(ref -> !ref.isBroken() && !ref.isExisted()).collect(Collectors.toList());
     }
 
-    public boolean isBroken() {
-        return false;
+    // When a ref is not deleted and does not exist in model.
+    public boolean isEffective() {
+        return !this.isBroken() && !this.isExisted() && this.getId() < 0;
+    }
+
+    // When a ref derives from origin model or is effective.
+    public boolean isLegal() {
+        return !this.isBroken() && (this.getId() >= 0 || !this.isExisted());
     }
 }

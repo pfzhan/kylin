@@ -177,11 +177,16 @@ import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.metadata.recommendation.RecommendationType;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -200,6 +205,7 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
+import io.kyligence.kap.rest.response.LayoutRecommendationResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
@@ -220,9 +226,8 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiAutoContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ModelSelectContextOfSemiMode;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
@@ -267,6 +272,10 @@ public class ModelService extends BasicService {
     @Setter
     @Autowired
     private IndexPlanService indexPlanService;
+
+    @Setter
+    @Autowired
+    private List<ModelUpdateListener> updateListeners = Lists.newArrayList();
 
     public NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
@@ -749,7 +758,8 @@ public class ModelService extends BasicService {
             }
         }
         List<NDataSegment> indexFiltered = new LinkedList<>();
-        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement, allIndexes, indexFiltered, segment));
+        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement, allIndexes, indexFiltered,
+                segment));
 
         segmentResponseList = indexFiltered.stream()
                 .filter(segment -> !StringUtils.isNotEmpty(status)
@@ -761,7 +771,8 @@ public class ModelService extends BasicService {
         return segmentResponseList;
     }
 
-    private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement, Set<Long> allIndexes, List<NDataSegment> indexFiltered, NDataSegment segment) {
+    private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
+            Set<Long> allIndexes, List<NDataSegment> indexFiltered, NDataSegment segment) {
         if (allToComplement) {
             // find seg that does not have all indexes
             if (segment.getSegDetails().getLayouts().size() != allIndexes.size()) {
@@ -969,13 +980,7 @@ public class ModelService extends BasicService {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val recommendationManager = OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
 
-        recommendationManagerV2.dropOptimizeRecommendationV2(modelId);
-        recommendationManager.dropOptimizeRecommendation(modelId);
         dataflowManager.dropDataflow(modelId);
         indexPlanManager.dropIndexPlan(modelId);
         dataModelManager.dropModel(dataModelDesc);
@@ -1402,12 +1407,10 @@ public class ModelService extends BasicService {
         val msg = MsgPicker.getMsg();
         int limit = kylinConfig.getSuggestModelSqlLimit();
         if (sqls.size() > limit) {
-            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, msg.getSQL_NUMBER_EXCEEDS_LIMIT());
+            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, String.format(msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
         }
-        Preconditions.checkState(sqls.size() <= limit,
-                "Suggest Model sql size " + sqls.size() + " is larger than " + limit);
-        AbstractSemiAutoContext proposeContext = reuseExistedModel
-                ? new ModelReuseContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]), true, true)
+        AbstractContext proposeContext = reuseExistedModel
+                ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), true)
                 : new ModelCreateContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();
@@ -1420,14 +1423,19 @@ public class ModelService extends BasicService {
         List<NRecomendationListResponse.NRecomendedDataModelResponse> originDataModelResponseList = Lists
                 .newArrayList();
 
-        context.getModelContexts().stream().filter(modelContext -> !modelContext.isTargetModelMissing())
-                .collect(groupingBy(modelContext -> modelContext.getTargetModel().getUuid()))
-                .forEach((modelId, modelContextList) -> {
+        Map<String, List<AbstractContext.NModelContext>> groupedMap = Maps.newHashMap();
+        for (AbstractContext.NModelContext modelContext : context.getModelContexts()) {
+            if (modelContext.isTargetModelMissing()) {
+                continue;
+            }
+            final NDataModel targetModel = modelContext.getTargetModel();
+            groupedMap.putIfAbsent(targetModel.getUuid(), Lists.newArrayList());
+            groupedMap.get(targetModel.getUuid()).add(modelContext);
+        }
 
-                    constructModelRecommendResponse(modelContextList, recommendationsMap, originDataModelResponseList,
-                            newDataModelResponseList);
+        groupedMap.forEach((modelId, modelContexts) -> constructModelRecommendResponse(modelContexts,
+                recommendationsMap, originDataModelResponseList, newDataModelResponseList));
 
-                });
         return new NRecomendationListResponse(originDataModelResponseList, newDataModelResponseList);
     }
 
@@ -1443,19 +1451,19 @@ public class ModelService extends BasicService {
                 .orElse(modelContextList.get(0));
 
         val response = new NRecomendationListResponse.NRecomendedDataModelResponse(modelContext.getTargetModel());
-        response.setDimensions(modelContext.getTargetModel().getAllNamedColumns().stream()
+        List<OptRecDimensionResponse> dimensionResponses = modelContext.getTargetModel().getAllNamedColumns().stream()
                 .filter(NDataModel.NamedColumn::isDimension).map(dim -> {
                     OptRecDimensionResponse recDimensionResponse = new OptRecDimensionResponse();
                     BeanUtils.copyProperties(dim, recDimensionResponse);
                     recDimensionResponse
                             .setDataType(modelContext.getTargetModel().getColRef(dim.getId()).getDatatype());
                     return recDimensionResponse;
-                }).collect(Collectors.toList()));
-        response.setSqls(Lists.newArrayList(sqls));
+                }).collect(Collectors.toList());
 
-        if (recommendationsMap.get(modelContext.getTargetModel()) != null) {
-            response.setRecommendationResponse(
-                    new OptRecommendationResponse(recommendationsMap.get(modelContext.getTargetModel()), null));
+        response.setDimensions(dimensionResponses);
+        response.setSqls(Lists.newArrayList(sqls));
+        if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
+            response.setRecommendationResponse(constructRecommendationResponse(modelContext));
         } else {
             // build Agg && Table index
             val indexPlan = modelContext.getTargetIndexPlan();
@@ -1467,6 +1475,68 @@ public class ModelService extends BasicService {
         } else {
             originModelList.add(response);
         }
+    }
+
+    private OptRecommendationResponse constructRecommendationResponse(AbstractContext.NModelContext modelContext) {
+        final Map<String, CCRecItemV2> ccRecMap = modelContext.getCcRecItemMap();
+        final Map<String, DimensionRecItemV2> dimRecMap = modelContext.getDimensionRecItemMap();
+        final Map<String, MeasureRecItemV2> measureRecMap = modelContext.getMeasureRecItemMap();
+        final Map<String, LayoutRecItemV2> indexRexMap = modelContext.getIndexRexItemMap();
+
+        List<CCRecommendationItem> ccRecommendations = Lists.newArrayList();
+        List<DimensionRecommendationItem> dimensionRecommendations = Lists.newArrayList();
+        List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
+        List<LayoutRecommendationResponse> indexRecommendations = Lists.newArrayList();
+
+        ccRecMap.forEach((key, recItemV2) -> {
+            CCRecommendationItem item = new CCRecommendationItem();
+            item.setCc(recItemV2.getCc());
+            item.setCreateTime(recItemV2.getCreateTime());
+            item.setRecommendationType(RecommendationType.ADDITION);
+            item.setItemId(recItemV2.getId());
+            ccRecommendations.add(item);
+
+        });
+        dimRecMap.forEach((key, recItemV2) -> {
+            DimensionRecommendationItem item = new DimensionRecommendationItem();
+            item.setDataType(recItemV2.getDataType());
+            item.setColumn(recItemV2.getColumn());
+            item.setCreateTime(recItemV2.getCreateTime());
+            item.setRecommendationType(RecommendationType.ADDITION);
+            dimensionRecommendations.add(item);
+        });
+        measureRecMap.forEach((key, recItemV2) -> {
+            MeasureRecommendationItem item = new MeasureRecommendationItem();
+            item.setMeasure(recItemV2.getMeasure());
+            item.setCreateTime(recItemV2.getCreateTime());
+            item.setRecommendationType(RecommendationType.ADDITION);
+            measureRecommendations.add(item);
+        });
+        indexRexMap.forEach((key, recItemV2) -> {
+            LayoutRecommendationResponse item = new LayoutRecommendationResponse();
+            item.setType(recItemV2.isAgg() ? LayoutRecommendationResponse.Type.ADD_AGG
+                    : LayoutRecommendationResponse.Type.ADD_TABLE);
+            item.setCreateTime(recItemV2.getCreateTime());
+            item.setRecommendationType(RecommendationType.ADDITION);
+            item.setLayout(recItemV2.getLayout());
+            indexRecommendations.add(item);
+        });
+
+        OptRecommendationResponse response = new OptRecommendationResponse();
+        int totalSize = ccRecMap.size() + dimRecMap.size() + measureRecMap.size() + indexRexMap.size();
+        response.setCcRecommendationSize(ccRecMap.size());
+        response.setDimensionRecommendationSize(dimRecMap.size());
+        response.setMeasureRecommendationSize(measureRecMap.size());
+        response.setIndexRecommendationSize(indexRexMap.size());
+        response.setTotalSize(totalSize);
+        response.setCcRecommendations(ccRecommendations);
+        response.setDimensionRecommendations(dimensionRecommendations);
+        response.setMeasureRecommendations(measureRecommendations);
+        response.setIndexRecommendations(indexRecommendations);
+        response.setProject(modelContext.getTargetModel().getProject());
+        response.setModelId(modelContext.getTargetModel().getUuid());
+
+        return response;
     }
 
     private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) {
@@ -1832,7 +1902,8 @@ public class ModelService extends BasicService {
         List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
         res.addAll(refreshSegmentById(modelId, project,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
-                        .toArray(new String[0]), true));
+                        .toArray(new String[0]),
+                true));
         return res;
     }
 
@@ -1894,8 +1965,8 @@ public class ModelService extends BasicService {
         }
     }
 
-    private JobInfoResponseWithFailure addIndexesToSegmentsParallelly(
-            String project, String modelId, List<String> segmentIds, List<Long> indexIds, NDataflow dataflow) {
+    private JobInfoResponseWithFailure addIndexesToSegmentsParallelly(String project, String modelId,
+            List<String> segmentIds, List<Long> indexIds, NDataflow dataflow) {
         JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
         List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
         val jobManager = getJobManager(project);
@@ -1903,8 +1974,7 @@ public class ModelService extends BasicService {
             try {
                 JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getSourceUsageManager().licenseCheckWrap(project,
-                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(),
-                                        Sets.newHashSet(segmentId),
+                                () -> jobManager.addRelatedIndexJob(modelId, getUsername(), Sets.newHashSet(segmentId),
                                         indexIds == null ? null : new HashSet<>(indexIds))));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
@@ -2435,7 +2505,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public List<JobInfoResponse.JobInfo> refreshSegmentById(String modelId, String project, String[] ids,
-                                                            boolean refreshAllLayouts) {
+            boolean refreshAllLayouts) {
         aclEvaluate.checkProjectOperationPermission(project);
         checkSegmentsExist(modelId, project, ids);
         checkSegmentsStatus(modelId, project, ids, SegmentStatusEnumToDisplay.LOADING,
@@ -2499,14 +2569,7 @@ public class ModelService extends BasicService {
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
                 request.isSaveOnly(), affectedLayoutSet.size() > 0);
 
-        val projectInstance = NProjectManager.getInstance(getConfig()).getProject(project);
-        if (projectInstance.isSemiAutoMode()) {
-            val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), project);
-            recommendationManager.cleanInEffective(modelId);
-            val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(getConfig(), project);
-            recommendationManagerV2.cleanInEffective(modelId);
-
-        }
+        updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
     }
 
     private Set<Long> getAffectedLayouts(String project, String modelId, Set<Integer> modifiedSet) {

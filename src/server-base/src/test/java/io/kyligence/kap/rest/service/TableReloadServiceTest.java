@@ -41,9 +41,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -76,8 +73,11 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -100,6 +100,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -129,7 +130,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             setupPushdownEnv();
         } catch (Exception ignore) {
         }
-        SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
+        EventBusFactory.getInstance().register(modelBrokenListener);
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         indexManager.updateIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream().peek(i -> {
@@ -139,6 +140,16 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }).collect(Collectors.toList()));
         });
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+
+        OptRecManagerV2 optRecManagerV2;
+        try {
+            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance("default"), OptRecManagerV2.class,
+                    getInstanceByProjectFromSingleton());
+            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
+            modelService.setUpdateListeners(Lists.newArrayList());
+        } catch (Exception e) {
+            // ignore
+        }
     }
 
     @After
@@ -148,8 +159,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             cleanPushdownEnv();
         } catch (Exception ignore) {
         }
-        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
-        SchedulerEventBusFactory.restart();
+        EventBusFactory.getInstance().unRegister(modelBrokenListener);
+        EventBusFactory.restart();
         super.cleanup();
     }
 
@@ -867,7 +878,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         List<AbstractExecutable> jobs = Lists.newArrayList(job1, job2);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): DEFAULT.TEST_ORDER,nmodel_basic_inner. Please try reloading until all the jobs are completed, or manually discard the jobs.");
+        thrown.expectMessage(
+                "The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): DEFAULT.TEST_ORDER,nmodel_basic_inner. Please try reloading until all the jobs are completed, or manually discard the jobs.");
         tableService.checkEffectedJobs(tableDesc, jobs);
     }
 
@@ -944,13 +956,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                         * diff.stream().filter(l -> l < IndexEntity.TABLE_INDEX_START_ID).count(),
                 indexPlan2.getNextAggregationIndexId());
         Assert.assertEquals(
-                nextTableIndexId + IndexEntity.INDEX_ID_STEP
-                        * diff.stream().filter(IndexEntity::isTableIndex).count(),
+                nextTableIndexId + IndexEntity.INDEX_ID_STEP * diff.stream().filter(IndexEntity::isTableIndex).count(),
                 indexPlan2.getNextTableIndexId());
 
         val executables = getRunningExecutables(PROJECT, model.getId());
         Assert.assertEquals(1, executables.size());
-
 
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getOrCreateTableExt(tableIdentity);
@@ -967,7 +977,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-     public void testReload_ChangeTypeAndRemoveDimension() throws Exception {
+    public void testReload_ChangeTypeAndRemoveDimension() throws Exception {
         removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
         tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
 

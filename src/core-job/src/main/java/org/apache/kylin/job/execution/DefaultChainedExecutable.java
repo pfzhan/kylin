@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -62,8 +61,9 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.metrics.NMetricsTag;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 
 /**
  */
@@ -197,8 +197,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }, project);
 
         // dispatch job-finished message out
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                .postWithLimit(new JobFinishedNotifier(getProject()));
+        EventBusFactory.getInstance().postWithLimit(new JobFinishedNotifier(getProject()));
 
         updateMetrics();
 
@@ -237,8 +236,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                         tags, getDuration());
                 NMetricsGroup.counterInc(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, getProject(), tags,
                         getWaitTime());
-                NMetricsGroup.histogramUpdate(NMetricsName.MODEL_BUILD_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, project,
-                        tags, getDuration());
+                NMetricsGroup.histogramUpdate(NMetricsName.MODEL_BUILD_DURATION_HISTOGRAM, NMetricsCategory.PROJECT,
+                        project, tags, getDuration());
             }
         }
     }

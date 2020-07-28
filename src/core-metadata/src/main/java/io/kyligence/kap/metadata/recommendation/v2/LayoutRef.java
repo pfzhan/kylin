@@ -24,38 +24,29 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import java.util.List;
-
-import com.google.common.collect.Lists;
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
-@Setter
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 @NoArgsConstructor
 public class LayoutRef extends RecommendationRef {
-    private List<DimensionRef> dimensionRefs;
-    private List<MeasureRef> measureRefs;
+
+    @Setter(AccessLevel.PRIVATE)
     private boolean agg;
-    protected LayoutEntity layout;
 
     public LayoutRef(LayoutEntity layout, int id, boolean agg) {
-        this.layout = layout;
-        this.dimensionRefs = Lists.newArrayList();
-        this.measureRefs = Lists.newArrayList();
-        this.id = id;
-        this.agg = agg;
-    }
-
-    @Override
-    public List<RecommendationRef> getDependencies() {
-        List<RecommendationRef> res = Lists.newArrayList();
-        res.addAll(dimensionRefs);
-        res.addAll(measureRefs);
-        return res;
+        this.setId(id);
+        this.setEntity(layout);
+        this.setAgg(agg);
     }
 
     @Override
@@ -68,4 +59,13 @@ public class LayoutRef extends RecommendationRef {
         return null;
     }
 
+    public LayoutEntity getLayout() {
+        Preconditions.checkArgument(getEntity() instanceof LayoutEntity);
+        return (LayoutEntity) getEntity();
+    }
+
+    @Override
+    public String getDataType() {
+        throw new IllegalStateException("There is no datatype of LayoutRef");
+    }
 }

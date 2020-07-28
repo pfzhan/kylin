@@ -24,45 +24,45 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.common.util.CollectionUtil.difference;
 import static io.kyligence.kap.common.util.CollectionUtil.intersection;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.recommendation.v2.ColumnRef;
+import io.kyligence.kap.metadata.recommendation.v2.CCRef;
 import io.kyligence.kap.metadata.recommendation.v2.DimensionRef;
 import io.kyligence.kap.metadata.recommendation.v2.LayoutRef;
 import io.kyligence.kap.metadata.recommendation.v2.MeasureRef;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationV2;
+import io.kyligence.kap.metadata.recommendation.v2.ModelColumnRef;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecV2;
 import io.kyligence.kap.metadata.recommendation.v2.RecommendationRef;
 import io.kyligence.kap.metadata.recommendation.v2.RecommendationUtil;
 import io.kyligence.kap.rest.request.OptRecRequest;
@@ -78,138 +78,120 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("optRecService")
-public class OptRecService extends BasicService {
+public class OptRecService extends BasicService implements ModelUpdateListener {
 
     public static final int V1 = 1;
     public static final int V2 = 2;
 
+    private static final String REC_ABSENT_ERROR = "RawRecItem id {} is null";
+
     @Autowired
     public AclEvaluate aclEvaluate;
-
-    private void classify(List<RawRecItem> rawRecItems, List<RawRecItem> ccItems, List<RawRecItem> dimensionItems,
-            List<RawRecItem> measureItems, List<RawRecItem> layoutItems) {
-        rawRecItems.forEach(rawRecItem -> {
-            switch (rawRecItem.getType()) {
-            case COMPUTED_COLUMN:
-                ccItems.add(rawRecItem);
-                return;
-            case DIMENSION:
-                dimensionItems.add(rawRecItem);
-                return;
-            case MEASURE:
-                measureItems.add(rawRecItem);
-                return;
-            case LAYOUT:
-                layoutItems.add(rawRecItem);
-                return;
-            default:
-            }
-        });
-    }
-
-    private void checkProjectMode(String project) {
-        if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-            throw new KylinException(ServerErrorCode.INCORRECT_PROJECT_MODE,
-                    MsgPicker.getMsg().getUNSUPPORTED_RECOMMENDATION_MODE());
-        }
-    }
 
     @Transaction(project = 0)
     public void approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectOperationPermission(project);
-        checkProjectMode(project);
-        val modelId = request.getModelId();
+        String modelId = request.getModelId();
         OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(),
                 project, request.getModelId());
-        verifier.setPassLayoutItems(request.getLegacyIds().stream().map(Long::new).collect(Collectors.toSet()));
+        verifier.setPassLayoutItems(request.getLayoutIdsToRemove().stream().map(Long::new).collect(Collectors.toSet()));
         verifier.verify();
 
-        val managerV2 = OptimizeRecommendationManagerV2.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
         managerV2.cleanInEffective(request.getModelId());
-        val recommendationV2 = managerV2.getOptimizeRecommendationV2(request.getModelId());
-
-        val v2Names = request.getNames();
-
-        List<RawRecItem> rawRecItems = recommendationV2
-                .getAllRawItems(intersection(recommendationV2.getRawIds(), request.getIds()));
-        List<RawRecItem> ccItems = Lists.newArrayList();
-        List<RawRecItem> dimensionItems = Lists.newArrayList();
-        List<RawRecItem> measureItems = Lists.newArrayList();
-        List<RawRecItem> layoutItems = Lists.newArrayList();
-        classify(rawRecItems, ccItems, dimensionItems, measureItems, layoutItems);
+        OptRecV2 recommendationV2 = managerV2.getOptimizeRecommendationV2(request.getModelId());
+        List<RawRecItem> rawRecItems = recommendationV2.getAllRelatedRecItems(request.getLayoutIdsToAdd());
 
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Map<Integer, String> recIdNameMap = request.getNames();
         Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
         Map<Integer, NDataModel.NamedColumn> dimensions = Maps.newHashMap();
         Map<Integer, NDataModel.Measure> measures = Maps.newHashMap();
         Map<Integer, Integer> existMap = recommendationV2.getExistMap();
         modelManager.updateDataModel(modelId, model -> {
-            int lastColumnId = model.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max()
-                    .orElse(0);
-            int lastMeasureId = model.getAllMeasures().stream().mapToInt(NDataModel.Measure::getId).max().orElse(0);
-            val factTable = model.getRootFactTableAlias() != null ? model.getRootFactTableAlias()
+            int lastColumnId = model.getAllNamedColumns().stream() //
+                    .mapToInt(NDataModel.NamedColumn::getId) //
+                    .max().orElse(0);
+            int lastMeasureId = model.getAllMeasures().stream() //
+                    .mapToInt(NDataModel.Measure::getId) //
+                    .max().orElse(0);
+            String factTable = model.getRootFactTableAlias() != null //
+                    ? model.getRootFactTableAlias()
                     : model.getRootFactTableName().split("\\.")[1];
-            model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+            model.getAllNamedColumns().stream() //
+                    .filter(NDataModel.NamedColumn::isExist) //
                     .forEach(c -> columns.put(c.getId(), c));
-            model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+            model.getAllNamedColumns().stream() //
+                    .filter(NDataModel.NamedColumn::isDimension) //
                     .forEach(c -> dimensions.put(c.getId(), c));
-            model.getAllMeasures().stream().filter(m -> !m.isTomb()).forEach(m -> measures.put(m.getId(), m));
-            for (val rawRecItem : ccItems) {
-                val cc = RecommendationUtil.getCC(rawRecItem);
-                if (v2Names.containsKey(rawRecItem.getId())) {
-                    cc.setColumnName(v2Names.get(rawRecItem.getId()));
-                    managerV2.checkCCName(model, cc);
-                }
-                val columnInModel = new NDataModel.NamedColumn();
-                columnInModel.setId(++lastColumnId);
-                columnInModel.setName(factTable + "_" + cc.getColumnName());
-                columnInModel.setAliasDotColumn(factTable + "." + cc.getColumnName());
-                columnInModel.setStatus(NDataModel.ColumnStatus.EXIST);
-                model.getAllNamedColumns().add(columnInModel);
-                model.getComputedColumnDescs().add(cc);
-                columns.put(rawRecItem.getId() * -1, columnInModel);
-                columns.put(lastColumnId, columnInModel);
-            }
-
-            for (val rawRecItem : dimensionItems) {
-                int id = rawRecItem.getDependIDs()[0];
-                id = existMap.getOrDefault(id, id);
-                columns.get(id).setStatus(NDataModel.ColumnStatus.DIMENSION);
-                if (v2Names.containsKey(rawRecItem.getId())) {
-                    columns.get(id).setName(v2Names.get(rawRecItem.getId()));
-                    managerV2.checkDimensionName(columns);
-                }
-                dimensions.put(rawRecItem.getId() * -1, columns.get(id));
-            }
-
-            for (val rawRecItem : measureItems) {
-                val measure = RecommendationUtil.getMeasure(rawRecItem);
-                if (v2Names.containsKey(rawRecItem.getId())) {
-                    measure.setName(v2Names.get(rawRecItem.getId()));
-                    managerV2.checkMeasureName(model, measure);
-                }
-                int[] depId = rawRecItem.getDependIDs();
-                val measureInModel = new NDataModel.Measure();
-                measureInModel.setId(++lastMeasureId);
-                measureInModel.setFunction(measure.getFunction());
-                measureInModel.setName(measure.getName());
-                for (int i = 0; i < depId.length; i++) {
-                    depId[i] = existMap.getOrDefault(depId[i], depId[i]);
-                    if (depId[i] < 0) {
-                        measureInModel.getFunction().getParameters().get(i)
-                                .setValue(columns.get(depId[i]).getAliasDotColumn());
+            model.getAllMeasures().stream() //
+                    .filter(m -> !m.isTomb()) //
+                    .forEach(m -> measures.put(m.getId(), m));
+            for (RawRecItem rawRecItem : rawRecItems) {
+                if (rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                    Map<Integer, RecommendationRef> ccRefs = recommendationV2.getCcRefs();
+                    RecommendationRef recommendationRef = ccRefs.get(-rawRecItem.getId());
+                    if (recommendationRef.isExisted()) {
+                        continue;
                     }
+                    CCRef ccRef = (CCRef) recommendationRef;
+                    ComputedColumnDesc cc = ccRef.getCc();
+                    if (recIdNameMap.containsKey(rawRecItem.getId())) {
+                        cc.setColumnName(recIdNameMap.get(rawRecItem.getId()));
+                    }
+                    managerV2.checkCCName(model, cc);
+                    NDataModel.NamedColumn columnInModel = new NDataModel.NamedColumn();
+                    columnInModel.setId(++lastColumnId);
+                    columnInModel.setName(factTable + "_" + cc.getColumnName());
+                    columnInModel.setAliasDotColumn(factTable + "." + cc.getColumnName());
+                    columnInModel.setStatus(NDataModel.ColumnStatus.EXIST);
+                    model.getAllNamedColumns().add(columnInModel);
+                    model.getComputedColumnDescs().add(cc);
+                    columns.put(-rawRecItem.getId(), columnInModel);
+                    columns.put(lastColumnId, columnInModel);
+                } else if (rawRecItem.getType() == RawRecItem.RawRecType.DIMENSION) {
+                    Map<Integer, RecommendationRef> dimensionRefs = recommendationV2.getDimensionRefs();
+                    RecommendationRef dimensionRef = dimensionRefs.get(-rawRecItem.getId());
+                    if (dimensionRef.isExisted()) {
+                        continue;
+                    }
+                    DimensionRef dimRef = (DimensionRef) dimensionRef;
+                    Preconditions.checkArgument(dimRef.getEntity() instanceof ModelColumnRef);
+                    ModelColumnRef columnRef = (ModelColumnRef) dimensionRef.getEntity();
+                    NDataModel.NamedColumn column = columnRef.getColumn();
+                    if (recIdNameMap.containsKey(rawRecItem.getId())) {
+                        column.setName(recIdNameMap.get(rawRecItem.getId()));
+                    }
+                    column.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                    managerV2.checkDimensionName(columns);
+                    dimensions.put(-rawRecItem.getId(), column);
+                } else if (rawRecItem.getType() == RawRecItem.RawRecType.MEASURE) {
+                    Map<Integer, RecommendationRef> measureRefs = recommendationV2.getMeasureRefs();
+                    RecommendationRef recommendationRef = measureRefs.get(-rawRecItem.getId());
+                    if (recommendationRef.isExisted()) {
+                        continue;
+                    }
+                    // copy more better
+                    MeasureRef measureRef = (MeasureRef) recommendationRef;
+                    NDataModel.Measure mea = measureRef.getMeasure();
+                    if (recIdNameMap.containsKey(rawRecItem.getId())) {
+                        mea.setName(recIdNameMap.get(rawRecItem.getId()));
+                    }
+                    managerV2.checkMeasureName(model, mea);
+                    mea.setId(++lastMeasureId);
+                    model.getAllMeasures().add(mea);
+                    measures.put(-rawRecItem.getId(), mea);
+                    measures.put(lastMeasureId, mea);
                 }
-                model.getAllMeasures().add(measureInModel);
-                measures.put(rawRecItem.getId() * -1, measureInModel);
-                measures.put(lastMeasureId, measureInModel);
             }
-
         });
 
         NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateIndexPlan(modelId, indexPlan -> {
             val handler = indexPlan.createUpdateHandler();
-            for (val rawRecItem : layoutItems) {
+            for (RawRecItem rawRecItem : rawRecItems) {
+                if (rawRecItem.getType() != RawRecItem.RawRecType.LAYOUT) {
+                    continue;
+                }
                 val layout = RecommendationUtil.getLayout(rawRecItem);
                 boolean isAgg = RecommendationUtil.isAgg(rawRecItem);
                 List<Integer> colOrder = Lists.newArrayList(layout.getColOrder());
@@ -228,8 +210,6 @@ public class OptRecService extends BasicService {
             }
             handler.complete();
         });
-        List<Integer> newRawIds = difference(recommendationV2.getRawIds(), request.getIds());
-        managerV2.createOrUpdate(modelId, newRawIds);
         UnitOfWork.get().doAfterUpdate(() -> {
             RawRecManager rawManager = RawRecManager.getInstance(project);
             rawManager.applyByIds(rawRecItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
@@ -239,34 +219,29 @@ public class OptRecService extends BasicService {
     @Transaction(project = 0)
     public void delete(String project, OptRecRequest request) {
         aclEvaluate.checkProjectOperationPermission(project);
-        checkProjectMode(project);
         OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(),
                 project, request.getModelId());
-        verifier.setFailLayoutItems(request.getLegacyIds().stream().map(Long::new).collect(Collectors.toSet()));
+        verifier.setFailLayoutItems(request.getLayoutIdsToRemove().stream().map(Long::new).collect(Collectors.toSet()));
         verifier.verify();
-        OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+        OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
         managerV2.cleanInEffective(request.getModelId());
-        OptimizeRecommendationV2 recommendationV2 = managerV2.getOptimizeRecommendationV2(request.getModelId());
+        OptRecV2 recommendationV2 = managerV2.getOptimizeRecommendationV2(request.getModelId());
         if (recommendationV2 == null) {
             return;
         }
-        managerV2.createOrUpdate(request.getModelId(), difference(recommendationV2.getRawIds(), request.getIds()));
         UnitOfWork.get().doAfterUpdate(() -> {
             RawRecManager rawManager = RawRecManager.getInstance(project);
-            rawManager.discardByIds(intersection(recommendationV2.getRawIds(), request.getIds()));
+            rawManager.discardByIds(intersection(recommendationV2.getRawIds(), request.getLayoutIdsToAdd()));
         });
     }
 
     @Transaction(project = 0)
     public void clean(String project, String modelId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        checkProjectMode(project);
         OptimizeRecommendationManager manager = OptimizeRecommendationManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
         manager.cleanAll(modelId);
-        OptimizeRecommendationManagerV2 managerV2 = OptimizeRecommendationManagerV2
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+        OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
         managerV2.discardAll(modelId);
     }
 
@@ -287,159 +262,65 @@ public class OptRecService extends BasicService {
         }
     }
 
-    private static <T extends RecommendationRef> OptRecDepResponse convert(T ref) {
-        val response = new OptRecDepResponse();
-        response.setVersion(2);
+    private static OptRecDepResponse convert(RecommendationRef ref) {
+        OptRecDepResponse response = new OptRecDepResponse();
+        response.setVersion(V2);
         response.setContent(ref.getContent());
         response.setName(ref.getName());
         response.setAdd(!ref.isExisted());
         if (response.isAdd()) {
-            response.setItemId(ref.getId() * -1);
+            response.setItemId(-ref.getId());
         }
         return response;
     }
 
-    public OptRecDetailResponse getOptRecDetail(String project, String modelId, List<Integer> rawIds) {
+    public OptRecDetailResponse getOptRecDetail(String project, String modelId, List<Integer> selectedIds) {
         aclEvaluate.checkProjectReadPermission(project);
-        checkProjectMode(project);
-        val cachedRecommendation = OptimizeRecommendationManagerV2
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendationV2(modelId);
-        List<Integer> originRawIds = cachedRecommendation == null ? Lists.newArrayList()
-                : cachedRecommendation.getRawIds();
-
-        val recommendationV2 = new OptimizeRecommendationV2();
-        recommendationV2.setUuid(modelId);
-        recommendationV2.setRawIds(intersection(originRawIds, rawIds));
-        recommendationV2.init(KylinConfig.getInstanceFromEnv(), project);
-
-        Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isBroken()
-                && !e.getValue().isExisted() && e.getKey() < 0;
-        List<ColumnRef> columnRefs = recommendationV2.getColumnRefs().entrySet().stream().filter(filter)
-                .map(Map.Entry::getValue).collect(Collectors.toList());
-        List<DimensionRef> dimensionRefs = recommendationV2.getDimensionRefs().entrySet().stream().filter(filter)
-                .map(Map.Entry::getValue).collect(Collectors.toList());
-        List<MeasureRef> measureRefs = recommendationV2.getMeasureRefs().entrySet().stream().filter(filter)
-                .map(Map.Entry::getValue).collect(Collectors.toList());
-        List<LayoutRef> layoutRefs = recommendationV2.getLayoutRefs().entrySet().stream().filter(filter)
-                .map(Map.Entry::getValue).collect(Collectors.toList());
-        OptRecDetailResponse detailResponse = new OptRecDetailResponse();
-        detailResponse.setColumnItems(columnRefs.stream().map(OptRecService::convert).collect(Collectors.toList()));
-        detailResponse
-                .setDimensionItems(dimensionRefs.stream().map(OptRecService::convert).collect(Collectors.toList()));
-        detailResponse.setMeasureItems(measureRefs.stream().map(OptRecService::convert).collect(Collectors.toList()));
-        detailResponse.setLayoutItemIds(layoutRefs.stream().map(ref -> ref.getId() * -1).collect(Collectors.toList()));
-        return detailResponse;
-    }
-
-    public OptRecDetailResponse getSingleOptRecDetail(String project, String modelId, int id) {
-        aclEvaluate.checkProjectReadPermission(project);
-        checkProjectMode(project);
-        val cachedRecommendation = OptimizeRecommendationManagerV2
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendationV2(modelId);
-        List<Integer> originRawIds = cachedRecommendation == null ? Lists.newArrayList()
-                : cachedRecommendation.getRawIds();
-
-        if (!originRawIds.contains(id)) {
-            throw new IllegalStateException("Raw item id " + id + " is null.");
-        }
 
         OptRecDetailResponse detailResponse = new OptRecDetailResponse();
-        val recommendationV2 = new OptimizeRecommendationV2();
-        recommendationV2.setUuid(modelId);
-        recommendationV2.setRawIds(Lists.newArrayList(id));
-        recommendationV2.init(KylinConfig.getInstanceFromEnv(), project);
-        val layoutRef = recommendationV2.getLayoutRefs().get(id * -1);
-        if (layoutRef == null) {
-            throw new IllegalStateException("Raw item id " + id + " is null.");
-        }
-        List<ColumnRef> columnRefs = Lists.newArrayList();
-        List<DimensionRef> dimensionRefs = Lists.newArrayList();
-        List<MeasureRef> measureRefs = Lists.newArrayList();
-        layoutRef.getDependencies().forEach(depRef -> {
-            if (depRef instanceof ColumnRef) {
-                columnRefs.add((ColumnRef) depRef);
-            } else if (depRef instanceof DimensionRef) {
-                dimensionRefs.add((DimensionRef) depRef);
-                columnRefs.add(((DimensionRef) depRef).getColumnRef());
-            } else if (depRef instanceof MeasureRef) {
-                measureRefs.add((MeasureRef) depRef);
+        OptRecV2 recommendationV2 = new OptRecV2(project, modelId);
+        Set<Integer> allRecItemIds = Sets.newHashSet(recommendationV2.getRawIds());
+        List<Integer> existingIds = Lists.newArrayList();
+        List<Integer> brokenIds = Lists.newArrayList();
+        selectedIds.forEach(id -> {
+            if (!allRecItemIds.contains(id)) {
+                brokenIds.add(id);
+            } else {
+                existingIds.add(id);
             }
         });
-        detailResponse.setColumnItems(columnRefs.stream().map(OptRecService::convert).collect(Collectors.toList()));
-        detailResponse
-                .setDimensionItems(dimensionRefs.stream().map(OptRecService::convert).collect(Collectors.toList()));
-        detailResponse.setMeasureItems(measureRefs.stream().map(OptRecService::convert).collect(Collectors.toList()));
-        detailResponse.setLayoutItemIds(Lists.newArrayList(id));
+
+        Set<OptRecDepResponse> dimensionRefResponse = Sets.newHashSet();
+        Set<OptRecDepResponse> measureRefResponse = Sets.newHashSet();
+        Set<OptRecDepResponse> ccRefResponse = Sets.newHashSet();
+        existingIds.forEach(recItemId -> {
+            RecommendationRef layoutRef = recommendationV2.getLayoutRefs().get(-recItemId);
+            layoutRef.getDependencies().forEach(ref -> {
+                if (ref instanceof DimensionRef) {
+                    dimensionRefResponse.add(OptRecService.convert(ref));
+                }
+                if (ref instanceof MeasureRef) {
+                    measureRefResponse.add(OptRecService.convert(ref));
+                }
+
+                for (RecommendationRef innerRef : ref.getDependencies()) {
+                    if (innerRef instanceof CCRef) {
+                        ccRefResponse.add(OptRecService.convert(innerRef));
+                    }
+                }
+            });
+        });
+        detailResponse.setDimensionItems(Lists.newArrayList(dimensionRefResponse));
+        detailResponse.setMeasureItems(Lists.newArrayList(measureRefResponse));
+        detailResponse.setCcItems(Lists.newArrayList(ccRefResponse));
+        detailResponse.setLayoutItemIds(existingIds);
+        detailResponse.setBrokenLayoutItemIds(brokenIds);
         return detailResponse;
     }
 
-    public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId) {
-        aclEvaluate.checkProjectReadPermission(project);
-        checkProjectMode(project);
-
-        OptRecLayoutsResponse layoutsResponse = new OptRecLayoutsResponse();
-
-        val managerV1 = OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val recommendationV1 = managerV1.getOptimizeRecommendation(modelId);
-
-        val layouts = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getIndexPlan(modelId)
-                .getAllLayouts().stream().collect(Collectors.toMap(LayoutEntity::getId, Function.identity()));
-
-        if (recommendationV1 != null) {
-            layoutsResponse.getLayouts()
-                    .addAll(recommendationV1.getLayoutRecommendations().stream().filter(item -> !item.isAdd())
-                            .map(item -> convert(layouts, project, modelId, item)).collect(Collectors.toList()));
-        }
-
-        val managerV2 = OptimizeRecommendationManagerV2.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val recommendationV2 = managerV2.getOptimizeRecommendationV2(modelId);
-
-        Predicate<Map.Entry<Integer, ? extends RecommendationRef>> filter = e -> !e.getValue().isBroken()
-                && !e.getValue().isExisted() && e.getKey() < 0;
-        List<RawRecItem> layoutRefs = recommendationV2 == null ? Lists.newArrayList()
-                : recommendationV2.getLayoutRefs().entrySet().stream().filter(filter)
-                        .map(e -> recommendationV2.getRawRecItemMap().get(-1 * e.getKey()))
-                        .collect(Collectors.toList());
-
-        layoutsResponse.getLayouts().addAll(layoutRefs.stream().map(this::convert).collect(Collectors.toList()));
-        layoutsResponse.setSize(layoutsResponse.getLayouts().size());
-        return layoutsResponse;
-    }
-
-    private OptRecLayoutResponse convert(RawRecItem raw) {
-        val response = new OptRecLayoutResponse();
-        response.setItemId(raw.getId());
-        response.setCreateTime(raw.getCreateTime());
-        response.setUsage(raw.getHitCount());
-        val layout = RecommendationUtil.getLayout(raw);
-        response.setColumnsAndMeasuresSize(layout.getColOrder().size());
-        if (RecommendationUtil.isAgg(raw)) {
-            response.setType(LayoutRecommendationResponse.Type.ADD_AGG);
-        } else {
-            response.setType(LayoutRecommendationResponse.Type.ADD_TABLE);
-        }
-        response.setSource(LayoutRecommendationItem.QUERY_HISTORY);
-        response.setVersion(V2);
-        response.setLastModifyTime(raw.getUpdateTime());
-        response.setAdd(true);
-        return response;
-    }
-
-    private OptRecLayoutResponse convert(Map<Long, LayoutEntity> layouts, String project, String modelId,
-            LayoutRecommendationItem item) {
-        val layoutRecommendationResponse = OptRecommendationResponse.convertToIndexRecommendationResponse(project,
-                modelId, item);
-        val optRecLayoutResponse = new OptRecLayoutResponse();
-        BeanUtils.copyProperties(layoutRecommendationResponse, optRecLayoutResponse);
-        optRecLayoutResponse.setVersion(V1);
-        val layout = layouts.get(item.getLayout().getId());
-        optRecLayoutResponse.setLastModifyTime(layout.getUpdateTime());
-        return optRecLayoutResponse;
-    }
-
-    public OptRecDetailResponse getSingleOptRecDetail(String project, String modelId, int id, boolean isAdd) {
+    public OptRecDetailResponse getSingleOptRecDetail(String project, String modelId, int recItemId, boolean isAdd) {
         if (isAdd) {
-            return getSingleOptRecDetail(project, modelId, id);
+            return getSingleOptRecDetail(project, modelId, recItemId);
         } else {
             // is delete
             OptRecDetailResponse detailResponse = new OptRecDetailResponse();
@@ -449,16 +330,137 @@ public class OptRecService extends BasicService {
             for (LayoutRecommendationItem item : OptimizeRecommendationManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(modelId)
                     .getLayoutRecommendations()) {
-                if (item.getItemId() == id) {
+                if (item.getItemId() == recItemId) {
                     collectDimAndMeaItems(item, dimensionItems, measureItems, project, modelId);
                     break;
                 }
             }
-            detailResponse.setLayoutItemIds(Lists.newArrayList(id));
+            detailResponse.setLayoutItemIds(Lists.newArrayList(recItemId));
             detailResponse.setDimensionItems(dimensionItems);
             detailResponse.setMeasureItems(measureItems);
-            detailResponse.setColumnItems(Lists.newArrayList());
+            detailResponse.setCcItems(Lists.newArrayList());
             return detailResponse;
+        }
+    }
+
+    private OptRecDetailResponse getSingleOptRecDetail(String project, String modelId, int recItemId) {
+        aclEvaluate.checkProjectReadPermission(project);
+
+        OptRecV2 recommendationV2 = new OptRecV2(project, modelId);
+        Set<Integer> originRawIds = Sets.newHashSet(recommendationV2.getRawIds());
+        Preconditions.checkArgument(originRawIds.contains(recItemId), REC_ABSENT_ERROR, recItemId);
+        LayoutRef layoutRef = recommendationV2.getLayoutRefs().get(-recItemId);
+        Preconditions.checkArgument(layoutRef != null, REC_ABSENT_ERROR, recItemId);
+
+        List<OptRecDepResponse> dimensionRefResponse = Lists.newArrayList();
+        List<OptRecDepResponse> measureRefResponse = Lists.newArrayList();
+        List<OptRecDepResponse> ccRefResponse = Lists.newArrayList();
+        layoutRef.getDependencies().forEach(dependRef -> {
+            OptRecDepResponse convert = OptRecService.convert(dependRef);
+            if (dependRef instanceof DimensionRef) {
+                dimensionRefResponse.add(convert);
+            } else if (dependRef instanceof MeasureRef) {
+                measureRefResponse.add(convert);
+            }
+
+            dependRef.getDependencies().forEach(ref -> {
+                if (ref instanceof CCRef) {
+                    ccRefResponse.add(OptRecService.convert(ref));
+                }
+            });
+        });
+
+        // cc, dimension, measure, layout
+        OptRecDetailResponse detailResponse = new OptRecDetailResponse();
+        detailResponse.setDimensionItems(dimensionRefResponse);
+        detailResponse.setMeasureItems(measureRefResponse);
+        detailResponse.setCcItems(ccRefResponse);
+        detailResponse.setLayoutItemIds(Lists.newArrayList(recItemId));
+        return detailResponse;
+    }
+
+    public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId) {
+        aclEvaluate.checkProjectReadPermission(project);
+
+        OptRecLayoutsResponse layoutsResponse = new OptRecLayoutsResponse();
+        layoutsResponse.getLayouts().addAll(convertToV1RecResponse(project, modelId));
+        layoutsResponse.getLayouts().addAll(convertToV2RecResponse(project, modelId));
+        layoutsResponse.setSize(layoutsResponse.getLayouts().size());
+        return layoutsResponse;
+    }
+
+    /**
+     * convert v1 recommendations to response
+     */
+    private List<OptRecLayoutResponse> convertToV1RecResponse(String project, String uuid) {
+        OptimizeRecommendation recV1 = OptimizeRecommendationManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(uuid);
+        List<OptRecLayoutResponse> result = Lists.newArrayList();
+        if (recV1 == null) {
+            return result;
+        }
+
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Map<Long, LayoutEntity> layouts = indexPlanManager.getIndexPlan(uuid).getAllLayouts() //
+                .stream().collect(Collectors.toMap(LayoutEntity::getId, Function.identity()));
+        recV1.getLayoutRecommendations().forEach(item -> {
+            if (!item.isAdd()) {
+                LayoutRecommendationResponse response = OptRecommendationResponse
+                        .convertToIndexRecommendationResponse(project, uuid, item);
+                OptRecLayoutResponse optRecLayoutResponse = new OptRecLayoutResponse();
+                BeanUtils.copyProperties(response, optRecLayoutResponse);
+                optRecLayoutResponse.setVersion(V1);
+                LayoutEntity layout = layouts.get(item.getLayout().getId());
+                optRecLayoutResponse.setLastModifyTime(layout.getUpdateTime());
+                result.add(optRecLayoutResponse);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * convert v2 recommendations to response
+     */
+    private List<OptRecLayoutResponse> convertToV2RecResponse(String project, String uuid) {
+        OptRecV2 recommendationV2 = OptRecManagerV2.getInstance(project).getOptimizeRecommendationV2(uuid);
+        List<OptRecLayoutResponse> layoutRecResponseList = Lists.newArrayList();
+        if (recommendationV2 == null) {
+            return layoutRecResponseList;
+        }
+
+        recommendationV2.getLayoutRefs().forEach((recId, layoutRef) -> {
+            if (!layoutRef.isBroken() && !layoutRef.isExisted() && recId < 0) {
+                RawRecItem rawRecItem = recommendationV2.getRawRecItemMap().get(-recId);
+                OptRecLayoutResponse response = new OptRecLayoutResponse();
+                response.setItemId(rawRecItem.getId());
+                response.setCreateTime(rawRecItem.getCreateTime());
+                response.setUsage(rawRecItem.getHitCount());
+                LayoutEntity layout = RecommendationUtil.getLayout(rawRecItem);
+                response.setColumnsAndMeasuresSize(layout.getColOrder().size());
+                if (RecommendationUtil.isAgg(rawRecItem)) {
+                    response.setType(LayoutRecommendationResponse.Type.ADD_AGG);
+                } else {
+                    response.setType(LayoutRecommendationResponse.Type.ADD_TABLE);
+                }
+                response.setSource(LayoutRecommendationItem.QUERY_HISTORY);
+                response.setVersion(V2);
+                response.setLastModifyTime(rawRecItem.getUpdateTime());
+                response.setAdd(true);
+                layoutRecResponseList.add(response);
+            }
+        });
+        return layoutRecResponseList;
+    }
+
+    @Override
+    public void onUpdate(String project, String modelId) {
+        val prjManager = getProjectManager();
+        val prjInstance = prjManager.getProject(project);
+        if (prjInstance.isSemiAutoMode()) {
+            val recommendationManager = getOptimizeRecommendationManager(project);
+            recommendationManager.cleanInEffective(modelId);
+            val recommendationManagerV2 = getOptimizeRecommendationManagerV2(project);
+            recommendationManagerV2.cleanInEffective(modelId);
         }
     }
 

@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -74,14 +74,13 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
-
     @Before
     public void setup() {
         logger.info("ModelBrokenListenerTest setup");
         System.setProperty("HADOOP_USER_NAME", "root");
         System.setProperty("kylin.job.event.poll-interval-second", "3");
         super.setup();
-        SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
+        EventBusFactory.getInstance().register(modelBrokenListener);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableExtService, "aclEvaluate", aclEvaluate);
@@ -92,8 +91,8 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @After
     public void cleanup() {
         logger.info("ModelBrokenListenerTest cleanup");
-        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
-        SchedulerEventBusFactory.restart();
+        EventBusFactory.getInstance().unRegister(modelBrokenListener);
+        EventBusFactory.restart();
         System.clearProperty("kylin.metadata.broken-model-deleted-on-smart-mode");
         super.cleanup();
     }

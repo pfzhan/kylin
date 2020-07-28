@@ -39,7 +39,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -96,12 +95,13 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -137,7 +137,8 @@ public class ModelSemanticHelper extends BasicService {
         dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
         dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
 
-        dataModel.initJoinDesc(KylinConfig.getInstanceFromEnv(), getTableManager(modelRequest.getProject()).getAllTablesMap());
+        dataModel.initJoinDesc(KylinConfig.getInstanceFromEnv(),
+                getTableManager(modelRequest.getProject()).getAllTablesMap());
         convertNonEquiJoinCond(dataModel, modelRequest);
 
         return dataModel;
@@ -217,8 +218,8 @@ public class ModelSemanticHelper extends BasicService {
                 requestJoinDesc.getSimplifiedNonEquiJoinConditions());
 
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
-        AbstractContext context =
-                new ModelCreateContextOfSemiMode(KylinConfig.getInstanceFromEnv(), project, new String[] { nonEquiSql });
+        AbstractContext context = new ModelCreateContextOfSemiMode(KylinConfig.getInstanceFromEnv(), project,
+                new String[] { nonEquiSql });
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runSuggestModel();
 
@@ -581,7 +582,7 @@ public class ModelSemanticHelper extends BasicService {
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
         val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
-        val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(config, project);
+        val recommendationManagerV2 = OptRecManagerV2.getInstance(project);
 
         val indexPlan = indePlanManager.getIndexPlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
@@ -595,7 +596,7 @@ public class ModelSemanticHelper extends BasicService {
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, project, start, end, saveOnly);
             recommendationManager.cleanAll(model);
-            recommendationManagerV2.removeAll(model);
+            recommendationManagerV2.discardAll(model);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimensions().keySet()

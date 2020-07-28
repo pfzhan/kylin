@@ -82,7 +82,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
@@ -569,7 +569,7 @@ public class ProjectService extends BasicService {
         val prjManager = getProjectManager();
         prjManager.forceDropProject(project);
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv()).post(new SourceUsageUpdateNotifier());
+        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

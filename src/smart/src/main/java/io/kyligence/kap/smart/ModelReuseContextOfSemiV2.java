@@ -35,11 +35,21 @@ import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import lombok.Getter;
 
 public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
+    @Getter
+    private boolean canCreateNewModel;
 
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
+        this.partialMatch = kylinConfig.isQueryMatchPartialInnerJoinModel();
+    }
+
+    public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray,
+            boolean canCreateNewModel) {
+        this(kylinConfig, project, sqlArray);
+        this.canCreateNewModel = canCreateNewModel;
     }
 
     @Override
@@ -68,8 +78,7 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public Map<String, String> getInnerExpToUniqueFlag() {
-        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(getProject())
-                .listAll();
+        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(getProject()).listAll();
         Map<String, String> ccInnerExpToUniqueFlag = Maps.newHashMap();
         recItemMap.forEach((k, v) -> {
             if (v.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
@@ -82,6 +91,10 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public void handleExceptionAfterModelSelect() {
+        if (isCanCreateNewModel()) {
+            return;
+        }
+
         getModelContexts().forEach(modelCtx -> {
             if (modelCtx.isTargetModelMissing()) {
                 modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {

@@ -88,8 +88,6 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptimizeRecommendationManagerV2;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -118,6 +116,9 @@ public class IndexPlanService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Autowired
+    private List<ModelUpdateListener> updateListeners = Lists.newArrayList();
+
     @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
@@ -141,21 +142,10 @@ public class IndexPlanService extends BasicService {
                 response = semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
                         originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
             }
-            cleanInEffectiveRecommendation(project, request.getModelId());
+            updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
             return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
         } catch (Exception e) {
             throw new KylinException(FAILED_UPDATE_AGG_INDEX, e);
-        }
-    }
-
-    private void cleanInEffectiveRecommendation(String project, String modelId) {
-        val prjManager = getProjectManager();
-        val prjInstance = prjManager.getProject(project);
-        if (prjInstance.isSemiAutoMode()) {
-            val recommendationManager = getOptimizeRecommendationManager(project);
-            recommendationManager.cleanInEffective(modelId);
-            val recommendationManagerV2 = getOptimizeRecommendationManagerV2(project);
-            recommendationManagerV2.cleanInEffective(modelId);
         }
     }
 
@@ -244,7 +234,7 @@ public class IndexPlanService extends BasicService {
                 oldLayout.setOwner(getUsername());
                 oldLayout.setUpdateTime(System.currentTimeMillis());
             });
-            cleanInEffectiveRecommendation(project, request.getModelId());
+            updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
         } else {
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -264,14 +254,15 @@ public class IndexPlanService extends BasicService {
                     realIndex.getLayouts().add(newLayout);
                 }
             });
-            cleanInEffectiveRecommendation(project, request.getModelId());
+            updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
             if (request.isLoadData()) {
                 val df = getDataflowManager(project).getDataflow(request.getModelId());
                 val readySegs = df.getSegments();
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
-                getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addFullIndexJob(indexPlan.getUuid(), getUsername()));
+                getSourceUsageManager().licenseCheckWrap(project,
+                        () -> jobManager.addFullIndexJob(indexPlan.getUuid(), getUsername()));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -331,10 +322,8 @@ public class IndexPlanService extends BasicService {
 
             copyForWrite.removeLayouts(ids, true, true);
         });
-        val recommendationManager = OptimizeRecommendationManager.getInstance(kylinConfig, project);
-        recommendationManager.cleanInEffective(model);
-        val recommendationManagerV2 = OptimizeRecommendationManagerV2.getInstance(kylinConfig, project);
-        recommendationManagerV2.cleanInEffective(model);
+
+        updateListeners.forEach(listener -> listener.onUpdate(project, model));
 
     }
 
