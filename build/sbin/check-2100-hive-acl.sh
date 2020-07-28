@@ -51,7 +51,7 @@ export SPARK_HOME=$KYLIN_HOME/spark
 
 tool_jar=$(ls $KYLIN_HOME/tool/kap-tool-*.jar)
 
-java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:$tool_jar:${SPARK_HOME}/jars/*" io.kyligence.kap.tool.HiveAclCheckCLI $@ 2>${KYLIN_HOME}/logs/shell.stderr
+java ${KYLIN_KERBEROS_OPTS} -Dlog4j.configuration=file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:$tool_jar:${SPARK_HOME}/jars/*" io.kyligence.kap.tool.HiveAclCheckCLI $@ 2>>${KYLIN_HOME}/logs/shell.stderr
 
 if [[ $? == 1 ]]; then
   quit "Checking Hive Acl false, please check curr user permission on dir hive.metastore.warehouse.dir."
