@@ -128,9 +128,10 @@
         :fit="false"
         :empty-text="emptyText"
         style="width: 100%"
+        :cell-class-name="getCellClassName"
       >
         <el-table-column width="34" type="expand">
-          <template slot-scope="scope">
+          <template slot-scope="scope" v-if="scope.row.content">
             <template v-if="scope.row.type === 'cc'">
               <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.content}}</p>
             </template>
@@ -428,6 +429,10 @@ export default class IndexList extends Vue {
     return this.currentIndex ? this.currentIndex.type.split('_')[1] === 'AGG' ? this.$t('aggDetailTitle') : this.$t('tableDetailTitle') : ''
   }
 
+  getCellClassName (scope) {
+    return scope.columnIndex === 0 && !scope.row.content ? 'hide-cell-expand' : ''
+  }
+
   created () {
     this.getRecommendations()
   }
@@ -470,7 +475,8 @@ export default class IndexList extends Vue {
     this.getRecommendDetails({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      id: row.item_id
+      id: row.item_id,
+      is_add: row.is_add
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
       this.detailData = [...data.column_items.map(it => ({...it, type: 'cc'})), ...data.dimension_items.map(it => ({...it, type: 'dimension'})), ...data.measure_items.map(it => ({...it, type: 'measure'}))]
@@ -725,6 +731,15 @@ export default class IndexList extends Vue {
     position: absolute;
     right: 10px;
     top: 8px;
+  }
+  .el-table__expand-column.hide-cell-expand {
+    .cell {
+      pointer-events: none;
+    }
+    .el-table__expand-icon {
+      color: #ccc;
+      cursor: not-allowed;
+    }
   }
 }
 .el-table.validate-table {
