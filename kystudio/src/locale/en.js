@@ -135,6 +135,7 @@ exports.default = {
     checkNoChange: 'No content changed',
     // 格式提示
     nameFormatValidTip: 'Only supports number, letter and underline.',
+    nameFormatValidTip3: 'Only supports starting with a number or a letter.',
     nameFormatValidTip1: 'Please use number, letter, and underline to name your project, and start with a number or a letter.',
     nameFormatValidTip2: 'Only supports Chinese or English characters, numbers, spaces and symbol（_ -()%?）',
     nameMaxLen: '100 characters at maximum',

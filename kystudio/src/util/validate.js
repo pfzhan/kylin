@@ -69,7 +69,7 @@ export default {
     } else if (!/^\w+$/.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else if (!/^(?![_])\w+$/.test(value)) {
-      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip1')))
+      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip3')))
     } else if (value.length > 50) {
       callback(new Error(this.$t('kylinLang.common.overLengthTip')))
     } else {

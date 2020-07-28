@@ -134,6 +134,7 @@ exports.default = {
     checkNoChange: '未检测到任何改动',
     // 格式提示
     nameFormatValidTip: '仅支持数字、字母和下划线。',
+    nameFormatValidTip3: '仅支持以数字或字母开头。',
     nameFormatValidTip1: '项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。',
     nameFormatValidTip2: '支持中文、英文、数字、空格、特殊字符（_ -()%?）',
     nameMaxLen: '最多支持 100 个字符',

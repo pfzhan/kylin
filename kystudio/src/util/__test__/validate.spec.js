@@ -78,7 +78,7 @@ describe('validate', () => {
     validate[PROJECT_NAME].bind(vm)(null, 'abc123@', callback)
     expect(callback.args[20][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip'))
     validate[PROJECT_NAME].bind(vm)(null, '_abcd1234', callback)
-    expect(callback.args[21][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip1'))
+    expect(callback.args[21][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip3'))
     validate[PROJECT_NAME].bind(vm)(null, 'project_test_project_test_project_test_project_test_project_test_project_test', callback)
     expect(callback.args[22][0].message).toBe(vm.$t('kylinLang.common.overLengthTip'))
     validate[PROJECT_NAME].bind(vm)(null, 'abcd1234', callback)
