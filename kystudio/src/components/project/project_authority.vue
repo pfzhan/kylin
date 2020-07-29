@@ -89,7 +89,7 @@
       <!-- <el-alert :title="$t('authorTips')" class="ksd-mb-20" show-icon :closable="false" :show-background="false" type="info" v-if="!isEditAuthor"></el-alert> -->
       <div class="ksd-title-label-small">{{$t('selectUserAccess')}}</div>
       <div v-for="(accessMeta, index) in accessMetas" :key="index" class="user-group-select ksd-mt-10 ky-no-br-space">
-        <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEditAuthor" @change="changeUserType(index)" size="medium" class="user-select">
+        <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEditAuthor" @change="changeUserType(index)" size="medium" class="user-select" popper-class="js_principal">
           <el-option label="user" :value="true"></el-option>
           <el-option label="group" :value="false"></el-option>
         </el-select>
@@ -137,7 +137,7 @@
           </el-option>
           <div class="over-limit-tip" v-if="showLimitTips(accessMeta.principal)">{{$t('overLimitTip')}}</div>
         </el-select>
-        <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium">
+        <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium" popper-class="js_access_type_sel">
           <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
         </el-select>
         <span class="ky-no-br-space ksd-ml-10 repeatBtn" v-if="!isEditAuthor">

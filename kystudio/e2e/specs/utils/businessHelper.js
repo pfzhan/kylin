@@ -1,5 +1,5 @@
 const { until, By, Key } = require('selenium-webdriver')
-const { waitingForStable, clearFormInput, changeFormInput } = require('../utils/domHelper')
+const { waitingForStable, clearFormInput, changeFormInput, changeFormSelect } = require('../utils/domHelper')
 
 exports.closeLicenseBox = async function closeLicenseBox (driver) {
   try {
@@ -100,4 +100,43 @@ exports.delUser = async function delUser (driver, username, idx) {
   await driver.wait(until.elementIsVisible(driver.findElement(By.css('div[aria-label=删除用户] .el-message-box__btns .el-button--primary'))), 10000)
   await driver.findElement(By.css('div[aria-label=删除用户] .el-message-box__btns .el-button--primary')).click()
   await driver.sleep(2000)
+}
+
+exports.searchCurProject = async function searchCurProject (driver, projectname) {
+  await changeFormInput(driver, '#project-list .show-search-btn', projectname)
+  await driver.sleep(1000)
+
+  const actions = driver.actions({bridge: true})
+  // 执行回车搜索
+  await actions.click(await driver.findElement(By.css('#project-list .show-search-btn input'))).sendKeys(Key.ENTER).perform()
+  await driver.sleep(2000)
+}
+
+exports.setUserToProject = async function setUserToProject (driver, username, lineIdx, typeIdx) {
+  // 选 principal
+  const userSel = `.author_dialog .user-group-select:nth-child(${lineIdx}) .user-select`
+  await changeFormSelect(driver, userSel, '.js_principal', 1)
+  await driver.sleep(1000)
+
+  // 选具体的人，需要先搜这个人，然后匹配出下拉第几位
+  const user = `.author_dialog .user-group-select:nth-child(${lineIdx}) .name-select`
+  await changeFormInput(driver, user, username)
+  await driver.sleep(1000)
+  let userIdx = 0
+  let userList = await driver.findElements('.author-select .el-select-dropdown__item')
+  for (let i = 0; i < userList.length; i++) {
+    let item = userList[i]
+    let text = item.getText()
+    if (text === username) {
+      userIdx = i
+      break
+    }
+  }
+  await changeFormSelect(driver, user, '.author-select', userIdx)
+  await driver.sleep(1000)
+
+  // 选具体的权限
+  const typeSel = `.author_dialog .user-group-select:nth-child(${lineIdx}) .type-select`
+  await changeFormSelect(driver, typeSel, '.js_access_type_sel', typeIdx)
+  await driver.sleep(1000)
 }

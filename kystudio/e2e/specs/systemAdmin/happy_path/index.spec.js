@@ -1,6 +1,6 @@
-const { Builder, By, until } = require('selenium-webdriver')
+const { Builder, By, until, Key } = require('selenium-webdriver')
 const assert = require('assert')
-const { login, logout, addUser } = require('../../utils/businessHelper')
+const { login, logout, addUser, searchCurProject, setUserToProject } = require('../../utils/businessHelper')
 const { changeFormInput, changeFormTextarea, hoverOn, changeFormSelect } = require('../../utils/domHelper')
 
 const {
@@ -130,7 +130,6 @@ describe('系统管理员创建项目', async function () {
     await driver.sleep(2000)
   })
 
-  
   // 设置创建项目 admin 用户
   it('设置创建项目 admin 用户 it_p_admin', async () => {
     await addUser(driver, USERNAME_PROJECT_ADMIN, PASSWORD_PROJECT_ADMIN)
@@ -150,45 +149,52 @@ describe('系统管理员创建项目', async function () {
   it('设置创建项目 query 用户 it_p_q', async () => {
     await addUser(driver, USERNAME_PROJECT_QUERY, PASSWORD_PROJECT_QUERY)
   })
-
-  /*
+  
   // 进入项目列表页面，找到自动化测试创建的那个项目
   it('进入项目列表页面，找到自动化测试创建的那个项目', async () => {
-    await driver.findElement(By.css('#menu-list .el-menu-item:nth-child(1)')).click()
+    await driver.wait(until.elementLocated(By.css('.el-menu-item .el-icon-ksd-project_list')), 10000)
+    await driver.findElement(By.css('.el-menu-item .el-icon-ksd-project_list')).click()
     await driver.sleep(2000)
 
-    changeFormInput(driver, '#project-list .show-search-btn', PROJECT_NAME)
-    // todo 执行回车
+    await searchCurProject(driver, PROJECT_NAME)
+    // 检查筛选下来的第一条就是目标项目
+    // const firstTableItem = await driver.findElement(By.css('.el-table .el-table__body-wrapper tbody .el-table__row:nth-child(1) td:nth-child(2) .cell')).getText()
+    // assert.equal(firstTableItem, PROJECT_NAME)
   })
-
+  
   // 将这四个用户分配给项目 PROJECT_NAME
   it('将四个用户分配给项目 PROJECT_NAME', async () => {
     // 点击授权按钮
-    await driver.sleep(2000)
+    await driver.wait(until.elementLocated(By.css('.el-icon-ksd-security')), 10000)
     await driver.findElement(By.css('.el-icon-ksd-security')).click()
-    await driver.sleep(2000)
 
     // 点击+用户/用户组
-    await driver.findElement(By.css('#projectAuth .ksd-fleft .el-button--primary:nth-child(1)')).click()
-    await driver.sleep(2000)
+    const addUserBtnClass = '#projectAuth .ksd-fleft .el-button--primary:nth-child(1)'
+    await driver.wait(until.elementLocated(By.css(addUserBtnClass)), 10000)
+    await driver.findElement(By.css(addUserBtnClass)).click()
+    const addIconClass = '.author_dialog .user-group-select:nth-child(1) .el-icon-ksd-add_2'
+    await driver.wait(until.elementLocated(By.css(addIconClass)), 10000)
 
     // 先找加号按钮点击三下，生成出四行
-    await driver.findElement(By.css('.author_dialog .user-group-select:nth-child(1) .el-icon-ksd-add_2')).click()
-    await driver.findElement(By.css('.author_dialog .user-group-select:nth-child(1) .el-icon-ksd-add_2')).click()
-    await driver.findElement(By.css('.author_dialog .user-group-select:nth-child(1) .el-icon-ksd-add_2')).click()
+    await driver.findElement(By.css(addIconClass)).click()
+    await driver.findElement(By.css(addIconClass)).click()
+    await driver.findElement(By.css(addIconClass)).click()
     
-    // todo 第一个下拉框的选择
-
-    // todo 第二个下拉框的选择
-
-    // todo 第三个下拉框的选择
+    // 项目 admin
+    await setUserToProject(driver, USERNAME_PROJECT_ADMIN, 1, 2)
+    // 项目 management
+    await setUserToProject(driver, USERNAME_PROJECT_MANAGEMENT, 2, 4)
+    // 项目 operation
+    await setUserToProject(driver, USERNAME_PROJECT_OPERATION, 3, 3)
+    // 项目 query
+    await setUserToProject(driver, USERNAME_PROJECT_QUERY, 4, 1)
 
     // 最后提交
     await driver.findElement(By.css('.author_dialog .el-dialog__footer:nth-child(3) .el-button--primary')).click()
-
     await driver.sleep(5000)
   })
 
+  /*
   // 建模
   it('在项目 PROJECT_NAME 下建模', async () => {
 

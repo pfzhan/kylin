@@ -23,4 +23,4 @@ require('./systemAdmin/happy_path/index.spec')
 // require('./projectOperation/happy_path/index.spec')
 // require('./projectQuery/happy_path/index.spec')
 // 删除前面几个 case 中创建的 用户、模型、项目
-require('./clear/index.spec')
+// require('./clear/index.spec')
