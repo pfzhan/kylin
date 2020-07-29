@@ -49,7 +49,7 @@
       </el-row>
     </div>
 
-    <p class="login-footer">&copy;2019 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
+    <p class="login-footer">&copy;2020 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
 
     <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-click-modal="false" width="480px">
       <license v-if="hasLicense" ref="licenseEnter" v-on:validSuccess="licenseValidSuccess" @requestLicense="apply"></license>
