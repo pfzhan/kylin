@@ -613,6 +613,22 @@ export function CamelToUnderlineForRequestParams (json) {
   }
   return newJson
 }
+// 递归数组打平
+export function ArrayFlat (arr) {
+  let flat = []
+  if (!Array.isArray(arr)) return arr
+  let breakUpArray = (_arr) => {
+    _arr.forEach(item => {
+      if (Array.isArray(item)) {
+        breakUpArray(item)
+      } else {
+        flat.push(item)
+      }
+    })
+  }
+  breakUpArray(arr)
+  return flat
+}
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }

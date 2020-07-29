@@ -342,4 +342,11 @@ describe('util-index', () => {
     }
     expect(util.CamelToUnderlineForRequestParams(json)).toEqual({is_a: 'isA', is_b: 'isB', is_c: 'isC'})
   })
+
+  it('ArrayFlat', () => {
+    expect(util.ArrayFlat([1, 2, [3, 4]])).toEqual([1, 2, 3, 4])
+    expect(util.ArrayFlat([[1, 2], [3, 4]])).toEqual([1, 2, 3, 4])
+    expect(util.ArrayFlat([[1, [2]], [3, [4]]])).toEqual([1, 2, 3, 4])
+    expect(util.ArrayFlat({a: [1, [2]], b: [3, [4]]})).toEqual({'a': [1, [2]], 'b': [3, [4]]})
+  })
 })

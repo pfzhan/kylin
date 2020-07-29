@@ -514,7 +514,7 @@ import locales from './locales'
 import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone } from 'util'
+import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone, ArrayFlat } from 'util'
 import { handleSuccess } from 'util/business'
 
 vuex.registerModule(['modals', 'AggregateModal'], store)
@@ -639,7 +639,7 @@ export default class AggregateModal extends Vue {
   }
 
   showSelectedIncludes (aggregate, currentItem) {
-    return [...aggregate.mandatory, ...aggregate.hierarchyArray.map(it => it.items).flat(), ...aggregate.jointArray.map(it => it.items).flat()].includes(currentItem)
+    return [...aggregate.mandatory, ...ArrayFlat(aggregate.hierarchyArray.map(it => it.items)), ...ArrayFlat(aggregate.jointArray.map(it => it.items))].includes(currentItem)
   }
   totalSize (name) {
     return name === 'dimensions' ? this[name]().length : this[name].length
@@ -1743,14 +1743,13 @@ export default class AggregateModal extends Vue {
     }
     .noData {
       width: 200px;
-      height: max-content;
       position: absolute;
-      top: 0;
-      bottom: 0;
+      top: 50%;
       left: 0;
       right: 0;
       margin: auto;
       text-align: center;
+      transform: translate(0, -50%);
       .icon {
         font-size: 36px;
         color: @text-placeholder-color;

@@ -368,6 +368,7 @@ export default class ModelSegment extends Vue {
             type: 'success',
             duration: 0,
             showClose: true,
+            customClass: 'build-full-load-success',
             message: (
               <div>
                 <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -422,6 +423,7 @@ export default class ModelSegment extends Vue {
             type: 'success',
             duration: 0,
             showClose: true,
+            customClass: 'build-full-load-success',
             message: (
               <div>
                 <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -565,5 +567,9 @@ export default class ModelSegment extends Vue {
     padding-top: 10px;
     padding-bottom: 10px;
   }
+}
+.build-full-load-success {
+  padding: 10px 30px 10px 10px;
+  align-items: center;
 }
 </style>

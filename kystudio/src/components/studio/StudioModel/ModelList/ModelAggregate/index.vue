@@ -56,7 +56,7 @@
             <div class="clearfix">
               <div class="ksd-mb-10 ksd-fs-12 ksd-fleft">
                 {{$t('dataRange')}}<el-tooltip :content="$t('dataRangeTips')" placement="top">
-                  <i class="el-icon-ksd-what"></i>
+                  <i class="el-icon-ksd-what ksd-ml-5"></i>
                 </el-tooltip>: {{getDataRange}}
               </div>
               <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-5">
@@ -369,8 +369,8 @@ export default class ModelAggregate extends Vue {
   checkedList = []
   removeLoading = false
   moveEvent = {
-    w: 50,
-    curW: 50,
+    w: 35,
+    curW: 35,
     limit: {
       width: [10, 80]
     }

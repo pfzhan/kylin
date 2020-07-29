@@ -130,7 +130,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccessAsync, objectClone, handleError, getFullMapping, kapConfirm } from 'util'
+import { handleSuccessAsync, objectClone, handleError, getFullMapping, kapConfirm, ArrayFlat } from 'util'
 import locales from './locales'
 import AggAdvancedModal from './AggAdvancedModal/index.vue'
 @Component({
@@ -225,7 +225,7 @@ export default class AggregateView extends Vue {
     return valueList.length ? valueList.reduce((prev, next) => prev * next) : '--'
   }
   showSelectedIncludes (aggregate, currentItem) {
-    return [...aggregate.mandatory, ...aggregate.hierarchyArray.map(it => it.items).flat(), ...aggregate.jointArray.map(it => it.items).flat()].includes(currentItem)
+    return [...aggregate.mandatory, ...ArrayFlat(aggregate.hierarchyArray.map(it => it.items)), ...ArrayFlat(aggregate.jointArray.map(it => it.items))].includes(currentItem)
   }
   totalSize (name) {
     return this[name].length

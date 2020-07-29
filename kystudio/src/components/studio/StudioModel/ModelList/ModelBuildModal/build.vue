@@ -573,6 +573,7 @@
               type: 'success',
               duration: 0,
               showClose: true,
+              customClass: 'build-full-load-success',
               message: (
                 <div>
                   <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -715,6 +716,7 @@
                   type: 'success',
                   duration: 0,
                   showClose: true,
+                  customClass: 'build-full-load-success',
                   message: (
                     <div>
                       <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -857,5 +859,9 @@
       margin-top: 10px;
       margin-bottom: 20px;
     }
+  }
+  .build-full-load-success {
+    padding: 10px 30px 10px 10px;
+    align-items: center;
   }
 </style>

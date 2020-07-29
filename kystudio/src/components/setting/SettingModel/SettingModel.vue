@@ -182,7 +182,7 @@ import { mapActions, mapGetters } from 'vuex'
 import locales from './locales'
 import { pageCount } from '../../../config'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
-import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
+import { handleSuccessAsync, handleError, objectClone, ArrayFlat } from '../../../util/index'
 
 const initialSettingForm = JSON.stringify({
   name: '',
@@ -317,7 +317,7 @@ export default class SettingStorage extends Vue {
       return true
     } else if (this.modelSettingForm.settingItem === 'is-base-cuboid-always-valid' && this.modelSettingForm[this.modelSettingForm.settingItem] === '') {
       return true
-    } else if (this.modelSettingForm.settingItem === 'customSettings' && (!this.modelSettingForm[this.modelSettingForm.settingItem].flat().length || this.modelSettingForm[this.modelSettingForm.settingItem].some(it => it.length === 1))) {
+    } else if (this.modelSettingForm.settingItem === 'customSettings' && (!ArrayFlat(this.modelSettingForm[this.modelSettingForm.settingItem]).length || this.modelSettingForm[this.modelSettingForm.settingItem].some(it => it.length === 1))) {
       return true
     } else {
       return false
