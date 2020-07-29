@@ -591,6 +591,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.calcite.extras-props.quoting", "DOUBLE_QUOTE");
     }
 
+    public boolean skipFoldConstantInProject() {
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite-skip-fold-constant-in-project", "true"));
+    }
+
     // ============================================================================
     // DICTIONARY & SNAPSHOT
     // ============================================================================
