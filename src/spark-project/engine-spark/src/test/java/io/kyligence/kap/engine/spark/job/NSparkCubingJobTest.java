@@ -655,7 +655,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             // job scheduling simulation
             execMgr.addJob(job);
             Assert.assertFalse(execMgr.getJobOutput(cubeStep.getId()).isResumable());
-            await().atMost(30, TimeUnit.SECONDS).pollDelay(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+            await().atMost(40, TimeUnit.SECONDS).pollDelay(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
                     .untilAsserted(() -> {
                         final KylinConfig tempConf = KylinConfig.createKylinConfig(metaConf);
                         try {

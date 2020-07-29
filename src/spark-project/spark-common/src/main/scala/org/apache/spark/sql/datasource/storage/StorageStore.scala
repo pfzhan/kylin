@@ -66,6 +66,10 @@ abstract class StorageStore extends Logging {
 
   protected val TEMP_FLAG = "_temp_"
 
+  private[storage] var storageListener: Option[StorageListener] = None
+
+  def setStorageListener(listener: StorageListener): Unit = storageListener = Some(listener)
+
   def save(
             layout: LayoutEntity,
             outputPath: Path,
@@ -102,13 +106,15 @@ class StorageStoreV1 extends StorageStore {
 
   private def repartitionWriter(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame) = {
     // cleanup before writing
-    val hadoopConf = dataFrame.sparkSession.sparkContext.hadoopConfiguration
+    val ss = dataFrame.sparkSession
+    val hadoopConf = ss.sparkContext.hadoopConfiguration
     val fs = outputPath.getFileSystem(hadoopConf)
     StorageUtils.cleanupPotentialTempFiles(fs, outputPath, includeSelf = false)
 
     val tempPath = outputPath.toString + TEMP_FLAG + System.currentTimeMillis()
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
+    storageListener.foreach(_.onPersistBeforeRepartition(dataFrame, layout))
 
     val bucketNum = StorageUtils.calculateBucketNum(tempPath, layout, rowCount, kapConfig)
     val summary = HadoopUtil.getContentSummary(fs, new Path(tempPath))
@@ -126,7 +132,8 @@ class StorageStoreV1 extends StorageStore {
       layout.getShardByColumns,
       layout.getOrderedDimensions.keySet().asList()
     )
-    repartitioner.doRepartition(outputPath.toString, tempPath, bucketNum, dataFrame.sparkSession)
+    repartitioner.doRepartition(outputPath.toString, tempPath, bucketNum, ss)
+    storageListener.foreach(_.onPersistAfterRepartition(ss.read.parquet(outputPath.toString), layout))
     (metrics, rowCount, hadoopConf, bucketNum)
   }
 
@@ -390,6 +397,14 @@ object StorageStoreUtils extends Logging{
         throw e
     }
   }
+}
+
+trait StorageListener {
+
+  def onPersistBeforeRepartition(dataFrame: DataFrame, layout: LayoutEntity)
+
+  def onPersistAfterRepartition(dataFrame: DataFrame, layout: LayoutEntity)
+
 }
 
 

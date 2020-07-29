@@ -38,17 +38,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.application.NoRetryException;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
@@ -92,12 +94,14 @@ public class DFBuildJob extends SparkApplication {
     protected NDataflowManager dfMgr;
     protected BuildLayoutWithUpdate buildLayoutWithUpdate;
 
+    private final HashMap<String, Long> seg2Count = new HashMap<>();
+
     @Override
     protected void doExecute() throws Exception {
         onInit();
         buildLayoutWithUpdate = new BuildLayoutWithUpdate();
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
-        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
+        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ","));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
         dfMgr = NDataflowManager.getInstance(config, project);
         List<String> persistedFlatTable = new ArrayList<>();
@@ -133,6 +137,15 @@ public class DFBuildJob extends SparkApplication {
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
             infos.clearCuboidsNumPerLayer(segId);
+            // build cuboids from reused layouts
+            if (!buildFromLayouts.isEmpty()) {
+                NBuildSourceInfo min = Collections.min(buildFromLayouts.values(),
+                        (o1, o2) -> Long.valueOf(o1.getCount() - o2.getCount()).intValue());
+                long count = SanityChecker.getCount(min.getParentDS(), indexPlan.getCuboidLayout(min.getLayoutId()));
+                seg2Count.put(segId, count);
+                build(buildFromLayouts.values(), segId, nSpanningTree);
+            }
+
             // build cuboids from flat table
             if (buildFromFlatTable != null) {
                 val path = datasetChooser.persistFlatTableIfNecessary();
@@ -143,15 +156,13 @@ public class DFBuildJob extends SparkApplication {
                     val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes());
                     updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), rowCount);
                 }
-                if (!org.apache.commons.lang3.StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
+                if (!StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
                     persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
                 }
+                if (!seg2Count.containsKey(segId)) {
+                    seg2Count.put(segId,buildFromFlatTable.getParentDS().count());
+                }
                 build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
-            }
-
-            // build cuboids from reused layouts
-            if (!buildFromLayouts.isEmpty()) {
-                build(buildFromLayouts.values(), segId, nSpanningTree);
             }
             infos.recordSpanningTree(segId, nSpanningTree);
         }
@@ -353,41 +364,31 @@ public class DFBuildJob extends SparkApplication {
         logger.info("Build index:{}, in segment:{}", cuboid.getId(), seg.getId());
         LinkedList<NDataLayout> layouts = Lists.newLinkedList();
         Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
+        Dataset<Row> afterPrj;
+        Function<LayoutEntity, Column[]> toOrder;
         if (IndexEntity.isTableIndex(cuboid.getId())) {
             Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
-            Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
-            // TODO: shard number should respect the shard column defined in cuboid
-            for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
-                if (seg.isAlreadyBuilt(layout.getId())) {
-                    logger.info("Skip already built layout:{}, in index:{}", layout.getId(), cuboid.getId());
-                    continue;
-                }
-                logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
-                ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
-                Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
-                Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
-                        .sortWithinPartitions(NSparkCubingUtil.getColumns(orderedDims));
-                layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
-            }
+            afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
+            toOrder = layout -> NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
         } else {
-            Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg,
-                    nSpanningTree);
-            for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
-                if (seg.isAlreadyBuilt(layout.getId())) {
-                    logger.info("Skip already built layout:{}, in index:{}", layout.getId(), cuboid.getId());
-                    continue;
-                }
-                logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
-                ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
-                Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
-
-                Dataset<Row> afterSort = afterAgg
-                        .select(NSparkCubingUtil.getColumns(rowKeys, layout.getOrderedMeasures().keySet()))
-                        .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
-                layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
-
-                onLayoutFinished(layout.getId());
+            afterPrj = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg, nSpanningTree);
+            toOrder = layout -> NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet(),
+                    layout.getOrderedMeasures().keySet());
+        }
+        for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
+            if (seg.isAlreadyBuilt(layout.getId())) {
+                logger.info("Skip already built layout:{}, in index:{}", layout.getId(), cuboid.getId());
+                continue;
             }
+            logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
+            ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
+            Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
+
+            Dataset<Row> afterSort = afterPrj.select(toOrder.apply(layout))
+                    .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
+            layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
+
+            onLayoutFinished(layout.getId());
         }
         ss.sparkContext().setJobDescription(null);
         logger.info("Finished Build index :{}, in segment:{}", cuboid.getId(), seg.getId());
@@ -402,6 +403,7 @@ public class DFBuildJob extends SparkApplication {
         val path = NSparkCubingUtil.getStoragePath(seg, layoutId);
         int storageType = layout.getModel().getStorageType();
         StorageStore storage = StorageStoreFactory.create(storageType);
+        storage.setStorageListener(new SanityChecker(seg2Count.getOrDefault(seg.getId(), SanityChecker.SKIP_FLAG())));
         WriteTaskStats taskStats = storage.save(layout, new Path(path), KapConfig.wrap(config), dataset);
         dataLayout.setBuildJobId(jobId);
         long rowCount = taskStats.numRows();

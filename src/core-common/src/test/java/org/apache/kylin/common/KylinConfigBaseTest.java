@@ -750,6 +750,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isExecuteAsEnabled", new PropertiesEntity("kylin.query.query-with-execute-as", "false", false));
         map.put("getSourceUsageSurvivalTimeThreshold",
                 new PropertiesEntity("kylin.garbage.storage.sourceusage-survival-time-threshold", "90d", 7776000000L));
+        map.put("isSanityCheckEnabled", new PropertiesEntity("kylin.engine.sanity-check-enabled", "false", false));
     }
 
     @Before
@@ -770,7 +771,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(372, methodsCount);
+        Assert.assertEquals(373, methodsCount);
     }
 
     @Test
