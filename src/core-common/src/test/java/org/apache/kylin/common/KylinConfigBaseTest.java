@@ -752,6 +752,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.garbage.storage.sourceusage-survival-time-threshold", "90d", 7776000000L));
         map.put("isSanityCheckEnabled", new PropertiesEntity("kylin.engine.sanity-check-enabled", "false", false));
         map.put("skipFoldConstantInProject", new PropertiesEntity("kylin.query.calcite-skip-fold-constant-in-project", "true", true));
+        map.put("getLoadCounterCapacity", new PropertiesEntity("kylin.query.load-counter-capacity", "50", 50));
+        map.put("getLoadCounterPeriodSeconds", new PropertiesEntity("kylin.query.load-counter-period-seconds", "3s", 3L));
+
     }
 
     @Before
@@ -772,7 +775,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(374, methodsCount);
+        Assert.assertEquals(376, methodsCount);
     }
 
     @Test

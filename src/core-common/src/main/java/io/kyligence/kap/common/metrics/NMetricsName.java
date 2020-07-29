@@ -180,7 +180,13 @@ public enum NMetricsName {
     SEGMENTS_MERGE_THRESHOLDS("segments_merge_thresholds"), //
     SEGMENTS_MERGE_COST_TIME("segments_merge_cost_time"), //
 
-    MODEL_QUERYABLE_SEGMENT_NUM("model_queryable_segment_num");
+    MODEL_QUERYABLE_SEGMENT_NUM("model_queryable_segment_num"), //
+
+    //spark query load
+    QUERY_LOAD("query_load"), //
+    CPU_CORES("cpu_cores")
+
+    ;
 
     private String value;
 

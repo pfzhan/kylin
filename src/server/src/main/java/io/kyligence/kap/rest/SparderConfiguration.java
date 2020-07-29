@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest;
 
+import io.kyligence.kap.query.util.LoadCounter;
 import java.io.File;
 import java.nio.file.Paths;
 
@@ -66,6 +67,7 @@ public class SparderConfiguration {
 
         // monitor Spark
         SparkContextCanary.init();
+        LoadCounter.init();
 
         // write appid to ${KYLIN_HOME} or ${user.dir}
         final String kylinHome = StringUtils.defaultIfBlank(KylinConfig.getKylinHome(), "./");

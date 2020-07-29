@@ -31,6 +31,8 @@ import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.query.util.LoadCounter;
+import io.kyligence.kap.query.util.LoadDesc;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -116,6 +118,17 @@ public class NMetricsRegistry {
         NMetricsGroup.newMetricSet(NMetricsName.JVM_GC, NMetricsCategory.HOST, host, new GarbageCollectorMetricSet());
         NMetricsGroup.newGauge(NMetricsName.JVM_AVAILABLE_CPU, NMetricsCategory.HOST, host,
                 () -> Runtime.getRuntime().availableProcessors());
+        NMetricsGroup.newGauge(NMetricsName.QUERY_LOAD, NMetricsCategory.HOST,
+                host, () -> {
+                    LoadDesc loadDesc = LoadCounter.getLoadDesc();
+                    return loadDesc.getLoad();
+                });
+
+        NMetricsGroup.newGauge(NMetricsName.CPU_CORES, NMetricsCategory.HOST,
+                host, () -> {
+                    LoadDesc loadDesc = LoadCounter.getLoadDesc();
+                    return loadDesc.getCoreNum();
+                });
 
     }
 

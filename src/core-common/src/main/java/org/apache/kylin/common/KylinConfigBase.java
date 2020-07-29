@@ -1213,7 +1213,6 @@ public abstract class KylinConfigBase implements Serializable {
     public int getForceLimit() {
         return Integer.parseInt(getOptional("kylin.query.force-limit", "-1"));
     }
-
     /**
      * the threshold for query result caching
      * query result will only be cached if the result is below the threshold
@@ -1223,6 +1222,15 @@ public abstract class KylinConfigBase implements Serializable {
     public long getLargeQueryThreshold() {
         return Integer.parseInt(getOptional("kylin.query.large-query-threshold", String.valueOf(1000000)));
     }
+
+    public int getLoadCounterCapacity() {
+        return Integer.parseInt(getOptional("kylin.query.load-counter-capacity", "50"));
+    }
+
+    public long getLoadCounterPeriodSeconds() {
+        return TimeUtil.timeStringAs(getOptional("kylin.query.load-counter-period-seconds", "3s"), TimeUnit.SECONDS);
+    }
+
 
     public Long getCubeBroadcastThreshold() {
         return Long.parseLong(getOptional("kylin.query.cube-broadcast-threshold", String.valueOf(1024L * 1024 * 1024)));
