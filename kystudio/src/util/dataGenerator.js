@@ -1,5 +1,4 @@
-import { v4 as uuid } from 'uuid'
-
+import { sampleGuid } from './index'
 /**
  * 找出lookup表的主键表和外键表
  * @param {Object} join 模型join关系
@@ -50,7 +49,7 @@ function getTablesData (modelData) {
     const allTablesInfo = [factInfo, ...lookupsInfo]
     // 将simplified_tables和table_info组合，成为table data列表
     tablesData = allTablesInfo.map(tableInfo => ({
-      guid: uuid(),
+      guid: sampleGuid(),
       ...tableInfo,
       ...tableColumnDataMap[tableInfo.table]
     }))
@@ -69,7 +68,7 @@ function getJointsData (tablesData) {
       const { join, alias } = tableData
       if (tableData.kind === 'LOOKUP') {
         const { primary, foreign } = getPrimaryAndForeign(join, alias)
-        const jointData = { guid: uuid(), ...join, primary, foreign }
+        const jointData = { guid: sampleGuid(), ...join, primary, foreign }
         jointsData = [...jointsData, jointData]
       }
     } catch (e) {
@@ -85,7 +84,7 @@ function formatJoinsData (jointData) {
   try {
     const { primary_key: pKeys, foreign_key: fKeys } = jointData
     joinsData = pKeys.map((pKey, index) => ({
-      guid: uuid(),
+      guid: sampleGuid(),
       primaryKey: pKey,
       foreignKey: fKeys[index]
     }))
@@ -116,7 +115,7 @@ export function getColumnNameMap (tablesData) {
 export function getDimensionsData (modelData, tablesData) {
   const columnNameMap = getColumnNameMap(tablesData)
   return modelData.simplified_dimensions.map(dimensionData => ({
-    guid: uuid(),
+    guid: sampleGuid(),
     dataType: columnNameMap[dimensionData.column].datatype,
     ...dimensionData
   }))
@@ -124,7 +123,7 @@ export function getDimensionsData (modelData, tablesData) {
 
 export function getMeasuresData (modelData) {
   return modelData.simplified_measures.map(measureData => ({
-    guid: uuid(),
+    guid: sampleGuid(),
     ...measureData
   }))
 }
