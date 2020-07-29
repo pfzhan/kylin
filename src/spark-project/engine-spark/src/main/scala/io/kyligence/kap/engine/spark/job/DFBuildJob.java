@@ -40,7 +40,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -52,6 +51,7 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.datasource.storage.StorageStore;
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
@@ -280,7 +281,7 @@ public class DFBuildJob extends SparkApplication {
 
     // build current layer and return the next layer to be built.
     private List<NBuildSourceInfo> buildLayer(Collection<NBuildSourceInfo> buildSourceInfos, String segId,
-            NSpanningTree st) throws IOException {
+                                              NSpanningTree st) throws IOException {
         val seg = getSegment(segId);
         int cuboidsNumInLayer = 0;
 
@@ -321,9 +322,9 @@ public class DFBuildJob extends SparkApplication {
 
     // decided and construct the next layer.
     protected List<NBuildSourceInfo> constructTheNextLayerBuildInfos( //
-            NSpanningTree st, //
-            NDataSegment seg, //
-            Collection<IndexEntity> allIndexesInCurrentLayer) { //
+                                                                      NSpanningTree st, //
+                                                                      NDataSegment seg, //
+                                                                      Collection<IndexEntity> allIndexesInCurrentLayer) { //
 
         val childrenBuildSourceInfos = new ArrayList<NBuildSourceInfo>();
         for (IndexEntity index : allIndexesInCurrentLayer) {
@@ -344,7 +345,7 @@ public class DFBuildJob extends SparkApplication {
     }
 
     private List<NDataLayout> buildIndex(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
-            NSpanningTree nSpanningTree, long parentId) throws IOException {
+                                         NSpanningTree nSpanningTree, long parentId) throws IOException {
         String parentName = String.valueOf(parentId);
         if (parentId == DFChooser.FLAT_TABLE_FLAG()) {
             parentName = "flat table";
@@ -444,6 +445,9 @@ public class DFBuildJob extends SparkApplication {
                 || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
             return;
 
+        if (modelDesc.getRootFactTable().getTableDesc().getTableType().equals(CatalogTableType.VIEW().name()))
+            return;
+
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
         String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn,
@@ -477,7 +481,7 @@ public class DFBuildJob extends SparkApplication {
             // reset
             segCopy.setSnapshotReady(false);
             segCopy.setDictReady(false);
-            if(resetFlatTable) {
+            if (resetFlatTable) {
                 segCopy.setSelectedColumns(Lists.newArrayList());
                 segCopy.setFlatTableReady(false);
             }
