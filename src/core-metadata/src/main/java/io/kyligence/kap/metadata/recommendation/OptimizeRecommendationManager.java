@@ -392,6 +392,7 @@ public class OptimizeRecommendationManager {
         update(context);
     }
 
+    @SuppressWarnings("squid:S2139")
     public OptimizeRecommendation optimizeInMemory(NDataModel model, IndexPlan indexPlan) {
         Preconditions.checkNotNull(model);
         Preconditions.checkNotNull(indexPlan);
@@ -415,9 +416,42 @@ public class OptimizeRecommendationManager {
 
         val originModel = modelManager.copyForWrite(modelInCache);
         val originIndexPlan = indexPlanInCache.copy();
-        val translations = optimizeModel(optimizedModel, originModel, recommendation);
-        optimizeIndexPlan(optimizedIndexPlan, originIndexPlan, translations, recommendation);
-        return recommendation;
+        Map<Integer, Integer> translations = null;
+        try {
+            translations = optimizeModel(optimizedModel, originModel, recommendation);
+        } catch (RuntimeException e) {
+            logger.error("Model optimization failed. original model {}, optimized model {}",
+                    dumpModel(originModel), dumpModel(optimizedModel), e);
+            throw e;
+        }
+
+        try {
+            optimizeIndexPlan(optimizedIndexPlan, originIndexPlan, translations, recommendation);
+            return recommendation;
+        } catch (RuntimeException e) {
+            logger.error("IndexPlan optimization failed. original plan: {}, optimized plan {}",
+                    dumpIndexPlan(originIndexPlan), dumpIndexPlan(optimizedIndexPlan), e);
+            throw e;
+        }
+    }
+
+    private String dumpModel(NDataModel model) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Model[");
+        sb.append("id=").append(model.getId()).append(",");
+        sb.append("cols=[").append(model.getAllNamedColumns()).append("],");
+        sb.append("cc=[").append(model.getComputedColumnDescs()).append("],");
+        sb.append("measures=[").append(model.getAllMeasures()).append("],");
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private String dumpIndexPlan(IndexPlan indexPlan) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("IndexPlan[");
+        sb.append("indexes=[").append(indexPlan.getAllIndexes()).append("],");
+        sb.append("]");
+        return sb.toString();
     }
 
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
