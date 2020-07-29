@@ -555,8 +555,12 @@ public class Message {
         return "Please input at least one table(database.table) for sampling!";
     }
 
-    public String getRELOAD_TABLE_RETRY() {
+    public String getRELOAD_TABLE_CC_RETRY() {
         return "%1$s The data type of column %3$s in table %2$s has been changed. Please try deleting the computed column or changing the data type.";
+    }
+
+    public String getRELOAD_TABLE_MODEL_RETRY() {
+        return "The data type of column %2$s from the source table %1$s has changed. Please remove the column from model %3$s, or modify the data type.";
     }
 
     // Cube Desc

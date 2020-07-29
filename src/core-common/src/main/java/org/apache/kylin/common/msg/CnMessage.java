@@ -401,8 +401,11 @@ public class CnMessage extends Message {
         return "没有传入采样表名称（database.table），请至少提供一张表";
     }
 
-    public String getRELOAD_TABLE_RETRY() {
+    public String getRELOAD_TABLE_CC_RETRY() {
         return "%s源表 %s 中列 %s 的数据类型发生了变更。请删除可计算列或修改数据类型后再试。";
+    }
+    public String getRELOAD_TABLE_MODEL_RETRY() {
+        return "源表 %1$s 中列 %2$s 的数据类型发生变更。请从模型 %3$s 中删除该列，或修改该列的数据类型。";
     }
 
     // Cube Desc

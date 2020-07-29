@@ -35,6 +35,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.ON_GOING_JOB_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 
 import java.io.File;
 import java.io.IOException;
@@ -90,6 +91,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
@@ -1198,11 +1200,16 @@ public class TableService extends BasicService {
             modelService.updateDataModelSemantic(projectName, request);
         } catch (TransactionException e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            String tableName = context.getTableDesc().getName();
+            String columnNames = String.join(MsgPicker.getMsg().getCOMMA(), context.getChangeTypeColumns());
             if (root instanceof IllegalCCExpressionException) {
-                String tableName = context.getTableDesc().getName();
-                String columnNames = String.join(MsgPicker.getMsg().getCOMMA(), context.getChangeTypeColumns());
-                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String
-                        .format(MsgPicker.getMsg().getRELOAD_TABLE_RETRY(), root.getMessage(), tableName, columnNames));
+                throw new KylinException(INVALID_COMPUTED_COLUMN_EXPRESSION, String.format(
+                        MsgPicker.getMsg().getRELOAD_TABLE_CC_RETRY(), root.getMessage(), tableName, columnNames));
+            } else if (root instanceof KylinException
+                    && ((KylinException) root).getErrorCode() == QueryErrorCode.SCD2_COMMON_ERROR.toErrorCode()) {
+                throw new KylinException(RELOAD_TABLE_FAILED,
+                        String.format(MsgPicker.getMsg().getRELOAD_TABLE_MODEL_RETRY(), tableName,
+                                columnNames, model.getAlias()));
             }
             throw e;
         }
