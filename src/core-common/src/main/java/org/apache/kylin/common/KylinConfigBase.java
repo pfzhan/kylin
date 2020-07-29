@@ -2184,6 +2184,6 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getUIProxyLocation() {
-        return getOptional("kylin.query.ui.proxy-location", "/kylin");
+        return getOptional("kylin.query.ui.proxy-location", KYLIN_ROOT);
     }
 }
