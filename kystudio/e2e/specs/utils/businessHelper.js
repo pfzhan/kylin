@@ -30,6 +30,7 @@ exports.waitingForPageClean = async function waitingForPageClean (driver) {
 // 封装的登录
 exports.login = async function login(driver, username, password) {
   await driver.wait(until.elementLocated(By.css('.login-form .el-button--primary')), 10000)
+  await driver.findElement(By.css('.ke-it-cn')).click()
   // 浏览器会自动填入 admin，所以要先置空用户名的输入框
   await clearFormInput(driver, '.login-form .input_group .el-form-item:nth-child(1) input')
   await driver.sleep(2000)

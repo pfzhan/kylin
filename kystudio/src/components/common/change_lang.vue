@@ -1,7 +1,7 @@
 <template>
-  <el-button-group class="switch-button-group change_lang">
-    <el-button size="small" @click="changeLang('en')" :class="{'active':lang=='en'}">EN</el-button>
-    <el-button size="small" @click="changeLang('zh-cn')" :class="{'active':lang=='zh-cn'}">中文</el-button>
+  <el-button-group class="switch-button-group change_lang ke-it-lang">
+    <el-button size="small" @click="changeLang('en')" :class="{'active':lang=='en'}" class="ke-it-en">EN</el-button>
+    <el-button size="small" @click="changeLang('zh-cn')" :class="{'active':lang=='zh-cn'}" class="ke-it-cn">中文</el-button>
 </el-button-group>
 </template>
 <script>
