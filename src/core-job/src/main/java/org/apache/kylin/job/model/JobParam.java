@@ -74,7 +74,9 @@ public class JobParam {
     private HashSet<LayoutEntity> deleteLayouts;
 
     public static class ConditionConstant {
-        public static String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";
+        public static final String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";
+        private ConditionConstant(){
+        }
     }
 
     public JobParam(Set<String> segments, Set<Long> targetLayouts, String owner, String model, String project,
