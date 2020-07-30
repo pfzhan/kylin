@@ -143,7 +143,7 @@
             <el-table-column type="expand" width="44">
               <template slot-scope="scope">
                 <template v-if="scope.row.type === 'cc'">
-                  <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
+                  <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.cc.expression}}</p>
                 </template>
                 <template v-if="scope.row.type === 'dimension'">
                   <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.column.column}}</p>

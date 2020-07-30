@@ -38,7 +38,7 @@
           </el-select>
         </el-form-item>
         <el-select size="small" :class="['join-type', {'is-error': errorFlag.includes(val)}]" :placeholder="$t('kylinLang.common.pleaseSelect')" v-model="joinColumns.op[val]">
-          <el-option :value="item.value" :label="item.label" v-for="item in getColumnsLinkKind" :key="'joinColumnstype' + item.value"></el-option>
+          <el-option :value="item.value" :label="item.label" :disabled="['GREATER_THAN_OR_EQUAL', 'LESS_THAN'].includes(item.value) && !scd2_enabled" v-for="item in columnsLinkKind" :key="'joinColumnstype' + item.value"></el-option>
         </el-select>
         <el-form-item :prop="'primary_key.' + val" :rules="[{validator: checkIsBrokenPrimaryKey, trigger: 'change'}]">
           <el-select size="small" :class="['primary-select', {'is-error': errorFlag.includes(val)}]" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
@@ -237,9 +237,6 @@ export default class TableJoinModal extends Vue {
   }
   get pTable () {
     return this.form.tables && this.form.tables[this.selectP] || []
-  }
-  get getColumnsLinkKind () {
-    return !this.scd2_enabled ? [{label: '=', value: 'EQUAL'}] : this.columnsLinkKind
   }
   checkIsBrokenPrimaryKey (rule, value, callback) {
     if (value) {
