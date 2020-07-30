@@ -1386,9 +1386,7 @@ class NModel {
       let hasEdit = false
       this._mount.computed_columns.forEach((c) => {
         if (c.guid === ccObj.guid) {
-          Object.assign(c, ccObj);
-          // 编辑cc issue确定不再传 innerExpression 字段，该字段前后端都没被用到
-          ('innerExpression' in c) && delete c.innerExpression
+          Object.assign(c, ccObj)
           hasEdit = true
           resolve(c)
         }

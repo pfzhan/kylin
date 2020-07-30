@@ -63,7 +63,8 @@ import { NamedRegex } from 'config'
       requiredCCName: 'The column name is required.',
       requiredReturnType: 'The return type is required.',
       requiredExpress: 'The expression is required.',
-      onlyStartLetters: 'Only supports starting with a letter'
+      onlyStartLetters: 'Only supports starting with a letter',
+      deleteCCTip: 'After saving, as the expression was modified, measure(s) [{names}] would be unavailable and deleted. Do you want to continue?'
     },
     'zh-cn': {
       conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。',
@@ -78,7 +79,8 @@ import { NamedRegex } from 'config'
       requiredCCName: '请输入名称',
       requiredReturnType: '请选择返回类型',
       requiredExpress: '请输入表达式。',
-      onlyStartLetters: '仅支持字母开头'
+      onlyStartLetters: '仅支持字母开头',
+      deleteCCTip: '修改后的可计算列表达式将导致度量 [{names}] 无法正常使用。保存后上述度量将被删除。确认要继续保存吗？'
     }
   }
 })
@@ -140,6 +142,9 @@ export default class CCForm extends Vue {
         let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
         ccMeta.datatype = 'any' // 默认传给后台的数据类型
         resData.computed_columns.push(ccMeta)
+      } else {
+        const index = resData.computed_columns.findIndex(it => it.guid === this.ccObject.guid)
+        resData.computed_columns[index] = {...resData.computed_columns[index], ...this.ccObject, datatype: 'any'}
       }
       this.checkBtnLoading = true
       this.checkCC({
@@ -151,7 +156,31 @@ export default class CCForm extends Vue {
         this.checkBtnLoading = false
         this.errorMsg = ''
         handleSuccess(res, (data) => {
-          cb && cb(data)
+          const { computed_column, remove_measure } = data
+          if (remove_measure && remove_measure.length) {
+            // 判断更改cc表达式是否导致相关度量被删除
+            this.$confirm(this.$t('deleteCCTip', {names: `${remove_measure.join(',')}`}), this.$t('kylinLang.common.tip'), {
+              confirmButtonText: this.$t('kylinLang.common.ok'),
+              cancelButtonText: this.$t('kylinLang.common.cancel'),
+              type: 'warning'
+            }).then(() => {
+              remove_measure.forEach(name => {
+                const index = this.modelInstance.all_measures.findIndex(item => item.name === name)
+                const idx = this.modelInstance.simplified_measures.findIndex(it => it.name === name)
+                if (index >= 0) {
+                  this.modelInstance.all_measures.splice(index, 1)
+                }
+                if (idx >= 0) {
+                  this.modelInstance.simplified_measures.splice(idx, 1)
+                }
+              })
+              cb && cb(computed_column)
+            }).catch(() => {
+              this.$emit('resetSubmitLoading')
+            })
+          } else {
+            cb && cb(computed_column)
+          }
         })
       }, (res) => {
         this.$emit('saveError')
@@ -175,15 +204,26 @@ export default class CCForm extends Vue {
           return
         }
         if (this.isEdited) {
-          this.modelInstance.editCC(this.ccObject).then((cc) => {
-            this.checkRemoteCC((data) => {
-              this.ccObject.datatype = data.datatype
-              this.modelInstance.editCC(this.ccObject)
+          this.checkRemoteCC((data) => {
+            this.ccObject.datatype = data.datatype
+            const alias = factTable.alias
+            this.modelInstance.editCC(this.ccObject).then(cc => {
+              // 更改维度中引用该 cc 的 datatype
+              for (let i = 0; i <= this.modelInstance.all_measures.length - 1; i++) {
+                const names = this.modelInstance.all_measures[i].parameter_value.map(it => it.value)
+                if (names.includes(`${alias}.${cc.columnName}`)) {
+                  this.modelInstance.all_measures[i].return_type = cc.datatype
+                  break
+                }
+              }
+              // 更改维度中引用该 cc 的 datatype
+              const index = this.modelInstance.dimensions.findIndex(it => it.name === cc.columnName)
+              index >= 0 && (this.modelInstance.dimensions[index].datatype = cc.datatype)
               this.$emit('saveSuccess', cc)
               this.isEdit = false
+            }, () => {
+              this.$emit('saveError')
             })
-          }, () => {
-            this.$emit('saveError')
           })
         } else {
           this.checkRemoteCC((data) => {
