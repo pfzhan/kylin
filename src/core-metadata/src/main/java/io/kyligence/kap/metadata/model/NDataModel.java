@@ -65,6 +65,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -113,6 +114,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.val;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 
 @Data
 @SuppressWarnings("serial")
@@ -1073,7 +1076,8 @@ public class NDataModel extends RootPersistentEntity {
                     func.init(this);
                 }
             } catch (Exception e) {
-                throw new IllegalStateException("Cannot init measure " + m.getName() + ": " + e.getMessage(), e);
+                throw new KylinException(FAILED_UPDATE_MODEL,
+                        String.format(MsgPicker.getMsg().getINIT_MEASURE_FAILED(), m.getName(), e.getMessage()));
             }
         }
 

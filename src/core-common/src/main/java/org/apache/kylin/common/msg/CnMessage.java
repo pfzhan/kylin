@@ -196,6 +196,10 @@ public class CnMessage extends Message {
         return "模型名称不可为空";
     }
 
+    public String getINIT_MEASURE_FAILED() {
+        return "度量 %s 初始化失败：%s";
+    }
+
     public String getINVALID_MODEL_NAME() {
         return "非法模型名称 '%s', 仅支持字母, 数字和下划线";
     }
@@ -298,6 +302,14 @@ public class CnMessage extends Message {
 
     public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
         return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列重名。";
+    }
+
+    public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED() {
+        return "该可计算列的表达式已被用于模型 '%s'，名称为 '%s'。请修改名称以保持一致，或使用其他的表达式。";
+    }
+
+    public String getCOMPUTED_COLUMN_NAME_DUPLICATED() {
+        return "可计算列名称 '%s' 已被用于模型 '%s'，表达式为 '%s'。请修改表达式以保持一致，或使用其他的名称。";
     }
 
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
@@ -1401,6 +1413,10 @@ public class CnMessage extends Message {
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
         return "当前暂不可重载表。存在运行中的任务，任务对象为： %s。请等任务完成后再重载，或手动终止任务。";
+    }
+
+    public String getCOLUMN_UNRECOGNIZED() {
+        return "表达式中的列名无法识别 %s 。当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名)。";
     }
 
     // Punctuations

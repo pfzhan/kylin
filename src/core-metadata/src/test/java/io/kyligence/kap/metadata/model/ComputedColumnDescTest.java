@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.model;
 
 import java.util.Set;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -46,9 +47,9 @@ public class ComputedColumnDescTest {
 
     @Test
     public void simpleParserCheckTestFail1() {
-        thrown.expect(IllegalArgumentException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "Unrecognized column: C.Y in expression 'a.x + c.y'. When referencing a column, expressions should use patterns like ALIAS.COLUMN, where ALIAS is the table alias defined in model.");
+                "Cannot recognize column(s) C.Y . When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model).");
 
         ComputedColumnDesc cc = new ComputedColumnDesc();
         Set<String> aliasSet = Sets.newHashSet("A", "B");

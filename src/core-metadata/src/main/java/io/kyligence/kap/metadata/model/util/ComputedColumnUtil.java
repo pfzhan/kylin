@@ -38,6 +38,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -58,6 +59,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.AliasDeduce;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
 
 public class ComputedColumnUtil {
     public static final String CC_NAME_PREFIX = "CC_AUTO_";
@@ -434,11 +438,9 @@ public class ComputedColumnUtil {
             String advisedExpr = aliasMapping == null ? null
                     : CalciteParser.replaceAliasInExpr(existingCC.getExpression(), aliasMapping.getAliasMapping());
 
-            String msg = String.format(
-                    "Column name for computed column %s is already used in model %s, you should apply the same expression %s here, or use a different computed column name.",
-                    newCC.getFullName(), existingModel.getAlias(), advisedExpr != null ? "as \' " + advisedExpr + " \'"
-                            : "like \' " + existingCC.getExpression() + " \'");
-            throw new BadModelException(msg, BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr,
+            String finalExpr = advisedExpr != null ? advisedExpr : existingCC.getExpression();
+            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED(), newCC.getFullName(), existingModel.getAlias(), finalExpr);
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg, BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr,
                     existingModel.getAlias(), newCC.getFullName());
         }
 
@@ -490,11 +492,9 @@ public class ComputedColumnUtil {
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
             String adviseName = existingCC.getColumnName();
-            String msg = String.format(
-                    "Expression %s in computed column %s is already defined by computed column %s from model %s, you should use the same column name: ' %s ' .",
-                    newCC.getExpression(), newCC.getFullName(), existingCC.getFullName(), existingModel.getAlias(),
-                    existingCC.getColumnName());
-            throw new BadModelException(msg, BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName,
+            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED(),
+                    existingModel.getAlias(), existingCC.getColumnName());
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg, BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName,
                     existingModel.getAlias(), newCC.getFullName());
         }
     }

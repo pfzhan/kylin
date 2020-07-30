@@ -56,6 +56,6 @@ public class NModelControllerWithRealServiceTest extends AbstractMVCIntegrationT
                 .perform(MockMvcRequestBuilders.post("/api/models/computed_columns/check")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(ccRequest))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is5xxServerError()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().is4xxClientError()).andReturn();
     }
 }

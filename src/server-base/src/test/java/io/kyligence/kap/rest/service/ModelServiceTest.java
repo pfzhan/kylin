@@ -2033,9 +2033,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
-                                        + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
-                                        + " or use a different computed column name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in " +
+                                        "model 'nmodel_basic_inner', and the expression is " +
+                                        "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
 
             }
         });
@@ -2266,7 +2267,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                                "Column name for computed column BUYER_ACCOUNT.COUNTRY_UPPER is already used in model nmodel_cc_test, you should apply the same expression as ' UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY) ' here, or use a different computed column name.");
+                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used " +
+                                        "in model 'nmodel_cc_test', and the expression is " +
+                                        "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2371,7 +2375,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR is already used in model nmodel_basic, you should apply the same expression as ' SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1) ' here, or use a different computed column name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' " +
+                                        "has already been used in model 'nmodel_basic', and the expression is " +
+                                        "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2408,7 +2415,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' " +
+                                        "has already been used in model 'nmodel_basic', and the expression is " +
+                                        "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2445,7 +2455,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                                "Expression SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1) in computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2 is already defined by computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR from model nmodel_basic, you should use the same column name: ' LEFTJOIN_BUYER_COUNTRY_ABBR ' .");
+                                "The expression of computed column has already been used in model 'nmodel_basic' as " +
+                                        "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, " +
+                                        "or use a different expression.");
             }
         });
 
@@ -2514,7 +2526,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' " +
+                                        "has already been used in model 'nmodel_basic', and the expression is " +
+                                        "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2598,7 +2613,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' " +
+                                        "has already been used in model 'nmodel_basic', and the expression is " +
+                                        "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2640,9 +2658,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
-                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic,"
-                                        + " you should apply the same expression as ' CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME) ' here,"
-                                        + " or use a different computed column name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' " +
+                                        "has already been used in model 'nmodel_basic', and the expression is " +
+                                        "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. " +
+                                        "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 

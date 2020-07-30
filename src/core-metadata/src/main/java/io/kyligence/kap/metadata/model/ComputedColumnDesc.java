@@ -38,6 +38,8 @@ import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
@@ -52,6 +54,8 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.util.ModifyTableNameSqlVisitor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 
 @Data
 @SuppressWarnings("serial")
@@ -177,9 +181,8 @@ public class ComputedColumnDesc implements Serializable {
             @Override
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
-                    throw new IllegalArgumentException("Unrecognized column: " + id.toString() + " in expression '"
-                            + expr + "'. When referencing a column, expressions should use patterns like ALIAS.COLUMN,"
-                            + " where ALIAS is the table alias defined in model.");
+                    throw new KylinException(COLUMN_NOT_EXIST,
+                            String.format(MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id.toString()));
                 }
                 return null;
             }

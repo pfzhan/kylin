@@ -274,7 +274,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 modelService.updateDataModelSemantic(request.getProject(), request);
                 Assert.fail();
             } catch (Exception e) {
-                Assert.assertTrue(e instanceof IllegalStateException);
+                Assert.assertTrue(e instanceof KylinException);
                 Assert.assertEquals(
                         "Cannot init measure TEST_MEASURE_WITH_CC: Column 'TEST_KYLIN_FACT.TEST_CC_1' not found in any table.",
                         e.getMessage());

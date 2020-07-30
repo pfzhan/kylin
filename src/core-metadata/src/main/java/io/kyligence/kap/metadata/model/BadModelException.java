@@ -24,8 +24,12 @@
 package io.kyligence.kap.metadata.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.kylin.common.exception.ErrorCodeSupplier;
+import org.apache.kylin.common.exception.KylinException;
 
-public class BadModelException extends RuntimeException {
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+
+public class BadModelException extends KylinException {
 
     public enum CauseType {
         WRONG_POSITION_DUE_TO_NAME, // another model is using this cc name on a different alias table
@@ -45,13 +49,17 @@ public class BadModelException extends RuntimeException {
     @JsonProperty
     private String badCC;//tell caller which cc is bad
 
-    public BadModelException(String message, CauseType causeType, String advise, String conflictingModel,
+    public BadModelException(ErrorCodeSupplier errorCodeSupplier, String message, CauseType causeType, String advise, String conflictingModel,
             String badCC) {
-        super(message);
+        super(errorCodeSupplier, message);
         this.causeType = causeType;
         this.advise = advise;
         this.conflictingModel = conflictingModel;
         this.badCC = badCC;
+    }
+
+    public BadModelException(String message, CauseType causeType, String advise, String conflictingModel, String badCC) {
+        this(UNKNOWN_ERROR_CODE, message, causeType, advise, conflictingModel, badCC);
     }
 
     public CauseType getCauseType() {

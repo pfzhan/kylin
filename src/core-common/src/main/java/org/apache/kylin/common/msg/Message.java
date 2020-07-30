@@ -196,6 +196,10 @@ public class Message {
         return "Model name should not be empty.";
     }
 
+    public String getINIT_MEASURE_FAILED() {
+        return "Cannot init measure %s: %s";
+    }
+
     public String getINVALID_MODEL_NAME() {
         return "Invalid model name '%s', only letters, numbers and underlines are supported.";
     }
@@ -290,6 +294,14 @@ public class Message {
 
     public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
         return "Model '%s' import failed: Computed column '%s' of this model has the same name as computed column in model '%s'.";
+    }
+
+    public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED() {
+        return "The expression of computed column has already been used in model '%s' as '%s'. Please modify the name to keep consistent, or use a different expression.";
+    }
+
+    public String getCOMPUTED_COLUMN_NAME_DUPLICATED() {
+        return "The name of computed column '%s' has already been used in model '%s', and the expression is '%s'. Please modify the expression to keep consistent, or use a different name.";
     }
 
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
@@ -1516,6 +1528,10 @@ public class Message {
 
     public String getTABLE_RELOAD_HAVING_NOT_FINAL_JOB() {
         return "The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): %s. Please try reloading until all the jobs are completed, or manually discard the jobs.";
+    }
+
+    public String getCOLUMN_UNRECOGNIZED() {
+        return "Cannot recognize column(s) %s . When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model).";
     }
 
     // Punctuations
