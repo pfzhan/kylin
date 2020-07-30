@@ -569,6 +569,9 @@ import { NamedRegex } from '../../../../config'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('GuideModal', {
+      callGuideModal: 'CALL_MODAL'
     })
   },
   components: {
@@ -644,6 +647,10 @@ export default class ModelEdit extends Vue {
   isShowCheckbox = false
   isShowMeaCheckbox = false
   isShowCCCheckbox = false
+  async showGuide () {
+    await this.callGuideModal({ isShowDimAndMeasGuide: true })
+    localStorage.setItem('isFirstAddModel', 'false')
+  }
   initAllPanels () {
     if (!this.isSchemaBrokenModel) {
       this.panelAppear.dimension.display = true
@@ -916,7 +923,7 @@ export default class ModelEdit extends Vue {
   autoLayout () {
     this.modelInstance.renderPosition()
   }
-  initModelDesc (cb) {
+  async initModelDesc (cb) {
     if (this.extraoption.modelName && this.extraoption.action === 'edit') {
       this.getModelByModelName({model_name: this.extraoption.modelName, project: this.extraoption.project}).then((response) => {
         handleSuccess(response, (data) => {
@@ -1598,7 +1605,7 @@ export default class ModelEdit extends Vue {
       this.globalLoading.hide()
       return false
     }
-    this.initModelDesc((data) => { // 初始化模型数据
+    await this.initModelDesc((data) => { // 初始化模型数据
       if ('visible' in this.modelData && !this.modelData.visible) {
         this.showNoAuthorityContent(this.modelData)
         return
@@ -1641,6 +1648,9 @@ export default class ModelEdit extends Vue {
         })
       }
     })
+    if (localStorage.getItem('isFirstAddModel') === 'true') {
+      await this.showGuide()
+    }
   }
   // 展示model无权限的相关table和columns信息
   async showNoAuthorityContent (row) {
@@ -1706,6 +1716,9 @@ export default class ModelEdit extends Vue {
     this.gotoIndexdialogVisible = false
   }
   willAddSegment () {
+    if (localStorage.getItem('isFirstAddModel') === 'false' && !localStorage.getItem('isFirstSaveModel')) {
+      localStorage.setItem('isFirstSaveModel', 'true')
+    }
     this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'first' }})
     this.gotoIndexdialogVisible = false
   }

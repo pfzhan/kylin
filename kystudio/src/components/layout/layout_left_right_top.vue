@@ -172,6 +172,8 @@
     <!-- 全局弹窗 带detail -->
     <kap-detail-dialog-modal></kap-detail-dialog-modal>
     <diagnostic v-if="showDiagnostic" @close="showDiagnostic = false"/>
+    <!-- 模型引导 -->
+    <GuideModal />
   </div>
 </template>
 
@@ -191,6 +193,7 @@ import Diagnostic from '../admin/Diagnostic/index'
 import Capacity from '../admin/SystemCapacity/CapacityTopBar'
 import $ from 'jquery'
 import ElementUI from 'kyligence-ui'
+import GuideModal from '../studio/StudioModel/ModelList/GuideModal/GuideModal.vue'
 let MessageBox = ElementUI.MessageBox
 // import Scrollbar from 'smooth-scrollbar'
 @Component({
@@ -234,7 +237,8 @@ let MessageBox = ElementUI.MessageBox
     help,
     KapDetailDialogModal,
     Diagnostic,
-    Capacity
+    Capacity,
+    GuideModal
   },
   computed: {
     ...mapState({

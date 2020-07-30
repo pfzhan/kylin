@@ -58,7 +58,8 @@ export default {
     subTitle: 'This index hasn’t been fully built to the following data ranges. To improve query performance, it’s recommended to select all and build index. ',
     deleteIndex: 'Delete Index',
     deleteTips: 'Do you want to delete the selected {number} index(es) from the following segment(s)? The query performance might be affected once indexes are deleted.',
-    deletePart: 'Delete from Selected Segment'
+    deletePart: 'Delete from Selected Segment',
+    indexSubTitle: 'The data range of this model to serve queries. You could selectively build indexes to desired data ranges based on query requirements.'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -119,6 +120,7 @@ export default {
     subTitle: '该索引未构建至以下数据范围。为了提高查询效率，建议您将该索引构建至以下数据范围。',
     deleteIndex: '删除索引',
     deleteTips: '确定从以下的 Segment 中删除 {number} 个已选择的索引吗？删除后可能会影响相关索引的查询效率。',
-    deletePart: '从部分 Segment 中删除'
+    deletePart: '从部分 Segment 中删除',
+    indexSubTitle: '模型可服务查询的数据范围。您可视需求将所需的索引构建至相应的数据范围。'
   }
 }

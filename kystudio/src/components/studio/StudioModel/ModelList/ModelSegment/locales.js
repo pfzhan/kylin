@@ -46,7 +46,9 @@ export default {
     fixTips: 'Automatic fix for discontinuous segments',
     addSegment: 'Add Segment',
     modifyTime: 'Last Modified Time',
-    sourceRecords: 'Source Records'
+    sourceRecords: 'Source Records',
+    segmentList: 'Segment List',
+    segmentSubTitle: 'Add segments to define the model’s data range for serving queries.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -95,6 +97,8 @@ export default {
     fixTips: '自动补全不连续的 Segment',
     addSegment: '添加 Segment',
     modifyTime: '最后修改时间',
-    sourceRecords: '行数'
+    sourceRecords: '行数',
+    segmentList: 'Segment 列表',
+    segmentSubTitle: '添加 Segment 来为模型定义可服务查询的数据范围'
   }
 }

@@ -386,7 +386,7 @@
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
     <ModelBuildModal v-on:refreshModelList="loadModelsList" @isWillAddIndex="willAddIndex" ref="modelBuildComp"/>
-    <!--  数据分区设置 -->
+    <!-- 数据分区设置 -->
     <ModelPartition/>
     <!-- 模型重命名 -->
     <ModelRenameModal/>
@@ -545,6 +545,9 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     }),
     ...mapActions('ModelsExportModal', {
       callModelsExportModal: 'CALL_MODAL'
+    }),
+    ...mapActions('GuideModal', {
+      callGuideModal: 'CALL_MODAL'
     })
   },
   components: {
@@ -602,6 +605,10 @@ export default class ModelList extends Vue {
   }
   expandTab = ''
   isModelListOpen = false
+  async showGuide () {
+    await this.callGuideModal({ isShowBuildGuide: true })
+    localStorage.setItem('isFirstSaveModel', 'false')
+  }
   async loadAvailableModelOwners (filterName) {
     this.ownerFilter.name = filterName || ''
     try {
@@ -844,7 +851,7 @@ export default class ModelList extends Vue {
     })
   }
   // 还原模型列表展开状态
-  setModelExpand () {
+  async setModelExpand () {
     if (!this.$refs.modelListTable) return
     let obj = {}
     this.prevExpendContent.forEach(item => {
@@ -857,6 +864,9 @@ export default class ModelList extends Vue {
     this.expandedRows.length && this.expandedRows.forEach(item => {
       this.$refs.modelListTable.toggleRowExpansion(item)
     })
+    if (localStorage.getItem('isFirstSaveModel') === 'true') {
+      await this.showGuide()
+    }
   }
   async openRecommendDialog (scope) {
     const modelDesc = scope.row
@@ -1180,6 +1190,9 @@ export default class ModelList extends Vue {
     })
   }
   showAddModelDialog () {
+    if (!this.modelArray.length && !localStorage.getItem('isFirstAddModel')) {
+      localStorage.setItem('isFirstAddModel', 'true')
+    }
     this.callAddModelDialog()
   }
   // 查询状态过滤回调函数

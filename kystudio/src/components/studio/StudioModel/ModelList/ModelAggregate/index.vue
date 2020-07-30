@@ -54,10 +54,20 @@
           </div>
           <div class="detail-content" v-loading="indexLoading">
             <div class="clearfix">
+              <el-popover
+                ref="indexPopover"
+                placement="right"
+                width="500"
+                trigger="hover">
+                <div style="padding:10px">
+                  <div class="ksd-mb-10">{{$t('indexSubTitle')}}</div>
+                  <div class="ksd-center">
+                    <img src="../../../../../assets/img/index.gif" width="400px" alt="">
+                  </div>
+                </div>
+              </el-popover>
               <div class="ksd-mb-10 ksd-fs-12 ksd-fleft">
-                {{$t('dataRange')}}<el-tooltip :content="$t('dataRangeTips')" placement="top">
-                  <i class="el-icon-ksd-what ksd-ml-5"></i>
-                </el-tooltip>: {{getDataRange}}
+                {{$t('dataRange')}}<i v-popover:indexPopover class="el-icon-question"></i>: {{getDataRange}}
               </div>
               <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-5">
                 <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
@@ -985,6 +995,9 @@ export default class ModelAggregate extends Vue {
       box-sizing: border-box;
       padding: 0px !important;
       .detail-content {
+        .el-icon-question {
+          color: @base-color;
+        }
         .text-btn-like {
           color: @base-color;
           cursor: pointer;
