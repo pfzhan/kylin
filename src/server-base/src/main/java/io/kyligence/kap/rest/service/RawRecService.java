@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -47,6 +48,8 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
@@ -105,8 +108,36 @@ public class RawRecService {
         List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap);
         saveLayoutRawRecItems(layoutRecItems, project);
 
+        markFailAccelerateMessageToQueryHistory(queryHistoryMap, semiContextV2);
+
         log.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
                 System.currentTimeMillis() - startTime);
+    }
+
+    public void markFailAccelerateMessageToQueryHistory(ArrayListMultimap<String, QueryHistory> queryHistoryMap,
+            AbstractSemiContextV2 semiContextV2) {
+        List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
+        semiContextV2.getAccelerateInfoMap().entrySet().stream().filter(entry -> entry.getValue().isNotSucceed())
+                .forEach(entry -> {
+                    queryHistoryMap.get(entry.getKey()).forEach(qh -> {
+                        AccelerateInfo accelerateInfo = entry.getValue();
+                        QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
+                        if (queryHistoryInfo == null) {
+                            queryHistoryInfo = new QueryHistoryInfo();
+                        }
+                        if (accelerateInfo.isFailed()) {
+                            String failMessage = accelerateInfo.getFailedCause().getMessage();
+                            if (failMessage.length() > 256) {
+                                failMessage = failMessage.substring(0, 256);
+                            }
+                            queryHistoryInfo.setErrorMsg(failMessage);
+                        } else if (accelerateInfo.isPending()) {
+                            queryHistoryInfo.setErrorMsg(accelerateInfo.getPendingMsg());
+                        }
+                        idToQHInfoList.add(new Pair<>(qh.getId(), queryHistoryInfo));
+                    });
+                });
+        RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv()).batchUpdataQueryHistorieInfo(idToQHInfoList);
     }
 
     public void updateCostsAndTopNCandidates() {

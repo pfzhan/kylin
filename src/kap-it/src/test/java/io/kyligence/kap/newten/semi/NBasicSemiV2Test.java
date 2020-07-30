@@ -27,6 +27,7 @@ package io.kyligence.kap.newten.semi;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.TimeUtil;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,9 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.rest.service.RawRecService;
@@ -48,6 +52,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
     private static final long QUERY_TIME = 1595520000000L;
 
     private JdbcRawRecStore jdbcRawRecStore;
+    private RDBMSQueryHistoryDAO queryHistoryDAO;
     RawRecService rawRecommendation;
 
     @Before
@@ -57,6 +62,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
         rawRecommendation = new RawRecService();
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     @Override
@@ -122,15 +128,51 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         List<RawRecItem> factRawRecItems = jdbcRawRecStore.listAll(getProject(), originModels.get(1).getUuid(), 0, 10);
         Assert.assertEquals(2, factRawRecItems.size());
 
-        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(1).getType());
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(3).getType());
-        Assert.assertEquals(1, jdbcRawRecStore.queryById(3).getLayoutMetric().getFrequencyMap().getDateFrequency()
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(3).getType());
+        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(5).getType());
+        Assert.assertEquals(1, jdbcRawRecStore.queryById(5).getLayoutMetric().getFrequencyMap().getDateFrequency()
                 .get(QUERY_TIME).intValue());
 
-        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(2).getType());
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(4).getType());
-        Assert.assertEquals(1, jdbcRawRecStore.queryById(4).getLayoutMetric().getFrequencyMap().getDateFrequency()
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(4).getType());
+        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(6).getType());
+        Assert.assertEquals(1, jdbcRawRecStore.queryById(6).getLayoutMetric().getFrequencyMap().getDateFrequency()
                 .get(QUERY_TIME).intValue());
+    }
+
+
+    @Test
+    public void testMarkFailAccelerateMessageToQueryHistory() {
+        // prepare query history
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, getProject()));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1L, true, getProject()));
+
+        // create a fail accelerate and succeed accelerate, then mark to query history
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select ACCOUNT_SELLER_LEVEL from TEST_ACCOUNT" });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runWithContext();
+
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select ACCOUNT_BUYER_LEVEL from TEST_ACCOUNT");
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setId(1);
+
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setQueryTime(QUERY_TIME);
+        queryHistory2.setSql("select country from test_country");
+        queryHistory2.setId(2);
+
+        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1, queryHistory2));
+
+        // check if mark succeed
+        List<QueryHistory> allQueryHistories = queryHistoryDAO.getAllQueryHistories();
+        Assert.assertEquals(2, allQueryHistories.size());
+        Assert.assertEquals(1, allQueryHistories.get(0).getId());
+        Assert.assertNull(allQueryHistories.get(0).getQueryHistoryInfo().getErrorMsg());
+        // fail accelerate mark succeed
+        Assert.assertEquals(2, allQueryHistories.get(1).getId());
+        Assert.assertEquals("There is no compatible model to accelerate this sql.",
+                allQueryHistories.get(1).getQueryHistoryInfo().getErrorMsg());
     }
 
     private List<QueryHistory> queryHistories() {
@@ -142,8 +184,44 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         QueryHistory queryHistory2 = new QueryHistory();
         queryHistory2.setQueryTime(QUERY_TIME);
         queryHistory2.setSql("select country from test_country");
-        queryHistory2.setId(1);
+        queryHistory2.setId(2);
 
         return Lists.newArrayList(queryHistory1, queryHistory2);
+    }
+
+    private QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project) {
+        QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
+        queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
+        queryMetrics.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
+        queryMetrics.setQueryDuration(duration);
+        queryMetrics.setTotalScanBytes(863L);
+        queryMetrics.setTotalScanCount(4096L);
+        queryMetrics.setResultRowCount(500L);
+        queryMetrics.setSubmitter("ADMIN");
+        queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
+        queryMetrics.setErrorType("");
+        queryMetrics.setCacheHit(true);
+        queryMetrics.setIndexHit(indexHit);
+        queryMetrics.setQueryTime(queryTime);
+        queryMetrics.setQueryFirstDayOfMonth(TimeUtil.getMonthStart(queryTime));
+        queryMetrics.setQueryFirstDayOfWeek(TimeUtil.getWeekStart(queryTime));
+        queryMetrics.setQueryDay(TimeUtil.getDayStart(queryTime));
+        queryMetrics.setProjectName(project);
+        queryMetrics.setQueryStatus("SUCCEEDED");
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
+
+        QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
+                "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");
+        realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
+        realizationMetrics.setDuration(4591L);
+        realizationMetrics.setQueryTime(1586405449387L);
+        realizationMetrics.setProjectName(project);
+
+        List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
+        realizationMetricsList.add(realizationMetrics);
+        realizationMetricsList.add(realizationMetrics);
+        queryMetrics.setRealizationMetrics(realizationMetricsList);
+        return queryMetrics;
     }
 }

@@ -49,6 +49,8 @@ public class QueryHistoryInfo implements Serializable {
     private HistoryState state;
     @JsonProperty("execution_error")
     private boolean executionError;
+    @JsonProperty("error_msg")
+    private String errorMsg;
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;
