@@ -200,6 +200,7 @@
       </el-form>
     </EditableBlock>
     <EditableBlock
+      v-if="$store.state.project.isSemiAutomatic"
       ref="acclerationRuleSettings"
       :header-content="$t('acclerationRuleSettings')"
       :is-keep-editing="true"

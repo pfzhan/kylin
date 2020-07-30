@@ -89,7 +89,7 @@
       </el-col>
     </el-row>
     <el-row :gutter="15" v-else>
-      <div class="recommend-layout" v-show="recommendDetails.length">
+      <div class="recommend-layout" v-show="hasRecommendation">
         <el-col :span="15">
           <el-table
             :data="suggestModels"
@@ -170,7 +170,7 @@
           </div>
         </el-col>
       </div>
-      <template v-if="!recommendDetails.length">
+      <template v-if="!hasRecommendation">
         <div class="no-recommends">
           <span class="icon el-icon-ksd-empty-box"></span>
           <p>{{$t('noRecommendsTip')}}</p>
@@ -230,8 +230,21 @@ export default class SuggestModel extends Vue {
       return this.$t('newModelTips')
     }
   }
+  get hasRecommendation () {
+    let flag = false
+    for (let i = 0; i <= this.suggestModels.length - 1; i++) {
+      if (this.suggestModels[i].recommendation) {
+        const { cc_recommendations, dimension_recommendations, measure_recommendations } = this.suggestModels[i].recommendation
+        if (cc_recommendations.length + dimension_recommendations.length + measure_recommendations.length > 0) {
+          flag = true
+          break
+        }
+      }
+    }
+    return flag
+  }
   handleClickEvent (e) {
-    if (!e.target.closest('.row-click')) {
+    if (!e.target.closest('.row-click') && !e.target.closest('.details')) {
       this.activeRowId = ''
     }
   }
