@@ -4,7 +4,7 @@
     :close-on-click-modal="false" 
     :title="$t(`kylinLang.model.${editCC ? 'editCC' : 'addCC'}`)" width="480px" :visible="isShow" @close="closeModal()">
       <el-alert :title="$t('editCCTip')" type="warning" v-if="editCC" showIcon :closable="false" />
-      <CCEditForm v-if="isShow" @saveSuccess="saveCC" @saveError="saveCCError" ref="ccForm" @resetSubmitLoading="resetLoading" :isPureForm="true" :currentCCForm="currentCCForm" :modelInstance="modelInstance" :isEdited="editCC"/>
+      <CCEditForm v-if="isShow" @saveSuccess="saveCC" @saveError="saveCCError" ref="ccForm" :isPureForm="true" :currentCCForm="currentCCForm" :modelInstance="modelInstance" :isEdited="editCC"/>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" @click="submit" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
@@ -66,9 +66,6 @@ export default class CCAddModal extends Vue {
   async submit () {
     this.btnLoading = true
     this.$refs.ccForm.$emit('addCC')
-  }
-  resetLoading () {
-    this.btnLoading = false
   }
 }
 </script>
