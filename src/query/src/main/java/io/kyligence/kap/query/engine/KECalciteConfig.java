@@ -72,9 +72,4 @@ public class KECalciteConfig extends CalciteConnectionConfigImpl {
     public static KECalciteConfig current() {
         return THREAD_LOCAL.get();
     }
-
-    @Override
-    public boolean skipConstantFoldingInProject() {
-        return kylinConfig.skipFoldConstantInProject();
-    }
 }
