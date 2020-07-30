@@ -71,6 +71,7 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
+        getTestConfig().setProperty("kylin.query.heterogeneous-segment-enabled", "false");
     }
 
     @After

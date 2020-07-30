@@ -66,6 +66,7 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -212,7 +213,9 @@ public class RealizationChooser {
 
         preprocessOlapCtx(context);
         // check ready segments
-        if (!hasReadySegments(model)) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        val projectConfig = NProjectManager.getInstance(kylinConfig).getProject(model.getProject()).getConfig();
+        if ((BackdoorToggles.getIsQueryFromAutoModeling() || !projectConfig.isHeterogeneousSegmentEnabled()) && !hasReadySegments(model)) {
             context.unfixModel();
             logger.info("Exclude this model {} because there are no ready segments", model.getAlias());
             return null;

@@ -26,6 +26,7 @@ package io.kyligence.kap.query;
 import java.sql.SQLException;
 import java.util.List;
 
+import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
@@ -141,6 +142,27 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         layout2.setRows(rowcount);
         dataflowUpdate.setToAddOrUpdateLayouts(layout1, layout2);
         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(dataflowUpdate);
+    }
+
+    @Test
+    public void testWhenReadySegmentIsEmpty() throws SQLException {
+        val project = "heterogeneous_segment";
+        val sql = "select cal_dt, count(*) from test_kylin_fact " +
+                "inner join test_category_groupings on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id " +
+                "where cal_dt >= '2012-01-03' and cal_dt < '2012-01-10' group by cal_dt";
+
+        val sqlResponse = new QueryExec(project, getTestConfig()).executeQuery(sql);
+        Assert.assertNotNull(sqlResponse);
+        Assert.assertEquals(0, sqlResponse.getRows().size());
+
+        try {
+            getTestConfig().setProperty("kylin.query.heterogeneous-segment-enabled", "false");
+            new QueryExec(project, getTestConfig()).executeQuery(sql);
+            Assert.fail();
+        } catch (SQLException ex) {
+            // no ready segments
+            Assert.assertTrue(ex.getCause() instanceof NoRealizationFoundException);
+        }
     }
 
     @Test
