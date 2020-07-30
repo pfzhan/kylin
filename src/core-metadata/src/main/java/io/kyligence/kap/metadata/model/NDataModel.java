@@ -259,7 +259,7 @@ public class NDataModel extends RootPersistentEntity {
 
     private ImmutableBiMap<Integer, TblColRef> effectiveDimensions; // including DIMENSION cols
 
-    private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols
+    private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED measures, only after init() is called
 
     //private Map<TableRef, BitSet> effectiveDerivedCols;
     private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
@@ -1322,6 +1322,18 @@ public class NDataModel extends RootPersistentEntity {
         Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
         return allNamedColumns.stream().filter(col -> Objects.equals(col.getId(), id) && col.isExist())
                 .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
+    }
+
+    public String getTombColumnNameByColumnId(int id) {
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
+        return allNamedColumns.stream().filter(col -> col.getId() == id && !col.isExist())
+                .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
+    }
+
+    public Measure getTombMeasureByMeasureId(int id) {
+        Preconditions.checkArgument(Objects.nonNull(allMeasures));
+        return allMeasures.stream().filter(measure -> Objects.equals(measure.getId(), id) && measure.isTomb())
+                .findAny().orElse(null);
     }
 
     public String getNameByColumnId(int id) {

@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -73,7 +74,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
@@ -589,16 +589,16 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "checkComputedColumns", notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
     @PostMapping(value = "/computed_columns/check")
     @ResponseBody
-    public EnvelopeResponse<ComputedColumnDesc> checkComputedColumns(
+    public EnvelopeResponse<ComputedColumnCheckResponse> checkComputedColumns(
             @RequestBody ComputedColumnCheckRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         modelRequest.getModelDesc().setProject(modelRequest.getProject());
         NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
         modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
         modelService.primaryCheck(modelDesc);
-        ComputedColumnDesc checkedCC = modelService.checkComputedColumn(modelDesc, modelRequest.getProject(),
+        ComputedColumnCheckResponse response = modelService.checkComputedColumn(modelDesc, modelRequest.getProject(),
                 modelRequest.getCcInCheck());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, checkedCC, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @GetMapping(value = "/computed_columns/usage")

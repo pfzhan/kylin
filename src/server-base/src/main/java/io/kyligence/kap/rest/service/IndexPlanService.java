@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -843,6 +844,39 @@ public class IndexPlanService extends BasicService {
                 updatedAgg.setLastModifiedTime(System.currentTimeMillis());
                 copy.setRuleBasedIndex(updatedAgg, false, false);
             }
+        });
+    }
+
+    public void updateForMeasureChange(String project, String modelId, Set<Integer> invalidMeasures,
+                                       Map<Integer, Integer> replacedMeasure) {
+        getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
+            val copyRuleBaseIndex = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), NRuleBasedIndex.class);
+
+            if (copyRuleBaseIndex == null)
+                return;
+
+            for (ListIterator<Integer> measureItr = copyRuleBaseIndex.getMeasures().listIterator(); measureItr.hasNext();) {
+                Integer measureId = measureItr.next();
+                if (invalidMeasures.contains(measureId)) {
+                    measureItr.remove();
+                } else if (replacedMeasure.get(measureId) != null) {
+                    measureItr.set(replacedMeasure.get(measureId));
+                }
+            }
+
+            for (ListIterator<NAggregationGroup> aggGroupItr = copyRuleBaseIndex.getAggregationGroups().listIterator(); aggGroupItr.hasNext();) {
+                NAggregationGroup aggGroup = aggGroupItr.next();
+                Integer[] aggGroupMeasures = aggGroup.getMeasures();
+                for (int i = 0; i < aggGroupMeasures.length; i++) {
+                    if (replacedMeasure.get(aggGroupMeasures[i]) != null) {
+                        aggGroupMeasures[i] = replacedMeasure.get(aggGroupMeasures[i]);
+                    } else if (invalidMeasures.contains(aggGroupMeasures[i])) {
+                        aggGroupItr.remove();
+                    }
+                }
+            }
+
+            copy.setRuleBasedIndex(copyRuleBaseIndex);
         });
     }
 

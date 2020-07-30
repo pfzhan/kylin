@@ -38,6 +38,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MO
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_COMPUTED_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
@@ -78,6 +79,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -109,6 +111,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.UpdateImpact;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -237,6 +240,8 @@ public class ModelService extends BasicService {
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
     public static final String VALID_NAME_FOR_DIMENSION_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
+
+
 
     @Setter
     @Autowired
@@ -2099,7 +2104,7 @@ public class ModelService extends BasicService {
      * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
-    public ComputedColumnDesc checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
+    public ComputedColumnCheckResponse checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
         aclEvaluate.checkProjectWritePermission(project);
         if (dataModelDesc.getUuid() == null)
             dataModelDesc.updateRandomUuid();
@@ -2113,27 +2118,60 @@ public class ModelService extends BasicService {
         }
 
         checkCCNameAmbiguity(dataModelDesc);
+        ComputedColumnDesc checkedCC = null;
 
         for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
             checkCCName(cc.getColumnName());
 
-            if (!StringUtils.isEmpty(ccInCheck) && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck))
-                continue;
+            if (!StringUtils.isEmpty(ccInCheck) && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck)) {
+                //check nested cc
+                if (cc.getExpression().toUpperCase().contains(ccInCheck)) {
+                    throw new KylinException(FAILED_UPDATE_COMPUTED_COLUMN,
+                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModelDesc.getUuid(),
+                                    cc.getTableAlias() + "." + cc.getColumnName(), ccInCheck));
+                }
+            } else {
+                //replace computed columns with basic columns
+                ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
+                String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc,
+                        AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
+                cc.setInnerExpression(innerExpression);
 
-            //replace computed columns with basic columns
-            ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
-            String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc,
-                    AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
-            cc.setInnerExpression(innerExpression);
-
-            //check by data source, this could be slow
-            long ts = System.currentTimeMillis();
-            ComputedColumnEvalUtil.evaluateExprAndType(dataModelDesc, cc);
-            logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
-                    (System.currentTimeMillis() - ts), cc.getExpression());
-            return cc;
+                //check by data source, this could be slow
+                long ts = System.currentTimeMillis();
+                ComputedColumnEvalUtil.evaluateExprAndType(dataModelDesc, cc);
+                logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
+                        (System.currentTimeMillis() - ts), cc.getExpression());
+                checkedCC = cc;
+            }
         }
-        throw new IllegalStateException("No computed column match: " + ccInCheck);
+
+        if (checkedCC == null)
+            throw new IllegalStateException("No computed column match: " + ccInCheck);
+
+        // check invalid measure removed due to cc data type change
+        val modelManager = getDataModelManager(dataModelDesc.getProject());
+        val oldDataModel = modelManager.getDataModelDesc(dataModelDesc.getUuid());
+
+        // brand new model, no measure to remove
+        if (oldDataModel == null)
+            return getComputedColoumnCheckResponse(checkedCC, new ArrayList<>());
+
+        val copyModel = modelManager.copyForWrite(oldDataModel);
+        val request = new ModelRequest(dataModelDesc);
+        request.setProject(dataModelDesc.getProject());
+        request.setMeasures(dataModelDesc.getAllMeasures());
+        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
+        // get invalid measure names in original model
+        val removedMeasures = updateImpact.getInvalidMeasures();
+        val measureNames = oldDataModel.getAllMeasures().stream().filter(m -> removedMeasures.contains(m.getId()))
+                .map(NDataModel.Measure::getName).collect(Collectors.toList());
+        // get invalid measure names in request
+        val removedRequestMeasures = updateImpact.getInvalidRequestMeasures();
+        val requestMeasureNames = request.getAllMeasures().stream().filter(m -> removedRequestMeasures.contains(m.getId()))
+                .map(NDataModel.Measure::getName).collect(Collectors.toList());
+        measureNames.addAll(requestMeasureNames);
+        return getComputedColoumnCheckResponse(checkedCC, measureNames);
     }
 
     static void checkCCName(String name) {
@@ -2438,7 +2476,7 @@ public class ModelService extends BasicService {
         val originModel = modelManager.getDataModelDesc(modelId);
 
         val copyModel = modelManager.copyForWrite(originModel);
-        Set<Integer> modifiedSet = semanticUpdater.updateModelColumns(copyModel, request, true);
+        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
@@ -2446,9 +2484,12 @@ public class ModelService extends BasicService {
 
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
-
-        val affectedLayoutSet = getAffectedLayouts(project, modelId, modifiedSet);
-        indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
+        indexPlanService.updateForMeasureChange(project, modelId, updateImpact.getInvalidMeasures(),
+                updateImpact.getReplacedMeasures());
+        Set<Integer> affectedSet = updateImpact.getAffectedIds();
+        val affectedLayoutSet = getAffectedLayouts(project, modelId, affectedSet);
+        if (affectedSet.size() > 0)
+            indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
 
         var newModel = modelManager.getDataModelDesc(modelId);
 
@@ -2858,6 +2899,13 @@ public class ModelService extends BasicService {
         return response;
     }
 
+    public ComputedColumnCheckResponse getComputedColoumnCheckResponse(ComputedColumnDesc ccDesc, List<String> removedMeasures) {
+        val response = new ComputedColumnCheckResponse();
+        response.setComputedColumnDesc(ccDesc);
+        response.setRemovedMeasures(removedMeasures);
+        return response;
+    }
+
     public ModelSaveCheckResponse checkBeforeModelSave(ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(modelRequest.getProject());
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
@@ -2865,7 +2913,8 @@ public class ModelService extends BasicService {
         Set<Long> affectedLayouts = Sets.newHashSet();
         if (oldDataModel != null && !oldDataModel.isBroken()) {
             model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
-            Set<Integer> modifiedSet = semanticUpdater.updateModelColumns(model, modelRequest, false);
+            UpdateImpact updateImpact = semanticUpdater.updateModelColumns(model, modelRequest, false);
+            Set<Integer> modifiedSet = updateImpact.getAffectedIds();
             affectedLayouts = getAffectedLayouts(oldDataModel.getProject(), oldDataModel.getId(), modifiedSet);
             checkNestedComputedColumn(model, modifiedSet);
         }

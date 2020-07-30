@@ -228,7 +228,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             SimplifiedMeasure newMeasure = new SimplifiedMeasure();
             newMeasure.setName("TEST_MEASURE_WITH_CC");
             newMeasure.setExpression("SUM");
-            newMeasure.setReturnType("integer");
+            newMeasure.setReturnType("bigint");
             ParameterResponse param = new ParameterResponse("column", "TEST_KYLIN_FACT.TEST_CC_1");
             newMeasure.setParameterValue(Lists.newArrayList(param));
             request.getSimplifiedMeasures().add(newMeasure);
@@ -485,7 +485,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
                 .orElse(null);
         Assert.assertNotNull(newCcCol);
-        Assert.assertEquals(ccColId, newCcCol.getId());
+        Assert.assertNotEquals(ccColId, newCcCol.getId());
     }
 
     @Test
@@ -576,7 +576,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         param.setValue("TEST_KYLIN_FACT.NEST5");
         newMeasure1.setParameterValue(Lists.newArrayList(param));
         request.getSimplifiedMeasures().add(newMeasure1);
-        newMeasure1.setReturnType("decimal");
+        newMeasure1.setReturnType("decimal(38, 0)");
         modelService.updateDataModelSemantic("default", request);
         // get dim and measure id
         request = newSemanticRequest(modelId);
@@ -608,6 +608,59 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val newIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
                 .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-2L);
         Assert.assertTrue(newIndexId > oldIndexId);
+    }
+
+    @Test
+    public void testModifyCCChangeType() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        // create measure
+        var request = newSemanticRequest(modelId);
+        val newMeasure1 = new SimplifiedMeasure();
+        newMeasure1.setName("NEST5_SUM");
+        newMeasure1.setExpression("SUM");
+        val param = new ParameterResponse();
+        param.setType("column");
+        param.setValue("TEST_KYLIN_FACT.NEST5");
+        newMeasure1.setParameterValue(Lists.newArrayList(param));
+        request.getSimplifiedMeasures().add(newMeasure1);
+        // return type for SUM(decimal) is "decimal(38, 0)"
+        // this will trigger measure return type change
+        newMeasure1.setReturnType("any");
+        modelService.updateDataModelSemantic("default", request);
+        // get dim and measure id
+        request = newSemanticRequest(modelId);
+        val transId = request.getColumnIdByColumnName("TEST_KYLIN_FACT.TRANS_ID");
+        val nest5SumId = request.getSimplifiedMeasures().stream().filter(m -> "NEST5_SUM".equals(m.getName()))
+                .mapToInt(SimplifiedMeasure::getId).findFirst().orElse(-1);
+        // create agg group
+        NAggregationGroup newAggregationGroup = new NAggregationGroup();
+        newAggregationGroup.setIncludes(new Integer[] { transId });
+        newAggregationGroup.setMeasures(new Integer[] { nest5SumId });
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        newAggregationGroup.setSelectRule(selectRule);
+        indexPlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
+        // old indexes
+        val indexCol = Arrays.asList(transId, nest5SumId);
+        val oldLayoutId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-1L);
+        // modify expression of cc TEST_KYLIN_FACT.NEST5
+        val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
+                .findFirst().orElse(null);
+        originCC.setExpression(originCC.getExpression() + "+1");
+        modelService.updateDataModelSemantic("default", request);
+        // measure NEST5_SUM is reloaded due to return type change
+        val newNest5SumId = nest5SumId + 1;
+        val newIndexCol = Arrays.asList(transId, newNest5SumId);
+        // new layout id
+        val newLayoutId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .filter(l -> l.getColOrder().containsAll(newIndexCol)).findFirst().map(LayoutEntity::getId).orElse(-2L);
+        Assert.assertTrue(newLayoutId > oldLayoutId);
     }
 
     @Test
