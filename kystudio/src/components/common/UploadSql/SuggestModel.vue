@@ -71,7 +71,10 @@
               </template>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('th_name')" prop="name" show-overflow-tooltip>
+          <el-table-column :label="$t('th_name')" show-overflow-tooltip>
+            <template slot-scope="scope">
+              {{scope.row.name || scope.row.columnName}}
+            </template>
           </el-table-column>
           <el-table-column :label="$t('th_type')" prop="type" width="80">
             <template slot-scope="scope">
@@ -250,7 +253,7 @@ export default class SuggestModel extends Vue {
   recommendRowClick (scope) {
     const row = scope.recommendation
     this.activeRowId = scope.uuid
-    this.recommendDetails = [...row.cc_recommendations.map(it => ({...it, type: 'cc'})), ...row.dimension_recommendations.map(it => ({...it, name: it.column.name, type: 'dimension'})), ...row.measure_recommendations.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
+    this.recommendDetails = [...row.cc_recommendations.map(it => ({...it, name: it.cc.columnName, type: 'cc'})), ...row.dimension_recommendations.map(it => ({...it, name: it.column.name, type: 'dimension'})), ...row.measure_recommendations.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
   }
   sqlsTable (sqls) {
     return sqls.map((s) => {

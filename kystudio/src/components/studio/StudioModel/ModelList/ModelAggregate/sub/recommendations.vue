@@ -306,7 +306,7 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
       cc: 'Computed Columns',
       dimension: 'Dimension',
       measure: 'Measure',
-      newAdd: 'New',
+      newAdd: 'Add',
       validateTitle: 'Add Items to Model',
       validateModalTip: 'To accept the selected recommendations, the following items have to be added to the model:',
       add: 'Add',
@@ -407,7 +407,7 @@ export default class IndexList extends Vue {
   showValidate = false
   isLoading = false
   rules = {
-    name: [{validator: this.validateName, trigger: 'blur'}]
+    name: [{required: true, validator: this.validateName, trigger: 'blur'}]
   }
 
   get emptyText () {
@@ -479,7 +479,7 @@ export default class IndexList extends Vue {
       is_add: row.is_add
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
-      this.detailData = [...data.column_items.map(it => ({...it, type: 'cc'})), ...data.dimension_items.map(it => ({...it, type: 'dimension'})), ...data.measure_items.map(it => ({...it, type: 'measure'}))]
+      this.detailData = [...data.cc_items.map(it => ({...it, type: 'cc'})), ...data.dimension_items.map(it => ({...it, type: 'dimension'})), ...data.measure_items.map(it => ({...it, type: 'measure'}))]
       this.loadingDetails = false
     }).catch(e => {
       handleError(e)
@@ -503,35 +503,35 @@ export default class IndexList extends Vue {
 
   // 批量删除
   betchDelete () {
-    let ids = []
-    let legacy_ids = []
+    let layouts_to_add = []
+    let layouts_to_remove = []
     this.selectedList.forEach(item => {
       if (item.type.split('_')[0] === 'ADD') {
-        ids.push(item.item_id)
+        layouts_to_add.push(item.item_id)
       } else {
-        legacy_ids.push(item.item_id)
+        layouts_to_remove.push(item.item_id)
       }
     })
-    this.removeApi(ids, legacy_ids)
+    this.removeApi(layouts_to_add, layouts_to_remove)
   }
 
   // 删除优化建议
   removeIndex (row) {
-    let ids = []
-    let legacy_ids = []
-    row.type.split('_')[0] === 'ADD' ? ids.push(row.item_id) : legacy_ids.push(row.item_id)
-    this.removeApi(ids, legacy_ids)
+    let layouts_to_add = []
+    let layouts_to_remove = []
+    row.type.split('_')[0] === 'ADD' ? layouts_to_add.push(row.item_id) : layouts_to_remove.push(row.item_id)
+    this.removeApi(layouts_to_add, layouts_to_remove)
   }
 
-  async removeApi (ids, legacy_ids) {
+  async removeApi (layouts_to_add, layouts_to_remove) {
     await this.$confirm(this.$t('deleteRecommendTip'), this.$t('deleteTitle'), {
       confirmButtonText: this.$t('delete')
     })
     this.deleteRecommendations({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      ids: ids.join(','),
-      legacy_ids: legacy_ids.join(',')
+      layouts_to_add: layouts_to_add.join(','),
+      layouts_to_remove: layouts_to_remove.join(',')
     }).then(async (res) => {
       await handleSuccessAsync(res)
       this.$message({
@@ -554,21 +554,21 @@ export default class IndexList extends Vue {
     this.validateRecommend({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      ids: idList
+      layouts_to_add: idList.filter(it => it.is_add)
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
-      let { layout_item_ids, column_items, dimension_items, measure_items } = data
-      if (column_items.length + dimension_items.length + measure_items.length > 0) {
+      let { layout_item_ids, cc_items, dimension_items, measure_items } = data
+      if (cc_items.length + dimension_items.length + measure_items.length > 0) {
         this.showValidate = true
         this.validateData = {
           layout_item_ids,
-          list: [...column_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, type: 'dimension'})), ...measure_items.map(it => ({...it, type: 'measure'}))]
+          list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, type: 'dimension'})), ...measure_items.map(it => ({...it, type: 'measure'}))]
         }
       } else {
         this.validateData = {layout_item_ids, list: []}
-        const ids = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.version === 2)
-        const legacy_ids = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.version === 1)
-        this.accessApi(ids, legacy_ids)
+        const layouts_to_add = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.is_add)
+        const layouts_to_remove = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && !it.is_add)
+        this.accessApi(layouts_to_add, layouts_to_remove)
       }
     }).catch((e) => {
       handleError(e)
@@ -578,13 +578,14 @@ export default class IndexList extends Vue {
   // 添加更名后的layout
   addLayout () {
     let names = {}
-    const ids = this.recommendationsList.list.filter(it => this.validateData.layout_item_ids.includes(it.item_id) && it.version === 2)
-    const legacy_ids = this.recommendationsList.list.filter(it => this.validateData.layout_item_ids.includes(it.item_id) && it.version === 1)
+    const idList = this.selectedList.map(it => it.item_id)
+    const layouts_to_add = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.is_add)
+    const layouts_to_remove = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && !it.is_add)
     this.isLoading = true
     this.validateData.list.forEach(item => {
       names[item.item_id] = item.name
     })
-    this.accessApi(ids, legacy_ids, names).then(() => {
+    this.accessApi(layouts_to_add, layouts_to_remove, names).then(() => {
       this.isLoading = false
       this.showValidate = false
     }).catch(e => {
@@ -592,42 +593,48 @@ export default class IndexList extends Vue {
     })
   }
 
-  async accessApi (ids, legacy_ids, names) {
+  async accessApi (layouts_to_add, layouts_to_remove, names) {
+    names = names || {}
     return new Promise((resolve, reject) => {
-      this.accessRecommendations({
-        project: this.currentProject,
-        modelId: this.modelDesc.uuid,
-        ids: ids.map(item => item.item_id),
-        legacy_ids: legacy_ids.map(item => item.item_id),
-        names
-      }).then(async (res) => {
-        try {
-          await handleSuccessAsync(res)
-          let acceptIndexs = () => {
-            return {
-              add: [...ids, ...legacy_ids].filter(item => item.type.split('_')[0] === 'ADD').length,
-              del: [...ids, ...legacy_ids].filter(item => item.type.split('_')[0] === 'REMOVE').length
-            }
-          }
-          this.$message({
-            type: 'success',
-            message: <span>{acceptIndexs().add > 0 && acceptIndexs().del > 0
-             ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs().add, delLength: acceptIndexs().del})
-              : acceptIndexs().add > 0 ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs().add})
-               : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a href="javascript:void();" onClick={() => this.buildIndex()}>{
-                 (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.modelDesc.segments.length ? this.$t('buildIndexTip') : ''
-               }</a></span>
-          })
-          this.getRecommendations()
-          this.$emit('accept')
-          resolve()
-        } catch (e) {
-          reject()
-        }
-      }).catch(e => {
-        handleError(e)
+      const emptyName = Object.values(names).some(it => !it)
+      if (emptyName) {
         reject()
-      })
+      } else {
+        this.accessRecommendations({
+          project: this.currentProject,
+          modelId: this.modelDesc.uuid,
+          layouts_to_add: layouts_to_add.map(item => item.item_id),
+          layouts_to_remove: layouts_to_remove.map(item => item.item_id),
+          names
+        }).then(async (res) => {
+          try {
+            await handleSuccessAsync(res)
+            let acceptIndexs = () => {
+              return {
+                add: [...layouts_to_add, ...layouts_to_remove].filter(item => item.type.split('_')[0] === 'ADD').length,
+                del: [...layouts_to_add, ...layouts_to_remove].filter(item => item.type.split('_')[0] === 'REMOVE').length
+              }
+            }
+            this.$message({
+              type: 'success',
+              message: <span>{acceptIndexs().add > 0 && acceptIndexs().del > 0
+              ? this.$t('bothAcceptAddAndDelete', {addLength: acceptIndexs().add, delLength: acceptIndexs().del})
+                : acceptIndexs().add > 0 ? this.$t('onlyAcceptAdd', {addLength: acceptIndexs().add})
+                : this.$t('onlyAcceptDelete', {delLength: acceptIndexs().del})}<a href="javascript:void();" onClick={() => this.buildIndex()}>{
+                  (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.modelDesc.segments.length ? this.$t('buildIndexTip') : ''
+                }</a></span>
+            })
+            this.getRecommendations()
+            this.$emit('accept')
+            resolve()
+          } catch (e) {
+            reject()
+          }
+        }).catch(e => {
+          handleError(e)
+          reject()
+        })
+      }
     })
   }
 
