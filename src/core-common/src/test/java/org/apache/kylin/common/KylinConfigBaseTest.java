@@ -437,7 +437,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                                 "org.apache.kylin.query.util.PowerBIConverter",
                                 "io.kyligence.kap.query.util.RestoreFromComputedColumn",
-                                "io.kyligence.kap.query.security.TableViewPrepender",
+                                "io.kyligence.kap.query.security.RowFilter",
                                 "io.kyligence.kap.query.util.SparkSQLFunctionConverter" }));
 
         map.put("isPushdownQueryCacheEnabled",

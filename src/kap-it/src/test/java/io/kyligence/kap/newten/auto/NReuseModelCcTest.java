@@ -57,7 +57,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         super.setup();
         prepareModels();
         kylinConfig.setProperty("kylin.query.transformers",
-                "org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.TableViewPrepender");
+                "org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter");
     }
 
     /**

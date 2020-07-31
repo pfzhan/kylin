@@ -1238,7 +1238,7 @@ public abstract class KylinConfigBase implements Serializable {
                 "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
                 "io.kyligence.kap.query.util.ConvertToComputedColumn",
                 "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
-                "io.kyligence.kap.query.security.TableViewPrepender" }
+                "io.kyligence.kap.query.security.RowFilter" }
                 : getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
 
@@ -1374,7 +1374,7 @@ public abstract class KylinConfigBase implements Serializable {
                 new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                         "org.apache.kylin.query.util.PowerBIConverter",
                         "io.kyligence.kap.query.util.RestoreFromComputedColumn",
-                        "io.kyligence.kap.query.security.TableViewPrepender",
+                        "io.kyligence.kap.query.security.RowFilter",
                         "io.kyligence.kap.query.util.SparkSQLFunctionConverter" });
     }
 

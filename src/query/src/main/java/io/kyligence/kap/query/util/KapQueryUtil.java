@@ -33,7 +33,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -70,9 +69,6 @@ public class KapQueryUtil {
             Map<String, NDataModel> modelMap = Maps.newHashMap();
             modelMap.put(model.getUuid(), model);
             ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT", modelMap);
-            KylinConfig config = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv().exportToProperties());
-            config.setProperty("kylin.query.pushdown.converter-class-names",
-                    removeTableViewPrependerConverter(config.getPushDownConverterClassNames()));
             QueryParams queryParams = new QueryParams(project, ccSql, "DEFAULT", false);
             queryParams.setKylinConfig(QueryUtil.getKylinConfig(project));
             queryParams.setAclInfo(aclInfo);
@@ -82,23 +78,6 @@ public class KapQueryUtil {
         }
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
-    }
-
-    private static String removeTableViewPrependerConverter(String[] pushdownConverters) {
-        StringBuilder sb = new StringBuilder();
-        for (String converterName : pushdownConverters) {
-            if (converterName.equalsIgnoreCase("io.kyligence.kap.query.security.TableViewPrepender"))
-                continue;
-
-            sb.append(converterName);
-            sb.append(",");
-        }
-
-        if (sb.length() > 1) {
-            sb.setLength(sb.length() - 1);
-        }
-
-        return sb.toString();
     }
 
     public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc, QueryContext.AclInfo aclInfo) {
