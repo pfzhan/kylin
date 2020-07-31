@@ -443,7 +443,7 @@ export default class QueryHistoryTable extends Vue {
         if (i.layoutId === -1 && !firstSnapshot) {
           filterIds.push('Snapshot')
           firstSnapshot = true
-        } else if (i.layoutId !== -1) {
+        } else if (i.layoutId !== -1 && i.layoutId !== null) {
           filterIds.push(i.layoutId)
         }
       }
