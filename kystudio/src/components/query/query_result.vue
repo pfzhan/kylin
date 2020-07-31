@@ -269,15 +269,7 @@ export default class queryResult extends Vue {
     }
   }
   get isShowNotModelRangeTips () {
-    if (this.extraoption.realizations && this.extraoption.realizations.length) {
-      for (let i in this.extraoption.realizations) {
-        if (this.extraoption.realizations[i] === null) {
-          return true
-          break
-        }
-      }
-    }
-    return false
+    return this.extraoption.realizations && this.extraoption.realizations.length && this.extraoption.realizations[0].layoutId === null
   }
   filterTableData () {
     if (this.resultFilter) {
