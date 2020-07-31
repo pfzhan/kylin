@@ -61,5 +61,5 @@ module.exports = {
       'statements': 3
     }
   },
-  forceCoverageMatch: ['src/**/__test__/*.spec.js']
+  forceCoverageMatch: ['src/**/__test__/**/*.spec.js']
 }
