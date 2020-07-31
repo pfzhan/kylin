@@ -1112,7 +1112,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isSanityCheckEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.sanity-check-enabled", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.engine.sanity-check-enabled", TRUE));
     }
 
     public int[] getSparkEngineDriverMemoryStrategy() {
