@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
+import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
 import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
@@ -361,6 +362,8 @@ public class JdbcRawRecStore {
 
     private void updateCost(long currentTime, SqlSession session, RawRecItemMapper mapper, List<RawRecItem> oneBatch) {
         oneBatch.forEach(recItem -> {
+            LayoutMetric.LatencyMap latencyMap = recItem.getLayoutMetric().getLatencyMap();
+            recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - MILLIS_PER_DAY));
             recItem.setCost((recItem.getCost() + recItem.getTotalLatencyOfLastDay()) / Math.E);
             recItem.setUpdateTime(currentTime);
         });

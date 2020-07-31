@@ -74,12 +74,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -103,6 +103,7 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -175,6 +176,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
@@ -200,6 +202,7 @@ import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
+import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
@@ -241,12 +244,11 @@ public class ModelService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
     private static final String LAST_MODIFY = "last_modify";
+    private static final String MEASURE_NAME_PREFIX = "MEASURE_AUTO_";
 
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
     public static final String VALID_NAME_FOR_DIMENSION_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
-
-
 
     @Setter
     @Autowired
@@ -1488,12 +1490,19 @@ public class ModelService extends BasicService {
         List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
         List<LayoutRecommendationResponse> indexRecommendations = Lists.newArrayList();
 
+        NDataModel originModel = modelContext.getOriginModel();
+        Preconditions.checkNotNull(originModel);
+
+        AtomicInteger maxCCIndex = new AtomicInteger(
+                ComputedColumnUtil.getBiggestCCIndex(originModel, initOtherModels(originModel)));
+        AtomicInteger itemId = new AtomicInteger(0);
         ccRecMap.forEach((key, recItemV2) -> {
             CCRecommendationItem item = new CCRecommendationItem();
             item.setCc(recItemV2.getCc());
             item.setCreateTime(recItemV2.getCreateTime());
             item.setRecommendationType(RecommendationType.ADDITION);
             item.setItemId(recItemV2.getId());
+            item.setCcColumnId(maxCCIndex.incrementAndGet());
             ccRecommendations.add(item);
 
         });
@@ -1503,6 +1512,7 @@ public class ModelService extends BasicService {
             item.setColumn(recItemV2.getColumn());
             item.setCreateTime(recItemV2.getCreateTime());
             item.setRecommendationType(RecommendationType.ADDITION);
+            item.setItemId(itemId.incrementAndGet());
             dimensionRecommendations.add(item);
         });
         measureRecMap.forEach((key, recItemV2) -> {
@@ -1510,6 +1520,8 @@ public class ModelService extends BasicService {
             item.setMeasure(recItemV2.getMeasure());
             item.setCreateTime(recItemV2.getCreateTime());
             item.setRecommendationType(RecommendationType.ADDITION);
+            item.setMeasureId(getBiggestAutoMeasureIndex(originModel));
+            item.setItemId(itemId.incrementAndGet());
             measureRecommendations.add(item);
         });
         indexRexMap.forEach((key, recItemV2) -> {
@@ -1519,6 +1531,7 @@ public class ModelService extends BasicService {
             item.setCreateTime(recItemV2.getCreateTime());
             item.setRecommendationType(RecommendationType.ADDITION);
             item.setLayout(recItemV2.getLayout());
+            item.setItemId(itemId.incrementAndGet());
             indexRecommendations.add(item);
         });
 
@@ -1537,6 +1550,34 @@ public class ModelService extends BasicService {
         response.setModelId(modelContext.getTargetModel().getUuid());
 
         return response;
+    }
+
+    private List<NDataModel> initOtherModels(NDataModel dataModel) {
+        NDataModelManager modelManager = NDataModelManager
+                .getInstance(Objects.requireNonNull(KylinConfig.getInstanceFromEnv()), dataModel.getProject());
+        return modelManager.listAllModels().stream().filter(m -> !m.isBroken())
+                .filter(m -> !m.getId().equals(dataModel.getId())).collect(Collectors.toList());
+    }
+
+    public int getBiggestAutoMeasureIndex(NDataModel dataModel) {
+        int biggest = 0;
+        List<String> allAutoMeasureNames = dataModel.getAllMeasures() //
+                .stream().map(MeasureDesc::getName) //
+                .filter(name -> name.startsWith(MEASURE_NAME_PREFIX)) //
+                .collect(Collectors.toList());
+        for (String name : allAutoMeasureNames) {
+            String idxStr = name.substring(MEASURE_NAME_PREFIX.length());
+            int idx;
+            try {
+                idx = Integer.parseInt(idxStr);
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (idx > biggest) {
+                biggest = idx;
+            }
+        }
+        return biggest;
     }
 
     private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) {
@@ -2174,7 +2215,8 @@ public class ModelService extends BasicService {
      * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
-    public ComputedColumnCheckResponse checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
+    public ComputedColumnCheckResponse checkComputedColumn(final NDataModel dataModelDesc, String project,
+            String ccInCheck) {
         aclEvaluate.checkProjectWritePermission(project);
         if (dataModelDesc.getUuid() == null)
             dataModelDesc.updateRandomUuid();
@@ -2238,8 +2280,9 @@ public class ModelService extends BasicService {
                 .map(NDataModel.Measure::getName).collect(Collectors.toList());
         // get invalid measure names in request
         val removedRequestMeasures = updateImpact.getInvalidRequestMeasures();
-        val requestMeasureNames = request.getAllMeasures().stream().filter(m -> removedRequestMeasures.contains(m.getId()))
-                .map(NDataModel.Measure::getName).collect(Collectors.toList());
+        val requestMeasureNames = request.getAllMeasures().stream()
+                .filter(m -> removedRequestMeasures.contains(m.getId())).map(NDataModel.Measure::getName)
+                .collect(Collectors.toList());
         measureNames.addAll(requestMeasureNames);
         return getComputedColoumnCheckResponse(checkedCC, measureNames);
     }
@@ -2962,7 +3005,8 @@ public class ModelService extends BasicService {
         return response;
     }
 
-    public ComputedColumnCheckResponse getComputedColoumnCheckResponse(ComputedColumnDesc ccDesc, List<String> removedMeasures) {
+    public ComputedColumnCheckResponse getComputedColoumnCheckResponse(ComputedColumnDesc ccDesc,
+            List<String> removedMeasures) {
         val response = new ComputedColumnCheckResponse();
         response.setComputedColumnDesc(ccDesc);
         response.setRemovedMeasures(removedMeasures);
