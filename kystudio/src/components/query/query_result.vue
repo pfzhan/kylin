@@ -259,7 +259,7 @@ export default class queryResult extends Vue {
         if (i.layoutId === -1 && !firstSnapshot) {
           filterIds.push('Snapshot')
           firstSnapshot = true
-        } else if (i.layoutId !== -1) {
+        } else if (i.layoutId !== -1 && i.layoutId !== null) {
           filterIds.push(i.layoutId)
         }
       }
@@ -269,7 +269,16 @@ export default class queryResult extends Vue {
     }
   }
   get isShowNotModelRangeTips () {
-    return this.extraoption.realizations && this.extraoption.realizations.length && this.extraoption.realizations[0].layoutId === null
+    let isAnyNull = false
+    if (this.extraoption.realizations && this.extraoption.realizations.length) {
+      for (let i in this.extraoption.realizations) {
+        if (this.extraoption.realizations[i] === null) {
+          isAnyNull = true
+          break
+        }
+      }
+    }
+    return isAnyNull
   }
   filterTableData () {
     if (this.resultFilter) {
