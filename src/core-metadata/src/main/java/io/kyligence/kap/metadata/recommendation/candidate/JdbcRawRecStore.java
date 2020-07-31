@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import static org.mybatis.dynamic.sql.SqlBuilder.count;
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
 import static org.mybatis.dynamic.sql.SqlBuilder.isNotEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.max;
@@ -322,6 +323,12 @@ public class JdbcRawRecStore {
         long currentTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            // if no records, no need to update cost
+            int count = mapper.selectAsInt(getContStarProvider());
+            if (count == 0) {
+                return;
+            }
+
             int minId = mapper.selectAsInt(getMinIdProvider());
             int maxId = mapper.selectAsInt(getMaxIdProvider());
             log.info("The min and max value of id is ({}, {})", minId, maxId);
@@ -331,8 +338,8 @@ public class JdbcRawRecStore {
             int i = 0;
             int totalUpdated = 0;
             while (oneBatch.size() < batchToUpdate) {
-
-                SelectStatementProvider selectProvider = getSelectLayoutProvider(project, limit, minId + step * i);
+                SelectStatementProvider selectProvider = getSelectLayoutProvider(project, limit, minId + step * i,
+                        RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED);
                 List<RawRecItem> rawRecItems = mapper.selectMany(selectProvider);
                 oneBatch.addAll(rawRecItems);
                 i++;
@@ -364,11 +371,12 @@ public class JdbcRawRecStore {
         oneBatch.clear();
     }
 
-    private SelectStatementProvider getSelectLayoutProvider(String project, int limit, int offset) {
+    private SelectStatementProvider getSelectLayoutProvider(String project, int limit, int offset,
+            RawRecItem.RawRecState... states) {
         return select(getSelectFields(table)) //
                 .from(table).where(table.project, isEqualTo(project)) //
                 .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
-                .and(table.state, isEqualTo(RawRecItem.RawRecState.INITIAL)) //
+                .and(table.state, isIn(states)) //
                 .limit(limit).offset(offset) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
