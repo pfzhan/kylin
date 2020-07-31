@@ -124,12 +124,13 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 if (tableDesc.getLastSnapshotPath() != null) {
                     currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
                 }
+                val currentModificationTime = currentFile == null ? 0L : currentFile.getModificationTime();
+                val currentPath = currentFile == null ? "null" : currentFile.getPath().toString();
                 if (lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
-                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(),
-                            currentFile == null ? 0L : currentFile.getModificationTime(),
+                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(), currentModificationTime,
                             lastFile.getModificationTime());
-                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(),
-                            currentFile == null ? "null" : currentFile.getPath(), segmentFile.getPath());
+                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(), currentPath,
+                            segmentFile.getPath());
                     TableDesc copyDesc = manager.copyForWrite(tableDesc);
                     copyDesc.setLastSnapshotPath(entry.getValue());
                     needUpdateTableDescs.add(copyDesc);
