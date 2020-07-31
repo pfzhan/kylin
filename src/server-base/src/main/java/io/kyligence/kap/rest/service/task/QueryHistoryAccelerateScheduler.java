@@ -241,7 +241,7 @@ public class QueryHistoryAccelerateScheduler {
                     continue;
                 }
                 for (val realization : realizations) {
-                    if (dfManager.getDataflow(realization.getModelId()) == null) {
+                    if (dfManager.getDataflow(realization.getModelId()) == null || realization.getLayoutId() == null) {
                         continue;
                     }
                     result.computeIfAbsent(realization.getModelId(), k -> new DataflowHitCount());

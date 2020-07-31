@@ -353,4 +353,43 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("Cannot find project 'not_existing_project'.", ex.getMessage());
         }
     }
+
+    @Test
+    public void testGetQueryHistoryNullLayoutId() {
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
+
+        // mock query histories
+        QueryHistory layoutNullQuery = new QueryHistory();
+        layoutNullQuery.setSql("select * from test_table_1");
+        layoutNullQuery.setEngineType("NATIVE");
+        layoutNullQuery.setQueryRealizations(
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#null#null,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
+
+        // accelerated query
+        QueryHistory acceleratedQuery = new QueryHistory();
+        acceleratedQuery.setSql("select * from test_table_3");
+        acceleratedQuery.setQueryRealizations(
+                "741ca86a-1f13-46da-a59f-95fb68615e3a#1#Agg Index,89af4ee2-2cdb-4b07-b39e-4c29856309aa#1#Agg Index");
+
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(layoutNullQuery, acceleratedQuery)).when(queryHistoryDAO)
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+
+        Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+        Assert.assertEquals(2, queryHistories.size());
+        Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(0).getLayoutId());
+        Assert.assertNull(queryHistories.get(0).getNativeQueryRealizations().get(0).getIndexType());
+        Assert.assertEquals("nmodel_basic", queryHistories.get(0).getNativeQueryRealizations().get(1).getModelAlias());
+        Assert.assertEquals(1L, (long) queryHistories.get(1).getNativeQueryRealizations().get(0).getLayoutId());
+        Assert.assertEquals(1L, (long) queryHistories.get(1).getNativeQueryRealizations().get(1).getLayoutId());
+    }
 }

@@ -60,14 +60,14 @@ public class NativeQueryRealization implements Serializable {
         this.isPartialMatchModel = isPartialMatchModel;
     }
 
-    public NativeQueryRealization(String modelId, long layoutId, String indexType) {
+    public NativeQueryRealization(String modelId, Long layoutId, String indexType) {
         this.modelId = modelId;
         this.layoutId = layoutId;
         this.indexType = indexType;
         this.isPartialMatchModel = false;
     }
 
-    public NativeQueryRealization(String modelId, String modelAlias, long layoutId, String indexType) {
+    public NativeQueryRealization(String modelId, String modelAlias, Long layoutId, String indexType) {
         this.modelId = modelId;
         this.layoutId = layoutId;
         this.modelAlias = modelAlias;
@@ -75,7 +75,7 @@ public class NativeQueryRealization implements Serializable {
         this.isPartialMatchModel = false;
     }
 
-    public NativeQueryRealization(String modelId, long layoutId, String indexType, boolean isPartialMatchModel) {
+    public NativeQueryRealization(String modelId, Long layoutId, String indexType, boolean isPartialMatchModel) {
         this.modelId = modelId;
         this.layoutId = layoutId;
         this.indexType = indexType;

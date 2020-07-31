@@ -114,11 +114,11 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
 
         // after update accelerate ratio
         AccelerateRatio ratio = accelerateRatioManager.get();
-        Assert.assertEquals(4, ratio.getNumOfQueryHitIndex());
-        Assert.assertEquals(7, ratio.getOverallQueryNum());
+        Assert.assertEquals(5, ratio.getNumOfQueryHitIndex());
+        Assert.assertEquals(8, ratio.getOverallQueryNum());
 
         // after update id offset
-        Assert.assertEquals(7, idOffsetManager.get().getQueryHistoryIdOffset());
+        Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryIdOffset());
     }
 
     private List<QueryHistory> queryHistories() {
@@ -181,8 +181,17 @@ public class QueryHistoryAccelerateSchedulerTest extends NLocalFileMetadataTestC
         queryHistory7.setQueryRealizations(DATAFLOW + "#" + LAYOUT2 + "#Agg Index");
         queryHistory7.setId(7);
 
+        QueryHistory queryHistory8 = new QueryHistory();
+        queryHistory8.setSqlPattern("SELECT count(*) FROM \"KYLIN_SALES\" group by LSTG_FORMAT_NAME");
+        queryHistory8.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryHistory8.setDuration(1000L);
+        queryHistory8.setQueryTime(QUERY_TIME);
+        queryHistory8.setEngineType("NATIVE");
+        queryHistory8.setQueryRealizations(DATAFLOW + "#null" + "#null");
+        queryHistory8.setId(8);
+
         return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4, queryHistory5,
-                queryHistory6, queryHistory7);
+                queryHistory6, queryHistory7, queryHistory8);
     }
 
 }

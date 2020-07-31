@@ -226,6 +226,9 @@ public class QueryMetricsContext extends QueryMetrics {
             realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
                     + realizationMetrics.getIndexType() + ",");
 
+            if (realization.getIndexType() == null)
+                continue;
+
             if (realization.getIndexType().equals(QueryMetricsContext.TABLE_INDEX))
                 tableIndexUsed = true;
 
