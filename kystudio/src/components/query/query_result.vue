@@ -272,7 +272,7 @@ export default class queryResult extends Vue {
     let isAnyNull = false
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
       for (let i in this.extraoption.realizations) {
-        if (this.extraoption.realizations[i] === null) {
+        if (this.extraoption.realizations[i].layoutId === null) {
           isAnyNull = true
           break
         }
