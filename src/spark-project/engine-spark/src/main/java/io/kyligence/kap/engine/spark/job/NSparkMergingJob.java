@@ -24,14 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -41,11 +39,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
 public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
     @SuppressWarnings("unused")
@@ -61,12 +63,12 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         }
 
         @Override
-        protected NSparkMergingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                          JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
-            if (segments == null || segments.size() != 1) {
+        protected NSparkMergingJob create(JobBuildParams jobBuildParams) {
+            if (jobBuildParams.getSegments() == null || jobBuildParams.getSegments().size() != 1) {
                 return null;
             }
-            return merge(segments.iterator().next(), layouts, submitter, jobId);
+            return merge(jobBuildParams.getSegments().iterator().next(), jobBuildParams.getLayouts(),
+                    jobBuildParams.getSubmitter(), jobBuildParams.getJobId());
         }
     }
 
@@ -78,7 +80,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
      *                       the ready cuboids in the segments.
      */
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
-                                         String jobId) {
+            String jobId) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
@@ -95,7 +97,6 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setTargetSegments(Lists.newArrayList(String.valueOf(mergedSegment.getId())));
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
-
 
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
@@ -141,7 +142,8 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkMergingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
-            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY) && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
+            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)
+                    && !segment.getStatus().equals(SegmentStatusEnum.WARNING)) {
                 toRemovedSegments.add(segment);
             }
         }

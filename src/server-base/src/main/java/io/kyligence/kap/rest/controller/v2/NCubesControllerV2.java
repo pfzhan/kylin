@@ -70,6 +70,8 @@ import io.kyligence.kap.rest.response.NDataModelResponse3X;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import lombok.val;
 
 @RestController
@@ -167,8 +169,8 @@ public class NCubesControllerV2 extends NBasicController {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
                         "You should choose at most one segment to refresh!");
             }
-            val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
-                    dataModelResponse.getProject(), idList.toArray(new String[0]));
+            val refreshResponse = modelService.refreshSegmentById(new RefreshSegmentParams(
+                    dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
             if (CollectionUtils.isNotEmpty(refreshResponse)) {
                 result = JobInfoResponseV2.convert(refreshResponse.stream()
                         .filter(job -> JobTypeEnum.INDEX_REFRESH.name().equals(job.getJobName())).findFirst()
@@ -214,16 +216,16 @@ public class NCubesControllerV2 extends NBasicController {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
                         "You should choose at least two segments to merge!");
             }
-            val mergeResponse = modelService.mergeSegmentsManually(dataModelResponse.getId(),
-                    dataModelResponse.getProject(), idList.toArray(new String[0]));
+            val mergeResponse = modelService.mergeSegmentsManually(new MergeSegmentParams(
+                    dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(mergeResponse), "");
         case "REFRESH":
             if (CollectionUtils.isEmpty(idList)) {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
                         "You should choose at least one segment to refresh!");
             }
-            val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
-                    dataModelResponse.getProject(), idList.toArray(new String[0]));
+            val refreshResponse = modelService.refreshSegmentById(new RefreshSegmentParams(
+                    dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(refreshResponse), "");
         case "DROP":
             if (CollectionUtils.isEmpty(idList)) {

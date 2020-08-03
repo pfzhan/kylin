@@ -33,6 +33,7 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.factory.JobFactory;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -209,8 +210,8 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         dataflow = dataflowManager.getDataflow(dataflow.getId());
         val layouts = dataflow.getIndexPlan().getAllLayouts();
         val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN",
-                JobTypeEnum.INDEX_BUILD, jobId);
+        NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
+                Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null));
         NExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
         return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }

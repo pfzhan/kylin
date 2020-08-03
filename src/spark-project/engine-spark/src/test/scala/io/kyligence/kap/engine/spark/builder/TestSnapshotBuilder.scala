@@ -46,6 +46,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96")
 
   override val master = "local[1]"
+
   def getTestConfig: KylinConfig = {
     val config = KylinConfig.getInstanceFromEnv
     config
@@ -59,10 +60,10 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     fs.delete(new Path(snapPath), true)
     df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "false"))
 
-    buildSnapshot(df, isMock = false, 1)
-    buildSnapshot(df, isMock = false, 1)
-    buildSnapshot(df, isMock = true, 2)
-    buildSnapshot(df, isMock = true, 2)
+    buildSnapshot(df, isMock = false, 1, null)
+    buildSnapshot(df, isMock = false, 1, null)
+    buildSnapshot(df, isMock = true, 2, null)
+    buildSnapshot(df, isMock = true, 2, null)
     df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
   }
 
@@ -160,14 +161,14 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       val dfCopy = df.copy
       val segCopy = dfCopy.getSegment(seg.getId)
       segCopy.setSnapshots(Maps.newHashMap())
-      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark)
+      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark, null)
       val snapshot = snapshotBuilder.buildSnapshot
       df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
       snapshot
     }
   }
 
-  private def buildSnapshot(df: NDataflow, isMock: Boolean, expectedSize: Int): Unit = {
+  private def buildSnapshot(df: NDataflow, isMock: Boolean, expectedSize: Int, ignoredSnapshotTables: java.util.Set[String]): Unit = {
     val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
     val fs = HadoopUtil.getWorkingFileSystem
 
@@ -175,9 +176,9 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       val dfCopy = segment.getDataflow.copy
       val segCopy = dfCopy.getSegment(segment.getId)
       segCopy.setSnapshots(Maps.newHashMap())
-      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark)
+      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark, ignoredSnapshotTables)
       if (isMock) {
-        snapshotBuilder = new MockDFSnapshotBuilder(segCopy, spark)
+        snapshotBuilder = new MockDFSnapshotBuilder(segCopy, spark, ignoredSnapshotTables)
       }
       snapshotBuilder.buildSnapshot
       Assert.assertEquals(snapshotBuilder.distinctTableDesc(df.getModel).size, 7)
@@ -197,7 +198,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       val dfCopy = segment.getDataflow.copy
       val segCopy = dfCopy.getSegment(segment.getId)
       segCopy.setSnapshots(Maps.newHashMap())
-      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark)
+      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark, null)
       snapshotBuilder.buildSnapshot
     }
     val statuses = fs.listStatus(new Path(snapPath))

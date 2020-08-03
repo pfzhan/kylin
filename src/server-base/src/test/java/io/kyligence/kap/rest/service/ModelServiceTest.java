@@ -97,6 +97,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -213,6 +214,8 @@ import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.val;
 import lombok.var;
@@ -739,8 +742,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String modelId = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94";
         String project = "default";
         JobManager jobManager = JobManager.getInstance(getTestConfig(), project);
-        val jobId = jobManager.addFullIndexJob(modelId, "admin");
-        Assert.assertNull(jobId);
+        val jobId = jobManager.addFullIndexJob(new JobParam(modelId, "admin"));
+        Assert.assertTrue(jobId == null);
         AtomicBoolean clean = new AtomicBoolean(false);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -1334,8 +1337,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         try {
-            modelService.mergeSegmentsManually(dfId, "default",
-                    new String[] { dataSegment1.getId(), dataSegment3.getId() });
+            modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
+                    new String[] { dataSegment1.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -1343,8 +1346,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     + dataSegment3.getId() + ".", e.getMessage());
         }
 
-        modelService.mergeSegmentsManually(dfId, "default",
-                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
+        modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
+                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() }));
         val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
@@ -1358,7 +1361,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         try {
             //refresh exception
-            modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment2.getId() });
+            modelService.mergeSegmentsManually(
+                    new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
             Assert.assertEquals("Can not remove or refresh or merge segment [" + dataSegment2.getId()
@@ -1405,8 +1409,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.getId()));
-        modelService.mergeSegmentsManually(dfId, "default",
-                new String[] { dataSegment1.getId(), dataSegment2.getId() });
+        modelService.mergeSegmentsManually(
+                new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -1443,13 +1447,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         //refresh normally
-        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment2.getId() });
+        modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
+                new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.getId()));
         //refresh exception
-        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment2.getId() });
+        modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
+                new String[] { dataSegment2.getId() }));
     }
 
     @Test
@@ -1457,8 +1461,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
-        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { "not_exist_01" });
+        modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
+                new String[] { "not_exist_01" }));
     }
 
     @Test
@@ -2028,10 +2032,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in " +
-                                        "model 'nmodel_basic_inner', and the expression is " +
-                                        "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
+                                        + "model 'nmodel_basic_inner', and the expression is "
+                                        + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
 
             }
         });
@@ -2262,10 +2266,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used " +
-                                        "in model 'nmodel_cc_test', and the expression is " +
-                                        "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
+                                        + "in model 'nmodel_cc_test', and the expression is "
+                                        + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2369,11 +2373,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise().equals("SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
-                        && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' " +
-                                        "has already been used in model 'nmodel_basic', and the expression is " +
-                                        "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                        && ccException.getMessage()
+                                .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2410,10 +2414,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' " +
-                                        "has already been used in model 'nmodel_basic', and the expression is " +
-                                        "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2450,9 +2454,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                                "The expression of computed column has already been used in model 'nmodel_basic' as " +
-                                        "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, " +
-                                        "or use a different expression.");
+                                "The expression of computed column has already been used in model 'nmodel_basic' as "
+                                        + "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, "
+                                        + "or use a different expression.");
             }
         });
 
@@ -2521,10 +2525,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' " +
-                                        "has already been used in model 'nmodel_basic', and the expression is " +
-                                        "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2608,10 +2612,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' " +
-                                        "has already been used in model 'nmodel_basic', and the expression is " +
-                                        "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2653,10 +2657,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' " +
-                                        "has already been used in model 'nmodel_basic', and the expression is " +
-                                        "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. " +
-                                        "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 

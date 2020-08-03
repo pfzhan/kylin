@@ -36,6 +36,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
@@ -108,7 +109,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("2012-12-01")));
         val jobManager = JobManager.getInstance(testConfig, DEFAULT_PROJECT);
 
-        val jobId = jobManager.addSegmentJob(newSeg2, df.getModel().getUuid(), "ADMIN");
+        val jobId = jobManager.addSegmentJob(new JobParam(newSeg2, df.getModel().getUuid(), "ADMIN"));
 
         // after create spark job remove some layouts
         val allLayouts = df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
@@ -161,7 +162,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
             }
         });
 
-        val jobId = jobManager.addFullIndexJob(df.getModel().getUuid(), "ADMIN");
+        val jobId = jobManager.addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
 
         waitJobFinish(jobId, 240 * 1000);
 
@@ -194,7 +195,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2012-09-01"));
         NDataSegment newSeg = dataflowManager.mergeSegments(df, sg, false);
 
-        val jobId = jobManager.mergeSegmentJob(newSeg, df.getModel().getUuid(), "ADMIN");
+        val jobId = jobManager.mergeSegmentJob(new JobParam(newSeg, df.getModel().getUuid(), "ADMIN"));
         // after create spark job remove some layouts
         val removeIds = Sets.newHashSet(1L);
         cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
@@ -219,7 +220,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     }
 
     private void validateDependentFiles(AbstractExecutable job, Class<? extends AbstractExecutable> clazz,
-                                        int expected) {
+            int expected) {
         val config = getTestConfig();
         val round1Deps = job.getDependentFiles();
         val files = FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().substring(7)), null, true).stream()
@@ -254,7 +255,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong(start), SegmentRange.dateToLong(end)));
 
         // add first segment
-        val jobId = jobManager.addSegmentJob(newSeg, df.getModel().getUuid(), "ADMIN");
+        val jobId = jobManager.addSegmentJob(new JobParam(newSeg, df.getModel().getUuid(), "ADMIN"));
 
         waitJobFinish(jobId, 240 * 1000);
 
@@ -275,8 +276,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     static void waitJobFinish(String id, long maxMs) throws InterruptedException {
         val manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val start = System.currentTimeMillis();
-        while (manager.getJob(id) == null || (!manager.getJob(id).getStatus().isFinalState()
-                && (System.currentTimeMillis() - start) < maxMs)) {
+        while (manager.getJob(id) == null
+                || (!manager.getJob(id).getStatus().isFinalState() && (System.currentTimeMillis() - start) < maxMs)) {
             Thread.sleep(1000);
         }
     }

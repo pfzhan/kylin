@@ -37,7 +37,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -415,5 +417,9 @@ public abstract class SparkApplication implements Application, IKeep {
 
     protected String generateInfo() {
         return LogJobInfoUtils.sparkApplicationInfo();
+    }
+
+    protected Set<String> getIgnoredSnapshotTables(){
+        return  NSparkCubingUtil.toIgnoredTableSet(getParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES));
     }
 }

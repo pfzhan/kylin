@@ -41,8 +41,8 @@ import org.apache.kylin.job.model.JobParam;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -50,26 +50,28 @@ import lombok.val;
 @Slf4j
 public class MergeSegmentHandler extends AbstractJobHandler {
     @Override
-    protected AbstractExecutable createJob(JobParam event) {
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), event.getProject())
-                .getDataflow(event.getModel());
-        NDataSegment newSeg = df.getSegment(event.getSegment());
+    protected AbstractExecutable createJob(JobParam jobParam) {
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
+                .getDataflow(jobParam.getModel());
+        NDataSegment newSeg = df.getSegment(jobParam.getSegment());
         Set<NDataSegment> mergeSegment = new HashSet<>();
         mergeSegment.add(newSeg);
-        return JobFactory.createJob(MERGE_JOB_FACTORY, mergeSegment, event.getProcessLayouts(),
-                event.getOwner(), JobTypeEnum.INDEX_MERGE, event.getJobId(), null);
+        return JobFactory.createJob(MERGE_JOB_FACTORY,
+                new JobFactory.JobBuildParams(mergeSegment, jobParam.getProcessLayouts(), jobParam.getOwner(),
+                        JobTypeEnum.INDEX_MERGE, jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables()));
     }
 
     /**
      * Merge is abandoned when segment index is not aligned.
      */
     @Override
-    protected void checkBeforeHandle(JobParam event) {
-        super.checkBeforeHandle(event);
+    protected void checkBeforeHandle(JobParam jobParam) {
+        super.checkBeforeHandle(jobParam);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NDataflow df = NDataflowManager.getInstance(kylinConfig, event.getProject()).getDataflow(event.getModel());
+        NDataflow df = NDataflowManager.getInstance(kylinConfig, jobParam.getProject())
+                .getDataflow(jobParam.getModel());
         val segments = df.getSegments();
-        NDataSegment newSegment = df.getSegment(event.getSegment());
+        NDataSegment newSegment = df.getSegment(jobParam.getSegment());
         Set<Long> layoutIds = null;
         for (val seg : segments) {
             if (seg.getId().equals(newSegment.getId())) {

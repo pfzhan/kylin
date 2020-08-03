@@ -23,15 +23,20 @@
  */
 package org.apache.kylin.job.factory;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+import java.util.Set;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -45,17 +50,27 @@ public abstract class JobFactory {
         implementations.put(jobName, impl);
     }
 
-    public static DefaultChainedExecutableOnModel createJob(String factory, Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                                            JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
-        if(!implementations.containsKey(factory)){
+    @AllArgsConstructor
+    @Getter
+    @Setter
+    public static class JobBuildParams {
+        private Set<NDataSegment> segments;
+        private Set<LayoutEntity> layouts;
+        private String submitter;
+        private JobTypeEnum jobType;
+        private String jobId;
+        private Set<LayoutEntity> toBeDeletedLayouts;
+        private Set<String> ignoredSnapshotTables;
+    }
+
+    public static DefaultChainedExecutableOnModel createJob(String factory, JobBuildParams jobBuildParams) {
+        if (!implementations.containsKey(factory)) {
             log.error("JobFactory doesn't contain this factory:{}", factory);
             return null;
         }
-        return implementations.get(factory)
-                .create(segments, layouts, submitter, jobType, jobId, toBeDeletedLayouts);
+        return implementations.get(factory).create(jobBuildParams);
     }
 
-    protected abstract DefaultChainedExecutableOnModel create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                                              JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts);
+    protected abstract DefaultChainedExecutableOnModel create(JobBuildParams jobBuildParams);
 
 }

@@ -39,9 +39,9 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -50,26 +50,29 @@ import lombok.var;
 public class AddIndexHandler extends AbstractJobHandler {
 
     @Override
-    protected AbstractExecutable createJob(JobParam event) {
+    protected AbstractExecutable createJob(JobParam jobParam) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        String modelId = event.getModel();
-        String project = event.getProject();
+        String modelId = jobParam.getModel();
+        String project = jobParam.getProject();
         NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(modelId);
 
         var readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        val targetSegments = new HashSet<>(event.getTargetSegments());
+        val targetSegments = new HashSet<>(jobParam.getTargetSegments());
         final Segments toDealSeg = new Segments<>();
         readySegs.stream().filter(segment -> targetSegments.contains(segment.getId() + ""))
                 .forEach(segment -> toDealSeg.add(segment));
         readySegs = toDealSeg;
 
-        if (CollectionUtils.isEmpty(event.getProcessLayouts()) && CollectionUtils.isEmpty(event.getDeleteLayouts())) {
-            log.info("Event {} is no longer valid because no layout awaits process", event);
+        if (CollectionUtils.isEmpty(jobParam.getProcessLayouts())
+                && CollectionUtils.isEmpty(jobParam.getDeleteLayouts())) {
+            log.info("Event {} is no longer valid because no layout awaits process", jobParam);
             return null;
         }
-        return JobFactory.createJob(CUBE_JOB_FACTORY, Sets.newLinkedHashSet(readySegs), event.getProcessLayouts(), event.getOwner(),
-                event.getJobTypeEnum(), event.getJobId(), event.getDeleteLayouts());
+        return JobFactory.createJob(CUBE_JOB_FACTORY,
+                new JobFactory.JobBuildParams(Sets.newLinkedHashSet(readySegs), jobParam.getProcessLayouts(),
+                        jobParam.getOwner(), jobParam.getJobTypeEnum(), jobParam.getJobId(),
+                        jobParam.getDeleteLayouts(), jobParam.getIgnoredSnapshotTables()));
     }
 
 }

@@ -51,6 +51,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -730,7 +731,7 @@ public class ModelSemanticHelper extends BasicService {
         if (saveOnly)
             return;
 
-        JobManager.getInstance(config, project).addFullIndexJob(modelId, getUsername());
+        JobManager.getInstance(config, project).addFullIndexJob(new JobParam(modelId, getUsername()));
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, NRuleBasedIndex oldRule,
@@ -751,7 +752,7 @@ public class ModelSemanticHelper extends BasicService {
 
         // new cuboid
         if (difference.size() > 0 || forceFireEvent) {
-            jobManager.addFullIndexJob(model, getUsername());
+            jobManager.addFullIndexJob(new JobParam(model, getUsername()));
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
         }
 

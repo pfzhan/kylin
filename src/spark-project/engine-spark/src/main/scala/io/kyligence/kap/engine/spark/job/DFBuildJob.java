@@ -132,7 +132,7 @@ public class DFBuildJob extends SparkApplication {
             }
 
             // choose source
-            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
+            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true, getIgnoredSnapshotTables());
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();

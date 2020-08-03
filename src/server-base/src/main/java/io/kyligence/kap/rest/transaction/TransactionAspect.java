@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.transaction;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -33,6 +32,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -50,7 +50,12 @@ public class TransactionAspect {
         Object result = null;
         String unitName = UnitOfWork.GLOBAL_UNIT;
         if (transaction.project() != -1) {
-            unitName = pjp.getArgs()[transaction.project()].toString();
+            Object unitObject = pjp.getArgs()[transaction.project()];
+            if (unitObject instanceof String) {
+                unitName = unitObject.toString();
+            } else if (unitObject instanceof TransactionProjectUnit) {
+                unitName = ((TransactionProjectUnit) unitObject).transactionProjectUnit();
+            }
         }
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(UnitOfWorkParams.builder().unitName(unitName)
                 .readonly(transaction.readonly()).maxRetry(transaction.retry()).processor(() -> {

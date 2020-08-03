@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -101,6 +100,7 @@ import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
@@ -120,6 +120,9 @@ import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
+import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -814,7 +817,7 @@ public class NModelController extends NBasicController {
         segmentsRequest.getSegmentHoles()
                 .forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
         JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
-                segmentsRequest.getSegmentHoles());
+                segmentsRequest.getSegmentHoles(), segmentsRequest.getIgnoredSnapshotTables());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -873,13 +876,14 @@ public class NModelController extends NBasicController {
             if (ArrayUtils.isEmpty(request.getIds())) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
-            modelService.refreshSegmentById(modelId, request.getProject(), request.getIds());
+            modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId, request.getIds())
+                    .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
-            modelService.mergeSegmentsManually(modelId, request.getProject(), request.getIds());
+            modelService.mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -896,7 +900,7 @@ public class NModelController extends NBasicController {
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
-                buildSegmentsRequest.isBuildAllIndexes());
+                buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -909,10 +913,14 @@ public class NModelController extends NBasicController {
         String partitionColumnFormat = buildSegmentsRequest.getPartitionDesc().getPartitionDateFormat();
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
-        JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
+
+        IncrementBuildSegmentParams inrcParams = new IncrementBuildSegmentParams(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getSegmentHoles(),
-                buildSegmentsRequest.isBuildAllIndexes());
+                buildSegmentsRequest.isBuildAllIndexes())
+                        .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables());
+
+        JobInfoResponse response = modelService.incrementBuildSegmentsManually(inrcParams);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

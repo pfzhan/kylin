@@ -72,30 +72,31 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         }
 
         @Override
-        protected NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
-            return NSparkCubingJob.create(segments, layouts, submitter, jobType, jobId, toBeDeletedLayouts);
+        protected NSparkCubingJob create(JobBuildParams jobBuildParams) {
+            return NSparkCubingJob.create(jobBuildParams);
         }
     }
 
     // for test use only
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter) {
-        return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString());
+        return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString(), null);
     }
 
-    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+    //used for JobFactory
+    public static NSparkCubingJob create(JobFactory.JobBuildParams jobBuildParams) {
 
-        NSparkCubingJob sparkCubingJob = create(segments, layouts, submitter, jobType, jobId);
-        if (CollectionUtils.isNotEmpty(toBeDeletedLayouts)) {
+        NSparkCubingJob sparkCubingJob = create(jobBuildParams.getSegments(), jobBuildParams.getLayouts(),
+                jobBuildParams.getSubmitter(), jobBuildParams.getJobType(), jobBuildParams.getJobId(),
+                jobBuildParams.getIgnoredSnapshotTables());
+        if (CollectionUtils.isNotEmpty(jobBuildParams.getToBeDeletedLayouts())) {
             sparkCubingJob.setParam(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS,
-                    NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(toBeDeletedLayouts)));
+                    NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(jobBuildParams.getToBeDeletedLayouts())));
         }
         return sparkCubingJob;
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId) {
+            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables) {
         Preconditions.checkArgument(!segments.isEmpty());
         Preconditions.checkArgument(submitter != null);
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
@@ -127,6 +128,10 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         job.setParam(NBatchConstants.P_SEGMENT_IDS, String.join(",", job.getTargetSegments()));
         job.setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         job.setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
+
+        if (CollectionUtils.isNotEmpty(ignoredSnapshotTables)) {
+            job.setParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES, String.join(",", ignoredSnapshotTables));
+        }
 
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments);
         JobStepFactory.addStep(job, JobStepType.CUBING, segments);

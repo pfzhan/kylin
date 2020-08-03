@@ -24,6 +24,10 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
@@ -33,6 +37,9 @@ public class SegmentsRequest implements ProjectInsensitiveRequest {
     private String[] ids;
     private String project;
     private SegmentsRequestType type = SegmentsRequestType.REFRESH;
+
+    @JsonProperty("ignored_snapshot_tables")
+    private Set<String> ignoredSnapshotTables;
 
     public enum SegmentsRequestType {
         REFRESH, MERGE

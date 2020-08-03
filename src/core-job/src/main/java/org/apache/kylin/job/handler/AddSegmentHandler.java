@@ -45,11 +45,13 @@ import lombok.extern.slf4j.Slf4j;
 public class AddSegmentHandler extends AbstractJobHandler {
 
     @Override
-    protected AbstractExecutable createJob(JobParam event) {
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), event.getProject())
-                .getDataflow(event.getModel());
-        return JobFactory.createJob(CUBE_JOB_FACTORY, Sets.newHashSet(df.getSegment(event.getSegment())),
-                event.getProcessLayouts(), event.getOwner(), JobTypeEnum.INC_BUILD, event.getJobId(), null);
+    protected AbstractExecutable createJob(JobParam jobParam) {
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
+                .getDataflow(jobParam.getModel());
+        return JobFactory.createJob(CUBE_JOB_FACTORY,
+                new JobFactory.JobBuildParams(Sets.newHashSet(df.getSegment(jobParam.getSegment())),
+                        jobParam.getProcessLayouts(), jobParam.getOwner(), JobTypeEnum.INC_BUILD, jobParam.getJobId(),
+                        null, jobParam.getIgnoredSnapshotTables()));
     }
 
 }

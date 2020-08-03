@@ -29,10 +29,11 @@ class MockDFSnapshotBuilder extends DFSnapshotBuilder {
 
   var ds: Dataset[Row] = _
 
-  def this(seg: NDataSegment, ss: SparkSession) {
+  def this(seg: NDataSegment, ss: SparkSession, ignoredSnapshotTables: java.util.Set[String]) {
     this()
     this.seg = seg
     this.ss = ss
+    this.ignoredSnapshotTables = ignoredSnapshotTables
   }
 
   override def getSourceData(tableDesc: TableDesc): Dataset[Row] = {

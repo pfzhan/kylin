@@ -63,6 +63,8 @@ import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 
 public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
@@ -193,7 +195,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testRebuildRefresh() throws Exception {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(1));
         Mockito.doReturn(Lists.newArrayList(new JobInfoResponse.JobInfo())).when(modelService)
-                .refreshSegmentById("default", "model1", new String[] { "seg1", "seg2" });
+                .refreshSegmentById(new RefreshSegmentParams("default", "model1", new String[] { "seg1", "seg2" }));
 
         CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
         rebuildRequest.setBuildType("REFRESH");
@@ -211,8 +213,8 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testManageSegmentsMerge() throws Exception {
         JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
-        Mockito.doReturn(jobInfo).when(modelService).mergeSegmentsManually("model1", "default",
-                new String[] { "seg1", "seg2" });
+        Mockito.doReturn(jobInfo).when(modelService)
+                .mergeSegmentsManually(new MergeSegmentParams("default", "model1", new String[] { "seg1", "seg2" }));
 
         SegmentMgmtRequest request = new SegmentMgmtRequest();
         request.setBuildType("MERGE");
@@ -230,8 +232,8 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testManageSegmentsFresh() throws Exception {
         JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
-        Mockito.doReturn(Lists.newArrayList(jobInfo)).when(modelService).refreshSegmentById("model1", "default",
-                new String[] { "seg1", "seg2" });
+        Mockito.doReturn(Lists.newArrayList(jobInfo)).when(modelService)
+                .refreshSegmentById(new RefreshSegmentParams("default", "model1", new String[] { "seg1", "seg2" }));
 
         SegmentMgmtRequest request = new SegmentMgmtRequest();
         request.setBuildType("REFRESH");

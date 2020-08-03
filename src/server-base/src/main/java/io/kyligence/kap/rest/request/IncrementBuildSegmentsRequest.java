@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.request;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.metadata.model.PartitionDesc;
 
@@ -50,5 +51,8 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
 
     @JsonProperty("build_all_indexes")
     private boolean buildAllIndexes;
+
+    @JsonProperty("ignored_snapshot_tables")
+    private Set<String> ignoredSnapshotTables;
 
 }

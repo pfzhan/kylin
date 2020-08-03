@@ -27,10 +27,7 @@ package org.apache.kylin.job.manager;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -49,14 +46,11 @@ import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.SegmentUtils;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -79,101 +73,83 @@ public class JobManager {
         return new JobManager(conf, project);
     }
 
-    public String addSegmentJob(NDataSegment newSegment, String modelId, String userName) {
-        return addSegmentJob(newSegment, modelId, userName, null);
-    }
-
-    public String addSegmentJob(NDataSegment newSegment, String modelId, String userName, Set<Long> targetLayouts) {
-        HashSet<String> targetSegments = Sets.newHashSet();
-        if (newSegment != null) {
-            targetSegments.add(newSegment.getId());
-        }
-        return addJob(modelId, userName, targetSegments, targetLayouts, JobTypeEnum.INC_BUILD);
+    public String addSegmentJob(JobParam jobParam) {
+        jobParam.setJobTypeEnum(JobTypeEnum.INC_BUILD);
+        return addJob(jobParam);
     }
 
     /**
      * Recommend to use checkAndAddCuboidJob
      */
-    public String addFullIndexJob(String modelId, String userName) {
-        return checkAndAddIndexJob(modelId, userName);
+    public String addFullIndexJob(JobParam jobParam) {
+        return checkAndAddIndexJob(jobParam);
     }
 
     /**
      * This is recommended because one cubboid cannot be built at the same time
      */
-    public String checkAndAddIndexJob(String modelId, String userName) {
-        val relatedSegments = getValidSegments(modelId, project).stream().map(NDataSegment::getId).collect(Collectors.toList());
-        return addRelatedIndexJob(modelId, userName, new HashSet<>(relatedSegments), null);
+    public String checkAndAddIndexJob(JobParam jobParam) {
+        val relatedSegments = getValidSegments(jobParam.getModel(), project).stream().map(NDataSegment::getId)
+                .collect(Collectors.toList());
+        jobParam.setTargetSegments(new HashSet<>(relatedSegments));
+        return addRelatedIndexJob(jobParam);
     }
 
-    public String addRelatedIndexJob(String modelId, String userName, Set<String> relatedSegments, Set<Long> targetLayouts) {
-        boolean noNeed = (relatedSegments == null && getValidSegments(modelId, project).isEmpty()) ||
-                (relatedSegments != null && relatedSegments.isEmpty());
+    public String addRelatedIndexJob(JobParam jobParam) {
+        boolean noNeed = (jobParam.getTargetSegments() == null
+                && getValidSegments(jobParam.getModel(), project).isEmpty())
+                || (jobParam.getTargetSegments() != null && jobParam.getTargetSegments().isEmpty());
         if (noNeed) {
-            log.debug("No need to add index build job due to there is no valid segment in {}.", modelId);
+            log.debug("No need to add index build job due to there is no valid segment in {}.", jobParam.getModel());
             return null;
         }
-        return addJob(modelId, userName, relatedSegments, targetLayouts, JobTypeEnum.INDEX_BUILD);
+        jobParam.setJobTypeEnum(JobTypeEnum.INDEX_BUILD);
+        return addJob(jobParam);
     }
 
-    public String mergeSegmentJob(NDataSegment newSegment, String modelId, String userName) {
-        return addJob(newSegment, modelId, userName, JobTypeEnum.INDEX_MERGE, new HashMap<>());
+    public String mergeSegmentJob(JobParam jobParam) {
+        jobParam.setJobTypeEnum(JobTypeEnum.INDEX_MERGE);
+        return addJob(jobParam);
     }
 
-    public String refreshSegmentJob(NDataSegment newSegment, String modelId, String userName) {
-        return refreshSegmentJob(newSegment, modelId, userName, false);
+    public String refreshSegmentJob(JobParam jobParam) {
+        return refreshSegmentJob(jobParam, false);
     }
 
-    public String refreshSegmentJob(NDataSegment newSegment, String modelId, String userName, boolean refreshAllLayouts) {
-        HashMap<String, Object> condition = Maps.newHashMap();
-        condition.put(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS, refreshAllLayouts);
-        return addJob(newSegment, modelId, userName, JobTypeEnum.INDEX_REFRESH, condition);
+    public String refreshSegmentJob(JobParam jobParam, boolean refreshAllLayouts) {
+        jobParam.getCondition().put(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS, refreshAllLayouts);
+        jobParam.setJobTypeEnum(JobTypeEnum.INDEX_REFRESH);
+        return addJob(jobParam);
     }
 
-    public String addJob(NDataSegment newSegment, String modelId, String userName, JobTypeEnum jobTypeEnum,
-                         Map<String, Object> condition) {
-        HashSet<String> targetSegments = Sets.newHashSet();
-        if (newSegment != null) {
-            targetSegments.add(newSegment.getId());
-        }
-        return addJob(modelId, userName, targetSegments, null, jobTypeEnum, condition);
-    }
-
-    public String addJob(String modelId, String userName, Set<String> targetSegments, Set<Long> targetLayouts,
-                         JobTypeEnum jobTypeEnum){
-        return addJob(modelId, userName, targetSegments, targetLayouts, jobTypeEnum, new HashMap<>());
-    }
-
-    public String addJob(String modelId, String userName, Set<String> targetSegments, Set<Long> targetLayouts,
-                         JobTypeEnum jobTypeEnum, Map<String, Object> condition) {
+    public String addJob(JobParam jobParam) {
         if (!config.isJobNode() && !config.isUTEnv()) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_ABANDON());
         }
         checkNotNull(project);
-        val jobParam = new JobParam(targetSegments, targetLayouts, userName, modelId, project, jobTypeEnum, condition);
+        jobParam.setProject(project);
         ExecutableUtil.computLayouts(jobParam);
         AbstractJobHandler handler;
-        switch (jobTypeEnum) {
-            case INC_BUILD:
-                handler = new AddSegmentHandler();
-                break;
-            case INDEX_MERGE:
-                handler = new MergeSegmentHandler();
-                break;
-            case INDEX_BUILD:
-                handler = new AddIndexHandler();
-                break;
-            case INDEX_REFRESH:
-                handler = new RefreshSegmentHandler();
-                break;
-            default:
-                log.error("jobParam doesn't have matched job: {}", jobTypeEnum);
-                return null;
+        switch (jobParam.getJobTypeEnum()) {
+        case INC_BUILD:
+            handler = new AddSegmentHandler();
+            break;
+        case INDEX_MERGE:
+            handler = new MergeSegmentHandler();
+            break;
+        case INDEX_BUILD:
+            handler = new AddIndexHandler();
+            break;
+        case INDEX_REFRESH:
+            handler = new RefreshSegmentHandler();
+            break;
+        default:
+            log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
+            return null;
         }
         handler.handle(jobParam);
         return jobParam.getJobId();
     }
-
 
     public JobManager(KylinConfig config, String project) {
         this.config = config;
@@ -190,13 +166,11 @@ public class JobManager {
         val executables = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
         val runningSegs = new Segments<NDataSegment>();
-        executables.stream()
-                .filter(e -> e.getTargetSegments() != null)
-                .flatMap(e -> e.getTargetSegments().stream())
-                .distinct()
-                .filter(segId -> df.getSegment(segId) != null)
+        executables.stream().filter(e -> e.getTargetSegments() != null).flatMap(e -> e.getTargetSegments().stream())
+                .distinct().filter(segId -> df.getSegment(segId) != null)
                 .forEach(segId -> runningSegs.add(df.getSegment(segId)));
-        return SegmentUtils.filterSegmentsByTime(df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING), runningSegs);
+        return SegmentUtils.filterSegmentsByTime(df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING),
+                runningSegs);
     }
 
 }

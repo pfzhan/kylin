@@ -34,6 +34,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.Assert;
@@ -58,9 +59,9 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JobSchedulerTest extends NLocalFileMetadataTestCase {
@@ -96,7 +97,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val targetLayouts = new HashSet<Long>();
         targetLayouts.add(1L);
         targetLayouts.add(10001L);
-        val jobId = jobManager.addRelatedIndexJob(MODEL_ID, "ADMIN", relatedSegments, targetLayouts);
+        val jobId = jobManager.addRelatedIndexJob(new JobParam(relatedSegments, targetLayouts, MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertNotNull(jobId);
@@ -104,12 +105,12 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, getProcessLayout(executables.get(0)));
 
         // auto select valid segment
-        jobManager.checkAndAddIndexJob(MODEL_ID, "ADMIN");
+        jobManager.checkAndAddIndexJob(new JobParam(MODEL_ID, "ADMIN"));
         executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(2, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableAddCuboidHandler);
 
-        val jobId3 = jobManager.checkAndAddIndexJob(MODEL_ID, "ADMIN");
+        val jobId3 = jobManager.checkAndAddIndexJob(new JobParam(MODEL_ID, "ADMIN"));
         Assert.assertNull(jobId3);
     }
 
@@ -125,11 +126,10 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         seg.setStatus(SegmentStatusEnum.READY);
         update.setToUpdateSegs(seg);
         update.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df, seg.getId(), 1L),
-                NDataLayout.newDataLayout(df, seg.getId(), 10001L),
-                NDataLayout.newDataLayout(df, seg.getId(), 10002L));
+                NDataLayout.newDataLayout(df, seg.getId(), 10001L), NDataLayout.newDataLayout(df, seg.getId(), 10002L));
         dfm.updateDataflow(update);
 
-        jobManager.checkAndAddIndexJob(MODEL_ID, "ADMIN");
+        jobManager.checkAndAddIndexJob(new JobParam(MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
@@ -154,7 +154,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val targetLayouts = new HashSet<Long>();
         targetLayouts.add(1L);
         targetLayouts.add(10001L);
-        jobManager.addRelatedIndexJob(MODEL_ID, "ADMIN", relatedSegments, targetLayouts);
+        jobManager.addRelatedIndexJob(new JobParam(relatedSegments, targetLayouts, MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
@@ -163,7 +163,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         relatedSegments.remove(0);
         thrown.expect(KylinException.class);
         thrown.expectMessage("Add Job failed due to processing time conflict");
-        jobManager.addRelatedIndexJob(MODEL_ID, "ADMIN", relatedSegments, targetLayouts);
+        jobManager.addRelatedIndexJob(new JobParam(relatedSegments, targetLayouts, MODEL_ID, "ADMIN"));
     }
 
     @Test
@@ -174,22 +174,24 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         val seg = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
-        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN");
+        jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
 
         val seg2 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
-        jobManager.refreshSegmentJob(seg2, MODEL_ID, "ADMIN");
+        jobManager.refreshSegmentJob(new JobParam(seg2, MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
-        Assert.assertTrue(((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkCubingJob) executables.get(1)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
         Assert.assertEquals(19, getProcessLayout(executables.get(0)));
         Assert.assertEquals(19, getProcessLayout(executables.get(1)));
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Add Job failed due to processing time conflict");
-        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN");
+        jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
     }
 
     @Test
@@ -201,13 +203,13 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         val seg = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
-        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN");
+        jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Add Job failed due to processing time conflict");
-        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN");
+        jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
     }
 
     @Test
@@ -221,7 +223,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(seg);
         dfManager.updateDataflow(update);
         val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        jobManager.refreshSegmentJob(seg, MODEL_ID, "ADMIN", true);
+        jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"), true);
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
         Assert.assertEquals(19, executables.get(0).getParam(NBatchConstants.P_LAYOUT_IDS).split(",").length);
@@ -237,14 +239,16 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-03-01")));
         val seg2 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-03-01"), SegmentRange.dateToLong("" + "2012-05-01")));
-        jobManager.mergeSegmentJob(seg1, MODEL_ID, "ADMIN");
-        jobManager.mergeSegmentJob(seg2, MODEL_ID, "ADMIN");
+        jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
+        jobManager.mergeSegmentJob(new JobParam(seg2, MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(2, executables.size());
-        Assert.assertTrue(((NSparkMergingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkMergingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
         Assert.assertEquals(19, getProcessLayout(executables.get(0)));
-        Assert.assertTrue(((NSparkMergingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
+        Assert.assertTrue(
+                ((NSparkMergingJob) executables.get(0)).getHandler() instanceof ExecutableMergeOrRefreshHandler);
         Assert.assertEquals(19, getProcessLayout(executables.get(0)));
     }
 
@@ -265,7 +269,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-03-01")));
         thrown.expect(KylinException.class);
         thrown.expectMessage("Add Job failed due to segment indexes are not aligned");
-        jobManager.mergeSegmentJob(seg1, MODEL_ID, "ADMIN");
+        jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
     @Test
@@ -277,7 +281,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-09-01"), SegmentRange.dateToLong("" + "2012-10-01")));
         try {
-            jobManager.mergeSegmentJob(seg1, MODEL_ID, "ADMIN");
+            jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
             Assert.fail();
         } catch (KylinException e) {
             Assert.assertEquals("No executable job is generated.", e.getMessage());
@@ -292,12 +296,12 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-03-01")));
-        jobManager.mergeSegmentJob(seg1, MODEL_ID, "ADMIN");
+        jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
         thrown.expect(KylinException.class);
         thrown.expectMessage("Add Job failed due to processing time conflict");
-        jobManager.mergeSegmentJob(seg1, MODEL_ID, "ADMIN");
+        jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
     @Test
@@ -310,8 +314,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
                 SegmentRange.dateToLong("2012-05-01"), SegmentRange.dateToLong("" + "2012-06-01")));
         val seg2 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("" + "2012-07-01")));
-        jobManager.addSegmentJob(seg1, MODEL_ID, "ADMIN");
-        jobManager.addSegmentJob(seg2, MODEL_ID, "ADMIN");
+        jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
+        jobManager.addSegmentJob(new JobParam(seg2, MODEL_ID, "ADMIN"));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(2, executables.size());
@@ -334,8 +338,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         HashSet<Long> targetLayouts = new HashSet<>();
         targetLayouts.add(1L);
         targetLayouts.add(10001L);
-        jobManager.addSegmentJob(seg1, MODEL_ID, "ADMIN", targetLayouts);
-        jobManager.addSegmentJob(seg2, MODEL_ID, "ADMIN", targetLayouts);
+        jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN", targetLayouts));
+        jobManager.addSegmentJob(new JobParam(seg2, MODEL_ID, "ADMIN", targetLayouts));
 
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(2, executables.size());
@@ -353,13 +357,13 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-05-01"), SegmentRange.dateToLong("" + "2012-06-01")));
-        jobManager.addSegmentJob(seg1, MODEL_ID, "ADMIN");
+        jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Add Job failed due to processing time conflict");
-        jobManager.addSegmentJob(seg1, MODEL_ID, "ADMIN");
+        jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
     public void prepareSegment() {
@@ -397,8 +401,8 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     private List<AbstractExecutable> getRunningExecutables(String project, String model) {
-        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getRunningExecutables(project, model);
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getRunningExecutables(project,
+                model);
     }
 
     private int getProcessLayout(AbstractExecutable executable) {

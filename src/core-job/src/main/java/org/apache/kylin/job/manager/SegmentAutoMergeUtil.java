@@ -24,16 +24,19 @@
 
 package org.apache.kylin.job.manager;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SegmentAutoMergeUtil {
 
@@ -60,14 +63,15 @@ public class SegmentAutoMergeUtil {
         if (rangeToMerge != null) {
             NDataSegment mergeSeg = null;
             try {
-                mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .mergeSegments(df, rangeToMerge, true);
+                mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).mergeSegments(df,
+                        rangeToMerge, true);
             } catch (Exception e) {
                 logger.warn("Failed to generate a merge segment", e);
             }
 
             if (mergeSeg != null) {
-                JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project).mergeSegmentJob(mergeSeg, modelId, owner);
+                JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .mergeSegmentJob(new JobParam(mergeSeg, modelId, owner));
             }
         }
     }

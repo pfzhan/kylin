@@ -80,6 +80,7 @@ import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -645,7 +646,7 @@ public class TableService extends BasicService {
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
         getSourceUsageManager().licenseCheckWrap(project,
-                () -> jobManager.addSegmentJob(newSegment, model, getUsername()));
+                () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
     }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
@@ -785,7 +786,7 @@ public class TableService extends BasicService {
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
                 getSourceUsageManager().licenseCheckWrap(project,
-                        () -> jobManager.addSegmentJob(dataSegment, modelId, getUsername()));
+                        () -> jobManager.addSegmentJob(new JobParam(dataSegment, modelId, getUsername())));
 
                 logger.info(
                         "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
@@ -1223,7 +1224,7 @@ public class TableService extends BasicService {
             val jobManager = getJobManager(projectName);
             if (needBuild) {
                 getSourceUsageManager().licenseCheckWrap(projectName,
-                        () -> jobManager.checkAndAddIndexJob(model.getId(), getUsername()));
+                        () -> jobManager.checkAndAddIndexJob(new JobParam(model.getId(), getUsername())));
             }
         }
     }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.request;
 
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -38,4 +39,7 @@ public class SegmentFixRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("segment_holes")
     private List<SegmentTimeRequest> segmentHoles;
+
+    @JsonProperty("ignored_snapshot_tables")
+    private Set<String> ignoredSnapshotTables;
 }

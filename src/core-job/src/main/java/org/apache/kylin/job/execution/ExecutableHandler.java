@@ -24,10 +24,9 @@
 
 package org.apache.kylin.job.execution;
 
-
-import java.util.HashMap;
-
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 
 import com.google.common.base.Preconditions;
 
@@ -37,9 +36,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.kylin.job.manager.JobManager;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @NoArgsConstructor
@@ -68,8 +66,6 @@ public abstract class ExecutableHandler implements IKeepNames {
 
     public abstract void handleDiscardOrSuicidal();
 
-
-
     protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
         return NExecutableManager.getInstance(config, project);
     }
@@ -80,7 +76,7 @@ public abstract class ExecutableHandler implements IKeepNames {
         if (segmentId != null) {
             segment.setId(segmentId);
         }
-        manager.addJob(segment, modelId, owner, jobTypeEnum, new HashMap<>());
+        manager.addJob(new JobParam(segment, modelId, owner).withJobTypeEnum(jobTypeEnum));
     }
 
     protected DefaultChainedExecutableOnModel getExecutable() {

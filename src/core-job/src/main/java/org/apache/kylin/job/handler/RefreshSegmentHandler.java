@@ -44,13 +44,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RefreshSegmentHandler extends AbstractJobHandler {
     @Override
-    protected AbstractExecutable createJob(JobParam event) {
+    protected AbstractExecutable createJob(JobParam jobParam) {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, event.getProject()).getDataflow(event.getModel());
+        NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, jobParam.getProject())
+                .getDataflow(jobParam.getModel());
 
-        return JobFactory.createJob(CUBE_JOB_FACTORY, Sets.newHashSet(dataflow.getSegment(event.getSegment())),
-                event.getProcessLayouts(), event.getOwner(), JobTypeEnum.INDEX_REFRESH, event.getJobId(), null);
+        return JobFactory.createJob(CUBE_JOB_FACTORY,
+                new JobFactory.JobBuildParams(Sets.newHashSet(dataflow.getSegment(jobParam.getSegment())),
+                        jobParam.getProcessLayouts(), jobParam.getOwner(), JobTypeEnum.INDEX_REFRESH,
+                        jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables()));
     }
 }

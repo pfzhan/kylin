@@ -55,6 +55,7 @@ class DFSnapshotBuilder extends Logging with Serializable {
 
   var ss: SparkSession = _
   var seg: NDataSegment = _
+  var ignoredSnapshotTables: java.util.Set[String] = _
 
   private val MD5_SUFFIX = ".md5"
   private val PARQUET_SUFFIX = ".parquet"
@@ -64,6 +65,11 @@ class DFSnapshotBuilder extends Logging with Serializable {
     this()
     this.seg = seg
     this.ss = ss
+  }
+
+  def this(seg: NDataSegment, ss: SparkSession, ignoredSnapshotTables: java.util.Set[String]) {
+    this(seg, ss)
+    this.ignoredSnapshotTables = ignoredSnapshotTables
   }
 
   @transient
@@ -143,15 +149,27 @@ class DFSnapshotBuilder extends Logging with Serializable {
     })
   }
 
+  def isIgnoredSnapshotTable(tableDesc: TableDesc): Boolean = {
+    if (ignoredSnapshotTables == null || tableDesc.getLastSnapshotPath == null) {
+      return false
+    }
+    ignoredSnapshotTables.contains(tableDesc.getIdentity)
+
+  }
+
   def distinctTableDesc(model: NDataModel): Set[TableDesc] = {
-    model.getJoinTables.asScala
+    val toBuildTableDesc = model.getJoinTables.asScala
       .filter(lookupDesc => {
         val tableDesc = lookupDesc.getTableRef.getTableDesc
         val isLookupTable = model.isLookupTable(lookupDesc.getTableRef)
-        isLookupTable && seg.getSnapshots.get(tableDesc.getIdentity) == null
+        isLookupTable && seg.getSnapshots.get(tableDesc.getIdentity) == null && !isIgnoredSnapshotTable(tableDesc)
       })
       .map(_.getTableRef.getTableDesc)
       .toSet
+
+    val toBuildTableDescTableName = toBuildTableDesc.map(_.getIdentity)
+    logInfo(s"table snapshot to be build: $toBuildTableDescTableName")
+    toBuildTableDesc
   }
 
   def getSourceData(tableDesc: TableDesc): Dataset[Row] = {

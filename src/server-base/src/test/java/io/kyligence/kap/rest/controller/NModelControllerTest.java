@@ -50,8 +50,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.rest.response.JobInfoResponse;
-import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -108,13 +106,17 @@ import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import lombok.val;
 
 public class NModelControllerTest extends NLocalFileMetadataTestCase {
@@ -237,8 +239,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegments() throws Exception {
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(432L, 2234L);
-        Mockito.when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234", "",
-                "end_time", true)).thenReturn(mockSegments());
+        Mockito.when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234",
+                "", "end_time", true)).thenReturn(mockSegments());
         mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).param("offset", "0").param("project", "default")
@@ -382,8 +384,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRefreshSegmentsById() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
-        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default", request.getIds());
+        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById(
+                new RefreshSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -398,8 +400,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
         request.setIds(new String[] { "0", "1" });
-        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService)
-                .mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", request.getIds());
+        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService).mergeSegmentsManually(
+                new MergeSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -413,8 +415,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testMergeSegmentsException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
-        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService)
-                .mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", request.getIds());
+        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService).mergeSegmentsManually(
+                new MergeSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -428,8 +430,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testRefreshSegmentsByIdException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setIds(null);
-        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default", request.getIds());
+        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById(
+                new RefreshSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -889,7 +891,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBatchSaveModels() throws Exception {
         ModelRequest request = new ModelRequest();
-        Mockito.doNothing().when(modelService).batchCreateModel("gc_test", Mockito.spy(Lists.newArrayList(request)), Lists.newArrayList());
+        Mockito.doNothing().when(modelService).batchCreateModel("gc_test", Mockito.spy(Lists.newArrayList(request)),
+                Lists.newArrayList());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/batch_save_models").param("project", "gc_test")
                 .contentType(MediaType.APPLICATION_JSON)

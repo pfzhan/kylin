@@ -30,6 +30,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.springframework.util.CollectionUtils;
@@ -173,7 +174,7 @@ public class ModelBrokenListener {
                 val jobManager = JobManager.getInstance(config, project);
                 val sourceUsageManager = SourceUsageManager.getInstance(config);
                 sourceUsageManager.licenseCheckWrap(project,
-                        () -> jobManager.checkAndAddIndexJob(model.getId(), "ADMIN"));
+                        () -> jobManager.checkAndAddIndexJob(new JobParam(model.getId(), "ADMIN")));
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);

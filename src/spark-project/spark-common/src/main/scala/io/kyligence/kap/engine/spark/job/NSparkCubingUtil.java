@@ -32,7 +32,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
 import org.spark_project.guava.collect.Sets;
@@ -68,6 +70,16 @@ public class NSparkCubingUtil {
             r.add(seg.getId());
         }
         return r;
+    }
+
+    public static Set<String> toIgnoredTableSet(String tableListStr) {
+        if(StringUtils.isBlank(tableListStr)){
+            return null;
+        }
+        Set<String> s = Sets.newLinkedHashSet();
+        s.addAll(Arrays.asList(StringSplitter.split(tableListStr,",")));
+        return s;
+
     }
 
     static Set<String> toSegmentIds(Segments<NDataSegment> segments) {

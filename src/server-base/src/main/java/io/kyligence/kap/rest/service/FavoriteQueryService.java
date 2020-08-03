@@ -38,6 +38,7 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
@@ -444,7 +445,7 @@ public class FavoriteQueryService extends BasicService {
                     continue;
                 }
                 jobList.add(getSourceUsageManager().licenseCheckWrap(project,
-                        () -> jobManager.addFullIndexJob(targetIndexPlan.getUuid(), user)));
+                        () -> jobManager.addFullIndexJob(new JobParam(targetIndexPlan.getUuid(), user))));
 
                 updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
             }

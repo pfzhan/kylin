@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -107,7 +108,8 @@ public class SegmentHelper extends BasicService {
                         ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
                     }
                 } else {
-                    refreshSegments(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING), dfMgr, df, modelId, jobManager, project);
+                    refreshSegments(segments.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING), dfMgr, df,
+                            modelId, jobManager, project);
                     ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
                     //remove new segment in lag behind models and then rebuild it
                     handleRefreshLagBehindModel(project, df, segments.getSegments(SegmentStatusEnum.NEW), modelId,
@@ -130,7 +132,7 @@ public class SegmentHelper extends BasicService {
         for (NDataSegment seg : segments) {
             NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
             getSourceUsageManager().licenseCheckWrap(project, () -> {
-                jobManager.refreshSegmentJob(newSeg, modelId, getUsername());
+                jobManager.refreshSegmentJob(new JobParam(newSeg, modelId, getUsername()));
                 return null;
             });
         }
@@ -144,7 +146,8 @@ public class SegmentHelper extends BasicService {
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(newSegment, model, getUsername()));
+        getSourceUsageManager().licenseCheckWrap(project,
+                () -> jobManager.addSegmentJob(new JobParam(newSegment, model, getUsername())));
     }
 
     private void handleRefreshLagBehindModel(String project, NDataflow df, Segments<NDataSegment> newSegments,
@@ -154,7 +157,8 @@ public class SegmentHelper extends BasicService {
             handleJobAndOldSeg(project, seg, df, dfMgr);
             df = dfMgr.getDataflow(modelId);
             val newSeg = dfMgr.appendSegment(df, seg.getSegRange());
-            getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addSegmentJob(newSeg, modelId, getUsername()));
+            getSourceUsageManager().licenseCheckWrap(project,
+                    () -> jobManager.addSegmentJob(new JobParam(newSeg, modelId, getUsername())));
         }
     }
 

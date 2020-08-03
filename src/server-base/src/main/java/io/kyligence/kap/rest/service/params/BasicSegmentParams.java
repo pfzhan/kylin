@@ -21,28 +21,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.service.params;
 
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.rest.transaction.TransactionProjectUnit;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import lombok.Data;
+@NoArgsConstructor
+@Getter
+@Setter
+public class BasicSegmentParams implements TransactionProjectUnit {
+    protected String project;
+    protected String modelId;
+    protected Set<String> ignoredSnapshotTables;
 
-@Data
-public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
+    BasicSegmentParams(String project, String modelId) {
+        this.project = project;
+        this.modelId = modelId;
+    }
 
-    private String project;
-
-    private String start;
-
-    private String end;
-
-    @JsonProperty("build_all_indexes")
-    private boolean buildAllIndexes;
-
-    @JsonProperty("ignored_snapshot_tables")
-    private Set<String> ignoredSnapshotTables;
+    @Override
+    public String transactionProjectUnit() {
+        return getProject();
+    }
 }

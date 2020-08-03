@@ -34,6 +34,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -171,6 +173,54 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss);
         seg = builder.buildSnapshot();
         Assert.assertEquals(7, seg.getSnapshots().size());
+    }
+
+    @Test
+    public void testBuildSnapshotIgnored_SnapshotIsNull() throws Exception {
+        final Set<String> ignoredSnapshotTableSet = new HashSet<>(
+                Arrays.asList("DEFAULT.TEST_COUNTRY", "EDW.TEST_CAL_DT"));
+        KylinConfig config = getTestConfig();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NDataSegment seg = df.copy().getLastSegment();
+        seg.setSnapshots(null);
+        Assert.assertEquals(0, seg.getSnapshots().size());
+        //snapshot building cannot be skip when it is null
+        DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss, ignoredSnapshotTableSet);
+        final NDataSegment segBuilded = builder.buildSnapshot();
+        Assert.assertEquals(7, segBuilded.getOriSnapshotSize().size());
+        Assert.assertEquals(7, segBuilded.getSnapshots().size());
+
+    }
+
+    @Test
+    public void testBuildSnapshotIgnored_SnapshotExists() throws Exception {
+        final Set<String> ignoredSnapshotTableSet = new HashSet<>(
+                Arrays.asList("DEFAULT.TEST_COUNTRY", "EDW.TEST_CAL_DT"));
+        KylinConfig config = getTestConfig();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NDataSegment seg = df.copy().getLastSegment();
+        final Map<String, String> snapshotMappingsBefore = seg.getSnapshots();
+        seg.setSnapshots(null);
+        Assert.assertEquals(0, seg.getSnapshots().size());
+        //assert snapshot already exists
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
+        ignoredSnapshotTableSet.forEach(ignoredSnapshotTable -> {
+            nTableMetadataManager.getTableDesc(ignoredSnapshotTable)
+                    .setLastSnapshotPath(snapshotMappingsBefore.get(ignoredSnapshotTable));
+        });
+
+        //snapshot building can be skip when it is not null
+        DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss, ignoredSnapshotTableSet);
+        final NDataSegment segBuilded = builder.buildSnapshot();
+        Assert.assertTrue(ignoredSnapshotTableSet.stream()
+                .allMatch(tableName -> !segBuilded.getOriSnapshotSize().keySet().contains(tableName)));
+        Assert.assertEquals(5, segBuilded.getOriSnapshotSize().size());
+        Assert.assertEquals(7, segBuilded.getSnapshots().size());
+
     }
 
     @Test

@@ -26,6 +26,7 @@ package org.apache.kylin.job.model;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,9 +36,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  *
@@ -47,10 +51,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class JobParam {
 
-    private String jobId;
+    private String jobId = UUID.randomUUID().toString();
 
+    @Setter(AccessLevel.NONE)
     private Set<String> targetSegments = Sets.newHashSet();
 
+    @Setter(AccessLevel.NONE)
     private Set<Long> targetLayouts = Sets.newHashSet();
 
     private String owner;
@@ -61,9 +67,11 @@ public class JobParam {
 
     private JobTypeEnum jobTypeEnum;
 
+    private Set<String> ignoredSnapshotTables;
     /**
      * Some additional params in different jobTypes
      */
+    @Setter(AccessLevel.NONE)
     private Map<String, Object> condition = Maps.newHashMap();
 
     /**
@@ -75,23 +83,59 @@ public class JobParam {
 
     public static class ConditionConstant {
         public static final String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";
-        private ConditionConstant(){
+
+        private ConditionConstant() {
         }
     }
 
-    public JobParam(Set<String> segments, Set<Long> targetLayouts, String owner, String model, String project,
-                    JobTypeEnum jobTypeEnum, Map<String, Object> condition) {
-        this.targetSegments = segments;
-        this.owner = owner;
+    public JobParam(String model, String owner) {
         this.model = model;
-        this.project = project;
-        this.jobTypeEnum = jobTypeEnum;
-        this.jobId = UUID.randomUUID().toString();
-        if (condition != null) {
-            this.condition = condition;
+        this.owner = owner;
+    }
+
+    public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner) {
+        this(model, owner);
+        this.setTargetSegments(targetSegments);
+        this.setTargetLayouts(targetLayouts);
+    }
+
+    public JobParam(NDataSegment newSegment, String model, String owner) {
+        this(model, owner);
+        if (Objects.nonNull(newSegment)) {
+            this.targetSegments.add(newSegment.getId());
         }
-        if (targetLayouts != null) {
+    }
+
+    public JobParam(NDataSegment newSegment, String model, String owner, Set<Long> targetLayouts) {
+        this(newSegment, model, owner);
+        this.setTargetLayouts(targetLayouts);
+    }
+
+    public JobParam withIgnoredSnapshotTables(Set<String> ignoredSnapshotTables) {
+        this.ignoredSnapshotTables = ignoredSnapshotTables;
+        return this;
+    }
+
+    public JobParam withJobTypeEnum(JobTypeEnum jobTypeEnum) {
+        this.jobTypeEnum = jobTypeEnum;
+        return this;
+    }
+
+    public void setTargetSegments(Set<String> targetSegments) {
+        if (Objects.nonNull(targetSegments)) {
+            this.targetSegments = targetSegments;
+        }
+    }
+
+    public void setTargetLayouts(Set<Long> targetLayouts) {
+        if (Objects.nonNull(targetLayouts)) {
             this.targetLayouts = targetLayouts;
+        }
+    }
+
+    public void setCondition(Map<String, Object> condition) {
+        if (Objects.nonNull(condition)) {
+            this.condition = condition;
         }
     }
 

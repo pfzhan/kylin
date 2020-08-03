@@ -54,6 +54,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -262,7 +263,7 @@ public class IndexPlanService extends BasicService {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
                 }
                 getSourceUsageManager().licenseCheckWrap(project,
-                        () -> jobManager.addFullIndexJob(indexPlan.getUuid(), getUsername()));
+                        () -> jobManager.addFullIndexJob(new JobParam(indexPlan.getUuid(), getUsername())));
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
@@ -480,7 +481,8 @@ public class IndexPlanService extends BasicService {
         });
         if (request.isLoadData()) {
             val jobManager = getJobManager(project);
-            getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.addFullIndexJob(modelId, getUsername()));
+            getSourceUsageManager().licenseCheckWrap(project,
+                    () -> jobManager.addFullIndexJob(new JobParam(modelId, getUsername())));
         }
     }
 

@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -97,9 +98,9 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         super.cleanup();
     }
 
-    private void generateEvents(String modelId, String project) {
+    private void generateJob(String modelId, String project) {
         val jobManager = JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        jobManager.addFullIndexJob(modelId, "ADMIN");
+        jobManager.addFullIndexJob(new JobParam(modelId, "ADMIN"));
 
     }
 
@@ -109,7 +110,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        generateEvents(modelId, project);
+        generateJob(modelId, project);
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
 
@@ -128,7 +129,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
         val project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        generateEvents(modelId, project);
+        generateJob(modelId, project);
         tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
