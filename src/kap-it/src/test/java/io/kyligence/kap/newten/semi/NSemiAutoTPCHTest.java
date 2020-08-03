@@ -41,6 +41,7 @@ public class NSemiAutoTPCHTest extends SemiAutoTestBase {
     }
 
     @Test
+    @Ignore
     public void testTPCH() throws Exception {
         val optManager = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject());
         Assert.assertEquals(0, optManager.listAllOptimizeRecommendations().size());

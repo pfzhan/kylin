@@ -50,6 +50,12 @@ class SanityChecker(expect: Long) extends StorageListener with LogEx {
     }
 
     val actual = SanityChecker.getCount(dataFrame, layout)
+
+    if (actual == SanityChecker.SKIP_FLAG) {
+      log.info(s"Cannot find count constant measure in current cuboid, skip sanity check")
+      return
+    }
+
     checkRowCount(actual, expect, layout)
   }
 

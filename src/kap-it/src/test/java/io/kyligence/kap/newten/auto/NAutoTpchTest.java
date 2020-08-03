@@ -52,7 +52,9 @@ public class NAutoTpchTest extends NAutoTestBase {
         new TestScenario(CompareLevel.SAME, "sql_tpch", 0, 5).execute();
         new TestScenario(CompareLevel.SAME, "sql_tpch", 5, 10).execute();
         new TestScenario(CompareLevel.SAME, "sql_tpch", 10, 15).execute();
-        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 22).execute();
+        // ignore for KE-16343
+//        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 16).execute();
+        new TestScenario(CompareLevel.SAME, "sql_tpch", 16, 22).execute();
     }
 
     @Test
