@@ -1,21 +1,20 @@
 <template>
   <div class="model-segment" v-loading="isLoading">
     <div class="segment-actions clearfix">
-      <div class="ksd-title-label-small ksd-mb-10">
-        {{$t('segmentList')}}
-        <el-popover
-          ref="segmentPopover"
-          placement="right"
-          width="500"
-          trigger="hover">
-          <div style="padding:10px">
-            <div class="ksd-mb-10">{{$t('segmentSubTitle')}}</div>
-            <div class="ksd-center">
-              <img src="../../../../../assets/img/image-seg.png" width="400px" alt="">
-            </div>
+      <el-popover
+        ref="segmentPopover"
+        placement="right"
+        width="500"
+        trigger="hover">
+        <div style="padding:10px">
+          <div class="ksd-mb-10">{{$t('segmentSubTitle')}}</div>
+          <div class="ksd-center">
+            <img src="../../../../../assets/img/image-seg.png" width="400px" alt="">
           </div>
-        </el-popover>
-        <i v-popover:segmentPopover class="el-icon-question"></i>
+        </div>
+      </el-popover>
+      <div class="ksd-title-label-small ksd-mb-10">
+        {{$t('segmentList')}}<i v-popover:segmentPopover class="el-icon-question ksd-ml-2"></i>
       </div>
       <div class="left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button-group>

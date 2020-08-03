@@ -67,7 +67,7 @@
                 </div>
               </el-popover>
               <div class="ksd-mb-10 ksd-fs-12 ksd-fleft">
-                {{$t('dataRange')}}<i v-popover:indexPopover class="el-icon-question"></i>: {{getDataRange}}
+                {{$t('dataRange')}}<i v-popover:indexPopover class="el-icon-question ksd-fs-14 ksd-mrl-2"></i>: {{getDataRange}}
               </div>
               <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-5">
                 <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
