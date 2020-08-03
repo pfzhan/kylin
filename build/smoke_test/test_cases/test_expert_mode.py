@@ -406,7 +406,7 @@ class TestExpertMode:
         # kylin stop
         os.system('bash -vx ' + os.path.join(kylin_home, 'bin/kylin.sh') + ' stop')
         # metadata restore
-        os.system('bash -vx ' + os.path.join(kylin_home, 'bin/metastore.sh') + ' overwrite ' + metadata_backup_path)
+        os.system('bash -vx ' + os.path.join(kylin_home, 'bin/metastore.sh') + ' restore ' + metadata_backup_path)
         # kylin start
         self.start_instance(os.path.join(kylin_home, 'bin/kylin.sh'), common_config.port)
         # execute some queries after metadata were restored
