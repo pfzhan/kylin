@@ -187,7 +187,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         val rootPath = Stream.of(fs.listStatus(new Path(path)))
                 .max(Comparator.comparing(FileStatus::getModificationTime)).map(FileStatus::getPath)
                 .orElse(new Path(path + "/backup_1/"));
-        args = new String[] { "-overwrite", "-dir", rootPath.toString().substring(5) };
+        args = new String[] { "-restore", "-dir", rootPath.toString().substring(5) };
         metadataTool = new MetadataTool(getTestConfig());
         metadataTool.execute(args);
 

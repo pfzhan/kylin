@@ -100,7 +100,7 @@ public class RollbackTool extends ExecutableApplication {
     private ResourceStore currentResourceStore;
 
     @VisibleForTesting
-    public RollbackStatusEnum rollbackStatus;
+    public  RollbackStatusEnum rollbackStatus;
 
     RollbackTool() {
         kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -330,7 +330,7 @@ public class RollbackTool extends ExecutableApplication {
                     val restoreStatus = restoreExecutableManager.getOutput(e.getId()).getState();
                     if (currentStatus.isFinalState() && restoreStatus.isProgressing()) {
                         log.info("job : {} will be re-executed and will  affect segments: {}", e,
-                                Sets.newHashSet(e.getTargetSegments()).toString());
+                            Sets.newHashSet(e.getTargetSegments()).toString());
                     }
                 }
             });
@@ -445,7 +445,7 @@ public class RollbackTool extends ExecutableApplication {
                 log.error("{} \n the metadata dir is not qualified", verifyResult.getResultMessage());
             }
 
-            MetadataTool.restore(currentResourceStore, restoreResourceStore, project, true);
+            MetadataTool.restore(currentResourceStore, restoreResourceStore, project);
         } catch (Exception e) {
             log.error("restore mirror resource store failed: {} ", e);
         }
