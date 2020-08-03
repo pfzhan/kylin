@@ -142,10 +142,32 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryHistoryRequest.setProject(PROJECT);
         queryHistoryRequest.setAdmin(true);
         queryHistoryRequest.setUsername(ADMIN);
-        queryHistoryRequest.setStartTimeFrom("1580351512000");
-        queryHistoryRequest.setStartTimeTo("1590484312000");
+        queryHistoryRequest.setStartTimeFrom("1580397912000");
+        queryHistoryRequest.setStartTimeTo("1580484312000");
         List<QueryHistory> queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0);
-        Assert.assertEquals(2, queryHistoryList.size());
+        Assert.assertEquals(1, queryHistoryList.size());
+    }
+
+    @Test
+    public void testGetQueryHistoriesfilterByDuration() throws Exception {
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1000L, true, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 2000L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 3000L, false, PROJECT));
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 4000L, false, PROJECT));
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+        queryHistoryRequest.setProject(PROJECT);
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+        queryHistoryRequest.setLatencyFrom("1");
+        queryHistoryRequest.setLatencyTo("4");
+        List<QueryHistory> queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0);
+        Assert.assertEquals(3, queryHistoryList.size());
+
+        queryHistoryRequest.setLatencyFrom("2");
+        queryHistoryRequest.setLatencyTo("3");
+        queryHistoryList = queryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0);
+        Assert.assertEquals(1, queryHistoryList.size());
     }
 
     @Test
@@ -583,6 +605,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryMetrics.setQueryFirstDayOfWeek(TimeUtil.getWeekStart(queryTime));
         queryMetrics.setQueryDay(TimeUtil.getDayStart(queryTime));
         queryMetrics.setProjectName(project);
+        queryMetrics.setQueryStatus("SUCCEEDED");
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(true, 5, true);
         queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 

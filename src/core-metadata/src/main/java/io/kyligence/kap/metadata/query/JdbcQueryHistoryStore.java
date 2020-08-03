@@ -477,13 +477,13 @@ public class JdbcQueryHistoryStore {
 
         if (StringUtils.isNotEmpty(request.getStartTimeFrom()) && StringUtils.isNotEmpty(request.getStartTimeTo())) {
             filterSql = filterSql
-                    .and(queryHistoryTable.queryTime, isGreaterThan(Long.valueOf(request.getStartTimeFrom())))
+                    .and(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(Long.valueOf(request.getStartTimeFrom())))
                     .and(queryHistoryTable.queryTime, isLessThan(Long.valueOf(request.getStartTimeTo())));
         }
 
         if (StringUtils.isNotEmpty(request.getLatencyFrom()) && StringUtils.isNotEmpty(request.getLatencyTo())) {
             filterSql = filterSql
-                    .and(queryHistoryTable.duration, isGreaterThan(Long.valueOf(request.getLatencyFrom()) * 1000L))
+                    .and(queryHistoryTable.duration, isGreaterThanOrEqualTo(Long.valueOf(request.getLatencyFrom()) * 1000L))
                     .and(queryHistoryTable.duration, isLessThan(Long.valueOf(request.getLatencyTo()) * 1000L))
                     .and(queryHistoryTable.queryStatus, isEqualTo("SUCCEEDED"));
         }
