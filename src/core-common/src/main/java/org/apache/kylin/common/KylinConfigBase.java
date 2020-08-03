@@ -1375,6 +1375,7 @@ public abstract class KylinConfigBase implements Serializable {
                         "org.apache.kylin.query.util.PowerBIConverter",
                         "io.kyligence.kap.query.util.RestoreFromComputedColumn",
                         "io.kyligence.kap.query.security.RowFilter",
+                        "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
                         "io.kyligence.kap.query.util.SparkSQLFunctionConverter" });
     }
 
