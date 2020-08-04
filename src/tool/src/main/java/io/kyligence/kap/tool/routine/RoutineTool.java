@@ -25,21 +25,18 @@ package io.kyligence.kap.tool.routine;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
-import io.kyligence.kap.tool.CuratorOperator;
+import io.kyligence.kap.tool.MaintainModeTool;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import io.kyligence.kap.tool.garbage.SourceUsageCleaner;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -79,92 +76,49 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         }
         initOptionValues(optionsHelper);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        EpochManager epochManager = EpochManager.getInstance(kylinConfig);
         List<ProjectInstance> instances = NProjectManager.getInstance(kylinConfig).listAllProjects();
-        boolean epochChanged = false;
         System.out.println("Start to cleanup metadata");
         List<String> projectsToCleanup = Arrays.asList(projects);
         if (projectsToCleanup.isEmpty()) {
             projectsToCleanup = instances.stream().map(ProjectInstance::getName).collect(Collectors.toList());
         }
-        RestClient restClient = null;
-        boolean jobNodeExist = false;
-        if (!kylinConfig.isUTEnv()) {
-            jobNodeExist = new CuratorOperator().isJobNodeExist();
-            if (!jobNodeExist) {
-                epochChanged = true;
-                System.setProperty("kylin.server.leader-race.enabled", "false");
-                for (val prj : projectsToCleanup) {
-                    epochManager.forceUpdateEpoch(prj);
-                }
-                epochManager.forceUpdateEpoch(UnitOfWork.GLOBAL_UNIT);
-            } else {
-                if (epochManager.getEpochOwner(UnitOfWork.GLOBAL_UNIT) == null) {
-                    System.out.println("Illegal state, please wait a minute and try again");
-                    return;
-                }
-                restClient = new RestClient(
-                        epochManager.getHostAndPort(epochManager.getEpochOwner(UnitOfWork.GLOBAL_UNIT)));
-            }
+        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        maintainModeTool.init();
+        try {
+            maintainModeTool.markEpochs();
+            doCleanup(projectsToCleanup);
+        } finally {
+            maintainModeTool.releaseEpochs();
         }
-        doCleanup(jobNodeExist, restClient, epochChanged, projectsToCleanup);
 
     }
 
-    private void doCleanup(boolean jobNodeExist, RestClient restClient, boolean epochChanged,
-            List<String> projectsToCleanup) {
-        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+    private void doCleanup(List<String> projectsToCleanup) {
         try {
             if (metadataCleanup) {
-                cleanMeta(jobNodeExist, projectsToCleanup, restClient);
+                cleanMeta(projectsToCleanup);
             }
-            cleanStorage(jobNodeExist, projectsToCleanup, restClient);
+            cleanStorage();
         } catch (Exception e) {
             log.error("Failed to execute routintool", e);
-        } finally {
-            System.clearProperty("kylin.server.leader-race.enabled");
-            if (epochChanged) {
-                for (val prj : projectsToCleanup) {
-                    epochManager.forceUpdateEpoch(prj);
-                }
-                epochManager.forceUpdateEpoch(UnitOfWork.GLOBAL_UNIT);
-            }
-
         }
-
     }
 
-    private void cleanMeta(boolean jobNodeExist, List<String> projectsToCleanup, RestClient restClient)
-            throws IOException {
-        if (!jobNodeExist) {
-            try {
-                cleanGlobalMeta();
-                for (String projName : projectsToCleanup) {
-                    cleanMetaByProject(projName);
-                }
-                QueryHisStoreUtil.cleanQueryHistory();
-                System.out.println("Metadata cleanup finished");
-            } catch (Exception e) {
-                log.error("Metadata cleanup failed", e);
-                System.out.println(StorageCleaner.ANSI_RED
-                        + "Metadata cleanup failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
-                        + StorageCleaner.ANSI_RESET);
-            }
-        } else {
+    private void cleanMeta(List<String> projectsToCleanup) throws IOException {
+        try {
+            cleanGlobalMeta();
             for (String projName : projectsToCleanup) {
-                restClient.cleanUpMetadata(projName);
+                cleanMetaByProject(projName);
             }
-            restClient.cleanUpMetadata(UnitOfWork.GLOBAL_UNIT);
+            QueryHisStoreUtil.cleanQueryHistory();
+            System.out.println("Metadata cleanup finished");
+        } catch (Exception e) {
+            log.error("Metadata cleanup failed", e);
+            System.out.println(StorageCleaner.ANSI_RED
+                    + "Metadata cleanup failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
+                    + StorageCleaner.ANSI_RESET);
         }
-    }
 
-    private void cleanStorage(boolean jobNodeExist, List<String> projectsToCleanup, RestClient restClient)
-            throws IOException {
-        if (!jobNodeExist) {
-            cleanStorage();
-        } else {
-            restClient.cleanStorage(storageCleanup, projectsToCleanup.toArray(new String[projectsToCleanup.size()]));
-        }
     }
 
     public void cleanGlobalMeta() {

@@ -42,7 +42,6 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.kylin.common.KylinConfig;
@@ -60,7 +59,6 @@ import java.util.concurrent.TimeUnit;
 public class EpochOrchestrator implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochOrchestrator.class);
-
 
     private KylinConfig kylinConfig;
     private EpochManager epochMgr;
@@ -89,8 +87,7 @@ public class EpochOrchestrator implements IKeep {
         long pollSecond = kylinConfig.getEpochCheckerIntervalSecond();
         logger.info("Try to update epoch every {} seconds", pollSecond);
         EpochChecker checker = new EpochChecker();
-        checkerPool = Executors.newScheduledThreadPool(1,
-                new NamedThreadFactory("EpochChecker"));
+        checkerPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("EpochChecker"));
         checkerPool.scheduleWithFixedDelay(checker, 1, pollSecond, TimeUnit.SECONDS);
     }
 

@@ -25,7 +25,6 @@
 package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.tool.util.ServiceDiscoveryUtil.runWithCurator;
 import static org.apache.kylin.common.exception.ToolErrorCode.FILE_ALREADY_EXIST;
 import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
 
@@ -172,32 +171,11 @@ public class MetadataTool extends ExecutableApplication {
         val optionsHelper = new OptionsHelper();
         optionsHelper.parseOptions(tool.getOptions(), args);
         boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
-        int retFlag = runWithCurator((isLocal, address) -> {
-            if (isLocal || isBackup) {
-                tool.execute(args);
-                return 0;
-            }
-            if (!isBackup) {
-                logger.warn("Fail to restore, please stop all job nodes first");
-                return 1;
-            }
-            logger.info(
-                    "found a job node running, backup will be delegated to it at server: {}, this may be a remote server.",
-                    address);
-            val ret = tool.remoteBackup(address, optionsHelper.getOptionValue(OPTION_DIR),
-                    optionsHelper.getOptionValue(OPTION_PROJECT), optionsHelper.hasOption(OPERATE_COMPRESS));
-            if ("000".equals(ret.get("code"))) {
-                logger.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
-                return 0;
-            } else {
-                logger.error("backup failed, response is {}", ret);
-                return 1;
-            }
-        });
+        tool.execute(args);
         if (isBackup && StringUtils.isNotEmpty(tool.getBackupPath())) {
             System.out.println(String.format("The metadata backup path is %s.", tool.getBackupPath()));
         }
-        System.exit(retFlag);
+        System.exit(0);
     }
 
     @Override

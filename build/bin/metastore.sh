@@ -41,18 +41,11 @@ function help {
 
 function printBackupResult() {
     error=$1
-    local=`isBackupInLocal`
-
     if [[ $error == 0 ]]; then
         if [[ -z "${path}" ]]; then
             path="\${KYLIN_HOME}/meta_backups"
         fi
-
-        if [[ $local == 0 ]]; then
-            echo -e "${YELLOW}Backup at local disk succeed.${RESTORE}"
-        else
-            echo -e "${YELLOW}Backup succeed.${RESTORE}"
-        fi
+        echo -e "${YELLOW}Backup at local disk succeed.${RESTORE}"
     else
         echo -e "${YELLOW}Backup failed. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
     fi
@@ -68,11 +61,8 @@ function printRestoreResult() {
     fi
 }
 
-function isBackupInLocal() {
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 >/dev/null 2>&1
-    echo $?
-}
 
+${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on
 if [ "$1" == "backup" ]
 then
     BACKUP_OPTS="-backup"
@@ -122,4 +112,6 @@ then
 else
     help
 fi
+${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off
+
 

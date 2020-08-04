@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.tool.security;
 
+import io.kyligence.kap.tool.MaintainModeTool;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -37,24 +38,26 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
-import io.kyligence.kap.tool.CuratorOperator;
 import io.kyligence.kap.tool.MetadataTool;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
 
+import java.net.UnknownHostException;
+
 public class KapPasswordResetCLI {
     protected static final Logger logger = LoggerFactory.getLogger(KapPasswordResetCLI.class);
 
-    public static void main(String[] args) {
-        try (val curatorOperator = new CuratorOperator()) {
-            if (!curatorOperator.isJobNodeExist()) {
-                reset();
-                System.exit(0);
-            } else {
-                logger.warn("Fail to reset admin password, please stop all job nodes first");
-            }
+    public static void main(String[] args) throws UnknownHostException {
+        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        maintainModeTool.init();
+        try {
+            maintainModeTool.markEpochs();
+            reset();
+            System.exit(0);
         } catch (Exception e) {
             logger.warn("Fail to reset admin password.", e);
+        } finally {
+            maintainModeTool.releaseEpochs();
         }
         System.exit(1);
     }

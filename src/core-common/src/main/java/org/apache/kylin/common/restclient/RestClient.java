@@ -350,51 +350,6 @@ public class RestClient {
         return response;
     }
 
-    public HttpResponse cleanUpMetadata(String project) throws IOException {
-        logger.info("Send request to clean up meta {}", project);
-        String url = baseUrl + "/metastore/cleanup";
-        HttpPost post = newPost(url);
-        HashMap<String, Object> paraMap = new HashMap<String, Object>();
-        paraMap.put("project", project);
-        String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
-        post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
-        HttpResponse response = null;
-        try {
-            response = client.execute(post);
-            if (response.getStatusLine().getStatusCode() != 200) {
-                String msg = EntityUtils.toString(response.getEntity());
-                throw new KylinException(CommonErrorCode.FAILED_NOTIFY_CATCHUP, "Invalid response "
-                        + response.getStatusLine().getStatusCode() + " with clean up metadata " + url + "\n" + msg);
-            }
-        } finally {
-            cleanup(post, response);
-        }
-        return response;
-    }
-
-    public HttpResponse cleanStorage(boolean storageCleanup, String[] projects) throws IOException {
-        logger.info("Send request to clean up storage");
-        String url = baseUrl + "/metastore/cleanup_storage";
-        HttpPost post = newPost(url);
-        HashMap<String, Object> paraMap = new HashMap<String, Object>();
-        paraMap.put("cleanup_storage", storageCleanup);
-        paraMap.put("projects_to_clean", projects);
-        String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
-        post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
-        HttpResponse response = null;
-        try {
-            response = client.execute(post);
-            if (response.getStatusLine().getStatusCode() != 200) {
-                String msg = EntityUtils.toString(response.getEntity());
-                throw new KylinException(CommonErrorCode.FAILED_NOTIFY_CATCHUP, "Invalid response "
-                        + response.getStatusLine().getStatusCode() + " with clean up storage " + url + "\n" + msg);
-            }
-        } finally {
-            cleanup(post, response);
-        }
-        return response;
-    }
-
     private HashMap dealResponse(HttpResponse response) throws IOException {
         if (response.getStatusLine().getStatusCode() != 200) {
             throw new IOException("Invalid response " + response.getStatusLine().getStatusCode());
