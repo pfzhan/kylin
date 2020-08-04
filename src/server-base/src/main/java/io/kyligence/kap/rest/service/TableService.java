@@ -893,6 +893,7 @@ public class TableService extends BasicService {
         val tableDesc = tableMetadataManager.getTableDesc(tableIdentity);
         val models = dataflowManager.getModelsUsingTable(tableDesc);
         response.setHasModel(!models.isEmpty());
+        response.setModels(models.stream().map(NDataModel::getAlias).collect(Collectors.toList()));
 
         val rootTableModels = dataflowManager.getModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(rootTableModels)) {
@@ -1211,9 +1212,8 @@ public class TableService extends BasicService {
                         MsgPicker.getMsg().getRELOAD_TABLE_CC_RETRY(), root.getMessage(), tableName, columnNames));
             } else if (root instanceof KylinException
                     && ((KylinException) root).getErrorCode() == QueryErrorCode.SCD2_COMMON_ERROR.toErrorCode()) {
-                throw new KylinException(RELOAD_TABLE_FAILED,
-                        String.format(MsgPicker.getMsg().getRELOAD_TABLE_MODEL_RETRY(), tableName,
-                                columnNames, model.getAlias()));
+                throw new KylinException(RELOAD_TABLE_FAILED, String.format(
+                        MsgPicker.getMsg().getRELOAD_TABLE_MODEL_RETRY(), tableName, columnNames, model.getAlias()));
             }
             throw e;
         }

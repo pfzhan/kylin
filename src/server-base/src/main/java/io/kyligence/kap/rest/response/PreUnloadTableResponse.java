@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class PreUnloadTableResponse {
 
@@ -37,5 +39,8 @@ public class PreUnloadTableResponse {
 
     @JsonProperty("storage_size")
     private long storageSize = -1;
+
+    @JsonProperty("models")
+    private List<String> models;
 
 }

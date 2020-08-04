@@ -532,7 +532,7 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/prepare_reload")
+    @GetMapping(value = "/prepare_reload", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) throws Exception {
