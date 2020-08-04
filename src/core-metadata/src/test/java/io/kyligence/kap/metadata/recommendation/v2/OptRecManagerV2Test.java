@@ -67,6 +67,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
     private static final String INDEX_PATH_PATTERN = BASE_PATH + "/index_plan/%s.json";
     private static final String REC_DIRECTORY = BASE_PATH + "/rec_items/";
     private static final String REC_PATH_PATTERN = BASE_PATH + "/rec_items/%s.json";
+    private static final String H2_METADATA_URL_PATTERN = "%s@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=";
 
     private NDataModelManager modelManager;
     private NIndexPlanManager indexPlanManager;

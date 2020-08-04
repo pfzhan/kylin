@@ -76,6 +76,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -117,6 +118,14 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         indexPlanService.setSemanticUpater(semanticService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+        OptRecManagerV2 optRecManagerV2;
+        try {
+            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
+                    getInstanceByProjectFromSingleton(), getProject());
+            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
+        } catch (Exception e) {
+            log.error("Cannot mock a OptRecManagerV2 instance", e);
+        }
     }
 
     private AtomicBoolean prepare(String modelId) throws Exception {
@@ -144,7 +153,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "default"));
         val origin = indexPlanManager.getIndexPlan(modelId);
         NAggregationGroup aggregationGroup = new NAggregationGroup();
         aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
