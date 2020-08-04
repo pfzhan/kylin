@@ -27,7 +27,9 @@ package io.kyligence.kap.common.util;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -35,6 +37,7 @@ import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractKylinTestCase;
 import org.junit.After;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Maps;
 
@@ -42,9 +45,9 @@ import lombok.val;
 
 public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
-    public static final String H2_METADATA_URL_PATTERN = "%s@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=";
     private static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
     protected static File tempMetadataDirectory = null;
+    Map<Object, Object> originManager = Maps.newHashMap();
 
     public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProjectFromSingleton()
             throws Exception {
@@ -86,6 +89,37 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         Field filed = Singletons.class.getDeclaredField("instances");
         filed.setAccessible(true);
         return (ConcurrentHashMap<Class, Object>) filed.get(singletonField.get(getTestConfig()));
+    }
+
+    public <T> T spyManagerByProject(T t, Class<T> tClass,
+            ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache, String project) {
+        T manager = Mockito.spy(t);
+        originManager.put(manager, t);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = cache;
+        if (managersByPrjCache.get(tClass) == null) {
+            managersByPrjCache.put(tClass, new ConcurrentHashMap<>());
+        }
+        managersByPrjCache.get(tClass).put(project, manager);
+        return manager;
+    }
+
+    public <T> T spyManagerByProject(T t, Class<T> tClass, String project) throws Exception {
+        return spyManagerByProject(t, tClass, getInstanceByProject(), project);
+    }
+
+    public <T> T spyManager(T t, Class<T> tClass) throws Exception {
+        T manager = Mockito.spy(t);
+        originManager.put(manager, t);
+        ConcurrentHashMap<Class, Object> managersCache = getInstances();
+        managersCache.put(tClass, manager);
+        return manager;
+    }
+
+    public <T, M> T spy(M m, Function<M, T> functionM, Function<T, T> functionT) {
+        return functionM.apply(Mockito.doAnswer(answer -> {
+            T t = functionM.apply((M) originManager.get(m));
+            return functionT.apply(t);
+        }).when(m));
     }
 
     @Override

@@ -191,6 +191,7 @@ import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -219,7 +220,9 @@ import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ModelServiceTest extends CSVSourceTestCase {
 
     private final String MODEL_UT_INNER_JOIN_ID = "82fa7671-a935-45f5-8779-85703601f49a";
@@ -291,6 +294,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val copy = prjManager.copyForWrite(prj);
         copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
+
+        OptRecManagerV2 optRecManagerV2;
+        try {
+            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
+                    getInstanceByProjectFromSingleton(), getProject());
+            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
+        } catch (Exception e) {
+            log.error("Cannot mock a OptRecManagerV2 instance", e);
+        }
 
         EventBusFactory.getInstance().register(modelBrokenListener);
     }
@@ -1654,7 +1666,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table2.json"),
                 ModelRequest.class);
         addModelInfo(modelRequest);
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "default"));
         modelService.createModel(modelRequest.getProject(), modelRequest);
         modelRequest = JsonUtil.readValue(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
@@ -1822,7 +1833,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testChangePartitionDesc() throws Exception {
 
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "default"));
         var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject("default");
@@ -3105,7 +3115,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
             String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
             String project = getProject();
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "default"));
             modelManager.updateDataModel(modelId, copyForWrite -> {
                 copyForWrite.setManagementType(ManagementType.MODEL_BASED);
                 copyForWrite.setPartitionDesc(null);
@@ -4332,7 +4341,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "default"));
         modelMgr.updateDataModel(modelId, model -> {
             model.setManagementType(ManagementType.MODEL_BASED);
         });

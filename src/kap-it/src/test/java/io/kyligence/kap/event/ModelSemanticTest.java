@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -82,7 +83,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
-    public static final String DEFAULT_PROJECT = "default";
     public static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     protected static SparkConf sparkConf;
@@ -120,10 +120,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         System.setProperty("kylin.job.event.poll-interval-second", "1");
         System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         NDefaultScheduler.destroyInstance();
-        val scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        val scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()));
 
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         var df = dfManager.getDataflow(MODEL_ID);
 
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
@@ -133,10 +133,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         dataLoadingRange.setColumnName(df.getModel().getPartitionDesc().getPartitionDateColumn());
         dataLoadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("2012-05-01")));
-        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
+        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .createDataLoadingRange(dataLoadingRange);
 
-        val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val table = tableMgr.getTableDesc(tableName);
         table.setIncrementLoading(true);
         tableMgr.updateTableDesc(table);
@@ -151,30 +151,42 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-03-01"),
                 SegmentRange.dateToLong("2012-05-01")));
 
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         modelManager.updateDataModel(MODEL_ID, copyForWrite -> {
             copyForWrite.setAllMeasures(
                     copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 1011).collect(Collectors.toList()));
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+
+        OptRecManagerV2 optRecManagerV2;
+        try {
+            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
+                    getInstanceByProjectFromSingleton(), getProject());
+            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
+        } catch (Exception e) {
+            logger.error("Cannot mock a OptRecManagerV2 instance", e);
+        }
     }
 
     @After
     public void tearDown() throws IOException {
-        NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
+        NDefaultScheduler.getInstance(getProject()).shutdown();
         System.clearProperty("kylin.job.event.poll-interval-second");
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("kylin.engine.spark.build-class-name");
         super.tearDown();
     }
 
+    public String getProject() {
+        return "default";
+    }
+
     @Test
     public void testSemanticChangedHappy() throws Exception {
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         changeModelRequest();
 
-        val executables = getRunningExecutables(DEFAULT_PROJECT, null);
+        val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(1, executables.size());
         waitForJobFinished(0);
 
@@ -189,7 +201,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     public void testChange_WithReadySegment() throws Exception {
         changeModelRequest();
         waitForJobFinished(0);
-        NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT).updateIndexPlan(MODEL_ID,
+        NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).updateIndexPlan(MODEL_ID,
                 copyForWrite -> {
                     copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(x -> x.getId() != 1000000)
                             .collect(Collectors.toList()));
@@ -201,7 +213,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         val result = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
-                        .param("project", DEFAULT_PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                        .param("project", getProject()).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.status").value("AVAILABLE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.storage_size").value(246))
                 .andReturn();
@@ -224,7 +236,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 "          ]\n" + //
                 "        }\n" + //
                 "}", NAggregationGroup.class);
-        val request = UpdateRuleBasedCuboidRequest.builder().project(DEFAULT_PROJECT).modelId(MODEL_ID)
+        val request = UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(MODEL_ID)
                 .aggregationGroups(Lists.newArrayList(group1)).build();
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -237,10 +249,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     }
 
     private void changeModelRequest() throws Exception {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelManager.getDataModelDesc(MODEL_ID);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject(DEFAULT_PROJECT);
+        request.setProject(getProject());
         request.setUuid(MODEL_ID);
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
@@ -277,10 +289,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     }
 
     private ModelRequest getModelRequest() throws Exception {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelManager.getDataModelDesc(MODEL_ID);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject(DEFAULT_PROJECT);
+        request.setProject(getProject());
         request.setUuid(MODEL_ID);
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).peek(sm -> {
@@ -313,7 +325,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     }
 
     private long waitForJobFinished(int expectedSize) throws InterruptedException {
-        NExecutableManager manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NExecutableManager manager = NExecutableManager.getInstance(getTestConfig(), getProject());
         List<Executable> jobs;
         val startTime = System.currentTimeMillis();
         while (true) {

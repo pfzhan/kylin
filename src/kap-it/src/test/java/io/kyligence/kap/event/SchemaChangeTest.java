@@ -30,13 +30,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,7 +69,6 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
@@ -92,7 +88,9 @@ import io.kyligence.kap.rest.service.TableService;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
 
     private static final String PROJECT = "default";
@@ -154,12 +152,11 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
 
         OptRecManagerV2 optRecManagerV2;
         try {
-            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance("default"), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton());
+            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
+                    getInstanceByProjectFromSingleton(), getProject());
             Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
         } catch (Exception e) {
-            e.printStackTrace();
-            // ignore
+            log.error("Cannot mock a OptRecManagerV2 instance", e);
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -355,39 +352,6 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         System.clearProperty("kylin.query.pushdown.jdbc.username");
         System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
-
-    <T> T spyManagerByProject(T t, Class<T> tClass, ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache)
-            throws Exception {
-        T manager = Mockito.spy(t);
-        originManager.put(manager, t);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = cache;
-        if (managersByPrjCache.get(tClass) == null) {
-            managersByPrjCache.put(tClass, new ConcurrentHashMap<>());
-        }
-        managersByPrjCache.get(tClass).put(getProject(), manager);
-        return manager;
-    }
-
-    <T> T spyManagerByProject(T t, Class<T> tClass) throws Exception {
-        return spyManagerByProject(t, tClass, getInstanceByProject());
-    }
-
-    <T> T spyManager(T t, Class<T> tClass) throws Exception {
-        T manager = Mockito.spy(t);
-        originManager.put(manager, t);
-        ConcurrentHashMap<Class, Object> managersCache = getInstances();
-        managersCache.put(tClass, manager);
-        return manager;
-    }
-
-    <T, M> T spy(M m, Function<M, T> functionM, Function<T, T> functionT) {
-        return functionM.apply(Mockito.doAnswer(answer -> {
-            T t = functionM.apply((M) originManager.get(m));
-            return functionT.apply(t);
-        }).when(m));
-    }
-
-    Map<Object, Object> originManager = Maps.newHashMap();
 
     protected String getProject() {
         return "default";

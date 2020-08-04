@@ -82,6 +82,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -126,11 +127,11 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         indexPlanService.setSemanticUpater(semanticService);
         modelService.setIndexPlanService(indexPlanService);
         val projectManager = NProjectManager.getInstance(getTestConfig());
-        val projectInstance = projectManager.copyForWrite(projectManager.getProject("default"));
+        val projectInstance = projectManager.copyForWrite(projectManager.getProject(getProject()));
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectInstance);
 
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         modelMgr.updateDataModel(MODEL_ID, model -> {
             model.setManagementType(ManagementType.MODEL_BASED);
         });
@@ -138,7 +139,20 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             model.setManagementType(ManagementType.MODEL_BASED);
         });
 
+        OptRecManagerV2 optRecManagerV2;
+        try {
+            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
+                    getInstanceByProjectFromSingleton(), getProject());
+            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
+        } catch (Exception e) {
+            log.error("Cannot mock a OptRecManagerV2 instance", e);
+        }
+
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+    }
+
+    private String getProject() {
+        return "default";
     }
 
     @Before
@@ -179,7 +193,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testModelUpdateComputedColumn() throws Exception {
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
 
         // Add new computed column
         final int colIdOfCC;
@@ -305,16 +319,16 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         request.setSimplifiedMeasures(request.getSimplifiedMeasures().stream()
                 .filter(m -> m.getId() != 100002 && m.getId() != 100003).collect(Collectors.toList()));
         // add new measure and remove 1002 and 1003
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default")
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), getProject())
                 .getIndexPlan(getTestModel().getUuid());
         UnitOfWork.doInTransactionWithRetry(() -> {
-            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+            NIndexPlanManager.getInstance(getTestConfig(), getProject()).updateIndexPlan(indexPlan.getUuid(),
                     copyForWrite -> {
                         copyForWrite.setIndexes(new ArrayList<>());
                     });
             return 0;
-        }, "default");
-        modelService.updateDataModelSemantic("default", request);
+        }, getProject());
+        modelService.updateDataModelSemantic(getProject(), request);
 
         val model = getTestModel();
         Assert.assertEquals("GMV_AVG", model.getEffectiveMeasures().get(100018).getName());
@@ -337,7 +351,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         newMeasure1.setParameterValue(Lists.newArrayList(param));
         request.getSimplifiedMeasures().add(newMeasure1);
         newMeasure1.setReturnType("decimal");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
     }
 
     @Test
@@ -348,17 +362,17 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 simplifiedMeasure.setReturnType("hllc(12)");
             }
         }
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default")
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), getProject())
                 .getIndexPlan(getTestModel().getUuid());
         UnitOfWork.doInTransactionWithRetry(() -> {
-            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+            NIndexPlanManager.getInstance(getTestConfig(), getProject()).updateIndexPlan(indexPlan.getUuid(),
                     copyForWrite -> {
                         copyForWrite.setIndexes(new ArrayList<>());
                     });
             return 0;
-        }, "default");
-        modelService.updateDataModelSemantic("default", request);
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        }, getProject());
+        modelService.updateDataModelSemantic(getProject(), request);
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNull(model.getEffectiveMeasures().get(100010));
         Assert.assertEquals(1, model.getAllMeasures().stream()
@@ -370,7 +384,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val request = newSemanticRequest();
         request.getSimplifiedMeasures().get(0).setName("NEW_MEASURE");
         val originId = request.getSimplifiedMeasures().get(0).getId();
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
 
         val model = getTestModel();
         Assert.assertEquals("NEW_MEASURE", model.getEffectiveMeasures().get(originId).getName());
@@ -384,7 +398,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val colCount = request.getAllNamedColumns().stream().filter(n -> n.getAliasDotColumn().startsWith("TEST_ORDER"))
                 .count();
         request = changeAlias(request, OLD_ALIAS, NEW_ALIAS);
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
 
         val model = getTestModel();
         val tombCount = model.getAllNamedColumns().stream().filter(n -> n.getAliasDotColumn().startsWith("TEST_ORDER"))
@@ -396,13 +410,13 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER")).filter(nc -> !nc.isExist()).count();
         Assert.assertEquals(1, otherTombCount);
         Assert.assertEquals(202, model.getAllNamedColumns().size());
-        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, executables.size());
     }
 
     @Test
     public void testRenameTableAliasUsedAsMeasure() throws Exception {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         modelManager.listAllModels().forEach(modelManager::dropModel);
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure.json"), ModelRequest.class);
@@ -412,9 +426,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure_change_alias.json"),
                 ModelRequest.class);
         updateRequest.setUuid(newModel.getUuid());
-        modelService.updateDataModelSemantic("default", updateRequest);
+        modelService.updateDataModelSemantic(getProject(), updateRequest);
 
-        var model = modelService.getDataModelManager("default").getDataModelDesc(updateRequest.getUuid());
+        var model = modelService.getDataModelManager(getProject()).getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
@@ -425,8 +439,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure_change_alias_twice.json"),
                 ModelRequest.class);
         updateRequest2.setUuid(newModel.getUuid());
-        modelService.updateDataModelSemantic("default", updateRequest2);
-        model = modelService.getDataModelManager("default").getDataModelDesc(updateRequest.getUuid());
+        modelService.updateDataModelSemantic(getProject(), updateRequest2);
+        model = modelService.getDataModelManager(getProject()).getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
@@ -457,16 +471,16 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val prevId = getTestModel().getAllNamedColumns().stream()
                 .filter(n -> n.getAliasDotColumn().equals(newCol.getAliasDotColumn())).findFirst().map(n -> n.getId())
                 .orElse(0);
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default")
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), getProject())
                 .getIndexPlan(getTestModel().getUuid());
         UnitOfWork.doInTransactionWithRetry(() -> {
-            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+            NIndexPlanManager.getInstance(getTestConfig(), getProject()).updateIndexPlan(indexPlan.getUuid(),
                     copyForWrite -> {
                         copyForWrite.setIndexes(new ArrayList<>());
                     });
             return 0;
-        }, "default");
-        modelService.updateDataModelSemantic("default", request);
+        }, getProject());
+        modelService.updateDataModelSemantic(getProject(), request);
 
         val model = getTestModel();
         Assert.assertEquals(newCol.getName(), model.getNameByColumnId(prevId));
@@ -477,7 +491,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         newCol.setName("PRICE3");
         request.getComputedColumnDescs().add(ccDesc);
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         val model2 = getTestModel();
         Assert.assertEquals(newCol.getName(), model2.getNameByColumnId(prevId));
         Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_YEAR"));
@@ -509,7 +523,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage(
                 "table index 20000020000 contains invalid column 25. table index can only contain columns added to model.");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
     }
 
     @Test
@@ -524,7 +538,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         request.getSimplifiedDimensions().remove(dimDesc);
         thrown.expect(KylinException.class);
         thrown.expectMessage("agg group still contains dimension(s) TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
     }
 
     @Test
@@ -534,14 +548,13 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         request.getSimplifiedMeasures().remove(1);
         thrown.expect(KylinException.class);
         thrown.expectMessage("agg group still contains measure(s) GMV_SUM");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
     }
 
     @Test
     public void testModifyCCExistInTableIndex() throws Exception {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         var request = newSemanticRequest(modelId);
         val originPlan = indexPlanManager.getIndexPlan(modelId);
         val nest5 = request.getColumnIdByColumnName("TEST_KYLIN_FACT.NEST5");
@@ -555,7 +568,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
                 .findFirst().orElse(null);
         originCC.setExpression(originCC.getExpression() + "+1");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         // new indexes
         val newPlan = indexPlanManager.getIndexPlan(modelId);
         val newIndexId = newPlan.getAllLayouts().stream().filter(l -> l.getColOrder().containsAll(indexCol)).findFirst()
@@ -566,8 +579,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Test
     public void testModifyCCExistInAggIndex() throws Exception {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         // create measure
         var request = newSemanticRequest(modelId);
         val newMeasure1 = new SimplifiedMeasure();
@@ -579,7 +591,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         newMeasure1.setParameterValue(Lists.newArrayList(param));
         request.getSimplifiedMeasures().add(newMeasure1);
         newMeasure1.setReturnType("decimal(38, 0)");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         // get dim and measure id
         request = newSemanticRequest(modelId);
         val transId = request.getColumnIdByColumnName("TEST_KYLIN_FACT.TRANS_ID");
@@ -594,8 +606,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         selectRule.hierarchyDims = new Integer[0][0];
         selectRule.jointDims = new Integer[0][0];
         newAggregationGroup.setSelectRule(selectRule);
-        indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+        indexPlanService.updateRuleBasedCuboid(getProject(),
+                UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(modelId)
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
         // old indexes
         val indexCol = Arrays.asList(transId, nest5SumId);
@@ -605,7 +617,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
                 .findFirst().orElse(null);
         originCC.setExpression(originCC.getExpression() + "+1");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         // new indexes
         val newIndexId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
                 .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-2L);
@@ -615,7 +627,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Test
     public void testModifyCCChangeType() throws Exception {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         // create measure
         var request = newSemanticRequest(modelId);
         val newMeasure1 = new SimplifiedMeasure();
@@ -629,7 +641,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         // return type for SUM(decimal) is "decimal(38, 0)"
         // this will trigger measure return type change
         newMeasure1.setReturnType("any");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         // get dim and measure id
         request = newSemanticRequest(modelId);
         val transId = request.getColumnIdByColumnName("TEST_KYLIN_FACT.TRANS_ID");
@@ -644,8 +656,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         selectRule.hierarchyDims = new Integer[0][0];
         selectRule.jointDims = new Integer[0][0];
         newAggregationGroup.setSelectRule(selectRule);
-        indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+        indexPlanService.updateRuleBasedCuboid(getProject(),
+                UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(modelId)
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
         // old indexes
         val indexCol = Arrays.asList(transId, nest5SumId);
@@ -655,7 +667,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
                 .findFirst().orElse(null);
         originCC.setExpression(originCC.getExpression() + "+1");
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         // measure NEST5_SUM is reloaded due to return type change
         val newNest5SumId = nest5SumId + 1;
         val newIndexCol = Arrays.asList(transId, newNest5SumId);
@@ -676,7 +688,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         newCC.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
         newCC.setTableAlias("TEST_KYLIN_FACT");
         request.getComputedColumnDescs().add(newCC);
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
         // expect a KylinException when modify cc used by a nested cc
         request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.getComputedColumnDescs().get(10)
@@ -704,7 +716,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains dimension(s) TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", cubeBasic -> {
             val rule = new NRuleBasedIndex();
             rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 26));
@@ -714,14 +726,13 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val request = newSemanticRequest();
         request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
                 .filter(c -> c.getId() != 26 && c.isExist()).collect(Collectors.toList()));
-        modelService.updateDataModelSemantic("default", request);
+        modelService.updateDataModelSemantic(getProject(), request);
     }
 
     @Test
     public void testChangeJoinType() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> {
             val joins = model.getJoinTables();
@@ -729,8 +740,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         });
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
-        val executables = getRunningExecutables("default", null);
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, null, null);
+        val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(1, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
@@ -740,9 +751,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testChangePartitionDesc() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
@@ -752,7 +762,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             val partitionDesc = model.getPartitionDesc();
             partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
         });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), originModel.getUuid(), originModel, null, null);
 
         val df = dfMgr.getDataflow(MODEL_ID);
 
@@ -763,9 +773,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testChangeParititionDesc_OneToNull() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
         val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
@@ -773,9 +782,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         modelMgr.updateDataModel(MODEL_ID, model -> {
             model.setPartitionDesc(null);
         });
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), originModel.getUuid(), originModel, null, null);
 
-        val executables = getRunningExecutables("default", MODEL_ID);
+        val executables = getRunningExecutables(getProject(), MODEL_ID);
         Assert.assertEquals(1, executables.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
@@ -786,9 +795,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testChangePartitionDesc_NullToOne() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         modelMgr.updateDataModel(MODEL_ID, model -> model.setPartitionDesc(null));
 
         val originModel = modelMgr.getDataModelDesc(MODEL_ID);
@@ -800,9 +808,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             model.setPartitionDesc(partition);
         });
 
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, "1325347200000", "1388505600000");
 
-        val executables = getRunningExecutables("default", null);
+        val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(1, executables.size());
 
         val df = dfMgr.getDataflow(MODEL_ID);
@@ -816,9 +824,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testChangePartitionDesc_NullToOneWithNoDateRange() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         modelMgr.updateDataModel(MODEL_ID, model -> model.setPartitionDesc(null));
 
         val originModel = modelMgr.getDataModelDesc(MODEL_ID);
@@ -830,9 +837,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             model.setPartitionDesc(partition);
         });
 
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), originModel.getUuid(), originModel, null, null);
 
-        val executables = getRunningExecutables("default", null);
+        val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(0, executables.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
@@ -841,9 +848,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testChangePartitionDesc_ChangePartitionColumn() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
 
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -856,9 +862,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         var df = dfMgr.getDataflow(MODEL_ID);
         Assert.assertEquals(1, df.getSegments().size());
 
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, null, null);
 
-        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, executables.size());
         df = dfMgr.getDataflow(MODEL_ID);
 
@@ -867,9 +873,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testChangePartitionDesc_ChangePartitionColumn_WithDateRange() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
 
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -882,9 +887,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         var df = dfMgr.getDataflow(MODEL_ID);
         Assert.assertEquals(1, df.getSegments().size());
 
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, "1325347200000", "1388505600000");
 
-        val executables = getRunningExecutables("default", null);
+        val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(1, executables.size());
         df = dfMgr.getDataflow(MODEL_ID);
 
@@ -897,7 +902,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testOnlyAddDimensions() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID,
                 model -> model.setAllNamedColumns(model.getAllNamedColumns().stream().peek(c -> {
@@ -906,24 +911,24 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                     }
                     c.setStatus(NDataModel.ColumnStatus.DIMENSION);
                 }).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
-        val executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, null, null);
+        val executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, executables.size());
     }
 
     @Test
     public void testOnlyChangeMeasures() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
             if (m.getId() == 100011) {
                 m.setId(100018);
             }
         }).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, null, null);
 
-        var executables = getRunningExecutables("default", null);
+        var executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(0, executables.size());
 
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
@@ -941,9 +946,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             rule.setAggregationGroups(Lists.newArrayList(aggGroup));
             copyForWrite.setRuleBasedIndex(rule);
         });
-        semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), MODEL_ID, originModel, null, null);
 
-        executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, executables.size());
 
         val cube = indePlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -955,8 +960,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testOnlyChangeMeasuresWithRule() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestInnerModel();
         modelMgr.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
@@ -965,7 +970,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                     }
                 }).collect(Collectors.toList())));
 
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), originModel.getUuid(), originModel, null, null);
 
         val cube = indePlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         for (LayoutEntity layout : cube.getWhitelistLayouts()) {
@@ -978,9 +983,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testAllChanged() throws Exception {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val originModel = getTestInnerModel();
         modelMgr.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
@@ -1002,9 +1006,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                         c.setStatus(NDataModel.ColumnStatus.EXIST);
                     }
                 }).collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), originModel.getUuid(), originModel, null, null);
 
-        val executables = getRunningExecutables("default", null);
+        val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(1, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
@@ -1017,8 +1021,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testOnlyRuleChanged() throws Exception {
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
         val df = dfMgr.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val originSegLayoutSize = df.getSegments().get(0).getLayoutsMap().size();
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -1038,42 +1042,46 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             newRule.setMeasures(Arrays.asList(100001, 100002));
             copyForWrite.setRuleBasedIndex(newRule);
         });
-        semanticService.handleIndexPlanUpdateRule("default", df.getModel().getUuid(), cube.getRuleBasedIndex(),
+        semanticService.handleIndexPlanUpdateRule(getProject(), df.getModel().getUuid(), cube.getRuleBasedIndex(),
                 newCube.getRuleBasedIndex(), false);
 
-        val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val executables = getRunningExecutables(getProject(), "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
 
-        val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(df.getUuid());
+        val df2 = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(df.getUuid());
         Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getLayoutsMap().size());
     }
 
     @Test
     public void testOnlyRemoveColumns_removeToBeDeletedIndex() throws Exception {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
 
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val originModel = getTestInnerModel();
 
-        NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
-                    .filter(layoutEntity -> 20000020001L == layoutEntity.getId()).collect(Collectors.toSet());
-            copyForWrite.markIndexesToBeDeleted(copyForWrite.getUuid(), toBeDeletedSet);
-            copyForWrite.removeLayouts(Sets.newHashSet(20000020001L), true, true);
-        });
+        NIndexPlanManager.getInstance(getTestConfig(), getProject()).updateIndexPlan(indexPlan.getUuid(),
+                copyForWrite -> {
+                    val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts)
+                            .flatMap(List::stream).filter(layoutEntity -> 20000020001L == layoutEntity.getId())
+                            .collect(Collectors.toSet());
+                    copyForWrite.markIndexesToBeDeleted(copyForWrite.getUuid(), toBeDeletedSet);
+                    copyForWrite.removeLayouts(Sets.newHashSet(20000020001L), true, true);
+                });
 
         modelManager.updateDataModel(originModel.getUuid(), model -> model.setAllNamedColumns(
                 model.getAllNamedColumns().stream().filter(m -> m.getId() != 25).collect(Collectors.toList())));
 
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         NDataflow dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(dataflow.getUuid(), copyForWrite -> {
-            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
-                    .filter(layoutEntity -> 1000001L == layoutEntity.getId()).collect(Collectors.toSet());
-            copyForWrite.markIndexesToBeDeleted(dataflow.getUuid(), toBeDeletedSet);
-        });
+        NIndexPlanManager.getInstance(getTestConfig(), getProject()).updateIndexPlan(dataflow.getUuid(),
+                copyForWrite -> {
+                    val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts)
+                            .flatMap(List::stream).filter(layoutEntity -> 1000001L == layoutEntity.getId())
+                            .collect(Collectors.toSet());
+                    copyForWrite.markIndexesToBeDeleted(dataflow.getUuid(), toBeDeletedSet);
+                });
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getToBeDeletedIndexes()));
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), k -> {
@@ -1087,15 +1095,15 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             }
             k.getRuleBasedIndex().setAggregationGroups(aggs);
         });
-        semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), indexPlan.getUuid(), originModel, null, null);
         Assert.assertTrue(CollectionUtils.isEmpty(
                 indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getToBeDeletedIndexes()));
     }
 
     @Test
     public void testOnlyRemoveMeasures() throws Exception {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
 
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val originModel = getTestInnerModel();
@@ -1115,9 +1123,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 model -> model.setAllMeasures(model.getAllMeasures().stream()
                         .filter(m -> m.getId() != 100002 && m.getId() != 100001 && m.getId() != 100011)
                         .collect(Collectors.toList())));
-        semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
+        semanticService.handleSemanticUpdate(getProject(), indexPlan.getUuid(), originModel, null, null);
 
-        val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val executables = getRunningExecutables(getProject(), "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
 
         val newCube = indexPlanManager.getIndexPlan(indexPlan.getUuid());
@@ -1127,9 +1135,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testSetBlackListLayout() throws Exception {
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         val dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
 
         val dfUpdate = new NDataflowUpdate(dataflow.getUuid());
@@ -1172,13 +1180,13 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     private NDataModel getTestInnerModel() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelMgr.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         return model;
     }
 
     private NDataModel getTestBasicModel() {
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         return model;
     }
@@ -1214,10 +1222,10 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     private ModelRequest newSemanticRequest(String modelId) throws Exception {
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val model = modelMgr.getDataModelDesc(modelId);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject("default");
+        request.setProject(getProject());
         request.setUuid(modelId);
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
@@ -1230,7 +1238,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     private NDataModel getTestModel() {
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         return model;
     }
@@ -1251,8 +1259,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testUpdateDataModelParatitionDesc() {
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        getTestConfig().setMetadataUrl(String.format(H2_METADATA_URL_PATTERN, "rec_opt"));
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         var model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNotNull(model.getPartitionDesc());
         ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();
@@ -1261,21 +1268,21 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         modelParatitionDescRequest.setPartitionDesc(null);
         PartitionDesc partitionDesc = model.getPartitionDesc();
 
-        var executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        var executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(0, executables.size());
 
-        modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
+        modelService.updateDataModelParatitionDesc(getProject(), model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNull(model.getPartitionDesc());
-        executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, executables.size());
         modelParatitionDescRequest.setPartitionDesc(partitionDesc);
 
         deleteJobByForce(executables.get(0));
-        modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
+        modelService.updateDataModelParatitionDesc(getProject(), model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(partitionDesc, model.getPartitionDesc());
-        executables = getRunningExecutables("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        executables = getRunningExecutables(getProject(), "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, executables.size());
     }
 

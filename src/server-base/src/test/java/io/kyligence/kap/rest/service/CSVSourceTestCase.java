@@ -27,9 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -40,9 +37,6 @@ import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
 import org.junit.Before;
-import org.mockito.Mockito;
-
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -55,8 +49,6 @@ import lombok.val;
 
 public class CSVSourceTestCase extends ServiceTestBase {
 
-    Map<Object, Object> originManager;
-
     protected String getProject() {
         return "default";
     }
@@ -64,7 +56,6 @@ public class CSVSourceTestCase extends ServiceTestBase {
     @Before
     public void setup() {
         super.setup();
-        originManager = Maps.newHashMap();
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(getProject());
         val overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -120,21 +111,22 @@ public class CSVSourceTestCase extends ServiceTestBase {
 
     public OptimizeRecommendationManager spyOptimizeRecommendationManager() throws Exception {
         return spyManagerByProject(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()),
-                OptimizeRecommendationManager.class);
+                OptimizeRecommendationManager.class, getProject());
     }
 
     public NDataModelManager spyNDataModelManager() throws Exception {
         return spyManagerByProject(NDataModelManager.getInstance(getTestConfig(), getProject()),
-                NDataModelManager.class);
+                NDataModelManager.class, getProject());
     }
 
     public NIndexPlanManager spyNIndexPlanManager() throws Exception {
         return spyManagerByProject(NIndexPlanManager.getInstance(getTestConfig(), getProject()),
-                NIndexPlanManager.class);
+                NIndexPlanManager.class, getProject());
     }
 
     public NDataflowManager spyNDataflowManager() throws Exception {
-        return spyManagerByProject(NDataflowManager.getInstance(getTestConfig(), getProject()), NDataflowManager.class);
+        return spyManagerByProject(NDataflowManager.getInstance(getTestConfig(), getProject()), NDataflowManager.class,
+                getProject());
     }
 
     protected List<AbstractExecutable> getRunningExecutables(String project, String model) {
@@ -146,37 +138,6 @@ public class CSVSourceTestCase extends ServiceTestBase {
         val exManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
         exManager.deleteJob(executable.getId());
-    }
-
-    <T> T spyManagerByProject(T t, Class<T> tClass, ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache)
-            throws Exception {
-        T manager = Mockito.spy(t);
-        originManager.put(manager, t);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = cache;
-        if (managersByPrjCache.get(tClass) == null) {
-            managersByPrjCache.put(tClass, new ConcurrentHashMap<>());
-        }
-        managersByPrjCache.get(tClass).put(getProject(), manager);
-        return manager;
-    }
-
-    <T> T spyManagerByProject(T t, Class<T> tClass) throws Exception {
-        return spyManagerByProject(t, tClass, getInstanceByProject());
-    }
-
-    <T> T spyManager(T t, Class<T> tClass) throws Exception {
-        T manager = Mockito.spy(t);
-        originManager.put(manager, t);
-        ConcurrentHashMap<Class, Object> managersCache = getInstances();
-        managersCache.put(tClass, manager);
-        return manager;
-    }
-
-    <T, M> T spy(M m, Function<M, T> functionM, Function<T, T> functionT) {
-        return functionM.apply(Mockito.doAnswer(answer -> {
-            T t = functionM.apply((M) originManager.get(m));
-            return functionT.apply(t);
-        }).when(m));
     }
 
 }

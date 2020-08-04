@@ -106,7 +106,9 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class TableReloadServiceTest extends CSVSourceTestCase {
 
     private static final String PROJECT = "default";
@@ -144,11 +146,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         OptRecManagerV2 optRecManagerV2;
         try {
             optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance("default"), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton());
+                    getInstanceByProjectFromSingleton(), getProject());
             Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
             modelService.setUpdateListeners(Lists.newArrayList());
         } catch (Exception e) {
-            // ignore
+            log.error("Cannot mock a OptRecManagerV2 instance", e);
         }
     }
 
