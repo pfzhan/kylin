@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -125,6 +126,9 @@ public class OptRecV2 {
                 .collect(Collectors.toList());
         for (String name : allAutoMeasureNames) {
             String idxStr = name.substring(MEASURE_NAME_PREFIX.length());
+            if (StringUtils.isEmpty(idxStr)) {
+                continue;
+            }
             int idx;
             try {
                 idx = Integer.parseInt(idxStr);

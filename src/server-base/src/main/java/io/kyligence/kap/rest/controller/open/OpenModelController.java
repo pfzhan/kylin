@@ -79,7 +79,6 @@ import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
-import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
 import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.RecommendationStatsResponse;
@@ -149,7 +148,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         String modelId = getModel(modelAlias, project).getId();
-        return modelController.getSegments(modelId, project, status, offset, limit, start, end, null, null, false, sortBy, reverse);
+        return modelController.getSegments(modelId, project, status, offset, limit, start, end, null, null, false,
+                sortBy, reverse);
     }
 
     @PostMapping(value = "/{model_name:.+}/segments")
@@ -208,7 +208,8 @@ public class OpenModelController extends NBasicController {
                     modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat());
             partitionDateFormat = modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat();
         }
-        validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(), partitionDateFormat);
+        validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
+                partitionDateFormat);
         modelService.updateDataModelParatitionDesc(project, modelAlias, modelParatitionDescRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -301,27 +302,6 @@ public class OpenModelController extends NBasicController {
         checkProjectName(request.getProject());
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.applyOptimizeRecommendations(modelId, OpenApplyRecommendationsRequest.convert(request));
-    }
-
-    @PostMapping(value = "/suggest_model")
-    @ResponseBody
-    public EnvelopeResponse<OpenNRecommendationListResponse> suggestModel(
-            @RequestBody OpenSqlAccerelateRequest request) {
-        checkProjectName(request.getProject());
-
-        NRecomendationListResponse nRecomendationListResponse = modelService.suggestModel(request.getProject(),
-                request.getSqls(), !request.getForce2CreateNewModel());
-
-        List<ModelRequest> modelRequests = nRecomendationListResponse.getNewModels().stream().map(model -> {
-            ModelRequest modelRequest = new ModelRequest(model);
-            modelRequest.setIndexPlan(model.getIndices());
-            return modelRequest;
-        }).collect(Collectors.toList());
-        if (CollectionUtils.isNotEmpty(modelRequests)) {
-            modelService.batchCreateModel(request.getProject(), modelRequests, Lists.newArrayList());
-        }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                OpenNRecommendationListResponse.convert(nRecomendationListResponse), "");
     }
 
     private OpenModelSuggestionResponse suggestOROptimizeModels(OpenSqlAccerelateRequest request) {
