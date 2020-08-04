@@ -42,14 +42,14 @@ object TimestampAddImpl {
 
   def evaluateDays(unit: String, increment: Int, time: Int): Int = {
     calendar.clear()
-    addTime("DAY", time, calendar)
+    calendar.add(Calendar.DATE, time)
     addTime(unit, increment, calendar)
     DateTimeUtils.millisToDays(calendar.getTimeInMillis)
   }
 
   def evaluateTimestamp(unit: String, increment: Int, time: Int): Long = {
     calendar.clear()
-    addTime("DAY", time, calendar)
+    calendar.add(Calendar.DATE, time)
     addTime(unit, increment, calendar)
     DateTimeUtils.fromMillis(calendar.getTimeInMillis)
   }
@@ -90,9 +90,9 @@ object TimestampAddImpl {
       case "HOUR" | "SQL_TSI_HOUR" =>
         cal.add(Calendar.HOUR, increment)
       case "DAY" | "SQL_TSI_DAY" =>
-        cal.add(Calendar.DATE, increment)
+        cal.add(Calendar.HOUR, increment * 24)
       case "WEEK" | "SQL_TSI_WEEK" =>
-        cal.add(Calendar.WEEK_OF_YEAR, increment)
+        cal.add(Calendar.HOUR, increment * 24 * 7)
       case "MONTH" | "SQL_TSI_MONTH" =>
         cal.setTimeInMillis(KapDateTimeUtils.addMonths(cal.getTimeInMillis * 1000, increment) / 1000)
       case "QUARTER" | "SQL_TSI_QUARTER" =>
