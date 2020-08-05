@@ -608,26 +608,6 @@ public class OptRecV2 {
         }
     }
 
-    public Map<Integer, Integer> getExistMap() {
-        Map<Integer, Integer> res = Maps.newHashMap();
-        columnRefs.forEach((id, ref) -> {
-            if (id < 0 && ref.isExisted()) {
-                res.put(id, ref.getId());
-            }
-        });
-        dimensionRefs.forEach((id, ref) -> {
-            if (id < 0 && ref.isExisted()) {
-                res.put(id, ref.getId());
-            }
-        });
-        measureRefs.forEach((id, ref) -> {
-            if (id < 0 && ref.isExisted()) {
-                res.put(id, ref.getId());
-            }
-        });
-        return res;
-    }
-
     private List<NDataModel> initOtherModels() {
         NDataModelManager modelManager = NDataModelManager.getInstance(Objects.requireNonNull(config), project);
         return modelManager.listAllModels().stream().filter(m -> !m.isBroken())

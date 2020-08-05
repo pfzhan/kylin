@@ -136,7 +136,10 @@ public class OptRecManagerV2 {
         if (StringUtils.isEmpty(id)) {
             return null;
         }
-        return new OptRecV2(project, id);
+        OptRecV2 optRecV2 = new OptRecV2(project, id);
+        List<Integer> inEffective = optRecV2.filterBrokenRefs();
+        RawRecManager.getInstance(project).removeByIds(inEffective);
+        return optRecV2;
     }
 
     public void discardAll(String modelId) {

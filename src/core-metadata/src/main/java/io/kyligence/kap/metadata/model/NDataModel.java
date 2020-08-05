@@ -42,6 +42,8 @@
 
 package io.kyligence.kap.metadata.model;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -59,8 +61,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -114,8 +114,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.val;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 
 @Data
 @SuppressWarnings("serial")
@@ -884,20 +882,6 @@ public class NDataModel extends RootPersistentEntity {
         joinTables = orderedJoinTables;
     }
 
-    public boolean isStandardPartitionedDateColumn() {
-        if (StringUtils.isBlank(getPartitionDesc().getPartitionDateFormat())) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Add error info and thrown exception out
-     */
-    public void addError(String message) {
-        addError(message, false);
-    }
-
     /**
      * @param message error message
      * @param silent  if throw exception
@@ -1126,11 +1110,6 @@ public class NDataModel extends RootPersistentEntity {
         }
     }
 
-    //TODO: !!! check the returned
-    public @Nullable Integer getColId(TblColRef colRef) {
-        return effectiveCols.inverse().get(colRef);
-    }
-
     public TblColRef getColRef(Integer colId) {
         return effectiveCols.get(colId);
     }
@@ -1276,8 +1255,16 @@ public class NDataModel extends RootPersistentEntity {
         return Collections.unmodifiableSet(ccColumnNames);
     }
 
-    public static boolean isMeasureId(int id) {
-        return id >= MEASURE_ID_BASE;
+    public int getMaxColumnId() {
+        return this.getAllNamedColumns().stream() //
+                .mapToInt(NDataModel.NamedColumn::getId) //
+                .max().orElse(0);
+    }
+
+    public int getMaxMeasureId() {
+        return this.getAllMeasures().stream() //
+                .mapToInt(NDataModel.Measure::getId) //
+                .max().orElse(0);
     }
 
     public void setSeekingCCAdvice(boolean seekingCCAdvice) {
@@ -1332,8 +1319,8 @@ public class NDataModel extends RootPersistentEntity {
 
     public Measure getTombMeasureByMeasureId(int id) {
         Preconditions.checkArgument(Objects.nonNull(allMeasures));
-        return allMeasures.stream().filter(measure -> Objects.equals(measure.getId(), id) && measure.isTomb())
-                .findAny().orElse(null);
+        return allMeasures.stream().filter(measure -> Objects.equals(measure.getId(), id) && measure.isTomb()).findAny()
+                .orElse(null);
     }
 
     public String getNameByColumnId(int id) {

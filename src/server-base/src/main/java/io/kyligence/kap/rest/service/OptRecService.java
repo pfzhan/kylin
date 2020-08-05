@@ -45,6 +45,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -88,131 +89,228 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     @Autowired
     public AclEvaluate aclEvaluate;
 
+    private static final class RecApproveContext {
+        private final Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
+        private final Map<Integer, NDataModel.NamedColumn> dimensions = Maps.newHashMap();
+        private final Map<Integer, NDataModel.Measure> measures = Maps.newHashMap();
+
+        private final OptRecV2 recommendation;
+        private final Map<Integer, String> userDefinedRecNameMap;
+        private final NDataModelManager modelManager;
+        private final NIndexPlanManager indexPlanManager;
+        private final OptRecManagerV2 recManagerV2;
+
+        private RecApproveContext(String project, String modelId, Map<Integer, String> userDefinedRecNameMap) {
+            this.userDefinedRecNameMap = userDefinedRecNameMap;
+            this.recManagerV2 = OptRecManagerV2.getInstance(project);
+            this.recommendation = recManagerV2.getOptimizeRecommendationV2(modelId);
+            this.modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            this.indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        }
+
+        public List<RawRecItem> approveRawRecItems(List<Integer> layoutIds) {
+            List<RawRecItem> rawRecItems = recommendation.getAllRelatedRecItems(layoutIds);
+            rewriteModel(rawRecItems);
+            rewriteIndexPlan(rawRecItems);
+            return rawRecItems;
+        }
+
+        private void rewriteModel(List<RawRecItem> recItems) {
+            logBeginRewrite("Model");
+            modelManager.updateDataModel(recommendation.getUuid(), copyForWrite -> {
+                copyForWrite.getAllNamedColumns().forEach(column -> {
+                    if (column.isExist()) {
+                        columns.putIfAbsent(column.getId(), column);
+                    }
+                    if (column.isDimension()) {
+                        dimensions.putIfAbsent(column.getId(), column);
+                    }
+                });
+
+                copyForWrite.getAllMeasures().forEach(measure -> {
+                    if (!measure.isTomb()) {
+                        measures.putIfAbsent(measure.getId(), measure);
+                    }
+                });
+
+                for (RawRecItem rawRecItem : recItems) {
+                    switch (rawRecItem.getType()) {
+                    case DIMENSION:
+                        writeDimensionToModel(rawRecItem);
+                        break;
+                    case COMPUTED_COLUMN:
+                        writeCCToModel(copyForWrite, rawRecItem);
+                        break;
+                    case MEASURE:
+                        writeMeasureToModel(copyForWrite, rawRecItem);
+                        break;
+                    case LAYOUT:
+                    default:
+                        break;
+                    }
+                }
+            });
+            logFinishRewrite("Model");
+        }
+
+        private void writeMeasureToModel(NDataModel model, RawRecItem rawRecItem) {
+            int lastMeasureId = model.getMaxMeasureId();
+            Map<Integer, RecommendationRef> measureRefs = recommendation.getMeasureRefs();
+            RecommendationRef recommendationRef = measureRefs.get(-rawRecItem.getId());
+            if (recommendationRef.isExisted()) {
+                return;
+            }
+            // copy more better
+            MeasureRef measureRef = (MeasureRef) recommendationRef;
+            NDataModel.Measure measure = measureRef.getMeasure();
+            if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
+                measure.setName(userDefinedRecNameMap.get(rawRecItem.getId()));
+            }
+            recManagerV2.checkMeasureName(model, measure);
+            measure.setId(++lastMeasureId);
+            model.getAllMeasures().add(measure);
+            measures.put(-rawRecItem.getId(), measure);
+            measures.put(lastMeasureId, measure);
+            logWriteProperty(rawRecItem, measure);
+        }
+
+        private void writeDimensionToModel(RawRecItem rawRecItem) {
+            Map<Integer, RecommendationRef> dimensionRefs = recommendation.getDimensionRefs();
+            RecommendationRef dimensionRef = dimensionRefs.get(-rawRecItem.getId());
+            if (dimensionRef.isExisted()) {
+                return;
+            }
+            DimensionRef dimRef = (DimensionRef) dimensionRef;
+            Preconditions.checkArgument(dimRef.getEntity() instanceof ModelColumnRef);
+            ModelColumnRef columnRef = (ModelColumnRef) dimensionRef.getEntity();
+            NDataModel.NamedColumn column = columnRef.getColumn();
+            if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
+                column.setName(userDefinedRecNameMap.get(rawRecItem.getId()));
+            }
+            column.setStatus(NDataModel.ColumnStatus.DIMENSION);
+            recManagerV2.checkDimensionName(columns);
+            dimensions.putIfAbsent(-rawRecItem.getId(), column);
+            columns.get(column.getId()).setStatus(NDataModel.ColumnStatus.DIMENSION);
+            logWriteProperty(rawRecItem, column);
+        }
+
+        private void writeCCToModel(NDataModel model, RawRecItem rawRecItem) {
+            int lastColumnId = model.getMaxColumnId();
+            Map<Integer, RecommendationRef> ccRefs = recommendation.getCcRefs();
+            RecommendationRef recommendationRef = ccRefs.get(-rawRecItem.getId());
+            if (recommendationRef.isExisted()) {
+                return;
+            }
+            CCRef ccRef = (CCRef) recommendationRef;
+            ComputedColumnDesc cc = ccRef.getCc();
+            if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
+                cc.setColumnName(userDefinedRecNameMap.get(rawRecItem.getId()));
+            }
+            recManagerV2.checkCCName(model, cc);
+            NDataModel.NamedColumn columnInModel = new NDataModel.NamedColumn();
+            columnInModel.setId(++lastColumnId);
+            columnInModel.setName(cc.getTableAlias() + "_" + cc.getColumnName());
+            columnInModel.setAliasDotColumn(cc.getTableAlias() + "." + cc.getColumnName());
+            columnInModel.setStatus(NDataModel.ColumnStatus.EXIST);
+            model.getAllNamedColumns().add(columnInModel);
+            model.getComputedColumnDescs().add(cc);
+            columns.put(-rawRecItem.getId(), columnInModel);
+            columns.put(lastColumnId, columnInModel);
+            logWriteProperty(rawRecItem, columnInModel);
+        }
+
+        private void rewriteIndexPlan(List<RawRecItem> recItems) {
+            logBeginRewrite("IndexPlan");
+            indexPlanManager.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
+                IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
+                for (RawRecItem rawRecItem : recItems) {
+                    if (rawRecItem.getType() != RawRecItem.RawRecType.LAYOUT) {
+                        continue;
+                    }
+                    LayoutEntity layout = RecommendationUtil.getLayout(rawRecItem);
+                    List<Integer> colOrder = layout.getColOrder();
+                    List<Integer> shardBy = Lists.newArrayList(layout.getShardByColumns());
+                    List<Integer> sortBy = Lists.newArrayList(layout.getSortByColumns());
+                    List<Integer> partitionBy = Lists.newArrayList(layout.getPartitionByColumns());
+
+                    layout.setColOrder(translateToRealIds(colOrder));
+                    layout.setShardByColumns(translateToRealIds(shardBy));
+                    layout.setSortByColumns(translateToRealIds(sortBy));
+                    layout.setPartitionByColumns(translateToRealIds(partitionBy));
+                    layout.setPartitionByColumns(partitionBy);
+                    updateHandler.add(layout, RecommendationUtil.isAgg(rawRecItem));
+                }
+                updateHandler.complete();
+            });
+            logFinishRewrite("IndexPlan");
+        }
+
+        private List<Integer> translateToRealIds(List<Integer> virtualIds) {
+            List<Integer> realIds = Lists.newArrayList();
+            virtualIds.forEach(virtualId -> {
+                int realId;
+                recommendation.getDimensionRefs().get(virtualId);
+                if (dimensions.containsKey(virtualId)) {
+                    realId = dimensions.get(virtualId).getId();
+                } else if (measures.containsKey(virtualId)) {
+                    realId = measures.get(virtualId).getId();
+                } else {
+                    throw new IllegalStateException("");
+                }
+                realIds.add(realId);
+            });
+            return realIds;
+        }
+
+        private void logBeginRewrite(String rewrite) {
+            log.info("Start to rewrite RawRecItems to {}({}/{})", rewrite, recommendation.getProject(),
+                    recommendation.getUuid());
+        }
+
+        private void logFinishRewrite(String rewrite) {
+            log.info("Rewrite RawRecItems to {}({}/{}) successfully", rewrite, recommendation.getProject(),
+                    recommendation.getUuid());
+        }
+
+        private void logWriteProperty(RawRecItem recItem, Object obj) {
+            if (obj instanceof NDataModel.NamedColumn) {
+                NDataModel.NamedColumn column = (NDataModel.NamedColumn) obj;
+                log.info("Write RawRecItem({}) to model as Column with id({}), name({}), isDimension({})", //
+                        recItem.getId(), column.getId(), column.getName(), column.isDimension());
+            } else if (obj instanceof NDataModel.Measure) {
+                NDataModel.Measure measure = (NDataModel.Measure) obj;
+                log.info("Write RawRecItem({}) to model as Measure with id({}), name({}) ", //
+                        recItem.getId(), measure.getId(), measure.getName());
+            }
+        }
+    }
+
     @Transaction(project = 0)
     public void approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectOperationPermission(project);
-        String modelId = request.getModelId();
+        approveV1RecItems(request);
+        approveV2RecItems(request);
+    }
+
+    private void approveV1RecItems(OptRecRequest request) {
         OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(),
-                project, request.getModelId());
-        verifier.setPassLayoutItems(request.getLayoutIdsToRemove().stream().map(Long::new).collect(Collectors.toSet()));
+                request.getProject(), request.getModelId());
+        verifier.setPassLayoutItems(
+                request.getLayoutIdsToRemove().stream().map(Long::valueOf).collect(Collectors.toSet()));
         verifier.verify();
+    }
 
-        OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
-        managerV2.cleanInEffective(request.getModelId());
-        OptRecV2 recommendationV2 = managerV2.getOptimizeRecommendationV2(request.getModelId());
-        List<RawRecItem> rawRecItems = recommendationV2.getAllRelatedRecItems(request.getLayoutIdsToAdd());
+    private void approveV2RecItems(OptRecRequest request) {
+        String project = request.getProject();
+        String modelId = request.getModelId();
+        Map<Integer, String> userDefinedRecNameMap = request.getNames();
+        List<Integer> layoutIdsToAdd = request.getLayoutIdsToAdd();
+        List<RawRecItem> recItems = new RecApproveContext(project, modelId, userDefinedRecNameMap)
+                .approveRawRecItems(layoutIdsToAdd);
 
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        Map<Integer, String> recIdNameMap = request.getNames();
-        Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
-        Map<Integer, NDataModel.NamedColumn> dimensions = Maps.newHashMap();
-        Map<Integer, NDataModel.Measure> measures = Maps.newHashMap();
-        Map<Integer, Integer> existMap = recommendationV2.getExistMap();
-        modelManager.updateDataModel(modelId, model -> {
-            int lastColumnId = model.getAllNamedColumns().stream() //
-                    .mapToInt(NDataModel.NamedColumn::getId) //
-                    .max().orElse(0);
-            int lastMeasureId = model.getAllMeasures().stream() //
-                    .mapToInt(NDataModel.Measure::getId) //
-                    .max().orElse(0);
-            String factTable = model.getRootFactTableAlias() != null //
-                    ? model.getRootFactTableAlias()
-                    : model.getRootFactTableName().split("\\.")[1];
-            model.getAllNamedColumns().stream() //
-                    .filter(NDataModel.NamedColumn::isExist) //
-                    .forEach(c -> columns.put(c.getId(), c));
-            model.getAllNamedColumns().stream() //
-                    .filter(NDataModel.NamedColumn::isDimension) //
-                    .forEach(c -> dimensions.put(c.getId(), c));
-            model.getAllMeasures().stream() //
-                    .filter(m -> !m.isTomb()) //
-                    .forEach(m -> measures.put(m.getId(), m));
-            for (RawRecItem rawRecItem : rawRecItems) {
-                if (rawRecItem.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                    Map<Integer, RecommendationRef> ccRefs = recommendationV2.getCcRefs();
-                    RecommendationRef recommendationRef = ccRefs.get(-rawRecItem.getId());
-                    if (recommendationRef.isExisted()) {
-                        continue;
-                    }
-                    CCRef ccRef = (CCRef) recommendationRef;
-                    ComputedColumnDesc cc = ccRef.getCc();
-                    if (recIdNameMap.containsKey(rawRecItem.getId())) {
-                        cc.setColumnName(recIdNameMap.get(rawRecItem.getId()));
-                    }
-                    managerV2.checkCCName(model, cc);
-                    NDataModel.NamedColumn columnInModel = new NDataModel.NamedColumn();
-                    columnInModel.setId(++lastColumnId);
-                    columnInModel.setName(factTable + "_" + cc.getColumnName());
-                    columnInModel.setAliasDotColumn(factTable + "." + cc.getColumnName());
-                    columnInModel.setStatus(NDataModel.ColumnStatus.EXIST);
-                    model.getAllNamedColumns().add(columnInModel);
-                    model.getComputedColumnDescs().add(cc);
-                    columns.put(-rawRecItem.getId(), columnInModel);
-                    columns.put(lastColumnId, columnInModel);
-                } else if (rawRecItem.getType() == RawRecItem.RawRecType.DIMENSION) {
-                    Map<Integer, RecommendationRef> dimensionRefs = recommendationV2.getDimensionRefs();
-                    RecommendationRef dimensionRef = dimensionRefs.get(-rawRecItem.getId());
-                    if (dimensionRef.isExisted()) {
-                        continue;
-                    }
-                    DimensionRef dimRef = (DimensionRef) dimensionRef;
-                    Preconditions.checkArgument(dimRef.getEntity() instanceof ModelColumnRef);
-                    ModelColumnRef columnRef = (ModelColumnRef) dimensionRef.getEntity();
-                    NDataModel.NamedColumn column = columnRef.getColumn();
-                    if (recIdNameMap.containsKey(rawRecItem.getId())) {
-                        column.setName(recIdNameMap.get(rawRecItem.getId()));
-                    }
-                    column.setStatus(NDataModel.ColumnStatus.DIMENSION);
-                    managerV2.checkDimensionName(columns);
-                    dimensions.put(-rawRecItem.getId(), column);
-                } else if (rawRecItem.getType() == RawRecItem.RawRecType.MEASURE) {
-                    Map<Integer, RecommendationRef> measureRefs = recommendationV2.getMeasureRefs();
-                    RecommendationRef recommendationRef = measureRefs.get(-rawRecItem.getId());
-                    if (recommendationRef.isExisted()) {
-                        continue;
-                    }
-                    // copy more better
-                    MeasureRef measureRef = (MeasureRef) recommendationRef;
-                    NDataModel.Measure mea = measureRef.getMeasure();
-                    if (recIdNameMap.containsKey(rawRecItem.getId())) {
-                        mea.setName(recIdNameMap.get(rawRecItem.getId()));
-                    }
-                    managerV2.checkMeasureName(model, mea);
-                    mea.setId(++lastMeasureId);
-                    model.getAllMeasures().add(mea);
-                    measures.put(-rawRecItem.getId(), mea);
-                    measures.put(lastMeasureId, mea);
-                }
-            }
-        });
-
-        NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateIndexPlan(modelId, indexPlan -> {
-            val handler = indexPlan.createUpdateHandler();
-            for (RawRecItem rawRecItem : rawRecItems) {
-                if (rawRecItem.getType() != RawRecItem.RawRecType.LAYOUT) {
-                    continue;
-                }
-                val layout = RecommendationUtil.getLayout(rawRecItem);
-                boolean isAgg = RecommendationUtil.isAgg(rawRecItem);
-                List<Integer> colOrder = Lists.newArrayList(layout.getColOrder());
-                List<Integer> shardBy = Lists.newArrayList(layout.getShardByColumns());
-                List<Integer> sortBy = Lists.newArrayList(layout.getSortByColumns());
-                List<Integer> partitionBy = Lists.newArrayList(layout.getPartitionByColumns());
-                translate(colOrder, existMap, dimensions, measures);
-                layout.setColOrder(colOrder);
-                translate(shardBy, existMap, dimensions, measures);
-                layout.setShardByColumns(shardBy);
-                translate(sortBy, existMap, dimensions, measures);
-                layout.setSortByColumns(sortBy);
-                translate(partitionBy, existMap, dimensions, measures);
-                layout.setPartitionByColumns(partitionBy);
-                handler.add(layout, isAgg);
-            }
-            handler.complete();
-        });
         UnitOfWork.get().doAfterUpdate(() -> {
             RawRecManager rawManager = RawRecManager.getInstance(project);
-            rawManager.applyByIds(rawRecItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
+            rawManager.applyByIds(recItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
         });
     }
 
@@ -221,7 +319,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         aclEvaluate.checkProjectOperationPermission(project);
         OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(),
                 project, request.getModelId());
-        verifier.setFailLayoutItems(request.getLayoutIdsToRemove().stream().map(Long::new).collect(Collectors.toSet()));
+        verifier.setFailLayoutItems(
+                request.getLayoutIdsToRemove().stream().map(Long::valueOf).collect(Collectors.toSet()));
         verifier.verify();
         OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
         managerV2.cleanInEffective(request.getModelId());
@@ -243,23 +342,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         manager.cleanAll(modelId);
         OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
         managerV2.discardAll(modelId);
-    }
-
-    private void translate(List<Integer> colOrder, Map<Integer, Integer> existMap,
-            Map<Integer, NDataModel.NamedColumn> columns, Map<Integer, NDataModel.Measure> measures) {
-        for (int i = 0; i < colOrder.size(); i++) {
-            int id = colOrder.get(i);
-            id = existMap.getOrDefault(id, id);
-            colOrder.set(i, id);
-            if (id < 0) {
-                if (columns.containsKey(id)) {
-                    colOrder.set(i, columns.get(colOrder.get(i)).getId());
-                }
-                if (measures.containsKey(id)) {
-                    colOrder.set(i, measures.get(colOrder.get(i)).getId());
-                }
-            }
-        }
     }
 
     private static OptRecDepResponse convert(RecommendationRef ref) {
