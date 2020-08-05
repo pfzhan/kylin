@@ -114,23 +114,23 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             Aggregate originalAgg = ruleCall.rel(0);
             Project originalProject = ruleCall.rel(1);
 
-            List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(originalAgg, originalProject);
-            List<AggExpression> nonSumCaseExprs = aggExpressions.stream().filter(e -> !e.isSumCase()).collect(Collectors.toList());
-            List<AggExpression> sumCaseExprs = aggExpressions.stream().filter(AggExpression::isSumCase).collect(Collectors.toList());
+            List<AggregateCall> sumCaseAggCalls = originalAgg.getAggCallList().stream().filter(aggCall -> isSumCaseExpr(aggCall, originalProject)).collect(Collectors.toList());
+            List<AggregateCall> nonSumCaseAggCalls = new LinkedList<>(originalAgg.getAggCallList());
+            nonSumCaseAggCalls.removeAll(sumCaseAggCalls);
 
             // extract the sum case when agg part from original agg rel
             // and do the sum case when expr transformation
-            Aggregate sumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject, sumCaseExprs);
+            Aggregate sumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject, sumCaseAggCalls);
             RelNode transformedSumCaseAgg = transformSumExprAggregate(relBuilder, sumCaseAgg, (Project) sumCaseAgg.getInput(0));
 
             // in case there is no other no sum case when agg calls, do transform and return
-            if (nonSumCaseExprs.isEmpty()) {
+            if (nonSumCaseAggCalls.isEmpty()) {
                 ruleCall.transformTo(transformedSumCaseAgg);
                 return;
             }
 
             // otherwise we are going to extract out the non sum case when agg part
-            Aggregate nonSumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject, nonSumCaseExprs);
+            Aggregate nonSumCaseAgg = extractPartialAggregateCalls(relBuilder, originalAgg, originalProject, nonSumCaseAggCalls);
             // and join with the sum case when agg part by the group keys
             RelNode joined = joinSumCaseAggAndNonSumCaseAggRel(relBuilder, transformedSumCaseAgg, nonSumCaseAgg, originalAgg);
 
@@ -207,11 +207,11 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
      * @param relBuilder
      * @param oriAgg
      * @param oriProject
-     * @param aggExprs the agg exprs to extract
+     * @param aggCalls
      * @return
      */
-    private Aggregate extractPartialAggregateCalls(RelBuilder relBuilder, Aggregate oriAgg, Project oriProject, List<AggExpression> aggExprs) {
-        Set<Integer> nonSumInputIdxes = aggExprs.stream().flatMap(e -> e.getAggCall().getArgList().stream()).collect(Collectors.toSet());
+    private Aggregate extractPartialAggregateCalls(RelBuilder relBuilder, Aggregate oriAgg, Project oriProject, List<AggregateCall> aggCalls) {
+        Set<Integer> nonSumInputIdxes = aggCalls.stream().flatMap(e -> e.getArgList().stream()).collect(Collectors.toSet());
         nonSumInputIdxes.addAll(oriAgg.getGroupSet().asList());
         // preserve the original project exprs for simplicity
         // clone input rel node since we may create multiple copy of aggregates
@@ -226,7 +226,7 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             }
         }
         relBuilder.project(newChildExps);
-        relBuilder.aggregate(relBuilder.groupKey(oriAgg.getGroupSet(), oriAgg.getGroupSets()), aggExprs.stream().map(AggExpression::getAggCall).collect(Collectors.toList()));
+        relBuilder.aggregate(relBuilder.groupKey(oriAgg.getGroupSet(), oriAgg.getGroupSets()), aggCalls);
         return (Aggregate) relBuilder.build();
     }
 
@@ -452,19 +452,20 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
      */
     public static boolean checkSumCaseExpression(Aggregate oldAgg, Project oldProject) {
         for (AggregateCall call : oldAgg.getAggCallList()) {
-            if (call.getArgList().size() > 1) {
-                return false; // Only support aggregate with 0 or 1 argument
-            }
-            if (call.getArgList().isEmpty()) {
-                continue;
-            }
-
-            int input = call.getArgList().get(0);
-            RexNode expression = oldProject.getChildExps().get(input);
-            if (SumExpressionUtil.hasSumCaseWhen(call, expression)) {
+            if (isSumCaseExpr(call, oldProject)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean isSumCaseExpr(AggregateCall aggregateCall, Project inputProject) {
+        if (aggregateCall.getArgList().size() != 1) {
+            return false;
+        }
+
+        int input = aggregateCall.getArgList().get(0);
+        RexNode expression = inputProject.getChildExps().get(input);
+        return SumExpressionUtil.hasSumCaseWhen(aggregateCall, expression);
     }
 }
