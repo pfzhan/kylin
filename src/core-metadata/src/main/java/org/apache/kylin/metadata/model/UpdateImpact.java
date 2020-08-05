@@ -44,7 +44,7 @@ import lombok.Setter;
 public class UpdateImpact implements Serializable {
     private Set<Integer> removedOrUpdatedCCs = new HashSet<>();
 
-    private Set<Integer> invalidMeasures = new HashSet<>();            // removed measure due to cc update
+    private Set<Integer> invalidMeasures = new HashSet<>();            // removed measure due to cc update, clear related layouts
 
     private Set<Integer> invalidRequestMeasures = new HashSet<>();     // removed measure in request not in modelDesc
 

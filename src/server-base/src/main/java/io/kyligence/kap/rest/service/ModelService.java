@@ -2630,7 +2630,7 @@ public class ModelService extends BasicService {
                 updateImpact.getReplacedMeasures());
         Set<Integer> affectedSet = updateImpact.getAffectedIds();
         val affectedLayoutSet = getAffectedLayouts(project, modelId, affectedSet);
-        if (affectedSet.size() > 0)
+        if (affectedLayoutSet.size() > 0)
             indexPlanService.reloadLayouts(project, modelId, affectedLayoutSet);
 
         var newModel = modelManager.getDataModelDesc(modelId);
