@@ -140,7 +140,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         }
 
         String serverMode = jobEngineConfig.getServerMode();
-        if (!("job".equalsIgnoreCase(serverMode) || "all".equalsIgnoreCase(serverMode))) {
+        if (!config.isJobNode()) {
             logger.info("server mode: {}, no need to run job scheduler", serverMode);
             return;
         }

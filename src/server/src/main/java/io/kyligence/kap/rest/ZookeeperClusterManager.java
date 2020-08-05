@@ -23,14 +23,15 @@
  */
 package io.kyligence.kap.rest;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.ClusterConstant;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import static io.kyligence.kap.common.util.AddressUtil.convertHost;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -48,14 +49,15 @@ import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.util.AddressUtil.convertHost;
+import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @ConditionalOnZookeeperEnabled
 @Component
@@ -74,13 +76,19 @@ public class ZookeeperClusterManager implements ClusterManager {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
         CuratorFramework client = CuratorFrameworkFactory.newClient(ZookeeperUtil.getZKConnectString(), 120000, 15000, retryPolicy);
         client.start();
+        monitorServer(ClusterConstant.ALL, client);
+        monitorServer(ClusterConstant.JOB, client);
+        monitorServer(ClusterConstant.QUERY, client);
+    }
+
+    private void monitorServer(String serverMode, CuratorFramework client) throws Exception {
         String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
-        String nodePath = "/kylin/" + identifier + "/services/all";
+        String nodePath = "/kylin/" + identifier + "/services/" + serverMode;
         try (val pathChildrenCache = new PathChildrenCache(client, nodePath, false)) {
             PathChildrenCacheListener childrenCacheListener = new PathChildrenCacheListener() {
                 @Override
                 public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) {
-                    cache = getQueryServers();
+                    cache = getServers();
                 }
             };
             pathChildrenCache.getListenable().addListener(childrenCacheListener);
@@ -99,7 +107,7 @@ public class ZookeeperClusterManager implements ClusterManager {
         checkServerMode(serverMode);
         val list = submitWithTimeOut(() -> discoveryClient.getInstances(serverMode), 3);
         if (CollectionUtils.isEmpty(list)) {
-            log.warn("Failed to get servers info from zk");
+            log.warn("Failed to get servers info ({} node) from zk", serverMode);
             return Lists.newArrayList();
         } else {
             return list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
@@ -118,13 +126,13 @@ public class ZookeeperClusterManager implements ClusterManager {
     }
 
     @Override
-    public List<ServerInfoResponse> getQueryServersFromCache() {
+    public List<ServerInfoResponse> getServersFromCache() {
         try {
             if (CollectionUtils.isNotEmpty(cache))
                 return cache;
-            else return getQueryServers();
+            else return getServers();
         } catch (Exception e) {
-            return getQueryServers();
+            return getServers();
         }
     }
 

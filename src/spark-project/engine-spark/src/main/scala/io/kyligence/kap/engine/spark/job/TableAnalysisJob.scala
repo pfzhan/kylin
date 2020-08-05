@@ -78,7 +78,7 @@ class TableAnalysisJob(tableDesc: TableDesc,
       if (ss.catalog.tableExists(tableName)) {
         val sparkTable = ss.catalog.getTable(tableName)
         if (sparkTable.tableType == CatalogTableType.VIEW.name) {
-          val tables = SparkSqlUtil.getViewOrignalTables(tableName)
+          val tables = SparkSqlUtil.getViewOrignalTables(tableName, ss)
           if (tables.asScala.size > 1) {
             tables.asScala.foreach(t => {
               var oriTable = t

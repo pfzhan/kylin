@@ -39,10 +39,11 @@ import org.apache.kylin.job.lock.ZookeeperAclBuilder;
 import org.apache.kylin.job.lock.ZookeeperUtil;
 import org.apache.zookeeper.data.Stat;
 
+import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.tool.discovery.ServiceInstanceSerializer;
 import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class CuratorOperator implements AutoCloseable {
@@ -62,21 +63,18 @@ public class CuratorOperator implements AutoCloseable {
     }
 
     public boolean isJobNodeExist() throws Exception {
+        return checkNodeExist(ClusterConstant.ALL) || checkNodeExist(ClusterConstant.JOB);
+    }
+
+    private boolean checkNodeExist(String serverMode) throws Exception {
         String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
-        String allNodePath = "/kylin/" + identifier + "/services/all";
-        String jobNodePath = "/kylin/" + identifier + "/services/job";
-
-        Stat allNodestat = zkClient.checkExists().forPath(allNodePath);
-        Stat jobNodestat = zkClient.checkExists().forPath(jobNodePath);
-
-        if (allNodestat == null && jobNodestat == null) {
+        String nodePath = "/kylin/" + identifier + "/services/" + serverMode;
+        Stat stat = zkClient.checkExists().forPath(nodePath);
+        if (stat == null) {
             return false;
         }
-        List<String> childAllNodes = zkClient.getChildren().forPath(allNodePath);
-        List<String> childJobNodes = zkClient.getChildren().forPath(jobNodePath);
-
-        return (childAllNodes != null && !childAllNodes.isEmpty())
-                || (childJobNodes != null && !childJobNodes.isEmpty());
+        List<String> childNodes = zkClient.getChildren().forPath(nodePath);
+        return childNodes != null && !childNodes.isEmpty();
     }
 
     @Override

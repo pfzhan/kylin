@@ -80,7 +80,7 @@ public class Broadcaster implements Closeable {
         if (clusterManager == null) {
             clusterManager = (ClusterManager) SpringContext.getApplicationContext().getBean("zookeeperClusterManager");
         }
-        final List<ServerInfoResponse> nodes = clusterManager.getQueryServersFromCache();
+        final List<ServerInfoResponse> nodes = clusterManager.getServersFromCache();
         Set<String> result = Sets.newHashSet();
         if (nodes == null || nodes.size() < 1) {
             logger.warn("There is no available rest server; check the 'kylin.server.cluster-servers' config");

@@ -30,7 +30,6 @@ import com.google.common.collect.Sets;
 import lombok.val;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation;
 import org.apache.spark.sql.catalyst.parser.ParseException;
@@ -49,8 +48,7 @@ public class SparkSqlUtil {
         return queryForList(ss, sql);
     }
 
-    public static Set<String> getViewOrignalTables(String viewName) throws ParseException {
-        val spark = SparderEnv.getSparkSession();
+    public static Set<String> getViewOrignalTables(String viewName, SparkSession spark) throws ParseException {
         String viewText = spark.sql("desc formatted " + viewName).where("col_name = 'View Text'").head().getString(1);
         val logicalPlan = spark.sessionState().sqlParser().parsePlan(viewText);
         Set<String> viewTables = Sets.newHashSet();

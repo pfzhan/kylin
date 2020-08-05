@@ -114,7 +114,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             val sparkTable = spark.catalog().getTable(tableName);
             Set<String> needCheckTables = Sets.newHashSet();
             if (sparkTable.tableType().equals(CatalogTableType.VIEW().name())) {
-                needCheckTables = SparkSqlUtil.getViewOrignalTables(tableName);
+                needCheckTables = SparkSqlUtil.getViewOrignalTables(tableName, SparderEnv.getSparkSession());
             } else {
                 needCheckTables.add(tableName);
             }
