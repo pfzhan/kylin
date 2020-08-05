@@ -2301,7 +2301,7 @@ public class ModelService extends BasicService {
         val request = new ModelRequest(dataModelDesc);
         request.setProject(dataModelDesc.getProject());
         request.setMeasures(dataModelDesc.getAllMeasures());
-        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
+        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, false);
         // get invalid measure names in original model
         val removedMeasures = updateImpact.getInvalidMeasures();
         val measureNames = oldDataModel.getAllMeasures().stream().filter(m -> removedMeasures.contains(m.getId()))

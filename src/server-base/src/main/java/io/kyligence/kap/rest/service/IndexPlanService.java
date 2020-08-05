@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_TA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -865,6 +866,11 @@ public class IndexPlanService extends BasicService {
                         aggGroupItr.remove();
                     }
                 }
+            }
+
+            // prevent genCuboidLayouts() from creating layout
+            if (invalidMeasures.size() > 0 && copyRuleBaseIndex.getAggregationGroups().size() == 0) {
+                copyRuleBaseIndex.setDimensions(new ArrayList<>());
             }
 
             copy.setRuleBasedIndex(copyRuleBaseIndex);

@@ -678,6 +678,57 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testModifyCCMeasureInvalid() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        // create measure
+        var request = newSemanticRequest(modelId);
+        val newMeasure1 = new SimplifiedMeasure();
+        newMeasure1.setName("NEST5_SUM");
+        newMeasure1.setExpression("SUM");
+        val param = new ParameterResponse();
+        param.setType("column");
+        param.setValue("TEST_KYLIN_FACT.NEST5");
+        newMeasure1.setParameterValue(Lists.newArrayList(param));
+        request.getSimplifiedMeasures().add(newMeasure1);
+        // return type for SUM(decimal) is "decimal(38, 0)"
+        newMeasure1.setReturnType("decimal(38, 0)");
+        modelService.updateDataModelSemantic(getProject(), request);
+        // get dim and measure id
+        request = newSemanticRequest(modelId);
+        val transId = request.getColumnIdByColumnName("TEST_KYLIN_FACT.TRANS_ID");
+        val nest5SumId = request.getSimplifiedMeasures().stream().filter(m -> "NEST5_SUM".equals(m.getName()))
+                .mapToInt(SimplifiedMeasure::getId).findFirst().orElse(-1);
+        // create agg group
+        NAggregationGroup newAggregationGroup = new NAggregationGroup();
+        newAggregationGroup.setIncludes(new Integer[] { transId });
+        newAggregationGroup.setMeasures(new Integer[] { nest5SumId });
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        newAggregationGroup.setSelectRule(selectRule);
+        indexPlanService.updateRuleBasedCuboid(getProject(),
+                UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
+        // old indexes
+        val indexCol = Arrays.asList(transId, nest5SumId);
+        val oldLayoutId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-1L);
+        // modify expression of cc TEST_KYLIN_FACT.NEST5
+        val originCC = request.getComputedColumnDescs().stream().filter(c -> ("NEST5").equals(c.getColumnName()))
+                .findFirst().orElse(null);
+        originCC.setExpression("'now im a varchar'");
+        originCC.setInnerExpression("'now im a varchar'");
+        originCC.setDatatype("VARCHAR");
+        modelService.updateDataModelSemantic(getProject(), request);
+        // check if layout is removed
+        long newLayoutId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-2L);
+        Assert.assertEquals(newLayoutId, -2L);
+    }
+
+    @Test
     public void testModifyCCExistInNestedCC() throws Exception {
         // add nested cc
         var request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
