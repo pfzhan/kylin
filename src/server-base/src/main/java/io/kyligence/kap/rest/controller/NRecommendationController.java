@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -47,6 +48,7 @@ import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.service.OptimizeRecommendationService;
+import io.kyligence.kap.rest.service.RawRecService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -59,6 +61,9 @@ public class NRecommendationController extends NBasicController {
     @Autowired
     @Qualifier("optRecService")
     private OptRecService optRecService;
+
+    @Autowired
+    private RawRecService rawRecService;
 
     @Autowired
     @Qualifier("optimizeRecommendationService")
@@ -140,11 +145,21 @@ public class NRecommendationController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OptRecDetailResponse> getOptimizeRecommendations(
             @PathVariable(value = "model") String modelId, @PathVariable(value = "item_id") Integer itemId,
-            @RequestParam(value = "project") String project, @RequestParam(value = "is_add") boolean isAdd) {
+            @RequestParam(value = "project") String project, @RequestParam(value = "is_add", defaultValue = "true") boolean isAdd) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 optRecService.getSingleOptRecDetail(project, modelId, itemId, isAdd), "");
+    }
+
+    @ApiOperation(value = "accelerate query history and select topn", notes = "Add URL: {model}")
+    @PutMapping(value = "/acceleration")
+    @ResponseBody
+    public EnvelopeResponse<String> accelerate(@RequestParam("project") String project) {
+        checkProjectName(project);
+        checkProjectNotSemiAuto(project);
+        rawRecService.accelerate(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

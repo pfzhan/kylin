@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -60,6 +61,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component("rawRecService")
 public class RawRecService {
+
+    @Autowired
+    ProjectService projectService;
+
+    public void accelerate(String project) {
+        projectService.accelerateImmediately(project);
+        updateCostsAndTopNCandidates();
+    }
 
     public void generateRawRecommendations(String project, List<QueryHistory> queryHistories) {
         if (queryHistories == null || queryHistories.isEmpty()) {

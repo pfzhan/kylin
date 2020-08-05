@@ -302,6 +302,7 @@ public class NQueryController extends NBasicController {
                 queryHistoryService.getAvgDuration(project, startTime, endTime, dimension), "");
     }
 
+    @Deprecated
     @GetMapping(value = "/history_queries/table_names")
     public EnvelopeResponse<Map<String, String>> getQueryHistoryTableNames(
             @RequestParam(value = "projects", required = false) List<String> projects) {

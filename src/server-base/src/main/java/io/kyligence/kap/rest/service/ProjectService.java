@@ -259,7 +259,7 @@ public class ProjectService extends BasicService {
                     continue;
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
-                    updateProjectRegularRule(project.getName());
+                    accelerateImmediately(project.getName());
                     GarbageCleaner.cleanupMetadataAtScheduledTime(project.getName());
                 } catch (Exception e) {
                     logger.warn("clean project<" + project.getName() + "> failed", e);
@@ -290,19 +290,19 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) throws Exception {
-        updateProjectRegularRule(project);
+        accelerateImmediately(project);
         GarbageCleaner.cleanupMetadataManually(project);
         asyncTaskService.cleanupStorage();
     }
 
-    public void updateProjectRegularRule(String project) {
+    public void accelerateImmediately(String project) {
         QueryHistoryAccelerateScheduler scheduler = QueryHistoryAccelerateScheduler.getInstance(project);
         if (scheduler.hasStarted()) {
             Future future = scheduler.scheduleImmediately();
             try {
                 future.get();
             } catch (Exception e) {
-                logger.error("msg", e);
+                logger.error("Accelerate failed", e);
             }
         }
     }
