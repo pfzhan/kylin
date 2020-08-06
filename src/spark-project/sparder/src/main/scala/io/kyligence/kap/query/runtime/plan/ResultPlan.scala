@@ -82,7 +82,7 @@ object ResultPlan extends LogEx {
     try {
       val autoBroadcastJoinThreshold = SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold
       df.queryExecution.executedPlan
-      logDebug(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
+      logInfo(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
         s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
       logInfo(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")

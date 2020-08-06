@@ -88,11 +88,11 @@ object TableScanPlan extends LogEx {
       )
       val path = fileList.mkString(",") + olapContext.isFastBitmapEnabled
       lazy val segmentIDs = LogUtils.jsonArray(prunedSegments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
-      logDebug(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
-      logDebug(s"size is ${cacheDf.get().size()}")
+      logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
+      logInfo(s"size is ${cacheDf.get().size()}")
 
       var df = if (cacheDf.get().containsKey(path)) {
-        logDebug(s"Reuse df: ${cuboidLayout.getId}")
+        logInfo(s"Reuse df: ${cuboidLayout.getId}")
         cacheDf.get().get(path)
       } else {
         import io.kyligence.kap.query.implicits._
@@ -105,7 +105,7 @@ object TableScanPlan extends LogEx {
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout, segmentIdsCombined)
           .toDF(columnNames: _*)
-        logDebug(s"Cache df: ${cuboidLayout.getId}")
+        logInfo(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, d)
         d
       }

@@ -24,6 +24,7 @@ package org.apache.spark.conf.rule
 
 
 import io.kyligence.kap.engine.spark.utils.{LogUtils, SparkConfHelper, SparkConfRuleConstants}
+import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
@@ -48,6 +49,10 @@ sealed trait SparkConfRule extends Logging {
 
 class ExecutorMemoryRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
+    val userDefinedMemory = helper.getConf(SparkConfHelper.EXECUTOR_MEMORY)
+    if (StringUtils.isNotBlank(userDefinedMemory)) {
+      return
+    }
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val hasCountDistinct = helper.hasCountDistinct
     val memory = sourceGB match {
@@ -68,6 +73,10 @@ class ExecutorMemoryRule extends SparkConfRule {
 
 class ExecutorCoreRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
+    val userDefinedCores = helper.getConf(SparkConfHelper.EXECUTOR_CORES)
+    if (StringUtils.isNotBlank(userDefinedCores)) {
+      return
+    }
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val hasCountDistinct = helper.hasCountDistinct
     val cores = if (sourceGB >= 1 || hasCountDistinct) {
@@ -81,6 +90,10 @@ class ExecutorCoreRule extends SparkConfRule {
 
 class ExecutorOverheadRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
+    val userDefinedOverHeadMemory = helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD)
+    if (StringUtils.isNotBlank(userDefinedOverHeadMemory)) {
+      return
+    }
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val hasCountDistinct = helper.hasCountDistinct
     val overhead = sourceGB match {
@@ -119,7 +132,6 @@ class ExecutorInstancesRule extends SparkConfRule {
       case Some(cores) => cores.toInt
       case None => SparkConfRuleConstants.DEFUALT_EXECUTOR_CORE.toInt
     }
-
     val queueAvailableInstance = Math.min(availableMem / executorMem, availableCore / executorCore)
     val needInstance = Math.max(calculateExecutorInsByLayoutSize.toLong, requiredCores.toInt / executorCore)
     val instance = Math.min(needInstance, queueAvailableInstance)
@@ -133,7 +145,7 @@ class ExecutorInstancesRule extends SparkConfRule {
       "required instance"-> needInstance,
       "config executor instance" -> baseExecutorInstances
     )
-    logDebug(s"set ${SparkConfHelper.EXECUTOR_INSTANCES} = ${executorInstance}, " +
+    logInfo(s"set ${SparkConfHelper.EXECUTOR_INSTANCES} = ${executorInstance}, " +
       s"with current cluster resource and requirement: ${LogUtils.jsonMap(executorInstanceInfo)}")
     helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, executorInstance)
   }
@@ -164,7 +176,7 @@ class ExecutorInstancesRule extends SparkConfRule {
         instanceMultiple = choosen.last._2.toInt
       }
     }
-    logDebug(s"Calculate the number of executor instance size based on the number of layouts: $layoutSize, " +
+    logInfo(s"Calculate the number of executor instance size based on the number of layouts: $layoutSize, " +
       s"the instanceMultiple is $instanceMultiple")
     baseInstances * instanceMultiple
   }

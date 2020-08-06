@@ -35,6 +35,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +60,7 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.spark.SparkConf;
+import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.SparkSessionExtensions;
@@ -258,17 +260,18 @@ public abstract class SparkApplication implements Application, IKeep {
             if (config.isAutoSetSparkConf() && isJobOnCluster(sparkConf)) {
                 logger.info("Set spark conf automatically.");
                 try {
+                    if (config.getSparkConfigOverride().size() > 0) {
+                        for (Map.Entry<String, String> entry : config.getSparkConfigOverride().entrySet()) {
+                            sparkConf.set(entry.getKey(), entry.getValue());
+                        }
+                        logger.info("Override user-defined spark conf: {}",
+                                JsonUtil.writeValueAsString(config.getSparkConfigOverride()));
+                    }
                     autoSetSparkConf(sparkConf);
                 } catch (Exception e) {
                     logger.warn("Auto set spark conf failed. Load spark conf from system properties", e);
                 }
-                if (config.getSparkConfigOverride().size() > 0) {
-                    for (Map.Entry<String, String> entry : config.getSparkConfigOverride().entrySet()) {
-                        sparkConf.set(entry.getKey(), entry.getValue());
-                    }
-                    logger.info("Override user-defined spark conf: {}",
-                            JsonUtil.writeValueAsString(config.getSparkConfigOverride()));
-                }
+
             }
             // for wrapping credential
             CredentialUtils.wrap(sparkConf, project);
@@ -287,9 +290,12 @@ public abstract class SparkApplication implements Application, IKeep {
                                 waitTime);
                         Thread.sleep(waitTime * 1000L);
                     }
-                } catch (Throwable throwable) {
+                } catch (Exception e){
                     logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
-                            throwable);
+                            e);
+                    if(e instanceof NoRetryException){
+                        throw e;
+                    }
                 }
                 infos.endWait();
             }
@@ -368,6 +374,10 @@ public abstract class SparkApplication implements Application, IKeep {
 
     private void autoSetSparkConf(SparkConf sparkConf) throws Exception {
         SparkConfHelper helper = new SparkConfHelper();
+        // copy user defined spark conf
+        if (sparkConf.getAll() != null) {
+            Arrays.stream(sparkConf.getAll()).forEach(config -> helper.setConf(config._1, config._2));
+        }
         helper.setClusterManager(KylinBuildEnv.get().clusterManager());
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         String contentSize = chooseContentSize(shareDir);

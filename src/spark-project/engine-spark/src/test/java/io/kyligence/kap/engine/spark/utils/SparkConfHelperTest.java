@@ -29,7 +29,6 @@ import static org.mockito.Mockito.mock;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorInstancesRule;
@@ -39,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cluster.AvailableResource;
@@ -69,6 +69,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
@@ -80,6 +81,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
                 new CompareTuple("2", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
+        cleanSparkConfHelper(helper);
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
@@ -96,6 +98,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 8L * 1024 * 1024 * 1024 + "b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
@@ -108,6 +111,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("256", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        cleanSparkConfHelper(helper);
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         compareTuples.set(0, new CompareTuple("10GB", SparkConfHelper.EXECUTOR_MEMORY));
@@ -121,6 +125,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 50L * 1024 * 1024 * 1024 + "b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
@@ -133,6 +138,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("1600", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        cleanSparkConfHelper(helper);
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         compareTuples.set(0, new CompareTuple("16GB", SparkConfHelper.EXECUTOR_MEMORY));
@@ -146,6 +152,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 100L * 1024 * 1024 * 1024 + "b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
@@ -158,11 +165,40 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("3200", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        cleanSparkConfHelper(helper);
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         compareTuples.set(0, new CompareTuple("20GB", SparkConfHelper.EXECUTOR_MEMORY));
         compareTuples.set(2, new CompareTuple("6GB", SparkConfHelper.EXECUTOR_OVERHEAD));
         compareConf(compareTuples, sparkConf);
+    }
+
+    @Test
+    public void testUserDefindedSparkConf() throws JsonProcessingException {
+        YarnClusterManager clusterManager = mock(YarnClusterManager.class);
+        Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
+                .thenReturn(new AvailableResource(new ResourceInfo(10240, 100), new ResourceInfo(60480, 100)));
+        System.setProperty("kylin.engine.base-executor-instance", "1");
+        SparkConfHelper helper = new SparkConfHelper();
+        helper.setClusterManager(clusterManager);
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
+        helper.setOption(SparkConfHelper.LAYOUT_SIZE, "500");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
+        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "4GB");
+        helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
+        helper.setConf(SparkConfHelper.EXECUTOR_CORES, "3");
+        SparkConf sparkConf = new SparkConf();
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
+                new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("3", SparkConfHelper.EXECUTOR_CORES),
+                new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
+                new CompareTuple("2", SparkConfHelper.EXECUTOR_INSTANCES),
+                new CompareTuple("2", SparkConfHelper.SHUFFLE_PARTITIONS));
+        compareConf(compareTuples, sparkConf);
+        System.clearProperty("kylin.engine.base-executor-instance");
     }
 
     private void compareConf(List<CompareTuple> tuples, SparkConf conf) {
@@ -259,12 +295,19 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     private void resetSparkConfHelper(SparkConfHelper helper) {
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
+        helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "1GB");
         helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
         helper.setOption(SparkConfHelper.REQUIRED_CORES, "14");
 
         System.clearProperty("kylin.engine.base-executor-instance");
+    }
+
+    private void cleanSparkConfHelper(SparkConfHelper helper) {
+        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, null);
+        helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, null);
+        helper.setConf(SparkConfHelper.EXECUTOR_CORES, null);
     }
 
     @Test
@@ -275,5 +318,4 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.generateSparkConf();
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
     }
-
 }

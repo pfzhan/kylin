@@ -28,6 +28,7 @@ import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInf
 import io.kyligence.kap.engine.spark.job.SparkJobConstants
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
+import org.apache.spark.application.NoRetryException
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
 
@@ -69,7 +70,7 @@ object ResourceUtils extends Logging {
     if (!verify(queueAvailable.max, executorMemory, executorCores, instances)) {
       logInfo(s"Require resource ($executorMemory MB, $executorCores vCores)," +
         s" queue max resource (${queueAvailable.max.memory} MB, ${queueAvailable.max.vCores} vCores)")
-      throw new RuntimeException("Total queue resource does not meet requirement")
+      throw new NoRetryException("Total queue resource does not meet requirement")
     }
     logInfo(s"Require resource ($executorMemory MB, $executorCores vCores)," +
       s" available resource (${queueAvailable.available.memory} MB, ${queueAvailable.available.vCores} vCores)")

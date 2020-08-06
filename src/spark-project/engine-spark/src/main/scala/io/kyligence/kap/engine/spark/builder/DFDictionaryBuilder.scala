@@ -108,19 +108,19 @@ class DFDictionaryBuilder(
         val filtered = if (filterMetrics.isDefined) {
           filterMetrics.get.value
         } else {
-          logDebug(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
+          logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
           0
         }
         val tableScanMetrics = JobMetricsUtils.collectOutputRows(filterExec.get)
         val fileOut = tableScanMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)
-        logDebug(s"Null value number is ${fileOut - filtered}")
+        logInfo(s"Null value number is ${fileOut - filtered}")
         if (!KylinBuildEnv.get().encodingDataSkew) {
           KylinBuildEnv.get().encodingDataSkew = (fileOut - filtered) > seg.getConfig.getNullEncodingOptimizeThreshold
-          logDebug(s"Encoding data skew is ${KylinBuildEnv.get().encodingDataSkew} because the " +
+          logInfo(s"Encoding data skew is ${KylinBuildEnv.get().encodingDataSkew} because the " +
             s"difference values is ${fileOut - filtered} > ${seg.getConfig.getNullEncodingOptimizeThreshold}")
         }
       } else {
-        logDebug(s"Can not find FilterExec whit plan ${execution.executedPlan.toString()}")
+        logInfo(s"Can not find FilterExec whit plan ${execution.executedPlan.toString()}")
       }
     }
     ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, null)

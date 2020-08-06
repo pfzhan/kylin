@@ -263,7 +263,7 @@ object CreateFlatTable extends LogEx {
     val suitableCols = chooseSuitableCols(dataset, cols)
     dataset = changeSchemaToAliasDotName(dataset, alias)
     val selectedCols = dataset.schema.fields.map(tp => col(tp.name)) ++ suitableCols
-    logDebug(s"Table ${tableRef.getAlias} schema ${dataset.schema.treeString}")
+    logInfo(s"Table ${tableRef.getAlias} schema ${dataset.schema.treeString}")
     dataset.select(selectedCols: _*)
   }
 
@@ -396,7 +396,7 @@ object CreateFlatTable extends LogEx {
       .map(field => convertFromDot(alias + "." + field.name))
       .toSeq
     val newdf = original.toDF(newSchema: _*)
-    logDebug(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")
+    logInfo(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")
     newdf
   }
 
