@@ -37,6 +37,9 @@ fi
 export JAVA_VM_XMS=${JAVA_VM_XMS:-1g}
 export JAVA_VM_XMX=${JAVA_VM_XMX:-8g}
 
+export JAVA_VM_TOOL_XMS=${JAVA_VM_TOOL_XMS:-${JAVA_VM_XMS}}
+export JAVA_VM_TOOL_XMX=${JAVA_VM_TOOL_XMX:-${JAVA_VM_XMX}}
+
 export KYLIN_EXTRA_START_OPTS=""
 export KYLIN_JVM_SETTINGS=${KYLIN_JVM_SETTINGS:-"-server -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=16m -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:${KYLIN_HOME}/logs/kylin.gc.$$  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M -XX:-OmitStackTraceInFastThrow"}
 
