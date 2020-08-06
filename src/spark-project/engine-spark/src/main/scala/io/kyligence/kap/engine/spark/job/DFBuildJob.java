@@ -140,7 +140,7 @@ public class DFBuildJob extends SparkApplication {
             // build cuboids from reused layouts
             if (!buildFromLayouts.isEmpty()) {
                 NBuildSourceInfo min = Collections.min(buildFromLayouts.values(),
-                        (o1, o2) -> Long.valueOf(o1.getCount() - o2.getCount()).intValue());
+                        (o1, o2) -> Math.toIntExact(o1.getCount() - o2.getCount()));
                 long count = SanityChecker.getCount(min.getParentDS(), indexPlan.getCuboidLayout(min.getLayoutId()));
                 seg2Count.put(segId, count);
                 build(buildFromLayouts.values(), segId, nSpanningTree);
