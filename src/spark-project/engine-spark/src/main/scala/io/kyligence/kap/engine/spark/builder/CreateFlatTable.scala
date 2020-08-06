@@ -159,7 +159,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
           .map(lp => (lp._1, encodeWithCols(lp._2, ccCols, dictCols, encodeCols)))
 
         if (encodedLookupMap.nonEmpty) {
-          generateDimesionTableMeta(encodedLookupMap)
+          generateDimensionTableMeta(encodedLookupMap)
         }
         val allTableDataset = Seq(rootFactDataset) ++ encodedLookupMap.values
 
@@ -267,14 +267,15 @@ object CreateFlatTable extends LogEx {
     dataset.select(selectedCols: _*)
   }
 
-  private def generateDimesionTableMeta(lookupTables: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]): Unit = {
+  private def generateDimensionTableMeta(lookupTables: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]): Unit = {
     val lookupTablePar = lookupTables.par
     lookupTablePar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(lookupTablePar.size))
     lookupTablePar.foreach { case (joinTableDesc, dataset) =>
-      logTime (s"count ${joinTableDesc.getAlias}") {
+      val tableIdentity = joinTableDesc.getTable
+      logTime (s"count $tableIdentity") {
         val rowCount = dataset.count()
-        TableMetaManager.putTableMeta(joinTableDesc.getAlias, 0L, rowCount)
-        logInfo(s"put meta  table:  ${joinTableDesc.getAlias} , count: ${rowCount}")
+        TableMetaManager.putTableMeta(tableIdentity, 0L, rowCount)
+        logInfo(s"put meta table: $tableIdentity , count: ${rowCount}")
       }
     }
   }

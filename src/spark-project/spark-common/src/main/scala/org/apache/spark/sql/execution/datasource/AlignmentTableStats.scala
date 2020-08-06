@@ -27,39 +27,40 @@ import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRela
 
 case class AlignmentTableStats(session: SparkSession) extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = plan transformDown {
-    case relation: HiveTableRelation
-      if DDLUtils.isHiveTable(relation.tableMeta) =>
-      val rowCount = TableMetaManager.getTableMeta(relation.tableMeta.identifier.table.toLowerCase)
-      if (rowCount.isDefined) {
-        val table = relation.tableMeta
-        val originSizeInBytes = table.stats match {
+    case htr: HiveTableRelation
+      if DDLUtils.isHiveTable(htr.tableMeta) =>
+      val tableIdentity = htr.tableMeta.qualifiedName
+      val storedStats = TableMetaManager.getTableMeta(tableIdentity)
+      if (storedStats.isDefined) {
+        val originSizeInBytes = htr.tableMeta.stats match {
           case Some(stats) =>
             stats.sizeInBytes
-          case None => BigInt(9223372036854775807L)
+          case None => BigInt(10000000000000000L)
         }
-        val withStats = relation.tableMeta.copy(
-          stats = Some(CatalogStatistics(sizeInBytes = originSizeInBytes, rowCount = rowCount.get.rowCount))
-        )
-        relation.copy(tableMeta = withStats)
+        val alignedStats = CatalogStatistics(sizeInBytes = originSizeInBytes, rowCount = storedStats.get.rowCount)
+        logInfo(s"Aligned hive table statistics: [$tableIdentity, $alignedStats]")
+        val withStats = htr.tableMeta.copy(stats = Some(alignedStats))
+        htr.copy(tableMeta = withStats)
       } else {
-        relation
+        logInfo(s"No aligned statistics found of hive table $tableIdentity")
+        htr
       }
-    case logicalRelation@LogicalRelation(relation: HadoopFsRelation, _, Some(catalogTable), _) =>
-      val rowCount = TableMetaManager.getTableMeta(catalogTable.identifier.table)
-
-      if (rowCount.isDefined) {
+    case lr @ LogicalRelation(_, _, Some(catalogTable), _) =>
+      val tableIdentity = catalogTable.qualifiedName
+      val storedStats = TableMetaManager.getTableMeta(tableIdentity)
+      if (storedStats.isDefined) {
         val originSizeInBytes = catalogTable.stats match {
           case Some(stats) =>
             stats.sizeInBytes
-          case None => BigInt(9223372036854775807L)
+          case None => BigInt(10000000000000000L)
         }
-
-        val withStats = logicalRelation.catalogTable.map(_.copy(
-          stats = Some(CatalogStatistics(sizeInBytes = originSizeInBytes, rowCount = rowCount.get.rowCount))))
-
-        logicalRelation.copy(catalogTable = withStats)
+        val alignedStats = CatalogStatistics(sizeInBytes = originSizeInBytes, rowCount = storedStats.get.rowCount)
+        logInfo(s"Aligned catalog table statistics: [$tableIdentity, $alignedStats]")
+        val withStats = lr.catalogTable.map(_.copy(stats = Some(alignedStats)))
+        lr.copy(catalogTable = withStats)
       } else {
-        logicalRelation
+        logInfo(s"No aligned statistics found of catalog table $tableIdentity")
+        lr
       }
   }
 }

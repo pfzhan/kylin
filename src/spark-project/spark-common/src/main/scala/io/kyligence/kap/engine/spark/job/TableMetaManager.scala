@@ -35,6 +35,6 @@ object TableMetaManager {
   }
 
   def getTableMeta(table: String): Option[CatalogStatistics] = {
-    Option(tableMetaManager.get(table))
+    Option(tableMetaManager.get(table.toLowerCase))
   }
 }
