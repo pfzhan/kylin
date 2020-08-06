@@ -56,6 +56,10 @@ public class AddressUtil implements IKeep {
         return hostArr;
     }
 
+    public static String getMockPortAddress() {
+        return getLocalInstance().split(":")[0] + ":" + "0000";
+    }
+
     public static String getLocalServerInfo() {
         String hostName = "localhost";
         try {

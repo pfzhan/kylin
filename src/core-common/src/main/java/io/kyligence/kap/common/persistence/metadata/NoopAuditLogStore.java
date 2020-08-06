@@ -78,6 +78,11 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public void setInstance(String instance) {
+        //do nothing
+    }
+
+    @Override
     public void close() throws IOException {
         // just implement it
     }

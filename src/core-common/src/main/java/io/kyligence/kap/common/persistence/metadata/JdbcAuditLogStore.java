@@ -107,7 +107,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
     private final JdbcTemplate jdbcTemplate;
     @Getter
     private final String table;
-    private final String instance;
+
+    private String instance;
     @Getter
     private final DataSourceTransactionManager transactionManager;
     private ScheduledExecutorService consumeExecutor;
@@ -254,6 +255,11 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
     public void catchupManually(ResourceStore store) {
         consumeExecutor.submit(createFetcher(store.getChecker()));
+    }
+
+    @Override
+    public void setInstance(String instance) {
+        this.instance = instance;
     }
 
     @Override

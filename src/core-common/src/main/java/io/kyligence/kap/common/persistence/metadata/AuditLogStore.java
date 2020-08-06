@@ -51,6 +51,6 @@ public interface AuditLogStore extends Closeable, IKeep {
 
     void catchupManually(ResourceStore store);
 
-
+    void setInstance(String instance);
 
 }

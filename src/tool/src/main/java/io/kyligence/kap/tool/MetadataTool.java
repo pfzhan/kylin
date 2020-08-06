@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -187,7 +188,7 @@ public class MetadataTool extends ExecutableApplication {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         logger.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-
+        resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             boolean isGlobal = null == optionsHelper.getOptionValue(OPTION_PROJECT);
             long startAt = System.currentTimeMillis();

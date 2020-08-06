@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.tool;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
@@ -39,6 +39,7 @@ import lombok.val;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -86,11 +87,13 @@ public class MaintainModeTool extends ExecutableApplication {
 
     public void init() throws UnknownHostException {
         config = KylinConfig.getInstanceFromEnv();
+        String ipAndPort = AddressUtil.getMockPortAddress();
+        ResourceStore.getKylinMetaStore(config).getAuditLogStore().setInstance(ipAndPort);
         if (CollectionUtils.isEmpty(projects)) {
             projects = NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                     .collect(Collectors.toList());
         }
-        owner = InetAddress.getLocalHost().getHostAddress() + ":" + "0000" + "|" + Long.MAX_VALUE;
+        owner = ipAndPort + "|" + Long.MAX_VALUE;
         projects.add(UnitOfWork.GLOBAL_UNIT);
         epochManager = EpochManager.getInstance(config);
         epochManager.setIdentity(owner);
