@@ -24,15 +24,16 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.status.api.v1.ExecutorSummary;
 import org.apache.spark.status.api.v1.StageStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,33 +67,35 @@ public class LoadCounter {
         try {
             val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
             val pendingTaskCount = JavaConversions.seqAsJavaList(activeStage).stream()
-                    .filter(stage -> stage.status().equals(StageStatus.ACTIVE)).map(stageData -> {
-                        return stageData.numTasks() - stageData.numActiveTasks() - stageData.numCompleteTasks();
-                    }).mapToInt(i -> i.intValue()).sum();
-            logger.debug(String.format("Current pending task is %s", pendingTaskCount));
+                    .filter(stage -> stage.status().equals(StageStatus.ACTIVE))
+                    .map(stageData -> stageData.numTasks() - stageData.numActiveTasks() - stageData.numCompleteTasks())
+                    .mapToInt(i -> i)
+                    .sum();
+            logger.debug("Current pending task is {}", pendingTaskCount);
             queue.add(pendingTaskCount);
-        } catch (Throwable th) {
-            logger.error("Error when fetch spark pending task", th);
+        } catch (Exception ex) {
+            logger.error("Error when fetch spark pending task", ex);
         }
     }
 
     public static LoadDesc getLoadDesc() {
-        val points = queue.stream().collect(Collectors.toList());
-        logger.debug(String.format("Points is %s", points));
+        val points = new ArrayList<Integer>(queue);
+        logger.debug("Points is {}", points);
         val mean = median(points);
-        logger.debug(String.format("Mean value is %s", mean));
+        logger.debug("Mean value is {}", mean);
         val executorSummary = SparderEnv.getSparkSession().sparkContext().statusStore().executorList(true);
-        val coreNum = JavaConversions.seqAsJavaList(executorSummary).stream().map(es -> {
-            return es.totalCores();
-        }).mapToInt(i -> i.intValue()).sum();
-        logger.debug(String.format("Current core num is %d", coreNum));
-        val loadDesc = new LoadDesc(mean / coreNum, coreNum, queue.stream().collect(Collectors.toList()));
-        logger.debug(loadDesc.toString());
+        val coreNum = JavaConversions.seqAsJavaList(executorSummary).stream()
+                .map(ExecutorSummary::totalCores)
+                .mapToInt(i -> i)
+                .sum();
+        logger.debug("Current core num is {}", coreNum);
+        val loadDesc = new LoadDesc(mean / coreNum, coreNum, new ArrayList<>(queue));
+        logger.debug("LoadDesc is {}", loadDesc);
         return loadDesc;
     }
 
     private static double median(List<Integer> total) {
-        double j = 0;
+        double j;
         Collections.sort(total);
         int size = total.size();
         if (size == 0) {
