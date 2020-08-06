@@ -24,8 +24,12 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
+import java.util.Objects;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.NoArgsConstructor;
@@ -48,5 +52,14 @@ public class MeasureRef extends RecommendationRef {
     @Override
     public String getDataType() {
         throw new IllegalStateException("Get datatype of MeasureRef is not allowed, but you can get it by getContent");
+    }
+
+    public boolean isDependenciesIdentical(RecommendationRef ref) {
+        if (ref == null) {
+            return false;
+        }
+        Preconditions.checkArgument(ref instanceof MeasureRef);
+        MeasureRef measureRef = (MeasureRef) ref;
+        return Objects.equals(this.getDependencies(), measureRef.getDependencies());
     }
 }

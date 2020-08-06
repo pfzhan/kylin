@@ -109,10 +109,35 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         public List<RawRecItem> approveRawRecItems(List<Integer> layoutIds) {
-            List<RawRecItem> rawRecItems = recommendation.getAllRelatedRecItems(layoutIds);
+            List<RawRecItem> rawRecItems = getAllRelatedRecItems(layoutIds);
             rewriteModel(rawRecItems);
             rewriteIndexPlan(rawRecItems);
             return rawRecItems;
+        }
+
+        public List<RawRecItem> getAllRelatedRecItems(List<Integer> layoutIds) {
+            Set<RawRecItem> allRecItems = Sets.newLinkedHashSet();
+            layoutIds.forEach(id -> {
+                if (recommendation.getLayoutRefs().containsKey(-id)) {
+                    collect(allRecItems, recommendation.getLayoutRefs().get(-id));
+                }
+            });
+            return Lists.newArrayList(allRecItems);
+        }
+
+        private void collect(Set<RawRecItem> recItemsCollector, RecommendationRef ref) {
+            if (ref instanceof ModelColumnRef) {
+                return;
+            }
+
+            RawRecItem recItem = recommendation.getRawRecItemMap().get(-ref.getId());
+            if (recItem == null || recItemsCollector.contains(recItem)) {
+                return;
+            }
+            if (!ref.isBroken() && !ref.isExisted()) {
+                ref.getDependencies().forEach(dep -> collect(recItemsCollector, dep));
+                recItemsCollector.add(recItem);
+            }
         }
 
         private void rewriteModel(List<RawRecItem> recItems) {
@@ -233,11 +258,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     List<Integer> sortBy = Lists.newArrayList(layout.getSortByColumns());
                     List<Integer> partitionBy = Lists.newArrayList(layout.getPartitionByColumns());
 
-                    layout.setColOrder(translateToRealIds(colOrder));
-                    layout.setShardByColumns(translateToRealIds(shardBy));
-                    layout.setSortByColumns(translateToRealIds(sortBy));
-                    layout.setPartitionByColumns(translateToRealIds(partitionBy));
-                    layout.setPartitionByColumns(partitionBy);
+                    layout.setColOrder(translateToRealIds(colOrder, "ColOrder"));
+                    layout.setShardByColumns(translateToRealIds(shardBy, "ShardByColumns"));
+                    layout.setSortByColumns(translateToRealIds(sortBy, "SortByColumns"));
+                    layout.setPartitionByColumns(translateToRealIds(partitionBy, "PartitionByColumns"));
                     updateHandler.add(layout, RecommendationUtil.isAgg(rawRecItem));
                 }
                 updateHandler.complete();
@@ -245,17 +269,24 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             logFinishRewrite("IndexPlan");
         }
 
-        private List<Integer> translateToRealIds(List<Integer> virtualIds) {
+        private List<Integer> translateToRealIds(List<Integer> virtualIds, String layoutPropType) {
             List<Integer> realIds = Lists.newArrayList();
             virtualIds.forEach(virtualId -> {
                 int realId;
-                recommendation.getDimensionRefs().get(virtualId);
-                if (dimensions.containsKey(virtualId)) {
-                    realId = dimensions.get(virtualId).getId();
-                } else if (measures.containsKey(virtualId)) {
-                    realId = measures.get(virtualId).getId();
+                if (recommendation.getDimensionRefs().containsKey(virtualId)) {
+                    int refId = recommendation.getDimensionRefs().get(virtualId).getId();
+                    realId = dimensions.get(refId).getId();
+                } else if (recommendation.getMeasureRefs().containsKey(virtualId)) {
+                    int refId = recommendation.getMeasureRefs().get(virtualId).getId();
+                    realId = measures.get(refId).getId();
+                } else if (recommendation.getColumnRefs().containsKey(virtualId)) {
+                    realId = recommendation.getColumnRefs().get(virtualId).getId();
                 } else {
-                    throw new IllegalStateException("");
+                    String translateErrorMsg = String.format(
+                            "virtual id(%s) in %s(%s) cannot map to real id in model(%s/%s)", //
+                            virtualId, layoutPropType, virtualIds.toString(), recommendation.getProject(),
+                            recommendation.getUuid());
+                    throw new IllegalStateException(translateErrorMsg);
                 }
                 realIds.add(realId);
             });
@@ -309,8 +340,15 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 .approveRawRecItems(layoutIdsToAdd);
 
         UnitOfWork.get().doAfterUpdate(() -> {
+            List<Integer> nonAppliedItemIds = Lists.newArrayList();
+            recItems.forEach(recItem -> {
+                if (recItem.getState() == RawRecItem.RawRecState.APPLIED) {
+                    return;
+                }
+                nonAppliedItemIds.add(recItem.getId());
+            });
             RawRecManager rawManager = RawRecManager.getInstance(project);
-            rawManager.applyByIds(recItems.stream().map(RawRecItem::getId).collect(Collectors.toList()));
+            rawManager.applyByIds(nonAppliedItemIds);
         });
     }
 

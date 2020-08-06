@@ -28,7 +28,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -42,7 +41,6 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -270,7 +268,7 @@ public class OptRecV2 {
         }
     }
 
-    // Change exist column from raw item to column in model.
+    // Translate existing column from RawRecItem to column in model.
     // Return true if there is a not exist column/measure in cols,
     // so we can skip check with layout in index.
     private boolean translate(List<Integer> toColIds, List<Integer> fromColIds) {
@@ -506,16 +504,18 @@ public class OptRecV2 {
 
     private void checkMeasureExist(RawRecItem recItem) {
         int negRecItemId = -recItem.getId();
-        RecommendationRef measureRef = measureRefs.get(negRecItemId);
+        MeasureRef measureRef = (MeasureRef) measureRefs.get(negRecItemId);
         for (RecommendationRef entry : getLegalRefs(measureRefs)) {
             if (entry.getId() == negRecItemId) {
                 // pass itself
                 continue;
             }
 
-            // todo: something wrong when renamed
-            // if the same, forward to one
-            if (Objects.equals(entry, measureRef)) {
+            /* Parameters of measure can only ordinary columns or computed columns,
+             * so if dependencies of them are the same, it's equal, then the second
+             * measureRef should forward to the first one.
+             */
+            if (measureRef.isDependenciesIdentical(entry)) {
                 logDuplicateRawRecItem(recItem, -entry.getId());
                 measureRef.setExisted(true);
                 measureRefs.put(negRecItemId, measureRefs.get(entry.getId()));
@@ -584,27 +584,6 @@ public class OptRecV2 {
     private void filter(List<Integer> res, int id, RecommendationRef ref) {
         if (ref.isBroken() && id < 0) {
             res.add(-id);
-        }
-    }
-
-    public List<RawRecItem> getAllRelatedRecItems(List<Integer> layoutIds) {
-        Set<RawRecItem> allRecItems = Sets.newLinkedHashSet();
-        layoutIds.forEach(id -> {
-            if (layoutRefs.containsKey(-id)) {
-                collect(allRecItems, layoutRefs.get(-id));
-            }
-        });
-        return Lists.newArrayList(allRecItems);
-    }
-
-    private void collect(Set<RawRecItem> set, RecommendationRef ref) {
-        RawRecItem recItem = rawRecItemMap.get(-ref.getId());
-        if (set.contains(recItem)) {
-            return;
-        }
-        if (!ref.isBroken() && !ref.isExisted()) {
-            ref.getDependencies().forEach(dep -> collect(set, dep));
-            set.add(recItem);
         }
     }
 
