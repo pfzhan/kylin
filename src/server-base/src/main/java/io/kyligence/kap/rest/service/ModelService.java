@@ -1506,7 +1506,7 @@ public class ModelService extends BasicService {
             item.setCc(recItemV2.getCc());
             item.setCreateTime(recItemV2.getCreateTime());
             item.setRecommendationType(RecommendationType.ADDITION);
-            item.setItemId(recItemV2.getId());
+            item.setItemId(itemId.incrementAndGet());
             item.setCcColumnId(maxCCIndex.incrementAndGet());
             ccRecommendations.add(item);
 
@@ -1537,6 +1537,8 @@ public class ModelService extends BasicService {
             item.setRecommendationType(RecommendationType.ADDITION);
             item.setLayout(recItemV2.getLayout());
             item.setItemId(itemId.incrementAndGet());
+            item.setAdd(true);
+            item.setAggIndex(recItemV2.isAgg());
             indexRecommendations.add(item);
         });
 
