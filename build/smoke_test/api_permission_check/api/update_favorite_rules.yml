@@ -36,6 +36,8 @@ request:
     min_duration: 0
     count_value: 10
     max_duration: 180
+    recommendation_enable: true
+    recommendations_value: 20
     users: [ADMIN]
     user_groups: [ROLE_ADMIN]
     project: $project_name

@@ -395,8 +395,8 @@ def await_all_table_job_finished(project_name, table_name):
     finished_status = ['SUCCEED', 'DISCARDED', 'SUICIDAL', 'FINISHED']
     from datetime import datetime
     start = datetime.now()
-    # 1 minutes
-    while (datetime.now() - start).total_seconds() < 60 * 1:
+    # 5 minutes
+    while (datetime.now() - start).total_seconds() < 60 * 5:
         jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
 
         if not jobs or not any(filter(lambda job: job.get('target_model') == table_name

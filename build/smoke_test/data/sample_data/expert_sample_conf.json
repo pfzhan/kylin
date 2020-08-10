@@ -30,6 +30,8 @@
       "submitter_enable": true,
       "duration_enable": false,
       "max_duration": 180,
+      "recommendation_enable": true,
+      "recommendations_value": 20,
       "users": [
         "ADMIN",
         "TEST"
