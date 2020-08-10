@@ -105,7 +105,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <!-- <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="recommendationsList.totalSize" :curPage="recommendationsList.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager> -->
+      <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="recommendationsList.totalSize" :curPage="recommendationsList.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
     <!-- 索引详情 -->
     <el-dialog
@@ -415,7 +415,8 @@ export default class IndexList extends Vue {
   }
 
   get getRecommendData () {
-    let data = this.recommendationsList.list
+    const { list, page_offset, page_size } = this.recommendationsList
+    let data = list.slice(page_offset * 10, (page_offset + 1) * page_size)
     if (this.checkedStatus.length) {
       data = data.filter(it => this.checkedStatus.includes(it.type))
     }
@@ -493,6 +494,7 @@ export default class IndexList extends Vue {
     this.getAllRecommendations({project: this.currentProject, modelId: this.modelDesc.uuid}).then(async (res) => {
       const data = await handleSuccessAsync(res)
       this.recommendationsList.list = data.layouts
+      this.recommendationsList.totalSize = data.size
       this.modelDesc.recommendations_count = data.size
       this.loadingRecommends = false
     }).catch(e => {
@@ -669,8 +671,14 @@ export default class IndexList extends Vue {
     type === 'checkedStatus' ? (this.checkedStatus = v) : (this.sourceCheckedStatus = v)
   }
 
-  pageCurrentChange (val) {
-    this.recommendationsList.page_offset = val
+  // 分页操作
+  pageCurrentChange (offset, size) {
+    if (size !== this.recommendationsList.page_size) {
+      this.recommendationsList.page_offset = 0
+      this.recommendationsList.page_size = size
+    } else {
+      this.recommendationsList.page_offset = offset
+    }
   }
 
   jumpToSetting () {
