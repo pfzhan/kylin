@@ -398,7 +398,7 @@ public class RollbackTool extends ExecutableApplication {
 
     private Boolean checkProjectStorageDataAvailable(KylinConfig config, FileSystem fs, String project) {
 
-        val hdfsWorkingDir = KapConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory();
+        val hdfsWorkingDir = KapConfig.getInstanceFromEnv().getMetadataWorkingDirectory();
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
         val activeIndexDataPath = Sets.<String> newHashSet();

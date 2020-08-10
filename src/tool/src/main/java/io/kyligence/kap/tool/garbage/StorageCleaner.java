@@ -138,7 +138,7 @@ public class StorageCleaner {
             val dataflows = NDataflowManager.getInstance(config, project.getName()).listAllDataflows();
             for (NDataflow dataflow : dataflows) {
                 KapConfig kapConfig = KapConfig.wrap(dataflow.getConfig());
-                String hdfsWorkingDir = kapConfig.getReadHdfsWorkingDirectory();
+                String hdfsWorkingDir = kapConfig.getMetadataWorkingDirectory();
                 val fs = HadoopUtil.getWorkingFileSystem();
                 allFileSystems.add(new StorageItem(fs, hdfsWorkingDir));
             }

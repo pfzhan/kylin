@@ -93,7 +93,7 @@ class DFSnapshotBuilder extends Logging with Serializable {
     val newSnapMap = Maps.newHashMap[String, String]
     val snapSizeMap = new ConcurrentHashMap[String, Long]
     val fs = HadoopUtil.getWorkingFileSystem
-    val baseDir = KapConfig.wrap(seg.getConfig).getReadHdfsWorkingDirectory
+    val baseDir = KapConfig.wrap(seg.getConfig).getMetadataWorkingDirectory
     val toBuildTableDesc = distinctTableDesc(model)
     val kylinConf = KylinConfig.getInstanceFromEnv
     if (seg.getConfig.isSnapshotParallelBuildEnabled) {

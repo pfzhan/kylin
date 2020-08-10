@@ -373,7 +373,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     public String getSegmentHdfsPath(String segmentId) {
-        String hdfsWorkingDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
+        String hdfsWorkingDir = KapConfig.wrap(config).getMetadataWorkingDirectory();
         String path = hdfsWorkingDir + getProject() + "/parquet/" + getUuid() + "/" + segmentId;
         return path;
     }
