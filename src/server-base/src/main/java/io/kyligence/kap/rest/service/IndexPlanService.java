@@ -841,11 +841,11 @@ public class IndexPlanService extends BasicService {
 
     public void updateForMeasureChange(String project, String modelId, Set<Integer> invalidMeasures,
                                        Map<Integer, Integer> replacedMeasure) {
+        if (getIndexPlanManager(project).getIndexPlan(modelId).getRuleBasedIndex() == null)
+            return;
+
         getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
             val copyRuleBaseIndex = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), NRuleBasedIndex.class);
-
-            if (copyRuleBaseIndex == null)
-                return;
 
             for (ListIterator<Integer> measureItr = copyRuleBaseIndex.getMeasures().listIterator(); measureItr.hasNext();) {
                 Integer measureId = measureItr.next();

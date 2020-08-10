@@ -54,7 +54,7 @@ public class UpdateImpact implements Serializable {
 
     private Map<Integer, Integer> replacedMeasures = new HashMap<>();  // need to swap measure id in Agg/TableIndex, layouts
 
-    public UpdateImpact() {
+    public UpdateImpact() {  // do nothing
     }
 
     public Set<Integer> getAffectedIds() {

@@ -520,9 +520,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         Assert.assertNotNull(ccCol);
         request.getComputedColumnDescs().remove(ccDesc);
 
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "table index 20000020000 contains invalid column 25. table index can only contain columns added to model.");
+                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's table index still contains column(s) BUYER_COUNTRY.NAME,TEST_KYLIN_FACT.DEAL_YEAR");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 

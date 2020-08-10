@@ -427,16 +427,54 @@ public class ModelSemanticHelper extends BasicService {
 
         // compare measures
         val newMeasures = Lists.<NDataModel.Measure> newArrayList();
-        var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
-                .orElse(NDataModel.MEASURE_ID_BASE - 1);
-
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
                 toMeasureMap.apply(expectedModel.getAllMeasures()),
                 newMeasure -> newMeasures.add(newMeasure),
                 oldMeasure -> oldMeasure.setTomb(true),
                 (oldMeasure, newMeasure) -> oldMeasure.setName(newMeasure.getName()));
-        // one measure in expectedModel but not in originModel then add one
-        // one in expectedModel, is also a TOMB one in originModel, set status to not TOMB
+        updateMeasureStatus(newMeasures, originModel, updateImpact);
+
+        // compare originModel and expectedModel's existing allNamedColumn
+        val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
+        val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
+        compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
+                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
+                (olCol, newCol) -> olCol.setName(newCol.getName()));
+        updateColumnStatus(newCols, originModel, updateImpact);
+
+        // measures invalid due to cc removal
+        // should not clear related layouts
+        val removedCCs = new HashSet<Integer>();
+        removedCCs.addAll(updateImpact.getRemovedOrUpdatedCCs());
+        removedCCs.removeAll(updateImpact.getUpdatedCCs());
+        updateImpact.getInvalidMeasures().removeIf(measureId -> causedByCCDelete(removedCCs, originModel, measureId));
+
+        // compare originModel and expectedModel's dimensions
+        val originDimensionMap = toDimensionMap.apply(originModel.getAllNamedColumns());
+        compareAndUpdateColumns(originDimensionMap, toDimensionMap.apply(expectedModel.getAllNamedColumns()),
+                newCol -> originExistMap.get(newCol.getAliasDotColumn()).setStatus(NDataModel.ColumnStatus.DIMENSION),
+                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.EXIST),
+                (olCol, newCol) -> olCol.setName(newCol.getName()));
+
+        //Move unused named column to EXIST status
+        originModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .filter(column -> request.getSimplifiedDimensions().stream()
+                        .noneMatch(dimension -> dimension.getAliasDotColumn().equals(column.getAliasDotColumn())))
+                .forEach(c -> c.setStatus(NDataModel.ColumnStatus.EXIST));
+
+        return updateImpact;
+    }
+
+    /**
+     *  one measure in expectedModel but not in originModel then add one
+     *  one in expectedModel, is also a TOMB one in originModel, set status to not TOMB
+     * @param newMeasures
+     * @param originModel
+     * @param updateImpact
+     */
+    private void updateMeasureStatus(List<Measure> newMeasures, NDataModel originModel, UpdateImpact updateImpact) {
+        var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
+                .orElse(NDataModel.MEASURE_ID_BASE - 1);
         for (NDataModel.Measure measure : newMeasures) {
             val modifiedMeasureId = updateImpact.getInvalidMeasures().stream()
                     .filter(measureId -> equalsIgnoreReturnType(originModel.getTombMeasureByMeasureId(measureId), measure))
@@ -478,15 +516,16 @@ public class ModelSemanticHelper extends BasicService {
                 }
             }
         }
+    }
 
-        // compare originModel and expectedModel's existing allNamedColumn
-        val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
-        val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
-        compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
-                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
-                (olCol, newCol) -> olCol.setName(newCol.getName()));
+    /**
+     * one in expectedModel, is also a TOMB one in originModel, set status as the expected's
+     * @param newCols
+     * @param originModel
+     * @param updateImpact
+     */
+    private void updateColumnStatus(List<NDataModel.NamedColumn> newCols, NDataModel originModel, UpdateImpact updateImpact) {
         int maxId = originModel.getAllNamedColumns().stream().map(NamedColumn::getId).mapToInt(i -> i).max().orElse(-1);
-        // one in expectedModel, is also a TOMB one in originModel, set status as the expected's
         for (NDataModel.NamedColumn newCol : newCols) {
             val modifiedColId = updateImpact.getRemovedOrUpdatedCCs().stream()
                     .filter(modifiedId -> newCol.getAliasDotColumn().equals(originModel.getTombColumnNameByColumnId(modifiedId)))
@@ -505,39 +544,27 @@ public class ModelSemanticHelper extends BasicService {
                 originModel.getAllNamedColumns().add(newCol);
             }
         }
+    }
 
-        // measures invalid due to cc removal
-        // should not clear related layouts
-        val removedCCs = new HashSet<Integer>();
-        removedCCs.addAll(updateImpact.getRemovedOrUpdatedCCs());
-        removedCCs.removeAll(updateImpact.getUpdatedCCs());
-        updateImpact.getInvalidMeasures().removeIf(measureId -> {
-            for (int ccId : removedCCs) {
-                val colName = originModel.getTombColumnNameByColumnId(ccId);
-                val funcParams = originModel.getTombMeasureByMeasureId(measureId).getFunction().getParameters();
-                for (val funcParam : funcParams) {
-                    val funcColName = funcParam.getColRef().getIdentity();
-                    if (funcColName == colName)
-                        return true;
-                }
+    /**
+     * if a measure becomes invalid because of cc delete,
+     * the measure and related aggGroups/layouts should remains
+     * @param removedCCs
+     * @param originModel
+     * @param measureId
+     * @return
+     */
+    private boolean causedByCCDelete(Set<Integer> removedCCs, NDataModel originModel, int measureId) {
+        for (int ccId : removedCCs) {
+            val colName = originModel.getTombColumnNameByColumnId(ccId);
+            val funcParams = originModel.getTombMeasureByMeasureId(measureId).getFunction().getParameters();
+            for (val funcParam : funcParams) {
+                val funcColName = funcParam.getColRef().getIdentity();
+                if (funcColName == colName)
+                    return true;
             }
-            return false;
-        });
-
-        // compare originModel and expectedModel's dimensions
-        val originDimensionMap = toDimensionMap.apply(originModel.getAllNamedColumns());
-        compareAndUpdateColumns(originDimensionMap, toDimensionMap.apply(expectedModel.getAllNamedColumns()),
-                newCol -> originExistMap.get(newCol.getAliasDotColumn()).setStatus(NDataModel.ColumnStatus.DIMENSION),
-                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.EXIST),
-                (olCol, newCol) -> olCol.setName(newCol.getName()));
-
-        //Move unused named column to EXIST status
-        originModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
-                .filter(column -> request.getSimplifiedDimensions().stream()
-                        .noneMatch(dimension -> dimension.getAliasDotColumn().equals(column.getAliasDotColumn())))
-                .forEach(c -> c.setStatus(NDataModel.ColumnStatus.EXIST));
-
-        return updateImpact;
+        }
+        return false;
     }
 
     private <K, T> void compareAndUpdateColumns(Map<K, T> origin, Map<K, T> target, Consumer<T> onlyInTarget,

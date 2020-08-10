@@ -3845,9 +3845,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testRemoveRecommendAggIndexDimensionColumn() throws Exception {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "table index 20000000000 contains invalid column 0. table index can only contain columns added to model.");
+                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's table index still contains column(s) TEST_SITES.SITE_NAME");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
