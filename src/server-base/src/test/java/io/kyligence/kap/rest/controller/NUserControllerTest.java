@@ -292,14 +292,19 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testDelUser() throws Exception {
+    public void testDelUserByUUID() throws Exception {
+        ManagedUser user = new ManagedUser();
+        user.setUuid("u1");
+        user.setUsername("username1");
+
+        Mockito.doReturn(Lists.newArrayList(user)).when(userService).listUsers();
         Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/{uuid:.+}", "u1")
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nUserController).delete("u1");
+        Mockito.verify(nUserController).deleteByUUID("u1");
     }
 
     @Test

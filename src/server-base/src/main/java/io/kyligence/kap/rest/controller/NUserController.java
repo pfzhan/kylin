@@ -38,6 +38,7 @@ import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -223,8 +224,39 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @DeleteMapping(value = "/{username:.+}")
+    @DeleteMapping(value = "/{uuid:.+}")
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> deleteByUUID(@PathVariable("uuid") String userUUID) {
+        val msg = MsgPicker.getMsg();
+
+        checkProfile();
+
+        ManagedUser toBeDeleteUser = null;
+        try {
+            toBeDeleteUser = userService.listUsers().stream().filter(user -> userUUID.equalsIgnoreCase(user.getUuid()))
+                    .findFirst().orElse(null);
+        } catch (IOException e) {
+            logger.error("List all users is failed!", e);
+        }
+
+        if (Objects.isNull(toBeDeleteUser)) {
+            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_EXIST(), userUUID));
+        }
+
+        if (StringUtils.equals(getPrincipal(), toBeDeleteUser.getUsername())) {
+            throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
+        }
+        accessService.checkDefaultAdmin(toBeDeleteUser.getUsername(), false);
+        //delete user's project ACL
+        accessService.revokeProjectPermission(toBeDeleteUser.getUsername(), MetadataConstants.TYPE_USER);
+        aclTCRService.revokeAclTCR(toBeDeleteUser.getUsername(), true);
+        userService.deleteUser(toBeDeleteUser.getUsername());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    //@DeleteMapping(value = "/{username:.+}")
+    //@ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> delete(@PathVariable("username") String username) {
         val msg = MsgPicker.getMsg();
