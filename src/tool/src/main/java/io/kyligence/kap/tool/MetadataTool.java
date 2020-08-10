@@ -168,10 +168,13 @@ public class MetadataTool extends ExecutableApplication {
     }
 
     public static void main(String[] args) throws Exception {
-        val tool = new MetadataTool(KylinConfig.getInstanceFromEnv());
+        val config = KylinConfig.getInstanceFromEnv();
+        val tool = new MetadataTool(config);
         val optionsHelper = new OptionsHelper();
         optionsHelper.parseOptions(tool.getOptions(), args);
         boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
+        val resourceStore = ResourceStore.getKylinMetaStore(config);
+        resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
         tool.execute(args);
         if (isBackup && StringUtils.isNotEmpty(tool.getBackupPath())) {
             System.out.println(String.format("The metadata backup path is %s.", tool.getBackupPath()));
@@ -188,7 +191,6 @@ public class MetadataTool extends ExecutableApplication {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         logger.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             boolean isGlobal = null == optionsHelper.getOptionValue(OPTION_PROJECT);
             long startAt = System.currentTimeMillis();
