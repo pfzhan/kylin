@@ -24,50 +24,36 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-import static org.apache.kylin.common.persistence.ResourceStore.GLOBAL_EPOCH;
-
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.metadata.Epoch;
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.val;
 
 public class EpochManager implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(EpochManager.class);
-
-    private static final Serializer<Epoch> EPOCH_SERIALIZER = new JsonSerializer<Epoch>(Epoch.class);
 
     public static EpochManager getInstance(KylinConfig config) {
         return config.getManager(EpochManager.class);
@@ -75,15 +61,17 @@ public class EpochManager implements IKeep {
 
     public static final String GLOBAL = "_global";
 
-    private static final ExecutorService pool;
+    private static final String maintainOwner;
 
     private Set<String> currentEpochs = Sets.newCopyOnWriteArraySet();
 
     private boolean started = false;
 
+    private EpochStore epochStore;
+
     // called by reflection
     @SuppressWarnings("unused")
-    static EpochManager newInstance(KylinConfig config) {
+    static EpochManager newInstance(KylinConfig config) throws Exception {
         return new EpochManager(config);
     }
 
@@ -94,179 +82,116 @@ public class EpochManager implements IKeep {
     private EventBusFactory eventBusFactory;
 
     static {
-        pool = new ThreadPoolExecutor(5, 10, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>());
+        maintainOwner = AddressUtil.getMockPortAddress() + "|" + Long.MAX_VALUE;
     }
 
-    private EpochManager(KylinConfig cfg) {
+    private EpochManager(KylinConfig cfg) throws Exception {
         this.config = cfg;
         this.identity = EpochOrchestrator.getOwnerIdentity();
         eventBusFactory = EventBusFactory.getInstance();
+        epochStore = EpochStore.getEpochStore(config);
     }
 
     //for test
     public Epoch getGlobalEpoch() {
-        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(GLOBAL_EPOCH,
-                EPOCH_SERIALIZER);
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class MaintenanceModeResult {
-        private boolean successful;
-        private String status;
+        return epochStore.getGlobalEpoch();
     }
 
     public Boolean setMaintenanceMode(String reason) {
-        return UnitOfWork.doInTransactionWithRetry(() -> {
-            Epoch epoch = getGlobalEpoch();
-            if (epoch == null || !epoch.getCurrentEpochOwner().equals(identity)) {
-                throw new EpochNotMatchException("System is trying to recover, please try again later",
-                        EpochManager.GLOBAL);
-            }
-            if (epoch.isMaintenanceMode()) {
-                return Boolean.FALSE;
-            }
-            epoch.setMaintenanceMode(true);
+        if (isMaintenanceMode()) {
+            return false;
+        }
+        for (Epoch epoch : epochStore.list()) {
+            epoch.setCurrentEpochOwner(maintainOwner);
+            epoch.setLastEpochRenewTime(Long.MAX_VALUE);
             epoch.setMaintenanceModeReason(reason);
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch,
-                    EPOCH_SERIALIZER);
-            return Boolean.TRUE;
-        }, GLOBAL, 1);
+            epochStore.saveOrUpdate(epoch);
+        }
+
+        return true;
     }
 
     public Boolean unsetMaintenanceMode(String reason) {
-        return UnitOfWork.doInTransactionWithRetry(() -> {
-            Epoch epoch = getGlobalEpoch();
-            if (epoch == null || !epoch.getCurrentEpochOwner().equals(identity)) {
-                throw new EpochNotMatchException("System is trying to recover, please try again later",
-                        EpochManager.GLOBAL);
-            }
-            if (!epoch.isMaintenanceMode()) {
-                return Boolean.FALSE;
-            }
-            epoch.setMaintenanceMode(false);
+        if (!isMaintenanceMode()) {
+            return false;
+        }
+
+        for (Epoch epoch : epochStore.list()) {
+            epoch.setCurrentEpochOwner("");
+            epoch.setLastEpochRenewTime(-1L);
             epoch.setMaintenanceModeReason(reason);
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch,
-                    EPOCH_SERIALIZER);
-            return Boolean.TRUE;
-        }, GLOBAL, 1);
+            epochStore.saveOrUpdate(epoch);
+        }
+
+        return true;
     }
 
-    private boolean updateGlobalEpoch(boolean force) {
-        return UnitOfWork.doInTransactionWithRetry(() -> {
-            Epoch epoch = getNewEpoch(getGlobalEpoch(), force, GLOBAL);
-            if (epoch == null) {
+    private List<String> getProjectsToMarkOwner() {
+        return NProjectManager.getInstance(config).listAllProjects().stream().filter(p -> {
+            Epoch epoch = epochStore.getEpoch(p.getName());
+            if (!isEpochLegal(epoch) || epoch.getCurrentEpochOwner().equals(identity)) {
+                return true;
+            }
+            return false;
+        }).map(ProjectInstance::getName).collect(Collectors.toList());
+    }
+
+    private Set<String> tryUpdateAllEpoch() {
+        Set<String> newEpochs = new HashSet<>();
+        List<String> prjs = config.getEpochCheckerEnabled() ? getProjectsToMarkOwner()
+                : NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
+                        .collect(Collectors.toList());
+
+        prjs.add(GLOBAL);
+
+        for (String prj : prjs) {
+            boolean success = tryUpdateEpoch(prj, false);
+            if (success || checkEpochOwner(prj)) {
+                newEpochs.add(prj);
+            }
+        }
+        return newEpochs;
+    }
+
+    public boolean tryUpdateEpoch(String epochTarget, boolean force) {
+        if (!force && isMaintenanceMode()) {
+            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+            return false;
+        }
+        try {
+            Epoch epoch = epochStore.getEpoch(epochTarget);
+            Epoch finalEpoch = getNewEpoch(epoch, force, epochTarget);
+            if (finalEpoch == null) {
                 return false;
             }
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(GLOBAL_EPOCH, epoch,
-                    EPOCH_SERIALIZER);
+
+            epochStore.saveOrUpdate(finalEpoch);
+
             return true;
-        }, GLOBAL, 1);
-    }
-
-    private List<ProjectInstance> getProjectsToMarkOwner() {
-        List<ProjectInstance> prjs = NProjectManager.getInstance(config).listAllProjects();
-        return prjs.stream()
-                .filter(p -> !isEpochLegal(p.getEpoch()) || p.getEpoch().getCurrentEpochOwner().equals(identity))
-                .collect(Collectors.toList());
-    }
-
-    private void tryUpdatePrjEpochs(Set<String> newEpochs) throws Exception {
-        List<ProjectInstance> prjs = config.getEpochCheckerEnabled() ? getProjectsToMarkOwner()
-                : NProjectManager.getInstance(config).listAllProjects();
-        Map<String, FutureTask<Boolean>> fts = Maps.newHashMap();
-        for (ProjectInstance prj : prjs) {
-            FutureTask<Boolean> ft = new FutureTask<Boolean>(new Callable<Boolean>() {
-                @Override
-                public Boolean call() {
-                    return updateProjectEpoch(prj);
-                }
-            });
-            pool.submit(ft);
-            fts.put(prj.getName(), ft);
-        }
-        for (val entry : fts.entrySet()) {
-            try {
-                if (entry.getValue().get(KylinConfig.getInstanceFromEnv().getUpdateEpochTimeout(), TimeUnit.SECONDS)) {
-                    newEpochs.add(entry.getKey());
-                }
-            } catch (Exception e) {
-                logger.error("failed to update {}", entry.getKey(), e);
-                if (checkEpochOwner(entry.getKey())) {
-                    newEpochs.add(entry.getKey());
-                }
-            }
-        }
-    }
-
-    public boolean updateProjectEpoch(ProjectInstance prj) {
-        return updateProjectEpoch(prj, false);
-    }
-
-    public boolean updateProjectEpoch(ProjectInstance prj, boolean force) {
-        try {
-            return UnitOfWork.doInTransactionWithRetry(() -> {
-                val kylinConfig = KylinConfig.getInstanceFromEnv();
-                ProjectInstance project = NProjectManager.getInstance(kylinConfig).getProject(prj.getName());
-                if (project == null) {
-                    return false;
-                }
-                Epoch finalEpoch = getNewEpoch(project.getEpoch(), force, prj.getName());
-                if (finalEpoch == null) {
-                    return false;
-                }
-                NProjectManager.getInstance(kylinConfig).updateProject(prj.getName(),
-                        copyForWrite -> copyForWrite.setEpoch(finalEpoch));
-                return true;
-            }, prj.getName(), 1);
         } catch (Exception e) {
-            logger.error("update " + prj.getName() + " epoch failed.", e);
+            logger.error("Update " + epochTarget + " epoch failed.", e);
             return false;
         }
     }
 
-    public boolean tryUpdateGlobalEpoch(Set<String> newEpochs, boolean force) throws Exception {
-        val ft = new FutureTask<Boolean>(new Callable<Boolean>() {
-            @Override
-            public Boolean call() {
-                return updateGlobalEpoch(force);
-            }
-        });
-        pool.submit(ft);
-        try {
-            if (ft.get(KylinConfig.getInstanceFromEnv().getUpdateEpochTimeout(), TimeUnit.SECONDS))
-                newEpochs.add(GLOBAL);
-            return true;
-        } catch (Exception e) {
-            if (checkEpochOwner(GLOBAL)) {
-                newEpochs.add(GLOBAL);
-            }
-            logger.error("failed to update epoch {}", GLOBAL, e);
-            return false;
-        }
-    }
-
-    private Epoch getNewEpoch(Epoch epoch, String project) {
-        return getNewEpoch(epoch, false, project);
-    }
-
-    private Epoch getNewEpoch(Epoch epoch, boolean force, String project) {
+    private Epoch getNewEpoch(Epoch epoch, boolean force, String epochTarget) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!kylinConfig.getEpochCheckerEnabled()) {
-            Epoch newEpoch = new Epoch(1L, identity, Long.MAX_VALUE, kylinConfig.getServerMode(), false, null);
-            newEpoch.setMvcc(epoch == null ? -1 : epoch.getMvcc());
+            Epoch newEpoch = new Epoch(1L, epochTarget, identity, Long.MAX_VALUE, kylinConfig.getServerMode(), null,
+                    0L);
+            newEpoch.setMvcc(epoch == null ? 0 : epoch.getMvcc());
             return newEpoch;
         }
         if (epoch == null) {
-            epoch = new Epoch(1L, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), false, null);
+            epoch = new Epoch(1L, epochTarget, identity, System.currentTimeMillis(), kylinConfig.getServerMode(), null,
+                    0L);
         } else {
             if (!epoch.getCurrentEpochOwner().equals(identity)) {
                 if (isEpochLegal(epoch) && !force)
                     return null;
                 epoch.setEpochId(epoch.getEpochId() + 1);
             } else {
-                if (!currentEpochs.contains(project)) {
+                if (!currentEpochs.contains(epochTarget)) {
                     epoch.setEpochId(epoch.getEpochId() + 1);
                 }
             }
@@ -277,78 +202,58 @@ public class EpochManager implements IKeep {
         return epoch;
     }
 
-    public synchronized void updateAllEpochs() throws Exception {
-        logger.info("start updateAllEpochs.........");
+    public synchronized void updateAllEpochs() {
+        logger.debug("Start updateAllEpochs.........");
+        if (isMaintenanceMode()) {
+            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+            return;
+        }
         val oriEpochs = Sets.newHashSet(currentEpochs);
-        Set<String> newEpochs = Sets.newCopyOnWriteArraySet();
-        tryUpdateGlobalEpoch(newEpochs, false);
-        tryUpdatePrjEpochs(newEpochs);
-        logger.info("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
+        Set<String> newEpochs = tryUpdateAllEpoch();
+        logger.debug("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
         Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
         Collection<String> escapedProjects = CollectionUtils.removeAll(oriEpochs, retainPrjs);
-        if (!getGlobalEpoch().isMaintenanceMode()) {
-            for (String prj : newEpochs) {
-                eventBusFactory.postAsync(new ProjectControlledNotifier(prj));
-            }
+        for (String prj : newEpochs) {
+            eventBusFactory.postAsync(new ProjectControlledNotifier(prj));
+        }
 
-            for (String prj : escapedProjects) {
-                eventBusFactory.postAsync(new ProjectEscapedNotifier(prj));
-            }
+        for (String prj : escapedProjects) {
+            eventBusFactory.postAsync(new ProjectEscapedNotifier(prj));
         }
 
         if (!started) {
             started = true;
             eventBusFactory.postAsync(new EpochStartedNotifier());
         }
-        logger.info("end updateAllEpochs.........");
+        logger.debug("End updateAllEpochs.........");
         currentEpochs = newEpochs;
     }
 
-    public boolean checkEpochOwner(String project) {
-        Epoch epoch;
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        checkPrj(project);
-        if (project.equals(GLOBAL)) {
-            epoch = getGlobalEpoch();
-        } else {
-            val projectInstance = projectManager.getProject(project);
-            if (projectInstance == null) {
-                return false;
-            }
-            epoch = projectInstance.getEpoch();
-        }
+    public boolean checkEpochOwner(String epochTarget) {
+        Epoch epoch = epochStore.getEpoch(epochTarget);
         return isEpochLegal(epoch) && epoch.getCurrentEpochOwner().equals(identity);
     }
 
-    //when create a project, mark now
-    public synchronized void updateEpoch(String project) throws Exception {
-        if (StringUtils.isEmpty(project))
+    //when create a epochTarget, mark now
+    public synchronized void updateEpoch(String epochTarget) throws Exception {
+        if (isMaintenanceMode()) {
+            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+            return;
+        }
+
+        if (StringUtils.isEmpty(epochTarget)) {
             updateAllEpochs();
-        if (project.equals(GLOBAL)) {
-            if (tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet(), false)) {
-                currentEpochs.add(project);
-                if (!getGlobalEpoch().isMaintenanceMode()) {
-                    eventBusFactory.postAsync(new ProjectControlledNotifier(project));
-                }
-            }
         }
-        ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
-        if (prj == null) {
-            throw new IllegalStateException(String.format("Project %s does not exist", project));
-        }
-        if (updateProjectEpoch(prj)) {
-            currentEpochs.add(project);
-            if (!getGlobalEpoch().isMaintenanceMode()) {
-                eventBusFactory.postAsync(new ProjectControlledNotifier(project));
-            }
+
+        if (tryUpdateEpoch(epochTarget, false)) {
+            currentEpochs.add(epochTarget);
+            eventBusFactory.postAsync(new ProjectControlledNotifier(epochTarget));
         }
     }
 
     public Set<String> getAllLeadersByMode(String serverMode) {
-        NProjectManager prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        Set<String> leaders = Sets.newHashSet();
-        prjMgr.listAllProjects().stream().map(ProjectInstance::getEpoch).filter(epoch -> isEpochLegal(epoch))
-                .map(Epoch::getCurrentEpochOwner).map(s -> getHostAndPort(s)).collect(Collectors.toSet());
+        Set<String> leaders = epochStore.list().stream().filter(this::isEpochLegal).map(Epoch::getCurrentEpochOwner)
+                .map(this::getHostAndPort).collect(Collectors.toSet());
         Epoch globalEpoch = getGlobalEpoch();
         if (StringUtils.isNotBlank(serverMode) && StringUtils.isNotBlank(globalEpoch.getServerMode())
                 && !serverMode.equals(globalEpoch.getServerMode())) {
@@ -365,18 +270,9 @@ public class EpochManager implements IKeep {
                 - epoch.getLastEpochRenewTime() <= config.getEpochExpireTimeSecond() * 1000;
     }
 
-    public String getEpochOwner(String project) {
-        checkPrj(project);
-        Epoch epoch;
-        if (project.equals(GLOBAL)) {
-            epoch = getGlobalEpoch();
-        } else {
-            NProjectManager projectManager = NProjectManager.getInstance(config);
-            ProjectInstance prj = projectManager.getProject(project);
-            if (prj == null)
-                throw new IllegalArgumentException(String.format("Project %s does not exist", project));
-            epoch = prj.getEpoch();
-        }
+    public String getEpochOwner(String epochTarget) {
+        checkEpochTarget(epochTarget);
+        Epoch epoch = epochStore.getEpoch(epochTarget);
         if (isEpochLegal(epoch)) {
             return getHostAndPort(epoch.getCurrentEpochOwner());
         } else {
@@ -388,75 +284,71 @@ public class EpochManager implements IKeep {
         return owner.split("\\|")[0];
     }
 
-    //ensure only one project thread running
-    public boolean checkEpochId(long epochId, String project) {
-        return getEpochId(project) == epochId;
+    //ensure only one epochTarget thread running
+    public boolean checkEpochId(long epochId, String epochTarget) {
+        return getEpochId(epochTarget) == epochId;
     }
 
-    public long getEpochId(String project) {
-        checkPrj(project);
-        Epoch epoch = null;
-        if (GLOBAL.equals(project))
-            epoch = getGlobalEpoch();
-        else
-            epoch = NProjectManager.getInstance(config).getProject(project).getEpoch();
+    public long getEpochId(String epochTarget) {
+        checkEpochTarget(epochTarget);
+        Epoch epoch = epochStore.getEpoch(epochTarget);
         if (epoch == null) {
-            throw new IllegalStateException(String.format("Epoch of project %s does not exist", project));
+            throw new IllegalStateException(String.format("Epoch of project %s does not exist", epochTarget));
         }
         return epoch.getEpochId();
     }
 
-    public synchronized void forceUpdateEpoch(String project) {
-        if (project.equals(EpochManager.GLOBAL)) {
-            try {
-                if (tryUpdateGlobalEpoch(Sets.newHashSet(), true)) {
-                    currentEpochs.add(project);
-                    if (!getGlobalEpoch().isMaintenanceMode()) {
-                        eventBusFactory.postAsync(new ProjectControlledNotifier(project));
-                    }
-                }
-            } catch (Exception e) {
-                logger.error("failed to update global epoch forcelly", e);
-            }
-        } else {
-            ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
-            Preconditions.checkNotNull(prj);
-            if (updateProjectEpoch(prj, true)) {
-                currentEpochs.add(project);
-                if (!getGlobalEpoch().isMaintenanceMode()) {
-                    eventBusFactory.postAsync(new ProjectControlledNotifier(project));
-                }
+    public synchronized void forceUpdateEpoch(String epochTarget) {
+        if (tryUpdateEpoch(epochTarget, true)) {
+            currentEpochs.add(epochTarget);
+            if (!isMaintenanceMode()) {
+                eventBusFactory.postAsync(new ProjectControlledNotifier(epochTarget));
             }
         }
     }
 
-    private void checkPrj(String project) {
-        if (StringUtils.isEmpty(project)) {
+    private void checkEpochTarget(String epochTarget) {
+        if (StringUtils.isEmpty(epochTarget)) {
             throw new IllegalStateException("Project should not be empty");
         }
     }
 
-    public List<ProjectInstance> getOwnedProjects() {
-        return NProjectManager.getInstance(config).listAllProjects().stream()
-                .filter(p -> p.getEpoch().getCurrentEpochOwner().equals(identity)).collect(Collectors.toList());
-    }
-
-    public void shutdownOwnedProjects() {
-        List<ProjectInstance> prjs = getOwnedProjects();
-        for (ProjectInstance prj : prjs) {
-            eventBusFactory.postAsync(new ProjectEscapedNotifier(prj.getName()));
-        }
-    }
-
-    public void startOwnedProjects() {
-        List<ProjectInstance> prjs = getOwnedProjects();
-        for (ProjectInstance prj : prjs) {
-            eventBusFactory.postAsync(new ProjectControlledNotifier(prj.getName()));
-        }
+    public Epoch getEpoch(String epochTarget) {
+        return epochStore.getEpoch(epochTarget);
     }
 
     //for UT
     public void setIdentity(String newIdentity) {
         this.identity = newIdentity;
+    }
+
+    // when startup
+    public void updateOwnedEpoch() {
+        List<String> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects().stream()
+                .map(ProjectInstance::getName).collect(Collectors.toList());
+
+        epochStore.list().stream()
+                .filter(epoch -> projects.contains(epoch.getEpochTarget())
+                        || Objects.equals(epoch.getEpochTarget(), GLOBAL))
+                .filter(epoch -> Objects.equals(getHostAndPort(epoch.getCurrentEpochOwner()),
+                        AddressUtil.getLocalInstance()))
+                .map(Epoch::getEpochTarget).forEach(this::forceUpdateEpoch);
+    }
+
+    public void deleteEpoch(String epochTarget) {
+        epochStore.delete(epochTarget);
+    }
+
+    public Pair<Boolean, String> getMaintenanceModeDetail() {
+        Epoch globalEpoch = epochStore.getGlobalEpoch();
+        if (globalEpoch != null && globalEpoch.getCurrentEpochOwner().contains(":0000")) {
+            return Pair.newPair(true, globalEpoch.getMaintenanceModeReason());
+        }
+
+        return Pair.newPair(false, null);
+    }
+
+    public boolean isMaintenanceMode() {
+        return getMaintenanceModeDetail().getFirst();
     }
 }

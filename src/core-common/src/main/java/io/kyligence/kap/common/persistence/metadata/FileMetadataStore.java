@@ -47,9 +47,10 @@ public class FileMetadataStore extends MetadataStore {
 
     private final File root;
 
-    public FileMetadataStore(KylinConfig kylinConfig) {
+    public FileMetadataStore(KylinConfig kylinConfig) throws Exception {
         super(kylinConfig);
         root = new File(kylinConfig.getMetadataUrl().getIdentifier()).getAbsoluteFile();
+        epochStore = EpochStore.getEpochStore(kylinConfig);
     }
 
     @Override

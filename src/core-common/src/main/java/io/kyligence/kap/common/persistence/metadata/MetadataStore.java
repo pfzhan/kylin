@@ -78,6 +78,10 @@ public abstract class MetadataStore {
         auditLogStore = new NoopAuditLogStore();
     }
 
+    @Getter
+    @Setter
+    EpochStore epochStore;
+
     protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId)
             throws Exception;
 

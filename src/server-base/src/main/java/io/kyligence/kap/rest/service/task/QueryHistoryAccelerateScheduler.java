@@ -96,8 +96,10 @@ public class QueryHistoryAccelerateScheduler {
     public void init() {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
+
+        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            this.epochId = projectInstance.getEpoch().getEpochId();
+            this.epochId = epochManager.getEpoch(projectInstance.getName()).getEpochId();
         }
 
         queryHistoryAccelerateScheduler = Executors.newScheduledThreadPool(1,

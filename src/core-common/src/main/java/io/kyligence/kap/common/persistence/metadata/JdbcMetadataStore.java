@@ -25,6 +25,7 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
+import static io.kyligence.kap.common.persistence.transaction.UnitOfWork.GLOBAL_UNIT;
 import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_UPDATE_METADATA;
 
 import java.io.File;
@@ -44,14 +45,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.JsonUtil;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
@@ -73,7 +72,6 @@ public class JdbcMetadataStore extends MetadataStore {
     static final String META_TABLE_CONTENT = "META_TABLE_CONTENT";
     static final String META_TABLE_TS = "META_TABLE_TS";
     static final String META_TABLE_MVCC = "META_TABLE_MVCC";
-    static final String EPOCH_ID = "epoch_id";
 
 
     private static final String SELECT_TERM = "select ";
@@ -117,6 +115,7 @@ public class JdbcMetadataStore extends MetadataStore {
             auditLogStore = new JdbcAuditLogStore(config, jdbcTemplate, transactionManager,
                     table + JdbcAuditLogStore.AUDIT_LOG_SUFFIX);
         }
+        epochStore = EpochStore.getEpochStore(config);
         createIfNotExist();
     }
 
@@ -162,25 +161,20 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     public void checkEpochModified(String unitPath, long oriMvcc, long oriEpochId) {
+        if (unitPath.startsWith("_") && !unitPath.equalsIgnoreCase(GLOBAL_UNIT)) {
+            return;
+        }
+
         if (StringUtils.isNotEmpty(unitPath)) {
-            val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, unitPath, oriMvcc),
-                    RAW_RESOURCE_ROW_MAPPER);
-            if (CollectionUtils.isEmpty(result)) {
+            if (oriEpochId < 0) {
+                return;
+            }
+
+            Epoch epoch = epochStore.getEpoch(unitPath);
+            if (epoch == null || epoch.getMvcc() != oriMvcc) {
                 throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
             }
-            if (oriEpochId < 0) return;
-            long epochId;
-            try {
-                JsonNode nodes = JsonUtil.readValueAsTree(new String(result.get(0).getByteSource().read()));
-                if (unitPath.contains(ResourceStore.GLOBAL_EPOCH)) {
-                    epochId = nodes.get(EPOCH_ID).asLong();
-                } else {
-                    epochId = nodes.get("epoch").get(EPOCH_ID).asLong();
-                }
-            } catch (Exception e) {
-                log.error("Can not get epochId from resource store for path {}.", unitPath, e);
-                throw new IllegalStateException("Can not get epochId from resource store.");
-            }
+            long epochId = epoch.getEpochId();
             if (oriEpochId != epochId)
                 throw new IllegalStateException(String.format("EpochId for path %s dose not match, origin epoch id is %s, but epoch id in db is %s.", unitPath, oriEpochId, epochId));
         }

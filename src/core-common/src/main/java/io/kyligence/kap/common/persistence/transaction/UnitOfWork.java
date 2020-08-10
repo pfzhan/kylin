@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.metadata.Epoch;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -261,17 +262,13 @@ public class UnitOfWork {
         val checker = params.getEpochChecker();
         val unitName = params.getUnitName();
         long oriMvcc = -1;
-        String unitPath = null;
         if (StringUtils.isNotEmpty(unitName) && checker != null) {
-            if (unitName.equals(GLOBAL_UNIT)) {
-                unitPath = ResourceStore.GLOBAL_EPOCH;
-            } else {
-                unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json";
+            Epoch epoch = ResourceStore.getKylinMetaStore(originConfig).getEpochStore().getEpoch(unitName);
+            if (epoch != null) {
+                oriMvcc = epoch.getMvcc();
             }
-            oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath).getMvcc();
-
         }
-        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc,
+        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, oriMvcc,
                 params.getEpochId());
         if (!params.isReadonly() && !config.isUTEnv()) {
             factory.postAsync(new BroadcastEventReadyNotifier());

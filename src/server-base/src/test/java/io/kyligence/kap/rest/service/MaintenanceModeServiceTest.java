@@ -38,10 +38,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Sets;
-
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -69,7 +66,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
         try {
-            epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+            epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         } catch (Exception e) {
             log.error("set epoch error", e);
         }
@@ -79,25 +76,20 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     public void testSetMaintenanceMode() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
-        var globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        Assert.assertFalse(epochManager.isMaintenanceMode());
         maintenanceModeService.setMaintenanceMode("MODE1");
-        globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertTrue(globalEpoch.isMaintenanceMode());
+        Assert.assertTrue(epochManager.isMaintenanceMode());
         maintenanceModeService.unsetMaintenanceMode("MODE1");
-        globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        Assert.assertFalse(epochManager.isMaintenanceMode());
     }
 
     @Test
     public void testSetMaintenanceModeTwice() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
-        var globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        Assert.assertFalse(epochManager.isMaintenanceMode());
         maintenanceModeService.setMaintenanceMode("MODE1");
-        globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertTrue(globalEpoch.isMaintenanceMode());
+        Assert.assertTrue(epochManager.isMaintenanceMode());
         thrown.expect(KylinException.class);
         thrown.expectMessage("System is already in maintenance mode");
         maintenanceModeService.setMaintenanceMode("MODE1");
@@ -107,8 +99,7 @@ public class MaintenanceModeServiceTest extends CSVSourceTestCase {
     public void testUnsetMaintenanceModeTwice() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
-        var globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        Assert.assertFalse(epochManager.isMaintenanceMode());
         thrown.expect(KylinException.class);
         thrown.expectMessage("System is not in maintenance mode");
         maintenanceModeService.unsetMaintenanceMode("MODE1");

@@ -1796,7 +1796,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         System.setProperty("kylin.env", "dev");
         Assert.assertTrue(NDefaultScheduler.getInstance(project).hasStarted());
         EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        manager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        manager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         manager.forceUpdateEpoch(project);
         NDefaultScheduler.getInstance(project).fetchJobsImmediately();
         Thread.sleep(2000);

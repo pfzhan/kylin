@@ -21,33 +21,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.metadata;
 
-package io.kyligence.kap.metadata.epoch;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-import io.kyligence.kap.common.persistence.metadata.Epoch;
-import org.apache.kylin.common.restclient.RestClient;
+import org.springframework.jdbc.core.RowMapper;
 
-import java.io.IOException;
+import lombok.val;
 
-public class EpochRestClientTool {
+public class EpochRowMapper implements RowMapper<Epoch> {
+    @Override
+    public Epoch mapRow(ResultSet rs, int rowNum) throws SQLException {
+        val epochId = rs.getLong(1);
+        val epochTarget = rs.getString(2);
+        val currentEpochOwner = rs.getString(3);
+        val lastEpochRenewTime = rs.getLong(4);
+        val serverMode = rs.getString(5);
+        val maintenanceModeReason = rs.getString(6);
+        val mvcc = rs.getLong(7);
 
-    public static void transferUpdateEpochRequest(Epoch epoch, String project) throws IOException {
-        String ownerInfo = epoch.getCurrentEpochOwner();
-        transferUpdateEpochRequest(ownerInfo.split("\\|")[0], project);
+        return new Epoch(epochId, epochTarget, currentEpochOwner, lastEpochRenewTime,
+                serverMode, maintenanceModeReason, mvcc);
     }
-
-    public static void transferUpdateEpochRequest(String node, String project) throws IOException {
-        RestClient restClient = new RestClient(node);
-        restClient.updatePrjEpoch(project);
-    }
-
-
-    public static String getHost(String ownerInfo) {
-        return ownerInfo.split(":")[0];
-    }
-
-    public static int getPort(String ownerInfo) {
-        return Integer.parseInt(ownerInfo.split(":")[1].split("\\|")[0]);
-    }
-
 }

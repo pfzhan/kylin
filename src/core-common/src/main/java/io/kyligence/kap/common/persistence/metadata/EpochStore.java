@@ -21,33 +21,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.metadata;
 
-package io.kyligence.kap.metadata.epoch;
+import java.util.List;
+import java.util.Objects;
 
-import io.kyligence.kap.common.persistence.metadata.Epoch;
-import org.apache.kylin.common.restclient.RestClient;
+import org.apache.kylin.common.KylinConfig;
 
-import java.io.IOException;
+import io.kyligence.kap.common.obf.IKeep;
+import org.apache.kylin.common.Singletons;
 
-public class EpochRestClientTool {
+public abstract class EpochStore implements IKeep {
+    public static final String EPOCH_SUFFIX = "_epoch";
 
-    public static void transferUpdateEpochRequest(Epoch epoch, String project) throws IOException {
-        String ownerInfo = epoch.getCurrentEpochOwner();
-        transferUpdateEpochRequest(ownerInfo.split("\\|")[0], project);
+    public abstract void saveOrUpdate(Epoch epoch);
+
+    public abstract Epoch getEpoch(String epochTarget);
+
+    public abstract List<Epoch> list();
+
+    public abstract void delete(String epochTarget);
+
+    public abstract void createIfNotExist() throws Exception;
+
+    public Epoch getGlobalEpoch() {
+        return getEpoch("_global");
     }
 
-    public static void transferUpdateEpochRequest(String node, String project) throws IOException {
-        RestClient restClient = new RestClient(node);
-        restClient.updatePrjEpoch(project);
+    public static EpochStore getEpochStore(KylinConfig config) throws Exception {
+        EpochStore epochStore = Singletons.getInstance(EpochStore.class, clz -> {
+            if (Objects.equals(config.getMetadataUrl().getScheme(), "jdbc")) {
+                return JdbcEpochStore.getEpochStore(config);
+            } else {
+                return FileEpochStore.getEpochStore(config);
+            }
+        });
+
+        epochStore.createIfNotExist();
+        return epochStore;
     }
-
-
-    public static String getHost(String ownerInfo) {
-        return ownerInfo.split(":")[0];
-    }
-
-    public static int getPort(String ownerInfo) {
-        return Integer.parseInt(ownerInfo.split(":")[1].split("\\|")[0]);
-    }
-
 }

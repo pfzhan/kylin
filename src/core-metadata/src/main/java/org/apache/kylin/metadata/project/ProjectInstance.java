@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import io.kyligence.kap.metadata.epoch.Epoch;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -142,12 +141,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     private SegmentConfig segmentConfig = new SegmentConfig(true, Lists.newArrayList(AutoMergeTimeEnum.WEEK,
             AutoMergeTimeEnum.MONTH, AutoMergeTimeEnum.QUARTER, AutoMergeTimeEnum.YEAR), new VolatileRange(),
             new RetentionRange());
-
-    @JsonProperty("epoch")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @Getter
-    @Setter
-    private Epoch epoch;
 
     @Override
     public String getResourcePath() {

@@ -31,8 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.junit.After;
@@ -44,7 +42,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -105,7 +102,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
 
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         TimeUnit.SECONDS.sleep(2);
         try {
             thrown.expect(TransactionException.class);
@@ -119,29 +116,10 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testEpochModified() throws Exception {
-        KylinConfig config = getTestConfig();
-        EpochManager epochManager = EpochManager.getInstance(config);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
-        val epoch = epochManager.getGlobalEpoch();
-        epoch.setLastEpochRenewTime(System.currentTimeMillis());
-        val table = config.getMetadataUrl().getIdentifier();
-        getJdbcTemplate().update(String.format("update %s set META_TABLE_MVCC = 100 where META_TABLE_KEY = ?", table),
-                "/_global/epoch");
-        thrown.expect(TransactionException.class);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
-            return 0;
-        }, UnitOfWork.GLOBAL_UNIT, 1);
-
-    }
-
-    @Test
     public void testEpochIdNotMatch() throws Exception {
         KylinConfig config = getTestConfig();
         EpochManager epochManager = EpochManager.getInstance(config);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         val epoch = epochManager.getGlobalEpoch();
         epoch.setLastEpochRenewTime(System.currentTimeMillis());
         val table = config.getMetadataUrl().getIdentifier();
@@ -158,10 +136,10 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testSetMaintenanceMode() throws Exception {
         KylinConfig config = getTestConfig();
         EpochManager epochManager = EpochManager.getInstance(config);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         epochManager.setMaintenanceMode("MODE1");
-        transactionThrown.expectInTransaction(KylinException.class);
-        transactionThrown.expectMessageInTransaction(MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE());
+        transactionThrown.expectInTransaction(EpochNotMatchException.class);
+        transactionThrown.expectMessageInTransaction("System is trying to recover, please try again later");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/_global/p1/abc", ByteStreams.asByteSource("abc".getBytes()), -1);

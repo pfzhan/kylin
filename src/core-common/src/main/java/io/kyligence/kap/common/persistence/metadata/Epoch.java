@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.epoch;
+package io.kyligence.kap.common.persistence.metadata;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
@@ -43,6 +43,11 @@ public class Epoch extends RootPersistentEntity {
     @Setter
     private long epochId;
 
+    @JsonProperty("epoch_target")
+    @Getter
+    @Setter
+    private String epochTarget;
+
     @JsonProperty("current_epoch_owner")
     @Getter
     @Setter
@@ -58,14 +63,14 @@ public class Epoch extends RootPersistentEntity {
     @Setter
     private String serverMode;
 
-    @JsonProperty("maintenance_mode")
-    @Getter
-    @Setter
-    private boolean maintenanceMode = false;
-
     @JsonProperty("maintenance_mode_reason")
     @Getter
     @Setter
     private String maintenanceModeReason;
+
+    @JsonProperty("mvcc")
+    @Getter
+    @Setter
+    private long mvcc;
 
 }

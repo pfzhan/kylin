@@ -62,6 +62,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
@@ -116,7 +117,6 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String MODEL_OPTIMIZE_RECOMMENDATION = "/recommendation";
     public static final String MODEL_OPTIMIZE_RECOMMENDATION_V2 = "/recommendation_v2";
     public static final String EXECUTABLE_JOB = "/execute";
-    public static final String GLOBAL_EPOCH = GLOBAL_PROJECT + "/epoch";
     public static final String HISTORY_SOURCE_USAGE = GLOBAL_PROJECT + "/history_source_usage";
 
     public static final String METASTORE_IMAGE = "/_image";
@@ -573,6 +573,10 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
 
     public AuditLogStore getAuditLogStore() {
         return getMetadataStore().getAuditLogStore();
+    }
+
+    public EpochStore getEpochStore() {
+        return getMetadataStore().getEpochStore();
     }
 
     public void createMetaStoreUuidIfNotExist() {

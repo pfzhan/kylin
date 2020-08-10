@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.SystemErrorCode;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -36,7 +37,6 @@ import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.response.MaintenanceModeResponse;
-import lombok.val;
 
 @Component("maintenanceModeService")
 public class MaintenanceModeService extends BasicService {
@@ -68,8 +68,8 @@ public class MaintenanceModeService extends BasicService {
 
     public MaintenanceModeResponse getMaintenanceMode() {
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        val epoch = epochMgr.getGlobalEpoch();
-        return new MaintenanceModeResponse(epoch.isMaintenanceMode(), epoch.getMaintenanceModeReason());
+        Pair<Boolean, String> maintenanceModeDetail = epochMgr.getMaintenanceModeDetail();
+        return new MaintenanceModeResponse(maintenanceModeDetail.getFirst(), maintenanceModeDetail.getSecond());
     }
 
     public boolean isMaintenanceMode() {

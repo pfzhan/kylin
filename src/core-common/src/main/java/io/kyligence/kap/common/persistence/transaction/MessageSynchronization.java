@@ -71,7 +71,6 @@ public class MessageSynchronization {
         UnitOfWork.replaying.set(true);
         messages.getMessages().forEach(event -> {
             if (event instanceof ResourceCreateOrUpdateEvent) {
-                eventListener.onBeforeUpdate((ResourceCreateOrUpdateEvent) event);
                 replayUpdate((ResourceCreateOrUpdateEvent) event);
                 eventListener.onUpdate((ResourceCreateOrUpdateEvent) event);
             } else if (event instanceof ResourceDeleteEvent) {

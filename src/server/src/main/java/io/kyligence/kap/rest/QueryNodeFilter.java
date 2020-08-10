@@ -47,6 +47,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.SystemErrorCode;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -102,10 +103,12 @@ public class QueryNodeFilter implements Filter {
         routeGetApiSet.add("/kylin/api/tables/project_table_names");
         routeGetApiSet.add("/kylin/api/query/favorite_queries");
 
-        // jdbc, odbc, query
+        // jdbc, odbc, query, maintain
         notRoutePostApiSet.add("/kylin/api/query");
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
+        notRoutePostApiSet.add("/kylin/api/system/maintenance_mode");
+
 
         notRoutePostApiSet.add("/kylin/api/health/instance_info");
         notRoutePostApiSet.add("/kylin/api/health/instance_service/query_up_grade");
@@ -118,6 +121,7 @@ public class QueryNodeFilter implements Filter {
         //diag
         notRoutePostApiSet.add("/kylin/api/system/diag");
         notRouteDeleteApiSet.add("/kylin/api/system/diag");
+        notRouteDeleteApiSet.add("/kylin/api/system/maintenance_mode");
 
         //download
         notRoutePostApiSet.add("/kylin/api/metastore/backup/models");
@@ -180,6 +184,11 @@ public class QueryNodeFilter implements Filter {
                 log.info("process local caused by project owner");
                 chain.doFilter(request, response);
                 return;
+            }
+
+            if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
+                throw new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
+                        MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE());
             }
 
             ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);

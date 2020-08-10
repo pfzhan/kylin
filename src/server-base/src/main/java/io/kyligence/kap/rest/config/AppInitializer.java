@@ -25,6 +25,8 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Date;
 
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -50,7 +52,6 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
-import io.kyligence.kap.rest.config.initialize.MaintenanceListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.NMetricsRegistry;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
@@ -108,10 +109,12 @@ public class AppInitializer {
             ExecutableUtils.initJobFactory();
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
+            val epochStore = EpochStore.getEpochStore(kylinConfig);
             kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
             resourceStore.catchup();
+            resourceStore.getMetadataStore().setEpochStore(epochStore);
         }
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
@@ -126,7 +129,6 @@ public class AppInitializer {
         }
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
-        EventListenerRegistry.getInstance(kylinConfig).register(new MaintenanceListener(), "maintenance");
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();
@@ -140,6 +142,8 @@ public class AppInitializer {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.isJobNode()) {
             new EpochOrchestrator(kylinConfig);
+            EpochManager epochManager = EpochManager.getInstance(kylinConfig);
+            epochManager.updateOwnedEpoch();
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
                         kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);

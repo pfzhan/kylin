@@ -67,20 +67,11 @@ public class EventListenerRegistry {
         eventListeners.put(name, eventListener);
     }
 
-    public void onBeforeUpdate(ResourceCreateOrUpdateEvent event) {
-        eventListeners.forEach((k, listener) -> {
-            listener.onBeforeUpdate(config, event.getCreatedOrUpdated());
-        });
-    }
-
     public interface ResourceEventListener {
 
         void onUpdate(KylinConfig config, RawResource rawResource);
 
         void onDelete(KylinConfig config, String resPath);
-
-        default void onBeforeUpdate(KylinConfig config, RawResource rawResource) {
-        }
     }
 
 }

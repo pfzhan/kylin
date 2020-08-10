@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -53,6 +54,8 @@ public class ProjectDropListener {
             NDefaultScheduler.shutdownByProject(project);
 
             NMetricsGroup.removeProjectMetrics(project);
+            EpochManager epochManager = EpochManager.getInstance(kylinConfig);
+            epochManager.deleteEpoch(project);
             deleteStorage(kylinConfig, project.split("\\.")[0]);
         } catch (Exception e) {
             log.warn("error when delete " + project + " storage", e);

@@ -24,12 +24,9 @@
 
 package io.kyligence.kap.metadata.epoch;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import lombok.var;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
@@ -37,8 +34,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class EpochManagerTest extends NLocalFileMetadataTestCase {
@@ -58,11 +57,11 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         val globalEpoch = epochManager.getGlobalEpoch();
         val time1 = globalEpoch.getLastEpochRenewTime();
         Assert.assertNotNull(globalEpoch);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         Assert.assertNotEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
     }
 
@@ -72,11 +71,11 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         val globalEpoch = epochManager.getGlobalEpoch();
         val time1 = globalEpoch.getLastEpochRenewTime();
         Assert.assertNotNull(globalEpoch);
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         Assert.assertEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
         System.clearProperty("kylin.server.leader-race.enabled");
     }
@@ -88,20 +87,21 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(prj.getEpoch());
+            Assert.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertEquals(prj.getEpoch().getCurrentEpochOwner(), EpochOrchestrator.getOwnerIdentity());
-            Assert.assertEquals(prj.getEpoch().getLastEpochRenewTime(), Long.MAX_VALUE);
+            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getCurrentEpochOwner(),
+                    EpochOrchestrator.getOwnerIdentity());
+            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getLastEpochRenewTime(), Long.MAX_VALUE);
 
         }
         epochManager.setIdentity("newOwner");
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertEquals(prj.getEpoch().getCurrentEpochOwner(), "newOwner");
-            Assert.assertEquals(prj.getEpoch().getLastEpochRenewTime(), Long.MAX_VALUE);
-            Assert.assertEquals(prj.getMvcc(), 2);
+            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getCurrentEpochOwner(), "newOwner");
+            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getLastEpochRenewTime(), Long.MAX_VALUE);
+            Assert.assertEquals(epochManager.getEpoch(prj.getName()).getMvcc(), 2);
         }
         System.clearProperty("kylin.server.leader-race.enabled");
     }
@@ -112,11 +112,11 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(prj.getEpoch());
+            Assert.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNotNull(prj.getEpoch());
+            Assert.assertNotNull(epochManager.getEpoch(prj.getName()));
         }
     }
 
@@ -127,7 +127,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         EpochManager epochManager = EpochManager.getInstance(config);
         val prjMgr = NProjectManager.getInstance(config);
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            Assert.assertNull(prj.getEpoch());
+            Assert.assertNull(epochManager.getEpoch(prj.getName()));
         }
         epochManager.updateAllEpochs();
         for (ProjectInstance prj : prjMgr.listAllProjects()) {
@@ -173,14 +173,11 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(config);
         Assert.assertNull(epochManager.getGlobalEpoch());
-        epochManager.tryUpdateGlobalEpoch(Sets.newHashSet(), false);
-        var globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
+        Assert.assertFalse(epochManager.isMaintenanceMode());
         epochManager.setMaintenanceMode("MODE1");
-        globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertTrue(globalEpoch.isMaintenanceMode());
+        Assert.assertTrue(epochManager.isMaintenanceMode());
         epochManager.unsetMaintenanceMode("MODE1");
-        globalEpoch = epochManager.getGlobalEpoch();
-        Assert.assertFalse(globalEpoch.isMaintenanceMode());
+        Assert.assertFalse(epochManager.isMaintenanceMode());
     }
 }
