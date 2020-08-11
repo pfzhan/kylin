@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ModelJoinRelationTypeEnum;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -44,6 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
@@ -421,27 +424,43 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
         {
             //left join
-            compareDerived(TEST_FOLDER, 0, JoinType.LEFT);
+            compareSCD2Derived(TEST_FOLDER, 0, JoinType.LEFT);
             //inner join
-            compareDerived(TEST_FOLDER, 0, JoinType.INNER);
+            compareSCD2Derived(TEST_FOLDER, 0, JoinType.INNER);
         }
 
         for (int i = 2; i < 5; i++) {
-            Assert.assertFalse(SCD2CondChecker.INSTANCE.isScd2Model(proposeSCD2Model(TEST_FOLDER, i, JoinType.LEFT)));
+            Assert.assertFalse(SCD2CondChecker.INSTANCE.isScd2Model(proposeSmartModel(TEST_FOLDER, i, JoinType.LEFT)));
         }
 
         {
             //left join
-            compareDerived(TEST_FOLDER, 5, JoinType.LEFT);
+            compareSCD2Derived(TEST_FOLDER, 5, JoinType.LEFT);
             //inner join
-            compareDerived(TEST_FOLDER, 5, JoinType.INNER);
+            compareSCD2Derived(TEST_FOLDER, 5, JoinType.INNER);
         }
     }
 
-    private void compareDerived(String testFolder, int startIndex, JoinType joinType) throws Exception {
-        NDataModel model = proposeSCD2Model(testFolder, startIndex, joinType);
+    @Test
+    public void testEquiDerivedColumnDisabled() throws Exception {
+        final String TEST_FOLDER = "query/sql_derived_equi_join";
 
-        Assert.assertTrue(SCD2CondChecker.INSTANCE.isScd2Model(model));
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        NDataModel model = proposeSmartModel(TEST_FOLDER, 0, JoinType.LEFT);
+        model.getJoinTables().get(1).setJoinRelationTypeEnum(ModelJoinRelationTypeEnum.MANY_TO_MANY);
+
+        NDataModelManager.getInstance(getTestConfig(), getProject()).updateDataModelDesc(model);
+
+        try {
+            compareDerivedWithInitialModel(TEST_FOLDER, 0, JoinType.LEFT);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(Throwables.getRootCause(e) instanceof NoRealizationFoundException);
+        }
+    }
+
+    private void compareDerivedWithInitialModel(String testFolder, int startIndex, JoinType joinType) throws Exception {
 
         TestScenario derivedQuerys = new TestScenario(CompareLevel.SAME, testFolder, joinType, startIndex + 1,
                 startIndex + 2);
@@ -449,7 +468,13 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         buildAndCompare(null, derivedQuerys);
     }
 
-    private NDataModel proposeSCD2Model(String testFolder, int startIndex, JoinType joinType) throws IOException {
+    private void compareSCD2Derived(String testFolder, int startIndex, JoinType joinType) throws Exception {
+        NDataModel model = proposeSmartModel(testFolder, startIndex, joinType);
+        Assert.assertTrue(SCD2CondChecker.INSTANCE.isScd2Model(model));
+        compareDerivedWithInitialModel(testFolder, startIndex, joinType);
+    }
+
+    private NDataModel proposeSmartModel(String testFolder, int startIndex, JoinType joinType) throws IOException {
         NSmartMaster nSmartMaster = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.NONE, testFolder, joinType, startIndex, startIndex + 1));
 

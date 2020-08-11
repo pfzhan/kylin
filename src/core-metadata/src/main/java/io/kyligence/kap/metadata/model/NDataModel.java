@@ -270,6 +270,8 @@ public class NDataModel extends RootPersistentEntity {
 
     private Set<TableRef> lookupTableRefs = Sets.newLinkedHashSet();
 
+    private Set<TableRef> queryDerivedDisabledRefs = Sets.newLinkedHashSet();
+
     private Set<TableRef> allTableRefs = Sets.newLinkedHashSet();
 
     private Map<String, TableRef> aliasMap = Maps.newHashMap(); // alias => TableRef, a table has exactly one alias
@@ -474,6 +476,14 @@ public class NDataModel extends RootPersistentEntity {
             return lookupTableRefs.contains(t);
     }
 
+    public boolean isQueryDerivedEnabled(TableRef t) {
+        if (Objects.isNull(t)) {
+            return false;
+        } else {
+            return !queryDerivedDisabledRefs.contains(t);
+        }
+    }
+
     public boolean isJoinTable(String fullTableName) {
         if (joinTables == null) {
             return false;
@@ -647,6 +657,7 @@ public class NDataModel extends RootPersistentEntity {
         factTableRefs.clear();
         lookupTableRefs.clear();
         allTableRefs.clear();
+        queryDerivedDisabledRefs.clear();
         aliasMap.clear();
         tableNameMap.clear();
 
@@ -680,7 +691,9 @@ public class NDataModel extends RootPersistentEntity {
 
             boolean isLookup = join.getKind() == TableKind.LOOKUP;
             TableRef ref = new TableRef(this, alias, tableDesc, isLookup);
-
+            if (!join.getJoinRelationTypeEnum().isQueryDerivedEnabled()) {
+                queryDerivedDisabledRefs.add(ref);
+            }
             join.setTableRef(ref);
             addAlias(ref);
             (isLookup ? lookupTableRefs : factTableRefs).add(ref);

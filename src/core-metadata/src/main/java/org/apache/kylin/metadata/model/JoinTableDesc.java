@@ -44,6 +44,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -69,6 +70,9 @@ public class JoinTableDesc implements Serializable {
 
     @JsonProperty("join")
     private JoinDesc join;
+
+    @JsonProperty("join_relation_type")
+    private ModelJoinRelationTypeEnum joinRelationTypeEnum = ModelJoinRelationTypeEnum.MANY_TO_ONE;
 
     private TableRef tableRef;
 
@@ -112,6 +116,14 @@ public class JoinTableDesc implements Serializable {
         this.tableRef = ref;
     }
 
+    public ModelJoinRelationTypeEnum getJoinRelationTypeEnum() {
+        return joinRelationTypeEnum;
+    }
+
+    public void setJoinRelationTypeEnum(ModelJoinRelationTypeEnum joinRelationTypeEnum) {
+        this.joinRelationTypeEnum = joinRelationTypeEnum;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -127,6 +139,9 @@ public class JoinTableDesc implements Serializable {
             return false;
         if (alias != null ? !alias.equals(that.alias) : that.alias != null)
             return false;
+        if(!Objects.equals(this.joinRelationTypeEnum, that.joinRelationTypeEnum)){
+            return false;
+        }
         return join != null ? join.equals(that.join) : that.join == null;
     }
 
@@ -136,6 +151,7 @@ public class JoinTableDesc implements Serializable {
         result = 31 * result + (kind != null ? kind.hashCode() : 0);
         result = 31 * result + (alias != null ? alias.hashCode() : 0);
         result = 31 * result + (join != null ? join.hashCode() : 0);
+        result = 31 * result + Objects.hashCode(joinRelationTypeEnum);
         return result;
     }
 }

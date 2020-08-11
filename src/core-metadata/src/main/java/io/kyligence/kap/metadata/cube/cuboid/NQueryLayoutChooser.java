@@ -401,7 +401,8 @@ public class NQueryLayoutChooser {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
-            if (model.isLookupTable(unmatchedDim.getTableRef())) {
+            if (model.isLookupTable(unmatchedDim.getTableRef())
+                    && model.isQueryDerivedEnabled(unmatchedDim.getTableRef())) {
                 JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
                 Preconditions.checkNotNull(joinByPKSide);
                 TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
