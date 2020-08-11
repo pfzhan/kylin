@@ -29,6 +29,8 @@ import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 import javax.annotation.PostConstruct;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.querymeta.TableMeta;
+import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -46,14 +48,20 @@ import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.config.CacheConfiguration;
 
+import java.util.List;
+
 /**
- * query cache that holding <SQlRequest, SQLResponse> pairs
+ * query cache manager that
+ * 1. holding query cache - <SQlRequest, SQLResponse> pairs
+ * 2. holding scheam cache - <UserName, Schema> pairs
  */
 @Component("queryCacheManager")
 public class QueryCacheManager {
 
     enum Type {
-        SUCCESS_QUERY_CACHE("StorageCache"), EXCEPTION_QUERY_CACHE("ExceptionQueryCache");
+        SUCCESS_QUERY_CACHE("StorageCache"),
+        EXCEPTION_QUERY_CACHE("ExceptionQueryCache"),
+        SCHEMA_CACHE("SchemaCache");
 
         private String rootCacheName;
 
@@ -154,7 +162,7 @@ public class QueryCacheManager {
 
         // check signature for success query resp in case the datasource is changed
         if (QueryCacheSignatureUtil.checkCacheExpired(cached, sqlRequest.getProject())) {
-            clear(sqlRequest);
+            clearQueryCache(sqlRequest);
             return null;
         }
 
@@ -185,14 +193,45 @@ public class QueryCacheManager {
         return searchFailedCache(sqlRequest);
     }
 
-    public void clear(SQLRequest request) {
+    @SuppressWarnings("unchecked")
+    public List<TableMeta> getSchemaCache(String project, String userName) {
+        Element element = getProjectCache(Type.SCHEMA_CACHE, project).get(userName);
+        if (element == null) {
+            return null;
+        }
+        return (List<TableMeta>) element.getObjectValue();
+    }
+
+    public void putSchemaCache(String project, String userName, List<TableMeta> schemas) {
+        getProjectCache(Type.SCHEMA_CACHE, project).put(new Element(userName, schemas));
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<TableMetaWithType> getSchemaV2Cache(String project, String userName) {
+        Element element = getProjectCache(Type.SCHEMA_CACHE, project).get(userName + "v2");
+        if (element == null) {
+            return null;
+        }
+        return (List<TableMetaWithType>) element.getObjectValue();
+    }
+
+    public void putSchemaV2Cache(String project, String userName, List<TableMetaWithType> schemas) {
+        getProjectCache(Type.SCHEMA_CACHE, project).put(new Element(userName + "v2", schemas));
+    }
+
+    public void clearSchemaCache(String project) {
+        getProjectCache(Type.SCHEMA_CACHE, project).removeAll();
+    }
+
+    public void clearQueryCache(SQLRequest request) {
         getProjectCache(Type.SUCCESS_QUERY_CACHE, request.getProject()).remove(request.getCacheKey());
         getProjectCache(Type.EXCEPTION_QUERY_CACHE, request.getProject()).remove(request.getCacheKey());
     }
 
-    public void clear(String project) {
+    public void clearProjectCache(String project) {
         logger.debug("clear query cache for {}", project);
         getProjectCache(Type.SUCCESS_QUERY_CACHE, project).removeAll();
         getProjectCache(Type.EXCEPTION_QUERY_CACHE, project).removeAll();
+        getProjectCache(Type.SCHEMA_CACHE, project).removeAll();
     }
 }

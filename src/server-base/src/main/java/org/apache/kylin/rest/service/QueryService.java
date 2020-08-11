@@ -738,6 +738,22 @@ public class QueryService extends BasicService {
     }
 
     public List<TableMeta> getMetadata(String project) {
+        if (!KylinConfig.getInstanceFromEnv().isSchemaCacheEnabled()) {
+            return doGetMetadata(project);
+        }
+
+        String userName = AclPermissionUtil.getCurrentUsername();
+        List<TableMeta> cached = queryCacheManager.getSchemaCache(project, userName);
+        if (cached != null) {
+            return cached;
+        }
+
+        List<TableMeta> tableMetas = doGetMetadata(project);
+        queryCacheManager.putSchemaCache(project, userName, tableMetas);
+        return tableMetas;
+    }
+
+    private List<TableMeta> doGetMetadata(String project) {
 
         if (StringUtils.isBlank(project)) {
             return Collections.emptyList();
@@ -780,8 +796,24 @@ public class QueryService extends BasicService {
         return tableMetas;
     }
 
-    @SuppressWarnings("checkstyle:methodlength")
     public List<TableMetaWithType> getMetadataV2(String project) {
+        if (!KylinConfig.getInstanceFromEnv().isSchemaCacheEnabled()) {
+            return doGetMetadataV2(project);
+        }
+
+        String userName = AclPermissionUtil.getCurrentUsername();
+        List<TableMetaWithType> cached = queryCacheManager.getSchemaV2Cache(project, userName);
+        if (cached != null) {
+            return cached;
+        }
+
+        List<TableMetaWithType> tableMetas = doGetMetadataV2(project);
+        queryCacheManager.putSchemaV2Cache(project, userName, tableMetas);
+        return tableMetas;
+    }
+
+    @SuppressWarnings("checkstyle:methodlength")
+    private List<TableMetaWithType> doGetMetadataV2(String project) {
         aclEvaluate.checkProjectReadPermission(project);
         if (StringUtils.isBlank(project))
             return Collections.emptyList();

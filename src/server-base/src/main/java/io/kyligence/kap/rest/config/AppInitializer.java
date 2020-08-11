@@ -27,6 +27,7 @@ import java.util.Date;
 
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -129,6 +130,8 @@ public class AppInitializer {
         }
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
+        // register schema change listener
+        EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager), "table");
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();

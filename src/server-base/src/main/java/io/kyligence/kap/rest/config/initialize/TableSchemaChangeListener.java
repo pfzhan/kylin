@@ -24,25 +24,29 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
-import java.util.Objects;
-import java.util.Optional;
-
+import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
+import java.util.Objects;
+import java.util.Optional;
 
-public class AclTCRListener implements EventListenerRegistry.ResourceEventListener {
+/**
+ * Lister that monitors the table schema chagnes via KE metadata changes on path /{procjet}/table/{table}.json
+ * On table schema changes, the listener will
+ *    1. invalidate all table schema cache under the same project
+ */
+public class TableSchemaChangeListener implements EventListenerRegistry.ResourceEventListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(AclTCRListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(TableSchemaChangeListener.class);
 
     private final QueryCacheManager queryCacheManager;
 
-    public AclTCRListener(QueryCacheManager queryCacheManager) {
+    public TableSchemaChangeListener(QueryCacheManager queryCacheManager) {
         this.queryCacheManager = queryCacheManager;
     }
 
@@ -51,27 +55,30 @@ public class AclTCRListener implements EventListenerRegistry.ResourceEventListen
         if (Objects.isNull(rawResource)) {
             return;
         }
-        getProjectName(rawResource.getResPath()).ifPresent(this::clearCache);
+        getProjectName(rawResource.getResPath()).ifPresent(this::clearSchemaCache);
     }
 
     @Override
     public void onDelete(KylinConfig config, String resPath) {
-        getProjectName(resPath).ifPresent(this::clearCache);
+        getProjectName(resPath).ifPresent(this::clearSchemaCache);
     }
 
     private Optional<String> getProjectName(String resourcePath) {
+        if (!resourcePath.contains("table")) {
+            return Optional.empty();
+        }
         if (Objects.isNull(resourcePath)) {
             return Optional.empty();
         }
         String[] elements = resourcePath.split("/");
-        // acl resource path like '/{project}/acl/{user|group}/{name}.json
-        if (elements.length < 4 || !"acl".equals(elements[2]) || StringUtils.isEmpty(elements[1])) {
+        // acl resource path like '/{project}/table/{table}.json
+        if (elements.length != 4 || elements[2].equalsIgnoreCase("table") || StringUtils.isEmpty(elements[1])) {
             return Optional.empty();
         }
         return Optional.of(elements[1]);
     }
 
-    private void clearCache(String project) {
-        queryCacheManager.clearProjectCache(project);
+    private void clearSchemaCache(String project) {
+        queryCacheManager.clearSchemaCache(project);
     }
 }

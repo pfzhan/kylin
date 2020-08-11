@@ -37,6 +37,12 @@
            memoryStoreEvictionPolicy="LRU">
         <persistence strategy="none"/>
     </cache>
+    <cache name="SchemaCache"
+           eternal="false"
+           timeToIdleSeconds="86400"
+           memoryStoreEvictionPolicy="LRU">
+        <persistence strategy="none"/>
+    </cache>
     <defaultCache eternal="false"
                   timeToIdleSeconds="86400"
                   memoryStoreEvictionPolicy="LRU">

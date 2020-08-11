@@ -1262,6 +1262,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.cache-enabled", TRUE));
     }
 
+    public boolean isSchemaCacheEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.schema-cache-enabled", FALSE));
+    }
+
     public boolean isQueryIgnoreUnknownFunction() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.ignore-unknown-function", FALSE));
     }

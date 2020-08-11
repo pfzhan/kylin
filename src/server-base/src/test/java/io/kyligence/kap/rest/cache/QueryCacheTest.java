@@ -57,12 +57,12 @@ public class QueryCacheTest {
         queryCacheManager.doCacheSuccessQuery(req1, resp1);
         Assert.assertEquals(resp1, queryCacheManager.doSearchQuery(QueryCacheManager.Type.SUCCESS_QUERY_CACHE, req1));
         Assert.assertNull(queryCacheManager.searchQuery(req1));
-        queryCacheManager.clear(req1);
+        queryCacheManager.clearQueryCache(req1);
         Assert.assertNull(queryCacheManager.doSearchQuery(QueryCacheManager.Type.SUCCESS_QUERY_CACHE, req1));
 
         queryCacheManager.cacheFailedQuery(req1, resp1);
         Assert.assertEquals(resp1, queryCacheManager.searchQuery(req1));
-        queryCacheManager.clear(project);
+        queryCacheManager.clearProjectCache(project);
         Assert.assertNull(queryCacheManager.searchQuery(req1));
     }
 
