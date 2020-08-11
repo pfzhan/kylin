@@ -28,6 +28,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.optrule.KapProjectJoinTransposeRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -55,7 +56,6 @@ import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
-import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectTableScanRule;
@@ -270,7 +270,7 @@ public class PlannerFactory {
         // see KAP#16036
         planner.removeRule(UnionMergeRule.INSTANCE);
 
-        planner.addRule(ProjectJoinTransposeRule.INSTANCE);
+        planner.addRule(KapProjectJoinTransposeRule.INSTANCE);
         planner.removeRule(ProjectRemoveRule.INSTANCE);
     }
 

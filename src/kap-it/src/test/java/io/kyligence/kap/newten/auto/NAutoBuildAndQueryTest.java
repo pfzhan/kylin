@@ -162,8 +162,21 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig()
+                .exposeComputedColumn();
+        projectManager.updateProject(getProject(), copyForWrite -> copyForWrite.getOverrideKylinProps()
+                .put("kylin.query.metadata.expose-computed-column", "TRUE"));
+
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
-                new TestScenario(CompareLevel.SAME, "query/sql_special_join"),
+                new TestScenario(CompareLevel.SAME, "query/sql_special_join"));
+
+        projectManager.updateProject(getProject(),
+                copyForWrite -> copyForWrite.getOverrideKylinProps().put(
+                        "kylin.query.metadata.expose-computed-column",
+                        String.valueOf(exposeComputedColumnConfBefore)));
+
+        executeTestScenario(
                 new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition"));
     }
 
