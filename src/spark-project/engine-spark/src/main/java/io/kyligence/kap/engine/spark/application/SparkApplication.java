@@ -290,12 +290,11 @@ public abstract class SparkApplication implements Application, IKeep {
                                 waitTime);
                         Thread.sleep(waitTime * 1000L);
                     }
+                } catch (NoRetryException e){
+                    throw e;
                 } catch (Exception e){
                     logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
                             e);
-                    if(e instanceof NoRetryException){
-                        throw e;
-                    }
                 }
                 infos.endWait();
             }

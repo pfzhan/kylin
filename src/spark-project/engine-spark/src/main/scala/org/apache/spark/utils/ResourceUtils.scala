@@ -57,6 +57,7 @@ object ResourceUtils extends Logging {
     }
   }
 
+  @throws(classOf[Exception])
   def checkResource(sparkConf: SparkConf, clusterManager: IClusterManager): Boolean = {
     val queue = sparkConf.get("spark.yarn.queue", "default")
     val driverMemory = (Utils.byteStringAsMb(sparkConf.get(DRIVER_MEMORY)) + Utils.byteStringAsMb(sparkConf.get(DRIVER_OVERHEAD))).toInt

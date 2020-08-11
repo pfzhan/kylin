@@ -62,10 +62,8 @@ class ExecutorMemoryRule extends SparkConfRule {
         "16GB"
       case _ if `sourceGB` >= 10 || (`sourceGB` >= 1 && `hasCountDistinct`) =>
         "10GB"
-      case _ if `sourceGB` >= 1 || `hasCountDistinct` =>
-        "4GB"
       case _ =>
-        "1GB"
+        "4GB"
     }
     helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, memory)
   }

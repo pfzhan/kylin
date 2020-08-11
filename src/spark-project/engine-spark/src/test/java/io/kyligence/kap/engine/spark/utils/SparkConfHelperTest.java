@@ -75,7 +75,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         ArrayList<CompareTuple> compareTuples = Lists.newArrayList(
-                new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY),
+                new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY),
                 new CompareTuple("1", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
                 new CompareTuple("5", SparkConfHelper.EXECUTOR_INSTANCES),
