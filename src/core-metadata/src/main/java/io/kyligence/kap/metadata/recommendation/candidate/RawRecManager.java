@@ -71,6 +71,10 @@ public class RawRecManager {
     }
 
     protected void init(KylinConfig cfg, final String project) {
+        if (NProjectManager.getInstance(cfg).getProject(project) == null) {
+            return;
+        }
+
         ImmutableList<String> models = NProjectManager.getInstance(cfg).getProject(project).getModels();
         models.forEach(model -> {
             queryByRawRecType(model, RawRecItem.RawRecType.COMPUTED_COLUMN, RawRecItem.RawRecState.INITIAL);
@@ -170,6 +174,14 @@ public class RawRecManager {
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
+    }
+
+    public void deleteByProject(String project) {
+        jdbcRawRecStore.deleteByProject(project);
+    }
+
+    public void cleanForDeletedProject(List<String> projectList) {
+        jdbcRawRecStore.cleanForDeletedProject(projectList);
     }
 
     public void removeByIds(List<Integer> idList) {

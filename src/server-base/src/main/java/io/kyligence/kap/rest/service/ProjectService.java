@@ -46,6 +46,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -266,10 +267,16 @@ public class ProjectService extends BasicService {
                 }
                 logger.info("Garbage cleanup for project<{}> finished", project.getName());
             }
+            cleanRawRecForDeletedProject(projectManager);
         } finally {
             Thread.currentThread().setName(oldThreadName);
         }
 
+    }
+
+    private void cleanRawRecForDeletedProject(NProjectManager projectManager) {
+        RawRecManager.getInstance(EpochManager.GLOBAL).cleanForDeletedProject(
+                projectManager.listAllProjects().stream().map(ProjectInstance::getName).collect(Collectors.toList()));
     }
 
     private void cleanupAcl() {

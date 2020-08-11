@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config.initialize;
 import java.io.IOException;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -50,6 +51,7 @@ public class ProjectDropListener {
         try {
             NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
             RDBMSQueryHistoryDAO.getInstance(kylinConfig).dropProjectMeasurement(project);
+            RawRecManager.getInstance(project).deleteByProject(project);
             QueryHistoryAccelerateScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);
 

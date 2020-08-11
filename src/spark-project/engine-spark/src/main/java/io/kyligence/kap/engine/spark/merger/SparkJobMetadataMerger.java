@@ -138,7 +138,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                             survivalTimeThreshold, segmentFile.getModificationTime()));
                 } else {
                     log.info(
-                            "Skip update snapshot table because current segment snapshot table is to old. Current segment snapshot table ts is: {}",
+                            "Skip update snapshot table because current segment snapshot table is too old. Current segment snapshot table ts is: {}",
                             segmentFile.getModificationTime());
                 }
             }

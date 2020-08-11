@@ -29,6 +29,7 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 import java.lang.reflect.Field;
 import java.util.List;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -49,6 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
+
+    private final String TO_BE_DELETE = "to_be_delete_project";
 
     private JdbcRawRecStore jdbcRawRecStore;
 
@@ -144,6 +147,76 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         final List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll("test", "abc", 1, 10);
         rawRecItems.forEach(item -> item.setCost(item.getId()));
         jdbcRawRecStore.update(rawRecItems);
+    }
+
+    @Test
+    public void testDeleteByProject() {
+        // prepare
+        CCRecItemV2 ccRecItemV2 = new CCRecItemV2();
+        RawRecItem recItem1 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
+        recItem1.setState(RawRecItem.RawRecState.INITIAL);
+        recItem1.setUniqueFlag("innerExp");
+        recItem1.setRecEntity(ccRecItemV2);
+        recItem1.setDependIDs(new int[] { 0 });
+        RawRecItem recItem2 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
+        recItem2.setState(RawRecItem.RawRecState.INITIAL);
+        recItem2.setUniqueFlag("innerExp");
+        recItem2.setRecEntity(ccRecItemV2);
+        recItem2.setDependIDs(new int[] { 0 });
+        RawRecItem recItem3 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
+        recItem3.setState(RawRecItem.RawRecState.INITIAL);
+        recItem3.setUniqueFlag("innerExp");
+        recItem3.setRecEntity(ccRecItemV2);
+        recItem3.setDependIDs(new int[] { 0 });
+        recItem1.setProject(TO_BE_DELETE);
+        recItem2.setProject(TO_BE_DELETE);
+        recItem3.setProject("other");
+        jdbcRawRecStore.save(recItem1);
+        jdbcRawRecStore.save(recItem2);
+        jdbcRawRecStore.save(recItem3);
+
+        // before delete
+        Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
+
+        // after delete
+        jdbcRawRecStore.deleteByProject(TO_BE_DELETE);
+        Assert.assertEquals(1, jdbcRawRecStore.queryAll().size());
+        Assert.assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
+    }
+
+    @Test
+    public void testCleanForDeletedProject() {
+        // prepare
+        CCRecItemV2 ccRecItemV2 = new CCRecItemV2();
+        RawRecItem recItem1 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
+        recItem1.setState(RawRecItem.RawRecState.INITIAL);
+        recItem1.setUniqueFlag("innerExp");
+        recItem1.setRecEntity(ccRecItemV2);
+        recItem1.setDependIDs(new int[] { 0 });
+        RawRecItem recItem2 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
+        recItem2.setState(RawRecItem.RawRecState.INITIAL);
+        recItem2.setUniqueFlag("innerExp");
+        recItem2.setRecEntity(ccRecItemV2);
+        recItem2.setDependIDs(new int[] { 0 });
+        RawRecItem recItem3 = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.COMPUTED_COLUMN);
+        recItem3.setState(RawRecItem.RawRecState.INITIAL);
+        recItem3.setUniqueFlag("innerExp");
+        recItem3.setRecEntity(ccRecItemV2);
+        recItem3.setDependIDs(new int[] { 0 });
+        recItem1.setProject(TO_BE_DELETE);
+        recItem2.setProject(TO_BE_DELETE);
+        recItem3.setProject("other");
+        jdbcRawRecStore.save(recItem1);
+        jdbcRawRecStore.save(recItem2);
+        jdbcRawRecStore.save(recItem3);
+
+        // before delete
+        Assert.assertEquals(3, jdbcRawRecStore.queryAll().size());
+
+        // after delete
+        jdbcRawRecStore.cleanForDeletedProject(Lists.newArrayList("other"));
+        Assert.assertEquals(1, jdbcRawRecStore.queryAll().size());
+        Assert.assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
     }
 
     @Test

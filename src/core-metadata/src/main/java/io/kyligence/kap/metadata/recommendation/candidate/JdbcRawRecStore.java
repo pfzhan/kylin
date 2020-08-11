@@ -30,6 +30,7 @@ import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isIn;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
 import static org.mybatis.dynamic.sql.SqlBuilder.isNotEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.isNotIn;
 import static org.mybatis.dynamic.sql.SqlBuilder.max;
 import static org.mybatis.dynamic.sql.SqlBuilder.min;
 import static org.mybatis.dynamic.sql.SqlBuilder.select;
@@ -113,6 +114,16 @@ public class JdbcRawRecStore {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             SelectStatementProvider statementProvider = getSelectByIdStatementProvider(id);
             return mapper.selectOne(statementProvider);
+        }
+    }
+
+    public List<RawRecItem> queryAll() {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+                    .from(table) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            return mapper.selectMany(statementProvider);
         }
     }
 
@@ -301,6 +312,36 @@ public class JdbcRawRecStore {
         }
         if (!recItemsToUpdate.isEmpty()) {
             update(recItemsToUpdate);
+        }
+    }
+
+    public void deleteByProject(String project) {
+        long startTime = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
+                    .where(table.project, isEqualTo(project)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            int rows = mapper.delete(deleteStatement);
+            session.commit();
+            log.info("Delete {} row(s) raw recommendation takes {} ms for project [{}]", rows,
+                    System.currentTimeMillis() - startTime, project);
+        }
+    }
+
+    public void cleanForDeletedProject(List<String> projectList) {
+        long startTime = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
+                    .where(table.project, isNotIn(projectList)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            int rows = mapper.delete(deleteStatement);
+            session.commit();
+            log.info("Delete {} row(s) residual raw recommendation takes {} ms", rows,
+                    System.currentTimeMillis() - startTime);
+        } catch (Exception e) {
+            log.error("Fail to clean raw rec for deleted project ", e);
         }
     }
 
