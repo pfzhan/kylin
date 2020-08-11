@@ -26,7 +26,7 @@ export default {
           formatter: '{value} T'
         }
       },
-      color: ['#0988DE'],
+      color: ['#15BDF1'],
       series: [{
         data: yData || [],
         type: 'line',
@@ -38,7 +38,7 @@ export default {
             x2: 0,
             y2: 1,
             colorStops: [{
-              offset: 0, color: '#0988DE' // color at 0% position
+              offset: 0, color: '#15BDF1' // color at 0% position
             }, {
               offset: 1, color: '#fff' // color at 100% position
             }],
@@ -47,7 +47,7 @@ export default {
         },
         itemStyle: {
           normal: {
-            color: '#3AA0E5'
+            color: '#15BDF1'
           }
         },
         symbol: 'circle'

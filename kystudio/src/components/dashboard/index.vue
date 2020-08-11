@@ -77,7 +77,7 @@
         <el-col :span="8" class="project-data-col">
           <div class="col-board">
             <div class="col-title">
-              <span>{{$t('projectDataline')}}</span>
+              <span class="title">{{$t('projectDataline')}}</span>
               <el-tooltip placement="right" :content="$t('dataValume')">
                 <i class="icon el-icon-ksd-what"></i>
               </el-tooltip>
@@ -778,6 +778,9 @@ export default class Dashboard extends Vue {
         .icon {
           // margin-left: 5px;
           cursor: pointer;
+        }
+        .title {
+          font-weight: bold;
         }
         .select-date-line {
           position: absolute;

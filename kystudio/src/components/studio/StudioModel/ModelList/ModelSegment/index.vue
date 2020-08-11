@@ -71,10 +71,10 @@
       <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip width="130" prop="start_time" sortable="custom">
+        <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom">
           <template slot-scope="scope">{{segmentTime(scope.row, scope.row.startTime) | toServerGMTDate}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" show-overflow-tooltip width="130" prop="end_time" sortable="custom">
+        <el-table-column :label="$t('kylinLang.common.endTime')" show-overflow-tooltip prop="end_time" sortable="custom">
           <template slot-scope="scope">{{segmentTime(scope.row,scope.row.endTime) | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column
@@ -96,14 +96,14 @@
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="last_modified_time" width="135" show-overflow-tooltip :label="$t('modifyTime')">
+        <el-table-column prop="last_modified_time" show-overflow-tooltip :label="$t('modifyTime')">
           <template slot-scope="scope">
             <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('sourceRecords')" width="140" align="right" prop="row_count" sortable="custom">
         </el-table-column>
-        <el-table-column :label="$t('storageSize')" min-width="140" align="right" prop="storage" sortable="custom">
+        <el-table-column :label="$t('storageSize')" width="140" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
         <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">
