@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -142,11 +141,6 @@ public class JdbcAuditLogStore implements AuditLogStore {
     }
 
     public void save(UnitMessages unitMessages) {
-        if (this.config.getServerMode().equals(KylinConfigBase.QUERY_NODE)) {
-            log.warn("Query Node do not permit to save audit log, UnitId: {} !", unitMessages.getUnitId());
-            return;
-        }
-
         val unitId = unitMessages.getUnitId();
         val operator = Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
                 .map(Principal::getName).orElse(null);
