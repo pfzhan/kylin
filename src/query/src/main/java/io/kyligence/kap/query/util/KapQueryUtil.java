@@ -54,7 +54,7 @@ public class KapQueryUtil {
     private KapQueryUtil() {
     }
 
-    public static String massageExpression(NDataModel model, String project, String expression, QueryContext.AclInfo aclInfo) {
+    public static String massageExpression(NDataModel model, String project, String expression, QueryContext.AclInfo aclInfo, boolean massageToPushdown) {
         String tempConst = "'" + UUID.randomUUID().toString() + "'";
         StringBuilder forCC = new StringBuilder();
         forCC.append("select ");
@@ -72,12 +72,19 @@ public class KapQueryUtil {
             QueryParams queryParams = new QueryParams(project, ccSql, "DEFAULT", false);
             queryParams.setKylinConfig(QueryUtil.getKylinConfig(project));
             queryParams.setAclInfo(aclInfo);
-            ccSql = QueryUtil.massagePushDownSql(queryParams);
+
+            if (massageToPushdown) {
+                ccSql = QueryUtil.massagePushDownSql(queryParams);
+            }
         } catch (Exception e) {
             log.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
+    }
+
+    public static String massageExpression(NDataModel model, String project, String expression, QueryContext.AclInfo aclInfo) {
+        return massageExpression(model, project, expression, aclInfo, true);
     }
 
     public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc, QueryContext.AclInfo aclInfo) {

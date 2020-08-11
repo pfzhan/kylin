@@ -23,6 +23,7 @@
 package io.kyligence.kap.engine.spark.job
 
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable.replaceDot
+import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc
 import org.apache.spark.internal.Logging
@@ -60,12 +61,12 @@ object FlatTableHelper extends Logging {
     val model = flatTable.getDataModel
 
     if (StringUtils.isNotBlank(model.getFilterCondition)) {
-      var afterConvertCondition = model.getFilterCondition
-      var oriCondition = model.getFilterCondition
-      if (needReplaceDot) oriCondition = replaceDot(model.getFilterCondition, model)
-      afterConvertCondition = s" (1=1) AND (" + oriCondition + s")"
-      logInfo(s"Filter condition is $afterConvertCondition")
-      afterFilter = afterFilter.where(afterConvertCondition)
+      var filterCond = model.getFilterCondition
+      filterCond = KapQueryUtil.massageExpression(model, model.getProject, filterCond, null);
+      if (needReplaceDot) filterCond = replaceDot(filterCond, model)
+      filterCond = s" (1=1) AND (" + filterCond + s")"
+      logInfo(s"Filter condition is $filterCond")
+      afterFilter = afterFilter.where(filterCond)
     }
 
     afterFilter

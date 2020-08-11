@@ -3433,6 +3433,31 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCreateModelWithFilterCondition() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject("default");
+        modelRequest.setAlias("new_model");
+        modelRequest.setLastModified(0L);
+        modelRequest.setStart("0");
+        modelRequest.setEnd("100");
+        modelRequest.setUuid(null);
+        modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
+
+        String filterCond = "trans_id = 0 and TEST_KYLIN_FACT.order_id < 100 and DEAL_AMOUNT > 123";
+        String expectedFilterCond = "(((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100)) AND ((TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) > 123))";
+        modelRequest.setFilterCondition(filterCond);
+
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+
+        Assert.assertEquals(expectedFilterCond, newModel.getFilterCondition());
+        modelManager.dropModel(newModel);
+    }
+
+
+    @Test
     public void testBuildIndexManually_TableOriented_exception() {
         val project = "default";
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
@@ -3872,6 +3897,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
         okModelRequest.setProject(project);
         Mockito.when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
         modelService.checkBeforeModelSave(okModelRequest);
+    }
+
+    @Test
+    public void testMassageModelFilterCondition() {
+        String project = "default";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel model = modelManager.copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        String originSql = "trans_id = 0 and TEST_KYLIN_FACT.order_id < 100 and DEAL_AMOUNT > 123";
+        model.setFilterCondition(originSql);
+        modelService.massageModelFilterCondition(model);
+        Assert.assertEquals(
+                "(((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100)) AND ((TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) > 123))",
+                model.getFilterCondition());
     }
 
     @Test

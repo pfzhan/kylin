@@ -1634,6 +1634,7 @@ public class ModelService extends BasicService {
         validatePartitionDateColumn(modelRequest);
 
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        preProcessBeforeModelSave(dataModel, project);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -2370,13 +2371,7 @@ public class ModelService extends BasicService {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
 
-        String originFilterCondition = model.getFilterCondition();
-        if (StringUtils.isNotEmpty(originFilterCondition)) {
-            String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition,
-                    AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
-            String filterConditionAddTableName = addTableNameIfNotExist(newFilterCondition, model);
-            model.setFilterCondition(filterConditionAddTableName);
-        }
+        massageModelFilterCondition(model);
 
         checkCCNameAmbiguity(model);
 
@@ -3056,12 +3051,8 @@ public class ModelService extends BasicService {
             affectedLayouts = getAffectedLayouts(oldDataModel.getProject(), oldDataModel.getId(), modifiedSet);
             checkNestedComputedColumn(model, modifiedSet);
         }
-        String originFilterCondition = model.getFilterCondition();
         try {
-            if (StringUtils.isNotEmpty(originFilterCondition)) {
-                String filterConditionAddTableName = addTableNameIfNotExist(originFilterCondition, model);
-                model.setFilterCondition(filterConditionAddTableName);
-            }
+            massageModelFilterCondition(model);
         } catch (Exception e) {
             throw new KylinException(INVALID_FILTER_CONDITION, e);
         }
@@ -3084,7 +3075,29 @@ public class ModelService extends BasicService {
         }
     }
 
-    public String addTableNameIfNotExist(final String expr, final NDataModel model) {
+    /**
+     * massage and update model filter condition
+     * 1. expand computed columns
+     * 2. add missing identifier quotes
+     * 3. add missing table identifiers
+     * @param model
+     */
+    @VisibleForTesting
+    void massageModelFilterCondition(final NDataModel model) {
+        if (StringUtils.isEmpty(model.getFilterCondition())) {
+            return;
+        }
+
+        String massagedFilterCond = KapQueryUtil.massageExpression(model, model.getProject(), model.getFilterCondition(),
+                AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), getCurrentUserGroups()), false);
+
+        String filterConditionWithTableName = addTableNameIfNotExist(massagedFilterCond, model);
+
+        model.setFilterCondition(filterConditionWithTableName);
+    }
+
+    @VisibleForTesting
+    String addTableNameIfNotExist(final String expr, final NDataModel model) {
         Map<String, String> colToTable = Maps.newHashMap();
         Set<String> ambiguityCol = Sets.newHashSet();
         Set<String> allColumn = Sets.newHashSet();
