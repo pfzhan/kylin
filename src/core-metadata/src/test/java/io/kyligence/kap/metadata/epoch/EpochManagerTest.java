@@ -61,6 +61,7 @@ public class EpochManagerTest extends NLocalFileMetadataTestCase {
         val globalEpoch = epochManager.getGlobalEpoch();
         val time1 = globalEpoch.getLastEpochRenewTime();
         Assert.assertNotNull(globalEpoch);
+        Thread.sleep(10);
         epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         Assert.assertNotEquals(time1, epochManager.getGlobalEpoch().getLastEpochRenewTime());
     }
