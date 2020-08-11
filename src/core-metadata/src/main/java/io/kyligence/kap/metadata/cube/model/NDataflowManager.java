@@ -382,7 +382,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             NDataSegment dataSegment = mergingSegments.get(i);
             NDataSegDetails details = dataSegment.getSegDetails();
             if (!firstSegDetails.checkLayoutsBeforeMerge(details))
-                throw new IllegalArgumentException(first + " and " + dataSegment + " has different layout status");
+                throw new KylinException(FAILED_MERGE_SEGMENT,
+                        String.format(MsgPicker.getMsg().getSegmentMergeLayoutConflictError(),
+                                first.getId(), first.getSegRange().getStartFormatted(), first.getSegRange().getEndFormatted(),
+                                dataSegment.getId(), dataSegment.getSegRange().getStartFormatted(), dataSegment.getSegRange().getEndFormatted()));
         }
 
         if (!force) {

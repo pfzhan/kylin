@@ -115,6 +115,13 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         return end;
     }
 
+    public String getStartFormatted() {
+        return start.toString();
+    }
+
+    public String getEndFormatted() {
+        return end.toString();
+    }
 
     // ============================================================================
 
@@ -309,6 +316,14 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         @JsonProperty("date_range_end")
         public void setEnd(Long end) {
             this.end = end;
+        }
+
+        public String getStartFormatted() {
+            return DateFormat.formatToTimeStr(start);
+        }
+
+        public String getEndFormatted() {
+            return DateFormat.formatToTimeStr(end);
         }
 
     }

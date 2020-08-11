@@ -1302,6 +1302,10 @@ public class CnMessage extends Message {
         return "segment %s 和 %s 之间有空洞，无法合并。";
     }
 
+    public String getSegmentMergeLayoutConflictError() {
+        return "抱歉，由于Segment[%s]，其时间范围[%s - %s]，与Segment[%s]，其时间范围[%s - %s]的索引结构不同，暂时无法合并。";
+    }
+
     public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
         return "构建失败，此模型事实表已被其他模型设置为维度表，请重新设置事实表或调整引用此表的其他模型。";
     }

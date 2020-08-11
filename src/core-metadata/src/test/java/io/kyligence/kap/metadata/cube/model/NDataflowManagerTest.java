@@ -341,8 +341,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 2L), true);
             fail("No exception thrown.");
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof IllegalArgumentException);
-            Assert.assertTrue(e.getMessage().contains("has different layout status"));
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertTrue(e.getMessage().contains("have a different index structure"));
         }
     }
 

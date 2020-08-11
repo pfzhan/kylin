@@ -1363,6 +1363,10 @@ public class Message {
         return "Merging segments must not have gaps between %s and %s.";
     }
 
+    public String getSegmentMergeLayoutConflictError() {
+        return "Sorry, because Segment [%s], its time range [%s - %s], and Segment [%s], its time range [%s - %s] have a different index structure, it cannot be merged temporarily.";
+    }
+
     public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
         return "The build failed. The fact table of this model has been set as a dimension table by another model. Please reset the fact table or adjust other models that refer to this table.";
     }
