@@ -24,11 +24,12 @@
 
 package io.kyligence.kap.tool.security;
 
-import io.kyligence.kap.tool.MaintainModeTool;
+import java.net.UnknownHostException;
+
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,45 +37,43 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.tool.MaintainModeTool;
 import io.kyligence.kap.tool.MetadataTool;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
-
-import java.net.UnknownHostException;
 
 public class KapPasswordResetCLI {
     protected static final Logger logger = LoggerFactory.getLogger(KapPasswordResetCLI.class);
 
     public static void main(String[] args) throws UnknownHostException {
+        int exit;
         MaintainModeTool maintainModeTool = new MaintainModeTool();
         maintainModeTool.init();
         try {
             maintainModeTool.markEpochs();
-            reset();
-            System.exit(0);
+            exit = reset() ? 0 : 1;
         } catch (Exception e) {
+            exit = 1;
             logger.warn("Fail to reset admin password.", e);
         } finally {
             maintainModeTool.releaseEpochs();
         }
-        System.exit(1);
+        System.exit(exit);
     }
 
-    public static void reset() throws Exception {
+    public static boolean reset() throws Exception {
         PasswordEncoder pwdEncoder = PasswordEncodeFactory.newUserPasswordEncoder();
         String id = "/_global/user/ADMIN";
         val config = KylinConfig.getInstanceFromEnv();
 
         ResourceStore aclStore = ResourceStore.getKylinMetaStore(config);
-        val metaStore = aclStore.getMetadataStore();
         NKylinUserManager userManager = NKylinUserManager.getInstance(config);
 
         val user = userManager.get("ADMIN");
         if (user == null) {
             logger.warn("The password cannot be reset because there is no ADMIN user.");
-            System.exit(1);
+            return false;
         }
         boolean randomPasswordEnabled = KylinConfig.getInstanceFromEnv().getRandomAdminPasswordEnabled();
         String password = randomPasswordEnabled ? AdminUserInitCLI.generateRandomPassword() : "KYLIN";
@@ -85,14 +84,15 @@ public class KapPasswordResetCLI {
 
         if (res == null) {
             logger.warn("The password cannot be reset because there is no ADMIN user.");
-            System.exit(1);
+            return false;
         }
 
         user.clearAuthenticateFailedRecord();
-        metaStore.putResource(
-                new RawResource(id, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)),
-                        aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1),
-                null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
+
+        UnitOfWork.doInTransactionWithRetry(
+                () -> ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(id,
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)), aclStore.getResource(id).getMvcc()),
+                UnitOfWork.GLOBAL_UNIT);
 
         logger.trace("update user : {}", user.getUsername());
         logger.info("User {}'s password is set to default password.", user.getUsername());
@@ -111,5 +111,7 @@ public class KapPasswordResetCLI {
             System.out.println(
                     StorageCleaner.ANSI_YELLOW + "Reset the ADMIN password successfully." + StorageCleaner.ANSI_RESET);
         }
+
+        return true;
     }
 }

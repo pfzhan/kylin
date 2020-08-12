@@ -27,6 +27,8 @@ package io.kyligence.kap.tool.security;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.rest.constant.Constant;
@@ -36,6 +38,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -43,6 +46,8 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
+
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
 
@@ -52,10 +57,13 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
+        getTestConfig().setMetadataUrl("testKapPasswordResetCLITest@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
     }
 
     @After
-    public void teardown() {
+    public void teardown() throws Exception {
+        val jdbcTemplate = getJdbcTemplate();
+        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
     }
 
@@ -91,6 +99,18 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
                 StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "] succeed. The password is "));
         Assert.assertTrue(output.toString().endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
 
+        val url = getTestConfig().getMetadataUrl();
+        val jdbcTemplate = getJdbcTemplate();
+        val all = jdbcTemplate.query("select * from " + url.getIdentifier() + "_audit_log", new AuditLogRowMapper());
+        Assert.assertTrue(all.stream().anyMatch(auditLog -> auditLog.getResPath().equals("/_global/user/ADMIN")));
+
         System.setOut(System.out);
+    }
+
+    JdbcTemplate getJdbcTemplate() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+        val props = datasourceParameters(url);
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        return new JdbcTemplate(dataSource);
     }
 }

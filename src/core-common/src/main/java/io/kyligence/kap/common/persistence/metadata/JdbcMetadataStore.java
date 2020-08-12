@@ -161,11 +161,11 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     public void checkEpochModified(String unitPath, long oriMvcc, long oriEpochId) {
-        if (unitPath.startsWith("_") && !unitPath.equalsIgnoreCase(GLOBAL_UNIT)) {
-            return;
-        }
-
         if (StringUtils.isNotEmpty(unitPath)) {
+            if (unitPath.startsWith("_") && !unitPath.equalsIgnoreCase(GLOBAL_UNIT)) {
+                return;
+            }
+
             if (oriEpochId < 0) {
                 return;
             }
