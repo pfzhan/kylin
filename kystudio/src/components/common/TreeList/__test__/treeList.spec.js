@@ -4,8 +4,11 @@ import { localVue } from '../../../../../test/common/spec_common'
 import ElementUI from 'kyligence-ui'
 
 localVue.use(ElementUI)
+jest.setTimeout(50000)
 
-const filterData = jest.fn().mockResolvedValue()
+const filterData = jest.fn().mockImplementation(() => {
+  return new Promise((resolve) => resolve(true))
+})
 const handleClick = jest.fn()
 const handleDbClick = jest.fn()
 const _eventMaps = {}
@@ -98,7 +101,7 @@ describe('Component TreeList', () => {
     expect(wrapper.find('.resize-bar').attributes().style).toEqual('')
     expect(wrapper.vm.treeStyle).toEqual({ width: 0 })
   })
-  it('filter data', async (done) => {
+  it('filter data', () => {
     wrapper.vm.$emit('filter', {target: { value: 'test example', which: 13 }})
     expect(wrapper.vm.filterText).toBe('test example')
     expect(wrapper.vm.isLoading).toBeFalsy()
@@ -106,12 +109,8 @@ describe('Component TreeList', () => {
 
     wrapper.vm.$emit('filter', {target: { value: 'test' }})
     expect(wrapper.vm.filterText).toBe('test')
-    setTimeout(() => {
-      expect(wrapper.vm.isLoading).toBeFalsy()
-      expect(wrapper.vm.timer).not.toBe(0)
-      expect(filterData).toBeCalled()
-      done()
-    }, 1000)
+    expect(wrapper.vm.isLoading).toBeFalsy()
+    expect(wrapper.vm.timer).not.toBe(0)
 
     wrapper.find('.filter-box input').trigger('keyup', {which: 13})
     expect(filterData).toBeCalled()

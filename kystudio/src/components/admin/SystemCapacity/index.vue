@@ -333,13 +333,13 @@ export default class SystemCapacity extends Vue {
   selectedDataLine = 'month'
   dalyTimer = null
 
-  @Watch('alertMsg.notify')
-  changeAlertEmail (newVal, oldVal) {
-    if (newVal !== oldVal && !newVal) {
-      this.errorEmailTip = false
-      this.$refs.emailsValidate.resetFields()
-    }
-  }
+  // @Watch('alertMsg.notify')
+  // changeAlertEmail (newVal, oldVal) {
+  //   if (newVal !== oldVal && !newVal) {
+  //     this.errorEmailTip = false
+  //     this.$refs.emailsValidate.resetFields()
+  //   }
+  // }
 
   @Watch('nodeList')
   changeNodes (newVal, oldVal) {
@@ -413,11 +413,11 @@ export default class SystemCapacity extends Vue {
   }
 
   // 邮箱规则
-  get emailRules () {
-    return [
-      { validator: this.validateEmail, trigger: 'blur', required: true }
-    ]
-  }
+  // get emailRules () {
+  //   return [
+  //     { validator: this.validateEmail, trigger: 'blur', required: true }
+  //   ]
+  // }
 
   // 折线图获取的数据集（当月、当季、当年）
   get dataOptions () {
@@ -507,19 +507,19 @@ export default class SystemCapacity extends Vue {
     this.getTableDetails()
   }
 
-  changeNoitceType () {
-    this.showAlert = true
-  }
+  // changeNoitceType () {
+  //   this.showAlert = true
+  // }
 
-  async submitEmailNotice () {
-    if (await this.$refs.emailsValidate.validate()) {
-      // this.showAlert = false
-      // todo 邮箱提醒接口
-      this.saveAlertEmails({})
-      this.noticeType = this.alertMsg.notify
-      this.oldAlert = this.alertMsg
-    }
-  }
+  // async submitEmailNotice () {
+  //   if (await this.$refs.emailsValidate.validate()) {
+  //     // this.showAlert = false
+  //     // todo 邮箱提醒接口
+  //     this.saveAlertEmails({})
+  //     this.noticeType = this.alertMsg.notify
+  //     this.oldAlert = this.alertMsg
+  //   }
+  // }
 
   renderUsageHeader (h, { column, index }) {
     return <span class="usage-header">
@@ -560,43 +560,43 @@ export default class SystemCapacity extends Vue {
   }
 
   // 手动认证邮箱格式
-  validateEmail (rule, value, callback) {
-    const emails = value.split(',')
-    const reg = /^\w+((.\w+)|(-\w+))@[A-Za-z0-9]+((.|-)[A-Za-z0-9]+).[A-Za-z0-9]+$/
-    if (!value && !this.alertMsg.emailTags.length) {
-      this.errorEmailTip = true
-      callback(new Error(this.$t('noEmail')))
-    } else if (value && emails.length && emails.filter(it => !reg.test(it)).length) {
-      this.errorEmailTip = true
-      callback(new Error(this.$t('errorEmailFormat')))
-    } else {
-      this.errorEmailTip = false
-      callback()
-    }
-  }
+  // validateEmail (rule, value, callback) {
+  //   const emails = value.split(',')
+  //   const reg = /^\w+((.\w+)|(-\w+))@[A-Za-z0-9]+((.|-)[A-Za-z0-9]+).[A-Za-z0-9]+$/
+  //   if (!value && !this.alertMsg.emailTags.length) {
+  //     this.errorEmailTip = true
+  //     callback(new Error(this.$t('noEmail')))
+  //   } else if (value && emails.length && emails.filter(it => !reg.test(it)).length) {
+  //     this.errorEmailTip = true
+  //     callback(new Error(this.$t('errorEmailFormat')))
+  //   } else {
+  //     this.errorEmailTip = false
+  //     callback()
+  //   }
+  // }
 
   // 邮件预警
-  async changeEmails () {
-    if (await this.$refs.emailsValidate.validate() && this.alertMsg.emails) {
-      this.alertMsg.emailTags = [...this.alertMsg.emailTags, ...this.alertMsg.emails.split(',')]
-      this.alertMsg.emails = ''
-    }
-    this.showEmailInput = false
-    window.removeEventListener('keydown', this.delEmailEvent)
-  }
+  // async changeEmails () {
+  //   if (await this.$refs.emailsValidate.validate() && this.alertMsg.emails) {
+  //     this.alertMsg.emailTags = [...this.alertMsg.emailTags, ...this.alertMsg.emails.split(',')]
+  //     this.alertMsg.emails = ''
+  //   }
+  //   this.showEmailInput = false
+  //   window.removeEventListener('keydown', this.delEmailEvent)
+  // }
 
-  handlerClickEvent () {
-    this.showEmailInput = true
-    this.$nextTick(() => {
-      this.$refs.emailInput.$el.querySelector('.el-input__inner').focus()
-    })
-  }
+  // handlerClickEvent () {
+  //   this.showEmailInput = true
+  //   this.$nextTick(() => {
+  //     this.$refs.emailInput.$el.querySelector('.el-input__inner').focus()
+  //   })
+  // }
 
   // 删除邮箱tag
-  removeCurrentTag (name) {
-    const index = this.alertMsg.emailTags.findIndex(n => n === name)
-    index >= 0 && this.alertMsg.emailTags.splice(index, 1)
-  }
+  // removeCurrentTag (name) {
+  //   const index = this.alertMsg.emailTags.findIndex(n => n === name)
+  //   index >= 0 && this.alertMsg.emailTags.splice(index, 1)
+  // }
 
   // 刷新单个项目占比及数据量
   refreshProjectCapacity (row) {

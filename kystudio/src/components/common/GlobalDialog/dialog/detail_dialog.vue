@@ -104,7 +104,7 @@ import { mapState, mapMutations } from 'vuex'
 
 import vuex from '../../../../store'
 import store, { types } from './store'
-import { filterInjectScript } from 'util'
+import { filterInjectScript } from '../../../../util'
 vuex.registerModule(['modals', 'DetailDialogModal'], store)
 
 @Component({
@@ -272,6 +272,7 @@ export default class DetailDialogModal extends Vue {
   }
 }
 </script>
+
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .global-dialog-box {

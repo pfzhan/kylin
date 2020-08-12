@@ -140,6 +140,7 @@ export default {
           resolve(data)
         }).catch((err) => {
           handleError(err)
+          reject(err)
         })
       })
     },

@@ -48,7 +48,17 @@ module.exports = {
     '!src/config/**',
     '!src/assets/**',
     '!src/service/**',
-    '!src/store/**'
+    '!src/store/**',
+    '!src/util/code_flower.js',
+    '!src/util/liquidFillGauge.js',
+    '!src/components/common/DemoModal/*.{js,vue}',
+    '!src/components/common/FlowerChart/*.{js,vue}',
+    '!src/components/datasource/access_sub/*.{js,vue}',
+    '!src/components/kafka/*.{js,vue}',
+    '!src/components/demo.vue',
+    '!src/components/common/DataSourceModal/SourceCSV/**/*.{js,vue}',
+    '!src/components/common/BatchLoadModal/*.{js,vue}',
+    '!src/components/common/Guide/*.{js,vue}'
   ],
   // coverageReporters: ['json', 'lcovonly', 'text', 'clover'],
   coverageDirectory: './test/coverage',

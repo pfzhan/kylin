@@ -325,3 +325,12 @@ describe('Component DataSourceBar', async () => {
     }, 200)
   })
 })
+
+describe('DataSourceBar handlers', () => {
+  it('events', () => {
+    expect(handlers.getTableObj(wrapper.vm, 'SSB', {root_fact: true, lookup: false, uuid: '', name: 'KYLIN', increment_loading: false, top: true, columns: [], segment_range: {date_range_start: 103113938123, date_range_end: 103123938123}}, false)).toBeInstanceOf(Object)
+    expect(handlers.freshTreeOrder(wrapper.vm)).toEqual()
+    expect(handlers.getWordsData({type: '', label: '', id: 4})).toEqual({meta: '', caption: '', value: '', id: 4, scope: 1})
+    expect(handlers.getTableDBWordsData({type: 'table', database: 'SSB', label: 'SALES', id: 4})).toEqual({meta: 'table', caption: 'SSB.SALES', value: 'SSB.SALES', id: 4, scope: 1})
+  })
+})

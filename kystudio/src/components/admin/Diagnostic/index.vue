@@ -156,13 +156,6 @@ export default class Diagnostic extends Vue {
   closeFromHeader = false
   validDateTime = false
   isServerChange = false
-  timeRange = [
-    {text: this.$t('lastHour'), label: 'lastHour'},
-    {text: this.$t('lastDay'), label: 'lastDay'},
-    {text: this.$t('lastThreeDay'), label: 'lastThreeDay'},
-    {text: this.$t('lastMonth'), label: 'lastMonth'},
-    {text: this.$t('custom'), label: 'custom'}
-  ]
   serverOptions = []
   timeRangeValue = 'lastDay'
   dateTime = {
@@ -178,6 +171,15 @@ export default class Diagnostic extends Vue {
     if (!list.length) {
       this.isRunning = false
     }
+  }
+  get timeRange () {
+    return [
+      {text: this.$t('lastHour'), label: 'lastHour'},
+      {text: this.$t('lastDay'), label: 'lastDay'},
+      {text: this.$t('lastThreeDay'), label: 'lastThreeDay'},
+      {text: this.$t('lastMonth'), label: 'lastMonth'},
+      {text: this.$t('custom'), label: 'custom'}
+    ]
   }
   // 获取诊断包可下载数/总数
   get getDownloadNum () {
@@ -449,7 +451,6 @@ export default class Diagnostic extends Vue {
         margin-top: 15px;
         font-size: 14px;
         .download-progress {
-          // margin-top: 10px;
           .progress-item {
             position: relative;
             margin-top: 0;
