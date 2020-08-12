@@ -1268,6 +1268,7 @@ export default class ModelEdit extends Vue {
     var pGuid = data.selectP
     var fGuid = data.selectF
     var joinData = data.joinData
+    var selectTableRelation = data.selectTableRelation
     var joinType = data.joinType
     // 2020/06/24 add 过滤出条件是等于的
     var fcols = joinData.foreign_key
@@ -1276,7 +1277,7 @@ export default class ModelEdit extends Vue {
     var pTable = this.modelInstance.tables[pGuid]
     // 2020/06/24 add 多了 scd2 模式后，joinData 中的字段格式需要重新拼接
     // 给table添加连接数据
-    pTable.addLinkData(fTable, fcols, pcols, joinType, joinData.op)
+    pTable.addLinkData(fTable, fcols, pcols, joinType, joinData.op, selectTableRelation)
     this.currentDragColumnData = {}
     this.currentDropColumnData = {}
     this.currentDragColumn = null
@@ -1380,6 +1381,7 @@ export default class ModelEdit extends Vue {
       this.callJoinDialog({
         pid: pguid,
         fid: fguid,
+        selectTableRelation: joinInfo.join_relation_type,
         tables: this.modelRender.tables
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
@@ -1428,6 +1430,7 @@ export default class ModelEdit extends Vue {
       this.callJoinDialog({
         pid: pguid,
         fid: fguid,
+        selectTableRelation: joinInfo.join_relation_type,
         tables: this.modelRender.tables
       }).then((data) => {
         this._collectSearchActionRecords(data, select.action)
@@ -1634,6 +1637,7 @@ export default class ModelEdit extends Vue {
             pid: ptable.guid,
             fid: ftable.guid,
             primaryTable: ptable,
+            selectTableRelation: ptable.joinInfo[`${ftable.guid}$${ptable.guid}`].join_relation_type,
             tables: this.modelRender.tables
           })
         })

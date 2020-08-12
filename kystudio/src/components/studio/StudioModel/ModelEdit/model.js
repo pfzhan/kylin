@@ -424,7 +424,7 @@ class NModel {
         // 获取外键表对象
         if (this.renderDom) {
           var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
-          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type, tableObj.join.op)
+          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type, tableObj.join.op, tableObj.join_relation_type)
         }
       })
     }

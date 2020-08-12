@@ -17,6 +17,7 @@ const initialState = JSON.stringify({
     fColumnName: '',
     pColumnName: '',
     joinType: '',
+    selectTableRelation: '',
     modelInstance: null
   },
   callback: null

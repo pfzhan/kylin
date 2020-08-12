@@ -1,5 +1,13 @@
 <template>
   <el-dialog append-to-body limited-area :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="720px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+    <el-alert
+      :title="$t('tableRelationTips', {tableName: pTableName})"
+      type="warning"
+      class="ksd-mb-15"
+      show-icon
+      :closable="false"
+      v-if="showTRelationTips">
+    </el-alert>
     <p class="join-notices"><i :class="[!isErrorValue.length ? 'el-icon-ksd-alert' : 'el-icon-ksd-error_01 is-error']"></i>{{$t(!isErrorValue.length ? 'joinNotice' : 'joinErrorNotice')}}<span class="review-details" @click="showDetails = !showDetails">{{$t('details')}}<i :class="[showDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02', 'arrow']"></i></span></p>
     <div class="detail-content" v-if="showDetails">
       <p :class="[item.isError && 'is-error']" v-for="item in getDetails" :key="item.value"><i class="point">•</i>{{item.text}}</p>
@@ -21,6 +29,14 @@
         <el-select :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"  @change="changePTable" size="medium" style="width:100%" filterable v-model="selectP">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!selectP"></i>
           <el-option v-for="key in selectedPTables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
+        </el-select>
+      </el-col>
+    </el-row>
+    <p class="title-label ksd-mt-15">{{$t('tableRelation')}}</p>
+    <el-row :gutter="10" class="ksd-mt-10">
+      <el-col :span="10">
+        <el-select style="width:100%" v-model="selectTableRelation">
+          <el-option  v-for="key in selectedTRelations" :value="key.value" :key="key.value" :label="$t(key.label)"></el-option>
         </el-select>
       </el-col>
     </el-row>
@@ -104,6 +120,7 @@ export default class TableJoinModal extends Vue {
   joinType = '' // 选择连接的类型
   selectF = '' // 选择的外键表的alias名
   selectP = '' // 选择的主键表的alias名
+  selectTableRelation = 'MANY_TO_ONE'
   joinColumns = {
     foreign_key: [''],
     op: [''], // 新加的列的关联关系的字段
@@ -119,6 +136,19 @@ export default class TableJoinModal extends Vue {
   showDetails = false
   disableSaveBtn = false
   errorFlag = []
+  selectedTRelations = [
+    {value: 'MANY_TO_ONE', label: 'manyToOne'},
+    {value: 'ONE_TO_ONE', label: 'oneToOne'},
+    {value: 'ONE_TO_MANY', label: 'oneToMany'},
+    {value: 'MANY_TO_MANY', label: 'manyToMany'}
+  ]
+  get showTRelationTips () {
+    if (this.selectTableRelation === 'ONE_TO_MANY' || this.selectTableRelation === 'MANY_TO_MANY') {
+      return true
+    } else {
+      return false
+    }
+  }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
@@ -132,6 +162,7 @@ export default class TableJoinModal extends Vue {
       this.selectP = this.form.pid || ''
       this.selectF = this.form.fid || ''
       this.joinType = this.form.joinType || 'INNER'
+      this.selectTableRelation = this.form.selectTableRelation || 'MANY_TO_ONE'
       let ptable = this.form.tables[this.selectP]
       // let ftable = this.form.tables[this.selectF]
       let joinData = ptable && ptable.getJoinInfoByFGuid(this.selectF) || null
@@ -201,8 +232,18 @@ export default class TableJoinModal extends Vue {
   changeFTable () {
     this.joinColumns.foreign_key = ['']
   }
-  changePTable () {
+  changePTable (key) {
     this.joinColumns.primary_key = ['']
+    this.pTableName = this.selectedPTables[key].alias
+  }
+  get pTableName () {
+    let tableName = ''
+    for (let key in this.selectedPTables) {
+      if (this.selectedPTables[key].guid === this.selectP) {
+        tableName = this.selectedPTables[key].alias
+      }
+    }
+    return tableName
   }
   get selectedFTables () {
     return this.form.tables && Object.values(this.form.tables).filter((t) => {
@@ -446,6 +487,7 @@ export default class TableJoinModal extends Vue {
     var joinData = this.joinColumns // 修改后的连接关系
     var selectF = this.selectF // 外键表名
     var selectP = this.selectP // 主键表名
+    var selectTableRelation = this.selectTableRelation // 表关系
     // if (this.checkLinkCompelete() && this.checkNoEqualRelation()) {
     // 校验是否链接层环状
     if (this.form && this.form.modelInstance.checkLinkCircle(selectF, selectP)) {
@@ -459,6 +501,7 @@ export default class TableJoinModal extends Vue {
       selectF: selectF,
       selectP: selectP,
       joinData: joinData,
+      selectTableRelation: selectTableRelation,
       joinType: this.joinType
     })
     // } else {

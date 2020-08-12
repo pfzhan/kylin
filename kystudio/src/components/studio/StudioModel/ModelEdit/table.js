@@ -97,7 +97,7 @@ class NTable {
     }, 200)
   }
   // 链接关系处理 (链接数据都存储在主键表上)
-  addLinkData (fTable, linkColumnF, linkColumnP, type, opArr) {
+  addLinkData (fTable, linkColumnF, linkColumnP, type, opArr, selectedTRelation) {
     // this.addFreeLinkData(fTable, linkColumnF, linkColumnP, type)
     let fguid = fTable.guid
     let key = fguid + '$' + this.guid
@@ -121,7 +121,8 @@ class NTable {
         alias: this.alias,
         kind: this.kind
       },
-      kind: this.kind
+      kind: this.kind,
+      join_relation_type: selectedTRelation
     }
   }
   removeJoinInfo (fid) {
@@ -160,6 +161,7 @@ class NTable {
       if (joinInfo && joinInfo.table && joinInfo.join) {
         obj.table = joinInfo.table.name
         obj.alias = joinInfo.table.alias
+        obj.join_relation_type = joinInfo.join_relation_type
         // obj.join = joinInfo.join
         // 这里要处理成后端要的结构
         let item = joinInfo.join.op
