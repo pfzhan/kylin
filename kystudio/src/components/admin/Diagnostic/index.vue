@@ -5,11 +5,19 @@
     width="720px"
     :close-on-click-modal="false"
     :before-close="() => handleClose('header')"
-    :title="$t('dialogTitle')"
+    :title="$route.name === 'Job' ? $t('jobDiagnosis') : $t('systemDiagnosis') "
     :limited-area="true"
   >
     <div class="body">
       <template v-if="$route.name !== 'Job'">
+        <el-alert
+          class="ksd-pt-0 ksd-mb-10"
+          type="info"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+          <span slot="title">{{$t('downloadSystemDiagPackage1')}}<a href="javascript:void(0)" @click="() => this.$router.push('/monitor/job')">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
+        </el-alert>
         <div class="time-range">{{$t('timeRange')}}<el-tooltip :content="$t('timeRangeTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip>：</div>
         <el-radio-group v-model="timeRangeValue" class="time-range-radio" @change="changeTimeRange" :disabled="isRunning">
           <el-radio :label="item.label" v-for="(item, index) in timeRange" :key="index">{{item.text}}</el-radio>
@@ -40,6 +48,22 @@
         </div>
       </template>
       <div :class="['server', $route.name !== 'Job' && 'ksd-mt-15']">
+        <el-alert
+          class="ksd-pt-0 ksd-mb-10"
+          type="info"
+          v-if="$route.name === 'Job'"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+          <template v-if="$store.state.config.platform === 'iframe'">
+            <span slot="title" v-if="isAdminRole">{{$t('downloadJobDiagPackage1ForIframe')}}<a href="javascript:void(0)" @click="gotoWorkspaceList">{{$t('workspaceList')}}</a>{{$t('downloadJobDiagPackage2ForIframe')}}</span>
+            <span slot="title" v-else>{{$t('downloadJobDiagPackageForNorAdminForIframe')}}</span>
+          </template>
+          <template v-else>
+            <span slot="title" v-if="isAdminRole">{{$t('downloadJobDiagPackage1')}}<a href="javascript:void(0)" @click="() => this.$router.push('/admin/project')">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
+            <span slot="title" v-else>{{$t('downloadJobDiagPackageForNorAdmin')}}</span>
+          </template>
+        </el-alert>
         <p class="title">{{$t('server')}}</p>
         <el-select :class="{'no-selected': isServerChange && !servers.length}" v-model="servers" multiple :placeholder="$t('selectServerPlaceHolder')" :disabled="isRunning" @change="isServerChange = true">
           <el-option
@@ -106,11 +130,11 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import locales from './locales'
-import { getPrevTimeValue } from '../../../util/business'
+import { getPrevTimeValue, postCloudUrlMessage } from '../../../util/business'
 // import { handleSuccess } from 'util/business'
 import vuex from '../../../store'
 import store, { types } from './store'
-import { mapActions, mapState, mapMutations } from 'vuex'
+import { mapActions, mapState, mapMutations, mapGetters } from 'vuex'
 vuex.registerModule(['diagnosticModel'], store)
 
 @Component({
@@ -124,7 +148,10 @@ vuex.registerModule(['diagnosticModel'], store)
     ...mapState('diagnosticModel', {
       host: state => state.host,
       diagDumpIds: state => state.diagDumpIds
-    })
+    }),
+    ...mapGetters([
+      'isAdminRole'
+    ])
   },
   methods: {
     ...mapActions('diagnosticModel', {
@@ -180,6 +207,9 @@ export default class Diagnostic extends Vue {
       {text: this.$t('lastMonth'), label: 'lastMonth'},
       {text: this.$t('custom'), label: 'custom'}
     ]
+  }
+  gotoWorkspaceList () {
+    postCloudUrlMessage(this.$route, { name: 'Stack' })
   }
   // 获取诊断包可下载数/总数
   get getDownloadNum () {
