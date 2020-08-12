@@ -68,13 +68,13 @@ function prepareZKPrincipal() {
     do
         if [[ "$param" == zookeeper* ]];then
             infos=(${param//'zookeeper.server.principal='/ })
-            envZKPrinciple=${infos[0]}
-            zkPrinciple=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.zookeeper-server-principal`
-            if [ $zkPrinciple != $envZKPrinciple ]
+            envZKPrincipal=${infos[0]}
+            zkPrincipal=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.zookeeper-server-principal`
+            if [ $zkPrincipal != $envZKPrincipal ]
             then
                 sed -i '/kap.kerberos.zookeeper.server.principal/d' ${KYLIN_CONFIG_FILE}
                 sed -i '/kylin.kerberos.zookeeper-server-principal/d' ${KYLIN_CONFIG_FILE}
-                sed -i '$a\kylin.kerberos.zookeeper-server-principal='$envZKPrinciple'' ${KYLIN_CONFIG_FILE}
+                sed -i '$a\kylin.kerberos.zookeeper-server-principal='$envZKPrincipal'' ${KYLIN_CONFIG_FILE}
             fi
         fi
     done

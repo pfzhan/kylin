@@ -894,7 +894,7 @@ public class CnMessage extends Message {
     }
 
     public String getKERBEROS_INFO_ERROR() {
-        return "无效的 Principle 名称或者 Keytab 文件，请检查后重试.";
+        return "无效的 Principal 名称或者 Keytab 文件，请检查后重试.";
     }
 
     public String getPROJECT_HIVE_PERMISSION_ERROR() {

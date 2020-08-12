@@ -987,7 +987,7 @@ public class Message {
     }
 
     public String getKERBEROS_INFO_ERROR() {
-        return "Invalid principle name or keytab file, please check and submit again.";
+        return "Invalid principal name or keytab file, please check and submit again.";
     }
 
     public String getPROJECT_HIVE_PERMISSION_ERROR() {
