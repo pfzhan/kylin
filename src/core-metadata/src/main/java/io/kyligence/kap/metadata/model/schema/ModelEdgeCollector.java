@@ -95,8 +95,7 @@ class ModelEdgeCollector {
             if (tblColRef.getColumnDesc().isComputedColumn()) {
                 return;
             }
-            graph.putEdge(new SchemaNode(SchemaNodeType.TABLE_COLUMN, tblColRef.getTableDotName()),
-                    SchemaNode.ofModelColumn(namedColumn, model.getId()));
+            graph.putEdge(SchemaNode.ofTableColRef(tblColRef), SchemaNode.ofModelColumn(namedColumn, model.getId()));
         });
         effectiveCols.forEach((id, tblColRef) -> {
             if (!tblColRef.getColumnDesc().isComputedColumn()) {

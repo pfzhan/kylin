@@ -34,6 +34,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.experimental.Delegate;
+import org.apache.kylin.metadata.model.TblColRef;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -45,8 +46,22 @@ public class SchemaNode {
 
     String key;
 
+    /**
+     * table columns node with identity as {DATABASE NAME}.{TABLE NAME}.{COLUMN NAME}
+     * @param columnDesc
+     * @return
+     */
     static SchemaNode ofTableColumn(ColumnDesc columnDesc) {
-        return new SchemaNode(SchemaNodeType.TABLE_COLUMN, columnDesc.getIdentity());
+        return new SchemaNode(SchemaNodeType.TABLE_COLUMN, columnDesc.getTable().getIdentity() + "." + columnDesc.getName());
+    }
+
+    /**
+     * table columns node with identity as {DATABASE NAME}.{TABLE NAME}.{COLUMN NAME}
+     * @param colRef
+     * @return
+     */
+    static SchemaNode ofTableColRef(TblColRef colRef) {
+        return new SchemaNode(SchemaNodeType.TABLE_COLUMN, colRef.getTable() + "." + colRef.getName());
     }
 
     static SchemaNode ofModelColumn(NDataModel.NamedColumn namedColumn, String modelId) {
@@ -84,7 +99,7 @@ public class SchemaNode {
 
     public String getSubject() {
         if (type == SchemaNodeType.TABLE_COLUMN) {
-            return key.split("\\.")[0];
+            return key.substring(0, key.lastIndexOf('.'));
         } else {
             return key.split("/")[0];
         }
@@ -92,7 +107,7 @@ public class SchemaNode {
 
     public String getDetail() {
         if (type == SchemaNodeType.TABLE_COLUMN) {
-            return key.split("\\.")[1];
+            return key.substring(key.lastIndexOf('.') + 1);
         } else {
             val words = key.split("/");
             if (words.length == 2) {

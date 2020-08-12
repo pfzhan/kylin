@@ -1433,13 +1433,13 @@ public class TableService extends BasicService {
         checkEffectedJobs(newTableDesc);
 
         Map<String, Set<Pair<Integer, NDataModel.Measure>>> suitableColumnTypeChangedMeasuresMap = getSuitableColumnTypeChangedMeasures(
-                dependencyGraph, project, newTableDesc.getName(), diff.entriesDiffering());
+                dependencyGraph, project, newTableDesc.getIdentity(), diff.entriesDiffering());
 
         BiFunction<Set<String>, Boolean, Map<String, AffectedModelContext>> toAffectedModels = (cols, isDelete) -> {
             Set<SchemaNode> affectedNodes = Sets.newHashSet();
             cols.forEach(colName -> {
                 affectedNodes.addAll(Graphs.reachableNodes(dependencyGraph,
-                        SchemaNodeType.TABLE_COLUMN.withKey(newTableDesc.getName() + "." + colName)));
+                        SchemaNodeType.TABLE_COLUMN.withKey(newTableDesc.getIdentity() + "." + colName)));
             });
             val nodesMap = affectedNodes.stream().filter(SchemaNode::isModelNode)
                     .collect(Collectors.groupingBy(SchemaNode::getSubject, Collectors.toSet()));
@@ -1479,7 +1479,7 @@ public class TableService extends BasicService {
      * @return
      */
     private Map<String, Set<Pair<Integer, NDataModel.Measure>>> getSuitableColumnTypeChangedMeasures(
-            Graph<SchemaNode> dependencyGraph, String project, String table,
+            Graph<SchemaNode> dependencyGraph, String project, String tableIdent,
             Map<String, MapDifference.ValueDifference<Pair<String, String>>> changeTypeDifference) {
         Map<String, Set<Pair<Integer, NDataModel.Measure>>> result = Maps.newHashMap();
 
@@ -1487,7 +1487,7 @@ public class TableService extends BasicService {
 
         for (MapDifference.ValueDifference<Pair<String, String>> value : changeTypeDifference.values()) {
             Graphs.reachableNodes(dependencyGraph,
-                    SchemaNodeType.TABLE_COLUMN.withKey(table + "." + value.leftValue().getFirst())).stream()
+                    SchemaNodeType.TABLE_COLUMN.withKey(tableIdent + "." + value.leftValue().getFirst())).stream()
                     .filter(node -> node.getType() == SchemaNodeType.MODEL_MEASURE).forEach(node -> {
                         String modelId = node.getSubject();
                         String measureId = node.getDetail();
