@@ -23,6 +23,7 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10"
+        :refTag="pageRefTags.modelDimensionPager"
         layout="total, prev, pager, next"
         :totalSize="dimensions.totalCount"
         :curPage="dimensions.pageOffset + 1"
@@ -35,7 +36,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-
+import { pageRefTags } from 'config'
 import { dataHelper } from '../../../util'
 
 @Component({
@@ -46,6 +47,7 @@ import { dataHelper } from '../../../util'
   }
 })
 export default class ModelDimensionList extends Vue {
+  pageRefTags = pageRefTags
   pageOffset = 0
   pageSize = 10
   filters = [

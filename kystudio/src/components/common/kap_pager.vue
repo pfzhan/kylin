@@ -3,7 +3,7 @@
     <el-pagination
       :background="background"
       :layout="layout"
-      :page-size="perPageSize"
+      :page-size="pageSize"
       :page-sizes="pageSizes"
       :total="totalSize"
       :current-page="curPage"
@@ -15,12 +15,13 @@
 </template>
 <script>
 import { pageCount, pageSizes } from '../../config'
+import { cacheLocalStorage } from 'util'
 export default {
   name: 'pager',
   props: {
     perPageSize: {
       type: Number,
-      default: pageCount
+      default: 0
     },
     totalSize: {
       type: Number,
@@ -37,11 +38,15 @@ export default {
     background: {
       type: Boolean,
       default: true
+    },
+    refTag: {
+      type: String,
+      default: ''
     }
   },
   data () {
     return {
-      pageSize: this.perPageSize || pageCount,
+      pageSize: +localStorage.getItem(this.refTag) || this.perPageSize || pageCount,
       pageSizes: pageSizes,
       currentPage: this.curPage
     }
@@ -54,6 +59,7 @@ export default {
     sizeChange (size) {
       this.pageSize = size
       this.currentPage = 0
+      cacheLocalStorage(this.refTag, size)
       this.$emit('handleCurrentChange', this.currentPage, size)
     }
   }

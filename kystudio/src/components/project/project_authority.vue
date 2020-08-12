@@ -50,6 +50,7 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
+        :refTag="pageRefTags.authorityUserPager"
         :totalSize="totalSize"
         :curPage="pagination.page_offset+1"
         @handleCurrentChange="handleCurrentChange">
@@ -74,6 +75,7 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
+        :refTag="pageRefTags.authorityTablePager"
         :totalSize="tableTotalSize"
         :curPage="pagination1.page_offset+1"
         @handleCurrentChange="handleCurrentChange1">
@@ -159,7 +161,7 @@ import { Component } from 'vue-property-decorator'
 import { objectClone } from '../../util'
 import { handleSuccess, handleError, kapConfirm, hasRole, hasPermissionOfProjectAccess } from '../../util/business'
 import { mapActions, mapGetters } from 'vuex'
-import { pageCount, permissions } from 'config'
+import { pageCount, permissions, pageRefTags } from 'config'
 import userAccess from './user_access'
 import tableAccess from './table_access'
 @Component({
@@ -258,6 +260,7 @@ import tableAccess from './table_access'
   }
 })
 export default class ProjectAuthority extends Vue {
+  pageRefTags = pageRefTags
   userTimer = null
   groupTimer = null
   accessView = 'user'

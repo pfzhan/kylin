@@ -115,6 +115,7 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
+        :refTag="pageRefTags.projectPager"
         :totalSize="projectsTotal"
         :curPage="filterData.page_offset+1"
         v-if="projectsTotal"
@@ -163,7 +164,7 @@ import modeList from './model_list'
 import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectConfig from './project_config'
-import { permissions, pageCount, projectCfgs } from '../../config/index'
+import { permissions, pageCount, projectCfgs, pageRefTags } from '../../config/index'
 import { handleSuccessAsync } from '../../util'
 import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
@@ -312,6 +313,7 @@ export default {
   },
   data () {
     return {
+      pageRefTags: pageRefTags,
       projectType: projectCfgs.projectType,
       project: {},
       isEdit: false,

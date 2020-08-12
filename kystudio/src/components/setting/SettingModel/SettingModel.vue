@@ -92,7 +92,7 @@
           </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="modelListSize" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="modelListSize" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" :refTag="pageRefTags.modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
     <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="480px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form ref="form" label-position="top" size="medium" label-width="80px" :model="modelSettingForm" :rules="rules">
         <el-form-item :label="modelTableTitle">
@@ -180,7 +180,7 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 
 import locales from './locales'
-import { pageCount } from '../../../config'
+import { pageCount, pageRefTags } from '../../../config'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import { handleSuccessAsync, handleError, objectClone, ArrayFlat } from '../../../util/index'
 
@@ -221,6 +221,7 @@ const initialSettingForm = JSON.stringify({
   locales
 })
 export default class SettingStorage extends Vue {
+  pageRefTags = pageRefTags
   modelList = []
   modelListSize = 0
   filter = {

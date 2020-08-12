@@ -183,7 +183,7 @@ import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
-import { permissions, menusData, speedInfoTimer } from '../../config'
+import { permissions, menusData, speedInfoTimer, pageRefTags } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
@@ -666,6 +666,7 @@ export default class LayoutLeftRightTop extends Vue {
           this.loginOut().then(() => {
             localStorage.setItem('buyit', false)
             localStorage.setItem('loginIn', false)
+            this.removeAllPagerSizeCache()
             // reset 所有的project信息
             this.resetProjectState()
             this.resetQueryTabs()
@@ -678,12 +679,21 @@ export default class LayoutLeftRightTop extends Vue {
         this.loginOut().then(() => {
           localStorage.setItem('buyit', false)
           localStorage.setItem('loginIn', false)
+          this.removeAllPagerSizeCache()
           // reset 所有的project信息
           this.resetProjectState()
           this.resetQueryTabs()
           this.$router.push({name: 'Login'})
         })
       })
+    }
+  }
+  removeAllPagerSizeCache () {
+    for (let p in pageRefTags) {
+      const pager = pageRefTags[p]
+      if (localStorage.getItem(pager)) {
+        localStorage.removeItem(pager)
+      }
     }
   }
   resetQueryTabs () {

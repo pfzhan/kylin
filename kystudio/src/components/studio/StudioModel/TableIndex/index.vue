@@ -92,7 +92,7 @@
             </template>
             </el-table-column>         
           </el-table>
-          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :perPageSize="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.tableIndexDetailPager" :perPageSize="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
         </div> 
       </el-card>
     </div>
@@ -110,6 +110,7 @@ import { isToday, isThisWeek, isLastWeek } from 'util/index'
 import { BuildIndexStatus } from 'config/model'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 import NModel from '../ModelEdit/model.js'
+import { pageRefTags } from 'config'
 @Component({
   props: ['modelDesc', 'isHideEdit', 'layoutId', 'isShowTableIndexActions', 'isShowBulidIndex'],
   computed: {
@@ -200,6 +201,7 @@ import NModel from '../ModelEdit/model.js'
   locales
 })
 export default class TableIndex extends Vue {
+  pageRefTags = pageRefTags
   sortbyColumns = [{table: 'default', column: 'kylin'}]
   tableIndexDesc = [{table: 'default', column: 'kylin'}]
   sortByOptitions = [{table: 'default', column: 'kylin'}]

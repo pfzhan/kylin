@@ -59,6 +59,7 @@ Vue.component('kap-tab', tab)
 Vue.component('kap-loading', kapLoading)
 Vue.component('kap-empty-data', emptyData)
 import { getQueryString, cacheSessionStorage, cacheLocalStorage } from './util'
+import { pageRefTags } from 'config'
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''
@@ -132,6 +133,12 @@ Vue.http.interceptors.push(function (request, next) {
       isProgressVisiable && nprogress.done()
     }
     if (response.status === 401 && router.history.current.name !== 'login') {
+      for (let p in pageRefTags) {
+        const pager = pageRefTags[p]
+        if (localStorage.getItem(pager)) {
+          localStorage.removeItem(pager)
+        }
+      }
       if (store.state.config.platform === 'iframe') {
         window.parent.postMessage('keLogout', '*')
       } else {

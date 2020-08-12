@@ -347,7 +347,7 @@
         </el-table-column>
       </el-table>
       <!-- 分页 -->
-      <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+      <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.modelListPager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
     <el-dialog width="480px" :title="$t('changeModelOwner')" class="change_owner_dialog" :visible.sync="changeOwnerVisible" @close="resetModelOwner" :close-on-click-modal="false">
       <el-alert
@@ -411,7 +411,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import dayjs from 'dayjs'
-import { NamedRegex, apiUrl } from '../../../../config'
+import { NamedRegex, apiUrl, pageRefTags } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
 import { handleError, kapConfirm, kapMessage, handleSuccess, downloadFileByXMLHttp } from 'util/business'
@@ -575,6 +575,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
   locales
 })
 export default class ModelList extends Vue {
+  pageRefTags = pageRefTags
   mockSQL = mockSQL
   filterArgs = getDefaultFilters()
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']

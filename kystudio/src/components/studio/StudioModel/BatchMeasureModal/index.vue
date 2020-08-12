@@ -169,7 +169,7 @@
             </el-table-column>
           </el-table>
         </div>
-        <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.batchMeasurePager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
@@ -188,7 +188,7 @@ import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { objectClone, sampleGuid } from '../../../../util'
-import { pageCount, measuresDataType, measureSumAndTopNDataType } from '../../../../config'
+import { pageCount, measuresDataType, measureSumAndTopNDataType, pageRefTags } from '../../../../config'
 vuex.registerModule(['modals', 'BatchMeasureModal'], store)
 @Component({
   computed: {
@@ -217,6 +217,7 @@ vuex.registerModule(['modals', 'BatchMeasureModal'], store)
   locales
 })
 export default class BatchMeasureModal extends Vue {
+  pageRefTags = pageRefTags
   isLoading = false
   isFormShow = false
   factTable = []

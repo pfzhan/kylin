@@ -48,6 +48,7 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mtb-10"
+        :refTag="pageRefTags.confirmSegmentPager"
         :background="false"
         :curPage="pagination.page_offset+1"
         :totalSize="totalSegmentCount"
@@ -73,7 +74,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import vuex from 'store'
-import { pageCount } from 'config'
+import { pageCount, pageRefTags } from 'config'
 import { handleError, handleSuccessAsync, transToGmtTime, transToServerGmtTime } from 'util'
 import locales from './locales'
 import store, { types } from './store'
@@ -118,6 +119,7 @@ vuex.registerModule(['modals', 'ConfirmSegment'], store)
 })
 
 export default class ConfirmSegmentModal extends Vue {
+  pageRefTags = pageRefTags
   segments = []
   filter = {
     mpValues: '',

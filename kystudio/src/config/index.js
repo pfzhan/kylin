@@ -96,6 +96,38 @@ export const menusData = [
     icon: 'el-icon-ksd-Combined_Shape'
   }
 ]
+
+export const pageRefTags = {
+  indexPager: 'indexPager',
+  IndexDetailPager: 'IndexDetailPager',
+  tableIndexDetailPager: 'tableIndexDetailPager',
+  segmentPager: 'segmentPager',
+  capacityPager: 'capacityPager',
+  projectDetail: 'projectDetail',
+  sqlListsPager: 'sqlListsPager',
+  jobPager: 'jobPager',
+  queryHistoryPager: 'queryHistoryPager',
+  queryResultPager: 'queryResultPager',
+  modleConfigPager: 'modleConfigPager',
+  batchMeasurePager: 'batchMeasurePager',
+  dimensionPager: 'dimensionPager',
+  modelListPager: 'modelListPager',
+  userPager: 'userPager',
+  userGroupPager: 'userGroupPager',
+  modelDimensionPager: 'modelDimensionPager',
+  modelMeasurePager: 'modelMeasurePager',
+  authorityUserPager: 'authorityUserPager',
+  authorityTablePager: 'authorityTablePager',
+  projectConfigPager: 'projectConfigPager',
+  projectPager: 'projectPager',
+  confirmSegmentPager: 'confirmSegmentPager',
+  addIndexPager: 'addIndexPager',
+  indexGroupPager: 'indexGroupPager',
+  indexGroupContentShowPager: 'indexGroupContentShowPager',
+  tableIndexPager: 'tableIndexPager',
+  tableColumnsPager: 'tableColumnsPager',
+  statisticsPager: 'statisticsPager'
+}
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
 export const permissions = {
   READ: {name: 'CUBE QUERY', value: 'READ', mask: 1},

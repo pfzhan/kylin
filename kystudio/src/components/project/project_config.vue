@@ -17,6 +17,7 @@
     </el-table>
     <kap-pager
       class="ksd-center ksd-mt-10" ref="pager"
+      :refTag="pageRefTags.projectConfigPager"
       layout="prev, pager, next"
       :background="false"
       :curPage="currentPage+1"
@@ -27,11 +28,13 @@
 </template>
 <script>
 import { fromObjToArr } from '../../util/index'
+import { pageRefTags } from 'config'
 export default {
   name: 'project_config',
   props: ['override'],
   data () {
     return {
+      pageRefTags: pageRefTags,
       convertedProperties: fromObjToArr(this.override),
       pageSize: 10,
       currentPage: 0,

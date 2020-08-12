@@ -86,7 +86,7 @@
 		    </el-table-column>
 		  </el-table>
 
-      <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-10" ref="pager" :totalSize="modelsTotal"></kap-pager>
+      <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.queryResultPager" :totalSize="modelsTotal"></kap-pager>
   	</div>
     <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
       <input type="hidden" name="sql" v-model="sql"/>
@@ -101,6 +101,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { scToFloat, showNull } from '../../util/index'
 import { hasRole, transToGmtTime } from '../../util/business'
+import { pageRefTags } from 'config'
 import moment from 'moment'
 @Component({
   props: ['extraoption', 'isWorkspace', 'queryExportData'],
@@ -162,6 +163,7 @@ import moment from 'moment'
   }
 })
 export default class queryResult extends Vue {
+  pageRefTags = pageRefTags
   resultFilter = ''
   tableData = []
   tableMeta = []

@@ -164,7 +164,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </el-col>
       <el-col :span="7" v-if="showStep" id="rightDetail">
         <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}" id="stepList">
@@ -331,7 +331,7 @@ import { mapActions, mapGetters, mapMutations } from 'vuex'
 import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
-import { pageCount } from '../../config'
+import { pageCount, pageRefTags } from '../../config'
 import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from 'util/business'
 import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from 'util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
@@ -535,6 +535,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
   }
 })
 export default class JobsList extends Vue {
+  pageRefTags = pageRefTags
   project = localStorage.getItem('selected_project')
   filterName = ''
   filterStatus = []

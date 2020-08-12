@@ -1,7 +1,7 @@
 <template>
   <div id="queryHistory">
     <query_history_table :queryHistoryData="queryHistoryData.query_histories" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
-    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('kylinLang.model.aggregateGroupIndex')"
       top="5vh"
@@ -49,6 +49,7 @@ import { handleSuccessAsync } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
 import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
+import { pageRefTags } from 'config'
 @Component({
   methods: {
     ...mapActions({
@@ -69,6 +70,7 @@ import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
   }
 })
 export default class QueryHistory extends Vue {
+  pageRefTags = pageRefTags
   aggDetailVisible = false
   tabelIndexVisible = false
   tabelIndexLayoutId = ''

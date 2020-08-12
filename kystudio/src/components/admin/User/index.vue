@@ -92,6 +92,7 @@
 
     <kap-pager
       class="ksd-center ksd-mtb-10" ref="pager"
+      :refTag="pageRefTags.userPager"
       :totalSize="totalSize"
       :curPage="pagination.page_offset+1"
       @handleCurrentChange="handleCurrentChange">
@@ -105,7 +106,7 @@ import { mapState, mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import { pageCount } from 'config'
+import { pageCount, pageRefTags } from 'config'
 import { handleError, kapConfirm } from '../../../util'
 
 @Component({
@@ -144,6 +145,7 @@ import { handleError, kapConfirm } from '../../../util'
   }
 })
 export default class SecurityUser extends Vue {
+  pageRefTags = pageRefTags
   userData = []
   totalSize = 0
   filterTimer = null

@@ -117,6 +117,7 @@
       <kap-pager
         class="ksd-center ksd-mtb-10"
         :background="false"
+        :refTag="pageRefTags.segmentPager"
         :curPage="pagination.page_offset+1"
         :totalSize="totalSegmentCount"
         @handleCurrentChange="handleCurrentChange">
@@ -166,7 +167,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import { pageCount } from '../../../../../config'
+import { pageCount, pageRefTags } from '../../../../../config'
 import { handleSuccessAsync, handleError, transToUTCMs, transToServerGmtTime } from '../../../../../util'
 import { formatSegments } from './handler'
 import ModelAddSegment from '../ModelBuildModal/build.vue'
@@ -211,6 +212,7 @@ import ModelAddSegment from '../ModelBuildModal/build.vue'
   locales
 })
 export default class ModelSegment extends Vue {
+  pageRefTags = pageRefTags
   segments = []
   detailSegment = null
   totalSegmentCount = 0

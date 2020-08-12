@@ -245,7 +245,7 @@
                 width="110">
               </el-table-column>
             </el-table>
-            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.dimensionPager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </div>
       </div>
@@ -265,7 +265,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { NamedRegex1, pageCount } from '../../../../config'
+import { NamedRegex1, pageCount, pageRefTags } from '../../../../config'
 import { objectClone, sampleGuid, filterObjectArray, countObjWithSomeKey } from '../../../../util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
@@ -306,6 +306,7 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
   locales
 })
 export default class DimensionsModal extends Vue {
+  pageRefTags = pageRefTags
   isLoading = false
   isFormShow = false
   factTable = []

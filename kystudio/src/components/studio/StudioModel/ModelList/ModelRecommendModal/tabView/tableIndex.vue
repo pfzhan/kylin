@@ -59,6 +59,7 @@
           <!-- 表中表分页 -->
           <kap-pager
             class="ksd-center ksd-mt-10" ref="pager"
+            :refTag="pageRefTags.tableIndexPager"
             :per-page-size="perPageSize"
             :totalSize="scope.row.size"
             :layout="'prev, pager, next'"
@@ -92,6 +93,7 @@
   import { Component } from 'vue-property-decorator'
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import { renderTableColumnSelected } from '../handler'
+  import { pageRefTags } from 'config'
   // import vuex from '../../../../store'
   import { handleError } from 'util/business'
   import { handleSuccessAsync } from 'util'
@@ -129,6 +131,7 @@
     locales
   })
   export default class recomTableIndex extends Vue {
+    pageRefTags = pageRefTags
     curTableInTableKeyword = {}
     checkedStatus = []
     tableShowList = []

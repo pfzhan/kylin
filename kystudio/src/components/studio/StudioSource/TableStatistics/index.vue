@@ -70,6 +70,7 @@
     </el-table>
     <kap-pager
       class="ksd-center ksd-mtb-10" ref="pager"
+      :refTag="pageRefTags.statisticsPager"
       :totalSize="columns.length"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
@@ -79,7 +80,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-
+import { pageRefTags } from 'config'
 import locales from './locales'
 
 @Component({
@@ -91,6 +92,7 @@ import locales from './locales'
   locales
 })
 export default class TableStatistics extends Vue {
+  pageRefTags = pageRefTags
   filterText = ''
   pagination = {
     page_offset: 0,

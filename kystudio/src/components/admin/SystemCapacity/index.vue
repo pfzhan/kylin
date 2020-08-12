@@ -159,7 +159,7 @@
               </el-table-column>
             </el-table>
           </div>
-          <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager class="ksd-center ksd-mtb-10" :refTag="pageRefTags.capacityPager" layout="total, prev, pager, next, jumper" :curPage="projectCapacity.currentPage + 1" :totalSize="projectCapacity.totalSize"  @handleCurrentChange='pageCurrentChange'></kap-pager>
         </div>
       </div>
     </div>
@@ -244,7 +244,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager class="ksd-center ksd-mtb-10" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" :refTag="pageRefTags.projectDetail" layout="total, prev, pager, next, jumper" :curPage="projectDetail.currentPage + 1" :totalSize="projectDetail.totalSize"  @handleCurrentChange='pageCurrentChangeByDetail'></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain @click="showProjectChargedDetails = false">{{$t('kylinLang.common.close')}}</el-button>
@@ -264,6 +264,7 @@ import EmptyData from '../../common/EmptyData/EmptyData'
 import { mapActions, mapState } from 'vuex'
 import { transToUtcDateFormat } from '../../../util/business'
 import filterElements from '../../../filter/index'
+import { pageRefTags } from 'config'
 
 @Component({
   methods: {
@@ -291,6 +292,7 @@ import filterElements from '../../../filter/index'
   }
 })
 export default class SystemCapacity extends Vue {
+  pageRefTags = pageRefTags
   alertMsg = {
     notify: false,
     emails: '',

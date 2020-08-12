@@ -169,7 +169,7 @@
                 </template>
               </el-table-column>
             </el-table>
-            <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+            <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
         <recommendations :modelDesc="model" @accept="acceptRecommend" v-else/>
@@ -233,7 +233,7 @@
             </template>
             </el-table-column>
           </el-table>
-          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :perpage_size="currentCount" :curPage="currentPage+1" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.IndexDetailPager" :perpage_size="currentCount" :curPage="currentPage+1" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
         </div>
       <div slot="footer" class="dialog-footer">
         <el-button plain size="medium" @click="indexDetailShow=false">{{$t('kylinLang.common.close')}}</el-button>
@@ -256,7 +256,7 @@ import FlowerChart from '../../../../common/FlowerChart'
 import TreemapChart from '../../../../common/TreemapChart'
 import { handleSuccessAsync } from '../../../../../util'
 import { handleError, transToGmtTime, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
-import { speedProjectTypes } from '../../../../../config'
+import { speedProjectTypes, pageRefTags } from 'config'
 import { BuildIndexStatus } from '../../../../../config/model'
 // import ConfirmSegment from '../ConfirmSegment/ConfirmSegment.vue'
 // import AggregateModal from './AggregateModal/index.vue'
@@ -344,6 +344,7 @@ import Recommendations from './sub/recommendations'
   locales
 })
 export default class ModelAggregate extends Vue {
+  pageRefTags = pageRefTags
   cuboidCount = 0
   emptyCuboidCount = 0
   brokenCuboidCount = 0

@@ -75,7 +75,7 @@
                 </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="filteredDataSize" :curPage="whiteCurrentPage+1" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
+          <kap-pager ref="sqlListsPager" :refTag="pageRefTags.sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="filteredDataSize" :curPage="whiteCurrentPage+1" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
         </el-col>
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
@@ -193,6 +193,7 @@ import store, { types } from './store'
 import { handleSuccessAsync, handleError } from '../../../util/index'
 import { handleSuccess, kapConfirm, kapWarn } from '../../../util/business'
 import SuggestModel from './SuggestModel.vue'
+import { pageRefTags } from 'config'
 
 vuex.registerModule(['modals', 'UploadSqlModel'], store)
 @Component({
@@ -232,6 +233,7 @@ vuex.registerModule(['modals', 'UploadSqlModel'], store)
   locales
 })
 export default class UploadSqlModel extends Vue {
+  pageRefTags = pageRefTags
   uploadFlag = 'step1'
   importLoading = false
   messageInstance = null

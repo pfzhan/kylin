@@ -53,6 +53,7 @@
             <!-- 表中表分页 -->
             <kap-pager
             :key="scope.row.id"
+            :refTag="pageRefTags.indexGroupPager"
             class="ksd-center ksd-mt-10" ref="pager"
             :per-page-size="perPageSize"
             :totalSize="scope.row.size"
@@ -104,6 +105,7 @@
             <!-- 表中表分页 -->
             <kap-pager
                 class="ksd-center ksd-mt-10" ref="pager"
+                :refTag="pageRefTags.indexGroupContentShowPager"
                 :per-page-size="perPageSize"
                 :totalSize="scope.row.size"
                 :curPage="currentPage+1"
@@ -192,6 +194,7 @@
   import { Component } from 'vue-property-decorator'
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import { renderTableColumnSelected } from '../handler'
+  import { pageRefTags } from 'config'
   // import vuex from '../../../../store'
   import { handleError, transToGmtTime } from 'util/business'
   import { handleSuccessAsync } from 'util'
@@ -233,6 +236,7 @@
   })
 
   export default class IndexGroup extends Vue {
+    pageRefTags = pageRefTags
     curTableInTableKeyword = {}
     checkedStatus = []
     sourceCheckedStatus = []

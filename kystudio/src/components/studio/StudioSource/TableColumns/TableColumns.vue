@@ -70,6 +70,7 @@
     </el-table>
     <kap-pager
       class="ksd-center ksd-mt-10" ref="pager"
+      :refTag="pageRefTags.tableColumnsPager"
       :totalSize="columns.length"
       :curPage="pagination.page_offset + 1"
       @handleCurrentChange="handleCurrentChange">
@@ -80,7 +81,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-
+import { pageRefTags } from 'config'
 import locales from './locales'
 import { pageCount } from '../../../../config'
 
@@ -93,6 +94,7 @@ import { pageCount } from '../../../../config'
   locales
 })
 export default class TableColumns extends Vue {
+  pageRefTags = pageRefTags
   filterText = ''
   pagination = {
     page_offset: 0,
