@@ -20,8 +20,8 @@ export default {
   resetPassword: (user) => {
     return Vue.resource(apiUrl + 'user/password').update(user)
   },
-  removeUser: (userName) => {
-    return Vue.resource(apiUrl + 'user/' + userName).remove()
+  removeUser: (uuid) => {
+    return Vue.resource(apiUrl + 'user/' + uuid).remove()
   },
   // access
   login: () => {

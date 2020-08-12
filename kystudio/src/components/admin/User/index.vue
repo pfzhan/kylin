@@ -223,10 +223,10 @@ export default class SecurityUser extends Vue {
 
   async dropUser (userDetail) {
     try {
-      const { username } = userDetail
+      const { uuid, username } = userDetail
 
       await kapConfirm(this.$t('cofirmDelUser', {userName: username}), null, this.$t('delUserTitle'))
-      await this.removeUser(username)
+      await this.removeUser(uuid)
 
       this.loadUsers()
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })

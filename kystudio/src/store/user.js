@@ -64,8 +64,8 @@ export default {
         commit(types.UPDATE_CURRENT_USER)
       })
     },
-    [types.REMOVE_USER]: function ({ commit }, userName) {
-      return api.user.removeUser(userName)
+    [types.REMOVE_USER]: function ({ commit }, uuid) {
+      return api.user.removeUser(uuid)
     },
     [types.LOGIN]: function ({ commit }, user) {
       return api.user.login()
