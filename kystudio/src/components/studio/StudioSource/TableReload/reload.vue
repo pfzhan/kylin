@@ -8,21 +8,30 @@
     @close="isShow && closeHandler(false)">
     <el-alert
       :type="tipType"
-      :show-background="false"
       :closable="false"
       show-icon>
-      <p>{{tipMsg1}}{{tipMsg2}}
-         <a v-if="hasDetailInfluence" href="javascript:;" style="display: inline-block;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
-          <i class="el-icon-arrow-down" v-show="!showDetail"></i>
-          <i class="el-icon-arrow-up" v-show="showDetail"></i>
-        </a>
-      </p>
-      <div v-if="showDetail" class="detail-box">
-        <p>{{detailMsg1}}</p>
-        <p>{{detailMsg2}}</p>
-        <p>{{detailMsg3}}</p>
+      <div class="lh20" v-if="!hasColumnInfluence" v-html="$t('reloadNoEffectTip', {tableName: this.tableName})"></div>
+      <div class="detail lh20" v-else-if="checkData && checkData.broken_model_count">
+        <p>{{brokenMsg}}
+          <el-button type="primary" text v-if="!showDetail" @click="showDetail = true">{{$t('checkDetail')}}<i class="el-icon-arrow-down"></i></el-button>
+          <el-button type="primary" text v-else @click="showDetail = false">{{$t('closeDetail')}}<i class="el-icon-arrow-up"></i></el-button>
+        </p>
       </div>
-    </el-alert> 
+      <div class="detail-text lh20" v-else>
+        <div class="table-title">{{$t("sourceTable", {tableName: this.tableName})}}</div>
+        <div class="detail-text-item" v-if="reduceMsg"><span class="dot">·</span>{{reduceMsg}}</div>
+        <div class="detail-text-item" v-if="refreshChangeMsg"><span class="dot">·</span>{{refreshChangeMsg}}</div>
+        <div class="detail-text-item" v-if="addMsg"><span class="dot">·</span>{{addMsg}}</div>
+      </div>
+    </el-alert>
+    <div class="broken-detail lh20" v-if="checkData && checkData.broken_model_count && showDetail">
+      <div class="detail-text">
+        <div class="table-title">{{$t("sourceTable", {tableName: this.tableName})}}</div>
+        <div class="detail-text-item" v-if="reduceMsg"><span class="dot">·</span>{{reduceMsg}}</div>
+        <div class="detail-text-item" v-if="refreshChangeMsg"><span class="dot">·</span>{{refreshChangeMsg}}</div>
+        <div class="detail-text-item" v-if="addMsg"><span class="dot">·</span>{{addMsg}}</div>
+      </div>
+    </div>
     <div class="samping-box">
       <span class="lable-text">{{$t('tableSample')}}</span><el-switch
         class="ksd-ml-10"
@@ -42,7 +51,7 @@
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" :loading="reloadLoading" @click="submit">{{$t('reloadBtn')}}</el-button>
-      <el-button type="primary" v-if="checkData && (('add_layouts_count' in checkData && checkData.add_layouts_count) || ('refresh_layouts_count' in checkData && checkData.refresh_layouts_count))" size="medium" :loading="reloadLoading1" @click="submit('refreshIndex')">{{$t('reloadAndRefresh')}}</el-button>
+      <el-button type="primary" v-if="showBuildIndex" size="medium" :loading="reloadLoading1" @click="submit('refreshIndex')">{{$t('reloadAndRefresh')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -139,6 +148,9 @@ export default class ReloadTableModal extends Vue {
       this.clearFormValidate()
     }
   }
+  get showBuildIndex () {
+    return this.checkData && Boolean((this.checkData.broken_model_count === 0) && (this.checkData.add_layouts_count || this.checkData.refresh_layouts_count))
+  }
   // 有列发生了变化
   get hasColumnInfluence () {
     if (this.isShow) {
@@ -156,69 +168,50 @@ export default class ReloadTableModal extends Vue {
     }
   }
   get tipType () {
-    return this.hasColumnInfluence ? 'warning' : 'tip'
+    return this.checkData && this.checkData.broken_model_count ? 'warning' : 'tip'
   }
-  get tipMsg1 () {
-    if (this.isShow) {
-      if (this.hasColumnInfluence) {
-        let tipList = []
-        let modelMode = this.isAutoProject ? 'kylinLang.model.indexGroup' : 'kylinLang.common.model'
-        if (this.checkData.add_column_count) {
-          tipList.push(this.$t('addColumnsTip', { addedColumnsCount: this.checkData.add_column_count }))
-        }
-        if (this.checkData.remove_column_count) {
-          tipList.push(this.$t('reducedColumnsTip', { reducedColumnsCount: this.checkData.remove_column_count }))
-        }
-        if (this.checkData.data_type_change_column_count) {
-          tipList.push(this.$t('changedColumnsTip', { changedColumnsCount: this.checkData.data_type_change_column_count }))
-        }
-        let tipList1 = [`${tipList.join(this.$t('kylinLang.common.comma'))}${this.hasDetailInfluence ? this.$t('kylinLang.common.dot') + this.$t('reloadEffectTip1', {modelMode: this.$t(modelMode)}) : ''}`]
-        if (this.checkData.refresh_layouts_count) {
-          tipList1.push(this.$t('refreshIndexTip'))
-        }
-        return this.$t('reloadEffectTip', {tableName: this.tableName, changeChar: tipList1.join(this.$t('kylinLang.common.comma')) + this.$t('kylinLang.common.dot')})
-      }
-      return this.$t('reloadNoEffectTip', { tableName: this.tableName })
+  get brokenMsg () {
+    let delModelCount = this.checkData.broken_model_count
+    return this.$t('modelchangeTip', { modelCount: delModelCount })
+  }
+  get addMsg () {
+    let addColumnCount = this.checkData.add_column_count
+    return addColumnCount ? (this.$t('addColumnsTip', {addedColumnsCount: addColumnCount}) + this.$t('kylinLang.common.dot')) : ''
+  }
+  get reduceMsg () {
+    let reduceColumnCount = this.checkData.remove_column_count
+    let delMeasureCount = this.checkData.remove_measures_count
+    let delDimensionCount = this.checkData.remove_dimensions_count
+    let delIndexCount = this.checkData.remove_layouts_count
+    let totalDelCount = delMeasureCount + delDimensionCount + delIndexCount
+    let msgArr = []
+    let str = ''
+    if (reduceColumnCount) {
+      str = this.$t('reducedColumnsTip', {reducedColumnsCount: reduceColumnCount}) + this.$t('kylinLang.common.dot')
     }
-  }
-  get tipMsg2 () {
-    // let modelMode = this.isAutoProject ? 'kylinLang.model.indexGroup' : 'kylinLang.common.model'
-    return this.hasDetailInfluence ? this.$t('reloadEffectTip2') : ''
-  }
-  get detailMsg1 () {
-    if (!this.isAutoProject) {
-      let delModelCount = this.checkData && this.checkData.broken_model_count || 0
-      return delModelCount ? this.$t('modelchangeTip', {modelCount: delModelCount}) : ''
+    if (delDimensionCount) {
+      msgArr.push(this.$t('dimensionTip', {delDimensionCount: delDimensionCount}))
     }
-    return ''
-  }
-  get detailMsg2 () {
-    let refreshIndexCount = this.checkData && this.checkData.refresh_layouts_count || 0
-    return refreshIndexCount ? this.$t('indexCountChangeTip', { indexCount: refreshIndexCount }) : ''
-  }
-  get detailMsg3 () {
-    if (this.isShow) {
-      if (this.hasColumnInfluence) {
-        let tipList = []
-        let delMeasureCount = this.checkData.remove_measures_count
-        let delDimensionCount = this.checkData.remove_dimensions_count
-        let delIndexCount = this.checkData.remove_layouts_count
-        let addIndexCount = this.checkData.add_layouts_count
-        if (delMeasureCount + delDimensionCount + delIndexCount + addIndexCount === 0) {
-          return ''
-        }
-        if (delDimensionCount) {
-          tipList.push(this.$t('dimChangeTip', { dimensionCount: delDimensionCount }))
-        }
-        if (delMeasureCount) {
-          tipList.push(this.$t('measureChangeTip', { measureCount: delMeasureCount }))
-        }
-        if (delIndexCount) {
-          tipList.push(this.$t('indexChangeTip', { indexCount: delIndexCount }))
-        }
-        return `${this.$t('dimAndMeasureAndIndexChangeTip', {changeChar: tipList.join(this.$t('kylinLang.common.comma'))})}${addIndexCount ? this.$t('kylinLang.common.comma') + this.$t('addIndexTip', { addIndexCount: addIndexCount }) + ';' : ';'}`
-      }
+    if (delMeasureCount) {
+      msgArr.push(this.$t('measureTip', {delMeasureCount: delMeasureCount}))
     }
+    if (delIndexCount) {
+      msgArr.push(this.$t('indexTip', {delIndexCount: delIndexCount}))
+    }
+    return totalDelCount === 0 ? str : (str + this.$t('afterLoaded') + msgArr.join(this.$t('kylinLang.common.comma')) + this.$t('willBeDelete'))
+  }
+  get refreshChangeMsg () { // 列发生变化会有索引被刷新
+    let dataTypeChangeCount = this.checkData.data_type_change_column_count
+    let refreshCount = this.checkData.refresh_layouts_count
+    let totalCount = dataTypeChangeCount + refreshCount
+    let msgArr = []
+    if (dataTypeChangeCount) {
+      msgArr.push(this.$t('dataTypeChange', {dataTypeChangeCount: dataTypeChangeCount}))
+    }
+    if (refreshCount) {
+      msgArr.push(this.$t('refreshCountTip', { refreshCount: refreshCount }))
+    }
+    return totalCount ? msgArr.join('') : ''
   }
   closeHandler (isSubmit) {
     this.hideModal()
@@ -272,9 +265,33 @@ export default class ReloadTableModal extends Vue {
     font-size:12px;
   }
   .el-alert {
-    padding: 0;
+    .lh20 {
+      line-height: 20px;
+    }
     .el-alert__content {
       width:100%;
+    }
+    .detail-text {
+      .table-title {
+        padding-bottom: 5px;
+      }
+      &-item {
+        position: relative;
+        padding-left: 12px;
+        line-height: 20px;
+        .dot {
+          position: absolute;
+          left: 0;
+          top: 2px;
+        }
+      }
+    }
+  }
+  .broken-detail {
+    .detail-text {
+      padding: 10px 14px;
+      padding-bottom: 0px;
+      padding-left: 29px;
     }
   }
   .samping-box {
