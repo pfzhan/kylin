@@ -97,7 +97,7 @@
               <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
             </common-tip>
             <common-tip :content="$t('accept')">
-              <i class="el-icon-ksd-accept ksd-ml-5" @click="confrim([scope.row.item_id])"></i>
+              <i class="el-icon-ksd-accept ksd-ml-5" @click="confrim([scope.row])"></i>
             </common-tip>
             <common-tip :content="$t('delete')">
               <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
@@ -461,7 +461,7 @@ export default class IndexList extends Vue {
 
   async acceptLayout () {
     this.showIndexDetail = false
-    await this.confrim([this.currentIndex.item_id])
+    await this.confrim([this.currentIndex])
   }
 
   handleSelectionChange (val) {
@@ -548,7 +548,7 @@ export default class IndexList extends Vue {
 
   // 批量通过
   betchAccept () {
-    this.confrim(this.selectedList.map(it => it.item_id))
+    this.confrim(this.selectedList)
   }
 
   // 通过优化建议
@@ -556,7 +556,7 @@ export default class IndexList extends Vue {
     this.validateRecommend({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      layouts_to_add: idList.filter(it => it.is_add)
+      layouts_to_add: idList.filter(it => it.is_add).map(v => v.item_id)
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
       let { layout_item_ids, cc_items, dimension_items, measure_items } = data
@@ -568,8 +568,8 @@ export default class IndexList extends Vue {
         }
       } else {
         this.validateData = {layout_item_ids, list: []}
-        const layouts_to_add = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.is_add)
-        const layouts_to_remove = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && !it.is_add)
+        const layouts_to_add = idList.filter(it => it.is_add)
+        const layouts_to_remove = idList.filter(it => !it.is_add)
         this.accessApi(layouts_to_add, layouts_to_remove)
       }
     }).catch((e) => {
@@ -580,7 +580,7 @@ export default class IndexList extends Vue {
   // 添加更名后的layout
   addLayout () {
     let names = {}
-    const idList = this.selectedList.map(it => it.item_id)
+    const idList = this.validateData.layout_item_ids
     const layouts_to_add = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.is_add)
     const layouts_to_remove = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && !it.is_add)
     this.isLoading = true

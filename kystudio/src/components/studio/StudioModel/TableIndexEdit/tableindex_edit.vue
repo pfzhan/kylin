@@ -27,7 +27,7 @@
             <el-col :span="3">ShardBy</el-col>
             <el-col :span="3">{{$t('order')}}</el-col>
           </el-row>
-          <div class="table-content" v-scroll.observe.reactive @scroll-bottom="scrollLoad">
+          <div class="table-content table-index-layout" v-scroll.observe.reactive @scroll-bottom="scrollLoad">
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="(col, index) in searchAllColumns" :key="col.fullName" class="table-row">
                   <el-col :span="1"><el-checkbox size="small" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
@@ -129,6 +129,13 @@
     }
     cloneMeta = ''
     isSelectAllTableIndex = false
+
+    @Watch('searchColumn')
+    changeSearchColumn (val) {
+      const dom = document.querySelector('.table-index-layout .scroll-content')
+      dom && (dom.style = 'transform: translate3d(0px, 0px, 0px);')
+    }
+
     get getSelectedColumns () {
       return this.allColumns.filter(it => it.isUsed)
     }
