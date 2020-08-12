@@ -27,16 +27,30 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Preconditions;
-import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.spark.sql.SparderEnv;
 
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.query.util.ExtractFactory;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+
+@Slf4j
 public class ToolUtil {
 
     private ToolUtil() {
@@ -143,5 +157,41 @@ public class ToolUtil {
 
         final String JOB_TMP = "job_tmp";
         return getHdfsPrefix() + File.separator + project + File.separator + JOB_TMP + File.separator + jobId;
+    }
+
+    public static boolean waitForSparderRollUp() {
+        boolean isRollUp = false;
+        if (!KapConfig.wrap(KylinConfig.getInstanceFromEnv()).isCloud()) {
+            log.info("Failed to roll up eventLog because environment is not in cloud.");
+            return isRollUp;
+        }
+        val extractor = ExtractFactory.create();
+        String check = SparderEnv.rollUpEventLog();
+        if (StringUtils.isBlank(check)) {
+            log.info("Failed to roll up eventLog because the spader is closed.");
+            return isRollUp;
+        }
+        String logDir = extractor.getSparderEvenLogDir();
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        FileSystem fs = HadoopUtil.getFileSystem(logDir);
+        try {
+            Future<Boolean> task = es.submit(() -> {
+                while (true) {
+                    if (fs.exists(new Path(logDir, check))) {
+                        return true;
+                    }
+                    Thread.sleep(1000);
+                }
+            });
+            if (task.get(10, TimeUnit.SECONDS)) {
+                fs.delete(new Path(logDir, check), false);
+                isRollUp = true;
+            }
+        } catch (Exception e) {
+            log.warn("Sparder eventLog rollUp failed.", e);
+        } finally {
+            es.shutdown();
+        }
+        return isRollUp;
     }
 }

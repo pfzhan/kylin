@@ -131,6 +131,7 @@ public class QueryNodeFilter implements Filter {
         notRoutePutApiSet.add("/kylin/api/tables/catalog_cache");
         notRoutePutApiSet.add("/kylin/api/tables/single_catalog_cache");
         notRoutePutApiSet.add("/kylin/api/index_plans/agg_index_count");
+        notRoutePutApiSet.add("/kylin/api/spark/roll_event_log");
     }
 
     @Autowired

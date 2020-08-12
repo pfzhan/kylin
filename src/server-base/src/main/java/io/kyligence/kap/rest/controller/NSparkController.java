@@ -42,6 +42,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.tool.util.ToolUtil;
 import scala.Tuple2;
 
 @Controller
@@ -114,6 +115,15 @@ public class NSparkController extends NBasicController {
         } else {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Node " + node + msg);
         }
+    }
+
+    @PutMapping(value = "/roll_event_log")
+    @ResponseBody
+    public EnvelopeResponse<String> rollEventLog() {
+        if (ToolUtil.waitForSparderRollUp()) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Rollup sparder eventLog failed.");
     }
 
     private TaskSchedulerImpl getSparkTaskScheduler() {
