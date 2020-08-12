@@ -308,6 +308,10 @@ public abstract class KylinConfigBase implements Serializable {
         // https://github.com/kyligence/kap/issues/12654
         this.properties.put(WORKING_DIR_PROP,
                 makeQualified(new Path(this.properties.getProperty(WORKING_DIR_PROP, KYLIN_ROOT))).toString());
+        if (this.properties.getProperty(DATA_WORKING_DIR_PROP) != null) {
+            this.properties.put(DATA_WORKING_DIR_PROP,
+                    makeQualified(new Path(this.properties.getProperty(DATA_WORKING_DIR_PROP))).toString());
+        }
     }
 
     private Map<Integer, String> convertKeyToInteger(Map<String, String> map) {
@@ -375,9 +379,10 @@ public abstract class KylinConfigBase implements Serializable {
         if (compriseMetaId) {
             // if configuration WORKING_DIR_PROP_V2 dose not exist, append metadata-url prefix
             String metaId = getMetadataUrlPrefix().replace(':', '-').replace('/', '-');
-            root = new Path(path, metaId).toString();
+            path = new Path(path, metaId);
         }
 
+        root = path.toString();
         if (!root.endsWith("/"))
             root += "/";
 
@@ -387,6 +392,7 @@ public abstract class KylinConfigBase implements Serializable {
         } else if (cachedHdfsWorkingDirectory.startsWith("maprfs:")) {
             cachedHdfsWorkingDirectory = cachedHdfsWorkingDirectory.replace("maprfs:", "maprfs://");
         }
+        logger.info("Hdfs data working dir is setting to " + cachedHdfsWorkingDirectory);
         return cachedHdfsWorkingDirectory;
     }
 

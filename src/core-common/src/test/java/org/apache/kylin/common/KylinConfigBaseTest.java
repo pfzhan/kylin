@@ -791,7 +791,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.env.hdfs-data-working-dir", "/test/data");
         String dir = config.getHdfsWorkingDirectory();
-        Assert.assertEquals("/test/data/", dir);
+        Assert.assertEquals("file:///test/data/", dir);
     }
 
     @Test
