@@ -30,12 +30,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kylin.common.Singletons;
 
 @Slf4j
 public class FileEpochStore extends EpochStore {
@@ -53,7 +53,9 @@ public class FileEpochStore extends EpochStore {
     }
 
     private FileEpochStore(KylinConfig kylinConfig) {
-        root = Paths.get(kylinConfig.getMetadataUrlPrefix(), "..", EPOCH_SUFFIX).toFile().getAbsoluteFile();
+        root = Paths
+                .get(Paths.get(kylinConfig.getMetadataUrlPrefix()).getParent().toFile().getAbsolutePath(), EPOCH_SUFFIX)
+                .toFile().getAbsoluteFile();
     }
 
     @Override

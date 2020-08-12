@@ -82,7 +82,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setMetadataUrl("/zklock");
+        config.setMetadataUrl("zklock");
         factory = new ZookeeperDistributedLock.Factory();
     }
 

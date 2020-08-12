@@ -156,6 +156,11 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public static void staticCreateTestMetadata() {
+        try {
+            getInstances().clear();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
