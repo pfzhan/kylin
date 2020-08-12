@@ -94,51 +94,47 @@ public class ResourceStoreTestBase {
 
     private static void testGetAllResources(ResourceStore store) {
         final String folder = "/testFolder";
-        List<StringEntity> result;
+        List<TestEntity> result;
 
         // reset any leftover garbage
         ResourceTool.resetR(store, folder);
 
-        store.checkAndPutResource(folder + "/res1", new StringEntity("data1"), StringEntity.serializer);
-        store.checkAndPutResource(folder + "/res2", new StringEntity("data2"), StringEntity.serializer);
-        store.checkAndPutResource(folder + "/sub/res3", new StringEntity("data3"), StringEntity.serializer);
-        store.checkAndPutResource(folder + "/res4", new StringEntity("data4"), StringEntity.serializer);
+        final JsonSerializer<TestEntity> serializer = new JsonSerializer<>(TestEntity.class);
 
-        result = store.getAllResources(folder, StringEntity.serializer);
+        store.checkAndPutResource(folder + "/res1", new TestEntity("data1"), serializer);
+
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            throw Throwables.propagate(e);
+        }
+        long startTime = System.currentTimeMillis();
+
+        store.checkAndPutResource(folder + "/res2", new TestEntity("data2"), serializer);
+        store.checkAndPutResource(folder + "/sub/res3", new TestEntity("data3"), serializer);
+        store.checkAndPutResource(folder + "/res4", new TestEntity("data4"), serializer);
+
+        result = store.getAllResources(folder, serializer);
         assertEntity(result.get(0), "data1", 0);
         assertEntity(result.get(1), "data2", 0);
         assertEntity(result.get(2), "data4", 0);
         Assert.assertEquals(3, result.size());
 
-        //test mvcc inc and time range filter
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
+        result.get(1).setVersion("new_data2");
+        store.checkAndPutResource(folder + "/res2", result.get(1), serializer);
 
-        result.get(1).setStr("new_data2");
-        store.checkAndPutResource(folder + "/res2", result.get(1), StringEntity.serializer);
-
-        //test mvcc inc and time range filter
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
-
-        result = store.getAllResources(folder, System.currentTimeMillis() - 150, System.currentTimeMillis() - 50,
-                StringEntity.serializer);
+        result = store.getAllResources(folder, startTime, Long.MAX_VALUE,
+                serializer);
 
         assertEntity(result.get(0), "new_data2", 1);
-        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(2, result.size());
 
         //clean
         ResourceTool.resetR(store, folder);
     }
 
-    private static void assertEntity(StringEntity entity, String data, long mvcc) {
-        assertEquals(data, entity.getStr());
+    private static void assertEntity(TestEntity entity, String data, long mvcc) {
+        assertEquals(data, entity.getVersion());
         assertTrue((System.currentTimeMillis() - entity.getLastModified()) < 10000);//should very recent
         assertEquals(mvcc, entity.getMvcc());
     }
@@ -284,5 +280,14 @@ public class ResourceStoreTestBase {
         // Generate new UUID
         String uuid1 = store.getMetaStoreUUID();
         Assert.assertNotNull(uuid1);
+    }
+
+    public static class TestEntity extends RootPersistentEntity {
+        public TestEntity(String version) {
+            this.version = version;
+        }
+
+        public TestEntity() {
+        }
     }
 }

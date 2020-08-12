@@ -279,19 +279,21 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     }
 
     /**
-     * Read all resources under a folder having last modified time between given range. Return empty list if folder not exist.
+     * Read all resources under a folder having create time between given range. Return empty list if folder not exist.
      */
     public final <T extends RootPersistentEntity> List<T> getAllResources(String folderPath, long timeStart,
             long timeEndExclusive, Serializer<T> serializer) {
-        final List<RawResource> allResources = getAllResourcesImpl(folderPath, timeStart, timeEndExclusive);
+        final List<RawResource> allResources = getAllResources(folderPath);
         if (allResources == null || allResources.isEmpty()) {
             return Collections.emptyList();
         }
-        List<T> result = Lists.newArrayListWithCapacity(allResources.size());
+        List<T> result = new ArrayList<>();
 
         for (RawResource rawResource : allResources) {
             T element = getResourceFromRawResource(rawResource, serializer);
-            result.add(element);
+            if (null != element && timeStart <= element.getCreateTime() && element.getCreateTime() < timeEndExclusive) {
+                result.add(element);
+            }
         }
         return result;
     }
