@@ -35,7 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -129,5 +131,22 @@ public class ExecutableParams {
         }
 
         return layoutIdList;
+    }
+
+    public Set<Long> getLayoutIds() {
+        if (getParam(NBatchConstants.P_LAYOUT_IDS) != null) {
+            return Sets.newHashSet(org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_LAYOUT_IDS), ","))
+                    .stream().map(Long::valueOf).collect(Collectors.toSet());
+        } else {
+            return null;
+        }
+    }
+
+    public Set<String> getSegmentIds() {
+        if (getParam(NBatchConstants.P_SEGMENT_IDS) != null) {
+            return Sets.newHashSet(org.apache.commons.lang3.StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ","));
+        } else {
+            return null;
+        }
     }
 }

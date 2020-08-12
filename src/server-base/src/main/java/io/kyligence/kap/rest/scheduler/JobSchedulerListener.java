@@ -24,6 +24,19 @@
 
 package io.kyligence.kap.rest.scheduler;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 
@@ -55,6 +68,32 @@ public class JobSchedulerListener {
     public void onJobFinished(JobFinishedNotifier notifier) {
         jobFinishedNotified = true;
         NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+
+        postJobInfo(notifier.extractJobInfo());
+    }
+
+    static void postJobInfo(JobFinishedNotifier.JobInfo info) {
+        String url = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierUrl();
+
+        if (url == null || info.getSegmentIds() == null) {
+            return;
+        }
+
+        RequestConfig config = RequestConfig.custom().setSocketTimeout(3000).build();
+        try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config).build()) {
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            httpPost.setEntity(new StringEntity(JsonUtil.writeValueAsString(info), StandardCharsets.UTF_8));
+            HttpResponse response = httpClient.execute(httpPost);
+            int code = response.getStatusLine().getStatusCode();
+            if (code == HttpStatus.SC_OK) {
+                log.info("Post job info to " + url + " successful.");
+            } else {
+                log.info("Post job info to " + url + " failed. Status code: " + code);
+            }
+        } catch (IOException e) {
+            log.warn("Error occurred when post job status.", e);
+        }
     }
 
     @Subscribe

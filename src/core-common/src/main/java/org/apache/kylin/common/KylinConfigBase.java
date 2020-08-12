@@ -2209,4 +2209,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getUIProxyLocation() {
         return getOptional("kylin.query.ui.proxy-location", KYLIN_ROOT);
     }
+
+    public String getJobFinishedNotifierUrl() {
+        return getOptional("kylin.job.finished-notifier-url", null);
+    }
 }

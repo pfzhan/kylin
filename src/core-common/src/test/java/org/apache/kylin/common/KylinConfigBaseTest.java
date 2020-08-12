@@ -754,6 +754,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isSanityCheckEnabled", new PropertiesEntity("kylin.engine.sanity-check-enabled", "false", false));
         map.put("getLoadCounterCapacity", new PropertiesEntity("kylin.query.load-counter-capacity", "50", 50));
         map.put("getLoadCounterPeriodSeconds", new PropertiesEntity("kylin.query.load-counter-period-seconds", "3s", 3L));
+        map.put("getJobFinishedNotifierUrl", new PropertiesEntity("kylin.job.finished-notifier-url",
+                "http://localhost:8088/test", "http://localhost:8088/test"));
 
     }
 
@@ -775,7 +777,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(376, methodsCount);
+        Assert.assertEquals(377, methodsCount);
     }
 
     @Test

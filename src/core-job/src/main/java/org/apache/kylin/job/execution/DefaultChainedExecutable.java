@@ -137,17 +137,15 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
         Preconditions.checkState(result.succeed());
 
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-
-            List<? extends Executable> jobs = getTasks();
-            boolean allSucceed = true;
-            boolean hasError = false;
-            boolean hasDiscarded = false;
-            boolean hasSuicidal = false;
-            boolean hasPaused = false;
-            for (Executable task : jobs) {
-                boolean taskSucceed = false;
-                switch (task.getStatus()) {
+        List<? extends Executable> jobs = getTasks();
+        boolean allSucceed = true;
+        boolean hasError = false;
+        boolean hasDiscarded = false;
+        boolean hasSuicidal = false;
+        boolean hasPaused = false;
+        for (Executable task : jobs) {
+            boolean taskSucceed = false;
+            switch (task.getStatus()) {
                 case RUNNING:
                     hasError = true;
                     break;
@@ -168,37 +166,61 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     break;
                 default:
                     break;
-                }
-                allSucceed &= taskSucceed;
             }
-            if (allSucceed) {
-                updateToFinalState(ExecutableState.SUCCEED, this::afterUpdateOutput);
-            } else if (hasDiscarded) {
-                updateToFinalState(ExecutableState.DISCARDED, this::onExecuteDiscardHook);
-            } else if (hasSuicidal) {
-                updateToFinalState(ExecutableState.SUICIDAL, this::onExecuteSuicidalHook);
-            } else {
-                if (isStoppedNonVoluntarily())
-                    return null;
-                if (hasError) {
-                    logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
-                    updateJobOutput(getProject(), getId(), ExecutableState.ERROR, null, null, this::onExecuteErrorHook);
-                    notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-                } else if (hasPaused) {
-                    updateJobOutput(getProject(), getId(), ExecutableState.PAUSED, null, null, null);
-                } else {
-                    //restart case
-                    updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null, null);
-                }
-            }
+            allSucceed &= taskSucceed;
+        }
+        
+        ExecutableState state;
+        if (allSucceed) {
+            state = ExecutableState.SUCCEED;
+        } else if (hasDiscarded) {
+            state = ExecutableState.DISCARDED;
+        } else if (hasSuicidal) {
+            state = ExecutableState.SUICIDAL;
+        } else if (hasError) {
+            state = ExecutableState.ERROR;
+        } else if (hasPaused) {
+            state = ExecutableState.PAUSED;
+        } else {
+            state = ExecutableState.READY;
+        }
 
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            switch (state) {
+                case SUCCEED:
+                    updateToFinalState(ExecutableState.SUCCEED, this::afterUpdateOutput);
+                    break;
+                case DISCARDED:
+                    updateToFinalState(ExecutableState.DISCARDED, this::onExecuteDiscardHook);
+                    break;
+                case SUICIDAL:
+                    updateToFinalState(ExecutableState.SUICIDAL, this::onExecuteSuicidalHook);
+                    break;
+                case ERROR:
+                case PAUSED:
+                case READY:
+                    if (isStoppedNonVoluntarily()) {
+                        return null;
+                    }
+                    Consumer<String> hook = null;
+                    if (state == ExecutableState.ERROR) {
+                        logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
+                        notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+                        hook = this::onExecuteErrorHook;
+                    }
+                    updateJobOutput(getProject(), getId(), state, null, null, hook);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Illegal state when job finished: " + state);
+            }
             return null;
 
         }, project);
 
         // dispatch job-finished message out
-        EventBusFactory.getInstance().postWithLimit(new JobFinishedNotifier(getProject()));
-
+        EventBusFactory.getInstance().postWithLimit(
+                new JobFinishedNotifier(getProject(), getTargetSubject(), getDuration(), state.toString(),
+                        this.getSegmentIds(), this.getLayoutIds(), this.getDataRangeStart(), this.getDataRangeEnd()));
         updateMetrics();
 
     }
