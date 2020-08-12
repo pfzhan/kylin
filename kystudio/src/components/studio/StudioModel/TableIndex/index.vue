@@ -210,7 +210,7 @@ export default class TableIndex extends Vue {
   shardbyColumn = ''
   totalRawTable = 10
   currentPage = 0
-  currentCount = 10
+  currentCount = +localStorage.getItem(this.pageRefTags.tableIndexDetailPager) || 10
   searchLoading = false
   transToGmtTime = transToGmtTime
   tableIndexFilter = this.layoutId || ''

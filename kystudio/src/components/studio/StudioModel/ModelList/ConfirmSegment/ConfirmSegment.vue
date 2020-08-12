@@ -130,7 +130,7 @@ export default class ConfirmSegmentModal extends Vue {
   }
   pagination = {
     page_offset: 0,
-    pageSize: pageCount
+    pageSize: +localStorage.getItem(this.pageRefTags.confirmSegmentPager) || pageCount
   }
   selectedSegments = []
   selectedSegmentIds = []

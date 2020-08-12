@@ -225,7 +225,7 @@ export default class ModelSegment extends Vue {
   }
   pagination = {
     page_offset: 0,
-    pageSize: pageCount
+    pageSize: +localStorage.getItem(this.pageRefTags.segmentPager) || pageCount
   }
   selectedSegmentIds = []
   isShowDetail = false

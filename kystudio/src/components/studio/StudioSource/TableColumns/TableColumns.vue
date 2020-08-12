@@ -98,7 +98,7 @@ export default class TableColumns extends Vue {
   filterText = ''
   pagination = {
     page_offset: 0,
-    pageSize: pageCount
+    pageSize: +localStorage.getItem(this.pageRefTags.tableColumnsPager) || pageCount
   }
   renderCardinalityHeader (h, { column, $index }) {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>

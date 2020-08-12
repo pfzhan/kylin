@@ -36,7 +36,7 @@ export default {
     return {
       pageRefTags: pageRefTags,
       convertedProperties: fromObjToArr(this.override),
-      pageSize: 10,
+      pageSize: +localStorage.getItem(this.pageRefTags.projectConfigPager) || 10,
       currentPage: 0,
       convertedPropertiesItem: []
     }

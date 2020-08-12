@@ -1,7 +1,7 @@
 <template>
   <div id="queryHistory">
     <query_history_table :queryHistoryData="queryHistoryData.query_histories" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
-    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="queryHistoryPager" :refTag="pageRefTags.queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :perPageSize="20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('kylinLang.model.aggregateGroupIndex')"
       top="5vh"
@@ -90,7 +90,7 @@ export default class QueryHistory extends Vue {
     uuid: ''
   }
   queryNodes = []
-  pageSize = 10
+  pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || 20
   async openIndexDialog (modelId, layoutId) {
     this.model.uuid = modelId
     if (layoutId) {
@@ -103,7 +103,7 @@ export default class QueryHistory extends Vue {
   async loadHistoryList (pageIndex) {
     const resData = {
       project: this.currentSelectedProject || null,
-      limit: this.pageSize || 10,
+      limit: this.pageSize || 20,
       offset: pageIndex || 0,
       start_time_from: this.filterData.startTimeFrom,
       start_time_to: this.filterData.startTimeTo,

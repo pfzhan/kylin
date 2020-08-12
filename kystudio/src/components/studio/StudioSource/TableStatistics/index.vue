@@ -96,7 +96,7 @@ export default class TableStatistics extends Vue {
   filterText = ''
   pagination = {
     page_offset: 0,
-    pageSize: 10
+    pageSize: +localStorage.getItem(this.pageRefTags.statisticsPager) || 10
   }
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')

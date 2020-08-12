@@ -314,7 +314,7 @@ export default class SystemCapacity extends Vue {
   projectStatusFilter = ['success', 'fail']
   projectCapacity = {
     list: [],
-    pageSize: 10,
+    pageSize: +localStorage.getItem(this.pageRefTags.capacityPager) || 10,
     currentPage: 0,
     totalSize: 10,
     sort_by: '',
@@ -326,7 +326,7 @@ export default class SystemCapacity extends Vue {
   currentProjectName = ''
   projectDetail = {
     list: [],
-    pageSize: 10,
+    pageSize: +localStorage.getItem(this.pageRefTags.projectDetail) || 10,
     currentPage: 0,
     totalSize: 10,
     sort_by: '',

@@ -359,7 +359,7 @@ export default class ModelAggregate extends Vue {
   totalSize = 0
   filterArgs = {
     page_offset: 0,
-    page_size: 10,
+    page_size: +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10,
     key: '',
     sort_by: '',
     reverse: '',

@@ -440,7 +440,7 @@ import ModelOverview from './ModelOverview/ModelOverview.vue'
 function getDefaultFilters () {
   return {
     page_offset: 0,
-    page_size: 10,
+    page_size: +localStorage.getItem(this.pageRefTags.modelListPager) || 10,
     exact: false,
     model_name: '',
     sort_by: 'last_modify',

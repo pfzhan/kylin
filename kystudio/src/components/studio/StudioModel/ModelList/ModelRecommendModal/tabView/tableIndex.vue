@@ -137,7 +137,7 @@
     tableShowList = []
     ST = null
     expandRows = []
-    perPageSize = 10
+    perPageSize = +localStorage.getItem(this.pageRefTags.tableIndexPager) || 10
 
     /* @Watch('list', { deep: true })
     onListChange (val) {

@@ -228,7 +228,7 @@ export default class BatchMeasureModal extends Vue {
   ccTable = {columns: []}
   filterArgs = {
     pageOffset: 0,
-    pageSize: pageCount
+    pageSize: +localStorage.getItem(this.pageRefTags.batchMeasurePager) || pageCount
   }
   isShowSearchTable = false
   scrollDom = null

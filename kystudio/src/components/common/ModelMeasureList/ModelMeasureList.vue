@@ -67,7 +67,7 @@ import { dataHelper } from '../../../util'
 export default class ModelMeasureList extends Vue {
   pageRefTags = pageRefTags
   pageOffset = 0
-  pageSize = 10
+  pageSize = +localStorage.getItem(this.pageRefTags.modelMeasurePager) || 10
   filters = [
     { name: '' }
   ]

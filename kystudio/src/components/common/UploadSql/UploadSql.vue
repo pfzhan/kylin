@@ -410,7 +410,7 @@ export default class UploadSqlModel extends Vue {
     }
   }
   whiteSqlDatasPageChange (currentPage, pageSize) {
-    const size = pageSize || 10
+    const size = pageSize || +localStorage.getItem(this.pageRefTags.sqlListsPager) || 10
     this.whiteCurrentPage = currentPage
     this.whitePageSize = size
     const filteredData = this.whiteFilter(this.whiteSqlData.data)

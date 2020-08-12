@@ -140,7 +140,7 @@
     ST = null
     expandRows = []
     curRowExpandLoading = {}
-    perPageSize = 10
+    perPageSize = +localStorage.getItem(this.pageRefTags.addIndexPager) || 10
 
     /* @Watch('list', { deep: true })
     onListChange (val) {

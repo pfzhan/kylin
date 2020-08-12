@@ -70,7 +70,7 @@ import { Component } from 'vue-property-decorator'
 import { mapState, mapGetters, mapActions } from 'vuex'
 
 import locales from './locales'
-import { pageCount, pageRefTags } from 'config'
+import { pageRefTags } from 'config'
 import GroupEditModal from '../../common/GroupEditModal/index.vue'
 import { handleError, kapConfirm } from 'util/business'
 
@@ -104,7 +104,7 @@ import { handleError, kapConfirm } from 'util/business'
 export default class SecurityGroup extends Vue {
   pageRefTags = pageRefTags
   pagination = {
-    page_size: pageCount,
+    page_size: +localStorage.getItem(this.pageRefTags.userGroupPager) || 20,
     page_offset: 0
   }
   filterName = ''

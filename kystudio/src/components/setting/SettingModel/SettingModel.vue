@@ -226,7 +226,7 @@ export default class SettingStorage extends Vue {
   modelListSize = 0
   filter = {
     page_offset: 0,
-    page_size: pageCount,
+    page_size: +localStorage.getItem(this.pageRefTags.modleConfigPager) || pageCount,
     model_name: ''
   }
   editModelSetting = false

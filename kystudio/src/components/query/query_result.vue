@@ -174,7 +174,7 @@ export default class queryResult extends Vue {
   project = ''
   limit = ''
   showDetail = false
-  pageSize = 10
+  pageSize = +localStorage.getItem(this.pageRefTags.queryResultPager) || 10
   currentPage = 0
   modelsTotal = this.extraoption.results.length
   timer = null

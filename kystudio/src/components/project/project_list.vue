@@ -164,7 +164,7 @@ import modeList from './model_list'
 import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectConfig from './project_config'
-import { permissions, pageCount, projectCfgs, pageRefTags } from '../../config/index'
+import { permissions, projectCfgs, pageRefTags } from '../../config/index'
 import { handleSuccessAsync } from '../../util'
 import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
@@ -335,7 +335,13 @@ export default {
       },
       selected_project: localStorage.getItem('selected_project'),
       projectWidth: '440px',
-      filterData: {page_offset: 0, page_size: pageCount, exact: false, project: '', permission: 'ADMINISTRATION'},
+      filterData: {
+        page_offset: 0,
+        page_size: +localStorage.getItem(this.pageRefTags.projectPager) || 20,
+        exact: false,
+        project: '',
+        permission: 'ADMINISTRATION'
+      },
       changeOwnerVisible: false,
       changeLoading: false,
       projectOwner: {

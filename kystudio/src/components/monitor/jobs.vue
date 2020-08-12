@@ -117,7 +117,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            width="105"
+            width="110"
             sortable="custom"
             prop="duration"
             :label="$t('duration')">
@@ -164,7 +164,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" :refTag="pageRefTags.jobPager" :perPageSize="20" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </el-col>
       <el-col :span="7" v-if="showStep" id="rightDetail">
         <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}" id="stepList">
@@ -331,7 +331,7 @@ import { mapActions, mapGetters, mapMutations } from 'vuex'
 import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
-import { pageCount, pageRefTags } from '../../config'
+import { pageRefTags } from '../../config'
 import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from 'util/business'
 import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from 'util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
@@ -557,7 +557,7 @@ export default class JobsList extends Vue {
   idsArrCopy = []
   filter = {
     page_offset: 0,
-    page_size: pageCount,
+    page_size: +localStorage.getItem(this.pageRefTags.jobPager) || 20,
     time_filter: 4,
     job_names: [],
     sort_by: 'create_time',

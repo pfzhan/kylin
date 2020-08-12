@@ -49,7 +49,7 @@ import { dataHelper } from '../../../util'
 export default class ModelDimensionList extends Vue {
   pageRefTags = pageRefTags
   pageOffset = 0
-  pageSize = 10
+  pageSize = +localStorage.getItem(this.pageRefTags.modelDimensionPager) || 10
   filters = [
     { name: '' }
   ]

@@ -316,7 +316,7 @@ export default class DimensionsModal extends Vue {
   ccTable = {columns: []}
   filterArgs = {
     pageOffset: 0,
-    pageSize: pageCount
+    pageSize: +localStorage.getItem(this.pageRefTags.dimensionPager) || pageCount
   }
   isClickSubmit = false
   errorGuidList = []

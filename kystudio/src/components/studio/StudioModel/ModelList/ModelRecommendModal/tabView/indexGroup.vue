@@ -244,7 +244,7 @@
     ST = null
     expandRows = []
     curRowExpandLoading = {}
-    perPageSize = 10
+    perPageSize = +localStorage.getItem(this.pageRefTags.indexGroupPager) || 10
     currentPage = 0
     isShow = true
     lowFrequency = {
