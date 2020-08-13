@@ -122,8 +122,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             layoutIds.forEach(id -> {
                 if (recommendation.getLayoutRefs().containsKey(-id)) {
                     collect(allRecItems, recommendation.getLayoutRefs().get(-id));
-                } else {
-
                 }
             });
             return Lists.newArrayList(allRecItems);
