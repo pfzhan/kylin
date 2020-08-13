@@ -29,8 +29,6 @@ import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -41,8 +39,6 @@ import java.util.Optional;
  *    1. invalidate all table schema cache under the same project
  */
 public class TableSchemaChangeListener implements EventListenerRegistry.ResourceEventListener {
-
-    private static final Logger logger = LoggerFactory.getLogger(TableSchemaChangeListener.class);
 
     private final QueryCacheManager queryCacheManager;
 
@@ -64,12 +60,13 @@ public class TableSchemaChangeListener implements EventListenerRegistry.Resource
     }
 
     private Optional<String> getProjectName(String resourcePath) {
-        if (!resourcePath.contains("table")) {
-            return Optional.empty();
-        }
         if (Objects.isNull(resourcePath)) {
             return Optional.empty();
         }
+        if (!resourcePath.contains("table")) {
+            return Optional.empty();
+        }
+
         String[] elements = resourcePath.split("/");
         // acl resource path like '/{project}/table/{table}.json
         if (elements.length != 4 || elements[2].equalsIgnoreCase("table") || StringUtils.isEmpty(elements[1])) {
