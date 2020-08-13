@@ -486,7 +486,7 @@ exports.default = {
     noChineseCharacters: 'Not support Chinese characters',
     otherCharacters: 'Not support Chinese characters, nor special symbols ( /:\\*?"<>|)',
     onlyEnglishChars: 'Only supports English characters',
-    notOtherChars: 'Not support special symbols (/:\\*?"<>|)'
+    notOtherChars: 'Not support special symbols (/:\\*?"<>|\')'
   },
   system: {
     evaluationStatement: 'You are using Kyligence Enterprise with Evaluation License. For more product information, expert consulting and services, please <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We’ll get you the help you need from Apache Kylin core team.',

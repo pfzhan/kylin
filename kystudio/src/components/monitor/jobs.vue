@@ -145,7 +145,7 @@
               :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING'">
                 <i class="el-icon-ksd-error_02 ksd-fs-14" @click.stop="discard([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
-              :content="$t('diagnosis')" v-if="monitorActions.includes('diagnostic') && (scope.row.job_status =='FINISHED' || scope.row.job_status == 'DISCARDED' || scope.row.job_status=='PENDING')">
+              :content="$t('jobDiagnosis')" v-if="monitorActions.includes('diagnostic') && (scope.row.job_status =='FINISHED' || scope.row.job_status == 'DISCARDED' || scope.row.job_status=='PENDING')">
                 <i class="el-icon-ksd-ostin_diagnose ksd-fs-14" @click.stop="showDiagnosisDetail(scope.row.id)"></i>
               </common-tip><common-tip
               :content="$t('kylinLang.common.moreActions')">

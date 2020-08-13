@@ -482,7 +482,7 @@ exports.default = {
     noChineseCharacters: '不支持中文符号',
     otherCharacters: '不支持中文和特殊字符（ /:\\*?"<>|）',
     onlyEnglishChars: '仅支持英文字符',
-    notOtherChars: '不支持特殊字符（ /:\\*?"<>|）'
+    notOtherChars: '不支持特殊字符（ /:\\*?"<>|\'）'
   },
   system: {
     evaluationStatement: '您正在使用 Kyligence Enterprise 试用版。如果您对我们的产品满意，需要专业的产品、咨询或服务，欢迎<a href="mailto:g-ent-lic@kyligence.io">联系我们</a>。您将获得来自 Apache Kylin 核心小组的帮助。',
