@@ -843,16 +843,12 @@ public class CnMessage extends Message {
         return "获取超时，请手动选择数据范围";
     }
 
-    public String getAGGINDEX_DIMENSION_NOTFOUND() {
-        return "模型[%s]的聚合索引已经包含维度[%s]";
+    public String getDIMENSION_NOTFOUND() {
+        return "维度 %s 正在被索引引用。请在聚合组或明细索引中删除对应字段后再进行操作。";
     }
 
-    public String getTABLEINDEX_COLUMN_NOTFOUND() {
-        return "模型[%s]的明细索引已经包含列[%s]";
-    }
-
-    public String getAGGINDEX_MEASURE_NOTFOUND() {
-        return "模型[%s]的聚合索引已经包含度量[%s]";
+    public String getMEASURE_NOTFOUND() {
+        return "度量 %s 正在被索引引用。请在聚合组或明细索引中删除对应字段后再进行操作。";
     }
 
     public String getNESTEDCC_CC_NOTFOUND() {

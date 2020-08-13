@@ -923,16 +923,12 @@ public class Message {
         return "Detect timeout, please set the data range manually.";
     }
 
-    public String getAGGINDEX_DIMENSION_NOTFOUND() {
-        return "model %s's agg group still contains dimension(s) %s";
+    public String getDIMENSION_NOTFOUND() {
+        return "The dimension %s is referenced by indexes. Please try again after deleting it from aggregation group or table index.";
     }
 
-    public String getTABLEINDEX_COLUMN_NOTFOUND() {
-        return "model %s's table index still contains column(s) %s";
-    }
-
-    public String getAGGINDEX_MEASURE_NOTFOUND() {
-        return "model %s's agg group still contains measure(s) %s";
+    public String getMEASURE_NOTFOUND() {
+        return "The measure %s is referenced by indexes. Please try again after deleting it from aggregation group or table index.";
     }
 
     public String getNESTEDCC_CC_NOTFOUND() {

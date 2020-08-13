@@ -3872,7 +3872,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.getSimplifiedDimensions().remove(0);
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's table index still contains column(s) TEST_SITES.SITE_NAME");
+                "The dimension TEST_SITES.SITE_NAME is referenced by indexes. Please try again after " +
+                        "deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
@@ -3883,7 +3884,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100005)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("agg group still contains measure(s) ITEM_COUNT_MAX");
+        thrown.expectMessage("The measure ITEM_COUNT_MAX is referenced by indexes. Please try again after " +
+                "deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 

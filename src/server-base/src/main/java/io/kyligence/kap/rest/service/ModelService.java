@@ -2270,7 +2270,7 @@ public class ModelService extends BasicService {
                 //check nested cc
                 if (cc.getExpression().toUpperCase().contains(ccInCheck)) {
                     throw new KylinException(FAILED_UPDATE_COMPUTED_COLUMN,
-                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModelDesc.getUuid(),
+                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModelDesc.getAlias(),
                                     cc.getTableAlias() + "." + cc.getColumnName(), ccInCheck));
                 }
             } else {
@@ -2667,8 +2667,7 @@ public class ModelService extends BasicService {
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
                 throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
-                                indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
+                        String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
             }
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
@@ -2677,8 +2676,7 @@ public class ModelService extends BasicService {
                             .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
                     throw new KylinException(FAILED_UPDATE_MODEL,
-                            String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
-                                    indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));
+                            String.format(MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
                 }
             }
         }
@@ -2692,8 +2690,7 @@ public class ModelService extends BasicService {
             val columnNames = tableIndexColumns.stream().filter(x -> !allNamedColumns.contains(x))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
             throw new KylinException(FAILED_UPDATE_MODEL,
-                    String.format(MsgPicker.getMsg().getTABLEINDEX_COLUMN_NOTFOUND(), indexPlan.getModel().getUuid(),
-                            StringUtils.join(columnNames, ",")));
+                    String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(columnNames, ",")));
         }
 
         //check recommend agg index contains removed columns
@@ -2706,8 +2703,7 @@ public class ModelService extends BasicService {
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
                 throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
-                                indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
+                        String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
             }
 
             if (!newModel.getEffectiveMeasures().keySet().containsAll(aggIndex.getMeasures())) {
@@ -2715,8 +2711,7 @@ public class ModelService extends BasicService {
                         .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                         .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
                 throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(), indexPlan.getModel().getUuid(),
-                                StringUtils.join(measureNames, ",")));
+                        String.format(MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
 
             }
         }
@@ -3069,7 +3064,7 @@ public class ModelService extends BasicService {
             for (val cc : dataModel.getComputedColumnDescs()) {
                 if (cc.getExpression().toUpperCase().contains(colName))
                     throw new KylinException(FAILED_UPDATE_MODEL,
-                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModel.getUuid(),
+                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModel.getAlias(),
                                     cc.getTableAlias() + "." + cc.getColumnName(), colName));
             }
         }

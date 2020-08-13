@@ -522,7 +522,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's table index still contains column(s) BUYER_COUNTRY.NAME,TEST_KYLIN_FACT.DEAL_YEAR");
+                "The dimension BUYER_COUNTRY.NAME,TEST_KYLIN_FACT.DEAL_YEAR is referenced by indexes. " +
+                        "Please try again after deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -537,7 +538,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         Assert.assertNotNull(dimDesc);
         request.getSimplifiedDimensions().remove(dimDesc);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("agg group still contains dimension(s) TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
+        thrown.expectMessage("The dimension TEST_KYLIN_FACT.LSTG_FORMAT_NAME,BUYER_COUNTRY.NAME is " +
+                "referenced by indexes. Please try again after deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -547,7 +549,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val request = newSemanticRequest(modelId);
         request.getSimplifiedMeasures().remove(1);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("agg group still contains measure(s) GMV_SUM");
+        thrown.expectMessage("The measure GMV_SUM is referenced by indexes. Please try again after " +
+                "deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic(getProject(), request);
     }
 
@@ -746,7 +749,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 .setExpression(request.getComputedColumnDescs().get(10).getExpression() + "+1");
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "nested computed column TEST_KYLIN_FACT.NEST6 still contains computed column TEST_KYLIN_FACT.NEST5");
+                "model nmodel_basic's nested computed column TEST_KYLIN_FACT.NEST6 still contains computed column TEST_KYLIN_FACT.NEST5");
         modelService.checkBeforeModelSave(request);
     }
 
@@ -766,7 +769,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     public void testRemoveDimensionsWithCubePlanRule() throws Exception {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
-                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains dimension(s) TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
+                "The dimension TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP is referenced by indexes. " +
+                        "Please try again after deleting it from aggregation group or table index.");
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", cubeBasic -> {
             val rule = new NRuleBasedIndex();

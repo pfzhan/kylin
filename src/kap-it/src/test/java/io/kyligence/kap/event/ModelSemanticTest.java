@@ -285,7 +285,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().is(400)).andReturn().getResponse().getContentAsString();
 
         Assert.assertTrue(errorMessage.contains(
-                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains measure(s) SUM_DEAL_AMOUNT"));
+                "The measure SUM_DEAL_AMOUNT is referenced by indexes. " +
+                        "Please try again after deleting it from aggregation group or table index."));
     }
 
     private ModelRequest getModelRequest() throws Exception {

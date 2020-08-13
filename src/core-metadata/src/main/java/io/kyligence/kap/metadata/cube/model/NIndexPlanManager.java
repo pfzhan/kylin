@@ -35,6 +35,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.cube.model.validation.ValidateContext;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -257,8 +258,8 @@ public class NIndexPlanManager implements IKeepNames {
                 for (Integer dimId: index.getDimensions()) {
                     if (!selectedColumnIds.contains(dimId)) {
                         throw new IllegalStateException(
-                                String.format("table index %d contains invalid column %d. " +
-                                        "table index can only contain columns added to model.", index.getId(), dimId));
+                                String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
+                                        indexPlan.getModel().getColumnNameByColumnId(dimId)));
                     }
                 }
             }
