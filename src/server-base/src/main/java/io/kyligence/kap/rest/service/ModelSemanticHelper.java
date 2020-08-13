@@ -473,10 +473,10 @@ public class ModelSemanticHelper extends BasicService {
      * @param updateImpact
      */
     private void updateMeasureStatus(List<Measure> newMeasures, NDataModel originModel, UpdateImpact updateImpact) {
-        var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
+        int maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1);
         for (NDataModel.Measure measure : newMeasures) {
-            val modifiedMeasureId = updateImpact.getInvalidMeasures().stream()
+            Integer modifiedMeasureId = updateImpact.getInvalidMeasures().stream()
                     .filter(measureId -> equalsIgnoreReturnType(originModel.getTombMeasureByMeasureId(measureId), measure))
                     .findFirst().orElse(null);
             if (modifiedMeasureId != null) {
