@@ -18,6 +18,7 @@
         v-loading="loadingRecommends"
         :empty-text="emptyText"
         @selection-change="handleSelectionChange"
+        @sort-change="changeSort"
       >
         <el-table-column type="selection" width="44"></el-table-column>
         <el-table-column
@@ -105,7 +106,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="recommendationsList.totalSize" :curPage="recommendationsList.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+      <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="recommendationsList.totalSize" :refTag="pageRefTags.recommendationsPager" :perPageSize="recommendationsList.page_size" :curPage="recommendationsList.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
     <!-- 索引详情 -->
     <el-dialog
@@ -230,6 +231,7 @@ import { Component } from 'vue-property-decorator'
 import { transToGmtTime } from 'util/business'
 import { mapActions, mapState } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../../../../../util'
+import { pageRefTags } from 'config'
 
 @Component({
   props: {
@@ -381,6 +383,7 @@ import { handleSuccessAsync, handleError } from '../../../../../../util'
   }
 })
 export default class IndexList extends Vue {
+  pageRefTags = pageRefTags
   transToGmtTime = transToGmtTime
   loadingRecommends = false
   loadingDetails = false
@@ -388,7 +391,7 @@ export default class IndexList extends Vue {
     list: [],
     page_offset: 0,
     totalSize: 0,
-    page_size: 10
+    page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || 10
   }
   typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE', 'REMOVE_TABLE']
   source = ['imported', 'query_history']
@@ -416,13 +419,15 @@ export default class IndexList extends Vue {
 
   get getRecommendData () {
     const { list, page_offset, page_size } = this.recommendationsList
-    let data = list.slice(page_offset * 10, (page_offset + 1) * page_size)
+    let data = list
     if (this.checkedStatus.length) {
       data = data.filter(it => this.checkedStatus.includes(it.type))
     }
     if (this.sourceCheckedStatus.length) {
       data = data.filter(it => this.sourceCheckedStatus.includes(it.source))
     }
+    this.recommendationsList.totalSize = data.length
+    data = data.slice(page_offset * page_size, (page_offset + 1) * page_size)
     return data
   }
 
@@ -668,6 +673,7 @@ export default class IndexList extends Vue {
 
   // 筛选类型来源
   filterType (v, type) {
+    this.recommendationsList.page_offset = 0
     type === 'checkedStatus' ? (this.checkedStatus = v) : (this.sourceCheckedStatus = v)
   }
 
@@ -679,6 +685,16 @@ export default class IndexList extends Vue {
     } else {
       this.recommendationsList.page_offset = offset
     }
+  }
+
+  // 更改排序
+  changeSort (column, prop, order) {
+    if (order === 'descending') {
+      this.recommendationsList.list.sort((prev, next) => { next[prop] - prev[prop] })
+    } else {
+      this.recommendationsList.list.sort((prev, next) => { prev[prop] - next[prop] })
+    }
+    this.recommendationsList.page_offset = 0
   }
 
   jumpToSetting () {
