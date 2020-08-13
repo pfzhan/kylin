@@ -126,7 +126,8 @@ export const pageRefTags = {
   indexGroupContentShowPager: 'indexGroupContentShowPager',
   tableIndexPager: 'tableIndexPager',
   tableColumnsPager: 'tableColumnsPager',
-  statisticsPager: 'statisticsPager'
+  statisticsPager: 'statisticsPager',
+  recommendationsPager: 'recommendationsPager'
 }
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
 export const permissions = {
