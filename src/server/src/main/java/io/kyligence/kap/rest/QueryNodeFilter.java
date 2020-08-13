@@ -236,19 +236,23 @@ public class QueryNodeFilter implements Filter {
                 return;
             }
             servletResponse.setStatus(responseStatus);
-            responseHeaders.forEach((k, v) -> {
-                if (k.equals(HttpHeaders.TRANSFER_ENCODING)) {
-                    return;
-                }
-                for (String headerValue : v) {
-                    servletResponse.setHeader(k, headerValue);
-                }
-            });
+            setResponseHeaders(responseHeaders, servletResponse);
             servletResponse.getOutputStream().write(responseBody);
             return;
         }
         throw new RuntimeException("unknown status");
     }  
+    
+    private void setResponseHeaders(HttpHeaders responseHeaders, HttpServletResponse servletResponse) {
+        responseHeaders.forEach((k, v) -> {
+            if (k.equals(HttpHeaders.TRANSFER_ENCODING)) {
+                return;
+            }
+            for (String headerValue : v) {
+                servletResponse.setHeader(k, headerValue);
+            }
+        });
+    }
     
     private void tryCatchUp() {
         try {
