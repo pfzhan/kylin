@@ -53,7 +53,9 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
@@ -94,6 +96,9 @@ public class RestClient {
     public static final String SCHEME_HTTP = "http://";
     private static final String ROUTED = "routed";
     public static final String KYLIN_API_PATH = "/kylin/api";
+
+    public static final String AUDIT_LOG_PATH = "audit_log";
+    public static final String STOP_QUERY_PATH = "stop_query_on_current_node";
 
     public static boolean matchFullRestPattern(String uri) {
         Matcher m = fullRestPattern.matcher(uri);
@@ -332,12 +337,13 @@ public class RestClient {
         return response;
     }
 
-    public HttpResponse notifyCatchUp() throws IOException {
-        String url = baseUrl + "/audit_log";
+    public HttpResponse notifyCatchUp(BroadcastEventReadyNotifier notifier) throws IOException {
+        String url = baseUrl + "/broadcast";
         HttpPost post = newPost(url);
         post.addHeader(ROUTED, "true");
         HttpResponse response = null;
         try {
+            post.setEntity(new ByteArrayEntity(JsonUtil.writeValueAsBytes(notifier), ContentType.APPLICATION_JSON));
             response = client.execute(post);
             if (response.getStatusLine().getStatusCode() != 200) {
                 String msg = EntityUtils.toString(response.getEntity());

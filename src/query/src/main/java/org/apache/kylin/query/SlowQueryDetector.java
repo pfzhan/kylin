@@ -45,20 +45,24 @@ package org.apache.kylin.query;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 public class SlowQueryDetector extends Thread {
 
     private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetector.class);
 
-    private final ConcurrentHashMap<Thread, QueryEntry> runningQueries = new ConcurrentHashMap<>();
+    @Getter
+    private static final ConcurrentHashMap<Thread, QueryEntry> runningQueries = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, CanceledSlowQueryStatus> canceledSlowQueriesStatus = Maps
             .newConcurrentMap();
     private final int detectionIntervalMs;
@@ -80,9 +84,9 @@ public class SlowQueryDetector extends Thread {
         this.queryTimeoutMs = queryTimeoutMs;
     }
 
-    public void queryStart() {
-        runningQueries.put(currentThread(),
-                new QueryEntry(System.currentTimeMillis(), currentThread(), QueryContext.current().getQueryId()));
+    public void queryStart(String stopId) {
+        runningQueries.put(currentThread(), new QueryEntry(System.currentTimeMillis(), currentThread(),
+                QueryContext.current().getQueryId(), stopId, false));
     }
 
     public void queryEnd() {
@@ -147,11 +151,14 @@ public class SlowQueryDetector extends Thread {
     }
 
     @Getter
+    @Setter
     @AllArgsConstructor
-    private class QueryEntry {
+    public class QueryEntry {
         final long startTime;
         final Thread thread;
         final String queryId;
+        final String stopId;
+        boolean isStopByUser;
 
         public long getRunningTime() {
             return (System.currentTimeMillis() - startTime) / 1000;

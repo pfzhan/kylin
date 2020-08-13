@@ -24,9 +24,5 @@
 
 package io.kyligence.kap.common.persistence.transaction;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
-
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-public class BroadcastEventReadyNotifier extends SchedulerEventNotifier {
+public class AuditLogBroadcastEventNotifier extends BroadcastEventReadyNotifier {
 }

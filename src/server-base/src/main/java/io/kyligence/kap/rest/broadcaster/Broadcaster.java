@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.broadcaster;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
@@ -90,7 +91,7 @@ public class Broadcaster implements Closeable {
         return result;
     }
 
-    public void announce(BroadcastEvent event) {
+    public void announce(BroadcastEvent event, BroadcastEventReadyNotifier notifier) {
         if (!eventBlockingQueue.offer(event)) return;
         try {
             String identity = AddressUtil.getLocalInstance();
@@ -112,7 +113,7 @@ public class Broadcaster implements Closeable {
                     public void run() {
                         try {
                             logger.info("Broadcast to notify catch up.");
-                            finalClient.notifyCatchUp();
+                            finalClient.notifyCatchUp(notifier);
                         } catch (IOException e) {
                             logger.warn("Failed to notify catch up.");
                         } finally {

@@ -41,7 +41,7 @@ public class BroadcastListener implements IKeep {
 
     @Subscribe
     public void onEventReady(BroadcastEventReadyNotifier notifier) throws IOException {
-        broadcaster.announce(new Broadcaster.BroadcastEvent());
+        broadcaster.announce(new Broadcaster.BroadcastEvent(), notifier);
     }
 
 }

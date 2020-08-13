@@ -33,6 +33,8 @@ import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
+import org.apache.kylin.query.SlowQueryDetector
+import org.apache.kylin.query.exception.UserStopQueryException
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.hive.QueryMetricUtils
@@ -106,10 +108,13 @@ object SparkSqlClient {
     } catch {
       case e: Throwable =>
         if (e.isInstanceOf[InterruptedException]) {
+          Thread.currentThread.interrupt()
+          if (SlowQueryDetector.getRunningQueries.get(Thread.currentThread()).isStopByUser) {
+            throw new UserStopQueryException("")
+          }
           ss.sparkContext.cancelJobGroup(jobGroup)
           QueryContext.current.getQueryTagInfo.setTimeout(true)
           logger.info("Query timeout ", e)
-          Thread.currentThread.interrupt()
           throw new KylinTimeoutException("Query timeout after: " + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s")
         }
         else throw e

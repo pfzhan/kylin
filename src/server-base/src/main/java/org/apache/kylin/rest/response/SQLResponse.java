@@ -135,6 +135,9 @@ public class SQLResponse implements Serializable {
 
     private String suite;
 
+    @JsonProperty("is_stop_by_user")
+    private boolean isStopByUser;
+
     @Setter
     @Getter
     private String signature;

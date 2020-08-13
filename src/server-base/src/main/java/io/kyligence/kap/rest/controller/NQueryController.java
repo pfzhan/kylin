@@ -85,6 +85,8 @@ import org.supercsv.prefs.CsvPreference;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SQLFormatRequest;
@@ -123,6 +125,14 @@ public class NQueryController extends NBasicController {
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
+    }
+
+    @DeleteMapping(value = "/{id:.+}")
+    @ResponseBody
+    public EnvelopeResponse<String> stopQuery(@PathVariable("id") String id) {
+        queryService.stopQuery(id);
+        EventBusFactory.getInstance().postAsync(new StopQueryBroadcastEventNotifier(id));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     // TODO should be just "prepare" a statement, get back expected ResultSetMetaData

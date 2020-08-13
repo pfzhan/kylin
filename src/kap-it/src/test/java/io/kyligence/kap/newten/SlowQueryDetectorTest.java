@@ -103,7 +103,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSetInterrupt() {
-        slowQueryDetector.queryStart();
+        slowQueryDetector.queryStart("");
         try {
             Thread.sleep(6 * 1000);
             Assert.fail();
@@ -122,7 +122,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(config, getProject(), ss);
 
         System.setProperty("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
-        slowQueryDetector.queryStart();
+        slowQueryDetector.queryStart("");
         try {
             SparderEnv.cleanCompute();
             long t = System.currentTimeMillis();
@@ -158,7 +158,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             conf.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "false");
             populateSSWithCSVData(config, getProject(), ss);
 
-            slowQueryDetector.queryStart();
+            slowQueryDetector.queryStart("");
             try {
                 String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
                 SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject());
@@ -185,7 +185,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     @Ignore("not timeout, need another sql")
     @Test
     public void testSQLMassageTimeoutCancelJob() throws Exception {
-        slowQueryDetector.queryStart();
+        slowQueryDetector.queryStart("");
         try {
             SparderEnv.cleanCompute();
             long t = System.currentTimeMillis();

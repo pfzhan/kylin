@@ -39,46 +39,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.kylin.query.exception;
 
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ErrorCodeSupplier;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.exception.KylinException;
 
-public enum QueryErrorCode implements ErrorCodeSupplier {
+import static org.apache.kylin.query.exception.QueryErrorCode.USER_STOP_QUERY;
 
-    // 20002XXX model
-    SCD2_DUPLICATE_JOIN_COL("KE-20002001"), //
-    SCD2_DUPLICATE_FK_PK_PAIR("KE-20002002"), //
-    SCD2_EMPTY_EQUI_JOIN("KE-20002003"), //
-    SCD2_DUPLICATE_CONDITION("KE-20002004"), //
-    SCD2_COMMON_ERROR("KE-20002005"), //
-    SCD2_SAVE_MODEL_WHEN_DISABLED("KE-20002006"), //
+public class UserStopQueryException extends KylinException {
 
-    // 20003XXX user
-    USER_STOP_QUERY("KE-20003001"), //
-
-    // 20007XXX table
-    EMPTY_TABLE("KE-20007001"), //
-
-    // 20029XXX optimization rule
-    UNSUPPORTED_SUM_CASE_WHEN("KE-20029001"), //
-
-    // 20030XXX push down
-    INVALID_PARAMETER_PUSH_DOWN("KE-20030001"), //
-
-    // 20032XXX query busy
-    BUSY_QUERY("KE-20032001"), //
-
-    ;
-
-    private final ErrorCode errorCode;
-
-    QueryErrorCode(String code) {
-        errorCode = new ErrorCode(code);
+    public UserStopQueryException(String message) {
+        super(USER_STOP_QUERY, message);
     }
 
-    @Override
-    public ErrorCode toErrorCode() {
-        return errorCode;
+    public static boolean causedByUserStop(Throwable e) {
+        return e instanceof UserStopQueryException || ExceptionUtils.getRootCause(e) instanceof UserStopQueryException;
     }
 }

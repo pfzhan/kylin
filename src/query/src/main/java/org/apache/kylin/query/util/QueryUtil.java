@@ -54,6 +54,8 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.SlowQueryDetector;
+import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
@@ -102,6 +104,9 @@ public class QueryUtil {
         for (IQueryTransformer t : queryTransformers) {
             if (Thread.currentThread().isInterrupted()) {
                 log.error("SQL transformation is timeout and interrupted before {}", t.getClass());
+                if (SlowQueryDetector.getRunningQueries().get(Thread.currentThread()).isStopByUser()) {
+                    throw new UserStopQueryException("");
+                }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("SQL transformation is timeout");
             }
@@ -174,6 +179,9 @@ public class QueryUtil {
             if (Thread.currentThread().isInterrupted()) {
                 log.error("Push-down SQL conver transformation is timeout and interrupted before {}",
                         converter.getClass());
+                if (SlowQueryDetector.getRunningQueries().get(Thread.currentThread()).isStopByUser()) {
+                    throw new UserStopQueryException("");
+                }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("Push-down SQL convert is timeout");
             }

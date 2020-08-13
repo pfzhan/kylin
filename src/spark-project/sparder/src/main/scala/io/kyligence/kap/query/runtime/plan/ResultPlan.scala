@@ -29,6 +29,8 @@ import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
+import org.apache.kylin.query.SlowQueryDetector
+import org.apache.kylin.query.exception.UserStopQueryException
 import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -103,6 +105,10 @@ object ResultPlan extends LogEx {
       dt
     } catch {
       case e: InterruptedException =>
+        Thread.currentThread.interrupt()
+        if (SlowQueryDetector.getRunningQueries.get(Thread.currentThread()).isStopByUser) {
+          throw new UserStopQueryException("")
+        }
         QueryContext.current().getQueryTagInfo.setTimeout(true)
         sparkContext.cancelJobGroup(jobGroup)
         logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")

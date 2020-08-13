@@ -271,7 +271,7 @@ public class UnitOfWork {
         metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, oriMvcc,
                 params.getEpochId());
         if (!params.isReadonly() && !config.isUTEnv()) {
-            factory.postAsync(new BroadcastEventReadyNotifier());
+            factory.postAsync(new AuditLogBroadcastEventNotifier());
         }
         try {
             // replayInTransaction in leader before release lock

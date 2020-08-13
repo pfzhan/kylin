@@ -22,32 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.common.persistence.transaction;
 
-import io.kyligence.kap.rest.service.AuditLogService;
-import org.apache.kylin.common.response.ResponseCode;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
+public class StopQueryBroadcastEventNotifier extends BroadcastEventReadyNotifier {
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+    @Getter
+    private String id;
 
-@Controller
-@RequestMapping(value = "/api/audit_log", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
-public class AuditLogController extends NBasicController {
-
-    @Autowired
-    private AuditLogService auditLogService;
-
-    @PostMapping(value = "")
-    @ResponseBody
-    public EnvelopeResponse<String> notifyCatchUp() {
-        auditLogService.notifyCatchUp();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    public StopQueryBroadcastEventNotifier(String id) {
+        this.id = id;
     }
 }

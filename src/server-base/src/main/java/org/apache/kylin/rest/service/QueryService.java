@@ -109,6 +109,7 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.SlowQueryDetector;
+import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryLimiter;
@@ -219,13 +220,24 @@ public class QueryService extends BasicService {
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         SQLResponse ret;
         try {
-            slowQueryDetector.queryStart();
+            slowQueryDetector.queryStart(sqlRequest.getStopId());
             markHighPriorityQueryIfNeeded();
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
         } finally {
             slowQueryDetector.queryEnd();
             Thread.interrupted(); //reset if interrupted
+        }
+    }
+
+    public void stopQuery(String id) {
+        for (SlowQueryDetector.QueryEntry e : SlowQueryDetector.getRunningQueries().values()) {
+            if (e.getStopId().equals(id)) {
+                logger.error("Trying to cancel query: {}", e.getThread().getName());
+                e.setStopByUser(true);
+                e.getThread().interrupt();
+                break;
+            }
         }
     }
 
@@ -563,6 +575,10 @@ public class QueryService extends BasicService {
 
             if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {
                 queryContext.getQueryTagInfo().setTimeout(true);
+            }
+
+            if (UserStopQueryException.causedByUserStop(e)) {
+                sqlResponse.setStopByUser(true);
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);

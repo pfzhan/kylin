@@ -144,6 +144,16 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testStopQuery() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/1").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockPrepareSqlRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).stopQuery(Mockito.any());
+    }
+
+    @Test
     public void testPrepareQuery() throws Exception {
         final PrepareSqlRequest sqlRequest = mockPrepareSqlRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/prestate").contentType(MediaType.APPLICATION_JSON)
