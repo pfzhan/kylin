@@ -1209,6 +1209,7 @@ export default class ModelEdit extends Vue {
       fid: this.currentDragColumnData.guid,
       pid: table.guid,
       fColumnName: fTable.alias + '.' + this.currentDragColumnData.columnName,
+      selectTableRelation: table.joinInfo[`${this.currentDragColumnData.guid}$${table.guid}`].join_relation_type,
       tables: this.modelRender.tables
     }
     if (col) {

@@ -469,7 +469,7 @@ class NModel {
           this.removeRenderLink(conn)
           // 产生新的连接数据
           if (hisConnInfo) {
-            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type, hisConnInfo.join.op)
+            newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type, hisConnInfo.join.op, hisConnInfo.join_relation_type)
           }
           // 重新连接
           this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)
