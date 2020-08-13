@@ -416,6 +416,7 @@ public class CnMessage extends Message {
     public String getRELOAD_TABLE_CC_RETRY() {
         return "%s源表 %s 中列 %s 的数据类型发生了变更。请删除可计算列或修改数据类型后再试。";
     }
+
     public String getRELOAD_TABLE_MODEL_RETRY() {
         return "源表 %1$s 中列 %2$s 的数据类型发生变更。请从模型 %3$s 中删除该列，或修改该列的数据类型。";
     }
@@ -1422,5 +1423,9 @@ public class CnMessage extends Message {
     // Punctuations
     public String getCOMMA() {
         return "，";
+    }
+
+    public String getREC_LIST_OUT_OF_DATE() {
+        return "由于优化建议所依赖的内容被删除，该优化建议已失效。请刷新页面后再试。";
     }
 }

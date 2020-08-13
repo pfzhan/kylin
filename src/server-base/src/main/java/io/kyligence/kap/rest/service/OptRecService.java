@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.common.util.CollectionUtil.intersection;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RECOMMENDATION;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.BeanUtils;
@@ -57,15 +60,15 @@ import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.recommendation.v2.CCRef;
-import io.kyligence.kap.metadata.recommendation.v2.DimensionRef;
-import io.kyligence.kap.metadata.recommendation.v2.LayoutRef;
-import io.kyligence.kap.metadata.recommendation.v2.MeasureRef;
-import io.kyligence.kap.metadata.recommendation.v2.ModelColumnRef;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecV2;
-import io.kyligence.kap.metadata.recommendation.v2.RecommendationRef;
-import io.kyligence.kap.metadata.recommendation.v2.RecommendationUtil;
+import io.kyligence.kap.metadata.recommendation.ref.CCRef;
+import io.kyligence.kap.metadata.recommendation.ref.DimensionRef;
+import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
+import io.kyligence.kap.metadata.recommendation.ref.MeasureRef;
+import io.kyligence.kap.metadata.recommendation.ref.ModelColumnRef;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
+import io.kyligence.kap.metadata.recommendation.ref.RecommendationRef;
+import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecommendationResponse;
 import io.kyligence.kap.rest.response.OptRecDepResponse;
@@ -84,8 +87,6 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public static final int V1 = 1;
     public static final int V2 = 2;
 
-    private static final String REC_ABSENT_ERROR = "RawRecItem id {} is null";
-
     @Autowired
     public AclEvaluate aclEvaluate;
 
@@ -103,12 +104,13 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         private RecApproveContext(String project, String modelId, Map<Integer, String> userDefinedRecNameMap) {
             this.userDefinedRecNameMap = userDefinedRecNameMap;
             this.recManagerV2 = OptRecManagerV2.getInstance(project);
-            this.recommendation = recManagerV2.getOptimizeRecommendationV2(modelId);
+            this.recommendation = recManagerV2.loadOptRecV2(modelId);
             this.modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             this.indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         }
 
         public List<RawRecItem> approveRawRecItems(List<Integer> layoutIds) {
+            layoutIds.forEach(id -> checkRecItemIsValidAndReturn(recommendation, id));
             List<RawRecItem> rawRecItems = getAllRelatedRecItems(layoutIds);
             rewriteModel(rawRecItems);
             rewriteIndexPlan(rawRecItems);
@@ -120,6 +122,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             layoutIds.forEach(id -> {
                 if (recommendation.getLayoutRefs().containsKey(-id)) {
                     collect(allRecItems, recommendation.getLayoutRefs().get(-id));
+                } else {
+
                 }
             });
             return Lists.newArrayList(allRecItems);
@@ -179,23 +183,22 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         private void writeMeasureToModel(NDataModel model, RawRecItem rawRecItem) {
-            int lastMeasureId = model.getMaxMeasureId();
             Map<Integer, RecommendationRef> measureRefs = recommendation.getMeasureRefs();
             RecommendationRef recommendationRef = measureRefs.get(-rawRecItem.getId());
             if (recommendationRef.isExisted()) {
                 return;
             }
-            // copy more better
+
             MeasureRef measureRef = (MeasureRef) recommendationRef;
             NDataModel.Measure measure = measureRef.getMeasure();
             if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
-                measure.setName(userDefinedRecNameMap.get(rawRecItem.getId()));
+                measureRef.rebuild(userDefinedRecNameMap.get(rawRecItem.getId()));
+                measure = measureRef.getMeasure();
+                recManagerV2.checkMeasureName(model, measure);
             }
-            recManagerV2.checkMeasureName(model, measure);
-            measure.setId(++lastMeasureId);
             model.getAllMeasures().add(measure);
             measures.put(-rawRecItem.getId(), measure);
-            measures.put(lastMeasureId, measure);
+            measures.put(model.getMaxMeasureId(), measure);
             logWriteProperty(rawRecItem, measure);
         }
 
@@ -229,9 +232,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             CCRef ccRef = (CCRef) recommendationRef;
             ComputedColumnDesc cc = ccRef.getCc();
             if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
-                cc.setColumnName(userDefinedRecNameMap.get(rawRecItem.getId()));
+                ccRef.rebuild(userDefinedRecNameMap.get(rawRecItem.getId()));
+                cc = ccRef.getCc();
+                recManagerV2.checkCCName(model, cc);
             }
-            recManagerV2.checkCCName(model, cc);
             NDataModel.NamedColumn columnInModel = new NDataModel.NamedColumn();
             columnInModel.setId(++lastColumnId);
             columnInModel.setName(cc.getTableAlias() + "_" + cc.getColumnName());
@@ -252,7 +256,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     if (rawRecItem.getType() != RawRecItem.RawRecType.LAYOUT) {
                         continue;
                     }
-                    LayoutEntity layout = RecommendationUtil.getLayout(rawRecItem);
+                    LayoutEntity layout = RawRecUtil.getLayout(rawRecItem);
                     List<Integer> colOrder = layout.getColOrder();
                     List<Integer> shardBy = Lists.newArrayList(layout.getShardByColumns());
                     List<Integer> sortBy = Lists.newArrayList(layout.getSortByColumns());
@@ -262,7 +266,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     layout.setShardByColumns(translateToRealIds(shardBy, "ShardByColumns"));
                     layout.setSortByColumns(translateToRealIds(sortBy, "SortByColumns"));
                     layout.setPartitionByColumns(translateToRealIds(partitionBy, "PartitionByColumns"));
-                    updateHandler.add(layout, RecommendationUtil.isAgg(rawRecItem));
+                    updateHandler.add(layout, RawRecUtil.isAgg(rawRecItem));
                 }
                 updateHandler.complete();
             });
@@ -353,22 +357,18 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     }
 
     @Transaction(project = 0)
-    public void delete(String project, OptRecRequest request) {
+    public void discard(String project, OptRecRequest request) {
         aclEvaluate.checkProjectOperationPermission(project);
         OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(),
                 project, request.getModelId());
         verifier.setFailLayoutItems(
                 request.getLayoutIdsToRemove().stream().map(Long::valueOf).collect(Collectors.toSet()));
         verifier.verify();
-        OptRecManagerV2 managerV2 = OptRecManagerV2.getInstance(project);
-        managerV2.cleanInEffective(request.getModelId());
-        OptRecV2 recommendationV2 = managerV2.getOptimizeRecommendationV2(request.getModelId());
-        if (recommendationV2 == null) {
-            return;
-        }
+
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(request.getModelId());
         UnitOfWork.get().doAfterUpdate(() -> {
             RawRecManager rawManager = RawRecManager.getInstance(project);
-            rawManager.discardByIds(intersection(recommendationV2.getRawIds(), request.getLayoutIdsToAdd()));
+            rawManager.discardByIds(intersection(optRecV2.getRawIds(), request.getLayoutIdsToAdd()));
         });
     }
 
@@ -394,27 +394,18 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         return response;
     }
 
-    public OptRecDetailResponse getOptRecDetail(String project, String modelId, List<Integer> selectedIds) {
+    public OptRecDetailResponse validateSelectedRecItems(String project, String modelId,
+            List<Integer> selectedLayoutIds) {
         aclEvaluate.checkProjectReadPermission(project);
 
-        OptRecDetailResponse detailResponse = new OptRecDetailResponse();
-        OptRecV2 recommendationV2 = new OptRecV2(project, modelId);
-        Set<Integer> allRecItemIds = Sets.newHashSet(recommendationV2.getRawIds());
-        List<Integer> existingIds = Lists.newArrayList();
-        List<Integer> brokenIds = Lists.newArrayList();
-        selectedIds.forEach(id -> {
-            if (!allRecItemIds.contains(id)) {
-                brokenIds.add(id);
-            } else {
-                existingIds.add(id);
-            }
-        });
+        List<Integer> healthyIds = Lists.newArrayList();
+        OptRecV2 recommendationV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
 
         Set<OptRecDepResponse> dimensionRefResponse = Sets.newHashSet();
         Set<OptRecDepResponse> measureRefResponse = Sets.newHashSet();
         Set<OptRecDepResponse> ccRefResponse = Sets.newHashSet();
-        existingIds.forEach(recItemId -> {
-            RecommendationRef layoutRef = recommendationV2.getLayoutRefs().get(-recItemId);
+        selectedLayoutIds.forEach(recItemId -> {
+            LayoutRef layoutRef = checkRecItemIsValidAndReturn(recommendationV2, recItemId);
             layoutRef.getDependencies().forEach(ref -> {
                 if (ref instanceof DimensionRef) {
                     dimensionRefResponse.add(OptRecService.convert(ref));
@@ -429,12 +420,14 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     }
                 }
             });
+            healthyIds.add(recItemId);
         });
+
+        OptRecDetailResponse detailResponse = new OptRecDetailResponse();
         detailResponse.setDimensionItems(Lists.newArrayList(dimensionRefResponse));
         detailResponse.setMeasureItems(Lists.newArrayList(measureRefResponse));
         detailResponse.setCcItems(Lists.newArrayList(ccRefResponse));
-        detailResponse.setLayoutItemIds(existingIds);
-        detailResponse.setBrokenLayoutItemIds(brokenIds);
+        detailResponse.setLayoutItemIds(healthyIds);
         return detailResponse;
     }
 
@@ -466,11 +459,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     private OptRecDetailResponse getSingleOptRecDetail(String project, String modelId, int recItemId) {
         aclEvaluate.checkProjectReadPermission(project);
 
-        OptRecV2 recommendationV2 = new OptRecV2(project, modelId);
-        Set<Integer> originRawIds = Sets.newHashSet(recommendationV2.getRawIds());
-        Preconditions.checkArgument(originRawIds.contains(recItemId), REC_ABSENT_ERROR, recItemId);
-        LayoutRef layoutRef = recommendationV2.getLayoutRefs().get(-recItemId);
-        Preconditions.checkArgument(layoutRef != null, REC_ABSENT_ERROR, recItemId);
+        OptRecV2 recommendationV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
+        LayoutRef layoutRef = checkRecItemIsValidAndReturn(recommendationV2, recItemId);
 
         List<OptRecDepResponse> dimensionRefResponse = Lists.newArrayList();
         List<OptRecDepResponse> measureRefResponse = Lists.newArrayList();
@@ -497,6 +487,19 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         detailResponse.setCcItems(ccRefResponse);
         detailResponse.setLayoutItemIds(Lists.newArrayList(recItemId));
         return detailResponse;
+    }
+
+    private static LayoutRef checkRecItemIsValidAndReturn(OptRecV2 recommendationV2, int recItemId) {
+        Set<Integer> allRecItemIds = Sets.newHashSet(recommendationV2.getRawIds());
+        Set<Integer> brokenRefIds = recommendationV2.getBrokenLayoutRefIds();
+        if (!allRecItemIds.contains(recItemId) || brokenRefIds.contains(recItemId)) {
+            throw new KylinException(INVALID_RECOMMENDATION, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
+        }
+        LayoutRef layoutRef = recommendationV2.getLayoutRefs().get(-recItemId);
+        if (layoutRef == null) {
+            throw new KylinException(INVALID_RECOMMENDATION, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
+        }
+        return layoutRef;
     }
 
     public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId) {
@@ -542,7 +545,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      * convert v2 recommendations to response
      */
     private List<OptRecLayoutResponse> convertToV2RecResponse(String project, String uuid) {
-        OptRecV2 recommendationV2 = OptRecManagerV2.getInstance(project).getOptimizeRecommendationV2(uuid);
+        OptRecV2 recommendationV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(uuid);
         List<OptRecLayoutResponse> layoutRecResponseList = Lists.newArrayList();
         if (recommendationV2 == null) {
             return layoutRecResponseList;
@@ -555,9 +558,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 response.setItemId(rawRecItem.getId());
                 response.setCreateTime(rawRecItem.getCreateTime());
                 response.setUsage(rawRecItem.getHitCount());
-                LayoutEntity layout = RecommendationUtil.getLayout(rawRecItem);
+                LayoutEntity layout = RawRecUtil.getLayout(rawRecItem);
                 response.setColumnsAndMeasuresSize(layout.getColOrder().size());
-                if (RecommendationUtil.isAgg(rawRecItem)) {
+                if (RawRecUtil.isAgg(rawRecItem)) {
                     response.setType(LayoutRecommendationResponse.Type.ADD_AGG);
                 } else {
                     response.setType(LayoutRecommendationResponse.Type.ADD_TABLE);
@@ -579,8 +582,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         if (prjInstance.isSemiAutoMode()) {
             val recommendationManager = getOptimizeRecommendationManager(project);
             recommendationManager.cleanInEffective(modelId);
-            val recommendationManagerV2 = getOptimizeRecommendationManagerV2(project);
-            recommendationManagerV2.cleanInEffective(modelId);
+            getOptRecManagerV2(project).loadOptRecV2(modelId);
         }
     }
 

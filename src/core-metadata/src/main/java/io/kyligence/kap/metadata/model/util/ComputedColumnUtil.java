@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.metadata.model.util;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,14 +63,12 @@ import io.kyligence.kap.metadata.model.alias.AliasDeduce;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_EXPRESSION;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
-
 public class ComputedColumnUtil {
     public static final String CC_NAME_PREFIX = "CC_AUTO_";
     public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
-    public static String generateCCName(String ccExpression, NDataModel dataModel, List<NDataModel> otherModels) {
+    public static String shareCCNameAcrossModel(String ccExpression, NDataModel dataModel,
+            List<NDataModel> otherModels) {
         List<NDataModel> allModels = Lists.newArrayList(otherModels);
         allModels.add(dataModel);
 
@@ -333,8 +334,7 @@ public class ComputedColumnUtil {
     }
 
     public static boolean isSameName(ComputedColumnDesc col1, ComputedColumnDesc col2) {
-        return StringUtils.equalsIgnoreCase(
-                col1.getTableIdentity() + "." + col1.getColumnName(),
+        return StringUtils.equalsIgnoreCase(col1.getTableIdentity() + "." + col1.getColumnName(),
                 col2.getTableIdentity() + "." + col2.getColumnName());
     }
 
@@ -439,9 +439,11 @@ public class ComputedColumnUtil {
                     : CalciteParser.replaceAliasInExpr(existingCC.getExpression(), aliasMapping.getAliasMapping());
 
             String finalExpr = advisedExpr != null ? advisedExpr : existingCC.getExpression();
-            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED(), newCC.getFullName(), existingModel.getAlias(), finalExpr);
-            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg, BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr,
-                    existingModel.getAlias(), newCC.getFullName());
+            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED(), newCC.getFullName(),
+                    existingModel.getAlias(), finalExpr);
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg,
+                    BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr, existingModel.getAlias(),
+                    newCC.getFullName());
         }
 
         @Override
@@ -494,8 +496,9 @@ public class ComputedColumnUtil {
             String adviseName = existingCC.getColumnName();
             String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED(),
                     existingModel.getAlias(), existingCC.getColumnName());
-            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg, BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName,
-                    existingModel.getAlias(), newCC.getFullName());
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
+                    BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName, existingModel.getAlias(),
+                    newCC.getFullName());
         }
     }
 

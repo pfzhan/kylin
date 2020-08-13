@@ -22,20 +22,65 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.metadata.recommendation.util;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 
-public class RecommendationUtil {
+public class RawRecUtil {
+
+    public static String dimUniqueFlag(TblColRef tblColRef, Map<String, ComputedColumnDesc> ccMap) {
+        return "d__" + colUniqueName(tblColRef, ccMap);
+    }
+
+    public static String meaUniqueFlag(NDataModel.Measure measure, Map<String, ComputedColumnDesc> ccMap) {
+        Set<String> paramNames = Sets.newHashSet();
+        List<ParameterDesc> parameters = measure.getFunction().getParameters();
+        parameters.forEach(param -> {
+            TblColRef colRef = param.getColRef();
+            if (colRef == null) {
+                paramNames.add(String.valueOf(Integer.MAX_VALUE));
+                return;
+            }
+            paramNames.add(colUniqueName(colRef, ccMap));
+        });
+        return String.format("%s__%s", measure.getFunction().getExpression(), String.join("__", paramNames));
+    }
+
+    private static String colUniqueName(TblColRef tblColRef, Map<String, ComputedColumnDesc> ccMap) {
+        final ColumnDesc columnDesc = tblColRef.getColumnDesc();
+        String uniqueName;
+        if (columnDesc.isComputedColumn()) {
+            /* if cc is new, unique_name forward to its uuid,
+             * otherwise table_alias.column_id
+             */
+            ComputedColumnDesc cc = ccMap.get(columnDesc.getIdentity());
+            if (cc.getUuid() != null) {
+                uniqueName = cc.getUuid();
+            } else {
+                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
+            }
+        } else {
+            uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
+        }
+        return uniqueName;
+    }
 
     public static ComputedColumnDesc getCC(RawRecItem rawRecItem) {
         Preconditions.checkNotNull(rawRecItem);
@@ -49,20 +94,6 @@ public class RecommendationUtil {
         Preconditions.checkState(RawRecItem.RawRecType.MEASURE == rawRecItem.getType());
         MeasureRecItemV2 recItemV2 = (MeasureRecItemV2) rawRecItem.getRecEntity();
         return recItemV2.getMeasure();
-    }
-
-    public static NDataModel.NamedColumn getDimension(RawRecItem rawRecItem) {
-        return getDimensionRecItemV2(rawRecItem).getColumn();
-    }
-
-    public static String getDimensionDataType(RawRecItem rawRecItem) {
-        return getDimensionRecItemV2(rawRecItem).getDataType();
-    }
-
-    private static DimensionRecItemV2 getDimensionRecItemV2(RawRecItem rawRecItem) {
-        Preconditions.checkNotNull(rawRecItem);
-        Preconditions.checkState(RawRecItem.RawRecType.DIMENSION == rawRecItem.getType());
-        return (DimensionRecItemV2) rawRecItem.getRecEntity();
     }
 
     private static LayoutRecItemV2 getLayoutRecItemV2(RawRecItem rawRecItem) {

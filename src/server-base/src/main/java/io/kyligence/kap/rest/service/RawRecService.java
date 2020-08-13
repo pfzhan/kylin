@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -39,6 +40,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -46,6 +48,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
@@ -90,12 +93,25 @@ public class RawRecService {
         AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
                 project, sqlList.toArray(new String[0]), null);
 
-        List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContextV2);
-        saveCCRawRecItems(ccRawRecItems, project);
+        RawRecManager rawRecManager = RawRecManager.getInstance(semiContextV2.getProject());
+        Set<String> relatedModels = Sets.newHashSet();
+        semiContextV2.getModelContexts().forEach(context -> {
+            if (context.getTargetModel() == null) {
+                return;
+            }
+            relatedModels.add(context.getTargetModel().getUuid());
+        });
+        Map<String, RawRecItem> nonLayoutRecItemMap = rawRecManager.queryNonLayoutRecItems(relatedModels);
 
-        List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContextV2);
-        List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContextV2);
+        List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContextV2, nonLayoutRecItemMap);
+        saveCCRawRecItems(ccRawRecItems, project);
+        ccRawRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+
+        List<RawRecItem> dimensionRecItems = transferToDimensionRecItems(semiContextV2, nonLayoutRecItemMap);
+        List<RawRecItem> measureRecItems = transferToMeasureRecItems(semiContextV2, nonLayoutRecItemMap);
         saveDimensionAndMeasure(dimensionRecItems, measureRecItems, project);
+        dimensionRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
+        measureRecItems.forEach(recItem -> nonLayoutRecItemMap.put(recItem.getUniqueFlag(), recItem));
 
         ArrayListMultimap<String, QueryHistory> layoutToQHMap = ArrayListMultimap.create();
         for (AccelerateInfo accelerateInfo : semiContextV2.getAccelerateInfoMap().values()) {
@@ -105,7 +121,7 @@ public class RawRecService {
             }
         }
 
-        List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap);
+        List<RawRecItem> layoutRecItems = transferToLayoutRecItems(semiContextV2, layoutToQHMap, nonLayoutRecItemMap);
         saveLayoutRawRecItems(layoutRecItems, project);
 
         markFailAccelerateMessageToQueryHistory(queryHistoryMap, semiContextV2);
@@ -175,15 +191,19 @@ public class RawRecService {
     }
 
     List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
-            ArrayListMultimap<String, QueryHistory> layoutToQHMap) {
-        val mgr = RawRecManager.getInstance(semiContextV2.getProject());
+            ArrayListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> recItemMap) {
+        RawRecManager recManager = RawRecManager.getInstance(semiContextV2.getProject());
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
             if (targetModel == null) {
                 continue;
             }
-            Map<String, RawRecItem> layoutRecommendations = mgr.queryLayoutRawRecItems(targetModel.getUuid());
+
+            /* For unique string of layout may too long, so it is designed by a uuid,
+             * therefore, we need a HashMap to avoid one LayoutRecItemV2 maps to different RawRecItems.
+             */
+            Map<String, RawRecItem> layoutRecommendations = recManager.queryLayoutRawRecItems(targetModel.getUuid());
             Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
             layoutRecommendations.forEach((k, v) -> {
                 LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
@@ -191,7 +211,7 @@ public class RawRecService {
             });
 
             modelContext.getIndexRexItemMap().forEach((colOrder, layoutItem) -> {
-                layoutItem.updateLayoutInfo(targetModel);
+                layoutItem.updateLayoutInfo(targetModel, recItemMap);
                 String uniqueString = layoutItem.getLayout().genUniqueFlag();
                 String uuid = uniqueFlagToUuid.get(uniqueString);
                 RawRecItem recItem;
@@ -261,9 +281,8 @@ public class RawRecService {
         recItem.setHitCount(hitCount);
     }
 
-    private List<RawRecItem> transferToMeasureRecItems(AbstractSemiContextV2 semiContextV2) {
-        val mgr = RawRecManager.getInstance(semiContextV2.getProject());
-        Map<String, RawRecItem> uniqueRecItemMap = mgr.listAll();
+    private List<RawRecItem> transferToMeasureRecItems(AbstractSemiContextV2 semiContextV2,
+            Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             modelContext.getMeasureRecItemMap().forEach((uniqueFlag, measureItem) -> {
@@ -290,9 +309,8 @@ public class RawRecService {
         return rawRecItems;
     }
 
-    private List<RawRecItem> transferToDimensionRecItems(AbstractSemiContextV2 semiContextV2) {
-        val rcMgr = RawRecManager.getInstance(semiContextV2.getProject());
-        Map<String, RawRecItem> uniqueRecItemMap = rcMgr.listAll();
+    private List<RawRecItem> transferToDimensionRecItems(AbstractSemiContextV2 semiContextV2,
+            Map<String, RawRecItem> uniqueRecItemMap) {
         ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             modelContext.getDimensionRecItemMap().forEach((uniqueFlag, dimItem) -> {
@@ -318,9 +336,8 @@ public class RawRecService {
         return rawRecItems;
     }
 
-    private List<RawRecItem> transferToCCRawRecItem(AbstractSemiContextV2 semiContextV2) {
-        val rcMgr = RawRecManager.getInstance(semiContextV2.getProject());
-        Map<String, RawRecItem> uniqueRecItemMap = rcMgr.listAll();
+    private List<RawRecItem> transferToCCRawRecItem(AbstractSemiContextV2 semiContextV2,
+            Map<String, RawRecItem> uniqueRecItemMap) {
         List<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             modelContext.getCcRecItemMap().forEach((uniqueFlag, ccItem) -> {
@@ -364,13 +381,16 @@ public class RawRecService {
     }
 
     public void deleteRawRecItems() {
-        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listAllProjects().stream().filter(projectInstance -> !projectInstance.isExpertMode())
-                .collect(Collectors.toList());
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        List<ProjectInstance> projectInstances = NProjectManager.getInstance(config).listAllProjects().stream()
+                .filter(projectInstance -> !projectInstance.isExpertMode()).collect(Collectors.toList());
         Thread.currentThread().setName("DeleteRawRecItemsInDB");
         for (ProjectInstance instance : projectInstances) {
             try {
-                RawRecManager.getInstance(instance.getName()).deleteAllOutDated(instance.getName());
+                RawRecManager rawRecManager = RawRecManager.getInstance(instance.getName());
+                rawRecManager.deleteAllOutDated(instance.getName());
+                Set<String> modelIds = NDataModelManager.getInstance(config, instance.getName()).listAllModelIds();
+                rawRecManager.deleteRecItemsOfNonExistModels(instance.getName(), modelIds);
             } catch (Exception e) {
                 log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
             }

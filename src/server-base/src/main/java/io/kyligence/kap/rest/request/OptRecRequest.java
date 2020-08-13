@@ -46,7 +46,7 @@ public class OptRecRequest implements ProjectInsensitiveRequest {
     private List<Integer> layoutIdsToRemove = Lists.newArrayList();
 
     @JsonProperty("layouts_to_add")
-    private List<Integer> layoutIdsToAdd = Lists.newArrayList();;
+    private List<Integer> layoutIdsToAdd = Lists.newArrayList();
 
     @JsonProperty("names")
     private Map<Integer, String> names = Maps.newHashMap();;

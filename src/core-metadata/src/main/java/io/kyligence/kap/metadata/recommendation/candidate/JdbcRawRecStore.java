@@ -37,6 +37,7 @@ import static org.mybatis.dynamic.sql.SqlBuilder.select;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -54,7 +55,6 @@ import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.update.render.UpdateStatementProvider;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
@@ -145,7 +145,7 @@ public class JdbcRawRecStore {
         }
     }
 
-    public List<RawRecItem> getAllLayoutCandidates(String project, String model) {
+    public List<RawRecItem> queryAllLayoutCandidates(String project, String model) {
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         long startTime = System.currentTimeMillis();
@@ -210,8 +210,7 @@ public class JdbcRawRecStore {
 
     }
 
-    public List<RawRecItem> queryByRecTypeAndState(String project, String model, RawRecItem.RawRecType type,
-            RawRecItem.RawRecState state) {
+    public List<RawRecItem> queryNonLayoutRecItems(String project, String model, RawRecItem.RawRecState... states) {
         long start = System.currentTimeMillis();
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
@@ -222,11 +221,11 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
-                    .and(table.type, isEqualTo(type)) //
-                    .and(table.state, isEqualTo(state)) //
+                    .and(table.type, isNotEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.state, isIn(states)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> recItems = mapper.selectMany(statementProvider);
-            log.info("Query by raw recommendation type, state takes {} ms", System.currentTimeMillis() - start);
+            log.info("Query non-layout raw recommendations takes {} ms", System.currentTimeMillis() - start);
             return recItems;
         }
     }
@@ -271,24 +270,6 @@ public class JdbcRawRecStore {
             session.commit();
             log.info("Update {} raw recommendation(s) takes {} ms", recItems.size(),
                     System.currentTimeMillis() - start);
-        }
-    }
-
-    public void addOrUpdate(RawRecItem recItem) {
-        if (recItem.getId() == 0) {
-            save(recItem);
-        } else {
-            long start = System.currentTimeMillis();
-            try (SqlSession session = sqlSessionFactory.openSession()) {
-                RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
-                SelectStatementProvider statementProvider = getSelectByIdStatementProvider(recItem.getId());
-                Preconditions.checkState(mapper.selectOne(statementProvider) != null,
-                        "There is no raw recommendation with id({})", recItem.getId());
-                UpdateStatementProvider updateStatement = getUpdateProvider(recItem);
-                int rows = mapper.update(updateStatement);
-                session.commit();
-                log.info("Update {} raw recommendation(s) takes {} ms", rows, System.currentTimeMillis() - start);
-            }
         }
     }
 
@@ -352,6 +333,20 @@ public class JdbcRawRecStore {
             DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
                     .where(table.semanticVersion, isLessThan(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            int rows = mapper.delete(deleteStatement);
+            session.commit();
+            log.info("Delete {} row(s) raw recommendation takes {} ms", rows, System.currentTimeMillis() - startTime);
+        }
+    }
+
+    public void deleteRecItemsOfNonExistModels(String project, Set<String> existingModels) {
+        long startTime = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(table)//
+                    .where(table.project, isEqualTo(project)) //
+                    .and(table.modelID, isNotIn(existingModels)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             int rows = mapper.delete(deleteStatement);
             session.commit();

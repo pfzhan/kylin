@@ -1539,4 +1539,8 @@ public class Message {
     public String getCOMMA() {
         return ", ";
     }
+
+    public String getREC_LIST_OUT_OF_DATE() {
+        return "The recommendation is invalid, as some of the related content was deleted. Please refresh the page and try again.";
+    }
 }

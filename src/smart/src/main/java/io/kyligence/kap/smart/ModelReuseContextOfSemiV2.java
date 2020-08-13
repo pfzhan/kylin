@@ -78,7 +78,8 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public Map<String, String> getInnerExpToUniqueFlag() {
-        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(getProject()).listAll();
+        RawRecManager recManager = RawRecManager.getInstance(getProject());
+        Map<String, RawRecItem> recItemMap = recManager.queryNonLayoutRecItems(null);
         Map<String, String> ccInnerExpToUniqueFlag = Maps.newHashMap();
         recItemMap.forEach((k, v) -> {
             if (v.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {

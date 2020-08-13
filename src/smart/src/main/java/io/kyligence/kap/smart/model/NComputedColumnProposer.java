@@ -112,8 +112,10 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
         Map<String, String> ccInnerExpToUniqueFlag = modelContext.getProposeContext().getInnerExpToUniqueFlag();
         List<NDataModel> otherModels = getOtherModels(dataModel);
-        int maxUsedComputedColumnIndex = ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels);
+        int index = 0;
+        long currentTs = System.currentTimeMillis();
         for (String ccSuggestion : ccSuggestions) {
+            ++index;
             ComputedColumnDesc ccDesc = modelContext.getUsedCC().get(ccSuggestion);
             // In general, cc expressions in the SQL statements should have been replaced in transformers,
             // however, it could not be replaced when meets some corner cases(#11411). As a result, it will
@@ -127,11 +129,12 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             ccDesc.setComment("Auto suggested from: " + ccSuggestion);
             ccDesc.setDatatype("ANY"); // resolve data type later
             ccDesc.setExpression(ccSuggestion);
-            String newCCName = ComputedColumnUtil.generateCCName(ccSuggestion, dataModel, otherModels);
+            String newCCName = ComputedColumnUtil.shareCCNameAcrossModel(ccSuggestion, dataModel, otherModels);
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
             } else {
-                ccDesc.setColumnName(ComputedColumnUtil.CC_NAME_PREFIX + (++maxUsedComputedColumnIndex));
+                String name = String.format("%s_%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, currentTs, index);
+                ccDesc.setColumnName(name);
             }
 
             String innerExpression = KapQueryUtil.massageComputedColumn(dataModel, project, ccDesc, null);
@@ -139,8 +142,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             if (ccInnerExpToUniqueFlag.containsKey(innerExpression)) {
                 ccDesc.setUuid(ccInnerExpToUniqueFlag.get(innerExpression));
             } else {
-                long uniqueId = maxUsedComputedColumnIndex + System.currentTimeMillis();
-                ccDesc.setUuid("tmp" + uniqueId);
+                ccDesc.setUuid(String.format("tmp_%s_%s", currentTs, index));
             }
             dataModel.getComputedColumnDescs().add(ccDesc);
 

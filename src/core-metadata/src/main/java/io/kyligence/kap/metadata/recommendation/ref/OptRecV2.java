@@ -22,12 +22,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.metadata.recommendation.ref;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -39,8 +40,11 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -53,6 +57,7 @@ import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
+import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,6 +72,8 @@ public class OptRecV2 {
     private final KylinConfig config;
     private final String project;
 
+    private final Map<String, RawRecItem> allModelBasedRecItemMap;
+    private final BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
     private final List<Integer> rawIds = Lists.newArrayList();
 
     // Ref map. If key >= 0, ref in model else ref in raw item.
@@ -76,6 +83,7 @@ public class OptRecV2 {
     private final Map<Integer, RecommendationRef> measureRefs = Maps.newHashMap();
     private final Map<Integer, LayoutRef> layoutRefs = Maps.newHashMap();
     private final Map<Integer, RawRecItem> rawRecItemMap = Maps.newHashMap();
+    private final Set<Integer> brokenLayoutRefIds;
 
     @Getter(lazy = true)
     private final List<LayoutEntity> layouts = getAllLayouts();
@@ -88,7 +96,12 @@ public class OptRecV2 {
         this.config = KylinConfig.getInstanceFromEnv();
         this.uuid = uuid;
         this.project = project;
+        // cc cross model?
+
+        allModelBasedRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
+        allModelBasedRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
         initRecommendation();
+        brokenLayoutRefIds = filterBrokenLayoutRefs();
     }
 
     private void initRecommendation() {
@@ -98,7 +111,6 @@ public class OptRecV2 {
         initModelMeasureRefs(getModel());
         initLayoutRefs(queryBestLayoutRecItems());
 
-        autoNameForCCRef();
         autoNameForMeasure();
 
         log.debug("Initialize recommendation({}/{}} successfully.", project, uuid);
@@ -138,22 +150,6 @@ public class OptRecV2 {
             }
         }
         return biggest;
-    }
-
-    private void autoNameForCCRef() {
-        List<RecommendationRef> allCCRefs = getEffectiveRefs(ccRefs);
-        AtomicInteger maxCCIndex = new AtomicInteger(
-                ComputedColumnUtil.getBiggestCCIndex(getModel(), getOtherModels()));
-        CCNameCheckerHandler handler = new CCNameCheckerHandler();
-        for (RecommendationRef entry : allCCRefs) {
-            CCRef ccRef = (CCRef) entry;
-            ccRef.getCc().setColumnName(ComputedColumnUtil.CC_NAME_PREFIX + maxCCIndex.incrementAndGet());
-            for (NDataModel otherModel : getOtherModels()) {
-                for (ComputedColumnDesc existCC : otherModel.getComputedColumnDescs()) {
-                    ComputedColumnUtil.singleCCConflictCheck(otherModel, getModel(), existCC, ccRef.getCc(), handler);
-                }
-            }
-        }
     }
 
     /**
@@ -290,7 +286,7 @@ public class OptRecV2 {
             return BrokenRefProxy.getProxy(LayoutRef.class, negRecItemId);
         }
 
-        LayoutEntity layout = RecommendationUtil.getLayout(rawRecItem);
+        LayoutEntity layout = RawRecUtil.getLayout(rawRecItem);
         LayoutRef layoutRef = new LayoutRef(layout, negRecItemId, rawRecItem.isAgg());
         for (int dependId : rawRecItem.getDependIDs()) {
             initDependencyRef(dependId, dataModel);
@@ -330,7 +326,8 @@ public class OptRecV2 {
             return;
         }
 
-        RawRecItem rawRecItem = RawRecManager.getInstance(project).queryById(rawRecItemId);
+        String uniqueFlag = uniqueFlagToId.inverse().get(rawRecItemId);
+        RawRecItem rawRecItem = uniqueFlag == null ? null : allModelBasedRecItemMap.get(uniqueFlag);
         if (rawRecItem == null) {
             logRawRecItemNotFoundError(rawRecItemId);
             ccRefs.put(dependId, BrokenRefProxy.getProxy(CCRef.class, dependId));
@@ -365,7 +362,7 @@ public class OptRecV2 {
             return;
         }
 
-        CCRef ccRef = new CCRef(RecommendationUtil.getCC(rawRecItem), negRecItemId);
+        CCRef ccRef = new CCRef(RawRecUtil.getCC(rawRecItem), negRecItemId);
         int[] dependIds = rawRecItem.getDependIDs();
         for (int dependId : dependIds) {
             TranslatedState state = initDependencyWithState(dependId, ccRef);
@@ -489,13 +486,13 @@ public class OptRecV2 {
         }
 
         // maybe something wrong will happen
-        RecommendationRef ref = new MeasureRef(RecommendationUtil.getMeasure(rawRecItem), negRecItemId, false);
+        RecommendationRef ref = new MeasureRef(RawRecUtil.getMeasure(rawRecItem), negRecItemId, false);
         for (int value : rawRecItem.getDependIDs()) {
             TranslatedState state = initDependencyWithState(value, ref);
             if (state == TranslatedState.BROKEN) {
                 logDependencyLost(rawRecItem, value);
                 measureRefs.put(negRecItemId, BrokenRefProxy.getProxy(MeasureRef.class, negRecItemId));
-                break;
+                return;
             }
         }
         measureRefs.put(negRecItemId, ref);
@@ -571,20 +568,14 @@ public class OptRecV2 {
         return effectiveRefs;
     }
 
-    public List<Integer> filterBrokenRefs() {
-        List<Integer> res = Lists.newArrayList();
-        ccRefs.forEach((id, ref) -> filter(res, id, ref));
-        dimensionRefs.forEach((id, ref) -> filter(res, id, ref));
-        measureRefs.forEach((id, ref) -> filter(res, id, ref));
-        layoutRefs.forEach((id, ref) -> filter(res, id, ref));
-
-        return res;
-    }
-
-    private void filter(List<Integer> res, int id, RecommendationRef ref) {
-        if (ref.isBroken() && id < 0) {
-            res.add(-id);
-        }
+    private Set<Integer> filterBrokenLayoutRefs() {
+        Set<Integer> brokenIds = Sets.newHashSet();
+        layoutRefs.forEach((id, ref) -> {
+            if (ref.isBroken() && id < 0) {
+                brokenIds.add(-id);
+            }
+        });
+        return brokenIds;
     }
 
     private List<NDataModel> initOtherModels() {
@@ -671,28 +662,4 @@ public class OptRecV2 {
         CONSTANT, BROKEN, NORMAL, UNDEFINED
     }
 
-    //    public Map<Integer, RawRecItem> getEffectiveCCRawRecItems() {
-    //        return getEffectiveRawRecItems(columnRefs);
-    //    }
-    //
-    //    public Map<Integer, RawRecItem> getEffectiveDimensionRawRecItems() {
-    //        return getEffectiveRawRecItems(dimensionRefs);
-    //    }
-    //
-    //    public Map<Integer, RawRecItem> getEffectiveMeasureRawRecItems() {
-    //        return getEffectiveRawRecItems(measureRefs);
-    //    }
-    //
-    //    public Map<Integer, RawRecItem> getEffectiveLayoutRawRecItems() {
-    //        return getEffectiveRawRecItems(layoutRefs);
-    //    }
-    //
-    //    private Map<Integer, RawRecItem> getEffectiveRawRecItems(Map<Integer, ? extends RecommendationRef> refs) {
-    //        return refs.entrySet().stream().filter(effectiveFilter)
-    //                .collect(Collectors.toMap(e -> -e.getKey(), e -> rawRecItemMap.get(-e.getKey())));
-    //    }
-    //
-    //    // When a ref is not deleted and does not exist in model.
-    //    Predicate<Map.Entry<Integer, ? extends RecommendationRef>> effectiveFilter = e -> !e.getValue().isBroken()
-    //            && !e.getValue().isExisted() && e.getKey() < 0;
 }

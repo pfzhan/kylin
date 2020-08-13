@@ -255,16 +255,14 @@ public class NIndexPlanManager implements IKeepNames {
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
         for (IndexEntity index : indexPlan.getAllIndexes(false)) {
             if (index.isTableIndex()) {
-                for (Integer dimId: index.getDimensions()) {
+                for (Integer dimId : index.getDimensions()) {
                     if (!selectedColumnIds.contains(dimId)) {
-                        throw new IllegalStateException(
-                                String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
-                                        indexPlan.getModel().getColumnNameByColumnId(dimId)));
+                        throw new IllegalStateException(String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
+                                indexPlan.getModel().getColumnNameByColumnId(dimId)));
                     }
                 }
             }
         }
-
 
         // make sure no layouts have same id
         val seen = Maps.<LayoutEntity, Long> newHashMap();

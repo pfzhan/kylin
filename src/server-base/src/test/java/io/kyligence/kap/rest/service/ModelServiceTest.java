@@ -191,7 +191,7 @@ import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -3456,7 +3456,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelManager.dropModel(newModel);
     }
 
-
     @Test
     public void testBuildIndexManually_TableOriented_exception() {
         val project = "default";
@@ -3905,7 +3904,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testMassageModelFilterCondition() {
         String project = "default";
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataModel model = modelManager.copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        NDataModel model = modelManager
+                .copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         String originSql = "trans_id = 0 and TEST_KYLIN_FACT.order_id < 100 and DEAL_AMOUNT > 123";
         model.setFilterCondition(originSql);
         modelService.massageModelFilterCondition(model);

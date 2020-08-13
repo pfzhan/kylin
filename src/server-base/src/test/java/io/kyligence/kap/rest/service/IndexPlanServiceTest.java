@@ -76,7 +76,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;

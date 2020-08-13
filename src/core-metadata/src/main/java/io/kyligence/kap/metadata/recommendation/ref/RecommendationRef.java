@@ -22,11 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.metadata.recommendation.ref;
 
-import com.google.common.base.Preconditions;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import org.apache.commons.collections.CollectionUtils;
+
+import com.google.common.collect.Lists;
+
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -35,37 +39,40 @@ import lombok.Setter;
 import lombok.ToString;
 
 @Getter
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
+@Setter(AccessLevel.PROTECTED)
+@EqualsAndHashCode
 @NoArgsConstructor
-public class LayoutRef extends RecommendationRef {
+@ToString
+public abstract class RecommendationRef {
 
-    @Setter(AccessLevel.PRIVATE)
-    private boolean agg;
+    // id >= 0 column in model
+    // id < 0 column in rawRecItem
+    private int id;
+    private String name;
+    private String content;
+    @ToString.Exclude
+    private String dataType;
+    private boolean isBroken;
+    private boolean existed;
+    private Object entity;
+    private List<RecommendationRef> dependencies = Lists.newArrayList();
 
-    public LayoutRef(LayoutEntity layout, int id, boolean agg) {
-        this.setId(id);
-        this.setEntity(layout);
-        this.setAgg(agg);
+    public abstract void rebuild(String newName);
+
+    protected <T extends RecommendationRef> List<RecommendationRef> validate(List<T> refs) {
+        if (CollectionUtils.isEmpty(refs)) {
+            return Lists.newArrayList();
+        }
+        return refs.stream().filter(ref -> !ref.isBroken() && !ref.isExisted()).collect(Collectors.toList());
     }
 
-    @Override
-    public String getContent() {
-        return null;
+    // When a ref is not deleted and does not exist in model.
+    public boolean isEffective() {
+        return !this.isBroken() && !this.isExisted() && this.getId() < 0;
     }
 
-    @Override
-    public String getName() {
-        return null;
-    }
-
-    public LayoutEntity getLayout() {
-        Preconditions.checkArgument(getEntity() instanceof LayoutEntity);
-        return (LayoutEntity) getEntity();
-    }
-
-    @Override
-    public String getDataType() {
-        throw new IllegalStateException("There is no datatype of LayoutRef");
+    // When a ref derives from origin model or is effective.
+    public boolean isLegal() {
+        return !this.isBroken() && (this.getId() >= 0 || !this.isExisted());
     }
 }

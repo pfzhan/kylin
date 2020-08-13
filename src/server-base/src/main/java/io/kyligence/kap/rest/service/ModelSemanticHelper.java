@@ -96,7 +96,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -353,7 +353,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private NDataModel updateColumnsInit(NDataModel originModel, ModelRequest request,
-                                        boolean updateRecommendationColumn) {
+            boolean updateRecommendationColumn) {
         val expectedModel = convertToDataModel(request);
 
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
@@ -395,7 +395,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public UpdateImpact updateModelColumns(NDataModel originModel, ModelRequest request,
-                                           boolean updateRecommendationColumn) {
+            boolean updateRecommendationColumn) {
         val expectedModel = updateColumnsInit(originModel, request, updateRecommendationColumn);
         val updateImpact = new UpdateImpact();
         // handle computed column updates
@@ -405,9 +405,10 @@ public class ModelSemanticHelper extends BasicService {
                 .filter(cc -> !newComputedColumns.contains(cc)).map(ComputedColumnDesc::getFullName)
                 .collect(Collectors.toSet());
         // move deleted CC's named column to TOMB
-        originModel.getAllNamedColumns().stream()
-                .filter(column -> removedOrUpdatedComputedColumns.contains(column.getAliasDotColumn()) && column.isExist()
-                ).forEach(unusedColumn -> {
+        originModel.getAllNamedColumns().stream() //
+                .filter(column -> removedOrUpdatedComputedColumns.contains(column.getAliasDotColumn())
+                        && column.isExist())
+                .forEach(unusedColumn -> {
                     unusedColumn.setStatus(NDataModel.ColumnStatus.TOMB);
                     updateImpact.getRemovedOrUpdatedCCs().add(unusedColumn.getId());
                 });
@@ -428,8 +429,7 @@ public class ModelSemanticHelper extends BasicService {
         // compare measures
         val newMeasures = Lists.<NDataModel.Measure> newArrayList();
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
-                toMeasureMap.apply(expectedModel.getAllMeasures()),
-                newMeasure -> newMeasures.add(newMeasure),
+                toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
                 oldMeasure -> oldMeasure.setTomb(true),
                 (oldMeasure, newMeasure) -> oldMeasure.setName(newMeasure.getName()));
         updateMeasureStatus(newMeasures, originModel, updateImpact);
@@ -476,8 +476,8 @@ public class ModelSemanticHelper extends BasicService {
         int maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1);
         for (NDataModel.Measure measure : newMeasures) {
-            Integer modifiedMeasureId = updateImpact.getInvalidMeasures().stream()
-                    .filter(measureId -> equalsIgnoreReturnType(originModel.getTombMeasureByMeasureId(measureId), measure))
+            Integer modifiedMeasureId = updateImpact.getInvalidMeasures().stream() //
+                    .filter(measureId -> equalsIgnoreReturnType(originModel.getTombMeasureById(measureId), measure))
                     .findFirst().orElse(null);
             if (modifiedMeasureId != null) {
                 // measure affected by cc modification
@@ -491,10 +491,11 @@ public class ModelSemanticHelper extends BasicService {
                 val funcDesc = measure.getFunction();
                 val ccDataType = funcDesc.getParameters().get(0).getColRef().getType();
                 val proposeReturnType = FunctionDesc.proposeReturnType(funcDesc.getExpression(), ccDataType.toString());
-                val originReturnType = originModel.getTombMeasureByMeasureId(modifiedMeasureId).getFunction().getReturnType();
-                if (!originReturnType.equals(proposeReturnType)){
+                val originReturnType = originModel.getTombMeasureById(modifiedMeasureId).getFunction().getReturnType();
+                if (!originReturnType.equals(proposeReturnType)) {
                     // measure return type change, assign new id
-                    val newFuncDesc = FunctionDesc.newInstance(funcDesc.getExpression(), funcDesc.getParameters(), proposeReturnType);
+                    val newFuncDesc = FunctionDesc.newInstance(funcDesc.getExpression(), funcDesc.getParameters(),
+                            proposeReturnType);
                     measure.setFunction(newFuncDesc);
                     maxMeasureId++;
                     measure.setId(maxMeasureId);
@@ -502,7 +503,7 @@ public class ModelSemanticHelper extends BasicService {
                     updateImpact.getReplacedMeasures().put(modifiedMeasureId, maxMeasureId);
                 } else {
                     // measure return type not change, id not change
-                    originModel.getTombMeasureByMeasureId(modifiedMeasureId).setTomb(false);
+                    originModel.getTombMeasureById(modifiedMeasureId).setTomb(false);
                     updateImpact.getUpdatedMeasures().add(modifiedMeasureId);
                 }
             } else {
@@ -524,16 +525,18 @@ public class ModelSemanticHelper extends BasicService {
      * @param originModel
      * @param updateImpact
      */
-    private void updateColumnStatus(List<NDataModel.NamedColumn> newCols, NDataModel originModel, UpdateImpact updateImpact) {
+    private void updateColumnStatus(List<NDataModel.NamedColumn> newCols, NDataModel originModel,
+            UpdateImpact updateImpact) {
         int maxId = originModel.getAllNamedColumns().stream().map(NamedColumn::getId).mapToInt(i -> i).max().orElse(-1);
         for (NDataModel.NamedColumn newCol : newCols) {
-            val modifiedColId = updateImpact.getRemovedOrUpdatedCCs().stream()
-                    .filter(modifiedId -> newCol.getAliasDotColumn().equals(originModel.getTombColumnNameByColumnId(modifiedId)))
+            val modifiedColId = updateImpact.getRemovedOrUpdatedCCs().stream() //
+                    .filter(modifiedId -> newCol.getAliasDotColumn()
+                            .equals(originModel.getTombColumnNameById(modifiedId)))
                     .findFirst().orElse(null);
             if (modifiedColId != null) {
                 // column affected by cc modification
-                val modifiedColumn = originModel.getAllNamedColumns().stream()
-                        .filter(c -> c.getId() == modifiedColId).findFirst().orElse(null);
+                val modifiedColumn = originModel.getAllNamedColumns().stream().filter(c -> c.getId() == modifiedColId)
+                        .findFirst().orElse(null);
                 if (modifiedColumn != null) {
                     modifiedColumn.setStatus(newCol.getStatus());
                     updateImpact.getUpdatedCCs().add(modifiedColId);
@@ -556,12 +559,13 @@ public class ModelSemanticHelper extends BasicService {
      */
     private boolean causedByCCDelete(Set<Integer> removedCCs, NDataModel originModel, int measureId) {
         for (int ccId : removedCCs) {
-            val colName = originModel.getTombColumnNameByColumnId(ccId);
-            val funcParams = originModel.getTombMeasureByMeasureId(measureId).getFunction().getParameters();
+            val colName = originModel.getTombColumnNameById(ccId);
+            val funcParams = originModel.getTombMeasureById(measureId).getFunction().getParameters();
             for (val funcParam : funcParams) {
                 val funcColName = funcParam.getColRef().getIdentity();
-                if (funcColName == colName)
+                if (StringUtils.equalsIgnoreCase(funcColName, colName)) {
                     return true;
+                }
             }
         }
         return false;
@@ -658,8 +662,8 @@ public class ModelSemanticHelper extends BasicService {
             handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasures().keySet(), indePlanManager);
             val newIndexPlan = indePlanManager.getIndexPlan(indexPlan.getId());
             if (newIndexPlan.getRuleBasedIndex() != null) {
-                handleIndexPlanUpdateRule(project, model, oldRule,
-                        newIndexPlan.getRuleBasedIndex(), layoutRebuilt && !saveOnly);
+                handleIndexPlanUpdateRule(project, model, oldRule, newIndexPlan.getRuleBasedIndex(),
+                        layoutRebuilt && !saveOnly);
             }
         }
         // dimension deleted: previous step is remove dimensions in rule,

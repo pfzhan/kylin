@@ -27,7 +27,6 @@ package io.kyligence.kap.newten.auto;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -45,7 +44,6 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
-import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.AbstractContext;
@@ -82,21 +80,26 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         IndexPlan targetIndex = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
 
-        Assert.assertEquals(2, targetModel.getComputedColumnDescs().size());
-        Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`",
-                targetModel.getComputedColumnDescs().get(0).getInnerExpression());
-        Assert.assertEquals("CC_AUTO_1", targetModel.getComputedColumnDescs().get(0).getColumnName());
-        Assert.assertEquals("(`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`) * `TEST_KYLIN_FACT`.`PRICE`",
-                targetModel.getComputedColumnDescs().get(1).getInnerExpression());
-        Assert.assertEquals("CC_AUTO_2", targetModel.getComputedColumnDescs().get(1).getColumnName());
+        String expectedInnerExp0 = "(`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`) * `TEST_KYLIN_FACT`.`PRICE`";
+        String expectedInnerExp1 = "`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`";
+        List<ComputedColumnDesc> ccList = targetModel.getComputedColumnDescs();
+        ccList.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
+        Assert.assertEquals(2, ccList.size());
+        Assert.assertEquals(expectedInnerExp0, ccList.get(0).getInnerExpression());
+        Assert.assertEquals(expectedInnerExp1, ccList.get(1).getInnerExpression());
 
         IndexEntity tableIndex = targetIndex.getAllIndexes().stream().filter(IndexEntity::isTableIndex).findFirst()
                 .orElse(null);
         Assert.assertNotNull(tableIndex);
         Assert.assertEquals(1, tableIndex.getLayouts().size());
-        Assert.assertEquals(2, tableIndex.getLayouts().get(0).getColumns().size());
-        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName)
-                .collect(Collectors.toSet()).contains("CC_AUTO_2"));
+        List<TblColRef> columns = tableIndex.getLayouts().get(0).getColumns();
+        Assert.assertEquals(2, columns.size());
+        columns.forEach(col -> {
+            if (col.getColumnDesc().isComputedColumn()) {
+                String columnExpr = col.getColumnDesc().getComputedColumnExpr();
+                Assert.assertEquals(expectedInnerExp0, columnExpr);
+            }
+        });
     }
 
     @Test
@@ -108,13 +111,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
-                computedColumnDesc.getExpression());
-
+        ComputedColumnDesc cc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1", cc.getExpression());
+        String expectedQuery = String.format("SELECT SUM(%s), AVG(%s), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
+                cc.getFullName(), cc.getFullName());
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_1), AVG(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -125,19 +126,19 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runWithContext();
 
+        String expectedInnerExp0 = "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT * 0.9";
+        String expectedInnerExp1 = "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1";
+
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-        Assert.assertEquals(2, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT * 0.9",
-                computedColumnDesc.getExpression());
-        computedColumnDesc = model.getComputedColumnDescs().get(1);
-        Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
-                computedColumnDesc.getExpression());
+        List<ComputedColumnDesc> ccList = model.getComputedColumnDescs();
+        ccList.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
+        Assert.assertEquals(2, ccList.size());
+        Assert.assertEquals(expectedInnerExp0, ccList.get(0).getExpression());
+        Assert.assertEquals(expectedInnerExp1, ccList.get(1).getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_2), AVG(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String expectedQuery = String.format("SELECT SUM(%s), AVG(%s), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
+                ccList.get(1).getFullName(), ccList.get(0).getFullName());
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -164,16 +165,15 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runWithContext();
 
+        String ccExp0 = "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT";
+        String ccExp1 = "TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT";
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
-        val computedColumns = modelContexts.get(0).getTargetModel().getComputedColumnDescs();
+        List<ComputedColumnDesc> computedColumns = modelContexts.get(0).getTargetModel().getComputedColumnDescs();
+        computedColumns.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
         Assert.assertEquals(2, computedColumns.size());
-        val suggestedCC1 = computedColumns.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
-        val suggestedCC2 = computedColumns.get(1);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC2.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
+        Assert.assertEquals(ccExp0, computedColumns.get(0).getExpression());
+        Assert.assertEquals(ccExp1, computedColumns.get(1).getExpression());
 
         val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(query1).isFailed());
@@ -214,18 +214,15 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(2, modelContexts.size());
 
         // case 1: different cc expression
-        val computedColumns = modelContexts.get(0).getTargetModel().getComputedColumnDescs();
-        Assert.assertEquals(2, computedColumns.size());
-        val suggestedCC1 = computedColumns.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
-        val suggestedCC2 = computedColumns.get(1);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC2.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
+        val ccList = modelContexts.get(0).getTargetModel().getComputedColumnDescs();
+        ccList.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
+        Assert.assertEquals(2, ccList.size());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", ccList.get(0).getExpression());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", ccList.get(1).getExpression());
 
         // case 2: same cc expression
         val suggestedCC3 = modelContexts.get(1).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC3.getColumnName());
+        Assert.assertEquals(ccList.get(0).getColumnName(), suggestedCC3.getColumnName());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC3.getExpression());
     }
 
@@ -246,15 +243,13 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val modelContexts = smartMaster.getContext().getModelContexts();
         Assert.assertEquals(3, modelContexts.size());
         val suggestedCC1 = modelContexts.get(0).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC1.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC1.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC1.getExpression());
         val suggestedCC2 = modelContexts.get(1).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC2.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC2.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
+        Assert.assertEquals(suggestedCC1.getColumnName(), suggestedCC2.getColumnName());
         val suggestedCC3 = modelContexts.get(2).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC3.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC3.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC3.getExpression());
     }
@@ -271,7 +266,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val modelContext = modelContexts.get(0);
         val computedColumns = modelContext.getTargetModel().getComputedColumnDescs();
         val suggestedCC = computedColumns.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
 
@@ -287,11 +281,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(2, suggestCCList1.size());
         val suggestedCC10 = suggestCCList1.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC10.getColumnName());
+        Assert.assertEquals(suggestedCC.getColumnName(), suggestedCC10.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC10.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC10.getExpression());
         val suggestedCC11 = suggestCCList1.get(1);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC11.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC11.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC11.getExpression());
 
@@ -320,7 +313,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
         val computedCCList = modelContext.getTargetModel().getComputedColumnDescs();
         val suggestedCC = computedCCList.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
 
@@ -339,7 +331,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCCList1 = modelContext1.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList1.size());
         val suggestedCC10 = suggestedCCList1.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC10.getColumnName()); // share
+        Assert.assertEquals(suggestedCC.getColumnName(), suggestedCC10.getColumnName()); // share
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC10.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC10.getExpression());
 
@@ -349,7 +341,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCCList2 = modelContext2.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList2.size());
         val suggestedCC20 = suggestedCCList2.get(0);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC20.getColumnName()); // share
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC20.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC20.getExpression());
     }
@@ -364,7 +355,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val modelContext = smartMaster.getContext().getModelContexts().get(0);
         val computedCCList = modelContext.getTargetModel().getComputedColumnDescs();
         val suggestedCC = computedCCList.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", suggestedCC.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC.getExpression());
 
@@ -383,7 +373,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCCList3 = modelContext3.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList3.size());
         val suggestedCC30 = suggestedCCList3.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC30.getColumnName());
+        Assert.assertEquals(suggestedCC.getColumnName(), suggestedCC30.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC30.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC30.getExpression());
 
@@ -393,49 +383,42 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCCList4 = modelContext4.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList4.size());
         val suggestedCC40 = suggestedCCList4.get(0);
-        Assert.assertEquals("CC_AUTO_2", suggestedCC40.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC40.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC40.getExpression());
     }
 
     @Test
     public void testComputedColumnNested() {
-        {
-            String query = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-            val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
-            NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+        String query = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
 
-            NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            Assert.assertEquals(1, model.getComputedColumnDescs().size());
-            ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-            Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-            Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
-                    computedColumnDesc.getExpression());
+        String ccExp1 = "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT";
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getComputedColumnDescs().size());
+        ComputedColumnDesc cc1 = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals(ccExp1, cc1.getExpression());
+        String convertedQuery = convertCC(query);
+        String expectedQuery = String.format("SELECT SUM(%s), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
+                cc1.getFullName());
+        Assert.assertEquals(expectedQuery, convertedQuery);
 
-            String convertedQuery = convertCC(query);
-            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-            Assert.assertEquals(expectedQuery, convertedQuery);
-        }
+        // nested cc will reuse existing cc
+        query = "SELECT SUM((PRICE * ITEM_COUNT) + 10), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
+        smartMaster = new NSmartMaster(context1);
+        smartMaster.runWithContext();
 
-        {
-            String query = "SELECT SUM((PRICE * ITEM_COUNT) + 10), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-            val context1 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query });
-            NSmartMaster smartMaster = new NSmartMaster(context1);
-            smartMaster.runWithContext();
-
-            NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            Assert.assertEquals(2, model.getComputedColumnDescs().size());
-            ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(1);
-            Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
-            Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1 + 10", computedColumnDesc.getExpression());
-            Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`) + 10",
-                    computedColumnDesc.getInnerExpression());
-
-            String convertedQuery = convertCC(query);
-            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_2), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-            Assert.assertEquals(expectedQuery, convertedQuery);
-        }
+        model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(2, model.getComputedColumnDescs().size());
+        ComputedColumnDesc cc2 = model.getComputedColumnDescs().get(1);
+        Assert.assertEquals(String.format("%s + 10", cc1.getFullName()), cc2.getExpression());
+        Assert.assertEquals("(`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`) + 10",
+                cc2.getInnerExpression());
+        convertedQuery = convertCC(query);
+        expectedQuery = String.format("SELECT SUM(%s), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT", cc2.getFullName());
+        Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
     @Test
@@ -445,18 +428,18 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runWithContext();
 
+        String ccExp1 = "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 10";
+        String ccExp2 = "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT";
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-        Assert.assertEquals(2, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 10",
-                computedColumnDesc.getExpression());
-        computedColumnDesc = model.getComputedColumnDescs().get(1);
-        Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", computedColumnDesc.getExpression());
+        List<ComputedColumnDesc> ccList = model.getComputedColumnDescs();
+        ccList.sort(Comparator.comparing(ComputedColumnDesc::getExpression));
+        Assert.assertEquals(2, ccList.size());
+        Assert.assertEquals(ccExp2, ccList.get(0).getExpression());
+        Assert.assertEquals(ccExp1, ccList.get(1).getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_2), AVG(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String expectedQuery = String.format("SELECT SUM(%s), AVG(%s), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
+                ccList.get(0).getFullName(), ccList.get(1).getFullName());
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -469,12 +452,13 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", computedColumnDesc.getExpression());
+        ComputedColumnDesc cc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", cc.getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT TEST_KYLIN_FACT.CC_AUTO_1 AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
+        String expectedQuery = String.format(
+                "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT %s AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT",
+                cc.getFullName());
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -488,7 +472,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
         ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1",
                 computedColumnDesc.getExpression());
     }
@@ -502,16 +485,17 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + 10", computedColumnDesc.getExpression());
+        ComputedColumnDesc cc = model.getComputedColumnDescs().get(0);
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + 10", cc.getExpression());
 
-        String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        Assert.assertNotEquals(expectedQuery, convertedQuery);
-        Assert.assertNotEquals(query, convertedQuery);
-        String actualQuery = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE TEST_KYLIN_FACT.CC_AUTO_1 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        Assert.assertEquals(actualQuery, convertedQuery);
+        String converted = convertCC(query);
+        String expect = String.format("SELECT SUM(%s), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT", cc.getFullName());
+        Assert.assertNotEquals(expect, converted);
+        Assert.assertNotEquals(query, converted);
+        String actualQuery = String.format(
+                "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE %s END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT",
+                cc.getFullName());
+        Assert.assertEquals(actualQuery, converted);
     }
 
     @Test
@@ -524,18 +508,20 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        ComputedColumnDesc cc = model.getComputedColumnDescs().get(0);
         Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 100 THEN 100 ELSE TEST_KYLIN_FACT.PRICE END",
-                computedColumnDesc.getExpression());
+                cc.getExpression());
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
-        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName)
-                .anyMatch("TEST_KYLIN_FACT_0_DOT_0_CC_AUTO_1"::equals));
+        model.getEffectiveCols().forEach((integer, tblColRef) -> {
+            if (tblColRef.getColumnDesc().isComputedColumn()) {
+                Assert.assertEquals(cc.getFullName(), tblColRef.getIdentity());
+            }
+        });
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
-        Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameters().get(0).getColRef().getName());
+        Assert.assertEquals(cc.getColumnName(), measure.getFunction().getParameters().get(0).getColRef().getName());
 
         IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
         Assert.assertEquals(1, indexPlan.getAllLayouts().size());
@@ -559,18 +545,20 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
+        ComputedColumnDesc cc = model.getComputedColumnDescs().get(0);
         Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.LSTG_FORMAT_NAME LIKE 'VIP%' THEN 100 ELSE 120 END",
-                computedColumnDesc.getExpression());
+                cc.getExpression());
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
-        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName)
-                .anyMatch("TEST_KYLIN_FACT_0_DOT_0_CC_AUTO_1"::equals));
+        model.getEffectiveCols().forEach((integer, tblColRef) -> {
+            if (tblColRef.getColumnDesc().isComputedColumn()) {
+                Assert.assertEquals(cc.getFullName(), tblColRef.getIdentity());
+            }
+        });
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
-        Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameters().get(0).getColRef().getName());
+        Assert.assertEquals(cc.getColumnName(), measure.getFunction().getParameters().get(0).getColRef().getName());
 
         IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
         Assert.assertEquals(1, indexPlan.getAllLayouts().size());
@@ -640,7 +628,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val targetModel = modelContexts.get(0).getTargetModel();
         val computedColumns = targetModel.getComputedColumnDescs();
         Assert.assertEquals(1, computedColumns.size());
-        Assert.assertEquals("CC_AUTO_2", computedColumns.get(0).getColumnName());
         Assert.assertEquals("CAST(TEST_KYLIN_FACT.ITEM_COUNT AS BIGINT) * TEST_KYLIN_FACT.PRICE",
                 computedColumns.get(0).getExpression());
         Assert.assertEquals("CAST(TEST_KYLIN_FACT.ITEM_COUNT AS BIGINT) * TEST_KYLIN_FACT.PRICE",
@@ -1029,7 +1016,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     }
 
     /**
-     *  https://github.com/kyligence/kap/issues/16810
+     * https://github.com/kyligence/kap/issues/16810
      */
     @Test
     public void testCCContainTypeTransform() {
@@ -1055,7 +1042,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testProposeSparkUDFCC() {
         String sql = "select count(CBRT(test_kylin_fact.price)) from test_kylin_fact";
 
-        val smartContext = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[]{sql});
+        val smartContext = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
         val smartMaster = new NSmartMaster(smartContext);
         smartMaster.runWithContext();
         Assert.assertEquals(1, smartContext.getModelContexts().size());

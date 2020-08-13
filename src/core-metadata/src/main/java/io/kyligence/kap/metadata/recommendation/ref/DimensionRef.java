@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.metadata.recommendation.ref;
 
 import java.util.Map;
 
@@ -72,5 +72,10 @@ public class DimensionRef extends RecommendationRef {
             throw new IllegalArgumentException(e);
         }
         return content;
+    }
+
+    @Override
+    public void rebuild(String newName) {
+        // do nothing at present
     }
 }

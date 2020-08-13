@@ -22,26 +22,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.util;
+package io.kyligence.kap.metadata.recommendation.ref;
 
-import java.util.UUID;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import lombok.NoArgsConstructor;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
-import io.kyligence.kap.smart.AbstractContext;
+@NoArgsConstructor
+public class CCRef extends RecommendationRef {
 
-public class RawRecGenUtil {
+    public CCRef(ComputedColumnDesc cc, int id) {
+        this.setId(id);
+        this.setEntity(cc);
+        this.setName(cc.getFullName());
+        this.setContent(cc.getExpression());
+        this.setDataType(cc.getDatatype());
+    }
 
-    public static void gatherLayoutRecItem(LayoutEntity layout, AbstractContext.NModelContext modelContext) {
-        if (!modelContext.getProposeContext().needCollectRecommendations()) {
-            return;
-        }
-        LayoutRecItemV2 item = new LayoutRecItemV2();
-        item.setLayout(layout);
-        item.setCreateTime(System.currentTimeMillis());
-        item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
-        item.setUuid(UUID.randomUUID().toString());
-        modelContext.getIndexRexItemMap().putIfAbsent(layout.genUniqueFlag(), item);
+    public ComputedColumnDesc getCc() {
+        return (ComputedColumnDesc) getEntity();
+    }
+
+    @Override
+    public void rebuild(String newName) {
+        ComputedColumnDesc cc = getCc();
+        cc.setColumnName(newName);
+        this.setName(cc.getFullName());
     }
 }

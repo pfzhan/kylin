@@ -171,13 +171,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
                 new TestScenario(CompareLevel.SAME, "query/sql_special_join"));
 
-        projectManager.updateProject(getProject(),
-                copyForWrite -> copyForWrite.getOverrideKylinProps().put(
-                        "kylin.query.metadata.expose-computed-column",
-                        String.valueOf(exposeComputedColumnConfBefore)));
+        projectManager.updateProject(getProject(), copyForWrite -> copyForWrite.getOverrideKylinProps()
+                .put("kylin.query.metadata.expose-computed-column", String.valueOf(exposeComputedColumnConfBefore)));
 
-        executeTestScenario(
-                new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition"));
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition"));
     }
 
     @Test

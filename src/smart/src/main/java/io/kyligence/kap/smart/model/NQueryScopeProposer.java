@@ -35,7 +35,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -56,6 +55,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
+import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -111,7 +111,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newLinkedHashMap();
         Map<FunctionDesc, NDataModel.Measure> candidateMeasures = Maps.newLinkedHashMap();
         Set<TblColRef> dimensionAsMeasureColumns = Sets.newHashSet();
-        private final Map<String, ComputedColumnDesc> computedColumnDescMap = Maps.newHashMap();
+        private final Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
 
         Set<TblColRef> allTableColumns = Sets.newHashSet();
         JoinTableDesc[] joins = new JoinTableDesc[0];
@@ -131,9 +131,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             inheritCandidateMeasures(dataModel);
             inheritJoinTables(dataModel);
 
+            /* ccMap used for recording all computed columns for generate uniqueFlag of RecItemV2 */
             dataModel.getComputedColumnDescs().forEach(cc -> {
                 String aliasDotName = cc.getTableAlias() + "." + cc.getColumnName();
-                computedColumnDescMap.putIfAbsent(aliasDotName, cc);
+                ccMap.putIfAbsent(aliasDotName, cc);
             });
         }
 
@@ -200,12 +201,11 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             if (!modelContext.getProposeContext().needCollectRecommendations()) {
                 return;
             }
-            String uniqueName = getUniqueName(tblColRef);
             DimensionRecItemV2 item = new DimensionRecItemV2();
             item.setColumn(column);
             item.setDataType(tblColRef.getDatatype());
             item.setCreateTime(System.currentTimeMillis());
-            modelContext.getDimensionRecItemMap().putIfAbsent("d__" + uniqueName, item);
+            modelContext.getDimensionRecItemMap().putIfAbsent(RawRecUtil.dimUniqueFlag(tblColRef, ccMap), item);
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {
@@ -248,33 +248,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             MeasureRecItemV2 item = new MeasureRecItemV2();
             item.setMeasure(measure);
             item.setCreateTime(System.currentTimeMillis());
-            modelContext.getMeasureRecItemMap().putIfAbsent(uniqueMeasureName(measure), item);
-        }
-
-        private String uniqueMeasureName(Measure measure) {
-            Set<String> paramNames = Sets.newHashSet();
-            List<ParameterDesc> parameters = measure.getFunction().getParameters();
-            parameters.forEach(param -> {
-                TblColRef colRef = param.getColRef();
-                paramNames.add(getUniqueName(colRef));
-            });
-            return String.format("%s__%s", measure.getFunction().getExpression(), String.join("__", paramNames));
-        }
-
-        private String getUniqueName(TblColRef tblColRef) {
-            final ColumnDesc columnDesc = tblColRef.getColumnDesc();
-            String uniqueName;
-            if (columnDesc.isComputedColumn()) {
-                ComputedColumnDesc cc = computedColumnDescMap.get(columnDesc.getIdentity());
-                if (cc.getUuid() != null) {
-                    uniqueName = cc.getUuid();
-                } else {
-                    uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
-                }
-            } else {
-                uniqueName = tblColRef.getTableRef().getAlias() + "$" + columnDesc.getZeroBasedIndex();
-            }
-            return uniqueName;
+            modelContext.getMeasureRecItemMap().putIfAbsent(RawRecUtil.meaUniqueFlag(measure, ccMap), item);
         }
 
         private void build() {

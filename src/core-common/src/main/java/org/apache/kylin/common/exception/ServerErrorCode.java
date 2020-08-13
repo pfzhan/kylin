@@ -105,7 +105,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     INVALID_TABLE_NAME("KE-10007003"), //
     RELOAD_TABLE_FAILED("KE-10007004"), //
     INVALID_TABLE_REFRESH_PARAMETER("KE-10007005"), //
-    INVALID_TABLE_SAMPLE_RANGE("KE-10007006"),
+    INVALID_TABLE_SAMPLE_RANGE("KE-10007006"), //
     DUPLICATED_COLUMN_NAME("KE-10007007"), //
     ON_GOING_JOB_EXIST("KE-10007008"), //
 
@@ -211,7 +211,10 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_OBTAIN_QUERY_RESULT("KE-10031001"),
 
     // 10032xxx add job result
-    FAILED_CREATE_JOB("KE-10032001"); //
+    FAILED_CREATE_JOB("KE-10032001"), //
+
+    // 10033xxx invalid recommendation
+    INVALID_RECOMMENDATION("KE-10033001"); //
 
     private final ErrorCode errorCode;
 

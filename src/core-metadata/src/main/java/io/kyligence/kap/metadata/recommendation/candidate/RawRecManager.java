@@ -26,16 +26,13 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
@@ -46,15 +43,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RawRecManager {
 
-    private static final int MAX_CACHED_NUM = 20_000;
     private static final int LAG_SEMANTIC_VERSION = 1;
-    private static final int EXPIRED_TIME = 60;
 
     private final String project;
     private final KylinConfig kylinConfig;
     private final JdbcRawRecStore jdbcRawRecStore;
-    private final Cache<String, RawRecItem> cachedRecItems;
-    private final BiMap<String, Integer> uniqueFlagToId = HashBiMap.create();
 
     // CONSTRUCTOR
     public static RawRecManager getInstance(String project) {
@@ -65,33 +58,37 @@ public class RawRecManager {
         this.project = project;
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
         this.jdbcRawRecStore = new JdbcRawRecStore(kylinConfig);
-        this.cachedRecItems = CacheBuilder.newBuilder().maximumSize(MAX_CACHED_NUM)
-                .expireAfterAccess(EXPIRED_TIME, TimeUnit.MINUTES).build();
-        init(kylinConfig, project);
     }
 
-    protected void init(KylinConfig cfg, final String project) {
-        if (NProjectManager.getInstance(cfg).getProject(project) == null) {
-            return;
+    /**
+     * Load CC, Dimension, measure RawRecItems of given models. 
+     * If models not given, load these RawRecItems of the whole project.
+     */
+    public Map<String, RawRecItem> queryNonLayoutRecItems(Set<String> modelIdSet) {
+        Set<String> allModelList = modelIdSet;
+        if (modelIdSet == null || modelIdSet.isEmpty()) {
+            allModelList = NDataModelManager.getInstance(kylinConfig, project).listAllModelIds();
         }
-
-        ImmutableList<String> models = NProjectManager.getInstance(cfg).getProject(project).getModels();
-        models.forEach(model -> {
-            queryByRawRecType(model, RawRecItem.RawRecType.COMPUTED_COLUMN, RawRecItem.RawRecState.INITIAL);
-            queryByRawRecType(model, RawRecItem.RawRecType.DIMENSION, RawRecItem.RawRecState.INITIAL);
-            queryByRawRecType(model, RawRecItem.RawRecType.MEASURE, RawRecItem.RawRecState.INITIAL);
-        });
+        Map<String, RawRecItem> allRecItems = Maps.newHashMap();
+        RawRecItem.RawRecState[] nonAppliedStates = { RawRecItem.RawRecState.INITIAL, //
+                RawRecItem.RawRecState.RECOMMENDED, //
+                RawRecItem.RawRecState.DISCARD, //
+                RawRecItem.RawRecState.BROKEN };
+        for (String model : allModelList) {
+            allRecItems.putAll(queryNonLayoutRecItems(model, nonAppliedStates));
+        }
+        return allRecItems;
     }
 
-    // CURD
-    public Map<String, RawRecItem> listAll() {
-        return cachedRecItems.asMap();
-    }
-
-    private List<RawRecItem> queryByRawRecType(String model, RawRecItem.RawRecType type, RawRecItem.RawRecState state) {
-        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryByRecTypeAndState(project, model, type, state);
-        rawRecItems.forEach(this::updateCache);
-        return rawRecItems;
+    private Map<String, RawRecItem> queryNonLayoutRecItems(String model, RawRecItem.RawRecState... states) {
+        Map<String, RawRecItem> recItemMap = Maps.newHashMap();
+        List<RawRecItem> recItems = jdbcRawRecStore.queryNonLayoutRecItems(project, model, states);
+        if (CollectionUtils.isEmpty(recItems)) {
+            log.info("There is no RawRecItems of model({}/{}})", project, model);
+            return recItemMap;
+        }
+        recItems.forEach(recItem -> recItemMap.putIfAbsent(recItem.getUniqueFlag(), recItem));
+        return recItemMap;
     }
 
     public Map<String, RawRecItem> queryLayoutRawRecItems(String model) {
@@ -101,13 +98,9 @@ public class RawRecManager {
         return map;
     }
 
-    public List<RawRecItem> queryRecommendedLayoutRawRecItems(String model) {
-        return queryByRawRecType(model, RawRecItem.RawRecType.LAYOUT, RawRecItem.RawRecState.RECOMMENDED);
-    }
-
     public void clearExistingCandidates(String project, String model) {
         long start = System.currentTimeMillis();
-        List<RawRecItem> existingCandidates = jdbcRawRecStore.getAllLayoutCandidates(project, model);
+        List<RawRecItem> existingCandidates = jdbcRawRecStore.queryAllLayoutCandidates(project, model);
         long updateTime = System.currentTimeMillis();
         existingCandidates.forEach(rawRecItem -> {
             rawRecItem.setUpdateTime(updateTime);
@@ -133,47 +126,29 @@ public class RawRecManager {
             rawRecItem.setState(RawRecItem.RawRecState.RECOMMENDED);
         });
         rawRecManager.saveOrUpdate(topNCandidates);
-
-        topNCandidates.forEach(this::updateCache);
     }
 
     public List<RawRecItem> getCandidatesByProjectAndBenefit(String project, int limit) {
         throw new NotImplementedException("get candidate raw recommendations by project not implement!");
     }
 
-    public void save(RawRecItem rawRecItem) {
-        jdbcRawRecStore.save(rawRecItem);
-        updateCache(rawRecItem);
-    }
-
     public void saveOrUpdate(List<RawRecItem> recItems) {
         jdbcRawRecStore.batchAddOrUpdate(recItems);
-        updateCache(recItems);
-    }
-
-    public RawRecItem queryById(int id) {
-        if (uniqueFlagToId.inverse().containsKey(id)) {
-            String key = uniqueFlagToId.inverse().get(id);
-            return cachedRecItems.getIfPresent(key);
-        }
-        RawRecItem recItem = jdbcRawRecStore.queryById(id);
-        if (recItem != null) {
-            updateCache(recItem);
-        }
-        return recItem;
     }
 
     public void deleteAllOutDated(String project) {
         ImmutableList<String> models = NProjectManager.getInstance(kylinConfig).getProject(project).getModels();
         models.forEach(model -> deleteOutDated(model, LAG_SEMANTIC_VERSION));
-        cachedRecItems.invalidateAll();
-        init(kylinConfig, project);
     }
 
     public void deleteOutDated(String model, int lagVersion) {
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
+    }
+
+    public void deleteRecItemsOfNonExistModels(String project, Set<String> existingModels) {
+        jdbcRawRecStore.deleteRecItemsOfNonExistModels(project, existingModels);
     }
 
     public void deleteByProject(String project) {
@@ -186,47 +161,17 @@ public class RawRecManager {
 
     public void removeByIds(List<Integer> idList) {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.BROKEN);
-        removeFromCache(idList);
     }
 
     public void applyByIds(List<Integer> idList) {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.APPLIED);
-        removeFromCache(idList);
     }
 
     public void discardByIds(List<Integer> idList) {
         jdbcRawRecStore.updateState(idList, RawRecItem.RawRecState.DISCARD);
-        removeFromCache(idList);
     }
 
     public void updateAllCost(String project) {
         jdbcRawRecStore.updateAllCost(project);
-    }
-
-    private void updateCache(List<RawRecItem> recItems) {
-        recItems.forEach(this::updateCache);
-    }
-
-    private void updateCache(RawRecItem recItem) {
-        if (recItem.needCache()) {
-            log.debug("Add `{}` to raw recommendation cache", recItem.getUniqueFlag());
-            uniqueFlagToId.put(recItem.getUniqueFlag(), recItem.getId());
-            cachedRecItems.put(recItem.getUniqueFlag(), recItem);
-        } else {
-            removeFromCache(recItem.getId());
-        }
-    }
-
-    private void removeFromCache(List<Integer> idList) {
-        idList.forEach(this::removeFromCache);
-    }
-
-    private void removeFromCache(int id) {
-        String uniqueFlag = uniqueFlagToId.inverse().get(id);
-        if (uniqueFlag != null) {
-            log.debug("remove `{}` from raw recommendation cache", uniqueFlag);
-            uniqueFlagToId.remove(uniqueFlag);
-            cachedRecItems.invalidate(uniqueFlag);
-        }
     }
 }

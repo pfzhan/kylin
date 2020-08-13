@@ -22,12 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
-
-import java.util.Objects;
-
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.MeasureDesc;
+package io.kyligence.kap.metadata.recommendation.ref;
 
 import com.google.common.base.Preconditions;
 
@@ -35,31 +30,24 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
-public class MeasureRef extends RecommendationRef {
+public class ModelColumnRef extends RecommendationRef {
 
-    public MeasureRef(MeasureDesc measure, int id, boolean existed) {
-        this.setId(id);
-        this.setEntity(measure);
-        this.setContent(JsonUtil.writeValueAsStringQuietly(measure));
-        this.setName(measure.getName());
-        this.setExisted(existed);
+    public ModelColumnRef(NDataModel.NamedColumn column, String dataType, String content) {
+        this.setId(column.getId());
+        this.setName(column.getAliasDotColumn());
+        this.setContent(content);
+        this.setDataType(dataType);
+        this.setExisted(true);
+        this.setEntity(column);
     }
 
-    public NDataModel.Measure getMeasure() {
-        return (NDataModel.Measure) getEntity();
+    public NDataModel.NamedColumn getColumn() {
+        Preconditions.checkArgument(getEntity() instanceof NDataModel.NamedColumn);
+        return (NDataModel.NamedColumn) getEntity();
     }
 
     @Override
-    public String getDataType() {
-        throw new IllegalStateException("Get datatype of MeasureRef is not allowed, but you can get it by getContent");
-    }
-
-    public boolean isDependenciesIdentical(RecommendationRef ref) {
-        if (ref == null) {
-            return false;
-        }
-        Preconditions.checkArgument(ref instanceof MeasureRef);
-        MeasureRef measureRef = (MeasureRef) ref;
-        return Objects.equals(this.getDependencies(), measureRef.getDependencies());
+    public void rebuild(String newName) {
+        throw new IllegalStateException("Rebuild ModelColumnRef is not allowed.");
     }
 }

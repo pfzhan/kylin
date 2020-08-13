@@ -50,7 +50,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.index.NIndexMaster;
 import io.kyligence.kap.smart.util.EntityBuilder;
-import io.kyligence.kap.smart.util.RawRecGenUtil;
 import lombok.val;
 
 public class NIndexPlanShrinkProposer extends NAbstractProposer {
@@ -137,7 +136,7 @@ public class NIndexPlanShrinkProposer extends NAbstractProposer {
         dropDuplicateIndex(existedTableIndicesOrReadyIndices.stream().map(IndexEntity::getLayouts).flatMap(List::stream)
                 .collect(Collectors.toList()), newDim2Index);
         newDim2Index.forEach((k, v) -> v.forEach(index -> {
-            index.getLayouts().forEach(layout -> RawRecGenUtil.gatherLayoutRecItem(layout, modelContext));
+            index.getLayouts().forEach(modelContext::gatherLayoutRecItem);
         }));
 
         // update new merged indices to the origin index_plan

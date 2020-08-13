@@ -63,9 +63,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecV2;
-import io.kyligence.kap.metadata.recommendation.v2.RecommendationUtil;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
+import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
 import lombok.val;
 
 @Ignore
@@ -97,8 +97,8 @@ public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProjectFromSingleton();
         managersByPrjCache.put(RawRecManager.class, new ConcurrentHashMap<>());
         managersByPrjCache.get(RawRecManager.class).put(projectDefault, rawRecManager);
-        Mockito.doAnswer(answer -> mockRawRecItems.get(answer.getArgument(0))).when(rawRecManager)
-                .queryById(Mockito.anyInt());
+        //        Mockito.doAnswer(answer -> mockRawRecItems.get(answer.getArgument(0))).when(rawRecManager)
+        //                .queryById(Mockito.anyInt());
         Mockito.doAnswer(answer -> {
             List<Integer> ids = answer.getArgument(0);
             mockRawRecItems.forEach((i, r) -> {
@@ -170,10 +170,10 @@ public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
                 .collect(Collectors.toMap(RawRecItem::getId, Function.identity()));
         mockRawRecItems.forEach((i, r) -> {
             if (r.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                ComputedColumnDesc cc = RecommendationUtil.getCC(r);
+                ComputedColumnDesc cc = RawRecUtil.getCC(r);
                 cc.setColumnName("");
             } else if (r.getType() == RawRecItem.RawRecType.MEASURE) {
-                MeasureDesc measureDesc = RecommendationUtil.getMeasure(r);
+                MeasureDesc measureDesc = RawRecUtil.getMeasure(r);
                 measureDesc.setName("");
             } else if (r.getType() == RawRecItem.RawRecType.LAYOUT) {
                 r.setHitCount(r.getId());
@@ -216,7 +216,7 @@ public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
     @Test
     public void testInit() {
         Assert.assertNotNull(mockRawRecItems);
-        OptRecV2 recommendationV2 = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        OptRecV2 recommendationV2 = recommendationManagerV2.loadOptRecV2(id);
         Assert.assertNotNull(recommendationV2);
         Assert.assertEquals(18, recommendationV2.getColumnRefs().size());
         //        Assert.assertEquals("decimal(30,4)",
@@ -461,13 +461,12 @@ public class OptimizeRecommendationManagerV2Test extends ServiceTestBase {
 
     protected int findFromOriginLayout(long id) {
         return mockRawRecItems.values().stream().filter(item -> item.getType() == RawRecItem.RawRecType.LAYOUT)
-                .filter(item -> RecommendationUtil.getLayout(item).getId() == id).map(RawRecItem::getId).findFirst()
-                .orElse(-1);
+                .filter(item -> RawRecUtil.getLayout(item).getId() == id).map(RawRecItem::getId).findFirst().orElse(-1);
     }
 
     protected int findFromOriginMeasure(long id) {
         return mockRawRecItems.values().stream().filter(item -> item.getType() == RawRecItem.RawRecType.MEASURE)
-                .filter(item -> RecommendationUtil.getMeasure(item).getId() == id).map(RawRecItem::getId).findFirst()
+                .filter(item -> RawRecUtil.getMeasure(item).getId() == id).map(RawRecItem::getId).findFirst()
                 .orElse(-1);
     }
 

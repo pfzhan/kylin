@@ -53,7 +53,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;

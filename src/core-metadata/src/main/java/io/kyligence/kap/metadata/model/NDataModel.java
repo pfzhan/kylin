@@ -1324,13 +1324,13 @@ public class NDataModel extends RootPersistentEntity {
                 .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
     }
 
-    public String getTombColumnNameByColumnId(int id) {
+    public String getTombColumnNameById(int id) {
         Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
         return allNamedColumns.stream().filter(col -> col.getId() == id && !col.isExist())
                 .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
     }
 
-    public Measure getTombMeasureByMeasureId(int id) {
+    public Measure getTombMeasureById(int id) {
         Preconditions.checkArgument(Objects.nonNull(allMeasures));
         return allMeasures.stream().filter(measure -> Objects.equals(measure.getId(), id) && measure.isTomb()).findAny()
                 .orElse(null);

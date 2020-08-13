@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.metadata.recommendation.ref;
 
 import java.util.List;
 import java.util.Map;
@@ -40,6 +40,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ParameterDesc;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -132,24 +133,26 @@ public class OptRecManagerV2 {
         this.project = project;
     }
 
-    public OptRecV2 getOptimizeRecommendationV2(String id) {
-        if (StringUtils.isEmpty(id)) {
-            return null;
-        }
-        OptRecV2 optRecV2 = new OptRecV2(project, id);
-        List<Integer> inEffective = optRecV2.filterBrokenRefs();
-        RawRecManager.getInstance(project).removeByIds(inEffective);
+    public OptRecV2 loadOptRecV2(String uuid) {
+        Preconditions.checkState(StringUtils.isNotEmpty(uuid));
+        OptRecV2 optRecV2 = new OptRecV2(project, uuid);
+        List<Integer> brokenLayoutIds = Lists.newArrayList(optRecV2.getBrokenLayoutRefIds());
+        RawRecManager.getInstance(project).removeByIds(brokenLayoutIds);
         return optRecV2;
     }
 
-    public void discardAll(String modelId) {
-        OptRecV2 recommendationV2 = getOptimizeRecommendationV2(modelId);
-        if (recommendationV2 == null) {
-            return;
-        }
-        List<Integer> rawIds = recommendationV2.getRawIds();
+    public void discardAll(String uuid) {
+        OptRecV2 optRecV2 = loadOptRecV2(uuid);
+        List<Integer> rawIds = optRecV2.getRawIds();
+        Map<Integer, RawRecItem> rawRecItemMap = optRecV2.getRawRecItemMap();
+        List<Integer> layoutRawIds = Lists.newArrayList();
+        rawIds.forEach(recId -> {
+            if (rawRecItemMap.get(recId).getType() == RawRecItem.RawRecType.LAYOUT) {
+                layoutRawIds.add(recId);
+            }
+        });
         RawRecManager rawManager = RawRecManager.getInstance(project);
-        rawManager.discardByIds(rawIds);
+        rawManager.discardByIds(layoutRawIds);
     }
 
     @VisibleForTesting
@@ -303,15 +306,5 @@ public class OptRecManagerV2 {
         rawRecItem.setUpdateTime(System.currentTimeMillis());
         rawRecItem.setType(type);
         return rawRecItem;
-    }
-
-    public void cleanInEffective(String id) {
-        OptRecV2 recommendation = getOptimizeRecommendationV2(id);
-        if (recommendation == null) {
-            return;
-        }
-
-        List<Integer> inEffective = recommendation.filterBrokenRefs();
-        RawRecManager.getInstance(project).removeByIds(inEffective);
     }
 }

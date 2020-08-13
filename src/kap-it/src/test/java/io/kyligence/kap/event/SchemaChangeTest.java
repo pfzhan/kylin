@@ -82,7 +82,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecManagerV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.TableService;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;

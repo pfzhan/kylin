@@ -67,7 +67,6 @@ import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.exception.PendingException;
 import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.util.EntityBuilder;
-import io.kyligence.kap.smart.util.RawRecGenUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -209,7 +208,7 @@ class IndexSuggester {
 
         indexEntity.getLayouts().add(layout);
         cuboidLayoutIds.add(layout.getId());
-        RawRecGenUtil.gatherLayoutRecItem(layout, modelContext);
+        modelContext.gatherLayoutRecItem(layout);
 
         return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
     }

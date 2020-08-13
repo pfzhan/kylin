@@ -91,7 +91,7 @@ public class NRecommendationController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optRecService.getOptRecDetail(request.getProject(), modelId, request.getLayoutIdsToAdd()), "");
+                optRecService.validateSelectedRecItems(request.getProject(), modelId, request.getLayoutIdsToAdd()), "");
     }
 
     @ApiOperation(value = "cleanOptimizeRecommendations", notes = "Add URL: {model}")
@@ -124,7 +124,7 @@ public class NRecommendationController extends NBasicController {
         if (layoutsToAdd != null)
             request.setLayoutIdsToAdd(layoutsToAdd);
 
-        optRecService.delete(request.getProject(), request);
+        optRecService.discard(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -144,8 +144,10 @@ public class NRecommendationController extends NBasicController {
     @GetMapping(value = "/{model:.+}/{item_id:.+}")
     @ResponseBody
     public EnvelopeResponse<OptRecDetailResponse> getOptimizeRecommendations(
-            @PathVariable(value = "model") String modelId, @PathVariable(value = "item_id") Integer itemId,
-            @RequestParam(value = "project") String project, @RequestParam(value = "is_add", defaultValue = "true") boolean isAdd) {
+            @PathVariable(value = "model") String modelId, //
+            @PathVariable(value = "item_id") Integer itemId, //
+            @RequestParam(value = "project") String project, //
+            @RequestParam(value = "is_add", defaultValue = "true") boolean isAdd) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);

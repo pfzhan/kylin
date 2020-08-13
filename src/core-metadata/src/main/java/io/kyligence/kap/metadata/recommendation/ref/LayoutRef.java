@@ -22,27 +22,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.recommendation.v2;
+package io.kyligence.kap.metadata.recommendation.ref;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
+@Getter
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 @NoArgsConstructor
-public class ModelColumnRef extends RecommendationRef {
+public class LayoutRef extends RecommendationRef {
 
-    public ModelColumnRef(NDataModel.NamedColumn column, String dataType, String content) {
-        this.setId(column.getId());
-        this.setName(column.getAliasDotColumn());
-        this.setContent(content);
-        this.setDataType(dataType);
-        this.setExisted(true);
-        this.setEntity(column);
+    @Setter(AccessLevel.PRIVATE)
+    private boolean agg;
+
+    public LayoutRef(LayoutEntity layout, int id, boolean agg) {
+        this.setId(id);
+        this.setEntity(layout);
+        this.setAgg(agg);
     }
 
-    public NDataModel.NamedColumn getColumn() {
-        Preconditions.checkArgument(getEntity() instanceof NDataModel.NamedColumn);
-        return (NDataModel.NamedColumn) getEntity();
+    @Override
+    public String getContent() {
+        return null;
+    }
+
+    @Override
+    public String getName() {
+        return null;
+    }
+
+    public LayoutEntity getLayout() {
+        Preconditions.checkArgument(getEntity() instanceof LayoutEntity);
+        return (LayoutEntity) getEntity();
+    }
+
+    @Override
+    public String getDataType() {
+        throw new IllegalStateException("There is no datatype of LayoutRef");
+    }
+
+    @Override
+    public void rebuild(String newName) {
+        throw new IllegalStateException("Rebuild layoutRef is not allowed.");
     }
 }

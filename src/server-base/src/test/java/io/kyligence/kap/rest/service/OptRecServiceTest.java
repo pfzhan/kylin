@@ -180,7 +180,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         val response = service.getOptRecLayoutsResponse(projectDefault, id);
         val addLayoutsResponse = response.getLayouts().stream().filter(l -> l.getType().isAdd())
                 .sorted(Comparator.comparingLong(LayoutRecommendationResponse::getItemId)).collect(Collectors.toList());
-        val detailResponse = service.getOptRecDetail(projectDefault, id,
+        val detailResponse = service.validateSelectedRecItems(projectDefault, id,
                 addLayoutsResponse.stream().map(l -> (int) l.getItemId()).collect(Collectors.toList()));
         //        Assert.assertEquals(1, detailResponse.getColumnItems().size());
         Assert.assertEquals(3, detailResponse.getDimensionItems().size());
@@ -243,7 +243,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         Assert.assertEquals("COUNT", diffMeasures.get(0).getFunction().getExpression());
         Assert.assertEquals("TEST_KYLIN_FACT.SELLER_ID",
                 diffMeasures.get(0).getFunction().getParameters().get(0).getValue());
-        Assert.assertEquals(11, recommendationManagerV2.getOptimizeRecommendationV2(id).getRawIds().size());
+        Assert.assertEquals(11, recommendationManagerV2.loadOptRecV2(id).getRawIds().size());
     }
 
     @Test
@@ -322,7 +322,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         Assert.assertTrue(layoutEntity.isAuto());
         Assert.assertFalse(layoutEntity.getIndex().isTableIndex());
         Assert.assertEquals(2, layoutEntity.getIndex().getLayouts().size());
-        Assert.assertEquals(11, recommendationManagerV2.getOptimizeRecommendationV2(id).getRawIds().size());
+        Assert.assertEquals(11, recommendationManagerV2.loadOptRecV2(id).getRawIds().size());
     }
 
     @Test
@@ -358,7 +358,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         Assert.assertTrue(layoutEntities.get(0).isManual());
         Assert.assertTrue(layoutEntities.get(1).isAuto());
         Assert.assertEquals(layoutEntities.get(0).getId() + 1, layoutEntities.get(1).getId());
-        Assert.assertEquals(11, recommendationManagerV2.getOptimizeRecommendationV2(id).getRawIds().size());
+        Assert.assertEquals(11, recommendationManagerV2.loadOptRecV2(id).getRawIds().size());
     }
 
     @Test
@@ -389,7 +389,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         Assert.assertTrue(layoutEntity.isAuto());
         Assert.assertTrue(layoutEntity.getIndex().isTableIndex());
         Assert.assertEquals(3, layoutEntity.getIndex().getLayouts().size());
-        Assert.assertEquals(11, recommendationManagerV2.getOptimizeRecommendationV2(id).getRawIds().size());
+        Assert.assertEquals(11, recommendationManagerV2.loadOptRecV2(id).getRawIds().size());
     }
 
     @Test
@@ -413,7 +413,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         exactlyAssertCC(afterCCs, beforeCCs);
         exactlyAssertDimension(afterNamedColumns, beforeNamedColumns);
         exactlyAssertMeasure(afterMeasures, beforeMeasures);
-        Assert.assertEquals(0, recommendationManagerV2.getOptimizeRecommendationV2(id).getRawIds().size());
+        Assert.assertEquals(0, recommendationManagerV2.loadOptRecV2(id).getRawIds().size());
         Assert.assertEquals(18,
                 mockRawRecItems.values().stream().filter(r -> r.getState() == RawRecItem.RawRecState.APPLIED).count());
     }
@@ -649,7 +649,7 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         OptRecRequest request = new OptRecRequest();
         request.setModelId(id);
         request.setLayoutIdsToRemove(Lists.newArrayList(0, 1, 2));
-        service.delete(projectDefault, request);
+        service.discard(projectDefault, request);
         Assert.assertEquals(9, recommendationManager.getOptimizeRecommendation(id).getLayoutRecommendations().size());
     }
 
@@ -658,8 +658,8 @@ public class OptRecServiceTest extends OptimizeRecommendationManagerV2Test {
         OptRecRequest request = new OptRecRequest();
         request.setModelId(id);
         request.setLayoutIdsToAdd(Lists.newArrayList(11, 12, 13, 14, 15));
-        service.delete(projectDefault, request);
-        val recommendation = recommendationManagerV2.getOptimizeRecommendationV2(id);
+        service.discard(projectDefault, request);
+        val recommendation = recommendationManagerV2.loadOptRecV2(id);
         Assert.assertEquals(7, recommendation.getRawIds().size());
     }
 

@@ -161,7 +161,7 @@ public class NAutoBasicTest extends NAutoTestBase {
             if (column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.lstg_format_name")) {
                 column.setStatus(NDataModel.ColumnStatus.TOMB);
             }
-            if (column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) {
+            if (column.getAliasDotColumn().contains("CC_AUTO_")) {
                 column.setName("modified_cc_column");
                 column.setStatus(NDataModel.ColumnStatus.TOMB);
             }
@@ -182,12 +182,12 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertTrue(updatedModel.getComputedColumnDescs().isEmpty());
         List<NDataModel.NamedColumn> targetColumns = updatedModel.getAllNamedColumns().stream()
                 .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.lstg_format_name")
-                        || column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1"))
+                        || column.getAliasDotColumn().contains("CC_AUTO_"))
                 .collect(Collectors.toList());
         Assert.assertEquals(2, targetColumns.size());
         targetColumns.forEach(column -> {
             Assert.assertFalse(column.isExist());
-            if (column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) {
+            if (column.getAliasDotColumn().contains("CC_AUTO_")) {
                 Assert.assertEquals("modified_cc_column", column.getName());
             }
         });
@@ -208,7 +208,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertFalse(newMeasure.isTomb());
         NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().stream()
                 .filter(column -> column.getId() >= OptimizeRecommendationManager.ID_OFFSET)
-                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) //
+                .filter(column -> column.getAliasDotColumn().contains("CC_AUTO_")) //
                 .findFirst().orElse(null);
         Assert.assertNotNull(namedColumn);
         Assert.assertEquals(NDataModel.ColumnStatus.EXIST, namedColumn.getStatus());

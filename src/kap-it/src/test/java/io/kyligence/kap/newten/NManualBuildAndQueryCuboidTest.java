@@ -123,7 +123,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
             Dataset<Row> layoutDataset = StorageFactory
                     .createEngineAdapter(cuboid.getLayout(), NSparkCubingEngine.NSparkCubingStorage.class)
-                    .getFrom(NSparkCubingUtil.getStoragePath(cuboid.getSegDetails().getDataSegment(), cuboid.getLayoutId()), ss);
+                    .getFrom(NSparkCubingUtil.getStoragePath(cuboid.getSegDetails().getDataSegment(),
+                            cuboid.getLayoutId()), ss);
             layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
                     .sort(NSparkCubingUtil.getColumns(rowKeys));
             System.out.println("Query cuboid ------------ " + cuboid.getLayoutId());
@@ -234,7 +235,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
         StructType schema = ds.schema();
         for (StructField field : schema.fields()) {
-            Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.valueOf(field.name()))));
+            Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.parseInt(field.name()))));
         }
         return ds;
     }

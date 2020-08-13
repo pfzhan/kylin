@@ -26,6 +26,7 @@ package io.kyligence.kap.smart;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -33,7 +34,9 @@ import org.apache.kylin.common.KylinConfig;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
@@ -162,6 +165,21 @@ public abstract class AbstractContext {
 
         public boolean skipSavingMetadata() {
             return isTargetModelMissing() || isProposedIndexesEmpty() || snapshotSelected;
+        }
+
+        /**
+         * Only for Semi-Auto
+         */
+        public void gatherLayoutRecItem(LayoutEntity layout) {
+            if (!getProposeContext().needCollectRecommendations()) {
+                return;
+            }
+            LayoutRecItemV2 item = new LayoutRecItemV2();
+            item.setLayout(layout);
+            item.setCreateTime(System.currentTimeMillis());
+            item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
+            item.setUuid(UUID.randomUUID().toString());
+            getIndexRexItemMap().putIfAbsent(layout.genUniqueFlag(), item);
         }
     }
 }

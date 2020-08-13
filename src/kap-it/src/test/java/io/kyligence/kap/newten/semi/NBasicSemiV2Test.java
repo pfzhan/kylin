@@ -24,13 +24,19 @@
 
 package io.kyligence.kap.newten.semi;
 
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+
+import java.lang.reflect.Field;
 import java.util.List;
 
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.collect.Lists;
 
@@ -39,14 +45,18 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NBasicSemiV2Test extends SemiAutoTestBase {
 
     private static final long QUERY_TIME = 1595520000000L;
@@ -63,6 +73,36 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
         rawRecommendation = new RawRecService();
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+    }
+
+    @After
+    public void teardown() throws Exception {
+        val jdbcTemplate = getJdbcTemplate();
+        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+
+        log.debug("clean SqlSessionFactory...");
+        Class<RawRecStoreUtil> clazz = RawRecStoreUtil.class;
+        Field sqlSessionFactory = clazz.getDeclaredField("sqlSessionFactory");
+        sqlSessionFactory.setAccessible(true);
+        sqlSessionFactory.set(null, null);
+        System.out.println(sqlSessionFactory.get(null));
+        sqlSessionFactory.setAccessible(false);
+        log.debug("clean SqlSessionFactory success");
+
+        Class<QueryHisStoreUtil> qhClazz = QueryHisStoreUtil.class;
+        Field qhSqlSessionFactory = qhClazz.getDeclaredField("sqlSessionFactory");
+        qhSqlSessionFactory.setAccessible(true);
+        qhSqlSessionFactory.set(null, null);
+        System.out.println(qhSqlSessionFactory.get(null));
+        qhSqlSessionFactory.setAccessible(false);
+        log.debug("clean SqlSessionFactory success");
+    }
+
+    private JdbcTemplate getJdbcTemplate() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+        val props = datasourceParameters(url);
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        return new JdbcTemplate(dataSource);
     }
 
     @Override
@@ -122,23 +162,24 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         rawRecommendation.generateRawRecommendations(getProject(), queryHistories());
 
         // check raw recommendations layoutMetric
-        List<RawRecItem> countryRawRecItems = jdbcRawRecStore.listAll(getProject(), originModels.get(0).getUuid(), 0,
-                10);
-        Assert.assertEquals(2, countryRawRecItems.size());
-        List<RawRecItem> factRawRecItems = jdbcRawRecStore.listAll(getProject(), originModels.get(1).getUuid(), 0, 10);
-        Assert.assertEquals(2, factRawRecItems.size());
-
-        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(3).getType());
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(5).getType());
-        Assert.assertEquals(1, jdbcRawRecStore.queryById(5).getLayoutMetric().getFrequencyMap().getDateFrequency()
+        List<RawRecItem> recOfCountry = jdbcRawRecStore.listAll(getProject(), originModels.get(0).getUuid(), 0, 10);
+        Assert.assertEquals(2, recOfCountry.size());
+        RawRecItem dimRecItemOfCountry = jdbcRawRecStore.queryById(1);
+        RawRecItem layoutRecItemOfCountry = jdbcRawRecStore.queryById(3);
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, dimRecItemOfCountry.getType());
+        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, layoutRecItemOfCountry.getType());
+        Assert.assertEquals(1, layoutRecItemOfCountry.getLayoutMetric().getFrequencyMap().getDateFrequency()
                 .get(QUERY_TIME).intValue());
 
-        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, jdbcRawRecStore.queryById(4).getType());
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, jdbcRawRecStore.queryById(6).getType());
-        Assert.assertEquals(1, jdbcRawRecStore.queryById(6).getLayoutMetric().getFrequencyMap().getDateFrequency()
-                .get(QUERY_TIME).intValue());
+        List<RawRecItem> recOfFact = jdbcRawRecStore.listAll(getProject(), originModels.get(1).getUuid(), 0, 10);
+        Assert.assertEquals(2, recOfFact.size());
+        RawRecItem dimRecItemOfFact = jdbcRawRecStore.queryById(2);
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, dimRecItemOfFact.getType());
+        RawRecItem layoutRecItemOfFact = jdbcRawRecStore.queryById(4);
+        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, layoutRecItemOfFact.getType());
+        Assert.assertEquals(1,
+                layoutRecItemOfFact.getLayoutMetric().getFrequencyMap().getDateFrequency().get(QUERY_TIME).intValue());
     }
-
 
     @Test
     public void testMarkFailAccelerateMessageToQueryHistory() {
