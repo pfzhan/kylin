@@ -116,7 +116,9 @@ def process(root_dir):
     runner = HttpRunner()
     runner.run(os.path.join(root_dir, 'api_permission_check/testsuites/demo_testsuite.yml'))
     res_details = runner._summary['details']
+    print("res_details: \n" + str(res_details) + "\n")
     apis_dict = parse_res(res_details)
+    print("apis_dict: \n" + str(apis_dict) + "\n")
 
     actually_result = get_api_mini(apis_dict)
     print("actually_result: \n" + str(actually_result) + "\n")

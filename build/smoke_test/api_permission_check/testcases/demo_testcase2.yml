@@ -717,6 +717,8 @@ teststeps:
 
   - api: api/delete_user.yml
     name: 删除用户
+    variables:
+      user_id: ${get_user_id($username)}
     validate:
       - eq:
           - status_code
@@ -756,6 +758,8 @@ teststeps:
 
   - api: api/public_delete_user.yml
     name: public删除用户
+    variables:
+      user_id: ${get_user_id($username)}
     validate:
       - eq:
           - status_code
@@ -1063,6 +1067,8 @@ teststeps:
 
   - api: api/delete_user.yml
     name: 删除用户
+    variables:
+      user_id: ${get_user_id($username)}
     validate:
       - eq:
           - status_code

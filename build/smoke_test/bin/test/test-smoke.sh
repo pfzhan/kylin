@@ -43,12 +43,15 @@ function getHadoopDistribution() {
     fi
 }
 
-function runTest() {
+function prepare() {
     export root_dir="${dir}/build/smoke_test/"
     source ${root_dir}/venv/bin/activate
     echo "pip3 is" `which pip3`
     echo "start to run compatibility test on ${hadoop_distribution}"
     export PYTHONPATH=${dir}/build/smoke_test:${PYTHONPATH}
+}
+
+function runTest() {
     if [[ $PYTEST_MARK == *"ALL"* ]]; then
         pytest -m "p1" --alluredir ${allure_report} ${root_dir} --junitxml=report_p1.xml
         pytest -m "smoketest" --alluredir ${allure_report} ${root_dir} --junitxml=report_smoketest.xml
@@ -85,6 +88,10 @@ METADATA_TABLE=${METADATA_NAME}
 AUDITLOG_TABLE=${METADATA_NAME}_audit_log
 SESSION_TABLE=${METADATA_NAME}_session
 SESSION_ATTRIBUTES_TABLE=${METADATA_NAME}_session_attributes
+EPOCH_TABLE=${METADATA_NAME}_epoch
+QUERY_HISTORY_TABLE=${METADATA_NAME}_query_history
+QUERY_HISTORY_REALIZATION_TABLE=${METADATA_NAME}_query_history_realization
+REC_CANDIDATE_TABLE=${METADATA_NAME}_rec_candidate
 
 echo "The metadata name is ${METADATA_NAME}"
 
@@ -149,6 +156,10 @@ export METADATA_ERASE_CMD="${DROP_TRABLE} ${METADATA_TABLE}\""
 export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${AUDITLOG_TABLE}\""
 export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${SESSION_TABLE}\""
 export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${SESSION_ATTRIBUTES_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${EPOCH_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${QUERY_HISTORY_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${QUERY_HISTORY_REALIZATION_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${REC_CANDIDATE_TABLE}\""
 
 # clean metadata in metastore
 echo "Start erase metadata"
@@ -175,6 +186,9 @@ cd -
 # run pytest
 export PYTHON_VENV_HOME=$dir/build/smoke_test/venv
 allure_report=$dir/Report
+
+prepare
+
 runTest
 
 runApiPermissionCheck

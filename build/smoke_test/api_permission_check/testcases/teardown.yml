@@ -37,7 +37,7 @@ teststeps:
   - api: api/delete_user.yml
     name: 删除用户
     variables:
-      username: ${get_user_name_by_role(PROJECT_ADMIN)}
+      user_id: ${get_user_id_by_role(PROJECT_ADMIN)}
     validate:
       - eq:
           - status_code
@@ -46,7 +46,7 @@ teststeps:
   - api: api/delete_user.yml
     name: 删除用户
     variables:
-      username: ${get_user_name_by_role(MANAGEMENT)}
+      user_id: ${get_user_id_by_role(MANAGEMENT)}
     validate:
       - eq:
           - status_code
@@ -55,7 +55,7 @@ teststeps:
   - api: api/delete_user.yml
     name: 删除用户
     variables:
-      username: ${get_user_name_by_role(OPERATION)}
+      user_id: ${get_user_id_by_role(OPERATION)}
     validate:
       - eq:
           - status_code
@@ -64,7 +64,7 @@ teststeps:
   - api: api/delete_user.yml
     name: 删除用户
     variables:
-      username: ${get_user_name_by_role(QUERY)}
+      user_id: ${get_user_id_by_role(QUERY)}
     validate:
       - eq:
           - status_code
@@ -73,7 +73,7 @@ teststeps:
   - api: api/delete_user.yml
     name: 删除用户
     variables:
-      username: ${get_user_name_by_role(ALL)}
+      user_id: ${get_user_id_by_role(ALL)}
     validate:
       - eq:
           - status_code
@@ -82,7 +82,7 @@ teststeps:
   - api: api/delete_user.yml
     name: 删除用户
     variables:
-      username: $resident_user
+      user_id: ${get_user_id($resident_user)}
     validate:
       - eq:
           - status_code

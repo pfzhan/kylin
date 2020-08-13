@@ -70,6 +70,9 @@ def get_project_name():
 def get_user_name_by_role(role):
     return str(base64.b64decode(roles[role]), 'UTF-8').split(":")[0]
 
+def get_user_id_by_role(role):
+    return get_user_id(get_user_name_by_role(role))
+
 
 def get_password_by_role(role):
     return str(base64.b64decode(roles[role]), 'UTF-8').split(":")[1]
@@ -189,11 +192,20 @@ def create_user(user_name, password):
 
     response = requests.request("POST", url, json=payload, headers=headers).json()
 
+def get_user_id(user_name):
+    url = "{base_url}/user?name={user_name}".format(base_url=base_url, user_name=user_name)
+    response = requests.request("GET", url, headers=headers).json()
+
+    user = next(filter(lambda user: user['username'] == user_name, response['data']['value']), None)
+    if user:
+        return user['uuid']
+
 
 def delete_user(user_name):
-    url = "{base_url}/user/{user_name}".format(base_url=base_url, user_name=user_name)
-
-    response = requests.request("DELETE", url, headers=headers).json()
+    user_id = get_user_id(user_name)
+    if user_id:
+        url = "{base_url}/user/{uuid}".format(base_url=base_url, uuid=user_id)
+        response = requests.request("DELETE", url, headers=headers).json()
 
 
 def prepare_table_index(model_name, project_name):
@@ -395,8 +407,8 @@ def await_all_table_job_finished(project_name, table_name):
     finished_status = ['SUCCEED', 'DISCARDED', 'SUICIDAL', 'FINISHED']
     from datetime import datetime
     start = datetime.now()
-    # 5 minutes
-    while (datetime.now() - start).total_seconds() < 60 * 5:
+    # 1 minutes
+    while (datetime.now() - start).total_seconds() < 60 * 1:
         jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
 
         if not jobs or not any(filter(lambda job: job.get('target_model') == table_name
@@ -408,8 +420,10 @@ def await_all_table_job_finished(project_name, table_name):
     # discard all jobs
     jobs = requests.request("GET", url, headers=headers).json().get('data').get('value')
 
-    unfinished_jobs = list(filter(lambda job: job.get('status') not in finished_status, jobs))
+    unfinished_jobs = list(filter(lambda job: job.get('job_status') not in finished_status, jobs))
     discard_job(project_name, list(map(lambda job: job.get('id'), unfinished_jobs)))
+
+    time.sleep(10)
 
 
 def get_running_job_id_by_status(project_name):
