@@ -359,7 +359,7 @@ export default class ModelAggregate extends Vue {
   totalSize = 0
   filterArgs = {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10,
+    page_size: +localStorage.getItem(this.pageRefTags.indexPager) || 10,
     key: '',
     sort_by: '',
     reverse: '',
@@ -372,7 +372,7 @@ export default class ModelAggregate extends Vue {
   statusArr = ['EMPTY', 'AVAILABLE', 'TO_BE_DELETED', 'BUILDING']
   detailType = ''
   currentPage = 0
-  currentCount = 10
+  currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10
   totalTableIndexColumnSize = 0
   isFullLoaded = false
   indexDetailTitle = ''
