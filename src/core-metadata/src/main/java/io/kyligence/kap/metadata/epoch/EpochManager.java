@@ -61,7 +61,7 @@ public class EpochManager implements IKeep {
 
     public static final String GLOBAL = "_global";
 
-    private static final String maintainOwner;
+    private static final String MAINTAIN_OWNER;
 
     private Set<String> currentEpochs = Sets.newCopyOnWriteArraySet();
 
@@ -82,7 +82,7 @@ public class EpochManager implements IKeep {
     private EventBusFactory eventBusFactory;
 
     static {
-        maintainOwner = AddressUtil.getMockPortAddress() + "|" + Long.MAX_VALUE;
+        MAINTAIN_OWNER = AddressUtil.getMockPortAddress() + "|" + Long.MAX_VALUE;
     }
 
     private EpochManager(KylinConfig cfg) throws Exception {
@@ -102,7 +102,7 @@ public class EpochManager implements IKeep {
             return false;
         }
         for (Epoch epoch : epochStore.list()) {
-            epoch.setCurrentEpochOwner(maintainOwner);
+            epoch.setCurrentEpochOwner(MAINTAIN_OWNER);
             epoch.setLastEpochRenewTime(Long.MAX_VALUE);
             epoch.setMaintenanceModeReason(reason);
             epochStore.saveOrUpdate(epoch);
@@ -154,8 +154,7 @@ public class EpochManager implements IKeep {
     }
 
     public boolean tryUpdateEpoch(String epochTarget, boolean force) {
-        if (!force && isMaintenanceMode()) {
-            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+        if (!force && checkInMaintenanceMode()) {
             return false;
         }
         try {
@@ -204,8 +203,7 @@ public class EpochManager implements IKeep {
 
     public synchronized void updateAllEpochs() {
         logger.debug("Start updateAllEpochs.........");
-        if (isMaintenanceMode()) {
-            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+        if (checkInMaintenanceMode()) {
             return;
         }
         val oriEpochs = Sets.newHashSet(currentEpochs);
@@ -236,8 +234,7 @@ public class EpochManager implements IKeep {
 
     //when create a epochTarget, mark now
     public synchronized void updateEpoch(String epochTarget) throws Exception {
-        if (isMaintenanceMode()) {
-            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+        if (checkInMaintenanceMode()) {
             return;
         }
 
@@ -352,5 +349,13 @@ public class EpochManager implements IKeep {
 
     public boolean isMaintenanceMode() {
         return getMaintenanceModeDetail().getFirst();
+    }
+
+    private boolean checkInMaintenanceMode() {
+        if (isMaintenanceMode()) {
+            logger.debug("System is currently undergoing maintenance. Abort updating Epochs");
+            return true;
+        }
+        return false;
     }
 }

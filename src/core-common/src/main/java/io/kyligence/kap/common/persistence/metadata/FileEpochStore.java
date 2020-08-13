@@ -25,6 +25,7 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +50,7 @@ public class FileEpochStore extends EpochStore {
     private final File root;
 
     public static EpochStore getEpochStore(KylinConfig config) {
-        return Singletons.getInstance(FileEpochStore.class, (clz) -> new FileEpochStore(config));
+        return Singletons.getInstance(FileEpochStore.class, clz -> new FileEpochStore(config));
     }
 
     private FileEpochStore(KylinConfig kylinConfig) {
@@ -67,7 +68,7 @@ public class FileEpochStore extends EpochStore {
             epoch.setMvcc(epoch.getMvcc() + 1);
             objectMapper.writeValue(new File(root, epoch.getEpochTarget()), epoch);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn("Save or update epoch {} failed", epoch, e);
         }
     }
 
@@ -78,7 +79,7 @@ public class FileEpochStore extends EpochStore {
             try {
                 return objectMapper.readValue(file, Epoch.class);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.warn("Get epoch {} failed", epochTarget, e);
             }
         }
         return null;
@@ -94,7 +95,7 @@ public class FileEpochStore extends EpochStore {
                 try {
                     results.add(objectMapper.readValue(file, Epoch.class));
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.warn("Get epoch from file {} failed", file.getAbsolutePath(), e);
                 }
             }
         }
@@ -105,7 +106,11 @@ public class FileEpochStore extends EpochStore {
     public void delete(String epochTarget) {
         File file = new File(root, epochTarget);
         if (file.exists()) {
-            file.delete();
+            try {
+                Files.delete(file.toPath());
+            } catch (IOException e) {
+                log.warn("Delete epoch {} failed", epochTarget);
+            }
         }
     }
 
