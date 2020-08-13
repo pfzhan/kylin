@@ -53,4 +53,6 @@ public interface AuditLogStore extends Closeable, IKeep {
 
     void setInstance(String instance);
 
+    void setStartId(long offset);
+
 }

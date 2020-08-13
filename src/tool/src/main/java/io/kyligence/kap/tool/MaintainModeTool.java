@@ -26,6 +26,7 @@ package io.kyligence.kap.tool;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
@@ -60,6 +61,7 @@ public class MaintainModeTool extends ExecutableApplication {
     private static final Option OPTION_PROJECTS = new Option("p", "projects", true,
             "specify projects to turn on or turn off maintain mode.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
+    private static final String LEADER_RACE_KEY = "kylin.server.leader-race.enabled";
 
     @Override
     protected Options getOptions() {
@@ -88,7 +90,9 @@ public class MaintainModeTool extends ExecutableApplication {
     public void init() throws UnknownHostException {
         config = KylinConfig.getInstanceFromEnv();
         String ipAndPort = AddressUtil.getMockPortAddress();
-        ResourceStore.getKylinMetaStore(config).getAuditLogStore().setInstance(ipAndPort);
+        ResourceStore metaStore = ResourceStore.getKylinMetaStore(config);
+        metaStore.getAuditLogStore().setInstance(ipAndPort);
+        setAuditlogStartId(metaStore);
         if (CollectionUtils.isEmpty(projects)) {
             projects = NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                     .collect(Collectors.toList());
@@ -99,26 +103,49 @@ public class MaintainModeTool extends ExecutableApplication {
         epochManager.setIdentity(owner);
     }
 
+    private void setAuditlogStartId(ResourceStore resourceStore) {
+        val auditLogStore = resourceStore.getAuditLogStore();
+        auditLogStore.setStartId(resourceStore.getOffset());
+    }
+
     public void markEpochs() {
         try {
             System.out.println("Start to mark epoch");
-            System.setProperty("kylin.server.leader-race.enabled", "false");
+            System.setProperty(LEADER_RACE_KEY, "false");
+            ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
             for (val prj : projects) {
-                epochManager.forceUpdateEpoch(prj);
+                markOwnerWithRetry(config.getTurnMaintainModeRetryTimes(), store, prj);
             }
+            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
         } catch (Exception e) {
             log.error("Mark epoch failed", e);
             System.out.println(StorageCleaner.ANSI_RED
                     + "Turn on maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                     + StorageCleaner.ANSI_RESET);
+            System.clearProperty(LEADER_RACE_KEY);
+            System.exit(1);
         } finally {
-            System.clearProperty("kylin.server.leader-race.enabled");
+            System.clearProperty(LEADER_RACE_KEY);
+        }
+    }
+
+    private void markOwnerWithRetry(int retryTimes, ResourceStore store, String prj) throws Exception {
+        boolean updateEpoch = epochManager.forceUpdateEpoch(prj);
+        if (!updateEpoch) {
+            if (retryTimes > 0) {
+                TimeUnit.SECONDS.sleep(2);
+                store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+                markOwnerWithRetry(retryTimes - 1, store, prj);
+            } else {
+                throw new IllegalStateException("Failed to turn on maintain mode due to project " + prj);
+            }
         }
     }
 
     public void releaseEpochs() {
         try {
-            System.setProperty("kylin.server.leader-race.enabled", "true");
+            System.setProperty(LEADER_RACE_KEY, "true");
             epochManager.setIdentity("");
             for (val prj : projects) {
                 epochManager.forceUpdateEpoch(prj);
@@ -128,8 +155,10 @@ public class MaintainModeTool extends ExecutableApplication {
             System.out.println(StorageCleaner.ANSI_RED
                     + "Turn off maintain mode failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
                     + StorageCleaner.ANSI_RESET);
+            System.clearProperty(LEADER_RACE_KEY);
+            System.exit(1);
         } finally {
-            System.clearProperty("kylin.server.leader-race.enabled");
+            System.clearProperty(LEADER_RACE_KEY);
         }
     }
 

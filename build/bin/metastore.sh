@@ -63,6 +63,12 @@ function printRestoreResult() {
 
 
 ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on
+ret=$?
+if [[ $ret != 0 ]]; then
+    echo "failed to turn on maintain mode, exit!"
+    exit $ret
+fi
+
 if [ "$1" == "backup" ]
 then
     BACKUP_OPTS="-backup"

@@ -217,7 +217,9 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Override
     public void restore(ResourceStore store, long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
-        consumeExecutor = new ScheduledThreadPoolExecutor(1);
+        if (consumeExecutor == null) {
+            consumeExecutor = new ScheduledThreadPoolExecutor(1);
+        }
         startId.set(currentId);
         val interval = config.getCatchUpInterval();
         if (config.isJobNode() && !config.isUTEnv()) {
@@ -242,12 +244,18 @@ public class JdbcAuditLogStore implements AuditLogStore {
     }
 
     public void catchupManuallyWithTimeOut(ResourceStore store) throws Exception {
+        if (consumeExecutor == null) {
+            consumeExecutor = new ScheduledThreadPoolExecutor(1);
+        }
         FutureTask<Void> futureTask = new FutureTask<Void>(createFetcher(store.getChecker()), null);
         consumeExecutor.submit(futureTask);
-        futureTask.get(2, TimeUnit.SECONDS);
+        futureTask.get(config.getCatchUpTimeout(), TimeUnit.SECONDS);
     }
 
     public void catchupManually(ResourceStore store) {
+        if(consumeExecutor == null){
+            consumeExecutor = new ScheduledThreadPoolExecutor(1);
+        }
         consumeExecutor.submit(createFetcher(store.getChecker()));
     }
 
@@ -365,5 +373,9 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
     public long getStartId() {
         return startId.get();
+    }
+
+    public void setStartId(long offset) {
+        startId.set(offset);
     }
 }

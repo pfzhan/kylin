@@ -2023,6 +2023,10 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-interval", "5s"), TimeUnit.SECONDS);
     }
 
+    public long getCatchUpTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-timeout", "2s"), TimeUnit.SECONDS);
+    }
+
     public long getUpdateEpochTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.server.leader-race.update-heart-beat-timeout", "30s"),
                 TimeUnit.SECONDS);
@@ -2188,6 +2192,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean cleanDiagTmpFile() {
         return Boolean.parseBoolean(getOptional("kylin.tool.clean-diag-tmp-file", FALSE));
+    }
+
+    public int getTurnMaintainModeRetryTimes() {
+        return Integer.parseInt(getOptional("kylin.tool.turn-on-maintainmodel-retry-times", "3"));
     }
 
     public int getSuggestModelSqlLimit() {

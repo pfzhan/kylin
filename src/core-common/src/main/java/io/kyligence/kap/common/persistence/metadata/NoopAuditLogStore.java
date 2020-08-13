@@ -83,6 +83,11 @@ public class NoopAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public void setStartId(long offset) {
+        //do nothing
+    }
+
+    @Override
     public void close() throws IOException {
         // just implement it
     }

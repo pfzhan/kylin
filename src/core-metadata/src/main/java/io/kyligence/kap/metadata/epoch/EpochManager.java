@@ -298,13 +298,15 @@ public class EpochManager implements IKeep {
         return epoch.getEpochId();
     }
 
-    public synchronized void forceUpdateEpoch(String epochTarget) {
+    public synchronized boolean forceUpdateEpoch(String epochTarget) {
         if (tryUpdateEpoch(epochTarget, true)) {
             currentEpochs.add(epochTarget);
             if (!isMaintenanceMode()) {
                 eventBusFactory.postAsync(new ProjectControlledNotifier(epochTarget));
             }
+            return true;
         }
+        return false;
     }
 
     private void checkEpochTarget(String epochTarget) {
