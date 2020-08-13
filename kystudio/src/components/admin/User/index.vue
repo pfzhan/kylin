@@ -94,6 +94,7 @@
       class="ksd-center ksd-mtb-10" ref="pager"
       :refTag="pageRefTags.userPager"
       :totalSize="totalSize"
+      :perPageSize="20"
       :curPage="pagination.page_offset+1"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>

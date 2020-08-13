@@ -437,10 +437,10 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
 import ModelOverview from './ModelOverview/ModelOverview.vue'
 
-function getDefaultFilters () {
+function getDefaultFilters (that) {
   return {
     page_offset: 0,
-    page_size: +localStorage.getItem(this.pageRefTags.modelListPager) || 10,
+    page_size: +localStorage.getItem(that.pageRefTags.modelListPager) || 10,
     exact: false,
     model_name: '',
     sort_by: 'last_modify',
@@ -577,7 +577,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 export default class ModelList extends Vue {
   pageRefTags = pageRefTags
   mockSQL = mockSQL
-  filterArgs = getDefaultFilters()
+  filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
   currentEditModel = null
   showFull = false
@@ -726,7 +726,7 @@ export default class ModelList extends Vue {
     this.filterArgs.model_alias_or_owner = value
   }
   handleResetFilters () {
-    const defaultFilters = getDefaultFilters()
+    const defaultFilters = getDefaultFilters(this)
 
     Object.entries(defaultFilters).map(([key, value]) => {
       this.filterArgs[key] = value

@@ -117,8 +117,8 @@
         class="ksd-center ksd-mtb-10" ref="pager"
         :refTag="pageRefTags.projectPager"
         :totalSize="projectsTotal"
+        :perPageSize="20"
         :curPage="filterData.page_offset+1"
-        v-if="projectsTotal"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
     </div>
@@ -337,7 +337,7 @@ export default {
       projectWidth: '440px',
       filterData: {
         page_offset: 0,
-        page_size: +localStorage.getItem(this.pageRefTags.projectPager) || 20,
+        page_size: +localStorage.getItem(pageRefTags.projectPager) || 20,
         exact: false,
         project: '',
         permission: 'ADMINISTRATION'
