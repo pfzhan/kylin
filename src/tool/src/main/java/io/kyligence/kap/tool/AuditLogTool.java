@@ -25,6 +25,8 @@
 package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RED;
+import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RESET;
 import static org.apache.kylin.common.exception.ToolErrorCode.DIRECTORY_NOT_EXIST;
 import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_JOB_PARAMETER;
 import static org.apache.kylin.common.exception.ToolErrorCode.EMPTY_PROJECT_PARAMETER;
@@ -80,8 +82,8 @@ public class AuditLogTool extends ExecutableApplication {
     private static final Option OPTION_PROJECT = OptionBuilder.getInstance().hasArg().withArgName("OPTION_PROJECT")
             .withDescription("Specify project (optional)").isRequired(false).create("project");
 
-    private static final Option OPTION_RESTORE = OptionBuilder.getInstance().withDescription("Restore audit log from local path")
-            .isRequired(false).create("restore");
+    private static final Option OPTION_RESTORE = OptionBuilder.getInstance()
+            .withDescription("Restore audit log from local path").isRequired(false).create("restore");
 
     private static final Option OPTION_TABLE = OptionBuilder.getInstance().hasArg().withArgName("TABLE_NAME")
             .withDescription("Specify the table (optional)").isRequired(false).create("table");
@@ -119,7 +121,12 @@ public class AuditLogTool extends ExecutableApplication {
 
     public static void main(String[] args) {
         val tool = new AuditLogTool();
-        tool.execute(args);
+        try {
+            tool.execute(args);
+        } catch (Exception e) {
+            System.out.println(ANSI_RED + "Audit log task failed." + ANSI_RESET);
+            System.exit(1);
+        }
         System.out.println("Audit log task finished.");
         System.exit(0);
     }

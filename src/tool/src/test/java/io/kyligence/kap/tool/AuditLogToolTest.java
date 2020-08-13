@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -190,5 +191,22 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
         }).maxRetry(1).build());
         val auditLogStore = (JdbcAuditLogStore) getStore().getAuditLogStore();
         auditLogStore.batchInsert(auditLog);
+    }
+
+    @Test
+    public void testBatchInsertWithNull() {
+        List<AuditLog> auditLogs = new ArrayList<>();
+        AuditLog auditLog = new AuditLog();
+        auditLog.setId(0);
+        auditLog.setInstance(null);
+        auditLog.setMvcc(null);
+        auditLog.setOperator(null);
+        auditLog.setResPath(null);
+        auditLog.setByteSource(null);
+        auditLog.setTimestamp(null);
+        auditLog.setUnitId(null);
+        auditLogs.add(auditLog);
+        val auditLogStore = (JdbcAuditLogStore) getStore().getAuditLogStore();
+        auditLogStore.batchInsert(auditLogs);
     }
 }

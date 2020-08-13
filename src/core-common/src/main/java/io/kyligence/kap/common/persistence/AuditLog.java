@@ -40,8 +40,10 @@ import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuditLog implements IKeep {

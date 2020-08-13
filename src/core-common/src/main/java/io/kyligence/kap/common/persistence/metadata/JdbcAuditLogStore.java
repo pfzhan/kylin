@@ -114,7 +114,6 @@ public class JdbcAuditLogStore implements AuditLogStore {
     private AtomicBoolean stop = new AtomicBoolean(false);
     private BlockingQueue<Object> blockingQueue = new LinkedBlockingDeque<>(1);
 
-
     private volatile AtomicLong startId = new AtomicLong();
 
     public JdbcAuditLogStore(KylinConfig config) throws Exception {
@@ -158,21 +157,24 @@ public class JdbcAuditLogStore implements AuditLogStore {
                         }
                     } else if (e instanceof ResourceDeleteEvent) {
                         ResourceDeleteEvent deleteEvent = (ResourceDeleteEvent) e;
-                        return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null, unitId, operator, instance };
+                        return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null, unitId,
+                                operator, instance };
                     }
                     return null;
                 }).filter(Objects::nonNull).collect(Collectors.toList())));
     }
 
     public void batchInsert(List<AuditLog> auditLogs) {
-        withTransaction(transactionManager, () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
-            try {
-                return new Object[]{x.getResPath(), x.getByteSource().read(), x.getTimestamp(), x.getMvcc(),
-                        x.getUnitId(), x.getOperator(), x.getInstance()};
-            } catch (IOException e) {
-                return null;
-            }
-        }).filter(Objects::nonNull).collect(Collectors.toList())));
+        withTransaction(transactionManager,
+                () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
+                    try {
+                        val bs = Objects.isNull(x.getByteSource()) ? null : x.getByteSource().read();
+                        return new Object[] { x.getResPath(), bs, x.getTimestamp(), x.getMvcc(), x.getUnitId(),
+                                x.getOperator(), x.getInstance() };
+                    } catch (IOException e) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull).collect(Collectors.toList())));
     }
 
     public List<AuditLog> fetch(long currentId, long size) {
@@ -210,9 +212,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Override
     public long getMinId() {
         return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MIN_ID_SQL, table), Long.class))
-            .orElse(0L);
+                .orElse(0L);
     }
-
 
     @Override
     public void restore(ResourceStore store, long currentId) {
