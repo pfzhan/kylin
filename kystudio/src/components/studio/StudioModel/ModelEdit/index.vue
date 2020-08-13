@@ -1205,11 +1205,12 @@ export default class ModelEdit extends Vue {
       }
     }
     let fTable = this.modelRender.tables[this.currentDragColumnData.guid]
+    let joinInfo = table.joinInfo[`${this.currentDragColumnData.guid}$${table.guid}`]
     let joinDialogOption = {
       fid: this.currentDragColumnData.guid,
       pid: table.guid,
       fColumnName: fTable.alias + '.' + this.currentDragColumnData.columnName,
-      selectTableRelation: table.joinInfo[`${this.currentDragColumnData.guid}$${table.guid}`].join_relation_type,
+      selectTableRelation: joinInfo && joinInfo.join_relation_type,
       tables: this.modelRender.tables
     }
     if (col) {
