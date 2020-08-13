@@ -48,7 +48,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.cuboid.NCuboidScheduler;
+import io.kyligence.kap.metadata.cube.cuboid.CuboidScheduler;
 import io.kyligence.kap.metadata.cube.model.validation.NIndexPlanValidator;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
@@ -288,7 +288,7 @@ public class NIndexPlanManager implements IKeepNames {
                 "there are duplicate indexes in index_plan");
 
         if (indexPlan.getRuleBasedIndex() != null) {
-            val scheduler = NCuboidScheduler.getInstance(indexPlan, indexPlan.getRuleBasedIndex());
+            val scheduler = CuboidScheduler.getInstance(indexPlan, indexPlan.getRuleBasedIndex());
             scheduler.updateOrder();
         }
     }

@@ -422,7 +422,7 @@ public class IndexPlanService extends BasicService {
             totalResult = AggIndexCombResult.errorResult();
         } else {
             try {
-                long cuboidCount = indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount();
+                long cuboidCount = indexPlan.getRuleBasedIndex().getCuboidScheduler().getCuboidCount();
                 totalResult = AggIndexCombResult.successResult(cuboidCount);
             } catch (OutOfMaxCombinationException outOfMaxCombinationException) {
                 totalResult = AggIndexCombResult.errorResult();

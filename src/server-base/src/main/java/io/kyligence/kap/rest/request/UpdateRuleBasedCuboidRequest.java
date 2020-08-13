@@ -62,6 +62,10 @@ public class UpdateRuleBasedCuboidRequest implements ProjectInsensitiveRequest {
     private Integer globalDimCap;
 
     @Builder.Default
+    @JsonProperty("scheduler_version")
+    private int schedulerVersion = 1;
+
+    @Builder.Default
     @JsonProperty("load_data")
     private boolean isLoadData = true;
 

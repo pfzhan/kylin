@@ -24,13 +24,6 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import lombok.val;
-
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -38,16 +31,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CuboidSet implements Set<CuboidBigInteger> {
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import lombok.val;
+
+public class OrderedSet<T> implements Set<T> {
     // HashMap default value
     private static final float DEFAULT_LOAD_FACTOR = 0.75f;
     private static final int MAXIMUM_CAPACITY = 1 << 30;
 
-    private final Set<CuboidBigInteger> set = Sets.newHashSet();
-    private final Map<CuboidBigInteger, Integer> insertingMap = Maps.newHashMap();
+    private final Set<T> set = Sets.newHashSet();
+    private final Map<T, Integer> insertingMap = Maps.newHashMap();
 
     @Override
-    public boolean add(CuboidBigInteger element) {
+    public boolean add(T element) {
         val result = set.add(element);
         if (result) {
             insertingMap.putIfAbsent(element, set.size());
@@ -71,7 +71,7 @@ public class CuboidSet implements Set<CuboidBigInteger> {
     }
 
     @Override
-    public boolean addAll(Collection<? extends CuboidBigInteger> c) {
+    public boolean addAll(Collection<? extends T> c) {
         val iterator = c.iterator();
         while (iterator.hasNext()) {
             val element = iterator.next();
@@ -102,11 +102,13 @@ public class CuboidSet implements Set<CuboidBigInteger> {
     }
 
     @Override
-    public Iterator<CuboidBigInteger> iterator() {
+    public Iterator<T> iterator() {
         int capacity = capacity();
-        return set.stream().sorted((cuboid1, cuboid2) -> ComparisonChain.start()
-                .compare(hash(cuboid1, capacity), hash(cuboid2, capacity))
-                .compare(insertingMap.get(cuboid1), insertingMap.get(cuboid2)).result()).iterator();
+        return set.stream()
+                .sorted((cuboid1, cuboid2) -> ComparisonChain.start()
+                        .compare(hash(cuboid1, capacity), hash(cuboid2, capacity))
+                        .compare(insertingMap.get(cuboid1), insertingMap.get(cuboid2)).result())
+                .iterator();
     }
 
     @Override
@@ -134,23 +136,23 @@ public class CuboidSet implements Set<CuboidBigInteger> {
         return set.contains(o);
     }
 
-
-    public List<BigInteger> getSortedList() {
-        val result = Lists.<CuboidBigInteger>newArrayList();
+    public List<T> getSortedList() {
+        val result = Lists.<T> newArrayList();
         val iterator = iterator();
         while (iterator.hasNext()) {
             result.add(iterator.next());
         }
 
         int capacityForNewHashSet = capacityForNewHashSet();
-        return result.stream().sorted((cuboid1, cuboid2) -> ComparisonChain.start()
-                .compare(hash(cuboid1, capacityForNewHashSet), hash(cuboid2, capacityForNewHashSet)).result())
-                .map(CuboidBigInteger::getDimMeas).collect(Collectors.toList());
+        return result.stream()
+                .sorted((cuboid1, cuboid2) -> ComparisonChain.start()
+                        .compare(hash(cuboid1, capacityForNewHashSet), hash(cuboid2, capacityForNewHashSet)).result())
+                .collect(Collectors.toList());
     }
 
-    private int hash(CuboidBigInteger cuboidDecimal, int capacity) {
+    private int hash(T cuboidDecimal, int capacity) {
         int hashSetTableSize = hashSetTableSize(capacity);
-        int hashcode = cuboidDecimal == null ? 0: cuboidDecimal.hashCode();
+        int hashcode = cuboidDecimal == null ? 0 : cuboidDecimal.hashCode();
         return (hashSetTableSize - 1) & (hashcode ^ (hashcode >>> 16));
     }
 
@@ -172,4 +174,5 @@ public class CuboidSet implements Set<CuboidBigInteger> {
         n |= n >>> 16;
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
+
 }

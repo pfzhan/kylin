@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.INDEX_ID_STEP;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -53,13 +52,9 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IEngineAware;
-import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -215,7 +210,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         ruleBasedIndex.init();
         ruleBasedLayouts.addAll(ruleBasedIndex.genCuboidLayouts());
         if (config.base().isSystemConfig() && isCachedAndShared) {
-            ruleBasedIndex.getInitialCuboidScheduler().validateOrder();
+            ruleBasedIndex.getCuboidScheduler().validateOrder();
         }
     }
 
@@ -361,48 +356,12 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return effectiveMeasures;
     }
 
-    /**
-     * A column may reuse dictionary of another column, find the dict column, return same col if there's no reuse column
-     */
-    TblColRef getDictionaryReuseColumn(TblColRef col) {
-        if (dictionaries == null) {
-            return col;
-        }
-        for (NDictionaryDesc dictDesc : dictionaries) {
-            if (dictDesc.getColumnRef().equals(col) && dictDesc.getResuseColumnRef() != null) {
-                return dictDesc.getResuseColumnRef();
-            }
-        }
-        return col;
-    }
-
-    public String getDictionaryBuilderClass(TblColRef col) {
-        if (dictionaries == null)
-            return null;
-
-        for (NDictionaryDesc desc : dictionaries) {
-            // column that reuses other's dict need not be built, thus should not reach here
-            if (desc.getBuilderClass() != null && col.equals(desc.getColumnRef())) {
-                return desc.getBuilderClass();
-            }
-        }
-        return null;
-    }
-
     public Set<ColumnDesc> listAllColumnDescs() {
         return allColumnDescs;
     }
 
     public Set<TblColRef> listAllTblColRefs() {
         return allColumns;
-    }
-
-    public List<FunctionDesc> listAllFunctions() {
-        List<FunctionDesc> functions = new ArrayList<>();
-        for (MeasureDesc m : effectiveMeasures.values()) {
-            functions.add(m.getFunction());
-        }
-        return functions;
     }
 
     private void addLayout2TargetIndex(LayoutEntity sourceLayout, IndexEntity targetIndex) {
@@ -505,46 +464,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return isCachedAndShared ? ImmutableList.copyOf(ruleBasedLayouts) : ruleBasedLayouts;
     }
 
-    public Set<TblColRef> listDimensionColumnsIncludingDerived(IndexEntity cuboidDesc) {
-        Set<TblColRef> ret = Sets.newHashSet();
-        ret.addAll(effectiveDimCols.values());
-
-        for (TblColRef col : effectiveDimCols.values()) {
-            if (cuboidDesc != null && !cuboidDesc.dimensionsDerive(col)) {
-                continue;
-            }
-            ret.add(col);
-        }
-
-        for (TableRef tableRef : getModel().getLookupTables()) {
-
-            if (cuboidDesc != null) {
-                JoinDesc joinByPKSide = getModel().getJoinByPKSide(tableRef);
-                TblColRef[] fks = joinByPKSide.getForeignKeyColumns();
-                if (!cuboidDesc.dimensionsDerive(fks)) {
-                    continue;
-                }
-            }
-
-            ret.addAll(tableRef.getColumns());
-        }
-        return ret;
-    }
-
-    public Set<TblColRef> listDimensionColumnsExcludingDerived(IndexEntity cuboidDesc) {
-        Set<TblColRef> ret = Sets.newHashSet();
-        ret.addAll(effectiveDimCols.values());
-
-        for (TblColRef col : effectiveDimCols.values()) {
-            if (cuboidDesc != null && !cuboidDesc.dimensionsDerive(col)) {
-                continue;
-            }
-            ret.add(col);
-        }
-
-        return ret;
-    }
-
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
@@ -561,7 +480,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
-        genMeasuresForRulebasedIndex(ruleBasedIndex);
+        genMeasuresForRuleBasedIndex(ruleBasedIndex);
         if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
             ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
         }
@@ -579,7 +498,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     public void setRuleBasedIndex(NRuleBasedIndex nRuleBasedIndex, boolean reuseStartId, boolean markToBeDeleted) {
         checkIsNotCachedAndShared();
-        genMeasuresForRulebasedIndex(nRuleBasedIndex);
+        genMeasuresForRuleBasedIndex(nRuleBasedIndex);
 
         if (CollectionUtils.isEmpty(nRuleBasedIndex.getMeasures())) {
             nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
@@ -605,7 +524,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         updateNextId();
     }
 
-    private void genMeasuresForRulebasedIndex(NRuleBasedIndex ruleBasedIndex) {
+    private void genMeasuresForRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
         val aggregationGroups = ruleBasedIndex.getAggregationGroups();
 
         TreeSet<Integer> measures = new TreeSet<>();

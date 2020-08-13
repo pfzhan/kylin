@@ -1032,6 +1032,15 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCalculateAggIndexCountWhenTotalCuboidsOutOfMaxComb() throws Exception {
+        testOutOfCombination(1);
+    }
+
+    @Test
+    public void testCalculateAggIndexCountWhenTotalCuboidsOutOfMaxComb_WithSchedulerV2() throws Exception {
+        testOutOfCombination(2);
+    }
+
+    private void testOutOfCombination(int version) {
         // agg group1 over 4096
         NAggregationGroup aggregationGroup1 = new NAggregationGroup();
         aggregationGroup1.setIncludes(new Integer[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
@@ -1056,6 +1065,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("enormous_cuboids_test")
                 .modelId("c4437350-fa42-48b4-b1e4-060ae92ab527")
                 .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .schedulerVersion(version)
                 .build();
         request.setGlobalDimCap(2);
 

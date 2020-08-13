@@ -28,7 +28,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -43,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.MapUtil;
@@ -198,18 +196,6 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
 
     public List<TblColRef> getColumns() {
         return Lists.newArrayList(getOrderedDimensions().values());
-    }
-
-    public boolean isExtendedColumn(TblColRef tblColRef) {
-        return false; // TODO: enable derived
-    }
-
-    public Set<TblColRef> getShardByColumnRefs() {
-        Set<TblColRef> colRefs = Sets.newHashSetWithExpectedSize(shardByColumns.size());
-        for (int c : shardByColumns) {
-            colRefs.add(getOrderedDimensions().get(c));
-        }
-        return colRefs;
     }
 
     public List<String> listBitmapMeasure() {

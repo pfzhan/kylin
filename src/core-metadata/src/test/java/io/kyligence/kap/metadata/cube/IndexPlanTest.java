@@ -22,10 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.model;
+package io.kyligence.kap.metadata.cube;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,8 +53,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.CubeTestUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -220,8 +225,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
         // remove maxId
         cube = indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(nextAggId1 + 1, nextTableId1 + 1), true,
-                    false);
+            copyForWrite.removeLayouts(Sets.newHashSet(nextAggId1 + 1, nextTableId1 + 1), true, false);
         });
         Assert.assertTrue(
                 cube.getAllIndexes().stream().noneMatch(c -> c.getId() == nextAggId1 || c.getId() == nextTableId1));
@@ -471,4 +475,182 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             copyForWrite.setIndexes(indexes);
         });
     }
+
+    @Test
+    public void testLayoutGenerate_WithSchedulerV2() throws IOException {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncube_rule_basedv2.json"), IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+
+        val result = "1   [1, 2, 100000, 100001]\n" + //
+                "10001   [3, 4, 100000, 100001]\n" + //
+                "20001   [3, 100000, 100001]\n" + //
+                "30001   [2, 3, 5, 100000, 100001]\n" + //
+                "30002   [3, 2, 5, 100000, 100001]\n" + //
+                "40001   [2, 100000, 100001]\n" + //
+                "50001   [3, 2, 100000, 100001]\n" + //
+                "50002   [2, 3, 100000, 100001]\n" + //
+                "60001   [1, 100000, 100001]\n" + //
+                "70001   [1, 2, 3, 5, 100000, 100001]\n" + //
+                "80001   [1, 5, 100000, 100001]\n" + //
+                "90001   [5, 100000, 100001]\n" + //
+                "100001   [4, 100000, 100001]\n" + //
+                "110001   [3, 5, 100000, 100001]\n" + //
+                "120001   [1, 3, 100000, 100001]\n" + //
+                "130001   [1, 3, 5, 100000, 100001]\n" + //
+                "140001   [1, 2, 5, 100000, 100001]\n" + //
+                "150001   [4, 5, 100000, 100001]\n" + //
+                "160001   [3, 4, 5, 100000, 100001]\n" + //
+                "170001   [1, 2, 3, 4, 5, 100000, 100001]\n" + //
+                "180001   [3, 2, 4, 100000, 100001]\n" + //
+                "190001   [3, 2, 4, 5, 100000, 100001]\n" + //
+                "200001   [2, 5, 100000, 100001]\n" + //
+                "210001   [1, 2, 3, 100000, 100001]\n" + //
+                "220001   [2, 4, 5, 100000, 100001]\n" + //
+                "230001   [2, 4, 100000, 100001]";
+        Assert.assertEquals(result,
+                newPlan.getRuleBaseLayouts().stream().sorted(Comparator.comparingLong(LayoutEntity::getId))
+                        .map(l -> l.getId() + "   " + l.getColOrder().toString()).collect(Collectors.joining("\n")));
+
+        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+            val rule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+            val aggs = rule.getAggregationGroups();
+            rule.setAggregationGroups(Lists.newArrayList(aggs.get(1), aggs.get(0)));
+            rule.setLayoutIdMapping(Lists.newArrayList());
+            copyForWrite.setRuleBasedIndex(rule);
+        });
+
+        Assert.assertEquals(result,
+                newPlan.getRuleBaseLayouts().stream().sorted(Comparator.comparingLong(LayoutEntity::getId))
+                        .map(l -> l.getId() + "   " + l.getColOrder().toString()).collect(Collectors.joining("\n")));
+    }
+
+    @Test
+    public void testLayoutGenerate_WithAutoLayout() throws IOException {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncube_rule_basedv2_mixed.json"),
+                IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+
+        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(JsonUtil.readValueQuietly(("  {\n" + //
+            "    \"dimensions\": [ 1, 2, 3, 4, 5 ],\n" + //
+            "    \"measures\": [ 100000, 100001 ],\n" + //
+            "    \"aggregation_groups\": [\n" + //
+            "      {\n" + //
+            "        \"includes\": [ 1, 2, 3, 5 ],\n" + //
+            "        \"measures\": [ 100000, 100001 ],\n" + //
+            "        \"select_rule\": {\n" + //
+            "          \"hierarchy_dims\": [],\n" + //
+            "          \"mandatory_dims\": [],\n" + //
+            "          \"joint_dims\": []\n" + //
+            "        }\n" + //
+            "      },\n" + //
+            "      {\n" + //
+            "        \"includes\": [ 3, 2, 4, 5 ],\n" + //
+            "        \"measures\": [ 100000, 100001 ],\n" + //
+            "        \"select_rule\": {\n" + //
+            "          \"hierarchy_dims\": [],\n" + //
+            "          \"mandatory_dims\": [],\n" + //
+            "          \"joint_dims\": []\n" + //
+            "        }\n" + "      }\n" + //
+            "    ],\n" + //
+            "    \"storage_type\": 20,\n" + //
+            "    \"scheduler_version\": 2\n" + //
+            "  }").getBytes(), NRuleBasedIndex.class));
+        });
+
+        val result = "30001   [2, 3, 5, 100000, 100001]\n" + //
+                "30002   [5, 3, 2, 100000, 100001]\n" + //
+                "30003   [3, 2, 5, 100000, 100001]\n" + //
+                "40001   [2, 1, 5, 100000, 100001]\n" + //
+                "40002   [1, 2, 5, 100000, 100001]\n" + //
+                "50001   [1, 2, 100000, 100001]\n" + //
+                "60001   [3, 4, 100000, 100001]\n" + //
+                "70001   [3, 100000, 100001]\n" + //
+                "80001   [2, 100000, 100001]\n" + //
+                "90001   [3, 2, 100000, 100001]\n" + //
+                "90002   [2, 3, 100000, 100001]\n" + //
+                "100001   [1, 100000, 100001]\n" + //
+                "110001   [1, 2, 3, 5, 100000, 100001]\n" + //
+                "120001   [1, 5, 100000, 100001]\n" + //
+                "130001   [5, 100000, 100001]\n" + //
+                "140001   [4, 100000, 100001]\n" + //
+                "150001   [3, 5, 100000, 100001]\n" + //
+                "160001   [1, 3, 100000, 100001]\n" + //
+                "170001   [1, 3, 5, 100000, 100001]\n" + //
+                "180001   [4, 5, 100000, 100001]\n" + //
+                "190001   [3, 4, 5, 100000, 100001]\n" + //
+                "200001   [1, 2, 3, 4, 5, 100000, 100001]\n" + //
+                "210001   [3, 2, 4, 100000, 100001]\n" + //
+                "220001   [3, 2, 4, 5, 100000, 100001]\n" + //
+                "230001   [2, 5, 100000, 100001]\n" + //
+                "240001   [1, 2, 3, 100000, 100001]\n" + //
+                "250001   [2, 4, 5, 100000, 100001]\n" + //
+                "260001   [2, 4, 100000, 100001]"; //
+        Assert.assertEquals(result,
+                newPlan.getAllLayouts().stream().sorted(Comparator.comparingLong(LayoutEntity::getId))
+                        .map(l -> l.getId() + "   " + l.getColOrder().toString()).collect(Collectors.joining("\n")));
+    }
+
+    @Test
+    public void testLayoutGenerate_WithPruning() throws IOException {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncube_rule_basedv2_mixed.json"),
+                IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+
+        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(JsonUtil.readValueQuietly(("  {\n" + //
+            "    \"dimensions\": [ 1, 2, 3, 4, 5 ],\n" + //
+            "    \"measures\": [ 100000, 100001 ],\n" + //
+            "    \"aggregation_groups\": [\n" + //
+            "      {\n" + //
+            "        \"includes\": [ 1, 3, 2, 5 ],\n" + //
+            "        \"measures\": [ 100000, 100001 ],\n" + //
+            "        \"select_rule\": {\n" + //
+            "          \"hierarchy_dims\": [ [ 1, 3, 2 ] ],\n" + //
+            "          \"mandatory_dims\": [],\n" + //
+            "          \"joint_dims\": []\n" + //
+            "        }\n" + //
+            "      },\n" + //
+            "      {\n" + //
+            "        \"includes\": [ 2, 3, 5, 1 ],\n" + //
+            "        \"measures\": [ 100000, 100001 ],\n" + //
+            "        \"select_rule\": {\n" + //
+            "          \"hierarchy_dims\": [],\n" + //
+            "          \"mandatory_dims\": [ 2 ],\n" + //
+            "          \"joint_dims\": [ [ 5, 1 ] ]\n" + //
+            "        }\n" + "      }\n" + //
+            "    ],\n" + //
+            "    \"storage_type\": 20,\n" + //
+            "    \"scheduler_version\": 2\n" + //
+            "  }").getBytes(), NRuleBasedIndex.class));
+        });
+        val result = "30001   [2, 3, 5, 100000, 100001]\n" + //
+                "30002   [5, 3, 2, 100000, 100001]\n" + //
+                "40001   [2, 1, 5, 100000, 100001]\n" + //
+                "40002   [2, 5, 1, 100000, 100001]\n" + //
+                "50001   [2, 3, 100000, 100001]\n" + //
+                "60001   [2, 100000, 100001]\n" + //
+                "70001   [1, 2, 3, 4, 5, 100000, 100001]\n" + //
+                "80001   [1, 100000, 100001]\n" + //
+                "90001   [1, 3, 2, 100000, 100001]\n" + //
+                "100001   [2, 3, 5, 1, 100000, 100001]\n" + //
+                "100002   [1, 3, 2, 5, 100000, 100001]\n" + //
+                "110001   [1, 5, 100000, 100001]\n" + //
+                "120001   [5, 100000, 100001]\n" + //
+                "130001   [1, 3, 100000, 100001]\n" + //
+                "140001   [1, 3, 5, 100000, 100001]";
+        Assert.assertEquals(result,
+                newPlan.getAllLayouts().stream().sorted(Comparator.comparingLong(LayoutEntity::getId))
+                        .map(l -> l.getId() + "   " + l.getColOrder().toString()).collect(Collectors.joining("\n")));
+    }
+
 }

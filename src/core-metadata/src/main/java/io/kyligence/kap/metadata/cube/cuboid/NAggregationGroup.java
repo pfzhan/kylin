@@ -56,6 +56,7 @@ import lombok.Setter;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class NAggregationGroup implements Serializable {
+
     public static class HierarchyMask implements Serializable {
         @Getter
         @Setter
@@ -285,7 +286,7 @@ public class NAggregationGroup implements Serializable {
         try {
             if (this.getDimCap() > 0 || ruleBasedAggIndex.getGlobalDimCap() > 0) {
                 try {
-                    NCuboidScheduler cuboidScheduler = new NKECuboidScheduler(ruleBasedAggIndex.getIndexPlan(),
+                    CuboidScheduler cuboidScheduler = CuboidScheduler.getInstance(ruleBasedAggIndex.getIndexPlan(),
                             ruleBasedAggIndex, true);
                     combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
                 } catch (OutOfMaxCombinationException oe) {
@@ -329,15 +330,15 @@ public class NAggregationGroup implements Serializable {
         return combination;
     }
 
-    public boolean isOnTree(BigInteger cuboidID) {
-        if (cuboidID.compareTo(BigInteger.ZERO) <= 0 || cuboidID.compareTo(measureMask) <= 0) {
+    public boolean isOnTree(BigInteger cuboidId) {
+        if (cuboidId.compareTo(BigInteger.ZERO) <= 0 || cuboidId.compareTo(measureMask) <= 0) {
             return false; //cuboid must be greater than 0
         }
-        if (!(cuboidID.andNot(partialCubeFullMask).equals(BigInteger.ZERO))) {
+        if (!(cuboidId.andNot(partialCubeFullMask).equals(BigInteger.ZERO))) {
             return false; //a cuboid's parent within agg is at most partialCubeFullMask
         }
 
-        return checkMandatoryColumns(cuboidID) && checkHierarchy(cuboidID) && checkJoint(cuboidID);
+        return checkMandatoryColumns(cuboidId) && checkHierarchy(cuboidId) && checkJoint(cuboidId);
     }
 
     private boolean checkMandatoryColumns(BigInteger cuboidID) {
@@ -412,5 +413,36 @@ public class NAggregationGroup implements Serializable {
 
     public int getDimCap() {
         return this.selectRule.dimCap == null ? 0 : this.selectRule.dimCap;
+    }
+
+
+    boolean checkDimCap(BigInteger cuboidID) {
+        int dimCap = getDimCap();
+
+        if (dimCap == 0)
+            dimCap = ruleBasedAggIndex.getGlobalDimCap();
+
+        if (dimCap <= 0)
+            return true;
+
+        int dimCount = 0;
+
+        for (BigInteger normal : getNormalDimMeas()) {
+            if (!(cuboidID.and(normal)).equals(getMeasureMask())) {
+                dimCount++;
+            }
+        }
+
+        for (BigInteger joint : getJoints()) {
+            if (!(cuboidID.and(joint)).equals(getMeasureMask()))
+                dimCount++;
+        }
+
+        for (HierarchyMask hierarchy : getHierarchyMasks()) {
+            if (!(cuboidID.and(hierarchy.getFullMask())).equals(getMeasureMask()))
+                dimCount++;
+        }
+
+        return dimCount <= dimCap;
     }
 }
