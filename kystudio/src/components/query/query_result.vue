@@ -54,7 +54,7 @@
         </p>
       </div>
     </div>
-    <div :class="[{'ksd-header': !showExportCondition}]">
+    <div :class="[{'ksd-header': !showExportCondition}]" v-if="!isStop">
       <div :class="['ksd-title-label-small', 'result-title', showExportCondition ? 'ksd-mt-20' : 'result-title-float', {'guide-queryResultBox': isWorkspace}]">{{$t('queryResults')}}</div>
       <div :class="['clearfix', {'ksd-mt-15': showExportCondition}]">
         <div class="ksd-fleft">
@@ -68,7 +68,7 @@
         </div>
       </div>
     </div>
-  	<div class="ksd-mt-10 grid-box narrowTable">
+  	<div class="ksd-mt-10 grid-box narrowTable" v-if="!isStop">
   		<el-table
 		    :data="pagerTableData"
         border
@@ -104,7 +104,7 @@ import { hasRole, transToGmtTime } from '../../util/business'
 import { pageRefTags } from 'config'
 import moment from 'moment'
 @Component({
-  props: ['extraoption', 'isWorkspace', 'queryExportData'],
+  props: ['extraoption', 'isWorkspace', 'queryExportData', 'isStop'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({

@@ -8,8 +8,8 @@
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">
-          <el-button plain size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.query.saveQuery')}}</el-button><el-button
-          size="small" plain @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
+          <el-button plain size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.common.save')}}</el-button><el-button
+          size="small" plain @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('clear')}}</el-button>
         </p>
         <p class="operator" v-if="isWorkspace">
           <el-form :inline="true" @submit.native.prevent class="demo-form-inline">
@@ -20,7 +20,7 @@
             </el-form-item><el-form-item>
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
             </el-form-item><el-form-item>
-              <el-button type="primary" v-guide.workSpaceSubmit size="small" class="ksd-btn-minwidth" :disabled="!sourceSchema" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" v-guide.workSpaceSubmit size="small" class="ksd-btn-minwidth" :disabled="!sourceSchema" :loading="isLoading && isStopping" @click="submitQuery(sourceSchema)">{{!isLoading ? $t('runQuery') : $t('stopQuery')}}</el-button>
             </el-form-item>
           </el-form>
         </p>
@@ -48,8 +48,8 @@
         <pre class="error-block" v-html="errinfo"></pre>
       </div>
     </div>
-    <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" v-if="extraoptionObj&&!errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
-    <div class="no-result-block"  :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" v-if="!extraoptionObj&&!isLoading">
+    <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" :isStop="tabsItem.isStop" v-if="extraoptionObj && !errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
+    <div class="no-result-block"  :class="{'is-global-alter': $store.state.system.isShowGlobalAlter}" v-if="!extraoptionObj && !isLoading">
       <kap-nodata :content="$t('queryTips')"></kap-nodata>
     </div>
     <save_query_dialog :show="saveQueryFormVisible" :sql="this.sourceSchema" :project="currentSelectedProject" v-on:closeModal="closeModal"></save_query_dialog>
@@ -67,7 +67,8 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
   props: ['tabsItem', 'completeData', 'tipsName'],
   methods: {
     ...mapActions({
-      query: 'QUERY_BUILD_TABLES'
+      query: 'QUERY_BUILD_TABLES',
+      stop: 'STOP_QUERY_BUILD'
     })
   },
   components: {
@@ -88,14 +89,20 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       queryBox: 'Query Box',
       linkToSpark: 'Jump to Spark Web UI',
       resetTips: 'Are you sure to reset the SQL Editor?',
-      queryTips: 'You can enter SQL query in the SQL editor, and the results will be displayed here after the query is run.'
+      queryTips: 'You can enter SQL query in the SQL editor, and the results will be displayed here after the query is run.',
+      clear: 'Clear',
+      runQuery: 'Run Query',
+      stopQuery: 'Stop Query'
     },
     'zh-cn': {
       trace: '追踪',
       queryBox: '查询窗口',
       linkToSpark: '跳转至 Spark 任务详情',
       resetTips: '你确认要重置查询编辑器吗？',
-      queryTips: '您可在查询编辑器中输入 SQL 查询，待查询运行完成后，将在此显示结果。'
+      queryTips: '您可在查询编辑器中输入 SQL 查询，待查询运行完成后，将在此显示结果。',
+      clear: '清空',
+      runQuery: '运行',
+      stopQuery: '停止'
     }
   }
 })
@@ -111,6 +118,13 @@ export default class QueryTab extends Vue {
   ST = null
   errinfo = ''
   isWorkspace = true
+  activeQueryId = ''
+  isStopping = false
+
+  uniqueId () {
+    return `query_${new Date().getTime().toString(32)}`
+  }
+
   // 为了guide
   handleForGuide (obj) {
     let action = obj.action
@@ -171,25 +185,33 @@ export default class QueryTab extends Vue {
     })
   }
   submitQuery (querySql) {
-    if (!this.isWorkspace || !querySql) {
-      return
-    }
-    const queryObj = {
-      acceptPartial: true,
-      limit: this.listRows,
-      offset: 0,
-      project: this.currentSelectedProject,
-      sql: querySql,
-      backdoorToggles: {
-        DEBUG_TOGGLE_HTRACE_ENABLED: this.isHtrace
+    if (!this.isLoading) {
+      if (!this.isWorkspace || !querySql) {
+        return
       }
+      this.activeQueryId = this.uniqueId()
+      const queryObj = {
+        acceptPartial: true,
+        limit: this.listRows,
+        offset: 0,
+        project: this.currentSelectedProject,
+        sql: querySql,
+        stopId: this.activeQueryId,
+        backdoorToggles: {
+          DEBUG_TOGGLE_HTRACE_ENABLED: this.isHtrace
+        }
+      }
+      this.$emit('addTab', 'query', queryObj)
+    } else {
+      this.isStopping = true
+      this.stop({id: this.activeQueryId})
     }
-    this.$emit('addTab', 'query', queryObj)
   }
   resetResult () {
     this.extraoptionObj = null
     this.errinfo = ''
     this.isLoading = false
+    this.isStopping = false
     this.queryLoading()
     this.$nextTick(() => {
       this.isLoading = true
@@ -201,6 +223,7 @@ export default class QueryTab extends Vue {
       clearInterval(this.ST)
       handleSuccess(res, (data) => {
         this.isLoading = false
+        this.isStopping = false
         this.extraoptionObj = data
         if (data.isException) {
           this.errinfo = data.exceptionMessage
@@ -212,6 +235,7 @@ export default class QueryTab extends Vue {
       })
     }, (res) => {
       this.isLoading = false
+      this.isStopping = false
       handleError(res, (data, code, status, msg) => {
         this.errinfo = msg || this.$t('kylinLang.common.timeOut')
         if (!status || status !== 200 || status < 0) {
@@ -295,6 +319,7 @@ export default class QueryTab extends Vue {
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo
     this.isWorkspace = this.tabsItem.name === 'WorkSpace'
+    this.tabsItem.queryObj && !this.tabsItem.queryObj.stopId && (this.tabsItem.queryObj.stopId = this.uniqueId())
     if (this.tabsItem.queryObj && !this.tabsItem.extraoption && this.tabsItem.index) {
       this.queryResult(this.tabsItem.queryObj)
     }

@@ -61,6 +61,9 @@ export default {
     const vm = window.kapVm
     return vm.$http.post(apiUrl + 'query', para, {headers: {'X-Progress-Invisiable': 'true'}})
   },
+  stop: (para) => {
+    return Vue.resource(apiUrl + 'query/' + para.id).delete()
+  },
   saveQuery: (para) => {
     return Vue.resource(apiUrl + 'query/saved_queries').save(para)
   },

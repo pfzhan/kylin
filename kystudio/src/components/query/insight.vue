@@ -80,7 +80,7 @@
             </div>
             <span slot="footer" class="dialog-footer">
               <el-button plain @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-               @click="resubmit" type="primary" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
+               @click="resubmit" type="primary" size="medium" :disabled="!checkedQueryList.length">{{$t('runQuery')}}</el-button>
             </span>
           </el-dialog>
         </div>
@@ -104,7 +104,8 @@ import { insightKeyword } from '../../config'
       getSavedQueries: 'GET_SAVE_QUERIES',
       delQuery: 'DELETE_QUERY',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
-      query: 'QUERY_BUILD_TABLES'
+      query: 'QUERY_BUILD_TABLES',
+      stop: 'STOP_QUERY_BUILD'
     }),
     ...mapMutations({
       saveTabs: 'SET_QUERY_TABS'
@@ -131,7 +132,8 @@ import { insightKeyword } from '../../config'
       more: 'More',
       closeAll: 'Close All',
       delSqlTitle: 'Delete SQL',
-      confirmDel: 'Are you sure to delete {queryName}?'
+      confirmDel: 'Are you sure to delete {queryName}?',
+      runQuery: 'Run Query'
     },
     'zh-cn': {
       dialogHiveTreeNoData: '请点击数据源来加载源表',
@@ -141,7 +143,8 @@ import { insightKeyword } from '../../config'
       more: '更多',
       closeAll: '关闭全部',
       delSqlTitle: '删除查询语句',
-      confirmDel: '确认删除 {queryName} 吗？'
+      confirmDel: '确认删除 {queryName} 吗？',
+      runQuery: '查询'
     }
   }
 })
@@ -240,6 +243,8 @@ export default class NewQuery extends Vue {
         }
       })
     }
+    const targetQuery = tabs.filter(tab => tab.name === targetName)[0]
+    targetQuery.icon === 'el-icon-loading' && targetQuery.queryObj.stopId && this.stop({id: targetQuery.queryObj.stopId})
     this.editableTabs = tabs.filter(tab => tab.name !== targetName)
     this.activeSubMenu = activeName
     this.editableTabs[0].cancelQuery = true
@@ -254,6 +259,11 @@ export default class NewQuery extends Vue {
     })
   }
   closeAllTabs () {
+    this.editableTabs.forEach(item => {
+      if (item.icon === 'el-icon-loading') {
+        item.queryObj.stopId && this.stop({id: item.queryObj.stopId})
+      }
+    })
     this.editableTabs.splice(1, this.editableTabs.length - 1)
     this.editableTabs[0].cancelQuery = true
     this.activeSubMenu = 'WorkSpace'
@@ -298,6 +308,7 @@ export default class NewQuery extends Vue {
       this.editableTabs[0].extraoption = data
       this.editableTabs[0].queryErrorInfo = errorInfo
       this.editableTabs[0].cancelQuery = true
+      this.editableTabs[0].isStop = data.is_stop_by_user || false
     }
     if (index) {
       let tabs = this.editableTabs
@@ -307,6 +318,7 @@ export default class NewQuery extends Vue {
           tabs[k].spin = errorInfo === 'circle-o-notch'
           tabs[k].extraoption = data
           tabs[k].queryErrorInfo = errorInfo
+          tabs[k].isStop = data.is_stop_by_user || false
           break
         }
       }

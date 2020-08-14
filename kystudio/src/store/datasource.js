@@ -147,6 +147,10 @@ export default {
     [types.QUERY_BUILD_TABLES]: function ({commit}, para) {
       return api.datasource.query(para)
     },
+    // 停止查询
+    [types.STOP_QUERY_BUILD]: (_, para) => {
+      return api.datasource.stop(para)
+    },
     [types.SAVE_QUERY]: function ({commit}, para) {
       return api.datasource.saveQuery(para)
     },
