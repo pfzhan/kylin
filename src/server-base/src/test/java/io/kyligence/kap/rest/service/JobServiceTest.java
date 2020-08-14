@@ -58,6 +58,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
@@ -376,8 +377,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Failed to DISCARD a SUCCEED job");
         jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", Lists.newArrayList());
     }
 

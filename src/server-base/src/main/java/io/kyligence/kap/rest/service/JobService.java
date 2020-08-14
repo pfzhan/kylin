@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.io.DataInputStream;
@@ -394,8 +395,9 @@ public class JobService extends BasicService {
     private void discardJob(String project, String jobId) throws IOException {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         if (job.getStatus().equals(ExecutableState.SUCCEED)) {
-            throw new IllegalStateException(
-                    "The job " + job.getId() + " has already been succeed and cannot be discarded.");
+            throw new KylinException(
+                    FAILED_UPDATE_JOB_STATUS,
+                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", job.getStatus(), jobId));
         }
         if (job.getStatus().equals(ExecutableState.DISCARDED)) {
             return;

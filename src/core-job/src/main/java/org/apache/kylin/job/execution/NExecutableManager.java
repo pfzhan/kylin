@@ -57,6 +57,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -485,8 +486,11 @@ public class NExecutableManager {
             return;
         }
         if (!job.getStatus().isNotProgressing()) {
-            throw new KylinException(FAILED_UPDATE_JOB_STATUS, "Only error or paused jobs could be resumed.");
+            throw new KylinException(
+                    FAILED_UPDATE_JOB_STATUS,
+                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", job.getStatus(), jobId));
         }
+
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus().isNotProgressing())
@@ -496,6 +500,16 @@ public class NExecutableManager {
     }
 
     public void restartJob(String jobId) {
+        AbstractExecutable jobToRestart = getJob(jobId);
+        if (Objects.isNull(jobToRestart)) {
+            return;
+        }
+        if (jobToRestart.getStatus().isFinalState()) {
+            throw new KylinException(
+                    FAILED_UPDATE_JOB_STATUS,
+                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESTART", jobToRestart.getStatus(), jobId));
+        }
+
         // to redesign: merge executableDao ops
         updateJobReady(jobId);
         executableDao.updateJob(jobId, job -> {
@@ -587,6 +601,12 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
+        if (!job.getStatus().isProgressing()) {
+            throw new KylinException(
+                    FAILED_UPDATE_JOB_STATUS,
+                    String.format(MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", job.getStatus(), jobId));
+        }
+
         updateJobOutput(jobId, ExecutableState.PAUSED);
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput

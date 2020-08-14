@@ -1535,6 +1535,10 @@ public class Message {
         return "Cannot recognize column(s) %s . When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model).";
     }
 
+    public String getInvalidJobStatusTransaction() {
+        return "Failed to %s a %s job %s.";
+    }
+
     // Punctuations
     public String getCOMMA() {
         return ", ";

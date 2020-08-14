@@ -72,6 +72,7 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.spark_project.guava.collect.Sets;
@@ -655,6 +656,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(job4.safetyIfDiscard());
     }
 
+    @Ignore
     @Test
     public void testResumeBuildCheckPoints() throws Exception {
         final String project = getProject();

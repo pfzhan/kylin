@@ -1420,6 +1420,10 @@ public class CnMessage extends Message {
         return "表达式中的列名无法识别 %s 。当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名)。";
     }
 
+    public String getInvalidJobStatusTransaction() {
+        return "无法 %s 状态为 %s 的任务 %s";
+    }
+
     // Punctuations
     public String getCOMMA() {
         return "，";

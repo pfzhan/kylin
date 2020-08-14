@@ -298,7 +298,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        thrown.expectMessage("Failed to RESUME a RUNNING job");
         manager.resumeJob(job.getId());
     }
 
@@ -311,7 +311,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(job.getStatus(), ExecutableState.READY);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        thrown.expectMessage("Failed to RESUME a READY job");
         manager.resumeJob(job.getId());
     }
 
@@ -324,7 +324,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(job.getStatus(), ExecutableState.DISCARDED);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        thrown.expectMessage("Failed to RESUME a DISCARDED job");
         manager.resumeJob(job.getId());
     }
 
@@ -349,7 +349,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(job.getStatus(), ExecutableState.SUICIDAL);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        thrown.expectMessage("Failed to RESUME a SUICIDAL job");
         manager.resumeJob(job.getId());
     }
 
@@ -364,7 +364,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(job.getStatus(), ExecutableState.SUCCEED);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Only error or paused jobs could be resumed.");
+        thrown.expectMessage("Failed to RESUME a SUCCEED job");
         manager.resumeJob(job.getId());
     }
 
