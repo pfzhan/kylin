@@ -16,7 +16,7 @@
           :show-background="false"
           :closable="false"
           show-icon>
-          <span slot="title">{{$t('downloadSystemDiagPackage1')}}<a href="javascript:void(0)" @click="() => this.$router.push('/monitor/job')">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
+          <span slot="title">{{$t('downloadSystemDiagPackage1')}}<a href="javascript:void(0)" @click="goto('job')">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
         </el-alert>
         <div class="time-range">{{$t('timeRange')}}<el-tooltip :content="$t('timeRangeTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip>：</div>
         <el-radio-group v-model="timeRangeValue" class="time-range-radio" @change="changeTimeRange" :disabled="isRunning">
@@ -60,7 +60,7 @@
             <span slot="title" v-else>{{$t('downloadJobDiagPackageForNorAdminForIframe')}}</span>
           </template>
           <template v-else>
-            <span slot="title" v-if="isAdminRole">{{$t('downloadJobDiagPackage1')}}<a href="javascript:void(0)" @click="() => this.$router.push('/admin/project')">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
+            <span slot="title" v-if="isAdminRole">{{$t('downloadJobDiagPackage1')}}<a href="javascript:void(0)" @click="goto('admin')">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
             <span slot="title" v-else>{{$t('downloadJobDiagPackageForNorAdmin')}}</span>
           </template>
         </el-alert>
@@ -211,6 +211,14 @@ export default class Diagnostic extends Vue {
   gotoWorkspaceList () {
     postCloudUrlMessage(this.$route, { name: 'Stack' })
   }
+  goto (page) {
+    if (page === 'job') {
+      this.$router.push('/monitor/job')
+    } else {
+      this.$router.push('/admin/project')
+    }
+    this.$emit('close')
+  }
   // 获取诊断包可下载数/总数
   get getDownloadNum () {
     const totalList = Object.keys(this.diagDumpIds)
@@ -326,7 +334,6 @@ export default class Diagnostic extends Vue {
   generateDiagnostic () {
     if (this.getDateTimeValid || !this.servers.length) return
     if (this.$route.name === 'Job' && !this.jobId) {
-      console.error('no job_id')
       return
     }
     this.resetDumpData(false)
