@@ -120,10 +120,7 @@ public class DFBuildJob extends SparkApplication {
         for (String segId : segmentIds) {
             NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
             NDataSegment seg = getSegment(segId);
-            if (seg == null || seg.getSegRange() == null || seg.getModel() == null || seg.getIndexPlan() == null) { // vivo
-                logger.info("Skip segment {}", segId);
-                if (seg != null)
-                    logger.info("Args is {} {} {}", seg.getSegRange(), seg.getModel(), seg.getIndexPlan());
+            if (needSkipSegment(segId)) {
                 continue;
             }
             if (seg.isEncodingDataSkew()) {
@@ -170,6 +167,17 @@ public class DFBuildJob extends SparkApplication {
         updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
 
         tailingCleanups(segmentIds, persistedFlatTable, persistedViewFactTable);
+    }
+
+    private boolean needSkipSegment(String segId) {
+        NDataSegment seg = getSegment(segId);
+        if (seg == null || seg.getSegRange() == null || seg.getModel() == null || seg.getIndexPlan() == null) { // vivo
+            logger.info("Skip segment {}", segId);
+            if (seg != null)
+                logger.info("Args is {} {} {}", seg.getSegRange(), seg.getModel(), seg.getIndexPlan());
+            return true;
+        }
+        return false;
     }
 
     private void updateColumnBytesInseg(String dataflowId, Map<String, Object> columnBytes, String id, long rowCount) {

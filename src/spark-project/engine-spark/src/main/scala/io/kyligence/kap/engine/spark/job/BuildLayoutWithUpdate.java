@@ -105,6 +105,7 @@ public class BuildLayoutWithUpdate {
                 }
             } catch (InterruptedException | ExecutionException e) {
                 shutDown();
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
         }
@@ -173,6 +174,7 @@ public class BuildLayoutWithUpdate {
         } catch (InterruptedException e) {
             logger.warn("Error occurred when shutdown thread pool.", e);
             pool.shutdownNow();
+            Thread.currentThread().interrupt();
         }
 
         checkPointer.shutdown();
