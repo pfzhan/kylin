@@ -220,6 +220,21 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testTransformFileToSqls() throws IOException {
+        List<String> sqls1 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls5.sql", "sqls5.sql",
+                "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls5.sql"))), PROJECT);
+        Assert.assertEquals(3, sqls1.size());
+        Assert.assertEquals("select CAL_DT from TEST_KYLIN_FACT", sqls1.get(0));
+        Assert.assertEquals("select concat(';',LSTG_FORMAT_NAME),'123',234,'abc' from TEST_KYLIN_FACT", sqls1.get(1));
+        Assert.assertEquals("select '456',456,'dgf' from TEST_KYLIN_FACT", sqls1.get(2));
+
+        List<String> sqls2 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls5.sql", "sqls5.sql",
+                "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls6.sql"))), PROJECT);
+        Assert.assertEquals(1, sqls2.size());
+        Assert.assertEquals("select concat(';',LSTG_FORMAT_NAME) from TEST_KYLIN_FACT", sqls2.get(0));
+    }
+
+    @Test
     public void testGetAccelerateRatio() {
         double ratio = favoriteRuleService.getAccelerateRatio(PROJECT);
         Assert.assertEquals(0, ratio, 0.1);

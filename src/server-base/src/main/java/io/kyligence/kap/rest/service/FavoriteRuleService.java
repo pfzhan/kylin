@@ -218,7 +218,9 @@ public class FavoriteRuleService extends BasicService {
             return sqls;
         }
         content = QueryUtil.removeCommentInSql(content);
-        String[] sqlsArray = content.split(";");
+        // see https://stackoverflow.com/a/1757107
+        // match semicolon with 0 or more pairs of single quotes behind
+        String[] sqlsArray = content.split(";(?=(?:[^\']*\'[^\']*\')*[^\']*$)", -1);
         if (sqlsArray.length == 0) {
             return sqls;
         }
