@@ -40,7 +40,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -84,6 +83,7 @@ import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.job.LogJobInfoUtils;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
@@ -278,26 +278,9 @@ public abstract class SparkApplication implements Application, IKeep {
 
             TimeZoneUtils.setDefaultTimeZone(config);
 
-            if (isJobOnCluster(sparkConf)) {
-                long sleepSeconds = (long) (Math.random() * 60L);
-                logger.info("Sleep {} seconds to avoid submitting too many spark job at the same time.", sleepSeconds);
-                infos.startWait();
-                Thread.sleep(sleepSeconds * 1000);
-                try {
-                    while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
-                        long waitTime = (long) (Math.random() * 10 * 60);
-                        logger.info("Current available resource in cluster is not sufficient, wait {} seconds.",
-                                waitTime);
-                        Thread.sleep(waitTime * 1000L);
-                    }
-                } catch (NoRetryException e){
-                    throw e;
-                } catch (Exception e){
-                    logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
-                            e);
-                }
-                infos.endWait();
-            }
+            // wait until resource is enough
+            waiteForResource(sparkConf, buildEnv);
+
             logger.info("Prepare job environment");
             ss = SparkSession.builder().withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
                 @Override
@@ -392,6 +375,29 @@ public abstract class SparkApplication implements Application, IKeep {
         helper.applySparkConf(sparkConf);
     }
 
+    private void waiteForResource(SparkConf sparkConf, KylinBuildEnv buildEnv) throws Exception {
+        if (isJobOnCluster(sparkConf)) {
+            long sleepSeconds = (long) (Math.random() * 60L);
+            logger.info("Sleep {} seconds to avoid submitting too many spark job at the same time.", sleepSeconds);
+            infos.startWait();
+            Thread.sleep(sleepSeconds * 1000);
+            try {
+                while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
+                    long waitTime = (long) (Math.random() * 10 * 60);
+                    logger.info("Current available resource in cluster is not sufficient, wait {} seconds.",
+                            waitTime);
+                    Thread.sleep(waitTime * 1000L);
+                }
+            } catch (NoRetryException e) {
+                throw e;
+            } catch (Exception e) {
+                logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
+                        e);
+            }
+            infos.endWait();
+        }
+    }
+
     protected String chooseContentSize(Path shareDir) throws IOException {
         // return size with unit
         return ResourceDetectUtils.getMaxResourceSize(shareDir) + "b";
@@ -428,7 +434,7 @@ public abstract class SparkApplication implements Application, IKeep {
         return LogJobInfoUtils.sparkApplicationInfo();
     }
 
-    protected Set<String> getIgnoredSnapshotTables(){
-        return  NSparkCubingUtil.toIgnoredTableSet(getParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES));
+    protected Set<String> getIgnoredSnapshotTables() {
+        return NSparkCubingUtil.toIgnoredTableSet(getParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES));
     }
 }
