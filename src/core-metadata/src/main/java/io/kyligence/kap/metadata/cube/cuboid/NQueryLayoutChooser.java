@@ -408,7 +408,7 @@ public class NQueryLayoutChooser {
                 TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
                 TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
 
-                if (ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
+                if (joinByPKSide.isInnerJoin() && ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
                     TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
                     if (indexEntity.dimensionsDerive(relatedCol)) {
                         needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide,
@@ -436,6 +436,11 @@ public class NQueryLayoutChooser {
             if (pk != null) {
                 JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
                 Preconditions.checkNotNull(joinByPKSide);
+
+                //cannot derived fk from pk when left join
+                if(!joinByPKSide.isInnerJoin()){
+                    continue;
+                }
                 needDeriveCollector.put(unmatchedDim,
                         new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[]{pk}, true));
                 unmatchedDimItr.remove();

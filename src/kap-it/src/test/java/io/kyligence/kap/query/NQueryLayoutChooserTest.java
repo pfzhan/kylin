@@ -335,7 +335,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
     @Test
     public void testDimensionAsMeasure_CountDistinctDerived_deriveFkFromPk() throws Exception {
         val sql1 = new String[] {
-                "select cal_dt, account_id, count(*) " + "from test_kylin_fact left join test_account "
+                "select cal_dt, account_id, count(*) " + "from test_kylin_fact inner join test_account "
                         + "on test_kylin_fact.seller_id = test_account.account_id "
                         + "group by test_kylin_fact.cal_dt, test_account.account_id" };
 
@@ -351,13 +351,13 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
         buildAllCubes(getTestConfig(), "newten");
 
-        val sql2 = "select cal_dt, count(distinct seller_id) " + "from test_kylin_fact left join test_account "
+        val sql2 = "select cal_dt, count(distinct seller_id) " + "from test_kylin_fact inner join test_account "
                 + "on test_kylin_fact.seller_id = test_account.account_id " + "group by cal_dt";
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
         populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
-        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "inner");
 
     }
 
