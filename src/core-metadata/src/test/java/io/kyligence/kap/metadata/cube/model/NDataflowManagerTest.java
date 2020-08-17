@@ -342,7 +342,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains("have a different index structure"));
+            Assert.assertTrue(e.getMessage().contains("The indexes included in the selected segments are not fully identical"));
         }
     }
 

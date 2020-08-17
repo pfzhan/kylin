@@ -1300,7 +1300,7 @@ public class CnMessage extends Message {
     }
 
     public String getSegmentMergeLayoutConflictError() {
-        return "抱歉，由于Segment[%s]，其时间范围[%s - %s]，与Segment[%s]，其时间范围[%s - %s]的索引结构不同，暂时无法合并。";
+        return "当前 Segments 所包含的索引不一致，请先构建索引并确保其一致后再合并。";
     }
 
     public String getFACT_TABLE_USED_IN_OTHER_MODEL() {

@@ -1360,7 +1360,7 @@ public class Message {
     }
 
     public String getSegmentMergeLayoutConflictError() {
-        return "Sorry, because Segment [%s], its time range [%s - %s], and Segment [%s], its time range [%s - %s] have a different index structure, it cannot be merged temporarily.";
+        return "The indexes included in the selected segments are not fully identical. Please build index first and try merging again.";
     }
 
     public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
