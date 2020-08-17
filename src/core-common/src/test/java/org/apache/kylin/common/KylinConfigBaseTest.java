@@ -758,7 +758,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 "http://localhost:8088/test", "http://localhost:8088/test"));
         map.put("getTurnMaintainModeRetryTimes",
                 new PropertiesEntity("kylin.tool.turn-on-maintainmodel-retry-times", "3", 3));
-        map.put("getCatchUpTimeout", new PropertiesEntity("kkylin.metadata.audit-log.catchup-timeout", "2s", 2L));
+        map.put("getCatchUpTimeout", new PropertiesEntity("kylin.metadata.audit-log.catchup-timeout", "2s", 2L));
+        map.put("getMaxModelDimensionMeasureNameLength", new PropertiesEntity("kylin.model.dimension-measure-name.max-length", "300", 300));
     }
 
     @Before
@@ -779,7 +780,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(379, methodsCount);
+        Assert.assertEquals(380, methodsCount);
     }
 
     @Test

@@ -71,6 +71,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.web.stack-trace.enabled");
         propertyKeys.add("kylin.metadata.random-admin-password.enabled");
         propertyKeys.add("kylin.model.recommendation-page-size");
+        propertyKeys.add("kylin.model.dimension-measure-name.max-length");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 

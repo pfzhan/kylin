@@ -205,11 +205,11 @@ public class Message {
     }
 
     public String getINVALID_DIMENSION_NAME() {
-        return "The dimension name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). 100 characters at maximum.";
+        return "The dimension name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). %s characters at maximum.";
     }
 
     public String getINVALID_MEASURE_NAME() {
-        return "The measure name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). 100 characters at maximum.";
+        return "The measure name '%s' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%%?). %s characters at maximum.";
     }
 
     public String getMODEL_ID_NOT_FOUND() {

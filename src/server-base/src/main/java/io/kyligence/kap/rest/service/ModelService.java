@@ -1697,13 +1697,15 @@ public class ModelService extends BasicService {
     public void checkModelDimensions(ModelRequest request) {
         Set<String> dimensionNames = new HashSet<>();
 
+        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv().getMaxModelDimensionMeasureNameLength();
+
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
             dimension.setName(StringUtils.trim(dimension.getName()));
             // check if the dimension name is valid
-            if (StringUtils.length(dimension.getName()) > 100
+            if (StringUtils.length(dimension.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(dimension.getName()).matches())
                 throw new KylinException(INVALID_NAME,
-                        String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName()));
+                        String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName(), maxModelDimensionMeasureNameLength));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
@@ -1718,14 +1720,16 @@ public class ModelService extends BasicService {
     public void checkModelMeasures(ModelRequest request) {
         Set<String> measureNames = new HashSet<>();
         Set<SimplifiedMeasure> measures = new HashSet<>();
+        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv().getMaxModelDimensionMeasureNameLength();
 
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             measure.setName(StringUtils.trim(measure.getName()));
             // check if the measure name is valid
-            if (StringUtils.length(measure.getName()) > 100
+            if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(measure.getName()).matches())
                 throw new KylinException(INVALID_NAME,
-                        String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName()));
+                        String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName(),
+                                maxModelDimensionMeasureNameLength));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))

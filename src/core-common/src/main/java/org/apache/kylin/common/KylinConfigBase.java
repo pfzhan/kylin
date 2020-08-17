@@ -2221,4 +2221,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getJobFinishedNotifierUrl() {
         return getOptional("kylin.job.finished-notifier-url", null);
     }
+
+    public int getMaxModelDimensionMeasureNameLength() {
+        return Integer.parseInt(getOptional("kylin.model.dimension-measure-name.max-length", "300"));
+    }
 }

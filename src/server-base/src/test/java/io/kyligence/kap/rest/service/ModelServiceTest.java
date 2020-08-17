@@ -3346,18 +3346,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertTrue(StringUtils.contains(ex.getMessage(),
-                    "The dimension name 'CAL_DT1@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
+                    "The dimension name 'CAL_DT1@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). " +
+                            getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
         }
 
         StringBuilder name = new StringBuilder();
-        for (int i = 0; i < 101; ++i)
+        for (int i = 0; i < getTestConfig().getMaxModelDimensionMeasureNameLength() + 1; ++i)
             name.append('a');
         dimension.setName(name.toString());
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "100 characters at maximum."));
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(),
+                    getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
         }
 
         namedColumns.remove(dimension);
@@ -3378,7 +3380,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
             Assert.assertTrue(StringUtils.contains(e.getMessage(),
-                    "The measure name 'illegal_measure_name@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). 100 characters at maximum."));
+                    "The measure name 'illegal_measure_name@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). "
+                            + getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
         }
 
         // duplicate measure name
