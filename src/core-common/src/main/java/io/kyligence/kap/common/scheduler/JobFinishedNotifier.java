@@ -28,7 +28,6 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -60,7 +59,6 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
 
     @Getter
     @Setter
-    @AllArgsConstructor
     public static class JobInfo {
 
         @JsonProperty("project")
@@ -86,5 +84,21 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
 
         @JsonProperty("job_state")
         private String state;
+
+        public JobInfo(String project, String subject, Set<String> segmentIds,
+                       Set<Long> layoutIds, long dataRangeStart, long dataRangeEnd, long duration, String jobState) {
+            this.project = project;
+            this.modelId = subject;
+            this.segmentIds = segmentIds;
+            this.indexIds = layoutIds;
+            this.dataRangeStart = dataRangeStart;
+            this.dataRangeEnd = dataRangeEnd;
+            this.duration = duration;
+            if ("SUICIDAL".equalsIgnoreCase(jobState)) {
+                this.state = "DISCARDED";
+            } else {
+                this.state = jobState;
+            }
+        }
     }
 }

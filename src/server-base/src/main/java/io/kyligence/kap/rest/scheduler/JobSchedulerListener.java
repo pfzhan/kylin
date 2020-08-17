@@ -75,7 +75,7 @@ public class JobSchedulerListener {
     static void postJobInfo(JobFinishedNotifier.JobInfo info) {
         String url = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierUrl();
 
-        if (url == null || info.getSegmentIds() == null) {
+        if (url == null || info.getSegmentIds() == null || "READY".equalsIgnoreCase(info.getState())) {
             return;
         }
 
