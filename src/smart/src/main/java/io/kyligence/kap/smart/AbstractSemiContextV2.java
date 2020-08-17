@@ -25,20 +25,38 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import lombok.Getter;
 
 public abstract class AbstractSemiContextV2 extends AbstractContext {
 
+    @Getter
+    private final Map<String, String> ccInnerExpToUniqueFlag;
+
     protected AbstractSemiContextV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
+        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(null);
+        ccInnerExpToUniqueFlag = Maps.newHashMap();
+        recItemMap.forEach((k, v) -> {
+            if (v.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
+                CCRecItemV2 recEntity = (CCRecItemV2) v.getRecEntity();
+                ccInnerExpToUniqueFlag.put(recEntity.getCc().getInnerExpression(), k);
+            }
+        });
     }
 
     @Override

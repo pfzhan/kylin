@@ -1085,6 +1085,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
             copyForWrite.setOverrideKylinProps(properties);
         });
 
+        getTestConfig().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+
         val sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1",
                 "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
                 "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
@@ -3346,8 +3349,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertTrue(StringUtils.contains(ex.getMessage(),
-                    "The dimension name 'CAL_DT1@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). " +
-                            getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
+                    "The dimension name 'CAL_DT1@!' is invalid, only supports Chinese or English characters, numbers, spaces and symbol(_ -()%?). "
+                            + getTestConfig().getMaxModelDimensionMeasureNameLength() + " characters at maximum."));
         }
 
         StringBuilder name = new StringBuilder();
@@ -3873,9 +3876,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "The dimension TEST_SITES.SITE_NAME is referenced by indexes. Please try again after " +
-                        "deleting it from aggregation group or table index.");
+        thrown.expectMessage("The dimension TEST_SITES.SITE_NAME is referenced by indexes. Please try again after "
+                + "deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
@@ -3886,8 +3888,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100005)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The measure ITEM_COUNT_MAX is referenced by indexes. Please try again after " +
-                "deleting it from aggregation group or table index.");
+        thrown.expectMessage("The measure ITEM_COUNT_MAX is referenced by indexes. Please try again after "
+                + "deleting it from aggregation group or table index.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 

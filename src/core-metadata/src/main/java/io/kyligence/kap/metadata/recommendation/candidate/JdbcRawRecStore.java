@@ -59,6 +59,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import lombok.Getter;
@@ -68,6 +69,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JdbcRawRecStore {
 
     private static final String RECOMMENDATION_CANDIDATE = "_rec_candidate";
+    private static final int NON_EXIST_MODEL_SEMANTIC_VERSION = Integer.MIN_VALUE;
 
     private final RawRecItemTable table;
     @VisibleForTesting
@@ -146,8 +148,11 @@ public class JdbcRawRecStore {
     }
 
     public List<RawRecItem> queryAllLayoutCandidates(String project, String model) {
-        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDesc(model).getSemanticVersion();
+        int semanticVersion = getSemanticVersion(project, model);
+        if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
+            log.debug("model({}/{}) does not exist.", project, model);
+            return Lists.newArrayList();
+        }
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
@@ -167,8 +172,11 @@ public class JdbcRawRecStore {
     }
 
     public List<RawRecItem> chooseTopNCandidates(String project, String model, int topN, RawRecItem.RawRecState state) {
-        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDesc(model).getSemanticVersion();
+        int semanticVersion = getSemanticVersion(project, model);
+        if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
+            log.debug("model({}/{}) does not exist.", project, model);
+            return Lists.newArrayList();
+        }
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
@@ -190,9 +198,12 @@ public class JdbcRawRecStore {
     }
 
     public List<RawRecItem> queryLayoutRawRecItems(String project, String model) {
+        int semanticVersion = getSemanticVersion(project, model);
+        if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
+            log.debug("model({}/{}) does not exist.", project, model);
+            return Lists.newArrayList();
+        }
         long start = System.currentTimeMillis();
-        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDesc(model).getSemanticVersion();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             SelectStatementProvider statementProvider = select(getSelectFields(table)) //
@@ -211,9 +222,12 @@ public class JdbcRawRecStore {
     }
 
     public List<RawRecItem> queryNonLayoutRecItems(String project, String model, RawRecItem.RawRecState... states) {
+        int semanticVersion = getSemanticVersion(project, model);
+        if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
+            log.debug("model({}/{}) does not exist.", project, model);
+            return Lists.newArrayList();
+        }
         long start = System.currentTimeMillis();
-        int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDesc(model).getSemanticVersion();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             SelectStatementProvider statementProvider = select(getSelectFields(table)) //
@@ -228,6 +242,15 @@ public class JdbcRawRecStore {
             log.info("Query non-layout raw recommendations takes {} ms", System.currentTimeMillis() - start);
             return recItems;
         }
+    }
+
+    private int getSemanticVersion(String project, String model) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(model);
+        if (dataModel == null) {
+            return NON_EXIST_MODEL_SEMANTIC_VERSION;
+        }
+        return dataModel.getSemanticVersion();
     }
 
     public void updateState(List<Integer> idList, RawRecItem.RawRecState state) {

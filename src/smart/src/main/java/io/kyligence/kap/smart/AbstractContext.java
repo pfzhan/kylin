@@ -96,7 +96,7 @@ public abstract class AbstractContext {
 
     public abstract String getIdentifier();
 
-    public Map<String, String> getInnerExpToUniqueFlag() {
+    public Map<String, String> getCCInnerExpToUniqueFlag() {
         return Maps.newHashMap();
     }
 

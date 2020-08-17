@@ -110,7 +110,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             return validCCs;
         }
 
-        Map<String, String> ccInnerExpToUniqueFlag = modelContext.getProposeContext().getInnerExpToUniqueFlag();
+        Map<String, String> ccInnerExpToUniqueFlag = modelContext.getProposeContext().getCCInnerExpToUniqueFlag();
         List<NDataModel> otherModels = getOtherModels(dataModel);
         int index = 0;
         long currentTs = System.currentTimeMillis();

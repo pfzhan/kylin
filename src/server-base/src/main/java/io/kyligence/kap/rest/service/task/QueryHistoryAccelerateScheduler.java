@@ -38,8 +38,6 @@ import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -64,10 +62,10 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class QueryHistoryAccelerateScheduler {
-
-    private static final Logger logger = LoggerFactory.getLogger(QueryHistoryAccelerateScheduler.class);
 
     private ScheduledExecutorService queryHistoryAccelerateScheduler;
     private boolean hasStarted;
@@ -76,7 +74,7 @@ public class QueryHistoryAccelerateScheduler {
     AccelerateRuleUtil accelerateRuleUtil;
     RawRecService rawRecommendation;
     @Getter
-    private String project;
+    private final String project;
     private long epochId;
 
     private static final Map<String, QueryHistoryAccelerateScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
@@ -86,7 +84,7 @@ public class QueryHistoryAccelerateScheduler {
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
         accelerateRuleUtil = new AccelerateRuleUtil();
         rawRecommendation = new RawRecService();
-        logger.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
+        log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);
     }
 
     public static QueryHistoryAccelerateScheduler getInstance(String project) {
@@ -108,7 +106,7 @@ public class QueryHistoryAccelerateScheduler {
                 KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateInterval(), TimeUnit.MINUTES);
 
         hasStarted = true;
-        logger.info("Query history accelerate scheduler is started for [{}] ", project);
+        log.info("Query history accelerate scheduler is started for [{}] ", project);
     }
 
     public Future scheduleImmediately() {
@@ -120,7 +118,7 @@ public class QueryHistoryAccelerateScheduler {
     }
 
     private void shutdown() {
-        logger.info("Shutting down QueryHistoryAccelerateScheduler ....");
+        log.info("Shutting down QueryHistoryAccelerateScheduler ....");
         if (queryHistoryAccelerateScheduler != null) {
             ExecutorServiceUtil.forceShutdown(queryHistoryAccelerateScheduler);
         }
@@ -153,8 +151,8 @@ public class QueryHistoryAccelerateScheduler {
                     return;
                 }
 
-                QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
+                QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), project);
 
                 int accelerateBatchSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateBatchSize();
                 int accelerateMaxSize = KylinConfig.getInstanceFromEnv().getQueryHistoryAccelerateMaxSize();
@@ -162,15 +160,17 @@ public class QueryHistoryAccelerateScheduler {
 
                 while (true) {
                     List<QueryHistory> queryHistories = queryHistoryDAO.queryQueryHistoriesByIdOffset(
-                            queryHistoryIdOffset.getQueryHistoryIdOffset(), accelerateBatchSize, project);
+                            qhIdOffsetManager.get().getQueryHistoryIdOffset(), accelerateBatchSize, project);
                     acceleratedCounts = acceleratedCounts + queryHistories.size();
                     accelerateAndUpdateMetadata(queryHistories);
+                    log.debug("handled 1000 query history, query history id offset is updated to: {}",
+                            qhIdOffsetManager.get().getQueryHistoryIdOffset());
                     if (queryHistories.size() < accelerateBatchSize || acceleratedCounts >= accelerateMaxSize) {
                         break;
                     }
                 }
             } catch (Exception e) {
-                logger.warn("Query History for project <{}> scan failed", project, e);
+                log.warn("Query History for project <{}> scan failed", project, e);
             }
         }
 

@@ -29,11 +29,7 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
 
@@ -54,6 +50,11 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public ChainedProposer createTransactionProposers() {
+        return new ChainedProposer(this, ImmutableList.of());
+    }
+
+    @Override
+    public ChainedProposer createPreProcessProposers() {
         return new ChainedProposer(this, ImmutableList.of(//
                 new NSQLAnalysisProposer(this), //
                 new NModelSelectProposer(this), //
@@ -67,27 +68,13 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
     }
 
     @Override
-    public ChainedProposer createPreProcessProposers() {
-        return new ChainedProposer(this, ImmutableList.of());
-    }
-
-    @Override
     public void saveMetadata() {
         // do nothing
     }
 
     @Override
-    public Map<String, String> getInnerExpToUniqueFlag() {
-        RawRecManager recManager = RawRecManager.getInstance(getProject());
-        Map<String, RawRecItem> recItemMap = recManager.queryNonLayoutRecItems(null);
-        Map<String, String> ccInnerExpToUniqueFlag = Maps.newHashMap();
-        recItemMap.forEach((k, v) -> {
-            if (v.getType() == RawRecItem.RawRecType.COMPUTED_COLUMN) {
-                final CCRecItemV2 recEntity = (CCRecItemV2) v.getRecEntity();
-                ccInnerExpToUniqueFlag.put(recEntity.getCc().getInnerExpression(), k);
-            }
-        });
-        return ccInnerExpToUniqueFlag;
+    public Map<String, String> getCCInnerExpToUniqueFlag() {
+        return getCcInnerExpToUniqueFlag();
     }
 
     @Override
