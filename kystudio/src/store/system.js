@@ -49,7 +49,8 @@ export default {
     showRevertPasswordDialog: 'true',
     isEditForm: false,
     recommendationPageSize: 0,
-    isShowGlobalAlter: false
+    isShowGlobalAlter: false,
+    dimMeasNameMaxLength: 300
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -156,6 +157,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.kerberos.project-level-enabled', key: 'kerberosEnabled'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.metadata.random-admin-password.enabled', key: 'showRevertPasswordDialog', defaultValue: 'true'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.recommendation-page-size', key: 'recommendationPageSize'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.dimension-measure-name.max-length', key: 'dimMeasNameMaxLength', defaultValue: 300})
           resolve(response)
         }, () => {
           reject()
@@ -246,6 +248,9 @@ export default {
     },
     supportUrl: (state) => {
       return process.qa ? 'http://supportqa.kyligence.io/#/?lang=' + state.lang : 'https://support.kyligence.io/#/?lang=' + state.lang
+    },
+    dimMeasNameMaxLength: (state) => {
+      return state.dimMeasNameMaxLength
     }
   }
 }

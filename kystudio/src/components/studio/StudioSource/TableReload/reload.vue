@@ -106,7 +106,7 @@ export default class ReloadTableModal extends Vue {
   rules = {
     'sampleCount': [{ validator: this.validateSampleCount, trigger: 'blur' }]
   }
-  showDetail = false
+  showDetail = true
   validateSampleCount (rule, value, callback) {
     if (!this.openSample) {
       return callback()
@@ -132,7 +132,7 @@ export default class ReloadTableModal extends Vue {
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
-      this.showDetail = false
+      this.showDetail = true
       this.openSample = true
       this.sampleOption.sampleCount = this.maxSampleCount
     } else {

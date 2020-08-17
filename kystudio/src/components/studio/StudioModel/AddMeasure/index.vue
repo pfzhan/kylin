@@ -127,9 +127,15 @@ import { measuresDataType, measureSumAndTopNDataType, measurePercenDataType } fr
 import { objectClone, sampleGuid } from '../../../../util/index'
 import { NamedRegex1 } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
+import { mapGetters } from 'vuex'
 import $ from 'jquery'
 @Component({
   props: ['isShow', 'isEditMeasure', 'measureObj', 'modelInstance'],
+  computed: {
+    ...mapGetters([
+      'dimMeasNameMaxLength'
+    ])
+  },
   components: {
     CCEditForm
   },
@@ -263,8 +269,8 @@ export default class AddMeasure extends Vue {
   validateName (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
-    } else if (value.length > 100) {
-      callback(new Error(this.$t('kylinLang.common.nameMaxLen')))
+    } else if (value.length > this.dimMeasNameMaxLength) {
+      callback(new Error(this.$t('kylinLang.common.nameMaxLen', {len: this.dimMeasNameMaxLength})))
     } else {
       if (!NamedRegex1.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))

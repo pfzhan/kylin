@@ -137,7 +137,7 @@ exports.default = {
     nameFormatValidTip3: '仅支持以数字或字母开头。',
     nameFormatValidTip1: '项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。',
     nameFormatValidTip2: '支持中文、英文、数字、空格、特殊字符（_ -()%?）',
-    nameMaxLen: '最多支持 100 个字符',
+    nameMaxLen: '最多支持 {len} 个字符',
     projectPlaceholder: '仅支持数字、字母和下划线，并以数字或字母开头',
     // userNameFormatValidTip: '用户名只能包含数字，字母，@，点和下划线。',
     // userGroupNameFormatValidTip: '用户组名只能包含字母，数字，@，点和下划线。',

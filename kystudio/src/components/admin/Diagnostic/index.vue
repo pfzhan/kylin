@@ -16,7 +16,7 @@
           :show-background="false"
           :closable="false"
           show-icon>
-          <span slot="title">{{$t('downloadSystemDiagPackage1')}}<a href="javascript:void(0)" @click="goto('job')">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
+          <span slot="title"><span v-html="$t('downloadSystemDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('job')">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
         </el-alert>
         <div class="time-range">{{$t('timeRange')}}<el-tooltip :content="$t('timeRangeTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip>：</div>
         <el-radio-group v-model="timeRangeValue" class="time-range-radio" @change="changeTimeRange" :disabled="isRunning">
@@ -56,12 +56,12 @@
           :closable="false"
           show-icon>
           <template v-if="$store.state.config.platform === 'iframe'">
-            <span slot="title" v-if="isAdminRole">{{$t('downloadJobDiagPackage1ForIframe')}}<a href="javascript:void(0)" @click="gotoWorkspaceList">{{$t('workspaceList')}}</a>{{$t('downloadJobDiagPackage2ForIframe')}}</span>
-            <span slot="title" v-else>{{$t('downloadJobDiagPackageForNorAdminForIframe')}}</span>
+            <span slot="title" v-if="isAdminRole"><span v-html="$t('downloadJobDiagPackage1ForIframe')"></span><a href="javascript:void(0)" @click="gotoWorkspaceList">{{$t('workspaceList')}}</a>{{$t('downloadJobDiagPackage2ForIframe')}}</span>
+            <span slot="title" v-html="$t('downloadJobDiagPackageForNorAdminForIframe')" v-else></span>
           </template>
           <template v-else>
-            <span slot="title" v-if="isAdminRole">{{$t('downloadJobDiagPackage1')}}<a href="javascript:void(0)" @click="goto('admin')">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
-            <span slot="title" v-else>{{$t('downloadJobDiagPackageForNorAdmin')}}</span>
+            <span slot="title" v-if="isAdminRole"><span v-html="$t('downloadJobDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('admin')">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
+            <span slot="title" v-html="$t('downloadJobDiagPackageForNorAdmin')" v-else></span>
           </template>
         </el-alert>
         <p class="title">{{$t('server')}}</p>

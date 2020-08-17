@@ -34,17 +34,17 @@ export default {
     timeErrorMsg: 'Please fill in a reasonable time range',
     selectServerTip: 'Server is required',
     selectServerPlaceHolder: 'Please select server',
-    downloadJobDiagPackage1: 'For job errors, please download the job diagnostic package (including this job’s logs for Executor, Driver, and this project’s metadata). For other errors (i.e. query error), please download system diagnostic package in ',
+    downloadJobDiagPackage1: 'For job errors, please download the job diagnostic package (including this job’s logs for Executor, Driver, and this project’s metadata).<br/>For other errors (i.e. query error), please download system diagnostic package in ',
     adminMode: 'admin mode',
     downloadJobDiagPackage2: '.',
-    downloadJobDiagPackageForNorAdmin: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata. For other errors (i.e. query error), please contact your system admin to download system diagnostic package.',
+    downloadJobDiagPackageForNorAdmin: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata.<br/>For other errors (i.e. query error), please contact your system admin to download system diagnostic package.',
     downloadSystemDiagPackage1: 'For errors excluding job errors, please download system diagnostic package. It includes the system’s metadata and logs.<br/>For job errors, please go to the ',
     jobPage: 'job page',
     downloadSystemDiagPackage2: ' to download the respective job diagnostic package.',
-    downloadJobDiagPackage1ForIframe: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata. For other errors (i.e. failed to scale up/down cluster, query error), please download system diagnostic package in ',
+    downloadJobDiagPackage1ForIframe: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata.<br/>For other errors (i.e. failed to scale up/down cluster, query error), please download system diagnostic package in ',
     workspaceList: 'workspace list',
     downloadJobDiagPackage2ForIframe: '.',
-    downloadJobDiagPackageForNorAdminForIframe: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata. For other errors (i.e. failed to scale up/down cluster, query error), please contact your system admin to download system diagnostic package.'
+    downloadJobDiagPackageForNorAdminForIframe: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata.<br/>For other errors (i.e. failed to scale up/down cluster, query error), please contact your system admin to download system diagnostic package.'
   },
   'zh-cn': {
     dialogTitle: '诊断',
@@ -85,16 +85,16 @@ export default {
     COMPRESS: '正在压缩',
     DONE: '打包完成后开始下载',
     selectServerPlaceHolder: '请选择服务器',
-    downloadJobDiagPackage1: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。若有其他类型的报错（例如查询报错）需诊断，请前往',
+    downloadJobDiagPackage1: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。<br/>若有其他类型的报错（例如查询报错）需诊断，请前往',
     adminMode: '系统管理页面',
     downloadJobDiagPackage2: '下载系统诊断包。',
-    downloadJobDiagPackageForNorAdmin: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。若有其他类型的报错（例如查询报错）需诊断，请联系您的系统管理员下载系统诊断包。',
+    downloadJobDiagPackageForNorAdmin: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。<br/>若有其他类型的报错（例如查询报错）需诊断，请联系您的系统管理员下载系统诊断包。',
     downloadSystemDiagPackage1: '当有除任务报错之外的错误需要诊断时，请下载系统诊断包，其中包括系统元数据、系统日志。<br/>如需诊断具体任务的报错，请前往',
     jobPage: '任务页面',
     downloadSystemDiagPackage2: '下载相应的任务诊断包。',
-    downloadJobDiagPackage1ForIframe: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。若有其他类型的报错（例如集群扩缩容失败、查询报错）需诊断，请前往',
+    downloadJobDiagPackage1ForIframe: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。<br/>若有其他类型的报错（例如集群扩缩容失败、查询报错）需诊断，请前往',
     workspaceList: '工作区管理页面',
     downloadJobDiagPackage2ForIframe: '下载系统诊断包。',
-    downloadJobDiagPackageForNorAdminForIframe: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。若有其他类型的报错（例如集群扩缩容失败、查询报错）需诊断，请联系您的系统管理员下载系统诊断包。'
+    downloadJobDiagPackageForNorAdminForIframe: '当任务报错需要诊断时，请下载任务诊断包，其中包括该任务的 Executor、Driver 日志和该项目元数据等。<br/>若有其他类型的报错（例如集群扩缩容失败、查询报错）需诊断，请联系您的系统管理员下载系统诊断包。'
   }
 }

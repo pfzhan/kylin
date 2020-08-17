@@ -59,7 +59,8 @@ vuex.registerModule(['modals', 'SingleDimensionModal'], store)
 @Component({
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'dimMeasNameMaxLength'
     ]),
     // Store数据注入
     ...mapState('SingleDimensionModal', {
@@ -114,8 +115,8 @@ export default class SingleDimensionModal extends Vue {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
     } else if (!this.modelInstance.checkSameEditDimensionName(this.dimensionInfo)) {
       callback(new Error(this.$t('sameName')))
-    } else if (value.length > 100) {
-      callback(new Error(this.$t('kylinLang.common.nameMaxLen')))
+    } else if (value.length > this.dimMeasNameMaxLength) {
+      callback(new Error(this.$t('kylinLang.common.nameMaxLen', {len: this.dimMeasNameMaxLength})))
     } else {
       callback()
     }

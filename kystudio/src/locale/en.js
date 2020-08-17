@@ -138,7 +138,7 @@ exports.default = {
     nameFormatValidTip3: 'Only supports starting with a number or a letter.',
     nameFormatValidTip1: 'Please use number, letter, and underline to name your project, and start with a number or a letter.',
     nameFormatValidTip2: 'Only supports Chinese or English characters, numbers, spaces and symbol（_ -()%?）',
-    nameMaxLen: '100 characters at maximum',
+    nameMaxLen: '{len} characters at maximum',
     projectPlaceholder: 'Only supports number, letter and underline. Must start with a number or a letter',
     // userNameFormatValidTip: 'User name should only contain letters, numbers, @, dot and underscores.',
     // userGroupNameFormatValidTip: 'User group name should only contain letters, numbers, @, dot and underscores.',

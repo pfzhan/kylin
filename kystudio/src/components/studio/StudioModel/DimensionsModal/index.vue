@@ -51,7 +51,7 @@
                         </el-input>
                         <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                         <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                        <div v-else-if="scope.row.validateNameMaxLen" class="ky-form-error">{{$t('kylinLang.common.nameMaxLen')}}</div>
+                        <div v-else-if="scope.row.validateNameMaxLen" class="ky-form-error">{{$t('kylinLang.common.nameMaxLen', {len: dimMeasNameMaxLength})}}</div>
                       </div>
                     </template>
                   </el-table-column>
@@ -111,7 +111,7 @@
                     :render-header="renderNameHeader">
                     <template slot-scope="scope">
                       <div @click.stop>
-                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
+                        <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="dimMeasNameMaxLength">
                         </el-input>
                         <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                         <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
@@ -174,7 +174,7 @@
                       :render-header="renderNameHeader">
                       <template slot-scope="scope">
                         <div @click.stop>
-                          <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
+                          <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="dimMeasNameMaxLength">
                           </el-input>
                           <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                           <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
@@ -221,7 +221,7 @@
                 :render-header="renderNameHeader">
                 <template slot-scope="scope">
                   <div @click.stop>
-                    <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="100">
+                    <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="dimMeasNameMaxLength">
                     </el-input>
                     <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
                     <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
@@ -272,7 +272,8 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'isGuideMode'
+      'isGuideMode',
+      'dimMeasNameMaxLength'
     ]),
     // Store数据注入
     ...mapState('DimensionsModal', {
@@ -521,7 +522,7 @@ export default class DimensionsModal extends Vue {
           hasPassValidate = false
           this.$set(col, 'validateNameRule', true)
           this.errorGuidList.push(col.guid || col.table_guid)
-        } else if (col.alias.length > 100) {
+        } else if (col.alias.length > this.dimMeasNameMaxLength) {
           hasPassValidate = false
           this.$set(col, 'validateNameMaxLen', true)
           this.errorGuidList.push(col.guid || col.table_guid)
