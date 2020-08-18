@@ -188,6 +188,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "4GB");
         helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
         helper.setConf(SparkConfHelper.EXECUTOR_CORES, "3");
+        helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, "10");
         SparkConf sparkConf = new SparkConf();
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
@@ -196,7 +197,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("3", SparkConfHelper.EXECUTOR_CORES),
                 new CompareTuple("512MB", SparkConfHelper.EXECUTOR_OVERHEAD),
                 new CompareTuple("2", SparkConfHelper.EXECUTOR_INSTANCES),
-                new CompareTuple("2", SparkConfHelper.SHUFFLE_PARTITIONS));
+                new CompareTuple("10", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
         System.clearProperty("kylin.engine.base-executor-instance");
     }
@@ -290,6 +291,12 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         instancesRule.apply(helper);
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
+        // case: user defined executor instances
+        resetSparkConfHelper(helper);
+        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, "10");
+        instancesRule.apply(helper);
+        Assert.assertEquals("10", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+
     }
 
     private void resetSparkConfHelper(SparkConfHelper helper) {
@@ -298,9 +305,10 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.setOption(SparkConfHelper.REQUIRED_CORES, "1");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
         helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, "1GB");
+        helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, null);
         helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, "512MB");
         helper.setOption(SparkConfHelper.REQUIRED_CORES, "14");
-
+        helper.setOption(SparkConfHelper.EXECUTOR_INSTANCES, null);
         System.clearProperty("kylin.engine.base-executor-instance");
     }
 

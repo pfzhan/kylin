@@ -112,6 +112,10 @@ class ExecutorOverheadRule extends SparkConfRule {
 
 class ExecutorInstancesRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
+    val userDefinedInstances = helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES)
+    if (StringUtils.isNotBlank(userDefinedInstances)) {
+      return
+    }
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
     val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
@@ -182,6 +186,10 @@ class ExecutorInstancesRule extends SparkConfRule {
 
 class ShufflePartitionsRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
+    val userDefinedPartitions = helper.getConf(SparkConfHelper.SHUFFLE_PARTITIONS)
+    if (StringUtils.isNotBlank(userDefinedPartitions)) {
+      return
+    }
     val sourceTableSize = helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE)
     val partitions = Math.max(2, Utils.byteStringAsMb(sourceTableSize) / 32).toString
     helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, partitions)
