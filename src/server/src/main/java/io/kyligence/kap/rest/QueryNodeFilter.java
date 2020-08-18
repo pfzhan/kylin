@@ -108,6 +108,7 @@ public class QueryNodeFilter implements Filter {
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
         notRoutePostApiSet.add("/kylin/api/system/maintenance_mode");
+        notRouteDeleteApiSet.add("/kylin/api/query");
 
 
         notRoutePostApiSet.add("/kylin/api/health/instance_info");
@@ -132,9 +133,6 @@ public class QueryNodeFilter implements Filter {
         notRoutePutApiSet.add("/kylin/api/tables/single_catalog_cache");
         notRoutePutApiSet.add("/kylin/api/index_plans/agg_index_count");
         notRoutePutApiSet.add("/kylin/api/spark/roll_event_log");
-
-        // broadcast
-        notRoutePostApiSet.add("/kylin/api/broadcast/stop_query_on_current_node");
     }
 
     @Autowired
