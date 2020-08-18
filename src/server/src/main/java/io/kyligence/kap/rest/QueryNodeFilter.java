@@ -287,8 +287,7 @@ public class QueryNodeFilter implements Filter {
     private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType, ServletRequest request) {
         if (!kylinConfig.isQueryNodeOnly()) {
             // process local
-            if (((HttpServletRequest) request).getRequestURI().contains("epoch")
-                    || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
+            if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
                 if (StringUtils.isEmpty(contentType) || !contentType.contains("multipart/form-data")) {
                     return true;
                 }
