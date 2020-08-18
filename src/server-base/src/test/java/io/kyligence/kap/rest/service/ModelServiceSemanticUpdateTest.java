@@ -555,6 +555,31 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRemoveCCExistInTableIndexWithAggGroup() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        // ensure model has an agg group
+        NAggregationGroup newAggregationGroup = new NAggregationGroup();
+        newAggregationGroup.setIncludes(new Integer[] {0});
+        newAggregationGroup.setMeasures(new Integer[] {100000});
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[0];
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        newAggregationGroup.setSelectRule(selectRule);
+        indexPlanService.updateRuleBasedCuboid(getProject(),
+                UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(modelId)
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(newAggregationGroup)).build());
+
+        // remove cc TEST_KYLIN_FACT.NEST5
+        var request = newSemanticRequest(modelId);
+        request.getComputedColumnDescs().removeIf(c -> ("NEST5").equals(c.getColumnName()));
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("The dimension TEST_KYLIN_FACT.NEST5 is referenced by indexes. " +
+                "Please try again after deleting it from aggregation group or table index.");
+        modelService.updateDataModelSemantic(getProject(), request);
+    }
+
+    @Test
     public void testModifyCCExistInTableIndex() throws Exception {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
