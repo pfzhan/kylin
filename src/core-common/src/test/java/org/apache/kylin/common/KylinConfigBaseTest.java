@@ -54,6 +54,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -753,13 +754,19 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.garbage.storage.sourceusage-survival-time-threshold", "90d", 7776000000L));
         map.put("isSanityCheckEnabled", new PropertiesEntity("kylin.engine.sanity-check-enabled", "false", false));
         map.put("getLoadCounterCapacity", new PropertiesEntity("kylin.query.load-counter-capacity", "50", 50));
-        map.put("getLoadCounterPeriodSeconds", new PropertiesEntity("kylin.query.load-counter-period-seconds", "3s", 3L));
+        map.put("getLoadCounterPeriodSeconds",
+                new PropertiesEntity("kylin.query.load-counter-period-seconds", "3s", 3L));
         map.put("getJobFinishedNotifierUrl", new PropertiesEntity("kylin.job.finished-notifier-url",
                 "http://localhost:8088/test", "http://localhost:8088/test"));
         map.put("getTurnMaintainModeRetryTimes",
                 new PropertiesEntity("kylin.tool.turn-on-maintainmodel-retry-times", "3", 3));
         map.put("getCatchUpTimeout", new PropertiesEntity("kylin.metadata.audit-log.catchup-timeout", "2s", 2L));
-        map.put("getMaxModelDimensionMeasureNameLength", new PropertiesEntity("kylin.model.dimension-measure-name.max-length", "300", 300));
+        map.put("getMaxModelDimensionMeasureNameLength",
+                new PropertiesEntity("kylin.model.dimension-measure-name.max-length", "300", 300));
+        map.put("getAuditLogBatchSize", new PropertiesEntity("kylin.metadata.audit-log.batch-size", "5000", 5000));
+        map.put("getDiagTaskTimeout", new PropertiesEntity("kylin.diag.task-timeout", "180s", 180L));
+        map.put("getDiagTaskTimeoutBlackList", new PropertiesEntity("kylin.diag.task-timeout-black-list",
+                "METADATA,LOG", ImmutableSet.copyOf("METADATA,LOG".split(","))));
     }
 
     @Before
@@ -780,7 +787,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(380, methodsCount);
+        Assert.assertEquals(383, methodsCount);
     }
 
     @Test

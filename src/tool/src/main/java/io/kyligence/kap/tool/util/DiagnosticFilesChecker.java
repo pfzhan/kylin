@@ -23,11 +23,13 @@
  */
 package io.kyligence.kap.tool.util;
 
-import org.apache.kylin.common.util.CliCommandExecutor;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
 
 public class DiagnosticFilesChecker {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -35,18 +37,15 @@ public class DiagnosticFilesChecker {
     private DiagnosticFilesChecker() {
     }
 
-    public static void writeMsgToFile(String msg, Long time, File file) {
-        if (Thread.currentThread().isInterrupted()) {
-            logger.info("Current thread is interrupted, skip write {} to file {}", msg, file.getName());
-            return;
-        }
-
-        String cmd = String.format("echo TIME OF EXTRACT %s : %dms>>%s", msg, time, file.getAbsolutePath());
-        logger.info("The command is: {}", cmd);
-        try {
-            new CliCommandExecutor().execute(cmd, null);
-        } catch (Exception e) {
-            logger.error("Failed to execute cmd", e);
+    public static synchronized void writeMsgToFile(String msg, Long time, File file) {
+        String interruptString = Thread.currentThread().isInterrupted() ? "(INTERRUPT)" : "";
+        String content = String.format("TIME OF EXTRACT %s %s: %dms", msg, interruptString, time);
+        logger.info(content);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+            writer.write(content);
+            writer.newLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

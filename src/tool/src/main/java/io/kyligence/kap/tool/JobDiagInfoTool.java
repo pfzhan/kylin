@@ -26,6 +26,7 @@ package io.kyligence.kap.tool;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -56,13 +57,14 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             .withDescription("specify the Job ID to extract information. ").create("job");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_INCLUDE_YARN_LOGS = OptionBuilder.getInstance().withArgName("includeYarnLogs").hasArg()
-            .isRequired(false)
+    private static final Option OPTION_INCLUDE_YARN_LOGS = OptionBuilder.getInstance().withArgName("includeYarnLogs")
+            .hasArg().isRequired(false)
             .withDescription("set this to true if want to extract related yarn logs too. Default true")
             .create("includeYarnLogs");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_INCLUDE_CLIENT = OptionBuilder.getInstance().withArgName("includeClient").hasArg()
-            .isRequired(false).withDescription("Specify whether to include client info to extract. Default true.")
+    private static final Option OPTION_INCLUDE_CLIENT = OptionBuilder.getInstance().withArgName("includeClient")
+            .hasArg().isRequired(false)
+            .withDescription("Specify whether to include client info to extract. Default true.")
             .create("includeClient");
     @SuppressWarnings("static-access")
     private static final Option OPTION_INCLUDE_CONF = OptionBuilder.getInstance().withArgName("includeConf").hasArg()
@@ -70,12 +72,13 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             .create("includeConf");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg().isRequired(false)
-            .withDescription("Specify number of threads for parallel extraction.").create("threads");
+    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg()
+            .isRequired(false).withDescription("Specify number of threads for parallel extraction.").create("threads");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg().isRequired(false)
-            .withDescription("Specify whether to include metadata to extract. Default true.").create("includeMeta");
+    private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg()
+            .isRequired(false).withDescription("Specify whether to include metadata to extract. Default true.")
+            .create("includeMeta");
 
     private static final String OPT_JOB = "-job";
 
@@ -108,7 +111,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         logger.info("Start diagnosis job info extraction in {} threads.", threadsNum);
         executorService = Executors.newScheduledThreadPool(threadsNum);
-
+        canceledTasks = new ConcurrentSkipListSet<>();
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
 
@@ -124,39 +127,21 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         if (includeMeta) {
             // dump job metadata
-            executorService.execute(() -> {
-                logger.info("Start to dump metadata.");
-                try {
-                    File metaDir = new File(exportDir, "metadata");
-                    FileUtils.forceMkdir(metaDir);
-                    String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
-                            "-excludeTableExd" };
-                    String dumpMetadataCmd = String.format(
-                            "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -project %s -excludeTableExd",
-                            KylinConfig.getKylinHome(), metaDir.getAbsolutePath(), project);
-                    dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd);
-                } catch (Exception e) {
-                    logger.warn("Failed to extract job metadata.", e);
-                }
-                DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
-            });
+            File metaDir = new File(exportDir, "metadata");
+            FileUtils.forceMkdir(metaDir);
+            String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
+                    "-excludeTableExd" };
+            String dumpMetadataCmd = String.format(
+                    "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -project %s -excludeTableExd",
+                    KylinConfig.getKylinHome(), metaDir.getAbsolutePath(), project);
+            dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd, recordTime);
         }
 
-        // dump audit log
-        executorService.execute(() -> {
-            logger.info("Start to dump audit log.");
-            try {
-                File auditLogDir = new File(exportDir, "audit_log");
-                FileUtils.forceMkdir(auditLogDir);
+        File auditLogDir = new File(exportDir, "audit_log");
+        FileUtils.forceMkdir(auditLogDir);
+        String[] auditLogToolArgs = { OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR, auditLogDir.getAbsolutePath() };
+        exportAuditLog(auditLogToolArgs, recordTime);
 
-                String[] auditLogToolArgs = { OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR,
-                        auditLogDir.getAbsolutePath() };
-                new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
-            } catch (Exception e) {
-                logger.warn("Failed to extract audit log.", e);
-            }
-            DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
-        });
         // extract yarn log
         if (includeYarnLogs && !isCloud) {
             Future future = executorService.submit(() -> {
@@ -172,27 +157,19 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             }, 3, TimeUnit.MINUTES);
 
         }
-        // export client info
+
         if (includeClient) {
-            executorService.execute(() -> {
-                logger.info("Start to extract client info.");
-                CommonInfoTool.exportClientInfo(exportDir);
-                DiagnosticFilesChecker.writeMsgToFile("CLIENT", System.currentTimeMillis() - start, recordTime);
-            });
+            exportClient(recordTime);
         }
-        // dump jstack
-        executorService.execute(() -> {
-            logger.info("Start to extract jstack info.");
-            JStackTool.extractJstack(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("JSTACK", System.currentTimeMillis() - start, recordTime);
-        });
 
-        exportConf(exportDir, start, recordTime, includeConf);
+        exportJstack(recordTime);
 
-        exportSparkLog(exportDir, start, recordTime, project, jobId, job);
+        exportConf(exportDir, recordTime, includeConf);
 
-        exportKgLogs(exportDir, startTime, endTime, start, recordTime);
-        exportMetrics(exportDir, start, recordTime, project);
+        exportSparkLog(exportDir, recordTime, project, jobId, job);
+
+        exportKgLogs(exportDir, startTime, endTime, recordTime);
+        exportInfluxDBMetrics(exportDir, recordTime);
 
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
@@ -206,32 +183,22 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
-    private void exportMetrics(File exportDir, final long start, final File recordTime, final String project) {
-        // influxdb metrics
-        executorService.execute(() -> {
-            logger.info("Start to dump influxdb metrics.");
-            InfluxDBTool.dumpInfluxDBMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-        // influxdb sla monitor metrics
-        executorService.execute(() -> {
-            logger.info("Start to dump influxdb sla monitor metrics.");
-            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-    }
-
-    private void exportSparkLog(File exportDir, final long start, final File recordTime, String project, String jobId,
+    private void exportSparkLog(File exportDir, final File recordTime, String project, String jobId,
             AbstractExecutable job) {
         // job spark log
-        executorService.execute(() -> {
+        Future sparkLogTask = executorService.submit(() -> {
             logger.info("Start to extract spark logs.");
+            long start = System.currentTimeMillis();
             KylinLogTool.extractSparkLog(exportDir, project, jobId);
             DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
         });
+
+        scheduleTimeoutTask(sparkLogTask, "SPARK_LOGS");
+
         // extract job step eventLogs
-        executorService.execute(() -> {
+        Future eventLogTask = executorService.submit(() -> {
             logger.info("Start to extract job eventLogs.");
+            long start = System.currentTimeMillis();
             if (job instanceof DefaultChainedExecutable) {
                 List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
                 Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
@@ -239,44 +206,18 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
                 DiagnosticFilesChecker.writeMsgToFile("JOB_EVENTLOGS", System.currentTimeMillis() - start, recordTime);
             }
         });
+
+        scheduleTimeoutTask(eventLogTask, "JOB_EVENTLOGS");
+
         // job tmp
-        executorService.execute(() -> {
+        Future jobTmpTask = executorService.submit(() -> {
             logger.info("Start to extract job_tmp.");
+            long start = System.currentTimeMillis();
             KylinLogTool.extractJobTmp(exportDir, project, jobId);
             DiagnosticFilesChecker.writeMsgToFile("JOB_TMP", System.currentTimeMillis() - start, recordTime);
         });
-    }
 
-    private void exportConf(File exportDir, final long start, final File recordTime, final boolean includeConf) {
-        // export conf
-        if (includeConf) {
-            executorService.execute(() -> {
-                logger.info("Start to extract kylin conf files.");
-                ConfTool.extractConf(exportDir);
-                DiagnosticFilesChecker.writeMsgToFile("CONF", System.currentTimeMillis() - start, recordTime);
-            });
-        }
-
-        // hadoop conf
-        executorService.execute(() -> {
-            logger.info("Start to extract hadoop conf files.");
-            ConfTool.extractHadoopConf(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("HADOOP_CONF", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // export hadoop env
-        executorService.execute(() -> {
-            logger.info("Start to extract hadoop env.");
-            CommonInfoTool.exportHadoopEnv(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("HADOOP_ENV", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // export KYLIN_HOME dir
-        executorService.execute(() -> {
-            logger.info("Start to extract KYLIN_HOME dir.");
-            CommonInfoTool.exportKylinHomeDir(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("CATALOG_INFO", System.currentTimeMillis() - start, recordTime);
-        });
+        scheduleTimeoutTask(jobTmpTask, "JOB_TMP");
     }
 
     @VisibleForTesting

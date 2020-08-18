@@ -93,10 +93,19 @@ public class KylinLogTool {
     private KylinLogTool() {
     }
 
-    private static void extractAllIncludeLogs(File[] logFiles, File destDir) throws IOException {
-        String[] allIncludeLogs = {"kylin.gc.", "shell.", "kylin.out", "diag.log"};
+    private static boolean checkTimeoutTask(long timeout, String task) {
+        return !KylinConfig.getInstanceFromEnv().getDiagTaskTimeoutBlackList().contains(task)
+                && System.currentTimeMillis() > timeout;
+    }
+
+    private static void extractAllIncludeLogs(File[] logFiles, File destDir, long timeout) throws IOException {
+        String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
         for (File logFile : logFiles) {
             for (String includeLog : allIncludeLogs) {
+                if (checkTimeoutTask(timeout, "LOG")) {
+                    logger.error("Cancel 'LOG:all' task.");
+                    return;
+                }
                 if (logFile.getName().startsWith(includeLog)) {
                     Files.copy(logFile.toPath(), new File(destDir, logFile.getName()).toPath());
                 }
@@ -104,11 +113,15 @@ public class KylinLogTool {
         }
     }
 
-    private static void extractPartIncludeLogByDay(File[] logFiles, String startDate, String endDate, File destDir)
-            throws IOException {
-        String[] partIncludeLogByDay = {"access_log."};
+    private static void extractPartIncludeLogByDay(File[] logFiles, String startDate, String endDate, File destDir,
+            long timeout) throws IOException {
+        String[] partIncludeLogByDay = { "access_log." };
         for (File logFile : logFiles) {
             for (String includeLog : partIncludeLogByDay) {
+                if (checkTimeoutTask(timeout, "LOG")) {
+                    logger.error("Cancel 'LOG:partByDay' task.");
+                    return;
+                }
                 if (logFile.getName().startsWith(includeLog)) {
                     String date = logFile.getName().split("\\.")[1];
                     if (date.compareTo(startDate) >= 0 && date.compareTo(endDate) <= 0) {
@@ -119,11 +132,15 @@ public class KylinLogTool {
         }
     }
 
-    private static void extractPartIncludeLogByMs(File[] logFiles, long start, long end, File destDir)
+    private static void extractPartIncludeLogByMs(File[] logFiles, long start, long end, File destDir, long timeout)
             throws IOException {
-        String[] partIncludeLogByMs = {"jstack.timed.log"};
+        String[] partIncludeLogByMs = { "jstack.timed.log" };
         for (File logFile : logFiles) {
             for (String includeLog : partIncludeLogByMs) {
+                if (checkTimeoutTask(timeout, "LOG")) {
+                    logger.error("Cancel 'LOG:partByMs' task.");
+                    return;
+                }
                 if (logFile.getName().startsWith(includeLog)) {
                     long time = Long.parseLong(logFile.getName().split("\\.")[3]);
                     if (time >= start && time <= end) {
@@ -146,6 +163,8 @@ public class KylinLogTool {
         String startDate = logFormat.format(new Date(start));
         String endDate = logFormat.format(new Date(end));
         logger.debug("logs startDate : {}, endDate : {}", startDate, endDate);
+        long duration = KylinConfig.getInstanceFromEnv().getDiagTaskTimeout() * 1000L;
+        long timeout = System.currentTimeMillis() + duration;
         try {
             FileUtils.forceMkdir(destDir);
             File kylinLogDir = new File(ToolUtil.getLogFolder());
@@ -155,9 +174,9 @@ public class KylinLogTool {
                     logger.error("Failed to list kylin logs dir: {}", kylinLogDir);
                     return;
                 }
-                extractAllIncludeLogs(logFiles, destDir);
-                extractPartIncludeLogByDay(logFiles, startDate, endDate, destDir);
-                extractPartIncludeLogByMs(logFiles, start, end, destDir);
+                extractAllIncludeLogs(logFiles, destDir, timeout);
+                extractPartIncludeLogByDay(logFiles, startDate, endDate, destDir, timeout);
+                extractPartIncludeLogByMs(logFiles, start, end, destDir, timeout);
             }
         } catch (Exception e) {
             logger.error("Failed to extract the logs from kylin logs dir, ", e);
@@ -192,7 +211,7 @@ public class KylinLogTool {
     }
 
     private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File logFile,
-                                                                       boolean onlyStartTime) {
+            boolean onlyStartTime) {
         Preconditions.checkNotNull(jobId);
         Preconditions.checkNotNull(logFile);
 
@@ -279,7 +298,7 @@ public class KylinLogTool {
         Preconditions.checkArgument(timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0);
 
         try (BufferedReader br = new BufferedReader(new FileReader(logFile));
-             BufferedWriter bw = new BufferedWriter(new FileWriter(distFile))) {
+                BufferedWriter bw = new BufferedWriter(new FileWriter(distFile))) {
 
             int extraLines = EXTRA_LINES;
             boolean extract = false;
@@ -351,8 +370,14 @@ public class KylinLogTool {
             }
 
             logger.info("Extract kylin log from {} to {} .", timeRange.getFirst(), timeRange.getSecond());
-
+            long start = System.currentTimeMillis();
+            long duration = KylinConfig.getInstanceFromEnv().getDiagTaskTimeout() * 1000L;
+            long timeout = start + duration;
             for (File logFile : kylinLogs) {
+                if (checkTimeoutTask(timeout, "LOG")) {
+                    logger.error("Cancel 'LOG:kylin.log' task.");
+                    break;
+                }
                 extractLogByRange(logFile, timeRange, destLogDir);
             }
         } catch (Exception e) {
@@ -381,7 +406,6 @@ public class KylinLogTool {
                 logger.error("Can not find the spark logs: {}", jobPath);
                 return;
             }
-
             for (FileStatus fileStatus : fileStatuses) {
                 if (Thread.interrupted()) {
                     throw new InterruptedException("spark log task is interrupt");
@@ -402,30 +426,32 @@ public class KylinLogTool {
      * otherwise it always increases.
      */
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
-                                              Map<String, String> sparderConf, ILogExtractor extractTool) {
+            Map<String, String> sparderConf, ILogExtractor extractTool) {
         val sparkLogsDir = new File(exportDir, "sparder_history");
         val fs = HadoopUtil.getFileSystem(extractTool.getSparderEvenLogDir());
         val validApps = extractTool.getValidSparderApps(startTime, endTime);
-        JavaConversions.asJavaCollection(validApps)
-                .forEach(app -> {
-                    try {
-                        if (!sparkLogsDir.exists()) {
-                            FileUtils.forceMkdir(sparkLogsDir);
-                        }
-                        String fileAppId = app.getPath().getName().split("#")[0].replace(extractTool.ROLL_LOG_DIR_NAME_PREFIX(), "");
-                        File localFile = new File(sparkLogsDir, fileAppId);
-                        copyValidLog(fileAppId, startTime, endTime, app, fs, localFile);
-                    } catch (Exception e) {
-                        logger.error("Failed to extract sparder eventLog.", e);
-                    }
-                });
+        JavaConversions.asJavaCollection(validApps).forEach(app -> {
+            try {
+                if (!sparkLogsDir.exists()) {
+                    FileUtils.forceMkdir(sparkLogsDir);
+                }
+                String fileAppId = app.getPath().getName().split("#")[0].replace(extractTool.ROLL_LOG_DIR_NAME_PREFIX(),
+                        "");
+                File localFile = new File(sparkLogsDir, fileAppId);
+                copyValidLog(fileAppId, startTime, endTime, app, fs, localFile);
+            } catch (Exception e) {
+                logger.error("Failed to extract sparder eventLog.", e);
+            }
+        });
     }
 
     private static void copyValidLog(String appId, long startTime, long endTime, FileStatus fileStatus, FileSystem fs,
-                                     File localFile) throws IOException {
+            File localFile) throws IOException, InterruptedException {
         FileStatus[] eventStatuses = fs.listStatus(new Path(fileStatus.getPath().toUri()));
         for (FileStatus status : eventStatuses) {
-
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("Event log task is interrupt");
+            }
             boolean valid = false;
             String[] att = status.getPath().getName().replace("_" + appId, "").split("_");
             if (att.length >= 3 && ROLL_LOG_FILE_NAME_PREFIX.equals(att[0])) {
@@ -454,7 +480,7 @@ public class KylinLogTool {
     }
 
     public static void extractJobEventLogs(File exportDir, List<AbstractExecutable> tasks,
-                                           Map<String, String> sparkConf) {
+            Map<String, String> sparkConf) {
         try {
             String logDir = sparkConf.get("spark.eventLog.dir").trim();
             boolean eventEnabled = Boolean.parseBoolean(sparkConf.get("spark.eventLog.enabled").trim());
@@ -614,6 +640,9 @@ public class KylinLogTool {
             logger.info("Extract guardian log from {} to {} .", timeRange.getFirst(), timeRange.getSecond());
 
             for (File logFile : kgLogs) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("Kg log task is interrupt");
+                }
                 extractLogByRange(logFile, timeRange, kgLogsDir);
             }
         } catch (Exception e) {

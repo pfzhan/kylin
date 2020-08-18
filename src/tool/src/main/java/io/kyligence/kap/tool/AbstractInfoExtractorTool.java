@@ -32,13 +32,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
-import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
 import io.kyligence.kap.tool.util.ToolUtil;
@@ -71,13 +73,14 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             .withDescription("specify the dest dir to save the related information").create("destDir");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_START_TIME = OptionBuilder.getInstance().withArgName("startTime").hasArg().isRequired(false)
-            .withDescription("specify the start of time range to extract logs. ").create("startTime");
+    static final Option OPTION_START_TIME = OptionBuilder.getInstance().withArgName("startTime").hasArg()
+            .isRequired(false).withDescription("specify the start of time range to extract logs. ").create("startTime");
     @SuppressWarnings("static-access")
     static final Option OPTION_END_TIME = OptionBuilder.getInstance().withArgName("endTime").hasArg().isRequired(false)
             .withDescription("specify the end of time range to extract logs. ").create("endTime");
     @SuppressWarnings("static-access")
-    static final Option OPTION_CURRENT_TIME = OptionBuilder.getInstance().withArgName("currentTime").hasArg().isRequired(false)
+    static final Option OPTION_CURRENT_TIME = OptionBuilder.getInstance().withArgName("currentTime").hasArg()
+            .isRequired(false)
             .withDescription(
                     "specify the current of time from client to fix diff between client and server and timezone problem. ")
             .create("currentTime");
@@ -86,16 +89,19 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     static final Option OPTION_COMPRESS = OptionBuilder.getInstance().withArgName("compress").hasArg().isRequired(false)
             .withDescription("specify whether to compress the output with zip. Default true.").create("compress");
     @SuppressWarnings("static-access")
-    static final Option OPTION_SUBMODULE = OptionBuilder.getInstance().withArgName("submodule").hasArg().isRequired(false)
-            .withDescription("specify whether this is a submodule of other CLI tool").create("submodule");
+    static final Option OPTION_SUBMODULE = OptionBuilder.getInstance().withArgName("submodule").hasArg()
+            .isRequired(false).withDescription("specify whether this is a submodule of other CLI tool")
+            .create("submodule");
     @SuppressWarnings("static-access")
-    static final Option OPTION_SYSTEM_ENV = OptionBuilder.getInstance().withArgName("systemProp").hasArg().isRequired(false)
+    static final Option OPTION_SYSTEM_ENV = OptionBuilder.getInstance().withArgName("systemProp").hasArg()
+            .isRequired(false)
             .withDescription("specify whether to include system env and properties to extract. Default false.")
             .create("systemProp");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_META_SUBPROCESS = OptionBuilder.getInstance().withArgName("subProcessMeta").isRequired(false)
-            .withDescription("Specify whether using sub process to dump metadata").create("subProcessMeta");
+    static final Option OPTION_META_SUBPROCESS = OptionBuilder.getInstance().withArgName("subProcessMeta")
+            .isRequired(false).withDescription("Specify whether using sub process to dump metadata")
+            .create("subProcessMeta");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";
     private static final String[] COMMIT_SHA1_FILES = { "commit_SHA1", "commit.sha1" };
@@ -130,6 +136,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     @Getter
     private CliCommandExecutor cmdExecutor;
+
+    @Getter
+    protected ConcurrentSkipListSet<String> canceledTasks;
 
     private boolean includeSystemEnv;
 
@@ -416,27 +425,166 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         }
     }
 
-    protected void dumpMetadata(OptionsHelper optionsHelper, String[] metaToolArgs, String dumpMetadataCmd)
-            throws Exception {
-        boolean subProcessMeta = optionsHelper.hasOption(OPTION_META_SUBPROCESS);
-        logger.info("Start to dump metadata , subProcessMeta {}.", subProcessMeta);
-        File metaDir = new File(exportDir, "metadata");
-        FileUtils.forceMkdir(metaDir);
-        if (!subProcessMeta) {
-            new MetadataTool().execute(metaToolArgs);
-        } else {
-            logger.info("Dump metadata cmd is {}", dumpMetadataCmd);
-            val result = new CliCommandExecutor().execute(dumpMetadataCmd, null);
-            logger.info("Dump metadata result code : {} , cmd : {} , pid : {}.", result.getCode(), result.getCmd(),
-                    result.getProcessId());
-        }
+    protected void dumpMetadata(OptionsHelper optionsHelper, String[] metaToolArgs, String dumpMetadataCmd,
+            File recordTime) {
+        Future metadataTask = executorService.submit(() -> {
+            long start = System.currentTimeMillis();
+            try {
+                boolean subProcessMeta = optionsHelper.hasOption(OPTION_META_SUBPROCESS);
+                logger.info("Start to dump metadata , subProcessMeta {}.", subProcessMeta);
+                File metaDir = new File(exportDir, "metadata");
+                FileUtils.forceMkdir(metaDir);
+                if (!subProcessMeta) {
+                    new MetadataTool().execute(metaToolArgs);
+                } else {
+                    logger.info("Dump metadata cmd is {}", dumpMetadataCmd);
+                    val result = new CliCommandExecutor().execute(dumpMetadataCmd, null);
+                    logger.info("Dump metadata result code : {} , cmd : {} , pid : {}.", result.getCode(),
+                            result.getCmd(), result.getProcessId());
+                }
+            } catch (Exception e) {
+                logger.error("Failed to extract metadata.", e);
+            }
+            DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(metadataTask, "METADATA");
     }
 
-    protected void exportKgLogs(File exportDir, long startTime, long endTime, long start, File recordTime) {
-        executorService.execute(() -> {
+    protected void exportKgLogs(File exportDir, long startTime, long endTime, File recordTime) {
+        Future kgLogTask = executorService.submit(() -> {
             logger.info("Start to extract guardian process log.");
+            long start = System.currentTimeMillis();
             KylinLogTool.extractKGLogs(exportDir, startTime, endTime);
             DiagnosticFilesChecker.writeMsgToFile("KG_LOGS", System.currentTimeMillis() - start, recordTime);
         });
+
+        scheduleTimeoutTask(kgLogTask, "KG_LOGS");
+    }
+
+    protected void exportAuditLog(String[] auditLogToolArgs, File recordTime) {
+        Future auditTask = executorService.submit(() -> {
+            logger.info("Start to dump audit log.");
+            long start = System.currentTimeMillis();
+            try {
+                new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
+            } catch (Exception e) {
+                logger.error("Failed to extract audit log.", e);
+            }
+            DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(auditTask, "AUDIT_LOG");
+    }
+
+    protected void exportInfluxDBMetrics(File exportDir, File recordTime) {
+        // influxdb metrics
+        Future metricsTask = executorService.submit(() -> {
+            logger.info("Start to dump influxdb metrics.");
+            long start = System.currentTimeMillis();
+            InfluxDBTool.dumpInfluxDBMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(metricsTask, "SYSTEM_METRICS");
+
+        // influxdb sla monitor metrics
+        Future monitorTask = executorService.submit(() -> {
+            logger.info("Start to dump influxdb sla monitor metrics.");
+            long start = System.currentTimeMillis();
+            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(monitorTask, "MONITOR_METRICS");
+    }
+
+    protected void exportClient(File recordTime) {
+        Future clientTask = executorService.submit(() -> {
+            logger.info("Start to extract client info.");
+            long start = System.currentTimeMillis();
+            CommonInfoTool.exportClientInfo(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("CLIENT", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(clientTask, "CLIENT");
+
+    }
+
+    protected void exportJstack(File recordTime) {
+        Future jstackTask = executorService.submit(() -> {
+            logger.info("Start to extract jstack info.");
+            long start = System.currentTimeMillis();
+            JStackTool.extractJstack(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("JSTACK", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(jstackTask, "JSTACK");
+
+    }
+
+    protected void exportConf(File exportDir, final File recordTime, final boolean includeConf) {
+        // export conf
+        if (includeConf) {
+            Future confTask = executorService.submit(() -> {
+                logger.info("Start to extract kylin conf files.");
+                long start = System.currentTimeMillis();
+                ConfTool.extractConf(exportDir);
+                DiagnosticFilesChecker.writeMsgToFile("CONF", System.currentTimeMillis() - start, recordTime);
+            });
+
+            scheduleTimeoutTask(confTask, "CONF");
+        }
+
+        // hadoop conf
+        Future hadoopConfTask = executorService.submit(() -> {
+            logger.info("Start to extract hadoop conf files.");
+            long start = System.currentTimeMillis();
+            ConfTool.extractHadoopConf(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("HADOOP_CONF", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(hadoopConfTask, "HADOOP_CONF");
+
+        // export bin
+        Future binTask = executorService.submit(() -> {
+            logger.info("Start to extract kylin bin files.");
+            long start = System.currentTimeMillis();
+            ConfTool.extractBin(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("BIN", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(binTask, "BIN");
+
+        // export hadoop env
+        Future hadoopEnvTask = executorService.submit(() -> {
+            logger.info("Start to extract hadoop env.");
+            long start = System.currentTimeMillis();
+            CommonInfoTool.exportHadoopEnv(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("HADOOP_ENV", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(hadoopEnvTask, "HADOOP_ENV");
+
+        // export KYLIN_HOME dir
+        Future catcalogTask = executorService.submit(() -> {
+            logger.info("Start to extract KYLIN_HOME dir.");
+            long start = System.currentTimeMillis();
+            CommonInfoTool.exportKylinHomeDir(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("CATALOG_INFO", System.currentTimeMillis() - start, recordTime);
+        });
+
+        scheduleTimeoutTask(catcalogTask, "CATALOG_INFO");
+    }
+
+    public void scheduleTimeoutTask(Future task, String taskName) {
+        if (!KylinConfig.getInstanceFromEnv().getDiagTaskTimeoutBlackList().contains(taskName)) {
+            executorService.schedule(() -> {
+                if (task.cancel(true)) {
+                    logger.error("Cancel '{}' task.", taskName);
+                    canceledTasks.add(taskName);
+                }
+            }, KylinConfig.getInstanceFromEnv().getDiagTaskTimeout(), TimeUnit.SECONDS);
+        }
     }
 }

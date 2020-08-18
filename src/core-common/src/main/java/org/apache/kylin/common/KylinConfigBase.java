@@ -79,6 +79,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -1215,6 +1216,7 @@ public abstract class KylinConfigBase implements Serializable {
     public int getForceLimit() {
         return Integer.parseInt(getOptional("kylin.query.force-limit", "-1"));
     }
+
     /**
      * the threshold for query result caching
      * query result will only be cached if the result is below the threshold
@@ -1233,7 +1235,6 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.query.load-counter-period-seconds", "3s"), TimeUnit.SECONDS);
     }
 
-
     public Long getCubeBroadcastThreshold() {
         return Long.parseLong(getOptional("kylin.query.cube-broadcast-threshold", String.valueOf(1024L * 1024 * 1024)));
     }
@@ -1243,8 +1244,7 @@ public abstract class KylinConfigBase implements Serializable {
         return value == null ? new String[] { "org.apache.kylin.query.util.PowerBIConverter",
                 "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
                 "io.kyligence.kap.query.util.ConvertToComputedColumn",
-                "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
-                "io.kyligence.kap.query.security.RowFilter" }
+                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter" }
                 : getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
 
@@ -2224,5 +2224,18 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getMaxModelDimensionMeasureNameLength() {
         return Integer.parseInt(getOptional("kylin.model.dimension-measure-name.max-length", "300"));
+    }
+
+    public int getAuditLogBatchSize() {
+        return Integer.parseInt(getOptional("kylin.metadata.audit-log.batch-size", "5000"));
+    }
+
+    public long getDiagTaskTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.diag.task-timeout", "180s"), TimeUnit.SECONDS);
+    }
+
+    public ImmutableSet<String> getDiagTaskTimeoutBlackList() {
+        String lists = getOptional("kylin.diag.task-timeout-black-list", "METADATA,LOG").toUpperCase();
+        return ImmutableSet.copyOf(lists.split(","));
     }
 }

@@ -99,7 +99,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
     static final String SELECT_TS_RANGE = "select "
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
-            + " from %s where id > %d and meta_ts between %d and %d order by id limit %d";
+            + " from %s where id < %d and meta_ts between %d and %d order by id desc limit %d";
 
     private final KylinConfig config;
     @Getter

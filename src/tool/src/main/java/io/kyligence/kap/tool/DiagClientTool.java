@@ -24,7 +24,9 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
@@ -43,39 +45,43 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().withArgName("project").hasArg().isRequired(false)
-            .withDescription("Specify realizations in which project to extract").create("project");
+    private static final Option OPTION_PROJECT = OptionBuilder.getInstance().withArgName("project").hasArg()
+            .isRequired(false).withDescription("Specify realizations in which project to extract").create("project");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CONF = OptionBuilder.getInstance().withArgName("includeConf").hasArg().isRequired(false)
-            .withDescription("Specify whether to include conf files to extract. Default true.").create("includeConf");
+    private static final Option OPTION_CONF = OptionBuilder.getInstance().withArgName("includeConf").hasArg()
+            .isRequired(false).withDescription("Specify whether to include conf files to extract. Default true.")
+            .create("includeConf");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg().isRequired(false)
-            .withDescription("Specify whether to include metadata to extract. Default true.").create("includeMeta");
+    private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg()
+            .isRequired(false).withDescription("Specify whether to include metadata to extract. Default true.")
+            .create("includeMeta");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_LOG = OptionBuilder.getInstance().withArgName("includeLog").hasArg().isRequired(false)
-            .withDescription("Specify whether to include logs to extract. Default true.").create("includeLog");
+    private static final Option OPTION_LOG = OptionBuilder.getInstance().withArgName("includeLog").hasArg()
+            .isRequired(false).withDescription("Specify whether to include logs to extract. Default true.")
+            .create("includeLog");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_SPARK = OptionBuilder.getInstance().withArgName("includeSpark").hasArg().isRequired(false)
-            .withDescription("Specify whether to include spark conf to extract. Default false.").create("includeSpark");
+    private static final Option OPTION_SPARK = OptionBuilder.getInstance().withArgName("includeSpark").hasArg()
+            .isRequired(false).withDescription("Specify whether to include spark conf to extract. Default false.")
+            .create("includeSpark");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CLIENT = OptionBuilder.getInstance().withArgName("includeClient").hasArg().isRequired(false)
-            .withDescription("Specify whether to include client info to extract. Default true.")
+    private static final Option OPTION_CLIENT = OptionBuilder.getInstance().withArgName("includeClient").hasArg()
+            .isRequired(false).withDescription("Specify whether to include client info to extract. Default true.")
             .create("includeClient");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg().isRequired(false)
-            .withDescription("Specify number of threads for parallel extraction.").create("threads");
+    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg()
+            .isRequired(false).withDescription("Specify number of threads for parallel extraction.").create("threads");
 
     // Problem category
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CATE_BASE = OptionBuilder.getInstance().withArgName("base").hasArg().isRequired(false)
-            .withDescription("package components include base").create("base");
+    private static final Option OPTION_CATE_BASE = OptionBuilder.getInstance().withArgName("base").hasArg()
+            .isRequired(false).withDescription("package components include base").create("base");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CATE_QUERY = OptionBuilder.getInstance().withArgName("query").hasArg().isRequired(false)
-            .withDescription("package components include slow and failed query").create("query");
+    private static final Option OPTION_CATE_QUERY = OptionBuilder.getInstance().withArgName("query").hasArg()
+            .isRequired(false).withDescription("package components include slow and failed query").create("query");
     @SuppressWarnings("static-access")
-    private static final Option OPTION_CATE_META = OptionBuilder.getInstance().withArgName("meta").hasArg().isRequired(false)
-            .withDescription("package components include wrong metadata operation").create("meta");
+    private static final Option OPTION_CATE_META = OptionBuilder.getInstance().withArgName("meta").hasArg()
+            .isRequired(false).withDescription("package components include wrong metadata operation").create("meta");
 
     private static final int DEFAULT_PARALLEL_SIZE = 4;
 
@@ -115,69 +121,41 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         logger.info("Start diagnosis info extraction in {} threads.", threadsNum);
         executorService = Executors.newScheduledThreadPool(threadsNum);
-
+        canceledTasks = new ConcurrentSkipListSet<>();
         // calculate time used
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
 
         // export cube metadata
         if (includeMeta) {
-            executorService.execute(() -> {
-                try {
-                    File metaDir = new File(exportDir, "metadata");
-                    FileUtils.forceMkdir(metaDir);
-                    String[] metaToolArgs = {"-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
-                            "-excludeTableExd"};
-                    String dumpMetadataCmd = String.format(
-                            "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -compress false -excludeTableExd",
-                            KylinConfig.getKylinHome(), metaDir.getAbsolutePath());
-                    dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd);
-                } catch (Exception e) {
-                    logger.warn("Failed to extract full metadata.", e);
-                }
-
-                DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
-            });
+            File metaDir = new File(exportDir, "metadata");
+            FileUtils.forceMkdir(metaDir);
+            String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
+                    "-excludeTableExd" };
+            String dumpMetadataCmd = String.format(
+                    "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -compress false -excludeTableExd",
+                    KylinConfig.getKylinHome(), metaDir.getAbsolutePath());
+            dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd, recordTime);
         }
 
-        // dump audit log
-        executorService.execute(() -> {
-            logger.info("Start to dump audit log.");
-            try {
-                File auditLogDir = new File(exportDir, "audit_log");
-                FileUtils.forceMkdir(auditLogDir);
+        File auditLogDir = new File(exportDir, "audit_log");
+        FileUtils.forceMkdir(auditLogDir);
+        String[] auditLogToolArgs = { "-startTime", String.valueOf(startTime), "-endTime", String.valueOf(endTime),
+                OPT_DIR, auditLogDir.getAbsolutePath() };
+        exportAuditLog(auditLogToolArgs, recordTime);
 
-                String[] auditLogToolArgs = {"-startTime", String.valueOf(startTime), "-endTime",
-                        String.valueOf(endTime), OPT_DIR, auditLogDir.getAbsolutePath()};
-                new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
-            } catch (Exception e) {
-                logger.warn("Failed to extract audit log.", e);
-            }
-            DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // export client
         if (includeClient) {
-            executorService.execute(() -> {
-                logger.info("Start to extract client info.");
-                CommonInfoTool.exportClientInfo(exportDir);
-                DiagnosticFilesChecker.writeMsgToFile("CLIENT", System.currentTimeMillis() - start, recordTime);
-            });
+            exportClient(recordTime);
         }
 
-        // dump jstack
-        executorService.execute(() -> {
-            logger.info("Start to extract jstack info.");
-            JStackTool.extractJstack(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("JSTACK", System.currentTimeMillis() - start, recordTime);
-        });
+        exportJstack(recordTime);
 
-        exportFileInfo(includeConf, exportDir, startTime, endTime, start, recordTime);
-        exportInfluxDBMetrics(exportDir, startTime, endTime, start, recordTime);
+        exportConf(exportDir, recordTime, includeConf);
+        exportInfluxDBMetrics(exportDir, recordTime);
 
-        exportSparkLog(exportDir, startTime, endTime, start, recordTime);
+        exportSparkLog(exportDir, startTime, endTime, recordTime);
 
-        exportKgLogs(exportDir, startTime, endTime, start, recordTime);
+        exportKgLogs(exportDir, startTime, endTime, recordTime);
 
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
@@ -194,78 +172,29 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
-    private void exportSparkLog(File exportDir, long startTime, long endTime, long start, File recordTime) {
+    private void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime) {
         // job spark log
-        executorService.execute(() -> {
+        Future sparkLogTask = executorService.submit(() -> {
             logger.info("Start to extract spark logs.");
+            long start = System.currentTimeMillis();
             KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
             DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
         });
 
+        scheduleTimeoutTask(sparkLogTask, "SPARK_LOGS");
+
         // sparder history rolling eventlog
-        executorService.execute(() -> {
+        Future sparderHistoryTask = executorService.submit(() -> {
             logger.info("Start to extract sparder history logs.");
+            long start = System.currentTimeMillis();
             ILogExtractor extractTool = ExtractFactory.create();
             ToolUtil.waitForSparderRollUp();
-            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(), extractTool);
+            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
+                    extractTool);
             DiagnosticFilesChecker.writeMsgToFile("SPARDER_HISTORY", System.currentTimeMillis() - start, recordTime);
         });
-    }
 
-    private void exportInfluxDBMetrics(File exportDir, long startTime, long endTime, long start, File recordTime) {
-        // influxdb metrics
-        executorService.execute(() -> {
-            logger.info("Start to dump influxdb metrics.");
-            InfluxDBTool.dumpInfluxDBMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // influxdb sla monitor metrics
-        executorService.execute(() -> {
-            logger.info("Start to dump influxdb sla monitor metrics.");
-            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-    }
-
-    private void exportFileInfo(boolean includeConf, File exportDir, long startTime, long endTime, long start,
-                                File recordTime) {
-        // export conf
-        if (includeConf) {
-            executorService.execute(() -> {
-                logger.info("Start to extract kylin conf files.");
-                ConfTool.extractConf(exportDir);
-                DiagnosticFilesChecker.writeMsgToFile("CONF", System.currentTimeMillis() - start, recordTime);
-            });
-        }
-
-        // hadoop conf
-        executorService.execute(() -> {
-            logger.info("Start to extract hadoop conf files.");
-            ConfTool.extractHadoopConf(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("HADOOP_CONF", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // export bin
-        executorService.execute(() -> {
-            logger.info("Start to extract kylin bin files.");
-            ConfTool.extractBin(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("BIN", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // export hadoop env
-        executorService.execute(() -> {
-            logger.info("Start to extract hadoop env.");
-            CommonInfoTool.exportHadoopEnv(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("HADOOP_ENV", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // export KYLIN_HOME dir
-        executorService.execute(() -> {
-            logger.info("Start to extract KYLIN_HOME dir.");
-            CommonInfoTool.exportKylinHomeDir(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("CATALOG_INFO", System.currentTimeMillis() - start, recordTime);
-        });
+        scheduleTimeoutTask(sparderHistoryTask, "SPARDER_HISTORY");
     }
 
     public long getDefaultStartTime() {

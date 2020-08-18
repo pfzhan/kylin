@@ -91,9 +91,9 @@ public class AuditLogTool extends ExecutableApplication {
     private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("DESTINATION_DIR")
             .withDescription("Specify the directory for audit log backup or restore").isRequired(true).create("dir");
 
-    private static final int BATCH_SIZE = 5000;
-
     private static final String AUDIT_LOG_SUFFIX = ".jsonl";
+
+    private static int MAX_BATCH_SIZE = 50000;
 
     private final Options options;
 
@@ -224,14 +224,17 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void extract(long startTs, long endTs, File auditLogFile) throws Exception {
         auditLogFile.getParentFile().mkdirs();
-        long fromId = 0L;
+        long fromId = Long.MAX_VALUE;
+        int batchSize = KylinConfig.getInstanceFromEnv().getAuditLogBatchSize();
+        batchSize = Math.min(MAX_BATCH_SIZE, batchSize);//Prevent OOM
+        logger.info("Audit log batch size is {}.", batchSize);
         try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig);
                 BufferedWriter bw = new BufferedWriter(new FileWriter(auditLogFile), Constant.AUDIT_MAX_BUFFER_SIZE)) {
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("audit log task is interrupt");
                 }
-                List<AuditLog> auditLogs = auditLogStore.fetchRange(fromId, startTs, endTs, BATCH_SIZE);
+                List<AuditLog> auditLogs = auditLogStore.fetchRange(fromId, startTs, endTs, batchSize);
                 if (CollectionUtils.isEmpty(auditLogs)) {
                     break;
                 }
@@ -244,7 +247,7 @@ public class AuditLogTool extends ExecutableApplication {
                     }
                 });
 
-                if (auditLogs.size() < BATCH_SIZE) {
+                if (auditLogs.size() < batchSize) {
                     break;
                 }
                 fromId = auditLogs.get(auditLogs.size() - 1).getId();
