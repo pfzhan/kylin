@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.rest.util.InitUserGroupUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -99,6 +100,7 @@ public class EpochChangedListener implements IKeep {
         } else {
             //TODO need global leader
             CreateAdminUserUtils.createAllAdmins(userService, env);
+            InitUserGroupUtils.initUserGroups();
             SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
             log.info("Register global metrics...");
             NMetricsRegistry.registerGlobalMetrics(kylinConfig);

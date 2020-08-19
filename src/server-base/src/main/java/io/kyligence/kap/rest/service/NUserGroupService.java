@@ -42,10 +42,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.persistence.WriteConflictException;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
@@ -54,17 +51,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.acl.UserGroup;
 import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 
@@ -85,46 +79,7 @@ public class NUserGroupService implements IUserGroupService {
     @Qualifier("userService")
     UserService userService;
 
-    @EventListener(AfterMetadataReadyEvent.class)
-    public void init(AfterMetadataReadyEvent event) {
-        val config = KylinConfig.getInstanceFromEnv();
-        if (config.isQueryNodeOnly()) {
-            return;
-        }
-        UserGroup userGroup = null;
-        try {
-            userGroup = getUserGroup();
-            if (!userGroup.exists(Constant.GROUP_ALL_USERS)) {
-                userGroup.add(Constant.GROUP_ALL_USERS);
-            }
-            if (!userGroup.exists(Constant.ROLE_ADMIN)) {
-                userGroup.add(Constant.ROLE_ADMIN);
-            }
-            if (!userGroup.exists(Constant.ROLE_MODELER)) {
-                userGroup.add(Constant.ROLE_MODELER);
-            }
-            if (!userGroup.exists(Constant.ROLE_ANALYST)) {
-                userGroup.add(Constant.ROLE_ANALYST);
-            }
-
-            try {
-                if (getStore().getResource(ResourceStore.USER_GROUP_ROOT) != null) {
-                    return;
-                }
-                getStore().putResourceWithoutCheck(ResourceStore.USER_GROUP_ROOT,
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), System.currentTimeMillis(), 0);
-                return;
-            } catch (WriteConflictException e) {
-                logger.info("Find WriteConflictException, sleep 100 ms.", e);
-                Thread.sleep(100L);
-            }
-            logger.error("Failed to update user group's metadata.");
-        } catch (Exception e) {
-            logger.warn("init failed", e);
-        }
-    }
-
-    private UserGroup getUserGroup() throws IOException {
+    private UserGroup getUserGroup() {
         UserGroup userGroup = getStore().getResource(ResourceStore.USER_GROUP_ROOT, USER_GROUP_SERIALIZER);
         if (userGroup == null) {
             userGroup = new UserGroup();
