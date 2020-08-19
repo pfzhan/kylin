@@ -138,8 +138,8 @@ export default class TableJoinModal extends Vue {
   errorFlag = []
   selectedTRelations = [
     {value: 'MANY_TO_ONE', label: 'manyToOne'},
-    {value: 'ONE_TO_ONE', label: 'oneToOne'},
-    {value: 'ONE_TO_MANY', label: 'oneToMany'},
+    // {value: 'ONE_TO_ONE', label: 'oneToOne'},
+    // {value: 'ONE_TO_MANY', label: 'oneToMany'},
     {value: 'MANY_TO_MANY', label: 'manyToMany'}
   ]
   get showTRelationTips () {

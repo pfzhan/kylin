@@ -14,10 +14,10 @@ export default {
     notice2: 'Join condition ≥ and < must be used in pairs, and same column must be joint in both conditions',
     notice3: 'Join condition for columns should include at least one equal-join condition (=)',
     notice4: 'Two tables could only be joined by the same condition for one time',
-    manyToOne: 'Many-to-One',
+    manyToOne: 'One-to-One or Many-to-One',
     oneToOne: 'One-to-One',
     oneToMany: 'One-to-Many',
-    manyToMany: 'Many-to-Many',
+    manyToMany: 'One-to-Many or Many-to-Many',
     tableRelationTips: 'When the relationship is one-to-many or many-to-many, the columns which are not defined as dimensions from the joined table {tableName} can’t be queried.',
     tableRelation: 'Table Relationship'
   },
@@ -36,10 +36,10 @@ export default {
     notice2: '连接条件 ≥ 和 < 必须成对出现，且位于中间的列必须一致',
     notice3: '列必须至少包含一个 = 的连接条件',
     notice4: '两张表仅可使用同样的条件连接一次',
-    manyToOne: '多对一',
+    manyToOne: '一对一或多对一',
     oneToOne: '一对一',
     oneToMany: '一对多',
-    manyToMany: '多对多',
+    manyToMany: '一对多或多对多',
     tableRelationTips: '当表关系为一对多或多对多时，将无法查询被关联表 {tableName} 的非维度列。',
     tableRelation: '表关系'
   }
