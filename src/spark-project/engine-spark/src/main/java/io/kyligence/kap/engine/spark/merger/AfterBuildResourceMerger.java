@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -144,11 +145,14 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
         val layoutInCubeIds = dataflow.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                 .collect(Collectors.toList());
         val availableLayoutIds = layoutIds.stream().filter(layoutInCubeIds::contains).collect(Collectors.toSet());
+        List<NDataSegment> segsToUpdate = Lists.newArrayList();
         for (String segId : segmentIds) {
             val localSeg = localDataflow.getSegment(segId);
             val remoteSeg = remoteDataflow.getSegment(segId);
             // ignore if local segment is not ready
-            if (localSeg == null || localSeg.getStatus() != SegmentStatusEnum.READY) {
+            if (localSeg == null ||
+                    (localSeg.getStatus() != SegmentStatusEnum.READY &&
+                            localSeg.getStatus() != SegmentStatusEnum.WARNING)) {
                 continue;
             }
             updateSnapshotTableIfNeed(remoteSeg);
@@ -157,8 +161,9 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 Preconditions.checkNotNull(dataCuboid);
                 addCuboids.add(dataCuboid);
             }
-            dfUpdate.setToUpdateSegs(remoteSeg);
+            segsToUpdate.add(remoteSeg);
         }
+        dfUpdate.setToUpdateSegs(segsToUpdate.toArray(new NDataSegment[0]));
         dfUpdate.setToAddOrUpdateLayouts(addCuboids.toArray(new NDataLayout[0]));
 
         localDataflowManager.updateDataflow(dfUpdate);

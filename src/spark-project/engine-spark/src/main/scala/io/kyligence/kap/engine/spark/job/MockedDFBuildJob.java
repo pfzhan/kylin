@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
@@ -129,6 +130,21 @@ public class MockedDFBuildJob extends SparkApplication {
                     NDataflowManager.getInstance(config, project).updateDataflow(update);
 
                 });
+
+            }
+
+            // mock flat table persist and set segment flatTableReady
+            if (config.isPersistFlatTableEnabled()) {
+                NDataflow dfCopy = NDataflowManager.getInstance(config, project).getDataflow(dfName).copy();
+                NDataflowUpdate update = new NDataflowUpdate(dfName);
+                List<NDataSegment> segsToUpdate = Lists.newArrayList();
+                for (String segId : segmentIds) {
+                    NDataSegment seg = dfCopy.getSegment(segId);
+                    seg.setFlatTableReady(true);
+                    segsToUpdate.add(seg);
+                }
+                update.setToUpdateSegs(segsToUpdate.toArray(new NDataSegment[0]));
+                NDataflowManager.getInstance(config, project).updateDataflow(update);
             }
 
         } finally {

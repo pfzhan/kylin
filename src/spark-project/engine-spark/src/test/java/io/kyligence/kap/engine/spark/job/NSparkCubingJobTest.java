@@ -60,6 +60,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.storage.IStorage;
@@ -136,6 +137,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("kylin.engine.persist-flattable-threshold");
         System.clearProperty("kylin.engine.persist-flatview");
+        System.clearProperty("kylin.engine.persist-flattable-enabled");
     }
 
     @Test
@@ -363,6 +365,38 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(layout.getSourceRows(), 123);
             Assert.assertEquals(layout.getSourceByteSize(), 123);
         }
+    }
+
+    @Test
+    public void testMockedDFBuildMutipleJob() throws Exception {
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        System.setProperty("kylin.engine.persist-flattable-enabled", "true");
+        String dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        cleanupSegments(dsMgr, dataflowId);
+        NDataflow df = dsMgr.getDataflow(dataflowId);
+
+        List<LayoutEntity> round1 = new ArrayList<>();
+        round1.add(df.getIndexPlan().getCuboidLayout(10002L));
+        NDataSegment seg1 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange("2012-01-01", "2012-02-01"), SegmentStatusEnum.READY);
+        NDataSegment seg2 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange("2012-02-01", "2012-03-01"), SegmentStatusEnum.READY);
+
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(seg1, seg2), Sets.newLinkedHashSet(round1), "ADMIN");
+        NSparkCubingStep sparkStep = job.getSparkCubingStep();
+        execMgr.addJob(job);
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        val merger = new AfterBuildResourceMerger(config, getProject());
+        merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(seg1.getId(), seg2.getId()), Sets.newHashSet(10002L), ExecutableUtils.getRemoteStore(config, sparkStep));
+
+        List<NDataSegment> segs = dsMgr.getDataflow(dataflowId).getSegments();
+        Assert.assertEquals(2, segs.size());
+        // test if segs are updated
+        Assert.assertTrue(segs.get(0).isFlatTableReady());
+        Assert.assertTrue(segs.get(1).isFlatTableReady());
     }
 
     @Test
