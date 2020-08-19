@@ -147,6 +147,7 @@ public class NJobController extends NBasicController {
     @PutMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
+        checkRequiredArg("action", jobUpdateRequest.getAction());
         checkJobStatus(jobUpdateRequest.getStatuses());
         if (StringUtils.isBlank(jobUpdateRequest.getProject())
                 && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
