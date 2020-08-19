@@ -221,7 +221,7 @@ public class JdbcQueryHistoryStore {
     public List<QueryStatistics> queryCountAndAvgDuration(long startTime, long endTime, String project) {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             QueryStatisticsMapper mapper = session.getMapper(QueryStatisticsMapper.class);
-            SelectStatementProvider statementProvider = select(count(queryHistoryTable.queryId),
+            SelectStatementProvider statementProvider = select(count(queryHistoryTable.queryId).as(COUNT),
                     avg(queryHistoryTable.duration).as("mean")) //
                             .from(queryHistoryTable) //
                             .where(queryHistoryTable.queryTime, isGreaterThanOrEqualTo(startTime)) //

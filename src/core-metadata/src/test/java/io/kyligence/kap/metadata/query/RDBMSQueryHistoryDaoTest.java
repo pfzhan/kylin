@@ -587,6 +587,29 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, queryHistoryList.get(1).getQueryHistoryInfo().isExecutionError());
     }
 
+    @Test
+    public void testGetQueryCountAndAvgDuration() throws Exception {
+        // 2020-01-29 23:25:12
+        queryHistoryDAO.insert(createQueryMetrics(1580311512000L, 1000L, true, PROJECT));
+        // 2020-01-30 23:25:12
+        queryHistoryDAO.insert(createQueryMetrics(1580397912000L, 2000L, false, PROJECT));
+        // 2020-01-31 23:25:12
+        queryHistoryDAO.insert(createQueryMetrics(1580484312000L, 3000L, false, PROJECT));
+        // 2030-01-29 23:25:12
+        queryHistoryDAO.insert(createQueryMetrics(1895930712000L, 4000L, false, PROJECT));
+
+        // happy pass
+        QueryStatistics statistics = queryHistoryDAO.getQueryCountAndAvgDuration(1580311512000L, 1580484312000L,
+                PROJECT);
+        Assert.assertEquals(2, statistics.getCount());
+        Assert.assertEquals(1500, statistics.getMeanDuration(), 0.1);
+
+        // no query history for this time period
+        statistics = queryHistoryDAO.getQueryCountAndAvgDuration(1560311512000L, 1570311512000L, PROJECT);
+        Assert.assertEquals(0, statistics.getCount());
+        Assert.assertEquals(0, statistics.getMeanDuration(), 0.1);
+    }
+
     private QueryMetrics createQueryMetrics(long queryTime, long duration, boolean indexHit, String project) {
         QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
         queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
