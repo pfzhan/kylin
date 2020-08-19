@@ -171,7 +171,6 @@ public class SegmentHelper extends BasicService {
             if (!job.getStatus().isFinalState()) {
                 if (job.getTargetSegments().contains(seg.getId())) {
                     logger.info("Cancel and discard the job {} related with segment {}.", job.getId(), seg.getId());
-                    job.cancelJob();
                     jobManager.discardJob(job.getId());
                     segmentDeleted = true;
                 }

@@ -208,7 +208,9 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         super.onExecuteFinished(result);
 
         // post cubing job finished event with project and model Id
-        EventBusFactory.getInstance()
-                .postAsync(new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter()));
+        if (result.succeed()) {
+            EventBusFactory.getInstance()
+                    .postAsync(new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter()));
+        }
     }
 }

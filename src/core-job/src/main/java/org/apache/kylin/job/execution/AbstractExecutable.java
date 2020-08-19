@@ -225,21 +225,20 @@ public abstract class AbstractExecutable implements Executable {
         });
     }
 
-    protected void onExecuteFinished(ExecuteResult result) throws JobStoppedException {
-        Preconditions.checkState(result.succeed());
-
-        wrapWithCheckQuit(() -> {
-            updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
-        });
-    }
-
-    protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
-        Preconditions.checkState(!result.succeed());
-
-        wrapWithCheckQuit(() -> {
-            updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
-                    this::onExecuteErrorHook);
-        });
+    protected void onExecuteFinished(ExecuteResult result) throws ExecuteException {
+        NMetricsGroup.counterInc(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
+        if (result.succeed()) {
+            wrapWithCheckQuit(() -> {
+                updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
+            });
+        } else {
+            NMetricsGroup.counterInc(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
+            wrapWithCheckQuit(() -> {
+                updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
+                        this::onExecuteErrorHook);
+            });
+            throw new ExecuteException(result.getThrowable());
+        }
     }
 
     protected void onExecuteStopHook() {
@@ -325,15 +324,8 @@ public abstract class AbstractExecutable implements Executable {
         } while (needRetry(this.retry, result.getThrowable())); //exception in ExecuteResult should handle by user itself.
         //check exception in result to avoid retry on ChainedExecutable(only need retry on subtask actually)
 
-        NMetricsGroup.counterInc(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
-        if (!result.succeed()) {
-            NMetricsGroup.counterInc(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
-            onExecuteError(result);
-            throw new ExecuteException(result.getThrowable());
-        } else {
-            onExecuteFinished(result);
-            return result;
-        }
+        onExecuteFinished(result);
+        return result;
     }
 
     protected void checkNeedQuit(boolean applyChange) throws JobStoppedException {

@@ -53,7 +53,6 @@ import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -115,28 +114,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     }
 
     @Override
-    protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
-        Preconditions.checkState(!result.succeed());
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-
-            if (isStoppedNonVoluntarily())
-                return null;
-
-            updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
-                    this::onExecuteErrorHook);
-            return null;
-        }, project);
-
-        notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-        NMetricsGroup.counterInc(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, getProject());
-    }
-
-    @Override
     protected void onExecuteFinished(ExecuteResult result) throws JobStoppedException {
-
-        Preconditions.checkState(result.succeed());
-
         List<? extends Executable> jobs = getTasks();
         boolean allSucceed = true;
         boolean hasError = false;
@@ -203,12 +181,17 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                         return null;
                     }
                     Consumer<String> hook = null;
+                    Map<String, String> info = null;
+                    String output = null;
                     if (state == ExecutableState.ERROR) {
                         logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
                         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
+                        NMetricsGroup.counterInc(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, getProject());
+                        info = result.getExtraInfo();
+                        output = result.getErrorMsg();
                         hook = this::onExecuteErrorHook;
                     }
-                    updateJobOutput(getProject(), getId(), state, null, null, hook);
+                    updateJobOutput(getProject(), getId(), state, info, output, hook);
                     break;
                 default:
                     throw new IllegalArgumentException("Illegal state when job finished: " + state);
