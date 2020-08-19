@@ -43,6 +43,10 @@
 
 package org.apache.kylin.job.constant;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+
+import org.apache.kylin.common.exception.KylinException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -82,7 +86,11 @@ public enum JobStatusEnum {
             return null;
         }
 
-        return nameMap.get(name);
+        JobStatusEnum status = nameMap.get(name);
+        if (status == null) {
+            throw new KylinException(INVALID_PARAMETER, "Invalid value in parameter “statuses“. The value should be “PENDING“, “RUNNING“, “FINISHED“, “ERROR” or “DISCARDED“.");
+        }
+        return status;
     }
 
 }

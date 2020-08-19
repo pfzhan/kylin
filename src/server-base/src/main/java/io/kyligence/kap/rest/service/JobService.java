@@ -369,7 +369,8 @@ public class JobService extends BasicService {
         val executableManager = getExecutableManager(project);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
-        switch (JobActionEnum.valueOf(action)) {
+        JobActionEnum.validateValue(action.toUpperCase());
+        switch (JobActionEnum.valueOf(action.toUpperCase())) {
         case RESUME:
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);

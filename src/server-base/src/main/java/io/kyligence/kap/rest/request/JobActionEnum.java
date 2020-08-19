@@ -24,7 +24,24 @@
 
 package io.kyligence.kap.rest.request;
 
+import io.kyligence.kap.guava20.shaded.common.collect.Sets;
+import org.apache.kylin.common.exception.KylinException;
+
+import java.util.Set;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+
 public enum JobActionEnum {
 
-    RESUME, DISCARD, PAUSE, ROLLBACK, RESTART
+    RESUME, DISCARD, PAUSE, ROLLBACK, RESTART;
+
+    private static Set<String> validValues = Sets.newHashSet(
+            RESUME.name(), DISCARD.name(), PAUSE.name(), RESTART.name(), ROLLBACK.name());
+
+    public static void validateValue(String value) {
+        if (!validValues.contains(value.toUpperCase())) {
+            throw new KylinException(INVALID_PARAMETER,
+                    "Invalid value in parameter “action“. The value should be “RESUME“, “DISCARD“, “PAUSE” or “RESTART“.");
+        }
+    }
 }
