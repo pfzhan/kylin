@@ -94,10 +94,10 @@ public class KapConfig {
     }
 
     public String getReadHdfsWorkingDirectory() {
-        if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
+        String readFS = getParquetReadFileSystem();
+        if (StringUtils.isNotEmpty(readFS)) {
             Path workingDir = new Path(getWriteHdfsWorkingDirectory());
-            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString()
-                    + "/";
+            return new Path(readFS, Path.getPathWithoutSchemeAndAuthority(workingDir)).toString() + "/";
         }
 
         return getWriteHdfsWorkingDirectory();
@@ -111,9 +111,15 @@ public class KapConfig {
     }
 
     public String getParquetReadFileSystem() {
-        return config.getOptional("kylin.storage.columnar.file-system", "");
+        String fileSystem = config.getOptional("kylin.storage.columnar.file-system", "");
+        String fileSystemBackup = config.getOptional("kylin.storage.columnar.file-system-backup", "");
+        return ReadFsSwitch.select(fileSystem, fileSystemBackup);
     }
 
+    public int getParquetReadFileSystemBackupResetSec() {
+        return Integer.parseInt(config.getOptional("kylin.storage.columnar.file-system-backup-reset-sec", "1000"));
+    }
+    
     public int getParquetSparkExecutorInstance() {
         return Integer.parseInt(
                 config.getOptional("kylin.storage.columnar.spark-conf.spark.executor.instances", String.valueOf(1)));
@@ -133,10 +139,10 @@ public class KapConfig {
     }
 
     public String getReadParquetStoragePath(String project) {
-        if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
+        String readFS = getParquetReadFileSystem();
+        if (StringUtils.isNotEmpty(readFS)) {
             Path parquetPath = new Path(getWriteParquetStoragePath(project));
-            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(parquetPath)).toString()
-                    + "/";
+            return new Path(readFS, Path.getPathWithoutSchemeAndAuthority(parquetPath)).toString() + "/";
         }
 
         return getWriteParquetStoragePath(project);
@@ -637,5 +643,9 @@ public class KapConfig {
 
     public boolean isAESkewJoinEnabled() {
         return Boolean.parseBoolean(config.getOptional("kylin.build.ae.skew-join-enabled", TRUE));
+    }
+
+    public String getSwitchBackupFsExceptionAllowString() {
+        return config.getOptional("kylin.query.switch-backup-fs-exception-allow-string", "alluxio");
     }
 }

@@ -47,7 +47,10 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.ReadFsSwitch;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.data.QueryResult;
@@ -61,6 +64,7 @@ import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
  * Entrance for query execution
  */
 public class QueryExec {
+    private static final Logger logger = LoggerFactory.getLogger(QueryExec.class);
 
     private final KylinConfig kylinConfig;
     private final KECalciteConfig config;
@@ -96,6 +100,7 @@ public class QueryExec {
      * @return query result data with column infos
      */
     public QueryResult executeQuery(String sql) throws SQLException {
+        magicDirts(sql);
         try {
             beforeQuery();         
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
@@ -106,9 +111,21 @@ public class QueryExec {
             // some special message for parsing error... to be compatible with avatica's error msg
             throw newSqlException(sql, "parse failed: " + e.getMessage(), e);
         } catch (Exception e) {
+            // retry query if switched to backup read FS
+            if (ReadFsSwitch.turnOnSwitcherIfBackupFsAllowed(e, KapConfig.wrap(kylinConfig).
+                    getSwitchBackupFsExceptionAllowString())) {
+                logger.info("Retry sql after hitting allowed exception and turn on backup read FS", e);
+                return executeQuery(sql);
+            }
             throw newSqlException(sql, e.getMessage(), e);
         } finally {
             afterQuery();
+        }
+    }
+
+    private void magicDirts(String sql) {
+        if (sql.contains("ReadFsSwitch.turnOnBackupFsWhile")) {
+            ReadFsSwitch.turnOnBackupFsWhile();
         }
     }
 
