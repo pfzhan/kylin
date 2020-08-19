@@ -207,9 +207,16 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 return;
             }
             DimensionRef dimRef = (DimensionRef) dimensionRef;
-            Preconditions.checkArgument(dimRef.getEntity() instanceof ModelColumnRef);
-            ModelColumnRef columnRef = (ModelColumnRef) dimensionRef.getEntity();
-            NDataModel.NamedColumn column = columnRef.getColumn();
+            NDataModel.NamedColumn column = null;
+            if (dimRef.getEntity() instanceof ModelColumnRef) {
+                ModelColumnRef columnRef = (ModelColumnRef) dimensionRef.getEntity();
+                column = columnRef.getColumn();
+            } else if (dimRef.getEntity() instanceof CCRef) {
+                CCRef ccRef = (CCRef) dimensionRef.getEntity();
+                column = columns.get(ccRef.getId());
+            }
+            Preconditions.checkArgument(column != null,
+                    "Dimension can only depend on a computed column or an existing column");
             if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
                 column.setName(userDefinedRecNameMap.get(rawRecItem.getId()));
             }
