@@ -137,7 +137,10 @@ public class OptRecManagerV2 {
         Preconditions.checkState(StringUtils.isNotEmpty(uuid));
         OptRecV2 optRecV2 = new OptRecV2(project, uuid);
         List<Integer> brokenLayoutIds = Lists.newArrayList(optRecV2.getBrokenLayoutRefIds());
-        RawRecManager.getInstance(project).removeByIds(brokenLayoutIds);
+        if (!brokenLayoutIds.isEmpty()) {
+            log.debug("recognized broken layout ids: {}", brokenLayoutIds);
+            RawRecManager.getInstance(project).removeByIds(brokenLayoutIds);
+        }
         return optRecV2;
     }
 

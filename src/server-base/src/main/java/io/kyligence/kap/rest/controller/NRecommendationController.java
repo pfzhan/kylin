@@ -94,7 +94,7 @@ public class NRecommendationController extends NBasicController {
         }
         userDefinedNamesMap.forEach((k, v) -> {
             String errorMsg = "User defined name cannot be null or empty.";
-            Preconditions.checkArgument(v != null && v.trim().isEmpty(), errorMsg);
+            Preconditions.checkArgument(v != null && !v.trim().isEmpty(), errorMsg);
         });
     }
 

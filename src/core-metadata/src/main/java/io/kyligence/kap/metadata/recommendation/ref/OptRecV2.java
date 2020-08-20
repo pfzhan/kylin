@@ -650,14 +650,6 @@ public class OptRecV2 {
                 recItem.getId(), anotherRecItemId, getProject(), getUuid());
     }
 
-    private static class CCNameCheckerHandler extends ComputedColumnUtil.BasicCCConflictHandler {
-        @Override
-        public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                ComputedColumnDesc newCC) {
-            newCC.setColumnName(existingCC.getColumnName());
-        }
-    }
-
     private enum TranslatedState {
         CONSTANT, BROKEN, NORMAL, UNDEFINED
     }

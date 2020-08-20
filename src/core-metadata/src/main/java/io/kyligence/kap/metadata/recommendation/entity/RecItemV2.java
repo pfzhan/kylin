@@ -26,12 +26,13 @@ package io.kyligence.kap.metadata.recommendation.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class RecItemV2 {
+public class RecItemV2 implements IKeep {
     @JsonProperty("id")
     private long id;
     @JsonProperty("create_time")
