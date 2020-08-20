@@ -204,7 +204,7 @@
         </el-table-column>
         <el-table-column :label="$t('th_name')" width="300" show-overflow-tooltip>
           <template slot-scope="scope">
-            <el-form :model="scope.row" :rules="rules">
+            <el-form :model="scope.row" :rules="scope.row.type !== 'cc' ? rules : rulesCC">
               <el-form-item prop="name">
                 <el-input v-model="scope.row.name" size="mini"></el-input>
               </el-form-item>
@@ -231,7 +231,7 @@ import { Component } from 'vue-property-decorator'
 import { transToGmtTime } from 'util/business'
 import { mapActions, mapState } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../../../../../util'
-import { pageRefTags } from 'config'
+import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
 
 @Component({
   props: {
@@ -319,7 +319,8 @@ import { pageRefTags } from 'config'
       onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
       buildIndexTip: ' Build Index',
       buildIndex: 'Build Index',
-      batchBuildSubTitle: 'Please choose which data ranges you’d like to build with the added indexes.'
+      batchBuildSubTitle: 'Please choose which data ranges you’d like to build with the added indexes.',
+      onlyStartLetters: 'Only supports starting with a letter'
     },
     'zh-cn': {
       recommendations: '优化建议',
@@ -378,7 +379,8 @@ import { pageRefTags } from 'config'
       onlyAcceptDelete: '成功删除 {delLength} 条索引。',
       buildIndexTip: '立即构建索引',
       buildIndex: '构建索引',
-      batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。'
+      batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
+      onlyStartLetters: '仅支持字母开头'
     }
   }
 })
@@ -411,6 +413,9 @@ export default class IndexList extends Vue {
   isLoading = false
   rules = {
     name: [{required: true, validator: this.validateName, trigger: 'blur'}]
+  }
+  rulesCC = {
+    name: [{required: true, validator: this.validateNameCC, trigger: 'blur'}]
   }
 
   get emptyText () {
@@ -448,11 +453,29 @@ export default class IndexList extends Vue {
 
   validateName (rule, value, callback) {
     const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
-    if (!value) {
+    if (!value || !value.trim()) {
       callback(new Error(this.$t('requiredName')))
+    } else if (!NamedRegex1.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
     } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 1) {
       callback(new Error(this.$t('sameName')))
+    } else {
+      callback()
     }
+  }
+
+  validateNameCC (rule, value, callback) {
+    const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
+    if (!NamedRegex.test(value.toUpperCase())) {
+      return callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    }
+    if (/^\d|^_+/.test(value)) {
+      return callback(new Error(this.$t('onlyStartLetters')))
+    }
+    if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 1) {
+      return callback(new Error(this.$t('sameName')))
+    }
+    callback()
   }
 
   renderHeaderCol (h, { column, index }) {
