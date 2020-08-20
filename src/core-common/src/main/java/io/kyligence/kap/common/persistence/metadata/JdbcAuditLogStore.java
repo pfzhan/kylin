@@ -110,7 +110,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
     private String instance;
     @Getter
     private final DataSourceTransactionManager transactionManager;
-    private ScheduledExecutorService consumeExecutor;
+    private ScheduledExecutorService consumeExecutor = new ScheduledThreadPoolExecutor(1);
     private AtomicBoolean stop = new AtomicBoolean(false);
     private BlockingQueue<Object> blockingQueue = new LinkedBlockingDeque<>(1);
 
@@ -218,10 +218,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Override
     public void restore(ResourceStore store, long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
-        if (consumeExecutor == null) {
-            consumeExecutor = new ScheduledThreadPoolExecutor(1);
-        }
-        startId.set(currentId);
+        startId.set(Math.max(startId.get(), currentId));
         val interval = config.getCatchUpInterval();
         if (config.isJobNode() && !config.isUTEnv()) {
             log.info("current maxId is {}", currentId);
@@ -238,25 +235,21 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 replayLogs(replayer, logs);
                 start += step;
             }
-            startId.set(maxId);
+            startId.set(Math.max(startId.get(), maxId));
             consumeExecutor.scheduleWithFixedDelay(createFetcher(store.getChecker()), 0, interval, TimeUnit.SECONDS);
             return null;
         });
     }
 
     public void catchupManuallyWithTimeOut(ResourceStore store) throws Exception {
-        if (consumeExecutor == null) {
-            consumeExecutor = new ScheduledThreadPoolExecutor(1);
-        }
+        startId.set(Math.max(startId.get(), store.getOffset()));
         FutureTask<Void> futureTask = new FutureTask<Void>(createFetcher(store.getChecker()), null);
         consumeExecutor.submit(futureTask);
         futureTask.get(config.getCatchUpTimeout(), TimeUnit.SECONDS);
     }
 
     public void catchupManually(ResourceStore store) {
-        if(consumeExecutor == null){
-            consumeExecutor = new ScheduledThreadPoolExecutor(1);
-        }
+        startId.set(Math.max(startId.get(), store.getOffset()));
         consumeExecutor.submit(createFetcher(store.getChecker()));
     }
 
@@ -289,19 +282,19 @@ public class JdbcAuditLogStore implements AuditLogStore {
             val replayer = MessageSynchronization.getInstance(config);
             replayer.setChecker(checker);
             try {
-                long finalStartId = startId.get();
-                startId.set(withTransaction(transactionManager, () -> {
-                    val logs = fetch(finalStartId, Integer.MAX_VALUE);
-                    if (CollectionUtils.isEmpty(logs)) {
-                        return finalStartId;
+                withTransaction(transactionManager, () -> {
+                    long finalStartId = startId.get();
+                    val step = 1000L;
+                    val maxId = getMaxId();
+                    log.debug("start replay log, current max_id is {}", maxId);
+                    while (finalStartId < maxId) {
+                        val logs = fetch(finalStartId, Math.min(step, maxId - finalStartId));
+                        replayLogs(replayer, logs);
+                        finalStartId += step;
                     }
-                    long currentMaxId = logs.get(logs.size() - 1).getId();
-                    if (logs.size() < currentMaxId - finalStartId) {
-                        return finalStartId;
-                    }
-                    replayLogs(replayer, logs);
-                    return currentMaxId;
-                }));
+                    startId.set(Math.max(startId.get(), maxId));
+                    return null;
+                });
 
             } catch (TransactionException e) {
                 log.warn("cannot create transaction, ignore it", e);

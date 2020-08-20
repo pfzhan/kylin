@@ -429,7 +429,7 @@ public class NMetricsGroup {
                 if (!gauges.contains(metricName)) {
                     NMetricsController.getDefaultMetricRegistry().register(metricName, metric);
                     gauges.add(metricName);
-                    logger.info("ke.metrics register gauge: {}", metricName);
+                    logger.trace("ke.metrics register gauge: {}", metricName);
                     return true;
                 }
             }
@@ -449,10 +449,10 @@ public class NMetricsGroup {
                     final long restoreVal = tryRestoreCounter(name, category, entity, tags);
                     if (restoreVal > 0) {
                         metric.inc(restoreVal);
-                        logger.info("ke.metrics counter=[{}] restore with value: {}", metricName, restoreVal);
+                        logger.trace("ke.metrics counter=[{}] restore with value: {}", metricName, restoreVal);
                     }
                     counters.put(metricName, metric);
-                    logger.info("ke.metrics register counter: {}", metricName);
+                    logger.trace("ke.metrics register counter: {}", metricName);
                 }
             }
         }
@@ -497,7 +497,7 @@ public class NMetricsGroup {
             final QueryResult result = defaultInfluxDb
                     .query(new Query(querySql, config.getMetricsDbNameWithMetadataUrlPrefix()));
             if (CollectionUtils.isEmpty(result.getResults().get(0).getSeries())) {
-                logger.info("ke.metrics tryRestoreCounter, got empty series, sql=[{}]", querySql);
+                logger.trace("ke.metrics tryRestoreCounter, got empty series, sql=[{}]", querySql);
                 return 0;
             }
             QueryResult.Series series = result.getResults().get(0).getSeries().get(0);
@@ -505,7 +505,7 @@ public class NMetricsGroup {
                     ? String.valueOf(series.getValues().get(0).get(1))
                     : String.valueOf(series.getValues().get(0).get(0));
 
-            logger.debug("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
+            logger.trace("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
             return NumberFormat.getInstance().parse(valStr).longValue();
         } catch (Exception e) {
             logger.error("ke.metrics tryRestoreCounter error", e);
@@ -520,7 +520,7 @@ public class NMetricsGroup {
                 if (!meters.containsKey(metricName)) {
                     final Meter metric = NMetricsController.getDefaultMetricRegistry().meter(metricName);
                     meters.put(metricName, metric);
-                    logger.info("ke.metrics register meter: {}", metricName);
+                    logger.trace("ke.metrics register meter: {}", metricName);
                 }
             }
         }
@@ -535,7 +535,7 @@ public class NMetricsGroup {
                 if (!histograms.containsKey(metricName)) {
                     final Histogram metric = NMetricsController.getDefaultMetricRegistry().histogram(metricName);
                     histograms.put(metricName, metric);
-                    logger.info("ke.metrics register histogram: {}", metricName);
+                    logger.trace("ke.metrics register histogram: {}", metricName);
                 }
             }
         }
@@ -552,7 +552,7 @@ public class NMetricsGroup {
                 if (metricNameSuffix.equals(arr[1]) || arr[1].startsWith(metricNameSuffix + ",")) {
                     registry.remove(metricName);
                     it.remove();
-                    logger.info("ke.metrics remove metric: {}", metricName);
+                    logger.trace("ke.metrics remove metric: {}", metricName);
                 }
             } catch (Exception e) {
                 logger.error("ke.metrics remove metric: {}", metricName, e);

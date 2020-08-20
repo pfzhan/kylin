@@ -97,6 +97,8 @@ public class AppInitializer {
         boolean isJob = kylinConfig.isJobNode();
 
         if (isJob) {
+            // restore from metadata, should not delete
+            ResourceStore.getKylinMetaStore(kylinConfig);
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 

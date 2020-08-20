@@ -146,8 +146,10 @@ public class JdbcQueryHistoryStore {
             insertQhRealProviderList.forEach(qhRealizationMapper::insert);
 
             session.commit();
-            log.info("Insert {} query history into database takes {} ms", queryMetricsList.size(),
-                    System.currentTimeMillis() - startTime);
+            if (queryMetricsList.size() > 0) {
+                log.info("Insert {} query history into database takes {} ms", queryMetricsList.size(),
+                        System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -289,7 +291,9 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history takes {} ms", deleteRows, System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info("Delete {} row query history takes {} ms", deleteRows, System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -302,7 +306,9 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history takes {} ms", deleteRows, System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info("Delete {} row query history takes {} ms", deleteRows, System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -316,8 +322,10 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history for project [{}] takes {} ms", deleteRows, project,
-                    System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info("Delete {} row query history for project [{}] takes {} ms", deleteRows, project,
+                        System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -330,8 +338,10 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info("Delete {} row query history for project [{}] takes {} ms", deleteRows, project,
-                    System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info("Delete {} row query history for project [{}] takes {} ms", deleteRows, project,
+                        System.currentTimeMillis() - startTime);
+            }
         } catch (Exception e) {
             log.error("Fail to delete query history for project [{}]", project, e);
         }
@@ -345,7 +355,9 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -358,7 +370,9 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -372,7 +386,9 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            }
         }
     }
 
@@ -385,7 +401,9 @@ public class JdbcQueryHistoryStore {
                     .build().render(RenderingStrategies.MYBATIS3);
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
-            log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            if (deleteRows > 0) {
+                log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
+            }
         } catch (Exception e) {
             log.error("Fail to delete query history realization for project [{}]", project, e);
         }
@@ -399,8 +417,10 @@ public class JdbcQueryHistoryStore {
             idToQHInfoList.forEach(pair -> providers.add(changeQHInfoProvider(pair.getFirst(), pair.getSecond())));
             providers.forEach(mapper::update);
             session.commit();
-            log.info("Update {} query history info takes {} ms", idToQHInfoList.size(),
-                    System.currentTimeMillis() - start);
+            if (idToQHInfoList.size() > 0) {
+                log.info("Update {} query history info takes {} ms", idToQHInfoList.size(),
+                        System.currentTimeMillis() - start);
+            }
         }
     }
 

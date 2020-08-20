@@ -254,6 +254,7 @@ public class JdbcMetadataStore extends MetadataStore {
     @Override
     public void restore(ResourceStore store) throws IOException {
         withTransaction(transactionManager, () -> {
+            log.debug("start restore");
             restoreProject(store, "_global");
             //for lock meta store table
             jdbcTemplate.queryForObject(String.format("select max(%s) from %s", META_TABLE_KEY, table), String.class);
@@ -278,6 +279,7 @@ public class JdbcMetadataStore extends MetadataStore {
                 }
             }
             store.setOffset(getAuditLogStore().getMaxId());
+            log.debug("end restore offset is {}", store.getOffset());
             return null;
         }, TransactionDefinition.ISOLATION_SERIALIZABLE);
 
