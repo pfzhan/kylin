@@ -150,7 +150,7 @@
         <el-table-column type="index" :label="$t('order')" width="50"></el-table-column>
         <el-table-column :label="$t('th_name')" width="260">
           <template slot-scope="scope">
-            <span v-custom-tooltip="{text: scope.row.name, w: scope.row.add ? 80 : 0, tableClassName: 'index-details-table'}">{{scope.row.name}}</span>
+            <span class="column-name" :title="scope.row.name">{{scope.row.name}}</span>
             <el-tag class="add-tag" size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
           </template>
         </el-table-column>
@@ -592,7 +592,7 @@ export default class IndexList extends Vue {
         this.showValidate = true
         this.validateData = {
           layout_item_ids,
-          list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, type: 'dimension'})), ...measure_items.map(it => ({...it, type: 'measure'}))]
+          list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => ({...it, type: 'measure'}))]
         }
       } else {
         this.validateData = {layout_item_ids, list: []}
@@ -757,6 +757,13 @@ export default class IndexList extends Vue {
       >.el-icon {
         margin-top: -2px;
       }
+    }
+    .column-name {
+      display: inline-block;
+      width: calc(~'100% - 50px');
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
     }
   }
   .expanded {
