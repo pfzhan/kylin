@@ -255,6 +255,8 @@ public class ModelService extends BasicService {
 
     public static final String VALID_NAME_FOR_DIMENSION_MEASURE = "^[\\u4E00-\\u9FA5a-zA-Z0-9 _\\-()%?（）]+$";
 
+    private static final List<String> MODEL_CONFIG_BLOCK_LIST = Lists.newArrayList("kylin.index.rule-scheduler-data");
+
     @Setter
     @Autowired
     private ModelSemanticHelper semanticUpdater;
@@ -2706,8 +2708,8 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
+                        StringUtils.join(dimensionNames, ",")));
             }
 
             if (!newModel.getEffectiveMeasures().keySet().containsAll(aggIndex.getMeasures())) {
@@ -2875,6 +2877,7 @@ public class ModelService extends BasicService {
                     if (indexPlan != null) {
                         val overrideProps = indexPlan.getOverrideProps();
                         response.getOverrideProps().putAll(overrideProps);
+                        MODEL_CONFIG_BLOCK_LIST.forEach(item -> response.getOverrideProps().remove(item));
                     }
                     responseList.add(response);
                 });
@@ -3087,7 +3090,8 @@ public class ModelService extends BasicService {
             return;
         }
 
-        String massagedFilterCond = KapQueryUtil.massageExpression(model, model.getProject(), model.getFilterCondition(),
+        String massagedFilterCond = KapQueryUtil.massageExpression(model, model.getProject(),
+                model.getFilterCondition(),
                 AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), getCurrentUserGroups()), false);
 
         String filterConditionWithTableName = addTableNameIfNotExist(massagedFilterCond, model);

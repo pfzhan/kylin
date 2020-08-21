@@ -56,12 +56,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailHelper;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -86,6 +84,7 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.base.Throwables;
 import lombok.Getter;
@@ -674,16 +673,4 @@ public abstract class AbstractExecutable implements Executable {
                 .toString();
     }
 
-    protected void sendMail(Pair<String, String> email) {
-        try {
-            List<String> users = getAllNotifyUsers(getConfig());
-            if (users.isEmpty()) {
-                logger.debug("no need to send email, user list is empty");
-                return;
-            }
-            MailHelper.doSendMail(getConfig(), users, email);
-        } catch (Exception e) {
-            logger.error("error send email", e);
-        }
-    }
 }

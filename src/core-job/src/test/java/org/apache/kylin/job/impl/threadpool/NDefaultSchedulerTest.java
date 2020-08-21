@@ -42,6 +42,7 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -106,6 +107,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Override
     public void after() throws Exception {
         super.after();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("kylin.job.auto-set-concurrent-jobs");
         System.clearProperty("kylin.job.retry");
         System.clearProperty("kylin.job.retry-exception-classes");
@@ -1771,6 +1773,32 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().pollInterval(50, TimeUnit.MILLISECONDS).atMost(60000, TimeUnit.MILLISECONDS)
                 .until(() -> (NDefaultScheduler.currentAvailableMem() <= baseMem));
         assertMemoryRestore(currMem);
+    }
+
+    @Test
+    public void testMarkJobError_AfterUpdateJobStateFailed() throws ExecuteException {
+        changeSchedulerInterval(1);
+
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setProject("default");
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+        job.setTargetSubject(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new FiveSecondErrorTestExecutable();
+        task1.setTargetSubject(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        executableManager.addJob(job);
+        executableManager.updateJobOutput(job.getId(), ExecutableState.RUNNING);
+
+        await().atMost(60, TimeUnit.SECONDS).until(() -> {
+            AbstractExecutable job2 = executableManager.getJob(job.getId());
+            ExecutableState status = job2.getStatus();
+            return status == ExecutableState.ERROR;
+        });
     }
 
     private void addParallelTasksForJob(List<NDataflow> dfs, NExecutableManager executableManager) {

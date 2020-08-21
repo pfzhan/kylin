@@ -28,6 +28,7 @@ import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.Executable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -47,12 +48,12 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
 
     private final ScheduledExecutorService fetcherPool;
 
-    public FetcherRunner(NDefaultScheduler nDefaultScheduler, ExecutorService jobPool, ScheduledExecutorService fetcherPool) {
+    public FetcherRunner(NDefaultScheduler nDefaultScheduler, ExecutorService jobPool,
+            ScheduledExecutorService fetcherPool) {
         super(nDefaultScheduler);
         this.jobPool = jobPool;
         this.fetcherPool = fetcherPool;
     }
-
 
     private boolean checkSuicide(String jobId) {
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -62,7 +63,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
         return executableManager.getJob(jobId).checkSuicide();
     }
 
-    protected boolean discardSuicidalJob(String jobId) {
+    private boolean markDiscardJob(String jobId) {
         try {
             if (checkSuicide(jobId)) {
                 return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -74,8 +75,22 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 }, context.getEpochId(), project);
             }
         } catch (Exception e) {
-            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project " + project + " job " + jobId
-                    + " should be suicidal but discard failed", e);
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} should be suicidal but discard failed", project,
+                    jobId, e);
+        }
+        return false;
+    }
+
+    private boolean markErrorJob(String jobId) {
+        try {
+            return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                manager.updateJobOutput(jobId, ExecutableState.ERROR);
+                return true;
+            }, context.getEpochId(), project);
+        } catch (Exception e) {
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] project {} job {} should be error but mark failed", project,
+                    jobId, e);
         }
         return false;
     }
@@ -95,7 +110,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             int nSucceed = 0;
             int nSuicidal = 0;
             for (final String id : executableManager.getJobs()) {
-                if (discardSuicidalJob(id)) {
+                if (markDiscardJob(id)) {
                     nDiscarded++;
                     continue;
                 }
@@ -111,40 +126,45 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
 
                 final Output output = executableManager.getOutput(id);
                 switch (output.getState()) {
-                    case READY:
-                        nReady++;
-                        if (context.isJobFull() || context.isReachQuotaLimit()) {
-                            break;
-                        }
+                case READY:
+                    nReady++;
+                    if (context.isJobFull() || context.isReachQuotaLimit()) {
+                        break;
+                    }
 
-                        logger.info("fetcher schedule {} ", id);
-                        scheduleJob(id);
-                        break;
-                    case DISCARDED:
-                        nDiscarded++;
-                        break;
-                    case ERROR:
+                    logger.info("fetcher schedule {} ", id);
+                    scheduleJob(id);
+                    break;
+                case DISCARDED:
+                    nDiscarded++;
+                    break;
+                case ERROR:
+                    nError++;
+                    break;
+                case SUCCEED:
+                    nSucceed++;
+                    break;
+                case PAUSED:
+                    nStopped++;
+                    break;
+                case SUICIDAL:
+                    nSuicidal++;
+                    break;
+                default:
+                    logger.warn("Unexpected status for {} <{}>", id, output.getState());
+                    if (markErrorJob(id)) {
                         nError++;
-                        break;
-                    case SUCCEED:
-                        nSucceed++;
-                        break;
-                    case PAUSED:
-                        nStopped++;
-                        break;
-                    case SUICIDAL:
-                        nSuicidal++;
-                        break;
-                    default:
+                    } else {
                         nOthers++;
-                        break;
+                    }
+                    break;
                 }
             }
 
             logger.info(
                     "Job Status in project {}: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} suicidal,  {} others",
-                    project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded,
-                    nSuicidal, nOthers);
+                    project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nSuicidal,
+                    nOthers);
         } catch (Exception e) {
             logger.warn("Job Fetcher caught a exception ", e);
         }
@@ -171,7 +191,8 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 jobPool.execute(new JobRunner(nDefaultScheduler, executable, this));
                 logger.info("{} scheduled", jobDesc);
             } else {
-                logger.info("memory is not enough, remaining: {} MB", NDefaultScheduler.getMemoryRemaining().availablePermits());
+                logger.info("memory is not enough, remaining: {} MB",
+                        NDefaultScheduler.getMemoryRemaining().availablePermits());
             }
         } catch (Exception ex) {
             if (executable != null) {
@@ -182,7 +203,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                     nDefaultScheduler.getCurrentPrjUsingMemory().addAndGet(-useMemoryCapacity);
                 }
             }
-            logger.warn(jobDesc + " fail to schedule", ex);
+            logger.warn("{} fail to schedule", jobDesc, ex);
         }
     }
 
