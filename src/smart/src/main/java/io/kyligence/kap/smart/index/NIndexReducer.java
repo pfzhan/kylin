@@ -86,6 +86,12 @@ class NIndexReducer extends NAbstractIndexProposer {
         indexPlan.setIndexes(allReservedIndexList);
         cleanRedundantLayoutRecommendations(redundantToReservedMap);
 
+        // remove reduced index for indexRexItem
+        Set<Long> layoutIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        context.setIndexRexItemMap(context.getIndexRexItemMap().entrySet().stream()
+                .filter(e -> layoutIds.contains(e.getValue().getLayout().getId()))
+                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+
         // adjust acceleration info
         adjustAccelerationInfo(redundantToReservedMap);
         log.debug("End of reduce indexes and layouts!");

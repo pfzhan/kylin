@@ -48,9 +48,11 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
@@ -214,6 +216,30 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(2, allQueryHistories.get(1).getId());
         Assert.assertEquals("There is no compatible model to accelerate this sql.",
                 allQueryHistories.get(1).getQueryHistoryInfo().getErrorMsg());
+    }
+
+    @Test
+    public void testMergeAggIndexOfSameDimensionForSemiV2() {
+        String project = "cc_test";
+
+        // create origin model
+        val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { "SELECT LO_CUSTKEY FROM SSB.LINEORDER limit 10" });
+        val originSmartMaster = new NSmartMaster(context1);
+        originSmartMaster.runWithContext();
+
+        // suggest model
+        String[] sqls = new String[] { "SELECT min(LO_CUSTKEY) FROM LINEORDER limit 10",
+                "SELECT max(LO_CUSTKEY) FROM SSB.LINEORDER limit 10" };
+        AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
+        val smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.runSuggestModel();
+
+        // two layout will merge to one layout rec
+        Assert.assertEquals(1, proposeContext.getModelContexts().get(0).getIndexRexItemMap().size());
+        for (LayoutRecItemV2 layoutRecItem : proposeContext.getModelContexts().get(0).getIndexRexItemMap().values()) {
+            Assert.assertEquals(2, layoutRecItem.getLayout().getMeasureIds().size());
+        }
     }
 
     private List<QueryHistory> queryHistories() {
