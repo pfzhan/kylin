@@ -23,77 +23,171 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_GREEN;
-import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RED;
-import static io.kyligence.kap.tool.garbage.StorageCleaner.ANSI_RESET;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.printlnGreen;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThread;
 
 import javax.sql.DataSource;
 
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.tool.OptionBuilder;
+import io.kyligence.kap.tool.util.MetadataUtil;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.security.util.InMemoryResource;
 
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+/**
+ * 4.1 -> 4.2
+ */
 @Slf4j
-public class UpdateSessionTableCLI {
+public class UpdateSessionTableCLI extends ExecutableApplication implements IKeep {
 
-    private final static String UPDATE_MYSQL_SESSION_TABLE_SQL = "ALTER TABLE SPRING_SESSION MODIFY COLUMN SESSION_ID VARCHAR(180) NOT NULL;";
-    private final static String UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL = "ALTER TABLE SPRING_SESSION_ATTRIBUTES MODIFY COLUMN SESSION_ID VARCHAR(180) NOT NULL;";
+    private static final Option OPTION_TRUNCATE = OptionBuilder.getInstance().hasArg(false).withArgName("truncate")
+            .withDescription("Truncate the session table.").isRequired(false).withLongOpt("truncate").create("t");
 
-    private final static String UPDATE_PG_SESSION_TABLE_SQL = "ALTER TABLE SPRING_SESSION ALTER COLUMN SESSION_ID TYPE VARCHAR(180) , ALTER COLUMN SESSION_ID SET NOT NULL;";
-    private final static String UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL = "ALTER TABLE SPRING_SESSION_ATTRIBUTES ALTER COLUMN SESSION_ID TYPE VARCHAR(180) , ALTER COLUMN SESSION_ID SET NOT NULL;";
+    private static final Option OPTION_EXEC = OptionBuilder.getInstance().hasArg(false).withArgName("exec")
+            .withDescription("exec the upgrade.").isRequired(false).withLongOpt("exec").create("e");
 
-    private static DataSource dataSource;
+    private static final int SESSION_ID_LENGTH = 180;
 
-    private static void initDataSource() {
-        val config = KylinConfig.getInstanceFromEnv();
-        val url = config.getMetadataUrl();
-        val props = JdbcUtil.datasourceParameters(url);
-        try {
-            dataSource = JdbcDataSource.getDataSource(props);
-        } catch (Exception e) {
-            log.error("init data source failed", e);
-            dataSource = null;
-        }
-    }
+    private static final String UPDATE_MYSQL_SESSION_TABLE_SQL = String
+            .format("ALTER TABLE SPRING_SESSION MODIFY COLUMN SESSION_ID VARCHAR(%d) NOT NULL;", SESSION_ID_LENGTH);
+    private static final String UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL = String.format(
+            "ALTER TABLE SPRING_SESSION_ATTRIBUTES MODIFY COLUMN SESSION_ID VARCHAR(%d) NOT NULL;", SESSION_ID_LENGTH);
+
+    private static final String UPDATE_PG_SESSION_TABLE_SQL = String.format(
+            "ALTER TABLE SPRING_SESSION ALTER COLUMN SESSION_ID TYPE VARCHAR(%d) , ALTER COLUMN SESSION_ID SET NOT NULL;",
+            SESSION_ID_LENGTH);
+    private static final String UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL = String.format(
+            "ALTER TABLE SPRING_SESSION_ATTRIBUTES ALTER COLUMN SESSION_ID TYPE VARCHAR(%d) , ALTER COLUMN SESSION_ID SET NOT NULL;",
+            SESSION_ID_LENGTH);
+
+    private static final String ERROR_MSG_FORMAT = "Failed to alter session table schema : %s , "
+            + "please alter session table schema manually according to user manual. "
+            + "Otherwise you may not be able to log in Detailed Message is at logs/shell.stderr";
+
+    private DataSource dataSource;
 
     public static void main(String[] args) {
-        initDataSource();
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        String tableName = config.getMetadataUrlPrefix() + "_session";
-        String tableAttributesName = tableName + "_ATTRIBUTES";
-        if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
-                && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
-                        .equals("com.mysql.jdbc.Driver")) {
-            tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
-            tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_TABLE_SQL, tableName);
-        } else {
-            tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
-            tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_TABLE_SQL, tableName);
+        UpdateSessionTableCLI updateSessionTableCLI = new UpdateSessionTableCLI();
+        try {
+            updateSessionTableCLI.execute(args);
+        } catch (Exception e) {
+            log.error("Failed to exec UpdateSessionTableCLI", e);
+            systemExitWhenMainThread(1);
         }
-        System.out.println("Update session table finished.");
-        System.exit(0);
+
+        log.info("Upgrade session table finished.");
+        systemExitWhenMainThread(0);
     }
 
-    private static void tryUpdateSessionTable(String replaceName, String sql, String sessionTableName) {
+    private int affectedRowsWhenTruncate(String sessionTableName) throws SQLException {
+        try (PreparedStatement preparedStatementQuery = dataSource.getConnection()
+                .prepareStatement("SELECT COUNT(1) FROM " + sessionTableName);
+                ResultSet rs = preparedStatementQuery.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (SQLException e) {
+            log.error("Failed to count table: {}", sessionTableName, e);
+            throw e;
+        }
+    }
+
+    private void truncateSessionTable(String sessionTableName) throws Exception {
+        try (PreparedStatement preparedStatement = dataSource.getConnection()
+                .prepareStatement("DELETE FROM " + sessionTableName + " WHERE SESSION_ID IS NOT NULL")) {
+
+            int rows = preparedStatement.executeUpdate();
+            log.info("Delete {} rows from {} .", rows, sessionTableName);
+        } catch (Exception e) {
+            log.error("Failed to truncate table: {}", sessionTableName, e);
+            throw e;
+        }
+    }
+
+    private boolean isSessionTableNeedUpgrade(String sessionTableName) {
+        try (PreparedStatement preparedStatement = dataSource.getConnection()
+                .prepareStatement("SELECT SESSION_ID FROM " + sessionTableName + " LIMIT 1")) {
+            int columnLength = preparedStatement.getMetaData().getPrecision(1);
+            if (columnLength < SESSION_ID_LENGTH) {
+                log.info("Table: {}, Alter SESSION_ID column length: {} to length: {}", sessionTableName, columnLength,
+                        SESSION_ID_LENGTH);
+                return true;
+            }
+
+            log.info("Table: {} is matched, skip upgrade.", sessionTableName);
+        } catch (Exception e) {
+            log.error("Failed to check SESSION_ID from table: {}", sessionTableName, e);
+            systemExitWhenMainThread(1);
+        }
+
+        return false;
+    }
+
+    private void tryUpdateSessionTable(String replaceName, String sql, String sessionTableName) {
+        if (!isSessionTableNeedUpgrade(sessionTableName)) {
+            return;
+        }
+
         try {
             ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
             String sessionScript = sql.replaceAll("SPRING_SESSION", replaceName);
             populator.addScript(new InMemoryResource(sessionScript));
             populator.setContinueOnError(false);
             DatabasePopulatorUtils.execute(populator, dataSource);
-            System.out.println(ANSI_GREEN + "Succeed to alter session table schema : " + sessionTableName + ANSI_RESET);
+            log.info("session table {} upgrade succeeded.", sessionTableName);
         } catch (Exception e) {
             log.error("try update session table failed", e);
-            System.out.println(ANSI_RED + "Failed to alter session table schema : " + sessionTableName
-                    + " ,  please alter session table schema manually according to user manaul. Otherwise you may not be able to log in"
-                    + "Detailed Message is at logs/shell.stderr" + ANSI_RESET);
+            throw e;
         }
     }
 
+    @Override
+    protected Options getOptions() {
+        Options options = new Options();
+        options.addOption(OPTION_TRUNCATE);
+        options.addOption(OPTION_EXEC);
+        return options;
+    }
+
+    @Override
+    protected void execute(OptionsHelper optionsHelper) throws Exception {
+        KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
+        String tableName = systemKylinConfig.getMetadataUrlPrefix() + "_session";
+        String tableAttributesName = tableName + "_ATTRIBUTES";
+
+        dataSource = MetadataUtil.getDataSource(systemKylinConfig);
+
+        printlnGreen(String.format("found %d rows need to be modified.",
+                affectedRowsWhenTruncate(tableAttributesName) + affectedRowsWhenTruncate(tableName)));
+
+        if (optionsHelper.hasOption(OPTION_EXEC)) {
+            if (optionsHelper.hasOption(OPTION_TRUNCATE)) {
+                truncateSessionTable(tableAttributesName);
+                truncateSessionTable(tableName);
+            }
+
+            printlnGreen("start to check the permission to update tables.");
+            if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
+                    && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
+                            .equals("com.mysql.jdbc.Driver")) {
+                tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
+                tryUpdateSessionTable(tableName, UPDATE_MYSQL_SESSION_TABLE_SQL, tableName);
+            } else {
+                tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_ATTRIBUTES_TABLE_SQL, tableAttributesName);
+                tryUpdateSessionTable(tableName, UPDATE_PG_SESSION_TABLE_SQL, tableName);
+            }
+
+            printlnGreen("session and session_ATTRIBUTES table upgrade succeeded.");
+        }
+    }
 }

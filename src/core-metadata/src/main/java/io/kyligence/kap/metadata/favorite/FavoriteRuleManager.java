@@ -178,4 +178,8 @@ public class FavoriteRuleManager {
         return blacklist.getConds().stream().map(cond -> ((FavoriteRule.SQLCondition) cond).getSqlPattern())
                 .collect(Collectors.toSet());
     }
+
+    public void delete(FavoriteRule favoriteRule) {
+        crud.delete(favoriteRule);
+    }
 }

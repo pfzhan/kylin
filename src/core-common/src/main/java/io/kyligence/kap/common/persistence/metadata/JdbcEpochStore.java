@@ -47,6 +47,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JdbcEpochStore extends EpochStore {
 
+    public static final String CREATE_EPOCH_TABLE = "create.epoch.store.table";
+    public static final String EPOCH_TABLE_NAME = "_epoch";
+
     static final String EPOCH_ID = "epoch_id";
     static final String EPOCH_TARGET = "epoch_target";
     static final String CURRENT_EPOCH_OWNER = "current_epoch_owner";
@@ -92,6 +95,11 @@ public class JdbcEpochStore extends EpochStore {
         table = url.getIdentifier() + EPOCH_SUFFIX;
     }
 
+    public static String getEpochSql(String sql, String tableName) {
+        return String.format(sql, tableName, EPOCH_ID, EPOCH_TARGET, CURRENT_EPOCH_OWNER, LAST_EPOCH_RENEW_TIME,
+                SERVER_MODE, MAINTENANCE_MODE_REASON, MVCC, tableName, EPOCH_TARGET, EPOCH_TARGET);
+    }
+
     public void createIfNotExist() throws Exception {
         if (isTableExists(jdbcTemplate.getDataSource().getConnection(), table)) {
             return;
@@ -106,12 +114,10 @@ public class JdbcEpochStore extends EpochStore {
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
         Properties properties = new Properties();
         properties.load(is);
-        var sql = properties.getProperty("create.epoch.store.table");
+        var sql = properties.getProperty(CREATE_EPOCH_TABLE);
 
         withTransaction(transactionManager, () -> {
-            jdbcTemplate.execute(
-                    String.format(sql, table, EPOCH_ID, EPOCH_TARGET, CURRENT_EPOCH_OWNER, LAST_EPOCH_RENEW_TIME,
-                            SERVER_MODE, MAINTENANCE_MODE_REASON, MVCC, table, EPOCH_TARGET, EPOCH_TARGET));
+            jdbcTemplate.execute(getEpochSql(sql, table));
             return 1;
         });
     }

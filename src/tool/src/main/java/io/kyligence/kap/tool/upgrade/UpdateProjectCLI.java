@@ -28,8 +28,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.tool.OptionBuilder;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -44,13 +44,16 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import static io.kyligence.kap.tool.util.MetadataUtil.getMetadataUrl;
+import static io.kyligence.kap.tool.util.ScreenPrintUtil.println;
+
 @Slf4j
 public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
-    private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("dir")
+    private static final Option OPTION_DIR = OptionBuilder.getInstance().hasArg().withArgName("dir")
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");
 
-    private static final Option OPTION_HELP = OptionBuilder.hasArg(false).withDescription("print help message.")
-            .isRequired(false).withLongOpt("help").create("h");
+    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false)
+            .withDescription("print help message.").isRequired(false).withLongOpt("help").create("h");
 
     private static final Map<String, String> REPLACE_OVERRIDE_PROPERTIES_MAP = new HashMap<>();
 
@@ -65,7 +68,7 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
     public static void main(String[] args) throws Exception {
         val tool = new UpdateProjectCLI();
         tool.execute(args);
-        System.out.println("Update project finished.");
+        println("Update project finished.");
         System.exit(0);
     }
 
@@ -132,15 +135,5 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
             optionsHelper.printUsage(this.getClass().getName(), getOptions());
         }
         return help;
-    }
-
-    private String getMetadataUrl(String rootPath) {
-        if (rootPath.startsWith("file://")) {
-            rootPath = rootPath.replace("file://", "");
-            return org.apache.commons.lang3.StringUtils.appendIfMissing(rootPath, "/");
-        } else {
-            return org.apache.commons.lang3.StringUtils.appendIfMissing(rootPath, "/");
-
-        }
     }
 }

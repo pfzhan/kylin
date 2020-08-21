@@ -50,8 +50,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RawRecStoreUtil {
 
-    private static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
-    private static final String CREATE_INDEX = "create.rawrecommendation.store.index";
+    public static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
+    public static final String CREATE_INDEX = "create.rawrecommendation.store.index";
     private volatile static SqlSessionFactory sqlSessionFactory = null;
 
     private RawRecStoreUtil() {
