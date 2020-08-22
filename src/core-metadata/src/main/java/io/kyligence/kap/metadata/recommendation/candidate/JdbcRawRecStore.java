@@ -221,7 +221,7 @@ public class JdbcRawRecStore {
 
     }
 
-    public List<RawRecItem> queryNonLayoutRecItems(String project, String model, RawRecItem.RawRecState... states) {
+    public List<RawRecItem> queryNonLayoutRecItems(String project, String model) {
         int semanticVersion = getSemanticVersion(project, model);
         if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
             log.debug("model({}/{}) does not exist.", project, model);
@@ -236,7 +236,6 @@ public class JdbcRawRecStore {
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isNotEqualTo(RawRecItem.RawRecType.LAYOUT)) //
-                    .and(table.state, isIn(states)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> recItems = mapper.selectMany(statementProvider);
             log.info("Query non-layout raw recommendations takes {} ms", System.currentTimeMillis() - start);

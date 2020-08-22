@@ -76,15 +76,15 @@ class IndexSuggester {
     private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
     private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
 
-    private AbstractContext proposeContext;
-    private AbstractContext.NModelContext modelContext;
-    private IndexPlan indexPlan;
-    private NDataModel model;
+    private final AbstractContext proposeContext;
+    private final AbstractContext.NModelContext modelContext;
+    private final IndexPlan indexPlan;
+    private final NDataModel model;
     private final ProjectInstance projectInstance;
 
-    private Map<FunctionDesc, Integer> aggFuncIdMap;
-    private Map<IndexIdentifier, IndexEntity> collector;
-    private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
+    private final Map<FunctionDesc, Integer> aggFuncIdMap;
+    private final Map<IndexIdentifier, IndexEntity> collector;
+    private final SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
     IndexSuggester(AbstractContext.NModelContext modelContext, IndexPlan indexPlan,
             Map<IndexIdentifier, IndexEntity> collector) {
@@ -335,9 +335,7 @@ class IndexSuggester {
     }
 
     private IndexEntity createIndexEntity(long id, List<Integer> dimIds, SortedSet<Integer> measureIds) {
-        Preconditions.checkState(!dimIds.isEmpty() || !measureIds.isEmpty(),
-                "Neither dimension nor measure could be proposed for indexEntity");
-
+        EntityBuilder.checkDimensionsAndMeasures(dimIds, Lists.newArrayList(measureIds));
         IndexEntity indexEntity = new IndexEntity();
         indexEntity.setId(id);
         indexEntity.setDimensions(dimIds);

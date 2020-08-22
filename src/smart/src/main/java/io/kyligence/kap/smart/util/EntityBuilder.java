@@ -37,11 +37,11 @@ import lombok.Setter;
 
 public class EntityBuilder {
     public static class LayoutEntityBuilder {
-        private long layoutId;
+        private final long layoutId;
         private List<Integer> colOrderIds = Lists.newArrayList();
         private List<Integer> partitionCols = Lists.newArrayList();
         private List<Integer> shardByCols = Lists.newArrayList();
-        private IndexEntity index;
+        private final IndexEntity index;
         private boolean isAuto;
 
         public LayoutEntityBuilder(long layoutId, IndexEntity index) {
@@ -83,6 +83,11 @@ public class EntityBuilder {
 
     }
 
+    public static void checkDimensionsAndMeasures(List<Integer> dimIds, List<Integer> measureIds) {
+        Preconditions.checkState(!dimIds.isEmpty() || !measureIds.isEmpty(),
+                "Neither dimension nor measure could be proposed for indexEntity");
+    }
+
     public static class IndexEntityBuilder {
 
         public static long findAvailableIndexEntityId(IndexPlan indexPlan, Collection<IndexEntity> existedIndex,
@@ -106,13 +111,13 @@ public class EntityBuilder {
                     isTableIndex ? indexPlan.getNextTableIndexId() : indexPlan.getNextAggregationIndexId());
         }
 
-        private long id;
-        private IndexPlan indexPlan;
+        private final long id;
+        private final IndexPlan indexPlan;
         @Setter
         private List<Integer> dimIds = Lists.newArrayList();
         @Setter
         private List<Integer> measureIds = Lists.newArrayList();
-        private List<LayoutEntity> layouts = Lists.newArrayList();
+        private final List<LayoutEntity> layouts = Lists.newArrayList();
 
         public IndexEntityBuilder(long id, IndexPlan indexPlan) {
             this.id = id;
@@ -146,9 +151,7 @@ public class EntityBuilder {
         }
 
         public IndexEntity build() {
-            Preconditions.checkState(!dimIds.isEmpty() || !measureIds.isEmpty(),
-                    "Neither dimension nor measure could be proposed for indexEntity");
-
+            EntityBuilder.checkDimensionsAndMeasures(dimIds, measureIds);
             IndexEntity indexEntity = new IndexEntity();
             indexEntity.setId(id);
             indexEntity.setDimensions(dimIds);

@@ -361,11 +361,11 @@ public class IndexEntity implements Serializable, IKeep {
     }
 
     public IndexIdentifier createIndexIdentifier() {
-        return new IndexIdentifier(//
-                getDimensions(), //
-                getMeasures(), //
-                isTableIndex()//
-        );
+        List<Integer> dimensions = getDimensions();
+        List<Integer> measures = getMeasures();
+        dimensions.sort(Integer::compareTo);
+        measures.sort(Integer::compareTo);
+        return new IndexIdentifier(dimensions, measures, isTableIndex());
     }
 
 }

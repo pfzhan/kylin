@@ -70,19 +70,15 @@ public class RawRecManager {
             allModelList = NDataModelManager.getInstance(kylinConfig, project).listAllModelIds();
         }
         Map<String, RawRecItem> allRecItems = Maps.newHashMap();
-        RawRecItem.RawRecState[] nonAppliedStates = { RawRecItem.RawRecState.INITIAL, //
-                RawRecItem.RawRecState.RECOMMENDED, //
-                RawRecItem.RawRecState.DISCARD, //
-                RawRecItem.RawRecState.BROKEN };
         for (String model : allModelList) {
-            allRecItems.putAll(queryNonLayoutRecItems(model, nonAppliedStates));
+            allRecItems.putAll(queryNonLayoutRecItems(model));
         }
         return allRecItems;
     }
 
-    private Map<String, RawRecItem> queryNonLayoutRecItems(String model, RawRecItem.RawRecState... states) {
+    private Map<String, RawRecItem> queryNonLayoutRecItems(String model) {
         Map<String, RawRecItem> recItemMap = Maps.newHashMap();
-        List<RawRecItem> recItems = jdbcRawRecStore.queryNonLayoutRecItems(project, model, states);
+        List<RawRecItem> recItems = jdbcRawRecStore.queryNonLayoutRecItems(project, model);
         if (CollectionUtils.isEmpty(recItems)) {
             log.info("There is no RawRecItems of model({}/{}})", project, model);
             return recItemMap;
