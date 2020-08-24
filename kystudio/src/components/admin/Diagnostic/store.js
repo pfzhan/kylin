@@ -133,9 +133,10 @@ export default {
       return new Promise((resolve, reject) => {
         api.datasource.loadOnlineQueryNodes({ext: true}).then((res) => {
           let { data } = res.data
-          if (self.$route.name === 'Job') {
-            data = data.filter(item => item.mode === 'all')
-          }
+          // 所有节点都能打任务诊断包
+          // if (self.$route.name === 'Job') {
+          //   data = data.filter(item => item.mode === 'all')
+          // }
           commit(types.UPDATE_SERVERS, data)
           resolve(data)
         }).catch((err) => {
