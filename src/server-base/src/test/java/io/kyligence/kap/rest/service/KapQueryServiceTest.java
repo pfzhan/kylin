@@ -74,14 +74,17 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSqlsFormat() {
         List<String> sqls = Lists.newArrayList("select * from A", "select A.a, B.b from A join B on A.a2=B.b2",
-                "Select sum(a), b from A group by b");
+                "Select sum(a), b from A group by b", "select * from A as c limit 1");
+
+        List<String> expectedFormattedSqls = Lists.newArrayList("SELECT\n  *\nFROM \"A\"",
+                "SELECT\n  \"A\".\"A\",\n  \"B\".\"B\"\nFROM \"A\"\n  INNER JOIN \"B\" ON \"A\".\"A2\" = \"B\".\"B2\"",
+                "SELECT\n  SUM(\"A\"),\n  \"B\"\nFROM \"A\"\nGROUP BY\n  \"B\"",
+                "SELECT\n  *\nFROM \"A\" AS \"C\"\nLIMIT 1");
         val formated = kapQueryService.format(sqls);
 
-        Assert.assertEquals(3, formated.size());
-        Assert.assertEquals("SELECT\n  *\nFROM \"A\"", formated.get(0));
-        Assert.assertEquals(
-                "SELECT\n  \"A\".\"A\",\n  \"B\".\"B\"\nFROM \"A\"\n  INNER JOIN \"B\" ON \"A\".\"A2\" = \"B\".\"B2\"",
-                formated.get(1));
-        Assert.assertEquals("SELECT\n  SUM(\"A\"),\n  \"B\"\nFROM \"A\"\nGROUP BY\n  \"B\"", formated.get(2));
+        Assert.assertEquals(sqls.size(), formated.size());
+        for (int n = 0; n < sqls.size(); n++) {
+            Assert.assertEquals(expectedFormattedSqls.get(n), formated.get(n));
+        }
     }
 }

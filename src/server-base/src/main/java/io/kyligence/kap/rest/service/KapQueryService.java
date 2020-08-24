@@ -53,12 +53,12 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.query.calcite.KEDialect;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -197,7 +197,7 @@ public class KapQueryService extends QueryService {
         return pairs.parallelStream().map(pair -> {
             try {
                 val node = SqlParser.create(pair.getSecond()).parseQuery();
-                val writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+                val writer = new SqlPrettyWriter(KEDialect.DEFAULT);
                 writer.setIndentation(2);
                 writer.setSelectListExtraIndentFlag(true);
                 writer.setSelectListItemsOnSeparateLines(true);
