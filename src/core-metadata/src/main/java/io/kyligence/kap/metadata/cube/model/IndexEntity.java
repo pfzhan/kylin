@@ -361,8 +361,8 @@ public class IndexEntity implements Serializable, IKeep {
     }
 
     public IndexIdentifier createIndexIdentifier() {
-        List<Integer> dimensions = getDimensions();
-        List<Integer> measures = getMeasures();
+        List<Integer> dimensions = Lists.newArrayList(getDimensions());
+        List<Integer> measures = Lists.newArrayList(getMeasures());
         dimensions.sort(Integer::compareTo);
         measures.sort(Integer::compareTo);
         return new IndexIdentifier(dimensions, measures, isTableIndex());
