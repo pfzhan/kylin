@@ -70,7 +70,8 @@ import { NamedRegex } from 'config'
       onlyStartLetters: 'Only supports starting with a letter',
       deleteCCTip: 'After saving, as the expression was modified, measure(s) [{names}] would be unavailable and deleted. Do you want to continue?',
       expressionTip1: 'Within a project, the computed columns with same name must use identical expression',
-      expressionTip2: 'When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model)'
+      expressionTip2: 'When referencing a column, please follow the format as TABLE_ALIAS.COLUMN (TABLE_ALIAS is the table name defined in the model)',
+      sameExpression: 'This expression has already been used by other computed columns in this model'
     },
     'zh-cn': {
       conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。',
@@ -88,7 +89,8 @@ import { NamedRegex } from 'config'
       onlyStartLetters: '仅支持字母开头',
       deleteCCTip: '修改后的可计算列表达式将导致度量 [{names}] 无法正常使用。保存后上述度量将被删除。确认要继续保存吗？',
       expressionTip1: '同一项目下同名的可计算列的表达式必须一致',
-      expressionTip2: '当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名)'
+      expressionTip2: '当引用列时，请使用 TABLE_ALIAS.COLUMN 格式来定义（TABLE_ALIAS 为模型中定义的表别名)',
+      sameExpression: '该表达式在模型内已存在'
     }
   }
 })
@@ -99,8 +101,9 @@ export default class CCForm extends Vue {
       { required: true, message: this.$t('requiredCCName'), trigger: 'blur' },
       { validator: this.checkCCName, trigger: 'blur' }
     ],
-    expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
+    expression: [{ validator: this.checkExpression, trigger: 'change' }]
   }
+  // required: true, message: this.$t('requiredExpress')
   ccMeta = JSON.stringify({
     columnName: '',
     datatype: '',
@@ -113,6 +116,12 @@ export default class CCForm extends Vue {
   integerType = ['bigint', 'int', 'integer', 'smallint', 'tinyint']
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
+
+  checkSameExpression (value) {
+    const { computed_columns } = this.modelInstance
+    return computed_columns.filter(it => it.expression === value).length > 0
+  }
+
   checkCCName (rule, value, callback) {
     if (!NamedRegex.test(value.toUpperCase())) {
       return callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
@@ -124,6 +133,16 @@ export default class CCForm extends Vue {
       return callback(new Error(this.$t('sameName')))
     }
     callback()
+  }
+  // 校验cc表达式是否存在相同或未填写情况
+  checkExpression (rule, value, callback) {
+    if (!value) {
+      callback(this.$t('requiredExpress'))
+    } else if (this.checkSameExpression(value)) {
+      callback(this.$t('sameExpression'))
+    } else {
+      callback()
+    }
   }
   upperCaseCCName () {
     this.ccObject.columnName = this.ccObject.columnName.toLocaleUpperCase()
