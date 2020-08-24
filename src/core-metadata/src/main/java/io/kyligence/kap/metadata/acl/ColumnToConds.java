@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.kylin.common.KylinConfig;
@@ -50,11 +51,13 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.acl.ColumnToConds.Cond.IntervalType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE //
@@ -63,6 +66,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
         , setterVisibility = JsonAutoDetect.Visibility.NONE) //
 //all row conditions in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
 public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.Cond>> implements Serializable, IKeep {
+
+    private static final String COMMA = ",";
 
     public ColumnToConds() {
     }
@@ -104,6 +109,17 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
         for (String col : condsWithCol.keySet()) {
             String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type not found");
             List<Cond> conds = condsWithCol.getCondsByColumn(col);
+            if (conds.stream().allMatch(cond -> cond.type == IntervalType.CLOSED)) {
+                result.append("(").append(col).append(" in ").append("(")
+                        .append(Joiner.on(COMMA).join(conds.stream()
+                                .map(cond -> Cond.trimWithoutCheck(cond.leftExpr, type)).collect(Collectors.toList())))
+                        .append(")").append(")");
+                if (j != condsWithCol.size() - 1) {
+                    result.append(" AND ");
+                }
+                j++;
+                continue;
+            }
             for (int i = 0; i < conds.size(); i++) {
                 String parsedCond = conds.get(i).toString(col, type);
                 if (conds.size() == 1) {

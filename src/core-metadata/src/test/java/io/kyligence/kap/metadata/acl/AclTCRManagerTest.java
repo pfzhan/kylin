@@ -266,11 +266,10 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
 
         Map<String, String> whereConds = manager.getTableColumnConcatWhereCondition(user1,
                 Sets.newHashSet(group1, group2));
-        Assert.assertEquals(
-                "((ORDER_ID=1001001) AND ((TEST_DATE_ENC=DATE '2001-01-01') OR (TEST_DATE_ENC=DATE '2010-10-10')))",
+        Assert.assertEquals("((ORDER_ID in (1001001)) AND (TEST_DATE_ENC in (DATE '2001-01-01',DATE '2010-10-10')))",
                 whereConds.get("DEFAULT.TEST_ORDER"));
         Assert.assertEquals(
-                "(((COUNTRY='country_a') AND ((LATITUDE=22.22) OR (LATITUDE=11.11)) AND ((NAME='name_b') OR (NAME='name_a'))) OR ((COUNTRY='country_b') AND ((LATITUDE=33.33) OR (LATITUDE=44.44)) AND (NAME='name_c')))",
+                "(((COUNTRY in ('country_a')) AND (LATITUDE in (22.22,11.11)) AND (NAME in ('name_b','name_a'))) OR ((COUNTRY in ('country_b')) AND (LATITUDE in (33.33,44.44)) AND (NAME in ('name_c'))))",
                 whereConds.get("DEFAULT.TEST_COUNTRY"));
 
         manager.updateAclTCR(new AclTCR(), allAuthorizedUser1, true);
