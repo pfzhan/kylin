@@ -194,9 +194,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 measure = measureRef.getMeasure();
                 recManagerV2.checkMeasureName(model, measure);
             }
+            int maxMeasureId = model.getMaxMeasureId();
             model.getAllMeasures().add(measure);
             measures.put(-rawRecItem.getId(), measure);
-            measures.put(model.getMaxMeasureId(), measure);
+            measures.put(++maxMeasureId, measure);
             logWriteProperty(rawRecItem, measure);
         }
 
