@@ -52,7 +52,7 @@
               <template v-if="key.includes('kylin.engine.spark-conf')">
                 <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
                   <!-- 去掉前缀kylin.engine.spark-conf. -->
-                  {{key.substring(24)}}:<span>{{propValue}}</span>
+                  {{key}}:<span>{{propValue}}</span>
                 </span><common-tip :content="$t('kylinLang.common.edit')">
                   <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editSparkItem(scope.row, key)"></i>
                 </common-tip><common-tip :content="$t('kylinLang.common.delete')">
@@ -103,7 +103,7 @@
             <el-option
               v-for="item in settingOption"
               :key="item"
-              :label="$t(item)"
+              :label="$t(settingMap[item])"
               :value="item">
             </el-option>
           </el-select>
@@ -116,7 +116,7 @@
           </el-checkbox-group>
         </el-form-item>
         <el-form-item :label="$t('volatileRangeItem')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Volatile Range'">
-          <el-input v-model="modelSettingForm.volatileRange.volatile_range_number" v-number="modelSettingForm.volatileRange.volatile_range_number" class="retention-input"></el-input>
+          <el-input v-model="modelSettingForm.volatileRange.volatile_range_number" v-number="modelSettingForm.volatileRange.volatile_range_number" :placeholder="$t('kylinLang.common.pleaseInput')" class="retention-input"></el-input>
           <el-select v-model="modelSettingForm.volatileRange.volatile_range_type" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option
               v-for="item in units"
@@ -127,14 +127,14 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('retentionThreshold')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Retention Threshold'">
-          <el-input v-model="modelSettingForm.retentionThreshold.retention_range_number" v-number="modelSettingForm.retentionThreshold.retention_range_number" class="retention-input"></el-input>
+          <el-input v-model="modelSettingForm.retentionThreshold.retention_range_number" v-number="modelSettingForm.retentionThreshold.retention_range_number" :placeholder="$t('kylinLang.common.pleaseInput')" class="retention-input"></el-input>
           <span class="ksd-ml-10">{{$t(modelSettingForm.retentionThreshold.retention_range_type.toLowerCase())}}</span>
         </el-form-item>
-        <el-form-item :label="modelSettingForm.settingItem" v-if="step=='stepTwo'&&modelSettingForm.settingItem.indexOf('spark.')!==-1">
-          <el-input v-model="modelSettingForm[modelSettingForm.settingItem]" v-number="modelSettingForm[modelSettingForm.settingItem]" class="retention-input"></el-input><span
+        <el-form-item :label="settingMap[modelSettingForm.settingItem]" v-if="step=='stepTwo'&&modelSettingForm.settingItem.indexOf('spark.')!==-1">
+          <el-input v-model="modelSettingForm[modelSettingForm.settingItem]" v-number="modelSettingForm[modelSettingForm.settingItem]" :placeholder="$t('kylinLang.common.pleaseInput')" class="retention-input"></el-input><span
           class="ksd-ml-5" v-if="modelSettingForm.settingItem==='spark.executor.memory'">G</span>
         </el-form-item>
-        <el-form-item :label="modelSettingForm.settingItem" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'is-base-cuboid-always-valid'">
+        <el-form-item :label="settingMap[modelSettingForm.settingItem]" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'is-base-cuboid-always-valid'">
           <el-select v-model="modelSettingForm['is-base-cuboid-always-valid']">
             <el-option
               v-for="item in baseCuboidValid"
@@ -145,7 +145,7 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item :label="$t(modelSettingForm.settingItem)" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'customSettings'">
+        <el-form-item :label="$t(settingMap[modelSettingForm.settingItem])" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'customSettings'">
           <div class="custom-settings" v-for="(item, index) in modelSettingForm[modelSettingForm.settingItem]" :key="index">
             <el-input class="custom-param-key" v-model="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
             <el-input class="custom-param-value" v-model="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
@@ -239,6 +239,17 @@ export default class SettingStorage extends Vue {
   baseCuboidValid = [{label: 'true', value: 0}, {label: 'false', value: 1}]
   modelSettingForm = JSON.parse(initialSettingForm)
   activeRow = null
+  settingMap = {
+    'Auto-merge': 'Auto-merge',
+    'Volatile Range': 'Volatile Range',
+    'Retention Threshold': 'Retention Threshold',
+    'spark.executor.cores': 'kylin.engine.spark-conf.spark.executor.cores',
+    'spark.executor.instances': 'kylin.engine.spark-conf.spark.executor.instances',
+    'spark.executor.memory': 'kylin.engine.spark-conf.spark.executor.memory',
+    'spark.sql.shuffle.partitions': 'kylin.engine.spark-conf.spark.sql.shuffle.partitions',
+    'is-base-cuboid-always-valid': 'is-base-cuboid-always-valid',
+    'customSettings': 'customSettings'
+  }
   get emptyText () {
     return this.filter.model_name ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
@@ -247,9 +258,24 @@ export default class SettingStorage extends Vue {
   }
   get settingOption () {
     if (this.isAutoProject) {
-      return ['spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
+      return [
+        'spark.executor.cores',
+        'spark.executor.instances',
+        'spark.executor.memory',
+        'spark.sql.shuffle.partitions'
+      ]
     } else {
-      return ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'is-base-cuboid-always-valid', 'customSettings']
+      return [
+        'Auto-merge',
+        'Volatile Range',
+        'Retention Threshold',
+        'spark.executor.cores',
+        'spark.executor.instances',
+        'spark.executor.memory',
+        'spark.sql.shuffle.partitions',
+        'is-base-cuboid-always-valid',
+        'customSettings'
+      ]
     }
   }
   get availableRetentionRange () {
@@ -276,10 +302,10 @@ export default class SettingStorage extends Vue {
       'Auto-merge': this.$t('autoMergeTip'),
       'Volatile Range': this.$t('volatileTip'),
       'Retention Threshold': this.$t('retentionThresholdDesc'),
-      'spark.executor.cores': this.$t('sparkCores'),
-      'spark.executor.instances': this.$t('sparkInstances'),
-      'spark.executor.memory': this.$t('sparkMemory'),
-      'spark.sql.shuffle.partitions': this.$t('sparkShuffle'),
+      'kylin.engine.spark-conf.spark.executor.cores': this.$t('sparkCores'),
+      'kylin.engine.spark-conf.spark.executor.instances': this.$t('sparkInstances'),
+      'kylin.engine.spark-conf.spark.executor.memory': this.$t('sparkMemory'),
+      'kylin.engine.spark-conf.spark.sql.shuffle.partitions': this.$t('sparkShuffle'),
       'is-base-cuboid-always-valid': this.$t('baseCuboidConfig'),
       'customSettings': this.$t('customOptions')
     }
