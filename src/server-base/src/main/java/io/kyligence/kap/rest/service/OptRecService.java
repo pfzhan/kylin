@@ -189,15 +189,16 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
             MeasureRef measureRef = (MeasureRef) recommendationRef;
             NDataModel.Measure measure = measureRef.getMeasure();
+            int maxMeasureId = model.getMaxMeasureId();
             if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
                 measureRef.rebuild(userDefinedRecNameMap.get(rawRecItem.getId()));
                 measure = measureRef.getMeasure();
+                measure.setId(++maxMeasureId);
                 recManagerV2.checkMeasureName(model, measure);
             }
-            int maxMeasureId = model.getMaxMeasureId();
             model.getAllMeasures().add(measure);
             measures.put(-rawRecItem.getId(), measure);
-            measures.put(++maxMeasureId, measure);
+            measures.put(maxMeasureId, measure);
             logWriteProperty(rawRecItem, measure);
         }
 
@@ -224,12 +225,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             column.setStatus(NDataModel.ColumnStatus.DIMENSION);
             recManagerV2.checkDimensionName(columns);
             dimensions.putIfAbsent(-rawRecItem.getId(), column);
-            columns.get(column.getId()).setStatus(NDataModel.ColumnStatus.DIMENSION);
+            columns.get(column.getId()).setStatus(column.getStatus());
+            columns.get(column.getId()).setName(column.getName());
             logWriteProperty(rawRecItem, column);
         }
 
         private void writeCCToModel(NDataModel model, RawRecItem rawRecItem) {
-            int lastColumnId = model.getMaxColumnId();
             Map<Integer, RecommendationRef> ccRefs = recommendation.getCcRefs();
             RecommendationRef recommendationRef = ccRefs.get(-rawRecItem.getId());
             if (recommendationRef.isExisted()) {
@@ -242,6 +243,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 cc = ccRef.getCc();
                 recManagerV2.checkCCName(model, cc);
             }
+            int lastColumnId = model.getMaxColumnId();
             NDataModel.NamedColumn columnInModel = new NDataModel.NamedColumn();
             columnInModel.setId(++lastColumnId);
             columnInModel.setName(cc.getTableAlias() + "_" + cc.getColumnName());
