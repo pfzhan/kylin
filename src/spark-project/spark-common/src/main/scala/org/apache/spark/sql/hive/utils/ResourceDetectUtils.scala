@@ -33,6 +33,7 @@ import org.apache.hadoop.fs._
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
+import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, ReusedExchangeExec}
 import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
@@ -65,9 +66,13 @@ object ResourceDetectUtils extends Logging {
   def getPartitions(plan: SparkPlan): String = {
     var pNum = 0
     plan.foreach {
-      case plan: LeafExecNode =>
-        pNum = pNum + plan.execute().partitions.size
-        logInfo(s"${plan.nodeName} partition size ${plan.execute().partitions.size}")
+      case node: LeafExecNode =>
+        val pn = node match {
+          case ree: ReusedExchangeExec if ree.child.isInstanceOf[BroadcastExchangeExec] => 1
+          case _ => node.execute().partitions.length
+        }
+        pNum = pNum + pn
+        logInfo(s"${node.nodeName} partition size $pn")
       case _ =>
     }
     logInfo(s"Partition num $pNum")
