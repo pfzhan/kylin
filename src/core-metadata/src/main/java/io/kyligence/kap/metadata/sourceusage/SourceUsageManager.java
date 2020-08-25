@@ -643,6 +643,12 @@ public class SourceUsageManager {
         if (config.isUTEnv()) {
             return;
         }
+        
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        if (!kapConfig.isRecordSourceUsage()) {
+            logger.info("Skip check over capacity.");
+            return;
+        }
 
         boolean checkProject = false;
 
