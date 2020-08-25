@@ -29,6 +29,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.kyligence.kap.query.util.LoadCounter;
@@ -62,7 +63,7 @@ import lombok.val;
 public class NMetricsRegistry {
     private static final String GLOBAL = "global";
 
-    protected static void registerGlobalMetrics(KylinConfig config) {
+    public static void registerGlobalMetrics(KylinConfig config, String host) {
 
         final NProjectManager projectManager = NProjectManager.getInstance(config);
         NMetricsGroup.newGauge(NMetricsName.PROJECT_GAUGE, NMetricsCategory.GLOBAL, GLOBAL, () -> {
@@ -82,21 +83,20 @@ public class NMetricsRegistry {
             return list.size();
         });
 
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
+        Map<String, String> tags = NMetricsGroup.getHostTagMap(host, GLOBAL);
 
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, GLOBAL, tags);
 
-        NMetricsGroup.newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL, tags);
 
-        NMetricsGroup.newCounter(NMetricsName.BUILD_UNAVAILABLE_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.QUERY_UNAVAILABLE_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        NMetricsGroup.newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, GLOBAL, tags);
     }
 
     public static void registerHostMetrics(String host) {
@@ -160,10 +160,10 @@ public class NMetricsRegistry {
         });
     }
 
-    public static void registerProjectMetrics(KylinConfig config, String project) {
+    public static void registerProjectMetrics(KylinConfig config, String project, String host) {
 
         // for non-gauges
-        NMetricsGroup.registerProjectMetrics(project);
+        NMetricsGroup.registerProjectMetrics(project, host);
 
         //for gauges
         final NDataModelManager dataModelManager = NDataModelManager.getInstance(config, project);

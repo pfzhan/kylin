@@ -24,6 +24,7 @@
 package io.kyligence.kap.common.persistence.transaction;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -106,11 +107,13 @@ public class UnitOfWork {
         val traceId = UUID.randomUUID().toString();
         while (retry++ < maxRetry) {
             if (retry > 1) {
+                Map<String, String> tags = NMetricsGroup.getHostTagMap(params.getUnitName());
+
                 if (!GLOBAL_UNIT.equals(params.getUnitName())) {
                     NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.PROJECT,
-                            params.getUnitName());
+                            params.getUnitName(), tags);
                 } else {
-                    NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, "global");
+                    NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, "global", tags);
                 }
             }
 
@@ -152,7 +155,7 @@ public class UnitOfWork {
                 log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
             }
 
-            NMetricsGroup.histogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT,
+            NMetricsGroup.hostTagHistogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT,
                     !GLOBAL_UNIT.equals(params.getUnitName()) ? params.getUnitName() : "global", duration);
 
             result = Pair.newPair(ret, true);

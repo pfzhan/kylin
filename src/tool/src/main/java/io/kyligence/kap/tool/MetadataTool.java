@@ -199,21 +199,21 @@ public class MetadataTool extends ExecutableApplication {
                 backup(optionsHelper);
             } catch (Exception be) {
                 if (isGlobal) {
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
                 } else {
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.PROJECT,
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.PROJECT,
                             optionsHelper.getOptionValue(OPTION_PROJECT));
                 }
                 throw be;
             } finally {
                 if (isGlobal) {
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL);
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL,
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL);
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL,
                             System.currentTimeMillis() - startAt);
                 } else {
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.PROJECT,
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_BACKUP, NMetricsCategory.PROJECT,
                             optionsHelper.getOptionValue(OPTION_PROJECT));
-                    NMetricsGroup.counterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.PROJECT,
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.PROJECT,
                             optionsHelper.getOptionValue(OPTION_PROJECT), System.currentTimeMillis() - startAt);
                 }
             }

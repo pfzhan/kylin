@@ -225,13 +225,13 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     protected void onExecuteFinished(ExecuteResult result) throws ExecuteException {
-        NMetricsGroup.counterInc(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
         if (result.succeed()) {
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
             });
         } else {
-            NMetricsGroup.counterInc(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
+            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
                         this::onExecuteErrorHook);

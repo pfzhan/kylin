@@ -43,6 +43,20 @@ public class AddressUtil implements IKeep {
         return serverIp + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
     }
 
+    /**
+     * refer org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryProperties#getInstanceHost()
+     * @return
+     */
+    public static String getZkLocalInstance() {
+        String hostName = "localhost";
+        try {
+            hostName = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            log.warn("use the InetAddress get local ip failed!", e);
+        }
+        return hostName + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
+    }
+
     public static String convertHost(String serverHost) {
         String hostArr;
         val hostAndPort = serverHost.split(":");

@@ -41,9 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +51,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Snapshot;
@@ -66,6 +63,9 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 public class InfluxdbReporter extends ScheduledReporter {
 
@@ -80,6 +80,8 @@ public class InfluxdbReporter extends ScheduledReporter {
     private final Transformer transformer;
 
     private final String defaultMeasurement;
+
+    private final String host;
 
     private static final String COUNT = "count";
     private static final String MIN = "min";
@@ -98,11 +100,12 @@ public class InfluxdbReporter extends ScheduledReporter {
     private static final String MEAN_MINUTE = "mean-minute";
 
     public InfluxdbReporter(InfluxDB influxDb, String defaultMeasurement, MetricRegistry registry, String name) {
-        super(registry, name, MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
+        super(registry, name, new ServerModeMetricFilter(), TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
         this.influxDb = influxDb;
         this.clock = Clock.defaultClock();
         this.transformer = new Transformer();
         this.defaultMeasurement = defaultMeasurement;
+        this.host = AddressUtil.getZkLocalInstance();
     }
 
     public InfluxDB getInfluxDb() {
@@ -137,9 +140,8 @@ public class InfluxdbReporter extends ScheduledReporter {
             points.stream().filter(Objects::nonNull).map(PointBuilder.Point::convert).forEach(influxDb::write);
             influxDb.flush();
 
-            NMetricsGroup.counterInc(NMetricsName.SUMMARY_COUNTER, NMetricsCategory.GLOBAL, "global");
-            NMetricsGroup.counterInc(NMetricsName.SUMMARY_DURATION, NMetricsCategory.GLOBAL, "global",
-                    System.currentTimeMillis() - startAt);
+            NMetricsGroup.counterInc(NMetricsName.SUMMARY_COUNTER, NMetricsCategory.HOST, host);
+            NMetricsGroup.counterInc(NMetricsName.SUMMARY_DURATION, NMetricsCategory.HOST, host, System.currentTimeMillis() - startAt);
 
             points.stream().filter(Objects::nonNull).forEach(point -> metrics.putIfAbsent(point.getUniqueKey(), point));
             logger.debug("ke.metrics report data: {} points", points.size());

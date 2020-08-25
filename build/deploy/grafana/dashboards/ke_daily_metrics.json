@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 2,
-  "iteration": 1591773264782,
+  "id": 4,
+  "iteration": 1597891297518,
   "links": [],
   "panels": [
     {
@@ -27,7 +27,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 205,
+      "id": 219,
       "panels": [
         {
           "aliasColors": {},
@@ -42,7 +42,7 @@
             "x": 0,
             "y": 1
           },
-          "id": 207,
+          "id": 221,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -167,7 +167,7 @@
             "x": 12,
             "y": 1
           },
-          "id": 209,
+          "id": 222,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -284,7 +284,7 @@
       "type": "row"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -292,1716 +292,1817 @@
         "y": 1
       },
       "id": 86,
-      "panels": [
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": true,
-          "colors": [
-            "#d44a3a",
-            "rgba(237, 129, 40, 0.89)",
-            "#37872D"
-          ],
-          "datasource": "KylinInfluxDBDaily",
-          "format": "none",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 6,
-            "x": 0,
-            "y": 2
-          },
-          "id": 14,
-          "interval": "$granularity",
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "options": {},
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": true,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
-          },
-          "tableColumn": "",
-          "targets": [
-            {
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "summary_exec_total_times"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": "1,",
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "summary_exec_total_times",
-          "type": "singlestat",
-          "valueFontSize": "100%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
-            }
-          ],
-          "valueName": "current"
-        },
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": true,
-          "colors": [
-            "#d44a3a",
-            "rgba(237, 129, 40, 0.89)",
-            "#37872D"
-          ],
-          "datasource": "KylinInfluxDBDaily",
-          "format": "ms",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 6,
-            "x": 6,
-            "y": 2
-          },
-          "id": 16,
-          "interval": "$granularity",
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "options": {},
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": true,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
-          },
-          "tableColumn": "",
-          "targets": [
-            {
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "summary_exec_total_duration"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": "1,",
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "summary_exec_total_duration",
-          "type": "singlestat",
-          "valueFontSize": "100%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
-            }
-          ],
-          "valueName": "current"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "KylinInfluxDBDaily",
-          "gridPos": {
-            "h": 7,
-            "w": 12,
-            "x": 12,
-            "y": 2
-          },
-          "id": 10,
-          "links": [],
-          "options": {
-            "fieldOptions": {
-              "calcs": [
-                "last"
-              ],
-              "defaults": {
-                "max": 100,
-                "min": 0
-              },
-              "mappings": [],
-              "override": {},
-              "thresholds": [
-                {
-                  "color": "green",
-                  "index": 0,
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "index": 1,
-                  "value": 80
-                }
-              ],
-              "values": false
-            },
-            "orientation": "auto",
-            "showThresholdLabels": false,
-            "showThresholdMarkers": true
-          },
-          "pluginVersion": "6.2.4",
-          "targets": [
-            {
-              "groupBy": [],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "project_num_gauge"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "num_of_projects",
-          "type": "gauge"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "KylinInfluxDBDaily",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 9
-          },
-          "id": 63,
-          "interval": "",
-          "links": [],
-          "options": {
-            "displayMode": "gradient",
-            "fieldOptions": {
-              "calcs": [
-                "last"
-              ],
-              "defaults": {
-                "max": 100,
-                "min": 0,
-                "unit": "decbytes"
-              },
-              "mappings": [],
-              "override": {},
-              "thresholds": [
-                {
-                  "color": "green",
-                  "index": 0,
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "index": 1,
-                  "value": 800000000
-                }
-              ],
-              "values": false
-            },
-            "orientation": "horizontal"
-          },
-          "pluginVersion": "6.2.1",
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "storage_size_gauge"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "storage_size_gauge",
-          "type": "bargauge"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "KylinInfluxDBDaily",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 9
-          },
-          "id": 128,
-          "links": [],
-          "options": {
-            "fieldOptions": {
-              "calcs": [
-                "last"
-              ],
-              "defaults": {
-                "max": 100,
-                "min": 0
-              },
-              "mappings": [],
-              "override": {},
-              "thresholds": [
-                {
-                  "color": "green",
-                  "index": 0,
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "index": 1,
-                  "value": 80
-                }
-              ],
-              "values": false
-            },
-            "orientation": "auto",
-            "showThresholdLabels": false,
-            "showThresholdMarkers": true
-          },
-          "pluginVersion": "6.2.4",
-          "targets": [
-            {
-              "groupBy": [],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "user_num_gauge"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "num_of_users",
-          "type": "gauge"
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "cacheTimeout": null,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 17
-          },
-          "id": 129,
-          "interval": "$granularity",
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pluginVersion": "6.2.4",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "table_num_gauge"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": [
-                {
-                  "key": "entity",
-                  "operator": "=~",
-                  "value": "/^$project$/"
-                }
-              ]
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "num_of_hive_tables",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": false
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "cacheTimeout": null,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 17
-          },
-          "id": 130,
-          "interval": "$granularity",
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pluginVersion": "6.2.4",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "db_num_gauge"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": [
-                {
-                  "key": "entity",
-                  "operator": "=~",
-                  "value": "/^$project$/"
-                }
-              ]
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "num_of_hive_databases",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": false
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 25
-          },
-          "id": 155,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "max: $tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_memory_heap_max"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            },
-            {
-              "alias": "used: $tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "B",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_memory_heap_used"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "summary_of_heap",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "bytes",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "bytes",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 25
-          },
-          "id": 157,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_memory_heap_usage"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "usage_of_heap",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "percentunit",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "percentunit",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 33
-          },
-          "id": 159,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "old generation: $tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_garbage_collection.G1-Old-Generation.count"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            },
-            {
-              "alias": "young generation: $tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "B",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_garbage_collection.G1-Young-Generation.count"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "count_of_garbage_collection",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 33
-          },
-          "id": 161,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "old generation: $tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_garbage_collection.G1-Old-Generation.time"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            },
-            {
-              "alias": "young generation: $tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "B",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "jvm_garbage_collection.G1-Young-Generation.time"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "time_of_garbage_collection",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "datasource": "KylinInfluxDBDaily",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 41
-          },
-          "id": 64,
-          "interval": "",
-          "links": [],
-          "options": {
-            "displayMode": "lcd",
-            "fieldOptions": {
-              "calcs": [
-                "last"
-              ],
-              "defaults": {
-                "max": 100,
-                "min": 0,
-                "unit": "decbytes"
-              },
-              "mappings": [],
-              "override": {},
-              "thresholds": [
-                {
-                  "color": "green",
-                  "index": 0,
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "index": 1,
-                  "value": 800000000
-                }
-              ],
-              "values": false
-            },
-            "orientation": "vertical"
-          },
-          "pluginVersion": "6.2.1",
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "garbage_size_gauge"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": [
-                {
-                  "key": "entity",
-                  "operator": "=~",
-                  "value": "/^$project$/"
-                }
-              ]
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "garbage_size_gauge",
-          "type": "bargauge"
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "cacheTimeout": null,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 41
-          },
-          "id": 127,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "sparder_restart_total_times"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "sparder_restart_total_times",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 49
-          },
-          "id": 216,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "query_load"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "query_load",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "KylinInfluxDBDaily",
-          "fill": 1,
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 49
-          },
-          "id": 217,
-          "interval": "$granularity",
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {},
-          "percentage": false,
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "alias": "$tag_entity",
-              "groupBy": [
-                {
-                  "params": [
-                    "$__interval"
-                  ],
-                  "type": "time"
-                },
-                {
-                  "params": [
-                    "entity"
-                  ],
-                  "type": "tag"
-                }
-              ],
-              "measurement": "system_metric_daily",
-              "orderByTime": "ASC",
-              "policy": "KE_METRICS_DAILY_RP",
-              "refId": "A",
-              "resultFormat": "time_series",
-              "select": [
-                [
-                  {
-                    "params": [
-                      "cpu_cores"
-                    ],
-                    "type": "field"
-                  },
-                  {
-                    "params": [],
-                    "type": "last"
-                  }
-                ]
-              ],
-              "tags": []
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "cpu_cores",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        }
-      ],
+      "panels": [],
       "title": "Summaries",
       "type": "row"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 2
+      },
+      "id": 14,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "query": "SELECT last(\"summary_exec_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE $timeFilter GROUP BY time($__interval)",
+          "rawQuery": false,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "summary_exec_total_times"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "summary_exec_total_times",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 2
+      },
+      "id": 16,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "summary_exec_total_duration"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "summary_exec_total_duration",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "ms",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "KylinInfluxDBDaily",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 2
+      },
+      "id": 10,
+      "links": [],
+      "options": {
+        "fieldOptions": {
+          "calcs": [
+            "last"
+          ],
+          "defaults": {
+            "max": 100,
+            "min": 0
+          },
+          "mappings": [],
+          "override": {},
+          "thresholds": [
+            {
+              "color": "green",
+              "index": 0,
+              "value": null
+            },
+            {
+              "color": "red",
+              "index": 1,
+              "value": 80
+            }
+          ],
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "6.2.4",
+      "targets": [
+        {
+          "groupBy": [],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "project_num_gauge"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "num_of_projects",
+      "type": "gauge"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "KylinInfluxDBDaily",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 63,
+      "interval": "",
+      "links": [],
+      "options": {
+        "displayMode": "gradient",
+        "fieldOptions": {
+          "calcs": [
+            "last"
+          ],
+          "defaults": {
+            "max": 100,
+            "min": 0,
+            "unit": "decbytes"
+          },
+          "mappings": [],
+          "override": {},
+          "thresholds": [
+            {
+              "color": "green",
+              "index": 0,
+              "value": null
+            },
+            {
+              "color": "red",
+              "index": 1,
+              "value": 800000000
+            }
+          ],
+          "values": false
+        },
+        "orientation": "horizontal"
+      },
+      "pluginVersion": "6.2.1",
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "storage_size_gauge"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "storage_size_gauge",
+      "type": "bargauge"
+    },
+    {
+      "cacheTimeout": null,
+      "datasource": "KylinInfluxDBDaily",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 128,
+      "links": [],
+      "options": {
+        "fieldOptions": {
+          "calcs": [
+            "last"
+          ],
+          "defaults": {
+            "max": 100,
+            "min": 0
+          },
+          "mappings": [],
+          "override": {},
+          "thresholds": [
+            {
+              "color": "green",
+              "index": 0,
+              "value": null
+            },
+            {
+              "color": "red",
+              "index": 1,
+              "value": 80
+            }
+          ],
+          "values": false
+        },
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "pluginVersion": "6.2.4",
+      "targets": [
+        {
+          "groupBy": [],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "user_num_gauge"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "num_of_users",
+      "type": "gauge"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 129,
+      "interval": "$granularity",
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "table_num_gauge"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$project$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "num_of_hive_tables",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 130,
+      "interval": "$granularity",
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pluginVersion": "6.2.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "db_num_gauge"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$project$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "num_of_hive_databases",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 155,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "max: $tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_memory_heap_max"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        },
+        {
+          "alias": "used: $tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_memory_heap_used"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "summary_of_heap",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "bytes",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 157,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_memory_heap_usage"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "usage_of_heap",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      },
+      "id": 159,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "old generation: $tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_garbage_collection.G1-Old-Generation.count"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        },
+        {
+          "alias": "young generation: $tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_garbage_collection.G1-Young-Generation.count"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "count_of_garbage_collection",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "id": 161,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "old generation: $tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_garbage_collection.G1-Old-Generation.time"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        },
+        {
+          "alias": "young generation: $tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "jvm_garbage_collection.G1-Young-Generation.time"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "time_of_garbage_collection",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": "KylinInfluxDBDaily",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "id": 64,
+      "interval": "",
+      "links": [],
+      "options": {
+        "displayMode": "lcd",
+        "fieldOptions": {
+          "calcs": [
+            "last"
+          ],
+          "defaults": {
+            "max": 100,
+            "min": 0,
+            "unit": "decbytes"
+          },
+          "mappings": [],
+          "override": {},
+          "thresholds": [
+            {
+              "color": "green",
+              "index": 0,
+              "value": null
+            },
+            {
+              "color": "red",
+              "index": 1,
+              "value": 800000000
+            }
+          ],
+          "values": false
+        },
+        "orientation": "vertical"
+      },
+      "pluginVersion": "6.2.1",
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "garbage_size_gauge"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$project$/"
+            }
+          ]
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "garbage_size_gauge",
+      "type": "bargauge"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "cacheTimeout": null,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "id": 127,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_host",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "query": "SELECT last(\"sparder_restart_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-global$/) AND $timeFilter GROUP BY time($__interval), \"host\"",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "sparder_restart_total_times"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            },
+            {
+              "condition": "OR",
+              "key": "entity",
+              "operator": "=",
+              "value": "global"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "sparder_restart_total_times",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "id": 216,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "query_load"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "query_load",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "KylinInfluxDBDaily",
+      "fill": 1,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "id": 217,
+      "interval": "$granularity",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {},
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "$tag_entity",
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "entity"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "system_metric_daily",
+          "orderByTime": "ASC",
+          "policy": "KE_METRICS_DAILY_RP",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "cpu_cores"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "entity",
+              "operator": "=~",
+              "value": "/^$host$/"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "cpu_cores",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "collapsed": true,
@@ -2009,7 +2110,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 57
       },
       "id": 94,
       "panels": [
@@ -2025,7 +2126,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 3
+            "y": 2
           },
           "id": 12,
           "interval": "$granularity",
@@ -2156,7 +2257,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 3
+            "y": 2
           },
           "id": 111,
           "interval": "$granularity",
@@ -2277,7 +2378,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 10
           },
           "id": 185,
           "interval": "",
@@ -2373,7 +2474,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 10
           },
           "id": 187,
           "interval": "$granularity",
@@ -2498,7 +2599,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 18
           },
           "id": 189,
           "interval": "$granularity",
@@ -2623,7 +2724,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 19
+            "y": 18
           },
           "id": 191,
           "interval": "$granularity",
@@ -2748,7 +2849,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 27
+            "y": 26
           },
           "id": 201,
           "interval": "$granularity",
@@ -2873,7 +2974,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 27
+            "y": 26
           },
           "id": 203,
           "interval": "$granularity",
@@ -2998,7 +3099,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 35
+            "y": 34
           },
           "id": 212,
           "interval": "$granularity",
@@ -3126,7 +3227,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 35
+            "y": 34
           },
           "id": 213,
           "interval": "$granularity",
@@ -3252,7 +3353,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 43
+            "y": 42
           },
           "id": 215,
           "interval": "$granularity",
@@ -3376,7 +3477,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 3
+        "y": 58
       },
       "id": 84,
       "panels": [
@@ -3391,7 +3492,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 4
+            "y": 3
           },
           "id": 2,
           "interval": "$granularity",
@@ -3423,7 +3524,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -3441,8 +3542,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
-              "query": "SELECT \"query_count\"  FROM \"KE_METRICS_RP1\".\"system_metric1\"  order by time desc limit 1",
-              "rawQuery": false,
+              "query": "SELECT last(\"query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -3520,7 +3621,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 4
+            "y": 3
           },
           "id": 165,
           "interval": "$granularity",
@@ -3645,7 +3746,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 12
+            "y": 11
           },
           "id": 137,
           "interval": "$granularity",
@@ -3675,7 +3776,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -3693,6 +3794,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"agg_index_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -3770,7 +3873,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 12
+            "y": 11
           },
           "id": 167,
           "interval": "$granularity",
@@ -3800,7 +3903,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -3818,6 +3921,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"agg_index_query_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -3895,7 +4000,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 19
           },
           "id": 139,
           "interval": "$granularity",
@@ -3925,7 +4030,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -3943,6 +4048,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"table_index_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4020,7 +4127,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 20
+            "y": 19
           },
           "id": 169,
           "interval": "$granularity",
@@ -4051,7 +4158,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4069,6 +4176,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"table_index_query_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4146,7 +4255,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 28
+            "y": 27
           },
           "id": 8,
           "interval": "$granularity",
@@ -4176,7 +4285,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4194,6 +4303,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"pushdown_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4271,7 +4382,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 28
+            "y": 27
           },
           "id": 171,
           "interval": "$granularity",
@@ -4301,7 +4412,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4319,6 +4430,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"pushdown_query_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4396,7 +4509,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 36
+            "y": 35
           },
           "id": 141,
           "interval": "$granularity",
@@ -4426,7 +4539,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4444,6 +4557,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"cache_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4521,7 +4636,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 36
+            "y": 35
           },
           "id": 173,
           "interval": "$granularity",
@@ -4551,7 +4666,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4569,6 +4684,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"cache_query_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4646,7 +4763,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 44
+            "y": 43
           },
           "id": 143,
           "interval": "$granularity",
@@ -4676,7 +4793,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4694,6 +4811,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"lt_1s_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4771,7 +4890,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 44
+            "y": 43
           },
           "id": 175,
           "interval": "$granularity",
@@ -4801,7 +4920,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4819,6 +4938,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"lt_1s_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -4896,7 +5017,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 52
+            "y": 51
           },
           "id": 145,
           "interval": "$granularity",
@@ -4926,7 +5047,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -4944,6 +5065,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"bw_1s_3s_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5021,7 +5144,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 52
+            "y": 51
           },
           "id": 177,
           "interval": "$granularity",
@@ -5051,7 +5174,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5069,6 +5192,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"bw_1s_3s_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5146,7 +5271,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 60
+            "y": 59
           },
           "id": 147,
           "interval": "$granularity",
@@ -5176,7 +5301,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5194,6 +5319,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"bw_3s_5s_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5271,7 +5398,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 60
+            "y": 59
           },
           "id": 179,
           "interval": "$granularity",
@@ -5301,7 +5428,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5319,6 +5446,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"bw_3s_5s_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5396,7 +5525,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 68
+            "y": 67
           },
           "id": 149,
           "interval": "$granularity",
@@ -5426,7 +5555,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5444,6 +5573,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"bw_5s_10s_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5521,7 +5652,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 68
+            "y": 67
           },
           "id": 181,
           "interval": "$granularity",
@@ -5551,7 +5682,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5569,6 +5700,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"bw_5s_10s_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5646,7 +5779,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 76
+            "y": 75
           },
           "id": 6,
           "interval": "$granularity",
@@ -5676,7 +5809,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5694,6 +5827,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"gt10s_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5771,7 +5906,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 76
+            "y": 75
           },
           "id": 183,
           "interval": "$granularity",
@@ -5801,7 +5936,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5819,6 +5954,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"gt10s_query_ratio\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -5896,7 +6033,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 84
+            "y": 83
           },
           "id": 78,
           "interval": "$granularity",
@@ -5926,7 +6063,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -5944,6 +6081,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"timeout_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6021,7 +6160,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 84
+            "y": 83
           },
           "id": 4,
           "interval": "$granularity",
@@ -6051,7 +6190,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -6069,6 +6208,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"failed_query_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6146,7 +6287,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 92
+            "y": 91
           },
           "id": 163,
           "interval": "$granularity",
@@ -6192,6 +6333,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"query_time_per_host_mean\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE $timeFilter GROUP BY time($__interval), \"entity\"",
+              "rawQuery": false,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6263,7 +6406,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 92
+            "y": 91
           },
           "id": 66,
           "interval": "$granularity",
@@ -6293,7 +6436,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -6311,8 +6454,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
-              "query": "SELECT last(\"query_latency_run-count\") FROM \"KE_METRICS_RP\".\"system_metric\" WHERE $timeFilter GROUP BY time($__interval), \"entity\"",
-              "rawQuery": false,
+              "query": "SELECT last(\"query_latency_99p\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6391,7 +6534,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 100
+            "y": 99
           },
           "id": 72,
           "interval": "$granularity",
@@ -6422,7 +6565,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -6440,6 +6583,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"gt10s_query_rate_5-minute\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6518,7 +6663,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 100
+            "y": 99
           },
           "id": 70,
           "interval": "$granularity",
@@ -6548,7 +6693,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -6566,6 +6711,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"failed_query_rate_5-minute\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6644,7 +6791,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 108
+            "y": 107
           },
           "id": 92,
           "interval": "$granularity",
@@ -6674,7 +6821,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -6692,6 +6839,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"pushdown_query_rate_5-minute\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6771,7 +6920,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 108
+            "y": 107
           },
           "id": 151,
           "interval": "$granularity",
@@ -6801,7 +6950,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -6819,8 +6968,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
-              "query": "SELECT last(\"query_scan_bytes\") FROM \"KE_METRICS_RP\".\"system_metric\" WHERE $timeFilter GROUP BY time($__interval), \"query\"",
-              "rawQuery": false,
+              "query": "SELECT last(\"query_scan_bytes_99p\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6898,7 +7047,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 116
+            "y": 115
           },
           "id": 193,
           "interval": "$granularity",
@@ -6944,6 +7093,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"query_scan_bytes_per_host\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE $timeFilter GROUP BY time($__interval), \"entity\"",
+              "rawQuery": false,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -6960,7 +7111,13 @@
                   }
                 ]
               ],
-              "tags": []
+              "tags": [
+                {
+                  "key": "entity",
+                  "operator": "=~",
+                  "value": "/^$host$/"
+                }
+              ]
             }
           ],
           "thresholds": [],
@@ -7015,7 +7172,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 116
+            "y": 115
           },
           "id": 195,
           "interval": "$granularity",
@@ -7045,7 +7202,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -7063,6 +7220,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"query_scan_bytes_mean\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -7139,7 +7298,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 59
       },
       "id": 100,
       "panels": [
@@ -7184,7 +7343,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -7202,6 +7361,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"fq_accepted_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -7281,7 +7442,7 @@
             "x": 12,
             "y": 5
           },
-          "id": 32,
+          "id": 223,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -7406,7 +7567,7 @@
             "x": 0,
             "y": 13
           },
-          "id": 118,
+          "id": 224,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -7531,7 +7692,7 @@
             "x": 12,
             "y": 13
           },
-          "id": 119,
+          "id": 225,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -7685,7 +7846,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -7703,6 +7864,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"fq_adjusted_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -7811,7 +7974,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -7829,6 +7992,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"fq_adjusted_total_duration\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -7909,7 +8074,7 @@
             "x": 0,
             "y": 29
           },
-          "id": 121,
+          "id": 226,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8035,7 +8200,7 @@
             "x": 12,
             "y": 29
           },
-          "id": 122,
+          "id": 228,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8161,7 +8326,7 @@
             "x": 0,
             "y": 37
           },
-          "id": 123,
+          "id": 227,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8286,7 +8451,7 @@
             "x": 12,
             "y": 37
           },
-          "id": 103,
+          "id": 230,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8411,7 +8576,7 @@
             "x": 0,
             "y": 45
           },
-          "id": 102,
+          "id": 229,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8537,7 +8702,7 @@
             "x": 12,
             "y": 45
           },
-          "id": 105,
+          "id": 232,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8662,7 +8827,7 @@
             "x": 0,
             "y": 53
           },
-          "id": 104,
+          "id": 233,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8787,7 +8952,7 @@
             "x": 12,
             "y": 53
           },
-          "id": 107,
+          "id": 231,
           "interval": "$granularity",
           "legend": {
             "alignAsTable": true,
@@ -8958,6 +9123,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"fq_blacklist_num_gauge\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"entity\" =~ /^$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -9034,7 +9201,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 60
       },
       "id": 88,
       "panels": [
@@ -9049,7 +9216,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 6
+            "y": 5
           },
           "id": 18,
           "interval": "$granularity",
@@ -9079,7 +9246,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -9097,6 +9264,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_created_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -9174,7 +9343,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 6
+            "y": 5
           },
           "id": 80,
           "interval": "$granularity",
@@ -9204,7 +9373,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -9222,6 +9391,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_finished_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -9299,7 +9470,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 14
+            "y": 13
           },
           "id": 133,
           "interval": "$granularity",
@@ -9424,7 +9595,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 14
+            "y": 13
           },
           "id": 135,
           "interval": "$granularity",
@@ -9549,7 +9720,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 22
+            "y": 21
           },
           "id": 58,
           "interval": "$granularity",
@@ -9674,7 +9845,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 22
+            "y": 21
           },
           "id": 131,
           "interval": "$granularity",
@@ -9704,7 +9875,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -9722,6 +9893,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"error_job_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -9799,7 +9972,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 30
+            "y": 29
           },
           "id": 20,
           "interval": "$granularity",
@@ -9829,7 +10002,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -9847,6 +10020,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"finished_jobs_total_duration\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -9924,7 +10099,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 30
+            "y": 29
           },
           "id": 112,
           "interval": "$granularity",
@@ -9954,7 +10129,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -9972,6 +10147,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_duration_99p\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10049,7 +10226,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 38
+            "y": 37
           },
           "id": 22,
           "interval": "$granularity",
@@ -10079,7 +10256,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10097,6 +10274,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_step_attempted_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10174,7 +10353,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 38
+            "y": 37
           },
           "id": 113,
           "interval": "$granularity",
@@ -10204,7 +10383,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10222,6 +10401,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"failed_job_step_attempted_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10299,7 +10480,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 46
+            "y": 45
           },
           "id": 38,
           "interval": "$granularity",
@@ -10329,7 +10510,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10347,6 +10528,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_resumed_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10424,7 +10607,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 46
+            "y": 45
           },
           "id": 40,
           "interval": "$granularity",
@@ -10454,7 +10637,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10472,6 +10655,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_discarded_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10549,7 +10734,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 54
+            "y": 53
           },
           "id": 197,
           "interval": "$granularity",
@@ -10579,7 +10764,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10597,6 +10782,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"finished_jobs_total_duration\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10674,7 +10861,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 54
+            "y": 53
           },
           "id": 199,
           "interval": "$granularity",
@@ -10704,7 +10891,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10722,6 +10909,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"job_wait_duration\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10798,74 +10987,50 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 61
       },
       "id": 90,
       "panels": [
         {
+          "aliasColors": {},
+          "bars": false,
           "cacheTimeout": null,
-          "colorBackground": false,
-          "colorPostfix": false,
-          "colorValue": true,
-          "colors": [
-            "#d44a3a",
-            "rgba(237, 129, 40, 0.89)",
-            "#37872D"
-          ],
+          "dashLength": 10,
+          "dashes": false,
           "datasource": "KylinInfluxDBDaily",
-          "format": "short",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
+          "fill": 1,
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 350
+            "y": 6
           },
           "id": 26,
-          "interval": "$granularity",
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "options": {},
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": true,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
           },
-          "tableColumn": "",
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {},
+          "percentage": false,
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
-              "alias": "$col",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10877,6 +11042,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"storage_clean_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-global$/) AND $timeFilter GROUP BY time($__interval), \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -10902,85 +11069,87 @@
               ]
             }
           ],
-          "thresholds": "1,",
+          "thresholds": [],
           "timeFrom": null,
+          "timeRegions": [],
           "timeShift": null,
           "title": "storage_clean_total_times",
-          "type": "singlestat",
-          "valueFontSize": "100%",
-          "valueMaps": [
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
             {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
             }
           ],
-          "valueName": "current"
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
         },
         {
+          "aliasColors": {},
+          "bars": false,
           "cacheTimeout": null,
-          "colorBackground": false,
-          "colorPostfix": false,
-          "colorValue": true,
-          "colors": [
-            "#d44a3a",
-            "rgba(237, 129, 40, 0.89)",
-            "#37872D"
-          ],
+          "dashLength": 10,
+          "dashes": false,
           "datasource": "KylinInfluxDBDaily",
-          "format": "ms",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
+          "fill": 1,
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 350
+            "y": 6
           },
           "id": 114,
-          "interval": "$granularity",
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "options": {},
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": true,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
           },
-          "tableColumn": "",
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {},
+          "percentage": false,
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
-              "alias": "$col",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -10992,6 +11161,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"storage_clean_total_duration\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-global$/) AND $timeFilter GROUP BY time($__interval), \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11017,85 +11188,87 @@
               ]
             }
           ],
-          "thresholds": "1,",
+          "thresholds": [],
           "timeFrom": null,
+          "timeRegions": [],
           "timeShift": null,
           "title": "storage_clean_total_duration",
-          "type": "singlestat",
-          "valueFontSize": "100%",
-          "valueMaps": [
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
             {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
             }
           ],
-          "valueName": "current"
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
         },
         {
+          "aliasColors": {},
+          "bars": false,
           "cacheTimeout": null,
-          "colorBackground": false,
-          "colorPostfix": false,
-          "colorValue": true,
-          "colors": [
-            "#d44a3a",
-            "rgba(237, 129, 40, 0.89)",
-            "#37872D"
-          ],
+          "dashLength": 10,
+          "dashes": false,
           "datasource": "KylinInfluxDBDaily",
-          "format": "short",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
+          "fill": 1,
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 358
+            "y": 14
           },
           "id": 115,
-          "interval": "$granularity",
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "options": {},
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": true,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
           },
-          "tableColumn": "",
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {},
+          "percentage": false,
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
-              "alias": "$col",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11107,6 +11280,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"failed_storage_clean_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-global$/) AND $timeFilter GROUP BY time($__interval), \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11132,20 +11307,46 @@
               ]
             }
           ],
-          "thresholds": "1,",
+          "thresholds": [],
           "timeFrom": null,
+          "timeRegions": [],
           "timeShift": null,
           "title": "failed_storage_clean_total_times",
-          "type": "singlestat",
-          "valueFontSize": "100%",
-          "valueMaps": [
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
             {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
             }
           ],
-          "valueName": "current"
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
         }
       ],
       "title": "Cleanings",
@@ -11157,7 +11358,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 62
       },
       "id": 97,
       "panels": [
@@ -11173,7 +11374,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 8
+            "y": 7
           },
           "id": 95,
           "interval": "$granularity",
@@ -11203,7 +11404,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11221,6 +11422,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"metadata_clean_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11299,7 +11502,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 7
           },
           "id": 28,
           "interval": "$granularity",
@@ -11329,7 +11532,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11347,6 +11550,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"metadata_backup_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11425,7 +11630,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 16
+            "y": 15
           },
           "id": 116,
           "interval": "$granularity",
@@ -11455,7 +11660,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11473,6 +11678,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"metadata_backup_total_duration\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11551,7 +11758,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 16
+            "y": 15
           },
           "id": 117,
           "interval": "$granularity",
@@ -11581,7 +11788,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11599,6 +11806,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"failed_metadata_backup_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11676,7 +11885,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 24
+            "y": 23
           },
           "id": 30,
           "interval": "$granularity",
@@ -11706,7 +11915,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11724,6 +11933,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"metadata_ops_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11791,68 +12002,45 @@
           }
         },
         {
+          "aliasColors": {},
+          "bars": false,
           "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": true,
-          "colors": [
-            "#d44a3a",
-            "rgba(237, 129, 40, 0.89)",
-            "#299c46"
-          ],
+          "dashLength": 10,
+          "dashes": false,
           "datasource": "KylinInfluxDBDaily",
-          "format": "none",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
+          "fill": 1,
           "gridPos": {
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 24
+            "y": 23
           },
           "id": 98,
-          "interval": "$granularity",
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "options": {},
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": true,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
           },
-          "tableColumn": "",
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {},
+          "percentage": false,
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11864,6 +12052,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"metadata_success_ops_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-global$/) AND $timeFilter GROUP BY time($__interval), \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -11889,20 +12079,46 @@
               ]
             }
           ],
-          "thresholds": "1,",
+          "thresholds": [],
           "timeFrom": null,
+          "timeRegions": [],
           "timeShift": null,
           "title": "metadata_success_ops_total_times",
-          "type": "singlestat",
-          "valueFontSize": "100%",
-          "valueMaps": [
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
             {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
             }
           ],
-          "valueName": "current"
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
         }
       ],
       "title": "Metadata Operations",
@@ -11914,7 +12130,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 63
       },
       "id": 109,
       "panels": [
@@ -11929,7 +12145,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 392
+            "y": 8
           },
           "id": 46,
           "interval": "$granularity",
@@ -11959,7 +12175,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -11977,6 +12193,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"transaction_retry_total_times\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -12054,7 +12272,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 392
+            "y": 8
           },
           "id": 76,
           "interval": "$granularity",
@@ -12084,7 +12302,7 @@
           "steppedLine": false,
           "targets": [
             {
-              "alias": "$tag_entity",
+              "alias": "$tag_host",
               "groupBy": [
                 {
                   "params": [
@@ -12102,6 +12320,8 @@
               "measurement": "system_metric_daily",
               "orderByTime": "ASC",
               "policy": "KE_METRICS_DAILY_RP",
+              "query": "SELECT last(\"transaction_latency_99p\") FROM \"KE_METRICS_DAILY_RP\".\"system_metric_daily\" WHERE (\"host\" =~ /^$host-$project$/) AND $timeFilter GROUP BY time($__interval), \"entity\", \"host\"",
+              "rawQuery": true,
               "refId": "A",
               "resultFormat": "time_series",
               "select": [
@@ -12272,6 +12492,31 @@
         "name": "project",
         "options": [],
         "query": "show tag values from system_metric_daily with key=\"entity\" where category =~ /project/;",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": "KylinInfluxDBDaily",
+        "definition": "show tag values from system_metric_daily with key=\"entity\" where category =~ /host/;",
+        "hide": 0,
+        "includeAll": true,
+        "label": null,
+        "multi": false,
+        "name": "host",
+        "options": [],
+        "query": "show tag values from system_metric_daily with key=\"entity\" where category =~ /host/;",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,

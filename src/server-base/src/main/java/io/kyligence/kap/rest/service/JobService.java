@@ -374,7 +374,7 @@ public class JobService extends BasicService {
         case RESUME:
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
-            NMetricsGroup.counterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
             break;
         case RESTART:
             executableManager.restartJob(jobId);
@@ -382,7 +382,7 @@ public class JobService extends BasicService {
             break;
         case DISCARD:
             discardJob(project, jobId);
-            NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
+            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
             break;
         case PAUSE:
             executableManager.pauseJob(jobId);

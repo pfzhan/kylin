@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
-import io.kyligence.kap.rest.util.InitUserGroupUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -37,7 +36,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
@@ -49,6 +47,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
 import io.kyligence.kap.rest.util.CreateAdminUserUtils;
+import io.kyligence.kap.rest.util.InitUserGroupUtils;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -91,19 +90,11 @@ public class EpochChangedListener implements IKeep {
                 }
                 return 0;
             }, project, 1);
-            log.info("Register project metrics for {}", project);
-            try {
-                NMetricsRegistry.registerProjectMetrics(kylinConfig, project);
-            } catch (Exception e) {
-                log.error("Failed to register project metrics:{}", project, e);
-            }
         } else {
             //TODO need global leader
             CreateAdminUserUtils.createAllAdmins(userService, env);
             InitUserGroupUtils.initUserGroups();
             SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
-            log.info("Register global metrics...");
-            NMetricsRegistry.registerGlobalMetrics(kylinConfig);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();
                 return null;
@@ -124,11 +115,6 @@ public class EpochChangedListener implements IKeep {
             } catch (Exception e) {
                 log.warn("error when shutdown " + project + " thread", e);
             }
-            log.info("Remove project metrics for {}", project);
-            NMetricsGroup.removeProjectMetrics(project);
-        } else {
-            log.info("Remove global metrics...");
-            NMetricsGroup.removeGlobalMetrics();
         }
     }
 

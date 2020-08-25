@@ -27,7 +27,8 @@ package io.kyligence.kap.common.metrics;
 
 public enum NMetricsTag {
 
-    MODEL("model");
+    MODEL("model"),
+    HOST("host");
 
     private String value;
 

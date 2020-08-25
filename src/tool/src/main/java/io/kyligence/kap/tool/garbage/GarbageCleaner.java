@@ -64,7 +64,7 @@ public class GarbageCleaner {
             return 0;
         }, project);
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }
 
     /**
@@ -82,7 +82,7 @@ public class GarbageCleaner {
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
         sourceUsageManager.updateSourceUsage();
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }
 
     public static void doCleanupMetadataManually(String project, SnapshotCleaner snapshotCleaner) {
@@ -121,6 +121,6 @@ public class GarbageCleaner {
         }, project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
         sourceUsageManager.updateSourceUsage();
-        NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
     }
 }

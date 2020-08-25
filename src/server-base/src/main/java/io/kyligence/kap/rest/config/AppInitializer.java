@@ -23,14 +23,20 @@
  */
 package io.kyligence.kap.rest.config;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.metadata.EpochStore;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -39,14 +45,20 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
 
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.date.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metrics.NMetricsController;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
@@ -57,6 +69,7 @@ import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.NMetricsRegistry;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
+import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
 import io.kyligence.kap.rest.source.NHiveTableName;
@@ -88,6 +101,11 @@ public class AppInitializer {
     @Autowired
     SourceUsageUpdateListener sourceUsageUpdateListener;
 
+    private static final ScheduledExecutorService METRICS_SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1,
+            new NamedThreadFactory("MetricsChecker"));
+
+    private static final Set<String> allControlledProjects = Collections.synchronizedSet(new HashSet<>());
+
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -96,11 +114,12 @@ public class AppInitializer {
 
         boolean isJob = kylinConfig.isJobNode();
 
+        //start the embedded metrics reporters
+        NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
+
         if (isJob) {
             // restore from metadata, should not delete
             ResourceStore.getKylinMetaStore(kylinConfig);
-            //start the embedded metrics reporters
-            NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
             // register scheduler listener
             EventBusFactory.getInstance().register(new JobSchedulerListener());
@@ -133,7 +152,8 @@ public class AppInitializer {
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
         // register schema change listener
-        EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager), "table");
+        EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager),
+                "table");
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();
@@ -155,10 +175,6 @@ public class AppInitializer {
             }
         }
 
-        String host = clusterManager.getLocalServer();
-        // register host metrics
-        NMetricsRegistry.registerHostMetrics(host);
-
         if (kylinConfig.getJStackDumpTaskEnabled()) {
             taskScheduler.scheduleAtFixedRate(new JStackDumpTask(),
                     kylinConfig.getJStackDumpTaskPeriod() * Constant.MINUTE);
@@ -170,5 +186,42 @@ public class AppInitializer {
                     new Date(System.currentTimeMillis() + kylinConfig.getGuardianHACheckInitDelay() * Constant.SECOND),
                     kylinConfig.getGuardianHACheckInterval() * Constant.SECOND);
         }
+
+        registerMetrics();
+    }
+
+    /**
+     * register all metrics
+     */
+    private void registerMetrics() {
+        String host = clusterManager.getLocalServer();
+
+        log.info("Register global metrics...");
+        NMetricsRegistry.registerGlobalMetrics(KylinConfig.getInstanceFromEnv(), host);
+
+        log.info("Register host metrics...");
+        NMetricsRegistry.registerHostMetrics(host);
+
+        METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
+            Set<String> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
+                    .stream().map(ProjectInstance::getName).collect(Collectors.toSet());
+
+            Sets.SetView<String> newProjects = Sets.difference(allProjects, allControlledProjects);
+            for (String newProject : newProjects) {
+                log.info("Register project metrics for {}", newProject);
+                NMetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
+            }
+
+            Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);
+
+            for (String outDatedProject : outDatedProjects) {
+                log.info("Remove project metrics for {}", outDatedProject);
+                NMetricsGroup.removeProjectMetrics(outDatedProject);
+            }
+
+            allControlledProjects.clear();
+            allControlledProjects.addAll(allProjects);
+
+        }, 1, 1, TimeUnit.MINUTES);
     }
 }

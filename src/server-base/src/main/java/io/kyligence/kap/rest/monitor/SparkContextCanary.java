@@ -117,7 +117,7 @@ public class SparkContextCanary {
                     logger.warn("Repairing spark context");
                     SparderEnv.restartSpark();
 
-                    NMetricsGroup.counterInc(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, "global");
+                    NMetricsGroup.hostTagCounterInc(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, "global");
                 } catch (Throwable th) {
                     logger.error("Restart spark context failed.", th);
                 }

@@ -137,7 +137,7 @@ public class FavoriteQueryController extends NBasicController {
         Map<String, List<String>> result = favoriteQueryService.acceptAccelerate(request.getProject(),
                 request.getSqls());
 
-        NMetricsGroup.counterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, request.getProject());
+        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
@@ -150,7 +150,7 @@ public class FavoriteQueryController extends NBasicController {
         checkProjectUnmodifiable(project);
         favoriteQueryService.acceptAccelerate(project, accelerateSize);
 
-        NMetricsGroup.counterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, project);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

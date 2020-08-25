@@ -24,6 +24,11 @@
 
 package io.kyligence.kap.common.metrics;
 
+import java.util.Arrays;
+import java.util.List;
+
+import io.kyligence.kap.common.util.ClusterConstant;
+
 public enum NMetricsName {
 
     //summary
@@ -31,68 +36,68 @@ public enum NMetricsName {
     SUMMARY_DURATION("summary_exec_total_duration"), //
 
     //project
-    PROJECT_GAUGE("project_num_gauge"), //need a gauge instead of a counter!
+    PROJECT_GAUGE("project_num_gauge", true), //need a gauge instead of a counter!
     //storage statistic
-    PROJECT_STORAGE_SIZE("storage_size_gauge"), //
-    PROJECT_GARBAGE_SIZE("garbage_size_gauge"), //
+    PROJECT_STORAGE_SIZE("storage_size_gauge", true), //
+    PROJECT_GARBAGE_SIZE("garbage_size_gauge", true), //
 
     //model
-    MODEL_GAUGE("model_num_gauge"), //
-    HEALTHY_MODEL_GAUGE("non_broken_model_num_gauge"), //
-    OFFLINE_MODEL_GAUGE("offline_model_num_gauge"), //
-    MODEL_SEGMENTS("model_segments_num_gauge"), //
-    MODEL_STORAGE("model_total_storage_gauge"), //
-    MODEL_LAST_QUERY_TIME("model_last_query_time_gauge"), //
-    MODEL_QUERY_COUNT("model_query_count_gauge"), //
-    MODEL_BUILD_DURATION("model_build_duration"), //
-    MODEL_WAIT_DURATION("model_wait_duration"), //
-    MODEL_INDEX_NUM_GAUGE("model_index_num_gauge"), //
-    MODEL_EXPANSION_RATE_GAUGE("model_expansion_rate_gauge"), //
-    MODEL_BUILD_DURATION_HISTOGRAM("model_build_duration_histogram"), //
+    MODEL_GAUGE("model_num_gauge", true), //
+    HEALTHY_MODEL_GAUGE("non_broken_model_num_gauge", true), //
+    OFFLINE_MODEL_GAUGE("offline_model_num_gauge", true), //
+    MODEL_SEGMENTS("model_segments_num_gauge", true), //
+    MODEL_STORAGE("model_total_storage_gauge", true), //
+    MODEL_LAST_QUERY_TIME("model_last_query_time_gauge", true), //
+    MODEL_QUERY_COUNT("model_query_count_gauge", true), //
+    MODEL_BUILD_DURATION("model_build_duration", true), //
+    MODEL_WAIT_DURATION("model_wait_duration", true), //
+    MODEL_INDEX_NUM_GAUGE("model_index_num_gauge", true), //
+    MODEL_EXPANSION_RATE_GAUGE("model_expansion_rate_gauge", true), //
+    MODEL_BUILD_DURATION_HISTOGRAM("model_build_duration_histogram", true), //
 
     //query
-    QUERY("query_total_times"), //
-    QUERY_SLOW("gt10s_query_total_times"), //
-    QUERY_FAILED("failed_query_total_times"), //
-    QUERY_PUSH_DOWN("pushdown_query_total_times"), //
-    QUERY_PUSH_DOWN_RATIO("pushdown_query_ratio"), //
-    QUERY_TIMEOUT("timeout_query_total_times"), //
-    QUERY_LATENCY("query_latency"), //
-    QUERY_SLOW_RATE("gt10s_query_rate"), //
-    QUERY_FAILED_RATE("failed_query_rate"), //
-    QUERY_PUSH_DOWN_RATE("pushdown_query_rate"), //
-    QUERY_TIMEOUT_RATE("timeout_query_rate"), //
-    QUERY_CACHE("cache_query_total_times"), //
-    QUERY_CACHE_RATIO("cache_query_ratio"), //
-    QUERY_AGG_INDEX("agg_index_query_total_times"), //
-    QUERY_AGG_INDEX_RATIO("agg_index_query_ratio"), //
-    QUERY_TABLE_INDEX("table_index_query_total_times"), //
-    QUERY_TABLE_INDEX_RATIO("table_index_query_ratio"), //
-    QUERY_SCAN_BYTES("query_scan_bytes"), //
-    QUERY_LT_1S("lt_1s_total_times"), //
-    QUERY_1S_3S("bw_1s_3s_total_times"), //
-    QUERY_3S_5S("bw_3s_5s_total_times"), //
-    QUERY_5S_10S("bw_5s_10s_total_times"), //
-    QUERY_LT_1S_RATIO("lt_1s_ratio"), //
-    QUERY_1S_3S_RATIO("bw_1s_3s_ratio"), //
-    QUERY_3S_5S_RATIO("bw_3s_5s_ratio"), //
-    QUERY_5S_10S_RATIO("bw_5s_10s_ratio"), //
-    QUERY_SLOW_RATIO("gt10s_query_ratio"), //
+    QUERY("query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_SLOW("gt10s_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_FAILED("failed_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_PUSH_DOWN("pushdown_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_PUSH_DOWN_RATIO("pushdown_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_TIMEOUT("timeout_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_LATENCY("query_latency", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_SLOW_RATE("gt10s_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_FAILED_RATE("failed_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_PUSH_DOWN_RATE("pushdown_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_TIMEOUT_RATE("timeout_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_CACHE("cache_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_CACHE_RATIO("cache_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_AGG_INDEX("agg_index_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_AGG_INDEX_RATIO("agg_index_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_TABLE_INDEX("table_index_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_TABLE_INDEX_RATIO("table_index_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_SCAN_BYTES("query_scan_bytes", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_LT_1S("lt_1s_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_1S_3S("bw_1s_3s_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_3S_5S("bw_3s_5s_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_5S_10S("bw_5s_10s_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_LT_1S_RATIO("lt_1s_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_1S_3S_RATIO("bw_1s_3s_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_3S_5S_RATIO("bw_3s_5s_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_5S_10S_RATIO("bw_5s_10s_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_SLOW_RATIO("gt10s_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
 
     //job
-    JOB("job_created_total_times"), //
-    JOB_DURATION("finished_jobs_total_duration"), //
-    JOB_FINISHED("job_finished_total_times"), //
-    JOB_DURATION_HISTOGRAM("job_duration"), //
-    JOB_STEP_ATTEMPTED("job_step_attempted_total_times"), //
-    JOB_FAILED_STEP_ATTEMPTED("failed_job_step_attempted_total_times"), //
-    JOB_RESUMED("job_resumed_total_times"), //
-    JOB_DISCARDED("job_discarded_total_times"), //
-    JOB_ERROR("error_job_total_times"), //
-    JOB_ERROR_GAUGE("error_job_num_gauge"), //
-    JOB_RUNNING_GAUGE("running_job_num_gauge"), //
-    JOB_PENDING_GAUGE("pending_job_num_gauge"), //
-    JOB_WAIT_DURATION("job_wait_duration"), //
+    JOB("job_created_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_DURATION("finished_jobs_total_duration", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_FINISHED("job_finished_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_DURATION_HISTOGRAM("job_duration", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_STEP_ATTEMPTED("job_step_attempted_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_FAILED_STEP_ATTEMPTED("failed_job_step_attempted_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_RESUMED("job_resumed_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_DISCARDED("job_discarded_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_ERROR("error_job_total_times", ClusterConstant.ALL, ClusterConstant.JOB), //
+    JOB_ERROR_GAUGE("error_job_num_gauge", true), //
+    JOB_RUNNING_GAUGE("running_job_num_gauge", true), //
+    JOB_PENDING_GAUGE("pending_job_num_gauge", true), //
+    JOB_WAIT_DURATION("job_wait_duration", ClusterConstant.ALL, ClusterConstant.JOB), //
 
     // host
     QUERY_HOST("query_num_per_host"), //
@@ -116,22 +121,11 @@ public enum NMetricsName {
     // Equivalent definitions: ["fe": "front-end"], ["be": "back-end"]
     // "Accel." is an abbreviation for the noun "acceleration"
     FQ_FE_INVOKED("fq_accepted_total_times"), //
-    FQ_BE_INVOKED("fq_proposed_total_times"), //
-    FQ_BE_INVOKED_DURATION("fq_proposed_total_duration"), //
-    FQ_BE_INVOKED_FAILED("failed_fq_proposed_total_times"), //
     FQ_ADJUST_INVOKED("fq_adjusted_total_times"), //
     FQ_ADJUST_INVOKED_DURATION("fq_adjusted_total_duration"), //
-    FQ_UPDATE_USAGE("fq_update_usage_total_times"), //
-    FQ_UPDATE_USAGE_DURATION("fq_update_usage_total_duration"), //
-    FQ_FAILED_UPDATE_USAGE("failed_fq_update_usage_total_times"), //
 
     // FQ gauges
-    FQ_TO_BE_ACCELERATED("fq_tobeaccelerated_num_gauge"), //
-    FQ_ACCELERATED("fq_accelerated_num_gauge"), //
-    FQ_FAILED("fq_failed_num_gauge"), //
-    FQ_ACCELERATING("fq_accelerating_num_gauge"), //
-    FQ_PENDING("fq_pending_num_gauge"), //
-    FQ_BLACKLIST("fq_blacklist_num_gauge"), //
+    FQ_BLACKLIST("fq_blacklist_num_gauge", true), //
 
     //index
 
@@ -150,23 +144,13 @@ public enum NMetricsName {
     TRANSACTION_LATENCY("transaction_latency"), //
 
     //user management
-    USER_GAUGE("user_num_gauge"), //
+    USER_GAUGE("user_num_gauge", true), //
 
     //table management
-    TABLE_GAUGE("table_num_gauge"), //
+    TABLE_GAUGE("table_num_gauge", true), //
 
     //database management
-    DB_GAUGE("db_num_gauge"), //
-
-    //rest api
-    NON_QUERY_RESTAPI_LATENCY("non_query_restapi_latency"), //
-
-    BUILD_UNAVAILABLE_DURATION("build_unavailable_duration"), //
-    QUERY_UNAVAILABLE_DURATION("query_unavailable_duration"), //
-
-    //event statistics
-    EVENT_GAUGE("event_num_gauge"), //
-    EVENT_COUNTER("event_created_total_num"), //
+    DB_GAUGE("db_num_gauge", true), //
 
     // streaming statistics
     BATCH_TIMES("batch_times"), //
@@ -183,18 +167,54 @@ public enum NMetricsName {
     MODEL_QUERYABLE_SEGMENT_NUM("model_queryable_segment_num"), //
 
     //spark query load
-    QUERY_LOAD("query_load"), //
-    CPU_CORES("cpu_cores")
+    QUERY_LOAD("query_load", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    CPU_CORES("cpu_cores", ClusterConstant.ALL, ClusterConstant.QUERY)
 
     ;
 
     private String value;
 
+    private boolean onlyLeader;
+
+    private List<String> clusterList;
+
     NMetricsName(String value) {
+        this(value, false, ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
+    }
+
+    NMetricsName(String value, boolean onlyLeader) {
+        this(value, onlyLeader, new String[0]);
+    }
+
+    NMetricsName(String value, String... clusterList) {
+        this(value, false, clusterList);
+    }
+
+    NMetricsName(String value, boolean onlyLeader, String... clusterList) {
         this.value = value;
+        this.onlyLeader = onlyLeader;
+        this.clusterList = Arrays.asList(clusterList);
     }
 
     public String getVal() {
         return this.value;
+    }
+
+    public boolean support(String cluster, boolean isLeader) {
+        if (onlyLeader) {
+            return isLeader;
+        }
+
+        return clusterList.contains(cluster);
+    }
+
+    public static NMetricsName getMetricsName(String value) {
+        for (NMetricsName metricsName : NMetricsName.values()) {
+            if (metricsName.getVal().equals(value)) {
+                return metricsName;
+            }
+        }
+
+        return null;
     }
 }

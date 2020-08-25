@@ -579,7 +579,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private void adjustFQForProject(String project) {
-        NMetricsGroup.counterInc(NMetricsName.FQ_ADJUST_INVOKED, NMetricsCategory.PROJECT, project);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_ADJUST_INVOKED, NMetricsCategory.PROJECT, project);
         logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project);
         long startTime = System.currentTimeMillis();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -599,7 +599,7 @@ public class FavoriteQueryService extends BasicService {
         long duration = System.currentTimeMillis() - startTime;
         logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}", sqlSize,
                 duration, project);
-        NMetricsGroup.counterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project, duration);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project, duration);
     }
 
     // expert mode no need this

@@ -63,7 +63,7 @@ public class ScheduleService {
 
         EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
 
         String oldThreadName = Thread.currentThread().getName();
         try {
@@ -86,13 +86,13 @@ public class ScheduleService {
             Thread.currentThread().setName(oldThreadName);
         }
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
     }
 
     @Scheduled(cron = "${kylin.metadata.top-recs-filter-cron:0 0 0 * * *}")
     public void selectTopRec() {
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
 
         String oldThreadName = Thread.currentThread().getName();
         try {
@@ -106,6 +106,6 @@ public class ScheduleService {
             Thread.currentThread().setName(oldThreadName);
         }
 
-        NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
     }
 }

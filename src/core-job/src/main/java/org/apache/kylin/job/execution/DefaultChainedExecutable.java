@@ -186,7 +186,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     if (state == ExecutableState.ERROR) {
                         logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
                         notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-                        NMetricsGroup.counterInc(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, getProject());
+                        NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, getProject());
                         info = result.getExtraInfo();
                         output = result.getErrorMsg();
                         hook = this::onExecuteErrorHook;
@@ -226,11 +226,11 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     private void updateMetrics() {
         ExecutableState state = getStatus();
         if (state != null && state.isFinalState()) {
-            NMetricsGroup.counterInc(NMetricsName.JOB_FINISHED, NMetricsCategory.PROJECT, getProject());
-            NMetricsGroup.counterInc(NMetricsName.JOB_DURATION, NMetricsCategory.PROJECT, getProject(), getDuration());
-            NMetricsGroup.histogramUpdate(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, getProject(),
+            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_FINISHED, NMetricsCategory.PROJECT, getProject());
+            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_DURATION, NMetricsCategory.PROJECT, getProject(), getDuration());
+            NMetricsGroup.hostTagHistogramUpdate(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, getProject(),
                     getDuration());
-            NMetricsGroup.counterInc(NMetricsName.JOB_WAIT_DURATION, NMetricsCategory.PROJECT, getProject(),
+            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_WAIT_DURATION, NMetricsCategory.PROJECT, getProject(),
                     getWaitTime());
 
             String modelAlias = getTargetModelAlias();

@@ -178,7 +178,7 @@ public class NExecutableManager {
         addJobOutput(executablePO);
         executableDao.addJob(executablePO);
 
-        NMetricsGroup.counterInc(NMetricsName.JOB, NMetricsCategory.PROJECT,
+        NMetricsGroup.hostTagCounterInc(NMetricsName.JOB, NMetricsCategory.PROJECT,
                 executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME));
         // dispatch job-created message out
         if (KylinConfig.getInstanceFromEnv().isUTEnv())
