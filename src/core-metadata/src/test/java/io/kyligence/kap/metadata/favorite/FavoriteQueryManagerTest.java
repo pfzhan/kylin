@@ -60,6 +60,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         createTestMetadata();
+        overwriteSystemProp("kylin.cube.low-frequency-threshold", "5");
     }
 
     @After

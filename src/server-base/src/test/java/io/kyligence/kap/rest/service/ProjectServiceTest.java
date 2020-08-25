@@ -147,6 +147,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Before
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("kylin.cube.low-frequency-threshold", "5");
         staticCreateTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));

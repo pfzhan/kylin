@@ -667,7 +667,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getLowFrequencyThreshold() {
-        return Integer.parseInt(this.getOptional("kylin.cube.low-frequency-threshold", "5"));
+        return Integer.parseInt(this.getOptional("kylin.cube.low-frequency-threshold", "0"));
     }
 
     public int getFrequencyTimeWindowInDays() {
