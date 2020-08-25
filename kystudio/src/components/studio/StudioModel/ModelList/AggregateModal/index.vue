@@ -1,5 +1,5 @@
 <template>
-  <div class="aggregate-modal" v-if="isShow">
+  <div class="aggregate-modal" :class="{'brief-Menu': briefMenuGet}" v-if="isShow">
     <div class="aggregate-dialog">
       <div class="header">
         <div class="el-dialog__title ksd-mb-10">{{$t(modalTitle)}}
@@ -537,6 +537,9 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       'dimensionIdMapping',
       'measures',
       'measureIdMapping'
+    ]),
+    ...mapGetters([
+      'briefMenuGet'
     ])
   },
   methods: {
@@ -1551,6 +1554,9 @@ export default class AggregateModal extends Vue {
   margin: 0 -20px 0 -20px;
   // padding: 20px;
   overflow-y: auto;
+  &.brief-Menu {
+    width: calc(~'100% - 42px');
+  }
   .aggregate-dialog {
     // margin: 20px;
     height: calc(~'100% - 50px');
@@ -1583,7 +1589,7 @@ export default class AggregateModal extends Vue {
     padding: 0 20px;
     position: fixed;
     bottom: 0px;
-    width: calc(~'100% - 120px');
+    width: calc(~'100% - 124px');
     background-color: #fff;
     z-index: 11;
     box-sizing: border-box;
@@ -1640,6 +1646,9 @@ export default class AggregateModal extends Vue {
         }
       }
     }
+  }
+  &.brief-Menu .dialog-footer {
+    width: calc(~'100% - 42px');
   }
   .el-select {
     width: 100%;
