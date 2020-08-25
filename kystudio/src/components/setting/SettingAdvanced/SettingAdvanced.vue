@@ -648,7 +648,11 @@ export default class SettingAdvanced extends Vue {
             h('span', null, this.$t('openSCDTip'))
           ]),
           h('a', {
-            style: 'color: #0988DE'
+            style: 'color: #0988DE',
+            attrs: {
+              href: `https://docs.kyligence.io/books/v4.2/${this.$lang === 'en' ? 'en' : 'zh-cn'}/model/model_design/slowly_changing_dimension_${this.$lang === 'en' ? 'en' : 'cn'}.html`,
+              target: '_blank'
+            }
           }, this.$t('userManual')),
           this.$lang === 'en' && h('span', null, this.$t('openSCDTip1')),
           h('p', null, this.$t('confirmOpenTip'))
