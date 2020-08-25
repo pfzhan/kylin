@@ -36,7 +36,7 @@ import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
 import org.apache.spark.sql.catalyst.{InternalRow, expressions}
 import org.apache.spark.sql.execution.datasources._
-import org.apache.spark.sql.sources._
+import org.apache.spark.sql.sources.{Filter, _}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
@@ -289,7 +289,8 @@ class FilePruner(val session: SparkSession,
     val filteredStatuses = if (filters.isEmpty) {
       segDirs
     } else {
-      val reducedFilter = filters.flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
+      val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
+                                 .flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
       segDirs.filter {
         e => {
           if (dataflow.getSegment(e.segmentID).isOffsetCube) {
@@ -387,6 +388,39 @@ class FilePruner(val session: SparkSession,
         val matchedShards = new BitSet(numShards)
         matchedShards.setUntil(numShards)
         matchedShards
+    }
+  }
+
+  //  translate for filter type match
+  private def convertCastFilter(filter: Expression): Expression = {
+     filter match {
+      case expressions.EqualTo(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+        expressions.EqualTo(a, Literal(v, t))
+      case expressions.EqualTo(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+        expressions.EqualTo(Literal(v, t), a)
+      case expressions.GreaterThan(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+        expressions.GreaterThan(a, Literal(v, t))
+      case expressions.GreaterThan(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+        expressions.GreaterThan(Literal(v, t), a)
+      case expressions.LessThan(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+        expressions.LessThan(a, Literal(v, t))
+      case expressions.LessThan(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+        expressions.LessThan(Literal(v, t), a)
+      case expressions.GreaterThanOrEqual(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+        expressions.GreaterThanOrEqual(a, Literal(v, t))
+      case expressions.GreaterThanOrEqual(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+        expressions.GreaterThanOrEqual(Literal(v, t), a)
+      case expressions.LessThanOrEqual(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
+        expressions.LessThanOrEqual(a, Literal(v, t))
+      case expressions.LessThanOrEqual(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
+        expressions.LessThanOrEqual(Literal(v, t), a)
+      case expressions.Or(left, right) =>
+        expressions.Or(convertCastFilter(left), convertCastFilter(right))
+      case expressions.And(left, right) =>
+        expressions.And(convertCastFilter(left), convertCastFilter(right))
+      case expressions.Not(child) =>
+        expressions.Not(convertCastFilter(child))
+      case _ => filter
     }
   }
 }
