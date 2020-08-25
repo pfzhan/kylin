@@ -38,7 +38,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
+import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -73,10 +73,10 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
@@ -304,34 +304,38 @@ public class OpenModelController extends NBasicController {
         return modelController.applyOptimizeRecommendations(modelId, OpenApplyRecommendationsRequest.convert(request));
     }
 
-    private OpenModelSuggestionResponse suggestOROptimizeModels(OpenSqlAccerelateRequest request) {
-        NRecomendationListResponse nRecomendationListResponse = modelService.suggestModel(request.getProject(),
+    private OpenModelSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
+        ModelSuggestionResponse modelSuggestionResponse = modelService.suggestModel(request.getProject(),
                 request.getSqls(), !request.getForce2CreateNewModel());
 
         OpenModelSuggestionResponse result;
         if (request.getForce2CreateNewModel()) {
-            List<ModelRequest> modelRequests = nRecomendationListResponse.getNewModels().stream().map(model -> {
-                ModelRequest modelRequest = new ModelRequest(model);
-                modelRequest.setIndexPlan(model.getIndices());
+            List<ModelRequest> modelRequests = modelSuggestionResponse.getNewModels().stream().map(modelResponse -> {
+                ModelRequest modelRequest = new ModelRequest(modelResponse);
+                modelRequest.setIndexPlan(modelResponse.getIndexPlan());
                 return modelRequest;
             }).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(modelRequests)) {
                 modelService.batchCreateModel(request.getProject(), modelRequests, Lists.newArrayList());
             }
 
-            result = OpenModelSuggestionResponse.convert(nRecomendationListResponse.getNewModels());
+            result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getNewModels());
         } else {
-            result = OpenModelSuggestionResponse.convert(nRecomendationListResponse.getOriginModels());
+            result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getReusedModels());
         }
 
-        Set<String> availableSqls = result.getModels().stream()
-                .map(OpenModelSuggestionResponse.RecommendationsResponse::getSqls).flatMap(List::stream)
-                .collect(Collectors.toSet());
+        Set<String> normalRecommendedSqlSet = Sets.newHashSet();
+        for (OpenModelSuggestionResponse.RecommendationsResponse modelResponse : result.getModels()) {
+            modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
+                List<String> sqlList = layoutRecDetailResponse.getSqlList();
+                normalRecommendedSqlSet.addAll(sqlList);
+            });
+        }
 
-        result.setErrorSqls(Lists.newArrayList());
+        result.setErrorSqlList(Lists.newArrayList());
         for (String sql : request.getSqls()) {
-            if (!availableSqls.contains(sql)) {
-                result.getErrorSqls().add(sql);
+            if (!normalRecommendedSqlSet.contains(sql)) {
+                result.getErrorSqlList().add(sql);
             }
         }
 
@@ -340,20 +344,20 @@ public class OpenModelController extends NBasicController {
 
     @PostMapping(value = "/model_suggestion")
     @ResponseBody
-    public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccerelateRequest request) {
+    public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
         checkProjectName(request.getProject());
 
         request.setForce2CreateNewModel(true);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOROptimizeModels(request), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOrOptimizeModels(request), "");
     }
 
     @PostMapping(value = "/model_optimization")
     @ResponseBody
-    public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccerelateRequest request) {
+    public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
         checkProjectName(request.getProject());
 
         request.setForce2CreateNewModel(false);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOROptimizeModels(request), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOrOptimizeModels(request), "");
     }
 
     @GetMapping(value = "/recommendations")

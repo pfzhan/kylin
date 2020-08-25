@@ -74,7 +74,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -104,7 +103,6 @@ import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -131,7 +129,6 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
@@ -143,6 +140,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -177,26 +176,14 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
-import io.kyligence.kap.metadata.recommendation.RecommendationType;
-import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.OptimizeRecommendationRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
@@ -209,18 +196,17 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
-import io.kyligence.kap.rest.response.LayoutRecommendationResponse;
+import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
+import io.kyligence.kap.rest.response.ModelSuggestionResponse;
+import io.kyligence.kap.rest.response.ModelSuggestionResponse.NRecommendedModelResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
-import io.kyligence.kap.rest.response.OptRecDimensionResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -234,10 +220,12 @@ import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractContext.NModelContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ModelSelectContextOfSemiMode;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
@@ -249,7 +237,6 @@ public class ModelService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
     private static final String LAST_MODIFY = "last_modify";
-    private static final String MEASURE_NAME_PREFIX = "MEASURE_AUTO_";
 
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
@@ -355,8 +342,6 @@ public class ModelService extends BasicService {
 
     /**
      * for 3x rest api
-     * @param modelAlias
-     * @return
      */
     public NDataModelResponse getCube(String modelAlias, String projectName) {
         if (Objects.nonNull(projectName)) {
@@ -1324,38 +1309,145 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void batchCreateModel(String project, List<ModelRequest> modelRequests,
-            List<OptimizeRecommendationRequest> recommendations) {
+    public void batchCreateModel(String project, List<ModelRequest> newModels, List<ModelRequest> reusedModels) {
         aclEvaluate.checkProjectWritePermission(project);
-        checkDuplicateAliasInModelRequests(modelRequests);
-        for (ModelRequest modelRequest : modelRequests) {
+        checkDuplicateAliasInModelRequests(newModels);
+        for (ModelRequest modelRequest : newModels) {
             validatePartitionDateColumn(modelRequest);
             modelRequest.setProject(project);
             doCheckBeforeModelSave(project, modelRequest);
         }
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            if (CollectionUtils.isNotEmpty(modelRequests)) {
-                for (ModelRequest modelRequest : modelRequests) {
-                    if (modelRequest.getIndexPlan() != null) {
-                        saveModelAndIndexInMem(JsonUtil.deepCopyQuietly(modelRequest, NDataModel.class),
-                                modelRequest.getIndexPlan(), modelRequest.getProject());
-                    }
-                }
-            }
-            if (CollectionUtils.isNotEmpty(recommendations)) {
-                for (OptimizeRecommendationRequest request : recommendations) {
-                    request.setUuid(request.getModelId());
-                    OptimizeRecommendationVerifier verifier = new OptimizeRecommendationVerifier(
-                            KylinConfig.getInstanceFromEnv(), project, request);
-                    verifier.verifyAll();
-                }
-            }
+            saveNewModelsAndIndexes(project, newModels);
+            updateReusedModelsAndIndexPlans(project, reusedModels);
             return null;
         }, project);
     }
 
-    public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
+    private void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
+        if (CollectionUtils.isEmpty(newModels)) {
+            return;
+        }
+
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
+        for (ModelRequest modelRequest : newModels) {
+            if (modelRequest.getIndexPlan() == null) {
+                continue;
+            }
+            // create model
+            NDataModel model = JsonUtil.deepCopyQuietly(modelRequest, NDataModel.class);
+            IndexPlan indexPlan = modelRequest.getIndexPlan();
+            if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
+                dataModelManager.updateDataModelDesc(model);
+            } else {
+                dataModelManager.createDataModelDesc(model, model.getOwner());
+            }
+
+            // create IndexPlan
+            IndexPlan emptyIndex = new IndexPlan();
+            emptyIndex.setUuid(model.getUuid());
+            indexPlanManager.createIndexPlan(emptyIndex);
+            updateIndexPlan(project, indexPlan);
+
+            // create DataFlow
+            dataflowManager.createDataflow(emptyIndex, model.getOwner());
+
+            UnitOfWorkContext context = UnitOfWork.get();
+            context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
+        }
+    }
+
+    private void updateReusedModelsAndIndexPlans(String project, List<ModelRequest> modelRequestList) {
+        if (CollectionUtils.isEmpty(modelRequestList)) {
+            return;
+        }
+        for (ModelRequest modelRequest : modelRequestList) {
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+
+            Map<String, NDataModel.NamedColumn> columnMap = Maps.newHashMap();
+            modelRequest.getAllNamedColumns().forEach(column -> {
+                Preconditions.checkArgument(!columnMap.containsKey(column.getAliasDotColumn()));
+                columnMap.put(column.getAliasDotColumn(), column);
+            });
+
+            // update model
+            List<LayoutRecDetailResponse> recItems = modelRequest.getRecItems();
+            modelManager.updateDataModel(modelRequest.getId(), copyForWrite -> {
+                List<NDataModel.NamedColumn> allNamedColumns = copyForWrite.getAllNamedColumns();
+                Map<Integer, NDataModel.NamedColumn> namedColumnMap = Maps.newHashMap();
+                allNamedColumns.forEach(col -> namedColumnMap.put(col.getId(), col));
+                Map<String, ComputedColumnDesc> newCCMap = Maps.newLinkedHashMap();
+                Map<String, NDataModel.NamedColumn> newDimMap = Maps.newLinkedHashMap();
+                Map<String, NDataModel.Measure> newMeasureMap = Maps.newLinkedHashMap();
+                for (LayoutRecDetailResponse recItem : recItems) {
+                    recItem.getComputedColumns().stream() //
+                            .filter(LayoutRecDetailResponse.RecComputedColumn::isNew) //
+                            .forEach(recCC -> {
+                                ComputedColumnDesc cc = recCC.getCc();
+                                newCCMap.putIfAbsent(cc.getFullName(), cc);
+                            });
+                    recItem.getDimensions().stream() //
+                            .filter(LayoutRecDetailResponse.RecDimension::isNew) //
+                            .forEach(recDim -> {
+                                NDataModel.NamedColumn dim = recDim.getDimension();
+                                newDimMap.putIfAbsent(dim.getAliasDotColumn(), dim);
+                            });
+                    recItem.getMeasures().stream() //
+                            .filter(LayoutRecDetailResponse.RecMeasure::isNew) //
+                            .forEach(recMeasure -> {
+                                NDataModel.Measure measure = recMeasure.getMeasure();
+                                newMeasureMap.putIfAbsent(measure.getName(), measure);
+                            });
+                }
+                newCCMap.forEach((ccName, cc) -> {
+                    copyForWrite.getComputedColumnDescs().add(cc);
+                    NDataModel.NamedColumn column = columnMap.get(cc.getFullName());
+                    allNamedColumns.add(column);
+                    namedColumnMap.putIfAbsent(column.getId(), column);
+                });
+                newDimMap.forEach((colName, dim) -> {
+                    if (namedColumnMap.containsKey(dim.getId())) {
+                        namedColumnMap.get(dim.getId()).setStatus(NDataModel.ColumnStatus.DIMENSION);
+                    } else {
+                        allNamedColumns.add(dim);
+                    }
+                });
+                newMeasureMap.forEach((measureName, measure) -> {
+                    copyForWrite.getAllMeasures().add(measure);
+                });
+            });
+
+            // update IndexPlan
+            IndexPlan indexPlan = modelRequest.getIndexPlan();
+            Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
+            indexPlan.getAllLayouts().forEach(layout -> layoutMap.putIfAbsent(layout.getId(), layout));
+            indexPlanManager.updateIndexPlan(modelRequest.getId(), copyForWrite -> {
+                Map<IndexEntity.IndexIdentifier, IndexEntity> existingIndexMap = copyForWrite.getAllIndexesMap();
+                for (LayoutRecDetailResponse recItem : recItems) {
+                    long layoutId = recItem.getIndexId();
+                    LayoutEntity layout = layoutMap.get(layoutId);
+                    IndexEntity.IndexIdentifier indexIdentifier = layout.getIndex().createIndexIdentifier();
+                    if (existingIndexMap.containsKey(indexIdentifier)) {
+                        IndexEntity index = existingIndexMap.get(indexIdentifier);
+                        Preconditions.checkArgument(index.getLayout(layoutId) == null);
+                        index.getLayouts().add(layout);
+                    } else {
+                        IndexEntity index = layout.getIndex();
+                        existingIndexMap.putIfAbsent(indexIdentifier, index);
+                        copyForWrite.getIndexes().add(index);
+                    }
+                }
+            });
+        }
+    }
+
+    public NDataModel createModel(String project, ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         validatePartitionDateColumn(modelRequest);
 
@@ -1407,194 +1499,159 @@ public class ModelService extends BasicService {
         return CollectionUtils.isNotEmpty(couldAnsweredByExistedModels(project, sqls));
     }
 
-    public NRecomendationListResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
+    private void checkBatchSqlSize(List<String> sqls) {
+        KylinConfig kylinConfig1 = KylinConfig.getInstanceFromEnv();
+        val msg = MsgPicker.getMsg();
+        int limit = kylinConfig1.getSuggestModelSqlLimit();
+        if (sqls.size() > limit) {
+            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, String.format(msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
+        }
+    }
+
+    public ModelSuggestionResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
         }
+        checkBatchSqlSize(sqls);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        val msg = MsgPicker.getMsg();
-        int limit = kylinConfig.getSuggestModelSqlLimit();
-        if (sqls.size() > limit) {
-            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT, String.format(msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
-        }
         AbstractContext proposeContext = reuseExistedModel
                 ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), true)
                 : new ModelCreateContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();
-        return constructModelRecommendListResponse(proposeContext.getRecommendationMap(), smartMaster.getContext());
+        return buildModelSuggestionResponse(smartMaster.getContext());
     }
 
-    private NRecomendationListResponse constructModelRecommendListResponse(
-            Map<NDataModel, OptimizeRecommendation> recommendationsMap, AbstractContext context) {
-        List<NRecomendationListResponse.NRecomendedDataModelResponse> newDataModelResponseList = Lists.newArrayList();
-        List<NRecomendationListResponse.NRecomendedDataModelResponse> originDataModelResponseList = Lists
-                .newArrayList();
+    private ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
+        List<NRecommendedModelResponse> responseOfNewModels = Lists.newArrayList();
+        List<NRecommendedModelResponse> responseOfReusedModels = Lists.newArrayList();
 
-        Map<String, List<AbstractContext.NModelContext>> groupedMap = Maps.newHashMap();
-        for (AbstractContext.NModelContext modelContext : context.getModelContexts()) {
+        for (NModelContext modelContext : context.getModelContexts()) {
             if (modelContext.isTargetModelMissing()) {
                 continue;
             }
-            final NDataModel targetModel = modelContext.getTargetModel();
-            groupedMap.putIfAbsent(targetModel.getUuid(), Lists.newArrayList());
-            groupedMap.get(targetModel.getUuid()).add(modelContext);
+
+            if (modelContext.getOriginModel() != null) {
+                collectResponseOfReusedModels(modelContext, responseOfReusedModels);
+            } else {
+                collectResponseOfNewModels(modelContext, responseOfNewModels);
+            }
         }
-
-        groupedMap.forEach((modelId, modelContexts) -> constructModelRecommendResponse(modelContexts,
-                recommendationsMap, originDataModelResponseList, newDataModelResponseList));
-
-        return new NRecomendationListResponse(originDataModelResponseList, newDataModelResponseList);
+        return new ModelSuggestionResponse(responseOfReusedModels, responseOfNewModels);
     }
 
-    private void constructModelRecommendResponse(List<AbstractContext.NModelContext> modelContextList,
-            Map<NDataModel, OptimizeRecommendation> recommendationsMap,
-            List<NRecomendationListResponse.NRecomendedDataModelResponse> originModelList,
-            List<NRecomendationListResponse.NRecomendedDataModelResponse> newModelList) {
-
-        val sqls = modelContextList.stream()
-                .flatMap(modelContext -> modelContext.getModelTree().getOlapContexts().stream())
-                .map(olapContext -> olapContext.sql).collect(Collectors.toSet());
-        val modelContext = modelContextList.stream().filter(modelCtx -> !modelCtx.isSnapshotSelected()).findAny()
-                .orElse(modelContextList.get(0));
-
-        val response = new NRecomendationListResponse.NRecomendedDataModelResponse(modelContext.getTargetModel());
-        List<OptRecDimensionResponse> dimensionResponses = modelContext.getTargetModel().getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isDimension).map(dim -> {
-                    OptRecDimensionResponse recDimensionResponse = new OptRecDimensionResponse();
-                    BeanUtils.copyProperties(dim, recDimensionResponse);
-                    recDimensionResponse
-                            .setDataType(modelContext.getTargetModel().getColRef(dim.getId()).getDatatype());
-                    return recDimensionResponse;
-                }).collect(Collectors.toList());
-
-        response.setDimensions(dimensionResponses);
-        response.setSqls(Lists.newArrayList(sqls));
-        if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
-            response.setRecommendationResponse(constructRecommendationResponse(modelContext));
-        } else {
-            // build Agg && Table index
-            val indexPlan = modelContext.getTargetIndexPlan();
-            response.setIndices(indexPlan);
-        }
-
-        if (modelContext.getOriginModel() == null) {
-            newModelList.add(response);
-        } else {
-            originModelList.add(response);
-        }
-    }
-
-    private OptRecommendationResponse constructRecommendationResponse(AbstractContext.NModelContext modelContext) {
-        final Map<String, CCRecItemV2> ccRecMap = modelContext.getCcRecItemMap();
-        final Map<String, DimensionRecItemV2> dimRecMap = modelContext.getDimensionRecItemMap();
-        final Map<String, MeasureRecItemV2> measureRecMap = modelContext.getMeasureRecItemMap();
-        final Map<String, LayoutRecItemV2> indexRexMap = modelContext.getIndexRexItemMap();
-
-        List<CCRecommendationItem> ccRecommendations = Lists.newArrayList();
-        List<DimensionRecommendationItem> dimensionRecommendations = Lists.newArrayList();
-        List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
-        List<LayoutRecommendationResponse> indexRecommendations = Lists.newArrayList();
-
+    private void collectResponseOfReusedModels(AbstractContext.NModelContext modelContext,
+            List<NRecommendedModelResponse> responseOfReusedModels) {
+        Map<Long, Set<String>> layoutToSqlSet = mapLayoutToSqlSet(modelContext);
+        Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
+        List<ComputedColumnDesc> ccList = modelContext.getTargetModel().getComputedColumnDescs();
+        ccList.forEach(cc -> ccMap.put(cc.getFullName(), cc));
+        NDataModel targetModel = modelContext.getTargetModel();
         NDataModel originModel = modelContext.getOriginModel();
-        Preconditions.checkNotNull(originModel);
-
-        AtomicInteger maxCCIndex = new AtomicInteger(
-                ComputedColumnUtil.getBiggestCCIndex(originModel, initOtherModels(originModel)));
-        AtomicInteger itemId = new AtomicInteger(0);
-        ccRecMap.forEach((key, recItemV2) -> {
-            CCRecommendationItem item = new CCRecommendationItem();
-            item.setCc(recItemV2.getCc());
-            item.setCreateTime(recItemV2.getCreateTime());
-            item.setRecommendationType(RecommendationType.ADDITION);
-            item.setItemId(itemId.incrementAndGet());
-            item.setCcColumnId(maxCCIndex.incrementAndGet());
-            ccRecommendations.add(item);
-
-        });
-        dimRecMap.forEach((key, recItemV2) -> {
-            DimensionRecommendationItem item = new DimensionRecommendationItem();
-            item.setDataType(recItemV2.getDataType());
-            item.setColumn(recItemV2.getColumn());
-            item.setCreateTime(recItemV2.getCreateTime());
-            item.setRecommendationType(RecommendationType.ADDITION);
-            item.setItemId(itemId.incrementAndGet());
-            dimensionRecommendations.add(item);
-        });
-        measureRecMap.forEach((key, recItemV2) -> {
-            MeasureRecommendationItem item = new MeasureRecommendationItem();
-            item.setMeasure(recItemV2.getMeasure());
-            item.setCreateTime(recItemV2.getCreateTime());
-            item.setRecommendationType(RecommendationType.ADDITION);
-            item.setMeasureId(getBiggestAutoMeasureIndex(originModel));
-            item.setItemId(itemId.incrementAndGet());
-            measureRecommendations.add(item);
-        });
-        indexRexMap.forEach((key, recItemV2) -> {
-            LayoutRecommendationResponse item = new LayoutRecommendationResponse();
-            item.setType(recItemV2.isAgg() ? LayoutRecommendationResponse.Type.ADD_AGG
-                    : LayoutRecommendationResponse.Type.ADD_TABLE);
-            item.setCreateTime(recItemV2.getCreateTime());
-            item.setRecommendationType(RecommendationType.ADDITION);
-            item.setLayout(recItemV2.getLayout());
-            item.setItemId(itemId.incrementAndGet());
-            item.setAdd(true);
-            item.setAggIndex(recItemV2.isAgg());
-            indexRecommendations.add(item);
+        List<LayoutRecDetailResponse> indexRecItems = Lists.newArrayList();
+        modelContext.getIndexRexItemMap().forEach((key, layoutRecItemV2) -> {
+            LayoutRecDetailResponse response = new LayoutRecDetailResponse();
+            LayoutEntity layout = layoutRecItemV2.getLayout();
+            ImmutableList<Integer> colOrder = layout.getColOrder();
+            Map<ComputedColumnDesc, Boolean> ccStateMap = Maps.newHashMap();
+            colOrder.forEach(idx -> {
+                if (idx < NDataModel.MEASURE_ID_BASE && originModel.getEffectiveDimensions().containsKey(idx)) {
+                    NDataModel.NamedColumn col = targetModel.getAllNamedColumns().get(idx);
+                    String dataType = originModel.getEffectiveDimensions().get(idx).getDatatype();
+                    response.getDimensions().add(new LayoutRecDetailResponse.RecDimension(col, false, dataType));
+                } else if (idx < NDataModel.MEASURE_ID_BASE) {
+                    NDataModel.NamedColumn col = targetModel.getAllNamedColumns().get(idx);
+                    TblColRef tblColRef = targetModel.getEffectiveDimensions().get(idx);
+                    if (tblColRef.getColumnDesc().isComputedColumn()) {
+                        ccStateMap.putIfAbsent(ccMap.get(tblColRef.getAliasDotName()), true);
+                    }
+                    String dataType = tblColRef.getDatatype();
+                    response.getDimensions().add(new LayoutRecDetailResponse.RecDimension(col, true, dataType));
+                } else if (originModel.getEffectiveMeasures().containsKey(idx)) {
+                    NDataModel.Measure measure = targetModel.getEffectiveMeasures().get(idx);
+                    response.getMeasures().add(new LayoutRecDetailResponse.RecMeasure(measure, false));
+                } else {
+                    NDataModel.Measure measure = targetModel.getEffectiveMeasures().get(idx);
+                    List<TblColRef> colRefs = measure.getFunction().getColRefs();
+                    colRefs.forEach(colRef -> {
+                        if (colRef.getColumnDesc().isComputedColumn()) {
+                            ccStateMap.putIfAbsent(ccMap.get(colRef.getAliasDotName()), true);
+                        }
+                    });
+                    response.getMeasures().add(new LayoutRecDetailResponse.RecMeasure(measure, true));
+                }
+            });
+            List<LayoutRecDetailResponse.RecComputedColumn> newCCList = Lists.newArrayList();
+            ccStateMap.forEach((k, v) -> newCCList.add(new LayoutRecDetailResponse.RecComputedColumn(k, v)));
+            response.setComputedColumns(newCCList);
+            response.setIndexId(layout.getId());
+            Set<String> sqlSet = layoutToSqlSet.get(layout.getId());
+            if (CollectionUtils.isNotEmpty(sqlSet)) {
+                response.setSqlList(Lists.newArrayList(sqlSet));
+            }
+            indexRecItems.add(response);
         });
 
-        OptRecommendationResponse response = new OptRecommendationResponse();
-        int totalSize = ccRecMap.size() + dimRecMap.size() + measureRecMap.size() + indexRexMap.size();
-        response.setCcRecommendationSize(ccRecMap.size());
-        response.setDimensionRecommendationSize(dimRecMap.size());
-        response.setMeasureRecommendationSize(measureRecMap.size());
-        response.setIndexRecommendationSize(indexRexMap.size());
-        response.setTotalSize(totalSize);
-        response.setCcRecommendations(ccRecommendations);
-        response.setDimensionRecommendations(dimensionRecommendations);
-        response.setMeasureRecommendations(measureRecommendations);
-        response.setIndexRecommendations(indexRecommendations);
-        response.setProject(modelContext.getTargetModel().getProject());
-        response.setModelId(modelContext.getTargetModel().getUuid());
-
-        return response;
+        NRecommendedModelResponse response = new NRecommendedModelResponse(targetModel);
+        response.setIndexPlan(modelContext.getTargetIndexPlan());
+        response.setIndexes(indexRecItems);
+        responseOfReusedModels.add(response);
     }
 
-    private List<NDataModel> initOtherModels(NDataModel dataModel) {
-        NDataModelManager modelManager = NDataModelManager
-                .getInstance(Objects.requireNonNull(KylinConfig.getInstanceFromEnv()), dataModel.getProject());
-        return modelManager.listAllModels().stream().filter(m -> !m.isBroken())
-                .filter(m -> !m.getId().equals(dataModel.getId())).collect(Collectors.toList());
-    }
-
-    public int getBiggestAutoMeasureIndex(NDataModel dataModel) {
-        int biggest = 0;
-        List<String> allAutoMeasureNames = dataModel.getAllMeasures() //
-                .stream().map(MeasureDesc::getName) //
-                .filter(name -> name.startsWith(MEASURE_NAME_PREFIX)) //
-                .collect(Collectors.toList());
-        for (String name : allAutoMeasureNames) {
-            String idxStr = name.substring(MEASURE_NAME_PREFIX.length());
-            int idx;
-            try {
-                idx = Integer.parseInt(idxStr);
-            } catch (NumberFormatException e) {
-                continue;
-            }
-            if (idx > biggest) {
-                biggest = idx;
-            }
+    private Map<Long, Set<String>> mapLayoutToSqlSet(NModelContext modelContext) {
+        if (modelContext == null) {
+            return Maps.newHashMap();
         }
-        return biggest;
+        Map<String, AccelerateInfo> accelerateInfoMap = modelContext.getProposeContext().getAccelerateInfoMap();
+        Map<Long, Set<String>> layoutToSqlSet = Maps.newHashMap();
+        accelerateInfoMap.forEach((sql, info) -> {
+            for (AccelerateInfo.QueryLayoutRelation relation : info.getRelatedLayouts()) {
+                if (!StringUtils.equalsIgnoreCase(relation.getModelId(), modelContext.getTargetModel().getUuid())) {
+                    continue;
+                }
+                layoutToSqlSet.putIfAbsent(relation.getLayoutId(), Sets.newHashSet());
+                layoutToSqlSet.get(relation.getLayoutId()).add(relation.getSql());
+            }
+        });
+        return layoutToSqlSet;
+    }
+
+    private void collectResponseOfNewModels(AbstractContext.NModelContext modelContext,
+            List<NRecommendedModelResponse> responseOfNewModels) {
+        Set<String> sqlSet = Sets.newHashSet();
+        modelContext.getModelTree().getOlapContexts().forEach(ctx -> sqlSet.add(ctx.sql));
+        NDataModel model = modelContext.getTargetModel();
+        IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+        ImmutableBiMap<Integer, TblColRef> effectiveDimensions = model.getEffectiveDimensions();
+        List<LayoutRecDetailResponse.RecDimension> recDims = model.getAllNamedColumns().stream() //
+                .filter(NDataModel.NamedColumn::isDimension) //
+                .map(c -> {
+                    String datatype = effectiveDimensions.get(c.getId()).getDatatype();
+                    return new LayoutRecDetailResponse.RecDimension(c, true, datatype);
+                }) //
+                .collect(Collectors.toList());
+        List<LayoutRecDetailResponse.RecMeasure> recMeasures = model.getAllMeasures().stream() //
+                .map(measure -> new LayoutRecDetailResponse.RecMeasure(measure, true)) //
+                .collect(Collectors.toList());
+        List<LayoutRecDetailResponse.RecComputedColumn> recCCList = model.getComputedColumnDescs().stream() //
+                .map(cc -> new LayoutRecDetailResponse.RecComputedColumn(cc, true)) //
+                .collect(Collectors.toList());
+        LayoutRecDetailResponse virtualResponse = new LayoutRecDetailResponse();
+        virtualResponse.setIndexId(-1L);
+        virtualResponse.setDimensions(recDims);
+        virtualResponse.setMeasures(recMeasures);
+        virtualResponse.setComputedColumns(recCCList);
+        virtualResponse.setSqlList(Lists.newArrayList(sqlSet));
+
+        NRecommendedModelResponse response = new NRecommendedModelResponse(model);
+        response.setIndexPlan(indexPlan);
+        response.setIndexes(Lists.newArrayList(virtualResponse));
+        responseOfNewModels.add(response);
     }
 
     private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) {
-
-        if (modelRequest.getRecommendation() == null) {
-            // new model
-            checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
-        }
+        checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
         modelRequest.setOwner(AclPermissionUtil.getCurrentUsername());
         modelRequest.setLastModified(modelRequest.getCreateTime());
         checkModelRequest(modelRequest);
@@ -1611,25 +1668,6 @@ public class ModelService extends BasicService {
         preProcessBeforeModelSave(dataModel, project);
         checkFlatTableSql(dataModel);
         return dataModel;
-    }
-
-    private void saveModelAndIndexInMem(NDataModel model, IndexPlan indexPlan, String project) {
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
-            dataModelManager.updateDataModelDesc(model);
-        } else {
-            dataModelManager.createDataModelDesc(model, model.getOwner());
-        }
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        val emptyIndex = new IndexPlan();
-        emptyIndex.setUuid(model.getUuid());
-        indexPlanManager.createIndexPlan(emptyIndex);
-        dataflowManager.createDataflow(emptyIndex, model.getOwner());
-
-        updateIndexPlan(project, indexPlan);
-        UnitOfWorkContext context = UnitOfWork.get();
-        context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
     }
 
     private NDataModel saveModel(String project, ModelRequest modelRequest) {
@@ -1699,15 +1737,16 @@ public class ModelService extends BasicService {
     public void checkModelDimensions(ModelRequest request) {
         Set<String> dimensionNames = new HashSet<>();
 
-        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv().getMaxModelDimensionMeasureNameLength();
+        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv()
+                .getMaxModelDimensionMeasureNameLength();
 
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
             dimension.setName(StringUtils.trim(dimension.getName()));
             // check if the dimension name is valid
             if (StringUtils.length(dimension.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(dimension.getName()).matches())
-                throw new KylinException(INVALID_NAME,
-                        String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName(), maxModelDimensionMeasureNameLength));
+                throw new KylinException(INVALID_NAME, String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(),
+                        dimension.getName(), maxModelDimensionMeasureNameLength));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
@@ -1722,16 +1761,16 @@ public class ModelService extends BasicService {
     public void checkModelMeasures(ModelRequest request) {
         Set<String> measureNames = new HashSet<>();
         Set<SimplifiedMeasure> measures = new HashSet<>();
-        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv().getMaxModelDimensionMeasureNameLength();
+        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv()
+                .getMaxModelDimensionMeasureNameLength();
 
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             measure.setName(StringUtils.trim(measure.getName()));
             // check if the measure name is valid
             if (StringUtils.length(measure.getName()) > maxModelDimensionMeasureNameLength
                     || !Pattern.compile(VALID_NAME_FOR_DIMENSION_MEASURE).matcher(measure.getName()).matches())
-                throw new KylinException(INVALID_NAME,
-                        String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName(),
-                                maxModelDimensionMeasureNameLength));
+                throw new KylinException(INVALID_NAME, String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(),
+                        measure.getName(), maxModelDimensionMeasureNameLength));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))
@@ -1806,7 +1845,7 @@ public class ModelService extends BasicService {
         return DateFormat.proposeDateFormat(date);
     }
 
-    private void saveDateFormatIfNotExist(String project, String modelId, String format) throws Exception {
+    private void saveDateFormatIfNotExist(String project, String modelId, String format) {
         if (StringUtils.isEmpty(format)) {
             return;
         }
@@ -1819,8 +1858,6 @@ public class ModelService extends BasicService {
     private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table,
             PartitionDesc desc) throws Exception {
         Preconditions.checkNotNull(desc);
-        val modelManager = getDataModelManager(project);
-
         String partitionColumn = desc.getPartitionDateColumn();
         String dateFormat = desc.getPartitionDateFormat();
         Preconditions.checkArgument(StringUtils.isNotEmpty(dateFormat) && StringUtils.isNotEmpty(partitionColumn));
@@ -2672,8 +2709,8 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new KylinException(FAILED_UPDATE_MODEL,
-                        String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(dimensionNames, ",")));
+                throw new KylinException(FAILED_UPDATE_MODEL, String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
+                        StringUtils.join(dimensionNames, ",")));
             }
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
@@ -2681,8 +2718,8 @@ public class ModelService extends BasicService {
                     val measureNames = Arrays.stream(agg.getMeasures())
                             .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                    throw new KylinException(FAILED_UPDATE_MODEL,
-                            String.format(MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
+                    throw new KylinException(FAILED_UPDATE_MODEL, String
+                            .format(MsgPicker.getMsg().getMEASURE_NOTFOUND(), StringUtils.join(measureNames, ",")));
                 }
             }
         }

@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.util;
 
 import java.util.List;
 
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
@@ -39,6 +38,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
@@ -165,9 +165,9 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
             ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("Failed to validate the expression " +
-                            "'SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)' " +
-                            "in computed column 'TEST_KYLIN_FACT.CC_2'.",
+            Assert.assertEquals(
+                    "Failed to validate the expression " + "'SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)' "
+                            + "in computed column 'TEST_KYLIN_FACT.CC_2'.",
                     e.getMessage());
         }
     }
@@ -257,15 +257,12 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
         // first CC will named CC_AUTO_1
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
-        cc1.setExpression("SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)");
-        Assert.assertEquals(0, ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels));
+        final String ccExp1 = "SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)";
         cc1.setColumnName("CC_AUTO_1");
+        cc1.setExpression(ccExp1);
         dataModel.getComputedColumnDescs().add(cc1);
-
-        // second CC will named CC_AUTO_2
-        ComputedColumnDesc cc2 = new ComputedColumnDesc();
-        cc2.setExpression("concat(LSTG_FORMAT_NAME,1)");
-        Assert.assertEquals(1, ComputedColumnUtil.getBiggestCCIndex(dataModel, otherModels));
+        String sharedName = ComputedColumnUtil.shareCCNameAcrossModel(ccExp1, dataModel, otherModels);
+        Assert.assertEquals("CC_AUTO_1", sharedName);
     }
 
 }

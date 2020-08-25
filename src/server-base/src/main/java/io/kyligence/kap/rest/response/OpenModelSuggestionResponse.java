@@ -40,10 +40,10 @@ public class OpenModelSuggestionResponse implements Serializable {
     private List<RecommendationsResponse> models;
 
     @JsonProperty("error_sqls")
-    private List<String> errorSqls;
+    private List<String> errorSqlList;
 
     public static OpenModelSuggestionResponse convert(
-            List<NRecomendationListResponse.NRecomendedDataModelResponse> response) {
+            List<ModelSuggestionResponse.NRecommendedModelResponse> response) {
         OpenModelSuggestionResponse openResponse = new OpenModelSuggestionResponse();
         openResponse.setModels(response.stream().map(RecommendationsResponse::convert).collect(Collectors.toList()));
         return openResponse;
@@ -58,24 +58,16 @@ public class OpenModelSuggestionResponse implements Serializable {
         private String alias;
         @JsonProperty("version")
         protected String version;
-        @JsonProperty("sqls")
-        private List<String> sqls;
-        @JsonProperty("dimensions")
-        private List<OptRecDimensionResponse> dimensions;
-        @JsonProperty("recommendations")
-        private OptRecommendationResponse recommendationResponse;
+        @JsonProperty("rec_items")
+        private List<LayoutRecDetailResponse> indexes;
 
-        public static RecommendationsResponse convert(
-                NRecomendationListResponse.NRecomendedDataModelResponse response) {
+        public static RecommendationsResponse convert(ModelSuggestionResponse.NRecommendedModelResponse response) {
             RecommendationsResponse recommendationsResponse = new RecommendationsResponse();
             recommendationsResponse.setUuid(response.getUuid());
             recommendationsResponse.setAlias(response.getAlias());
             recommendationsResponse.setVersion(response.getVersion());
-            recommendationsResponse.setSqls(response.getSqls());
-            recommendationsResponse.setDimensions(response.getDimensions());
-            recommendationsResponse.setRecommendationResponse(response.getRecommendationResponse());
+            recommendationsResponse.setIndexes(response.getIndexes());
             return recommendationsResponse;
         }
     }
-
 }

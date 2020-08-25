@@ -38,7 +38,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
+import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -71,9 +71,9 @@ import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
@@ -375,10 +375,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSuggestModels() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        OpenSqlAccerelateRequest favoriteRequest = new OpenSqlAccerelateRequest("default", sqls, null);
+        OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
-        val result = new NRecomendationListResponse(Lists.newArrayList(), Lists.newArrayList());
+        val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(result).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
@@ -390,10 +390,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testOptimizeModels() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        OpenSqlAccerelateRequest favoriteRequest = new OpenSqlAccerelateRequest("default", sqls, null);
+        OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
         // reuse existed model
-        val result = new NRecomendationListResponse(Lists.newArrayList(), Lists.newArrayList());
+        val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(result).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))

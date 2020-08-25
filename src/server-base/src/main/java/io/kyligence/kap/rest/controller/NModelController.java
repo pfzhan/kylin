@@ -51,7 +51,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.SqlAccerelateRequest;
+import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
@@ -89,8 +89,8 @@ import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
-import io.kyligence.kap.rest.request.NRecommendationListRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
@@ -106,20 +106,17 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
-import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
+import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptimizeRecommendationService;
-import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -136,13 +133,6 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
-
-    @Autowired
-    @Qualifier("projectService")
-    private ProjectService projectService;
-
-    @Autowired
-    private ModelSemanticHelper semanticService;
 
     @Autowired
     private IndexPlanService indexPlanService;
@@ -221,7 +211,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/batch_save_models")
     @ResponseBody
     public EnvelopeResponse<String> batchSaveModels(@RequestParam("project") String project,
-            @RequestBody List<ModelRequest> modelRequests) throws Exception {
+            @RequestBody List<ModelRequest> modelRequests) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         try {
@@ -235,7 +225,7 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "suggestModel", notes = "")
     @PostMapping(value = "/suggest_model")
     @ResponseBody
-    public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody SqlAccerelateRequest request) {
+    public EnvelopeResponse<ModelSuggestionResponse> suggestModel(@RequestBody SqlAccelerateRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
@@ -245,12 +235,11 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "suggestModel", notes = "")
     @PostMapping(value = "/model_recommendation")
     @ResponseBody
-    public EnvelopeResponse<String> approveSuggestModel(@RequestBody NRecommendationListRequest request)
-            throws Exception {
+    public EnvelopeResponse<String> approveSuggestModel(@RequestBody ModelSuggestionRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         try {
-            modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getRecommendations());
+            modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
@@ -713,22 +702,6 @@ public class NModelController extends NBasicController {
 
     private <T extends RecommendationItem<T>> List<Long> getItemIds(List<T> recommendationItems) {
         return recommendationItems.stream().map(RecommendationItem::getItemId).collect(Collectors.toList());
-    }
-
-    @ApiOperation(value = "getLayoutRecommendationContent", notes = "Add URL: {model}")
-    @GetMapping(value = "/{model:.+}/recommendations/index")
-    @ResponseBody
-    public EnvelopeResponse<LayoutRecommendationDetailResponse> getLayoutRecommendationContent(
-            @PathVariable(value = "model") String modelId, //
-            @RequestParam(value = "project") String project, //
-            @RequestParam(value = "item_id") long itemId, //
-            @RequestParam(value = "content", required = false) String content,
-            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
-        checkProjectName(project);
-        checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optimizeRecommendationService
-                .getLayoutRecommendationContent(project, modelId, content, itemId, offset, limit), "");
     }
 
     @ApiOperation(value = "getRecommendationsByProject{Red}", notes = "Del URL: project")

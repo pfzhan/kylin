@@ -21,49 +21,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package org.apache.kylin.rest.request;
 
-package io.kyligence.kap.rest.response;
-
+import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
 @Getter
-public class NRecomendationListResponse {
-    @JsonProperty("origin_model")
-    List<NRecomendedDataModelResponse> originModels;
-    @JsonProperty("new_model")
-    List<NRecomendedDataModelResponse> newModels;
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class OpenSqlAccelerateRequest implements Serializable, ProjectInsensitiveRequest {
 
-    public NRecomendationListResponse(List<NRecomendedDataModelResponse> originModels,
-            List<NRecomendedDataModelResponse> newModels) {
-        this.originModels = originModels;
-        this.newModels = newModels;
+    @JsonProperty("project")
+    private String project;
+    @JsonProperty("sqls")
+    private List<String> sqls;
+    @JsonProperty("force")
+    private Boolean force2CreateNewModel;
+
+    public static SqlAccelerateRequest convert(OpenSqlAccelerateRequest request) {
+        SqlAccelerateRequest sqlAccerelateRequest = new SqlAccelerateRequest();
+
+        sqlAccerelateRequest.setProject(request.getProject());
+        sqlAccerelateRequest.setSqls(request.getSqls());
+        sqlAccerelateRequest.setReuseExistedModel(!request.getForce2CreateNewModel());
+
+        return sqlAccerelateRequest;
     }
 
-    @Getter
-    @Setter
-    public static class NRecomendedDataModelResponse extends NDataModel {
-        @JsonProperty("sqls")
-        private List<String> sqls;
-        @JsonProperty("dimensions")
-        private List<OptRecDimensionResponse> dimensions;
-        @JsonProperty("recommendation")
-        private OptRecommendationResponse recommendationResponse;
-        @JsonProperty("index_plan")
-        private IndexPlan indices;
-
-        public NRecomendedDataModelResponse(NDataModel other) {
-            super(other);
-        }
-
-        public NRecomendedDataModelResponse() {
-        }
-    }
 }

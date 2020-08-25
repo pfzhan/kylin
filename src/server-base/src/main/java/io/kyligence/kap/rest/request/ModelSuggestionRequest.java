@@ -22,15 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
+
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
-public class OptRecDimensionResponse extends NDataModel.NamedColumn {
-    @JsonProperty("data_type")
-    private String dataType;
+@Setter
+@Getter
+public class ModelSuggestionRequest {
+    @JsonProperty("project")
+    String project;
+    @JsonProperty("reused_models")
+    List<ModelRequest> reusedModels;
+    @JsonProperty("new_models")
+    List<ModelRequest> newModels;
 }

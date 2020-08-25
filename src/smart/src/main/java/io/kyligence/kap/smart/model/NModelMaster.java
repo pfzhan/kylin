@@ -27,7 +27,6 @@ package io.kyligence.kap.smart.model;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.smart.NSQLAnalysisProposer;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -48,6 +47,7 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NModelOptProposer;
+import io.kyligence.kap.smart.NSQLAnalysisProposer;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
@@ -90,8 +90,11 @@ public class NModelMaster {
                 return dataModel;
             }
         } else if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
-            Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
-            return dataModel;
+            ModelReuseContextOfSemiV2 context = (ModelReuseContextOfSemiV2) modelContext.getProposeContext();
+            if (!context.isCanCreateNewModel()) {
+                Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
+                return dataModel;
+            }
         }
 
         log.info("Start proposing join relations.");

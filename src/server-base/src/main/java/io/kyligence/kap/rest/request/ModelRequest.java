@@ -40,7 +40,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.insensitive.ModelInsensitiveRequest;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.Getter;
@@ -65,8 +65,8 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("simplified_dimensions")
     private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
 
-    @JsonProperty("recommendation")
-    private OptimizeRecommendation recommendation;
+    @JsonProperty("rec_items")
+    private List<LayoutRecDetailResponse> recItems;
 
     @JsonProperty("index_plan")
     private IndexPlan indexPlan;

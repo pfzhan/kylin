@@ -91,27 +91,6 @@ public class ComputedColumnUtil {
         return allCCNameAndExp;
     }
 
-    public static int getBiggestCCIndex(NDataModel dataModel, List<NDataModel> otherModels) {
-        List<NDataModel> allModels = Lists.newArrayList(otherModels);
-        allModels.add(dataModel);
-        int biggest = 0;
-        for (String ccName : getAllCCNameAndExp(allModels).keySet()) {
-            if (ccName.startsWith(CC_NAME_PREFIX)) {
-                String idxStr = ccName.substring(CC_NAME_PREFIX.length());
-                int idx;
-                try {
-                    idx = Integer.parseInt(idxStr);
-                } catch (NumberFormatException e) {
-                    break;
-                }
-                if (idx > biggest) {
-                    biggest = idx;
-                }
-            }
-        }
-        return biggest;
-    }
-
     public static class ExprIdentifierFinder extends SqlBasicVisitor<SqlNode> {
         List<Pair<String, String>> columnWithTableAlias;
 
@@ -156,8 +135,7 @@ public class ComputedColumnUtil {
 
     public static Set<String> getCCUsedColsWithProject(String project, ColumnDesc columnDesc) {
         NDataModel model = getModel(project, columnDesc.getName());
-        Set<String> usedCols = getCCUsedColsWithModel(model, columnDesc);
-        return usedCols;
+        return getCCUsedColsWithModel(model, columnDesc);
     }
 
     static Map<String, Set<String>> getCCUsedColsMapWithModel(NDataModel model, ColumnDesc columnDesc) {
@@ -174,9 +152,8 @@ public class ComputedColumnUtil {
 
     public static Set<String> getAllCCUsedColsInModel(NDataModel dataModel) {
         Set<String> ccUsedColsInModel = new HashSet<>();
-        NDataModel kapModel = dataModel;
-        List<ComputedColumnDesc> ccDescs = kapModel.getComputedColumnDescs();
-        for (ComputedColumnDesc ccDesc : ccDescs) {
+        List<ComputedColumnDesc> ccList = dataModel.getComputedColumnDescs();
+        for (ComputedColumnDesc ccDesc : ccList) {
             ccUsedColsInModel.addAll(ComputedColumnUtil.getCCUsedColsWithModel(dataModel, ccDesc));
         }
         return ccUsedColsInModel;

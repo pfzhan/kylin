@@ -28,10 +28,37 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Data;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-public class OptRecResponse {
-    @JsonProperty("layout_items")
-    private List<LayoutRecommendationResponse> layoutItems;
+@Setter
+@Getter
+public class ModelSuggestionResponse {
+    @JsonProperty("reused_models")
+    List<NRecommendedModelResponse> reusedModels;
+    @JsonProperty("new_models")
+    List<NRecommendedModelResponse> newModels;
+
+    public ModelSuggestionResponse(List<NRecommendedModelResponse> reusedModels,
+            List<NRecommendedModelResponse> newModels) {
+        this.reusedModels = reusedModels;
+        this.newModels = newModels;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class NRecommendedModelResponse extends NDataModel {
+        @JsonProperty("rec_items")
+        private List<LayoutRecDetailResponse> indexes;
+        @JsonProperty("index_plan")
+        private IndexPlan indexPlan;
+
+        public NRecommendedModelResponse(NDataModel dataModel) {
+            super(dataModel);
+        }
+    }
 }

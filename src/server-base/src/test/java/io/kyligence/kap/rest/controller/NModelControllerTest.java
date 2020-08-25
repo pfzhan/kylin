@@ -60,7 +60,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.SqlAccerelateRequest;
+import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.junit.After;
 import org.junit.Assert;
@@ -905,7 +905,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSuggestModelWithReuseExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        SqlAccerelateRequest favoriteRequest = new SqlAccerelateRequest("gc_test", sqls, true);
+        SqlAccelerateRequest favoriteRequest = new SqlAccelerateRequest("gc_test", sqls, true);
         // reuse existed model
         Mockito.doReturn(null).when(modelService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls), true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
@@ -922,7 +922,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 + "INNER JOIN edw.test_cal_dt AS test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
                 + "GROUP BY lstg_format_name, test_cal_dt.week_beg_dt";
         List<String> sqls = Lists.newArrayList(sql);
-        SqlAccerelateRequest accerelateRequest = new SqlAccerelateRequest("gc_test", sqls, false);
+        SqlAccelerateRequest accerelateRequest = new SqlAccelerateRequest("gc_test", sqls, false);
         Mockito.doReturn(null).when(modelService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls),
                 false);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
