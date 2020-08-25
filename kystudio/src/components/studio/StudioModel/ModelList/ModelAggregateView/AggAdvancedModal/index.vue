@@ -37,12 +37,12 @@
               <el-col :span="3" class="ksd-left">{{col.cardinality}}</el-col>
               <el-col :span="3">
                 <div class="action-list" @click="toggleColumnShard(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
-                  <i class="el-icon-success" v-if="!col.isUsed" :class="{active: col.isShared}"></i>
-                  <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
-                  <span class="up-down" :class="{hide: searchColumn}">
+                  <i class="el-icon-success" :class="{active: col.isShared}"></i>
+                  <!-- <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span> -->
+                  <!-- <span class="up-down" :class="{hide: searchColumn}">
                     <i v-visible="col.isUsed && col.isSorted && !checkIsTopSort(col)" @click.stop="upRow(col)" class="el-icon-ksd-arrow_up"></i>
                     <i v-visible="col.isUsed && col.isSorted && !checkIsBottomSort(col)" @click.stop="downRow(col)" class="el-icon-ksd-arrow_down"></i>
-                  </span>
+                  </span> -->
                 </div>
               </el-col>
             </el-row>
@@ -70,8 +70,8 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { indexOfObjWithSomeKey, filterObjectArray, handleSuccessAsync } from 'util/index'
-import { handleError, kapMessage, handleSuccess } from 'util/business'
+import { indexOfObjWithSomeKey, filterObjectArray, handleSuccessAsync, changeObjectArrProperty } from 'util/index'
+import { handleError, handleSuccess } from 'util/business'
 
 vuex.registerModule(['modals', 'AggAdvancedModal'], store)
 
@@ -221,8 +221,12 @@ export default class AggregateModal extends Vue {
   }
 
   toggleColumnShard (t) {
-    t.isUsed = !t.isUsed
-    t.isShared = !t.isShared
+    // 如果是未选中，则调用时是选中，先所有列置为false（单选）
+    if (!t.isShared) {
+      this.toggleShard(t)
+    } else {
+      t.isShared = !t.isShared
+    }
     this.toggleSort(t)
   }
 
@@ -245,15 +249,13 @@ export default class AggregateModal extends Vue {
     }
     this.lockSortAnimate = true
     let i = index === undefined ? this.getRowIndex(t, 'fullName') : index
-    let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
     if (!t.isSorted) {
-      if (sortedLen >= 9) {
-        kapMessage(this.$t('sortLimitTip'), {type: 'warning'})
-        return
-      }
+      changeObjectArrProperty(this.allColumns, '*', 'isSorted', false)
+      let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
       this.allColumns.splice(i, 1)
       this.allColumns.splice(sortedLen, 0, t)
     } else {
+      let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
       let s = indexOfObjWithSomeKey(this.allColumns, 'isSorted', false)
       if (s === -1) {
         s = this.allColumns.length
@@ -268,11 +270,11 @@ export default class AggregateModal extends Vue {
   }
 
   // 切换shard
-  /* toggleShard (t) {
+  toggleShard (t) {
     let shardStatus = t.isShared
     changeObjectArrProperty(this.allColumns, '*', 'isShared', false)
     t.isShared = !shardStatus
-  } */
+  }
   // 懒加载
   scrollLoad () {
     if (this.searchAllColumns && this.searchAllColumns.length !== this.filterResult.length) {
