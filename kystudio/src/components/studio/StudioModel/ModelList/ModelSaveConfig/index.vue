@@ -122,7 +122,7 @@ import store, { types } from './store'
 import { timeDataType, dateFormats } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { isDatePartitionType, objectClone, kapConfirm } from '../../../../../util'
+import { isDatePartitionType, objectClone } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelSaveConfig'], store)
@@ -428,7 +428,7 @@ export default class ModelPartitionModal extends Vue {
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
-    let isOnlySave = false
+    let isOnlySave = true
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
       // if (this.prevPartitionMeta.table && this.buildType === 'fullLoad') {
       //   await kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
@@ -437,7 +437,18 @@ export default class ModelPartitionModal extends Vue {
       // }
       if (this.isChangeToFullLoad || this.isChangePartition) {
         this.importantChange = true
-        await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
+        // await kapConfirm(this.$t('changeSegmentTips'), {confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', dangerouslyUseHTMLString: true}, this.$t('kylinLang.common.tip'))
+        const res = await this.callGlobalDetailDialog({
+          msg: this.$t('changeSegmentTips'),
+          title: this.$t('kylinLang.common.tip'),
+          dialogType: 'warning',
+          showDetailBtn: false,
+          isSubSubmit: true,
+          dangerouslyUseHTMLString: true,
+          submitSubText: this.$t('kylinLang.common.save'),
+          submitText: this.$t('saveAndLoad')
+        })
+        isOnlySave = res.isOnlySave
       } else if (this.isChangeModelLayout || this.originFilterCondition !== this.filterCondition) {
         this.importantChange = true
         const res = await this.callGlobalDetailDialog({
@@ -455,7 +466,7 @@ export default class ModelPartitionModal extends Vue {
       }
       this.savePartition(isOnlySave)
     } else {
-      this.savePartition()
+      this.savePartition(isOnlySave)
     }
   }
 
@@ -512,14 +523,12 @@ export default class ModelPartitionModal extends Vue {
         this.isLoadingSave = false
       })
     } else {
-      this.handleClose(true)
+      this.handleClose(true, isOnlySave)
     }
   }
   handleClose (isSubmit, isOnlySave) {
     this.isLoadingFormat = false
-    if (isOnlySave) {
-      this.modelDesc.save_only = isOnlySave
-    }
+    this.modelDesc.save_only = isOnlySave
     // 不把这个信息记录下来的话，300 延迟后，modelDesc 就 undefined 了
     let temp = objectClone(this.modelDesc)
     setTimeout(() => {

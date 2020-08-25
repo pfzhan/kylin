@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal()">
+    <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal(false)">
       <div>
         <el-alert
           :title="$t('changeBuildTypeTips')"
@@ -171,7 +171,7 @@
         </div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button plain @click="closeModal(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <template v-if="isAddSegment">
           <el-button type="primary" plain :loading="btnLoading" @click="setbuildModel(false)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
           <el-button type="primary" :loading="btnLoading" v-if="modelDesc.total_indexes" v-guide.setbuildModelRange @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndBuild')}}</el-button>
