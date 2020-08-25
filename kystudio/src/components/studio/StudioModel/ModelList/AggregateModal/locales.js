@@ -41,7 +41,7 @@ export default {
     aggGroupTip: 'You can define dimensions and measures in different aggregate groups according to your business scenario. In the dimension setting, it is recommended to select the frequently used grouping dimensions and filtering dimensions into the aggregate group in the descending order of the cardinality.',
     increaseTips: 'After submitting, {increaseNum} index(indexes) will be added into model {model_name}. The index(indexes) can serve queries after being built. Please confirm whether to submit and build, or just submit without building?',
     decreaseTips: 'After submission, {decreaseNum} indexes in model {model_name} will be deleted. The affected indexes will be in a "locked" state and can still answer queries. However, the index cannot be restored after being deleted. Please confirm whether to save it.',
-    mixTips: 'After submission, {decreaseNum} indexes in model {model_name} will be deleted and {increaseNum} indexes will be added. The affected indexes will be in a "locked" state and can still answer queries. However, the index cannot be restored after being deleted. The newly added indexes can be queried after the build is complete. Please confirm whether to .',
+    mixTips: 'After submission, {decreaseNum} indexes in model {model_name} will be deleted and {increaseNum} indexes will be added. The affected indexes will be in a "locked" state and can still answer queries. However, the index cannot be restored after being deleted. The newly added indexes can be queried after the build is complete. Please confirm whether to save.',
     bulidAndSubmit: 'Submit and Build',
     maxDimCom: 'Max Dimension Combination',
     noLimitation: 'No Limitation',

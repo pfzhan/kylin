@@ -60,7 +60,7 @@ export default {
     preview: 'Preview',
     model: 'Model',
     sqlOverSizeTip: 'Up to 200 SQLs could be uploaded at a time. Please try selecting fewer files to upload.',
-    recommendationTip: 'Please note that the selected recommendations would be affective immediately after proceeding',
+    recommendationTip: 'Please note that the selected recommendations would be effective immediately after proceeding',
     editSqlTips: 'You have unsaved edits. Do you want to continue?',
     confirmEditSqlText: 'Save and Continue',
     noRecommendsTip: 'No valid recommendation. Existing models might already include the same indexes.',

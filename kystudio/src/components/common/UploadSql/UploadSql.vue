@@ -107,7 +107,7 @@
           {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
         </div>
         <div class="ky-list-title" v-if="isShowOriginModels">
-          {{$t('recommendations')}} ({{selectRecommends.length}}/{{originModels.length}})
+          {{$t('recommendations')}} ({{selectRecommendsLength}}/{{getRecommendLength}})
         </div>
         <SuggestModel
           v-if="isShowSuggestModels"
@@ -122,6 +122,7 @@
           :suggestModels="originModels"
           :maxHeight="365"
           @getSelectRecommends="getSelectRecommends"
+          @changeSelectRecommendsLength="changeSelectRecommendsLength"
           :isOriginModelsTable="true" />
         <el-tabs class="upload-tabs" v-model="modelType" v-if="isShowTabModels">
           <el-tab-pane :label="$t('model') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
@@ -132,12 +133,13 @@
               @isValidated="isValidated"
               @getSelectModels="getSelectModels" />
           </el-tab-pane>
-          <el-tab-pane :label="`${$t('recommendations')} (${selectRecommends.length}/${originModels.length})`" name="origin">
+          <el-tab-pane :label="`${$t('recommendations')} (${selectRecommendsLength}/${getRecommendLength})`" name="origin">
             <SuggestModel
               tableRef="originModelsTable"
               :suggestModels="originModels"
               :maxHeight="365"
               @getSelectRecommends="getSelectRecommends"
+              @changeSelectRecommendsLength="changeSelectRecommendsLength"
               :isOriginModelsTable="true" />
           </el-tab-pane>
         </el-tabs>
@@ -149,7 +151,7 @@
             <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
             <span class="merge-sql-tip"><span class="divide">|</span><i class="el-icon-ksd-alert"></i>{{$t('mergeSqlTip')}}</span>
           </span>
-          <span class="selected-item" v-if="uploadFlag==='step3'"><i class="el-icon-ksd-alert"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommends.length}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommends.length})}}</span>
+          <span class="selected-item" v-if="uploadFlag==='step3'"><i class="el-icon-ksd-alert"></i>{{isShowTabModels ? $t('selectModelsAndRecommends', {models: selectModels.length, recommends: selectRecommendsLength}) : isShowSuggestModels ? $t('selectModelTips', {models: selectModels.length}) : $t('selectRecommendTips', {recommends: selectRecommendsLength})}}</span>
           <!-- <span v-if="uploadFlag==='step1'" class="tips">
             <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
           </span> -->
@@ -190,7 +192,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { handleSuccessAsync, handleError } from '../../../util/index'
+import { handleSuccessAsync, handleError, ArrayFlat } from '../../../util/index'
 import { handleSuccess, kapConfirm, kapWarn } from '../../../util/business'
 import SuggestModel from './SuggestModel.vue'
 import { pageRefTags } from 'config'
@@ -234,6 +236,7 @@ vuex.registerModule(['modals', 'UploadSqlModel'], store)
 })
 export default class UploadSqlModel extends Vue {
   pageRefTags = pageRefTags
+  ArrayFlat = ArrayFlat
   uploadFlag = 'step1'
   importLoading = false
   messageInstance = null
@@ -267,6 +270,7 @@ export default class UploadSqlModel extends Vue {
   originModels = []
   selectRecommends = []
   selectOriginModels = []
+  selectRecommendsLength = 0
   modelType = 'suggest'
   isConvertShow = false
   convertLoading = false
@@ -337,6 +341,9 @@ export default class UploadSqlModel extends Vue {
   get isShowTabModels () {
     return this.suggestModels.length > 0 && this.originModels.length > 0
   }
+  get getRecommendLength () {
+    return this.ArrayFlat(this.originModels.map(it => it.rec_items)).length
+  }
   @Watch('inputHeight')
   onHeightChange (val) {
     if (val) {
@@ -345,6 +352,9 @@ export default class UploadSqlModel extends Vue {
         this.isShowEditor = true
       })
     }
+  }
+  changeSelectRecommendsLength (len) {
+    this.selectRecommendsLength = len
   }
   tableRowClassName ({row, rowIndex}) {
     if (this.activeSqlObj && row.id === this.activeSqlObj.id) {
@@ -504,19 +514,28 @@ export default class UploadSqlModel extends Vue {
     //     delete m.index_plan.segment_range_end
     //   }
     // })
-    let recommendations = this.selectRecommends.map(it => it.recommendation ? it.recommendation : '').filter(item => item)
-    recommendations.forEach(it => {
-      if (!it) return
-      it.layout_recommendations = it.index_recommendations
-      it.layout_recommendation_size = it.index_recommendation_size
-      it.model_id = it.modelId
-      delete it.index_recommendations
-      delete it.index_recommendation_size
-      delete it.modelId
+    // let recommendations = this.selectRecommends.map(it => it.recommendation ? it.recommendation : '').filter(item => item)
+    // recommendations.forEach(it => {
+    //   if (!it) return
+    //   it.layout_recommendations = it.index_recommendations
+    //   it.layout_recommendation_size = it.index_recommendation_size
+    //   it.model_id = it.modelId
+    //   delete it.index_recommendations
+    //   delete it.index_recommendation_size
+    //   delete it.modelId
+    // })
+    let models = [...this.selectModels]
+    models.forEach(obj => {
+      delete obj.isChecked
+      delete obj.isNameError
+    })
+    let recommends = [...this.selectRecommends]
+    recommends.forEach(obj => {
+      delete obj.isChecked
     })
     let data = {
-      new_models: this.selectModels,
-      recommendations: recommendations
+      new_models: models,
+      reused_models: recommends
     }
     this.saveSuggestModels({project: this.currentSelectedProject, ...data}).then((res) => {
       handleSuccess(res, (data) => {
@@ -625,7 +644,7 @@ export default class UploadSqlModel extends Vue {
     this.suggestModel({project: this.currentSelectedProject, sqls: sqls, reuse_existed_model: reuseExistedModel}).then((res) => {
       handleSuccess(res, (data) => {
         // 优化建议超过 1000 让其重新上传sql
-        if (data.origin_model.length > 1000) {
+        if (data.reused_models.length > 1000) {
           this.$confirm(this.$t('recommendsOverSizeTip'), this.$t('recommendsOverSizeTitle'), {
             confirmButtonText: this.$t('kylinLang.common.ok'),
             showCancelButton: false,
@@ -639,12 +658,12 @@ export default class UploadSqlModel extends Vue {
           })
           return
         }
-        this.suggestModels = data.new_model.map((d) => {
+        this.suggestModels = data.new_models.map((d) => {
           d.isChecked = true
           d.isNameError = false
           return d
         })
-        this.originModels = data.origin_model.map((d) => {
+        this.originModels = data.reused_models.map((d) => {
           d.isChecked = true
           return d
         })
@@ -1102,6 +1121,9 @@ export default class UploadSqlModel extends Vue {
         .el-tabs__content {
           height: calc(~'100% - 30px');
           #pane-suggest {
+            height: 100%
+          }
+          #pane-origin {
             height: 100%
           }
         }

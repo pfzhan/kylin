@@ -23,7 +23,7 @@
               </el-table>
             </template>
           </el-table-column> -->
-          <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
+          <el-table-column :label="$t('kylinLang.model.modelNameGrid')">
             <template slot-scope="scope">
               <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isNameError}" size="small" @change="handleRename(scope.row)"></el-input>
               <div class="rename-error" v-if="scope.row.isNameError">{{modelNameError}}</div>
@@ -43,7 +43,7 @@
             <template slot-scope="scope">{{scope.row.index_plan.indexes.length}}</template>
           </el-table-column> -->
           <el-table-column label="SQL" prop="sqls" width="80" align="right" :render-header="renderHeaderSql">
-            <template slot-scope="scope">{{scope.row.sqls.length}}</template>
+            <template slot-scope="scope">{{scope.row.rec_items[0].sqls.length || 0}}</template>
           </el-table-column>
         </el-table>
       </el-col>
@@ -58,16 +58,16 @@
           <el-table-column type="expand" width="44">
             <template slot-scope="scope">
               <template v-if="scope.row.type === 'cc'">
-                <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.expression}}</p>
+                <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.cc.expression}}</p>
               </template>
               <template v-if="scope.row.type === 'dimension'">
-                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.column}}</p>
+                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.dimension.name}}</p>
                 <!-- <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p> -->
               </template>
               <template v-if="scope.row.type === 'measure'">
-                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.name}}</p>
-                <p><span class="label">{{$t('th_function')}}：</span>{{scope.row.function.expression}}</p>
-                <p><span class="label">{{$t('th_parameter')}}：</span>{{scope.row.function.parameters}}</p>
+                <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.measure.name}}</p>
+                <p><span class="label">{{$t('th_function')}}：</span>{{scope.row.measure.function.expression}}</p>
+                <p><span class="label">{{$t('th_parameter')}}：</span>{{scope.row.measure.function.parameters}}</p>
               </template>
             </template>
           </el-table-column>
@@ -92,29 +92,35 @@
       <div class="recommend-layout" v-show="hasRecommendation">
         <el-col :span="15">
           <el-table
-            :data="suggestModels"
+            :data="recommendDatas"
             class="model-table"
             border
             v-scroll-shadow
             :ref="tableRef"
             style="width: 100%"
+            @select="handleSelectionRecommends"
             @selection-change="handleSelectionRecommendationChange"
             @row-click="recommendRowClick"
             :row-class-name="setRowClass">
             <el-table-column type="selection" width="44"></el-table-column>
-            <el-table-column :label="$t('kylinLang.model.modelNameGrid')" show-overflow-tooltip prop="alias">
+            <el-table-column :label="$t('kylinLang.model.modelNameGrid')" show-overflow-tooltip>
               <template slot-scope="scope">
                 <span>{{scope.row.alias}}</span>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('recommendType')">
+            <el-table-column :label="$t('kylinLang.model.index')" show-overflow-tooltip prop="index_id">
+              <!-- <template slot-scope="scope">
+                <span>{{scope.row.alias}}</span>
+              </template> -->
+            </el-table-column>
+            <!-- <el-table-column :label="$t('recommendType')">
               <template slot-scope="scope">
                 <span>
                   <el-tag type="success" v-if="scope.row.recommendation.recommendation_type === 'ADDITION'" size="mini">{{$t(' ')}}</el-tag>
                   {{scope.row.recommendation.recommendation_type}}
                 </span>
               </template>
-            </el-table-column>
+            </el-table-column> -->
             <!-- <el-table-column :label="$t('kylinLang.common.dimension')" prop="recommendation.dimension_recommendations" show-overflow-tooltip width="95" align="right">
               <template slot-scope="scope">{{scope.row.recommendation.dimension_recommendation_size}}</template>
             </el-table-column>
@@ -128,7 +134,7 @@
               <template slot-scope="scope">{{scope.row.recommendation.index_recommendation_size}}</template>
             </el-table-column> -->
             <el-table-column label="SQL" prop="sqls" width="80" align="right" :render-header="renderHeaderSql">
-              <template slot-scope="scope">{{scope.row.sqls.length}}</template>
+              <template slot-scope="scope">{{scope.row.sqls.length || 0}}</template>
             </el-table-column>
           </el-table>
         </el-col>
@@ -146,7 +152,7 @@
                   <p><span class="label">{{$t('th_expression')}}：</span>{{scope.row.cc.expression}}</p>
                 </template>
                 <template v-if="scope.row.type === 'dimension'">
-                  <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.column.column}}</p>
+                  <p><span class="label">{{$t('th_column')}}：</span>{{scope.row.name}}</p>
                   <!-- <p><span>{{$t('th_dataType')}}：</span>{{JSON.parse(scope.row.content).data_type}}</p> -->
                 </template>
                 <template v-if="scope.row.type === 'measure'">
@@ -185,7 +191,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { NamedRegex } from 'config'
 import { handleSuccess } from '../../../util/business'
-import { handleError } from '../../../util/index'
+import { handleError, ArrayFlat } from '../../../util/index'
 import { mapActions, mapGetters } from 'vuex'
 import locales from './locales'
 @Component({
@@ -203,6 +209,7 @@ import locales from './locales'
   locales
 })
 export default class SuggestModel extends Vue {
+  ArrayFlat = ArrayFlat
   modelNameError = ''
   isNameErrorModelExisted = ''
   selectModels = []
@@ -210,11 +217,19 @@ export default class SuggestModel extends Vue {
   selectRecommends = []
   recommendDetails = []
   activeRowId = ''
+  recommendDatas = []
   mounted () {
+    this.recommendDatas = [...this.ArrayFlat(this.suggestModels.map(item => item.rec_items.map(it => ({...it, alias: item.alias}))))]
     this.$nextTick(() => {
-      this.suggestModels.forEach((model) => {
-        this.$refs[this.tableRef] && this.$refs[this.tableRef].toggleRowSelection(model)
-      })
+      if (this.isOriginModelsTable) {
+        this.recommendDatas.forEach(it => {
+          this.$refs[this.tableRef] && this.$refs[this.tableRef].toggleRowSelection(it)
+        })
+      } else {
+        this.suggestModels.forEach((model) => {
+          this.$refs[this.tableRef] && this.$refs[this.tableRef].toggleRowSelection(model)
+        })
+      }
       document.addEventListener('click', this.handleClickEvent)
       // if (!this.isOriginModelsTable) {
       //   this.modelRowClick(this.suggestModels[0])
@@ -232,13 +247,12 @@ export default class SuggestModel extends Vue {
   }
   get hasRecommendation () {
     let flag = false
-    for (let i = 0; i <= this.suggestModels.length - 1; i++) {
-      if (this.suggestModels[i].recommendation) {
-        const { cc_recommendations, dimension_recommendations, measure_recommendations } = this.suggestModels[i].recommendation
-        if (cc_recommendations.length + dimension_recommendations.length + measure_recommendations.length > 0) {
-          flag = true
-          break
-        }
+    const layouts = [...this.ArrayFlat(this.suggestModels.map(it => it.rec_items))]
+    for (let i = 0; i <= layouts.length - 1; i++) {
+      const { computed_columns, dimensions, measures } = layouts[i]
+      if (computed_columns.length + dimensions.length + measures.length > 0) {
+        flag = true
+        break
       }
     }
     return flag
@@ -260,13 +274,15 @@ export default class SuggestModel extends Vue {
     return row.uuid === this.activeRowId ? 'active-row' : 'row-click'
   }
   modelRowClick (row) {
+    const computed_columns = this.ArrayFlat(row.rec_items.map(it => it.computed_columns))
+    const dimensions = this.ArrayFlat(row.rec_items.map(it => it.dimensions))
+    const measures = this.ArrayFlat(row.rec_items.map(it => it.measures))
     this.activeRowId = row.uuid
-    this.modelDetails = [...row.all_measures.map(it => ({...it, type: 'measure'})), ...row.dimensions.map(it => ({...it, type: 'dimension'})), ...row.computed_columns.map(it => ({...it, type: 'cc'}))]
+    this.modelDetails = [...measures.map(it => ({...it, name: it.measure.name, type: 'measure'})), ...dimensions.map(it => ({...it, name: it.dimension.name, type: 'dimension'})), ...computed_columns.map(it => ({...it, name: it.cc.columnName, type: 'cc'}))]
   }
-  recommendRowClick (scope) {
-    const row = scope.recommendation
-    this.activeRowId = scope.uuid
-    this.recommendDetails = [...row.cc_recommendations.map(it => ({...it, name: it.cc.columnName, type: 'cc'})), ...row.dimension_recommendations.map(it => ({...it, name: it.column.name, type: 'dimension'})), ...row.measure_recommendations.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
+  recommendRowClick (row) {
+    this.activeRowId = row.index_id
+    this.recommendDetails = [...row.computed_columns.map(it => ({...it, name: it.cc.columnName, type: 'cc'})), ...row.dimensions.map(it => ({...it.dimension, type: 'dimension'})), ...row.measures.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
   }
   sqlsTable (sqls) {
     return sqls.map((s) => {
@@ -337,9 +353,21 @@ export default class SuggestModel extends Vue {
       })
     }
   }
+  handleSelectionRecommends (selection, row) {
+    row.isChecked = !row.isChecked
+  }
   handleSelectionRecommendationChange (val) {
     this.selectRecommends = val
-    this.$emit('getSelectRecommends', this.selectRecommends)
+    let suggestList = [...JSON.parse(JSON.stringify(this.suggestModels))]
+    const layoutIds = val.map(it => it.index_id)
+    const data = [...suggestList.filter(it => {
+      return it.rec_items.some(item => layoutIds.includes(item.index_id))
+    })]
+    data.forEach(it => {
+      it.rec_items = it.rec_items.filter(item => layoutIds.includes(item.index_id))
+    })
+    this.$emit('getSelectRecommends', data)
+    this.$emit('changeSelectRecommendsLength', val.length)
   }
   checkRenameModelExisted () {
     this.isNameErrorModelExisted = false
