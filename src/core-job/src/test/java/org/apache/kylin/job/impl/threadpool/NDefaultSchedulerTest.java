@@ -99,19 +99,9 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Override
     public void setup() throws Exception {
-        System.setProperty("kylin.job.auto-set-concurrent-jobs", "true");
-        System.setProperty("kylin.env", "UT");
+        overwriteSystemProp("kylin.job.auto-set-concurrent-jobs", "true");
+        overwriteSystemProp("kylin.env", "UT");
         super.setup();
-    }
-
-    @Override
-    public void after() throws Exception {
-        super.after();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.job.auto-set-concurrent-jobs");
-        System.clearProperty("kylin.job.retry");
-        System.clearProperty("kylin.job.retry-exception-classes");
-        System.clearProperty("kylin.env");
     }
 
     public ExpectedException thrown = ExpectedException.none();
@@ -646,7 +636,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     private void changeSchedulerInterval(int second) {
         NDefaultScheduler.shutdownByProject("default");
-        System.setProperty("kylin.job.scheduler.poll-interval-second", String.valueOf(second));
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", String.valueOf(second));
         startScheduler();
     }
 
@@ -769,7 +759,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testSuicide_JobCuttingIn() throws InterruptedException {
+    public void testSuicide_JobCuttingIn() {
         changeSchedulerInterval();
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
@@ -1639,7 +1629,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
 
-        System.setProperty("kylin.job.retry", "3");
+        overwriteSystemProp("kylin.job.retry", "3");
 
         //don't retry on DefaultChainedExecutable, only retry on subtasks
         Assert.assertFalse(job.needRetry(1, new Exception("")));
@@ -1647,7 +1637,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertFalse(task.needRetry(1, null));
         Assert.assertFalse(task.needRetry(4, new Exception("")));
 
-        System.setProperty("kylin.job.retry-exception-classes", "java.io.FileNotFoundException");
+        overwriteSystemProp("kylin.job.retry-exception-classes", "java.io.FileNotFoundException");
 
         Assert.assertTrue(task.needRetry(1, new FileNotFoundException()));
         Assert.assertFalse(task.needRetry(1, new Exception("")));
@@ -1655,7 +1645,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Test
     public void testJobRunningTimeout() {
-        System.setProperty("kylin.scheduler.schedule-job-timeout-minute", "1");
+        overwriteSystemProp("kylin.scheduler.schedule-job-timeout-minute", "1");
         val df = NDataflowManager.getInstance(getTestConfig(), project)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
@@ -1697,7 +1687,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
 
         try {
-            System.setProperty("KYLIN_HOME",
+            overwriteSystemProp("KYLIN_HOME",
                     Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
             executableManager.destroyProcess(jobId);
         } finally {
@@ -1802,18 +1792,16 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     private void addParallelTasksForJob(List<NDataflow> dfs, NExecutableManager executableManager) {
-        for (int i = 0; i < dfs.size(); i++) {
+        for (NDataflow df : dfs) {
             DefaultChainedExecutable job = new NoErrorStatusExecutableOnModel();
             job.setProject("default");
             job.setJobType(JobTypeEnum.INDEX_BUILD);
             job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2");
-            job.setTargetSubject(dfs.get(i).getModel().getUuid());
-            job.setTargetSegments(
-                    dfs.get(i).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+            job.setTargetSubject(df.getModel().getUuid());
+            job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
             BaseTestExecutable task1 = new FiveSecondSucceedTestExecutable(10);
-            task1.setTargetSubject(dfs.get(i).getModel().getUuid());
-            task1.setTargetSegments(
-                    dfs.get(i).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+            task1.setTargetSubject(df.getModel().getUuid());
+            task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
             job.addTask(task1);
             executableManager.addJob(job);
         }
@@ -1821,7 +1809,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Test
     public void testSchedulerShutdown() throws Exception {
-        System.setProperty("kylin.env", "dev");
+        overwriteSystemProp("kylin.env", "dev");
         Assert.assertTrue(NDefaultScheduler.getInstance(project).hasStarted());
         EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         manager.tryUpdateEpoch(EpochManager.GLOBAL, false);
@@ -1829,7 +1817,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         NDefaultScheduler.getInstance(project).fetchJobsImmediately();
         Thread.sleep(2000);
         Assert.assertFalse(NDefaultScheduler.getInstance(project).hasStarted());
-        System.clearProperty("kylin.env");
     }
 
 }

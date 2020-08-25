@@ -56,15 +56,11 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
 public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
-
-    private static final Logger logger = LoggerFactory.getLogger(BaseSchedulerTest.class);
 
     protected NDefaultScheduler scheduler;
 
@@ -85,7 +81,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         staticCreateTestMetadata();
         killProcessCount = new AtomicInteger();
         val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -112,8 +108,6 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     public void after() throws Exception {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        System.clearProperty("kylin.metadata.mq-url");
     }
 
     protected void waitForJobFinish(String jobId) {
@@ -124,11 +118,9 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         await().atMost(maxWaitTime, TimeUnit.MILLISECONDS).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();
-            if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR || status == ExecutableState.PAUSED
-                    || status == ExecutableState.DISCARDED || status == ExecutableState.SUICIDAL) {
-                return true;
-            }
-            return false;
+            return status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
+                    || status == ExecutableState.PAUSED || status == ExecutableState.DISCARDED
+                    || status == ExecutableState.SUICIDAL;
         });
     }
 

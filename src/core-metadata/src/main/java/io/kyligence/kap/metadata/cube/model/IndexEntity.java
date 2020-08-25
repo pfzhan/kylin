@@ -28,6 +28,7 @@ import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -66,7 +68,6 @@ public class IndexEntity implements Serializable, IKeep {
      */
     public static final long TABLE_INDEX_START_ID = 20_000_000_000L;
     public static final long INDEX_ID_STEP = 10000L;
-    public static final long LAYOUT_ID_STEP = 1L;
 
     @JsonBackReference
     private IndexPlan indexPlan;
@@ -325,6 +326,11 @@ public class IndexEntity implements Serializable, IKeep {
         int[] measures;
         boolean isTableIndex;
 
+        @Getter(value = AccessLevel.PRIVATE, lazy = true)
+        private final BitSet dimBitSet = BitSets.valueOf(dims);
+        @Getter(value = AccessLevel.PRIVATE, lazy = true)
+        private final BitSet measureBitSet = BitSets.valueOf(measures);
+
         public IndexIdentifier(List<Integer> dimBitSet, List<Integer> measureBitSet, boolean isTableIndex) {
             this(dimBitSet, measureBitSet);
             this.isTableIndex = isTableIndex;
@@ -348,19 +354,19 @@ public class IndexEntity implements Serializable, IKeep {
             if (o == null || getClass() != o.getClass())
                 return false;
             IndexIdentifier that = (IndexIdentifier) o;
-            return isTableIndex == that.isTableIndex
-                    && Objects.equals(BitSets.valueOf(dims), BitSets.valueOf(that.dims))
-                    && Objects.equals(BitSets.valueOf(measures), BitSets.valueOf(that.measures));
+            return isTableIndex == that.isTableIndex && Objects.equals(getDimBitSet(), that.getDimBitSet())
+                    && Objects.equals(getMeasureBitSet(), that.getMeasureBitSet());
         }
 
         @Override
         public int hashCode() {
             // the hash code of primary array with same elements does not equal
-            return Objects.hash(BitSets.valueOf(dims), BitSets.valueOf(measures), isTableIndex);
+            return Objects.hash(getDimBitSet(), getMeasureBitSet(), isTableIndex);
         }
     }
 
     public IndexIdentifier createIndexIdentifier() {
+        // for we should not change the order dimensions and measures of this index, therefore copy and then sort
         List<Integer> dimensions = Lists.newArrayList(getDimensions());
         List<Integer> measures = Lists.newArrayList(getMeasures());
         dimensions.sort(Integer::compareTo);

@@ -1742,7 +1742,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    @Ignore
     public void testModelNonEquiJoinBrokenRepair() throws Exception {
         /* 1.create scd2 model
          * 2.turn off scd2 configuration
