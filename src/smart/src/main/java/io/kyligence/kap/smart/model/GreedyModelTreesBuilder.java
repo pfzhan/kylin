@@ -94,6 +94,9 @@ public class GreedyModelTreesBuilder {
                                 ctx.getGroupByColumns().add(func.getParameters().get(1).getColRef());
                                 return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
                                         func.getParameters().subList(0, 1), "bitmap");
+                            } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase((func.getExpression()))) {
+                                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
+                                        func.getParameters().subList(0, 1), "bitmap");
                             } else {
                                 return func;
                             }
@@ -302,7 +305,6 @@ public class GreedyModelTreesBuilder {
         }
 
         /**
-         *
          * @param ctx
          * @param alias2JoinTables unique alias name, usually depend on io.kyligence.kap.smart.util.TableAliasGenerator
          * @param tableRef2Alias
@@ -396,8 +398,8 @@ public class GreedyModelTreesBuilder {
 
         /**
          * get new alias by original table name, for table 'foo'
-         *   foo -> foo_1
-         *   foo_1 -> foo_2
+         * foo -> foo_1
+         * foo_1 -> foo_2
          *
          * @param orginalName
          * @param oldAlias

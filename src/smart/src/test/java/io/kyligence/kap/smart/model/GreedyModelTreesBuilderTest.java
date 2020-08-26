@@ -25,7 +25,10 @@
 package io.kyligence.kap.smart.model;
 
 import java.util.Collections;
+import java.util.List;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -88,9 +91,9 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
     }
 
     /**
-     *  acceleration A , A <-> B , A <-> B <-> C when exist model A <-> B <-> C
-     *
-     *  expect all accelerate succeed.
+     * acceleration A , A <-> B , A <-> B <-> C when exist model A <-> B <-> C
+     * <p>
+     * expect all accelerate succeed.
      */
     @Test
     public void testPartialJoinInSemiAutoModeContainEachOther() {
@@ -106,7 +109,6 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
                 new String[] { sqls[0] });
         val smartMaster = new NSmartMaster(context1);
         smartMaster.runWithContext();
-
 
         val originalIndexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         Assert.assertEquals(1, originalIndexPlan.getAllIndexes().size());
@@ -142,9 +144,9 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
     }
 
     /**
-     *  acceleration A <-> B , A <-> C, A <-> D when exist model A <-> B <-> C
-     *
-     *  expect A <-> B , A <-> C accelerate succeed, A <-> D accelerate failed.
+     * acceleration A <-> B , A <-> C, A <-> D when exist model A <-> B <-> C
+     * <p>
+     * expect A <-> B , A <-> C accelerate succeed, A <-> D accelerate failed.
      */
     @Test
     public void testPartialJoinInSemiAutoModeContainFail() {
@@ -153,12 +155,11 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         String[] sqls = new String[] {
                 "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
                 "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
-                "select test_kylin_fact.CAL_DT from test_kylin_fact inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID"};
+                "select test_kylin_fact.CAL_DT from test_kylin_fact inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" };
 
         // create model A join B join C
-        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
-                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY"
-                });
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
+                "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY" });
         val smartMaster = new NSmartMaster(context1);
         smartMaster.runWithContext();
 
@@ -179,9 +180,9 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
     }
 
     /**
-     *  acceleration A <-> B , A <-> C, A <-> D when exist model A <-> B <-> C <-> D
-     *
-     *  expect A <-> B , A <-> C, A <-> D accelerate succeed.
+     * acceleration A <-> B , A <-> C, A <-> D when exist model A <-> B <-> C <-> D
+     * <p>
+     * expect A <-> B , A <-> C, A <-> D accelerate succeed.
      */
     @Test
     public void testPartialJoinInSemiAutoModeNotContainEachOther() {
@@ -190,12 +191,11 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         String[] sqls = new String[] {
                 "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
                 "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
-                "select test_kylin_fact.CAL_DT from test_kylin_fact inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID"};
+                "select test_kylin_fact.CAL_DT from test_kylin_fact inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" };
 
         // create model A join B join C join D
-        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
-                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID"
-                });
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
+                "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" });
         val smartMaster = new NSmartMaster(context1);
         smartMaster.runWithContext();
 
@@ -216,9 +216,9 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
     }
 
     /**
-     *  acceleration A <-> B , A <-> C, D when exist model A <-> B <-> C, D
-     *
-     *  expect all accelerate succeed.
+     * acceleration A <-> B , A <-> C, D when exist model A <-> B <-> C, D
+     * <p>
+     * expect all accelerate succeed.
      */
     @Test
     public void testPartialJoinInSemiAutoModeWithMultiModel() {
@@ -227,13 +227,12 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         String[] sqls = new String[] {
                 "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
                 "select test_kylin_fact.trans_id from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
-                "select TEST_ORDER.ORDER_ID from TEST_ORDER"};
+                "select TEST_ORDER.ORDER_ID from TEST_ORDER" };
 
         // create model A join B join C, D
-        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
-                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
-                        "select TEST_ORDER.ORDER_ID from TEST_ORDER"
-                });
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
+                "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
+                "select TEST_ORDER.ORDER_ID from TEST_ORDER" });
         val smartMaster = new NSmartMaster(context1);
         smartMaster.runWithContext();
 
@@ -253,11 +252,10 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
     }
 
-
     /**
-     *  acceleration A <-> B , A -> D when exist model A <-> B <-> C -> D
-     *
-     *  expect all accelerate succeed.
+     * acceleration A <-> B , A -> D when exist model A <-> B <-> C -> D
+     * <p>
+     * expect all accelerate succeed.
      */
     @Test
     public void testPartialJoinInSemiAutoModeMixInnerJoinAndLeftJoin() {
@@ -290,9 +288,9 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
     }
 
     /**
-     *  acceleration A <-> B , A <-> B' when exist model B' <-> A <-> B
-     *
-     *  expect all accelerate succeed.
+     * acceleration A <-> B , A <-> B' when exist model B' <-> A <-> B
+     * <p>
+     * expect all accelerate succeed.
      */
     @Test
     public void testPartialJoinInSemiAutoModeTableOfSameName() {
@@ -303,9 +301,8 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
                 "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account2 on test_kylin_fact.ORDER_ID = account2.ACCOUNT_SELLER_LEVEL" };
 
         // create model A join B join C
-        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
-                new String[] { "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account1 on test_kylin_fact.seller_id = account1.account_id inner join test_account as account2 on test_kylin_fact.ORDER_ID = account2.ACCOUNT_SELLER_LEVEL "
-                });
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
+                "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account1 on test_kylin_fact.seller_id = account1.account_id inner join test_account as account2 on test_kylin_fact.ORDER_ID = account2.ACCOUNT_SELLER_LEVEL " });
         val smartMaster = new NSmartMaster(context1);
         smartMaster.runWithContext();
 
@@ -330,12 +327,11 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
 
         String[] sqls = new String[] {
                 "select count(test_kylin_fact.trans_ID+1),count(test_kylin_fact.trans_id+1) from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id",
-                "select count(test_kylin_fact.TRANS_ID+1) from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY"};
+                "select count(test_kylin_fact.TRANS_ID+1) from test_kylin_fact inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY" };
 
         // create model A join B join C
-        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
-                new String[] { "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY"
-                });
+        val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
+                "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY" });
         val smartMaster = new NSmartMaster(context1);
         smartMaster.runWithContext();
 
@@ -383,4 +379,45 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
 
         getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "false");
     }
+
+    @Test
+    public void testBitmapMeasure() {
+        String[] sqls = new String[] { "select bitmap_uuid(test_kylin_fact.trans_id) from test_kylin_fact",
+                "select count(distinct test_kylin_fact.trans_id) from test_kylin_fact" };
+        for (String sql : sqls) {
+            List<NDataModel.Measure> recommendMeassures = getRecommendModel(sql).get(0).getAllMeasures();
+            Assert.assertEquals(2, recommendMeassures.size());
+            Assert.assertEquals(FunctionDesc.FUNC_COUNT_DISTINCT,
+                    recommendMeassures.get(1).getFunction().getExpression());
+        }
+    }
+
+    @Test
+    public void testIntersectionMeasure() {
+        String[] sqls = new String[] {
+                "select INTERSECT_BITMAP_UUID(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A']) from test_kylin_fact",
+                "select INTERSECT_COUNT(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A']) from test_kylin_fact",
+                "select INTERSECT_BITMAP_UUID(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A']) from test_kylin_fact",
+                "select INTERSECT_VALUE(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A']) from test_kylin_fact",
+                "select INTERSECT_VALUE_V2(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A'],'RAWSTRING') from test_kylin_fact",
+                "select INTERSECT_BITMAP_UUID_V2(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A'],'RAWSTRING') from test_kylin_fact",
+                "select INTERSECT_COUNT_V2(test_kylin_fact.trans_id,LSTG_FORMAT_NAME,array['A'],'RAWSTRING') from test_kylin_fact" };
+        for (String sql : sqls) {
+            NDataModel recommendModel = getRecommendModel(sql).get(0);
+            Assert.assertEquals(true,
+                    recommendModel.getDimensionNameIdMap().containsKey("TEST_KYLIN_FACT.LSTG_FORMAT_NAME"));
+            List<NDataModel.Measure> recommendMeasures = recommendModel.getAllMeasures();
+            Assert.assertEquals(2, recommendMeasures.size());
+            Assert.assertEquals(FunctionDesc.FUNC_COUNT_DISTINCT,
+                    recommendMeasures.get(1).getFunction().getExpression());
+        }
+    }
+
+    private List<NDataModel> getRecommendModel(String sql) {
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sql });
+        val smartMaster = new NSmartMaster(context);
+        smartMaster.runWithContext();
+        return smartMaster.getRecommendedModels();
+    }
+
 }
