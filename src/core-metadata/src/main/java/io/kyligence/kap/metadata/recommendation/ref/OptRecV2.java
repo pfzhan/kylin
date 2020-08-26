@@ -509,10 +509,10 @@ public class OptRecV2 {
             }
 
             /* Parameters of measure can only ordinary columns or computed columns,
-             * so if dependencies of them are the same, it's equal, then the second
-             * measureRef should forward to the first one.
+             * so if the function name and dependencies of two measureRefs are the same, 
+             * they are identical, then the second measureRef should forward to the first one.
              */
-            if (measureRef.isDependenciesIdentical(entry)) {
+            if (measureRef.isIdentical(entry)) {
                 logDuplicateRawRecItem(recItem, -entry.getId());
                 measureRef.setExisted(true);
                 measureRefs.put(negRecItemId, measureRefs.get(entry.getId()));
@@ -558,14 +558,15 @@ public class OptRecV2 {
     }
 
     private List<RecommendationRef> getLegalRefs(Map<Integer, ? extends RecommendationRef> refMap) {
-        List<RecommendationRef> effectiveRefs = Lists.newArrayList();
+        Set<RecommendationRef> effectiveRefs = Sets.newHashSet();
         refMap.forEach((key, ref) -> {
             if (ref.isLegal()) {
                 effectiveRefs.add(ref);
             }
         });
-        effectiveRefs.sort(Comparator.comparingInt(RecommendationRef::getId));
-        return effectiveRefs;
+        List<RecommendationRef> effectiveRefList = Lists.newArrayList(effectiveRefs);
+        effectiveRefList.sort(Comparator.comparingInt(RecommendationRef::getId));
+        return effectiveRefList;
     }
 
     private Set<Integer> filterBrokenLayoutRefs() {

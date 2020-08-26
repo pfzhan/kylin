@@ -70,15 +70,24 @@ public class MeasureRef extends RecommendationRef {
 
     @Override
     public String getDataType() {
-        throw new IllegalStateException("Get datatype of MeasureRef is not allowed, but you can get it by getContent");
+        return this.getMeasure().getFunction().getReturnType();
     }
 
-    public boolean isDependenciesIdentical(RecommendationRef ref) {
+    private boolean isDependenciesIdentical(MeasureRef measureRef) {
+        return Objects.equals(this.getDependencies(), measureRef.getDependencies());
+    }
+
+    private boolean isFunctionIdentical(MeasureRef measureRef) {
+        return Objects.equals(this.getMeasure().getFunction().getExpression(),
+                measureRef.getMeasure().getFunction().getExpression());
+    }
+
+    public boolean isIdentical(RecommendationRef ref) {
         if (ref == null) {
             return false;
         }
         Preconditions.checkArgument(ref instanceof MeasureRef);
         MeasureRef measureRef = (MeasureRef) ref;
-        return Objects.equals(this.getDependencies(), measureRef.getDependencies());
+        return isFunctionIdentical(measureRef) && isDependenciesIdentical(measureRef);
     }
 }
