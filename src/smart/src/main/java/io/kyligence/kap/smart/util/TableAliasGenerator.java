@@ -172,22 +172,22 @@ public class TableAliasGenerator {
             if (joinDescs == null || joinDescs.length == 0)
                 return "";
 
-            StringBuilder alias = new StringBuilder(getAlias(joinDescs[0].getPKSide().getTableIdentity()));
+            StringBuilder alias = new StringBuilder(getAlias(joinDescs[0].getFKSide().getTableIdentity()));
             for (JoinDesc joinDesc : joinDescs) {
                 if (joinDesc.getPrimaryKeyColumns() == null
                         || joinDesc.getPrimaryKeyColumns().length == 0 && joinDesc.getNonEquiJoinCondition() == null) {
                     break;
                 } else if (joinDesc.getNonEquiJoinCondition() != null) {
-                    alias.append(joinDesc.getNonEquiJoinCondition().toString());
-                    alias.append(Arrays.toString(Arrays.stream(joinDesc.getForeignKeyColumns())
-                            .map(join -> join.getTableRef().getTableIdentity()).toArray()));
+                    alias.append(KEY + joinDesc.getNonEquiJoinCondition().toString());
+                    alias.append(
+                            TO + getAlias(joinDesc.getPKSide().getTableIdentity()));
                 } else {
                     alias.append(KEY + Arrays.toString(
-                            Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
-                    alias.append(
-                            TO + getAlias(joinDesc.getForeignKeyColumns()[0].getTableRef().getTableIdentity()));
-                    alias.append(KEY + Arrays.toString(
                             Arrays.stream(joinDesc.getForeignKeyColumns()).map(TblColRef::getName).toArray()));
+                    alias.append(
+                            TO + getAlias(joinDesc.getPrimaryKeyColumns()[0].getTableRef().getTableIdentity()));
+                    alias.append(KEY + Arrays.toString(
+                            Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
                 }
             }
             return alias.toString();

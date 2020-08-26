@@ -24,43 +24,57 @@
 
 package io.kyligence.kap.smart.util;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.util.TableAliasGenerator.TableAliasDict;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-public class TableAliasGeneratorTest {
-    public static void main(String[] args) {
-        String[] testTableNames = { "KYLIN_SALES",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CALL_CENTER",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CATALOG_PAGE",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CATALOG_RETURNS",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CATALOG_SALES",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CUSTOMER_ADDRESS",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CUSTOMER_DEMOGRAPHICS",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CUSTOMER",
-                "TPCDS_BIN_PARTITIONED_ORC_2.DATE_DIM",
-                "TPCDS_BIN_PARTITIONED_ORC_2.HOUSEHOLD_DEMOGRAPHICS",
-                "TPCDS_BIN_PARTITIONED_ORC_2.INCOME_BAND",
-                "TPCDS_BIN_PARTITIONED_ORC_2.INVENTORY",
-                "TPCDS_BIN_PARTITIONED_ORC_2.ITEM",
-                "TPCDS_BIN_PARTITIONED_ORC_2.PROMOTION",
-                "TPCDS_BIN_PARTITIONED_ORC_2.REASON",
-                "TPCDS_BIN_PARTITIONED_ORC_2.SHIP_MODE",
-                "TPCDS_BIN_PARTITIONED_ORC_2.STORE_RETURNS",
-                "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES",
-                "TPCDS_BIN_PARTITIONED_ORC_2.STORE",
-                "TPCDS_BIN_PARTITIONED_ORC_2.TIME_DIM",
-                "TPCDS_BIN_PARTITIONED_ORC_2.WAREHOUSE",
-                "TPCDS_BIN_PARTITIONED_ORC_2.WEB_PAGE",
-                "TPCDS_BIN_PARTITIONED_ORC_2.WEB_RETURNS",
-                "TPCDS_BIN_PARTITIONED_ORC_2.WEB_SALES",
-                "TPCDS_BIN_PARTITIONED_ORC_2.WEB_SITE"};
-        
+public class TableAliasGeneratorTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() {
+        createTestMetadata();
+    }
+
+    @Test
+    public void testJoinHierachy() {
+        String[] testTableNames = { "TABLEA", "TABLEB", "TABLEC", "TABLED"};
         TableAliasDict dict = TableAliasGenerator.generateNewDict(testTableNames);
-        
-        for (String table : testTableNames) {
-            System.out.println(table + " => " + dict.getAlias(table));
-        }
 
-        System.out.println(dict.getHierachyAlias(new String[] { "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES",
-                "TPCDS_BIN_PARTITIONED_ORC_2.CUSTOMER_DEMOGRAPHICS", "TPCDS_BIN_PARTITIONED_ORC_2.CUSTOMER_ADDRESS" }));
+        TableRef tableARef = mockTableRef("TABLEA", "COLA");
+        TableRef tableBRef = mockTableRef("TABLEB", "COLB");
+        TableRef tableCRef = mockTableRef("TABLEC", "COL");
+        TableRef tableDRef = mockTableRef("TABLED", "COL");
+        String joinHierachy = dict.getHierachyAliasFromJoins(new JoinDesc[]{
+                mockJoinDesc(tableBRef, tableARef, "COLB", "COLA"),
+                mockJoinDesc(tableCRef, tableBRef, "COL", "COLB"),
+                mockJoinDesc(tableDRef, tableBRef, "COL", "COLB")
+        });
+        Assert.assertEquals("T_KEY_[COLA]__TO__TA_KEY_[COLB]_KEY_[COLB]__TO__TAB_KEY_[COL]_KEY_[COLB]__TO__TABL_KEY_[COL]", joinHierachy);
+    }
+
+    private TableRef mockTableRef(String tableName, String col) {
+        TableDesc tableDesc = TableDesc.mockup(tableName);
+        tableDesc.setColumns(new ColumnDesc[]{ColumnDesc.mockup(tableDesc, 0, col, "string")});
+        return new TableRef(new NDataModel(), tableName, tableDesc, false);
+    }
+
+    private JoinDesc mockJoinDesc(TableRef pTable, TableRef fTable, String pk, String fk) {
+        JoinDesc joinDesc = new JoinDesc();
+        joinDesc.setPrimaryKey(new String[] {pk});
+        joinDesc.setForeignKey(new String[] {fk});
+        joinDesc.setPrimaryKeyColumns(new TblColRef[] {pTable.getColumn(pk)});
+        joinDesc.setForeignKeyColumns(new TblColRef[] {fTable.getColumn(fk)});
+        joinDesc.setPrimaryTableRef(pTable);
+        joinDesc.setForeignTableRef(fTable);
+        joinDesc.setType("LEFT");
+        return joinDesc;
     }
 }
