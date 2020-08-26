@@ -223,7 +223,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getCliWorkingDir", new PropertiesEntity("kylin.job.remote-cli-working-dir", "/kylin", "/kylin"));
 
-        map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-project-concurrent-jobs", "10", 10));
+        map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-concurrent-jobs", "10", 10));
 
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 

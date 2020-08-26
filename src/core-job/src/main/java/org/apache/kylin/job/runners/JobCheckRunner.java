@@ -42,16 +42,6 @@ public class JobCheckRunner extends AbstractDefaultSchedulerRunner {
         super(nDefaultScheduler);
     }
 
-    private boolean isJobPoolFull() {
-        Map<String, Executable> runningJobs = context.getRunningJobs();
-        if (runningJobs.size() >= nDefaultScheduler.getJobEngineConfig().getMaxConcurrentJobLimit()) {
-            logger.warn("There are too many jobs running, Job Fetch will wait until next schedule time");
-            return true;
-        }
-
-        return false;
-    }
-
     private boolean checkTimeoutIfNeeded(String jobId, Long startTime) {
         Integer timeOutMinute = KylinConfig.getInstanceFromEnv().getSchedulerJobTimeOutMinute();
         if (timeOutMinute == 0) {
@@ -89,7 +79,6 @@ public class JobCheckRunner extends AbstractDefaultSchedulerRunner {
     protected void doRun() {
 
         logger.info("start check project {} job pool.", project);
-        context.setJobFull(isJobPoolFull());
 
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Map<String, Executable> runningJobs = context.getRunningJobs();

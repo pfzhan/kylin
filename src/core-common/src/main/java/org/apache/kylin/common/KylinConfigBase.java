@@ -773,14 +773,14 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getMaxConcurrentJobLimit() {
-        return Integer.parseInt(getOptional("kylin.job.max-project-concurrent-jobs", "10"));
+        return Integer.parseInt(getOptional("kylin.job.max-concurrent-jobs", "20"));
     }
 
     public Boolean getAutoSetConcurrentJob() {
         if (isDevOrUT()) {
             return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", FALSE));
         }
-        return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", TRUE));
+        return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", FALSE));
     }
 
     public double getMaxLocalConsumptionRatio() {

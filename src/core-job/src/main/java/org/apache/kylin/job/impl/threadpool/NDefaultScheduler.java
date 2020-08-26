@@ -158,7 +158,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
                 new NamedThreadFactory("FetchJobWorker(project:" + project + ")"));
         int corePoolSize = jobEngineConfig.getMaxConcurrentJobLimit();
         if (config.getAutoSetConcurrentJob()) {
-            corePoolSize = Integer.MAX_VALUE;
             val availableMemoryRate = config.getMaxLocalConsumptionRatio();
             synchronized (NDefaultScheduler.class) {
                 if (Integer.MAX_VALUE == memoryRemaining.availablePermits()) {

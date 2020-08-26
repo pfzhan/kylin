@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.dao;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -91,7 +92,9 @@ public class NExecutableDao {
     }
 
     public List<String> getJobIds() {
-        return crud.listAll().stream().map(RootPersistentEntity::resourceName).collect(Collectors.toList());
+        return crud.listAll().stream()
+                .sorted(Comparator.comparing(ExecutablePO::getCreateTime))
+                .map(RootPersistentEntity::resourceName).collect(Collectors.toList());
     }
 
     public ExecutablePO getJobByUuid(String uuid) {

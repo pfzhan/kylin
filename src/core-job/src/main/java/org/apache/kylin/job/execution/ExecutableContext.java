@@ -61,9 +61,6 @@ public class ExecutableContext {
     private long epochId;
     @Getter
     @Setter
-    private volatile boolean isJobFull = false;
-    @Getter
-    @Setter
     private volatile boolean reachQuotaLimit = false;
     @Getter
     @Setter

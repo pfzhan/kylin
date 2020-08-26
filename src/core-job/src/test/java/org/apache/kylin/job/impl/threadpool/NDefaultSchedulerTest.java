@@ -28,6 +28,7 @@ import static org.awaitility.Awaitility.await;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,7 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
@@ -1353,6 +1355,60 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertTimeSucceed(newCreateTime, job.getId());
         assertMemoryRestore(currMem);
         Assert.assertEquals(1, killProcessCount.get());
+    }
+
+    @Test
+    public void testConcurrentJobLimit() throws InterruptedException {
+        String project = "heterogeneous_segment";
+        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        val scheduler = NDefaultScheduler.getInstance(project);
+        val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val executableManager = Mockito.spy(originExecutableManager);
+        Mockito.doAnswer(invocation -> {
+            String jobId = invocation.getArgument(0);
+            originExecutableManager.destroyProcess(jobId);
+            return null;
+        }).when(executableManager).destroyProcess(Mockito.anyString());
+
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.job.max-concurrent-jobs", "1");
+        scheduler.init(new JobEngineConfig(config));
+
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow(modelId);
+        DefaultChainedExecutable job1 = generateJob(df, project);
+        DefaultChainedExecutable job2 = generateJob(df, project);
+        executableManager.addJob(job1);
+        executableManager.addJob(job2);
+        waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
+
+        val runningExecutables = executableManager.getRunningExecutables(project, modelId);
+        runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
+        Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
+        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(1).getStatus());
+
+        waitForJobByStatus(job1.getId(), 60000, null, executableManager);
+        waitForJobByStatus(job2.getId(), 60000, null, executableManager);
+        Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job1.getId()).getState());
+        Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job2.getId()).getState());
+
+        scheduler.shutdown();
+    }
+
+    private DefaultChainedExecutable generateJob(NDataflow df, String project) {
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        job.setProject(project);
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+        job.setTargetSubject(df.getModel().getUuid());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        BaseTestExecutable task1 = new SucceedTestExecutable();
+        task1.setTargetSubject(df.getModel().getUuid());
+        task1.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task1);
+        return job;
     }
 
     private void assertPausedState(ExecutableDurationContext context, long interval) {

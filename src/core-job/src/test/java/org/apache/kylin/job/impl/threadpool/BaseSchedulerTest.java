@@ -115,12 +115,26 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     protected void waitForJobFinish(String jobId, int maxWaitTime) {
+        waitForJobByStatus(jobId, maxWaitTime, null, executableManager);
+    }
+
+    protected void waitForJobByStatus(String jobId, int maxWaitTime,
+                                      final ExecutableState state, final NExecutableManager executableManager) {
         await().atMost(maxWaitTime, TimeUnit.MILLISECONDS).until(() -> {
             AbstractExecutable job = executableManager.getJob(jobId);
             ExecutableState status = job.getStatus();
-            return status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
+            if (state != null) {
+                if (status == state) {
+                    return true;
+                }
+                return false;
+            }
+            if (status == ExecutableState.SUCCEED || status == ExecutableState.ERROR
                     || status == ExecutableState.PAUSED || status == ExecutableState.DISCARDED
-                    || status == ExecutableState.SUICIDAL;
+                    || status == ExecutableState.SUICIDAL) {
+                return true;
+            }
+            return false;
         });
     }
 

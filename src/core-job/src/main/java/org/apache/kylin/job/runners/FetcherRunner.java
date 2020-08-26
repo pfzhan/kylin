@@ -128,7 +128,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 switch (output.getState()) {
                 case READY:
                     nReady++;
-                    if (context.isJobFull() || context.isReachQuotaLimit()) {
+                    if (isJobPoolFull() || context.isReachQuotaLimit()) {
                         break;
                     }
 
@@ -205,6 +205,14 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             }
             logger.warn("{} fail to schedule", jobDesc, ex);
         }
+    }
+
+    private boolean isJobPoolFull() {
+        if (context.getRunningJobs().size() >= nDefaultScheduler.getJobEngineConfig().getMaxConcurrentJobLimit()) {
+            logger.warn("There are too many jobs running, Job Fetch will wait until next schedule time.");
+            return true;
+        }
+        return false;
     }
 
     void scheduleNext() {
