@@ -52,10 +52,6 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
@@ -64,6 +60,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
 
 /**
  * @author yangli9
@@ -210,7 +211,7 @@ public class CliCommandExecutor {
                 return new CliCmdExecResult(exitCode, b, pid);
 
             } catch (InterruptedException e) {
-                logger.warn("thread is interrupt", e);
+                logger.warn("Thread is interrupted, cmd: {}, pid: {}", cmd, pid, e);
                 Thread.currentThread().interrupt();
                 throw e;
             }

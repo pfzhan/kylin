@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -47,6 +48,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -56,6 +58,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.tool.constant.StageEnum;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
@@ -63,7 +66,6 @@ import io.kyligence.kap.tool.util.ToolUtil;
 import io.kyligence.kap.tool.util.ZipFileUtil;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 
 public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -99,9 +101,13 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             .create("systemProp");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_META_SUBPROCESS = OptionBuilder.getInstance().withArgName("subProcessMeta")
-            .isRequired(false).withDescription("Specify whether using sub process to dump metadata")
-            .create("subProcessMeta");
+    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg()
+            .isRequired(false).withDescription("Specify number of threads for parallel extraction.").create("threads");
+
+    @SuppressWarnings("static-access")
+    static final Option OPTION_DIAGID = OptionBuilder.getInstance().withArgName("diagId")
+            .hasArg().isRequired(false).withDescription("Specify whether diag from web")
+            .create("diagId");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";
     private static final String[] COMMIT_SHA1_FILES = { "commit_SHA1", "commit.sha1" };
@@ -115,15 +121,13 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     public static final String OPT_PROJECT = "-project";
     public static final String OPT_DIR = "-dir";
 
+    private static final int DEFAULT_PARALLEL_SIZE = 4;
+
     protected final Options options;
 
     @Getter
     @Setter
     private String packageType;
-
-    @Getter
-    @Setter
-    private String sparderAppId;
 
     @Getter
     private File exportDir;
@@ -142,12 +146,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     private boolean includeSystemEnv;
 
-    private enum StageEnum {
-        PREPARE, EXTRACT, COMPRESS, DONE
-    }
-
     protected StageEnum stage = StageEnum.PREPARE;
     protected ScheduledExecutorService executorService;
+    protected ScheduledExecutorService timerExecutorService;
     protected boolean mainTaskComplete;
 
     public AbstractInfoExtractorTool() {
@@ -159,7 +160,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
         options.addOption(OPTION_START_TIME);
         options.addOption(OPTION_END_TIME);
-        options.addOption(OPTION_META_SUBPROCESS);
+        options.addOption(OPTION_DIAGID);
 
         packageType = DEFAULT_PACKAGE_TYPE;
 
@@ -192,6 +193,15 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         boolean shouldCompress = getBooleanOption(optionsHelper, OPTION_COMPRESS, true);
         boolean submodule = getBooleanOption(optionsHelper, OPTION_SUBMODULE, false);
         includeSystemEnv = getBooleanOption(optionsHelper, OPTION_SYSTEM_ENV, false);
+
+        if (isDiag()) {
+            final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
+            executorService = Executors.newScheduledThreadPool(threadsNum);
+            if (isDiagFromWeb(optionsHelper)) {
+                scheduleDiagProgress(optionsHelper.getOptionValue(OPTION_DIAGID));
+            }
+            logger.info("Start diagnosis info extraction in {} threads.", threadsNum);
+        }
 
         Preconditions.checkArgument(!StringUtils.isEmpty(exportDest),
                 "destDir is not set, exit directly without extracting");
@@ -233,6 +243,37 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             exportDir = new File(exportDest);
         }
         stage = StageEnum.DONE;
+        if (isDiagFromWeb(optionsHelper)) {
+            reportDiagProgressImmediately(optionsHelper.getOptionValue(OPTION_DIAGID));
+            timerExecutorService.shutdownNow();
+        }
+    }
+
+    private boolean isDiag() {
+        return this instanceof DiagClientTool || this instanceof JobDiagInfoTool;
+    }
+
+    private boolean isDiagFromWeb(OptionsHelper optionsHelper) {
+        return isDiag() && optionsHelper.hasOption(OPTION_DIAGID);
+    }
+
+    private void scheduleDiagProgress(String diagId) {
+        long interval = 3;
+        int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
+        RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
+        timerExecutorService = Executors.newSingleThreadScheduledExecutor();
+        timerExecutorService.scheduleWithFixedDelay(() -> restClient.updateDiagProgress(diagId, getStage(), getProgress()),
+                0, interval, TimeUnit.SECONDS);
+    }
+
+    private void reportDiagProgressImmediately(String diagId) {
+        int retry = 3;
+        int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
+        RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
+        boolean updateSuccess = false;
+        while (retry-- > 0 && !updateSuccess) {
+            updateSuccess = restClient.updateDiagProgress(diagId, getStage(), getProgress());
+        }
     }
 
     public void extractCommitFile(File exportDir) {
@@ -425,23 +466,13 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         }
     }
 
-    protected void dumpMetadata(OptionsHelper optionsHelper, String[] metaToolArgs, String dumpMetadataCmd,
-            File recordTime) {
+    protected void dumpMetadata(String[] metaToolArgs, File recordTime) {
         Future metadataTask = executorService.submit(() -> {
             long start = System.currentTimeMillis();
             try {
-                boolean subProcessMeta = optionsHelper.hasOption(OPTION_META_SUBPROCESS);
-                logger.info("Start to dump metadata , subProcessMeta {}.", subProcessMeta);
                 File metaDir = new File(exportDir, "metadata");
                 FileUtils.forceMkdir(metaDir);
-                if (!subProcessMeta) {
-                    new MetadataTool().execute(metaToolArgs);
-                } else {
-                    logger.info("Dump metadata cmd is {}", dumpMetadataCmd);
-                    val result = new CliCommandExecutor().execute(dumpMetadataCmd, null);
-                    logger.info("Dump metadata result code : {} , cmd : {} , pid : {}.", result.getCode(),
-                            result.getCmd(), result.getProcessId());
-                }
+                new MetadataTool().execute(metaToolArgs);
             } catch (Exception e) {
                 logger.error("Failed to extract metadata.", e);
             }

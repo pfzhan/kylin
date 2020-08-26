@@ -37,5 +37,4 @@ public class DiagClientCLI {
         logger.info("Collect full diagnosis info completely.");
         System.exit(0);
     }
-
 }

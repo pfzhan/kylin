@@ -754,6 +754,10 @@ public class Message {
         return "Diagnostic package not found in directory: %s.";
     }
 
+    public String getDIAG_FAILED() {
+        return "Failed to generate diagnostic package, the reason for the failure is unknown, please try to regenerate it.";
+    }
+
     // Encoding
     public String getVALID_ENCODING_NOT_AVAILABLE() {
         return "Can not provide valid encodings for datatype: %s.";

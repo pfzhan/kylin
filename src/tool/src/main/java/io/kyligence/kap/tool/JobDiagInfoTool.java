@@ -27,14 +27,12 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -72,17 +70,11 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             .create("includeConf");
 
     @SuppressWarnings("static-access")
-    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg()
-            .isRequired(false).withDescription("Specify number of threads for parallel extraction.").create("threads");
-
-    @SuppressWarnings("static-access")
     private static final Option OPTION_META = OptionBuilder.getInstance().withArgName("includeMeta").hasArg()
             .isRequired(false).withDescription("Specify whether to include metadata to extract. Default true.")
             .create("includeMeta");
 
     private static final String OPT_JOB = "-job";
-
-    private static final int DEFAULT_PARALLEL_SIZE = 4;
 
     public JobDiagInfoTool() {
         super();
@@ -105,12 +97,9 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeYarnLogs = getBooleanOption(optionsHelper, OPTION_INCLUDE_YARN_LOGS, true);
         final boolean includeClient = getBooleanOption(optionsHelper, OPTION_INCLUDE_CLIENT, true);
         final boolean includeConf = getBooleanOption(optionsHelper, OPTION_INCLUDE_CONF, true);
-        final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_META, true);
         final boolean isCloud = getKapConfig().isCloud();
 
-        logger.info("Start diagnosis job info extraction in {} threads.", threadsNum);
-        executorService = Executors.newScheduledThreadPool(threadsNum);
         canceledTasks = new ConcurrentSkipListSet<>();
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
@@ -131,10 +120,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             FileUtils.forceMkdir(metaDir);
             String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
                     "-excludeTableExd" };
-            String dumpMetadataCmd = String.format(
-                    "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -project %s -excludeTableExd",
-                    KylinConfig.getKylinHome(), metaDir.getAbsolutePath(), project);
-            dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd, recordTime);
+            dumpMetadata(metaToolArgs, recordTime);
         }
 
         File auditLogDir = new File(exportDir, "audit_log");

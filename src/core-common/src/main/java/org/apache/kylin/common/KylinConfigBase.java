@@ -110,6 +110,8 @@ public abstract class KylinConfigBase implements Serializable {
     public static final String QUERY_NODE = "query";
     public static final String PATH_DELIMITER = "/";
 
+    public static final String DIAG_ID_PREFIX = "front_";
+
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
      *
@@ -1941,7 +1943,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public static File getDiagFileName() {
         String uuid = UUID.randomUUID().toString().toUpperCase().substring(0, 6);
-        String packageName = "front_" + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()) + "_" + uuid;
+        String packageName = DIAG_ID_PREFIX + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()) + "_" + uuid;
         String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
         String diagPath = "diag_dump/" + packageName;
         File file;

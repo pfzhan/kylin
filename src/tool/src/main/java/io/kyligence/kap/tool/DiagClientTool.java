@@ -25,12 +25,10 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -68,10 +66,6 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             .isRequired(false).withDescription("Specify whether to include client info to extract. Default true.")
             .create("includeClient");
 
-    @SuppressWarnings("static-access")
-    private static final Option OPTION_THREADS = OptionBuilder.getInstance().withArgName("threads").hasArg()
-            .isRequired(false).withDescription("Specify number of threads for parallel extraction.").create("threads");
-
     // Problem category
     @SuppressWarnings("static-access")
     private static final Option OPTION_CATE_BASE = OptionBuilder.getInstance().withArgName("base").hasArg()
@@ -82,8 +76,6 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     @SuppressWarnings("static-access")
     private static final Option OPTION_CATE_META = OptionBuilder.getInstance().withArgName("meta").hasArg()
             .isRequired(false).withDescription("package components include wrong metadata operation").create("meta");
-
-    private static final int DEFAULT_PARALLEL_SIZE = 4;
 
     public DiagClientTool() {
         super();
@@ -113,14 +105,10 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         final boolean includeLog = getBooleanOption(optionsHelper, OPTION_LOG,
                 getBooleanOption(optionsHelper, OPTION_CATE_BASE, true));
 
-        final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
-
         final long startTime = getLongOption(optionsHelper, OPTION_START_TIME, getDefaultStartTime());
         final long endTime = getLongOption(optionsHelper, OPTION_END_TIME, getDefaultEndTime());
         logger.info("Time range: start={}, end={}", startTime, endTime);
 
-        logger.info("Start diagnosis info extraction in {} threads.", threadsNum);
-        executorService = Executors.newScheduledThreadPool(threadsNum);
         canceledTasks = new ConcurrentSkipListSet<>();
         // calculate time used
         final long start = System.currentTimeMillis();
@@ -132,10 +120,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             FileUtils.forceMkdir(metaDir);
             String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
                     "-excludeTableExd" };
-            String dumpMetadataCmd = String.format(
-                    "%s/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir %s -compress false -excludeTableExd",
-                    KylinConfig.getKylinHome(), metaDir.getAbsolutePath());
-            dumpMetadata(optionsHelper, metaToolArgs, dumpMetadataCmd, recordTime);
+            dumpMetadata(metaToolArgs, recordTime);
         }
 
         File auditLogDir = new File(exportDir, "audit_log");

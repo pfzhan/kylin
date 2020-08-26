@@ -46,8 +46,9 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
-import io.kyligence.kap.tool.DiagClientTool;
+import io.kyligence.kap.tool.constant.StageEnum;
 import lombok.val;
 
 public class SystemServiceTest extends NLocalFileMetadataTestCase {
@@ -86,6 +87,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         zipFile.createNewFile();
         SystemService.DiagInfo diagInfo = new SystemService.DiagInfo();
         diagInfo.setExportFile(uuid);
+        diagInfo.setStage(StageEnum.DONE.toString());
         exportPathMap.put("test2", diagInfo);
         ReflectionTestUtils.setField(systemService, "diagMap", exportPathMap);
         val result = systemService.getDiagPackagePath("test2");
@@ -96,9 +98,7 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
     public void testGetExtractorStatus() throws Exception {
         Cache<String, SystemService.DiagInfo> extractorMap = CacheBuilder.newBuilder()
                 .expireAfterAccess(1, TimeUnit.DAYS).build();
-        DiagClientTool diagClientTool = new DiagClientTool();
         SystemService.DiagInfo diagInfo = new SystemService.DiagInfo();
-        diagInfo.setExtractor(diagClientTool);
         extractorMap.put("test1", diagInfo);
         ReflectionTestUtils.setField(systemService, "diagMap", extractorMap);
         val result = systemService.getExtractorStatus("test1");
@@ -118,8 +118,28 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         diagInfo.setTask(task);
         futureMap.put(uuid, diagInfo);
         ReflectionTestUtils.setField(systemService, "diagMap", futureMap);
-        val result = systemService.stopDiagTask(uuid);
-        Assert.assertFalse(result);
+        systemService.stopDiagTask(uuid);
+
+    }
+
+    @Test
+    public void testUpdateDiagProgress() {
+        Cache<String, SystemService.DiagInfo> extractorMap = CacheBuilder.newBuilder()
+                .expireAfterAccess(1, TimeUnit.DAYS).build();
+        SystemService.DiagInfo diagInfo = new SystemService.DiagInfo();
+        extractorMap.put("testUpdate", diagInfo);
+        ReflectionTestUtils.setField(systemService, "diagMap", extractorMap);
+
+        DiagProgressRequest diagProgressRequest = new DiagProgressRequest();
+        diagProgressRequest.setDiagId("testUpdate");
+        diagProgressRequest.setStage(StageEnum.DONE.toString());
+        diagProgressRequest.setProgress(100);
+
+        systemService.updateDiagProgress(diagProgressRequest);
+
+        val result = systemService.getExtractorStatus("testUpdate");
+        Assert.assertEquals(StageEnum.DONE.toString(), result.getData().getStage());
+        Assert.assertEquals(new Float(100), result.getData().getProgress());
     }
 
 }

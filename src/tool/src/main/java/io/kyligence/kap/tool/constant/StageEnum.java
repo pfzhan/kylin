@@ -21,21 +21,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool;
+package io.kyligence.kap.tool.constant;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ClassUtil;
-
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
-public class SparkLogExtractorFactory {
-    private SparkLogExtractorFactory() {
-    }
-
-    public static ISparkLogExtractor create(KylinConfig kylinConfig) {
-        String sparkLogExtractor = kylinConfig.getSparkLogExtractor();
-        log.debug("Use spark log diagCLI {}", sparkLogExtractor);
-        return (ISparkLogExtractor) ClassUtil.newInstance(sparkLogExtractor);
-    }
+public enum StageEnum {
+    PREPARE, EXTRACT, COMPRESS, DONE
 }

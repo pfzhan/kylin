@@ -23,12 +23,14 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -38,15 +40,19 @@ import javax.validation.constraints.NotNull;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.spark.sql.SparderEnv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -55,29 +61,33 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.DestroyProcessUtils;
 import io.kyligence.kap.rest.request.BackupRequest;
+import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
-import io.kyligence.kap.tool.AbstractInfoExtractorTool;
-import io.kyligence.kap.tool.DiagClientTool;
-import io.kyligence.kap.tool.JobDiagInfoTool;
 import io.kyligence.kap.tool.MetadataTool;
-import lombok.AllArgsConstructor;
+import io.kyligence.kap.tool.constant.StageEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
 @Service("systemService")
-@Slf4j
 public class SystemService extends BasicService {
 
+    private static final Logger logger = LoggerFactory.getLogger(SystemService.class);
+
     @Data
-    @AllArgsConstructor
     @NoArgsConstructor
     public static class DiagInfo {
-        private AbstractInfoExtractorTool extractor;
+        private String stage = StageEnum.PREPARE.toString();
+        private float progress = 0.0f;
         private File exportFile;
         private Future task;
+
+        public DiagInfo(File exportFile, Future task) {
+            this.exportFile = exportFile;
+            this.task = task;
+        }
     }
 
     private Cache<String, DiagInfo> diagMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build();
@@ -106,47 +116,52 @@ public class SystemService extends BasicService {
             args.add(backupRequest.getProject());
         }
 
-        log.info("SystemService " + args);
+        logger.info("SystemService {}", args);
         return args.toArray(new String[0]);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) throws IOException {
-
+    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) {
         File exportFile = KylinConfigBase.getDiagFileName();
         String uuid = exportFile.getName();
         FileUtils.deleteQuietly(exportFile);
         exportFile.mkdirs();
 
-        AbstractInfoExtractorTool extractor;
+        CliCommandExecutor commandExecutor = new CliCommandExecutor();
+        PatternedLogger patternedLogger = new PatternedLogger(logger);
+
         String[] arguments;
-        if (StringUtils.isEmpty(jobId)) {//full
+        // full
+        if (StringUtils.isEmpty(jobId)) {
             if (startTime == null && endTime == null) {
                 startTime = Long.toString(System.currentTimeMillis() - 259200000L);
                 endTime = Long.toString(System.currentTimeMillis());
             }
-            extractor = new DiagClientTool();
-            extractor.setSparderAppId(SparderEnv.getSparkSession().sparkContext().applicationId());
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
-                    endTime, "-subProcessMeta" };
+                    endTime, "-diagId", uuid };
         } else {//job
-            extractor = new JobDiagInfoTool();
-            arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-job", jobId, "-subProcessMeta" };
+            arguments = new String[] { "-job", jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
         }
         Future task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
-                extractor.execute(arguments);
+                String finalCommand = String.format("%s/bin/diag.sh %s", KylinConfig.getKylinHome(), StringUtils.join(arguments, " "));
+                commandExecutor.execute(finalCommand, patternedLogger, uuid);
+
+                DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+                if (Objects.isNull(diagInfo) || !"DONE".equals(diagInfo.getStage())) {
+                    throw new KylinException(DIAG_FAILED, MsgPicker.getMsg().getDIAG_FAILED());
+                }
             } catch (Exception ex) {
                 handleDiagException(uuid, ex);
             }
         });
-        diagMap.put(uuid, new DiagInfo(extractor, exportFile, task));
+        diagMap.put(uuid, new DiagInfo(exportFile, task));
         return uuid;
     }
 
     private void handleDiagException(String uuid, @NotNull Exception ex) {
-        log.warn("Diagnostic kit error", ex);
+        logger.warn("Diagnostic kit error", ex);
         Throwable cause = ex;
         while (cause != null && cause.getCause() != null) {
             cause = cause.getCause();
@@ -167,14 +182,13 @@ public class SystemService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String getDiagPackagePath(String uuid) throws Exception {
+    public String getDiagPackagePath(String uuid) {
         DiagStatusResponse exception = exceptionMap.getIfPresent(uuid);
         if (exception != null) {
             throw new RuntimeException(exception.getError());
         }
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
-        AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
-        if (extractor != null && !extractor.getStage().equals("DONE")) {
+        if (diagInfo != null && !"DONE".equals(diagInfo.getStage())) {
             throw new RuntimeException("Diagnostic task is running now , can not download yet");
         }
         File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
@@ -217,26 +231,33 @@ public class SystemService extends BasicService {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, exception, "");
         }
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
-        AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
-        if (extractor == null) {
+        if (Objects.isNull(diagInfo)) {
             throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);
         response.setStatus("000");
-        response.setStage(extractor.getStage());
-        response.setProgress(extractor.getProgress());
+        response.setStage(diagInfo.getStage());
+        response.setProgress(diagInfo.getProgress());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
+    public void updateDiagProgress(DiagProgressRequest diagProgressRequest) {
+        DiagInfo diagInfo = diagMap.getIfPresent(diagProgressRequest.getDiagId());
+        if (Objects.isNull(diagInfo)) {
+            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), diagProgressRequest.getDiagId()));
+        }
+        diagInfo.setStage(diagProgressRequest.getStage());
+        diagInfo.setProgress(diagProgressRequest.getProgress());
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public Boolean stopDiagTask(String uuid) {
-        log.debug("stop diagnostic package task {}", uuid);
+    public void stopDiagTask(String uuid) {
+        logger.debug("Stop diagnostic package task {}", uuid);
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
-        Future task = diagInfo == null ? null : diagInfo.getTask();
-        if (task == null) {
+        if (diagInfo == null) {
             throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
-        return task.cancel(true);
+        DestroyProcessUtils.destroyProcessByJobId(uuid);
     }
 }

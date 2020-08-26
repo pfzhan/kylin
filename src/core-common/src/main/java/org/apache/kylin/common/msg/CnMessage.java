@@ -682,6 +682,10 @@ public class CnMessage extends Message {
         return "找不到诊断包, 路径: %s";
     }
 
+    public String getDIAG_FAILED() {
+        return "生成诊断包失败，失败原因未知，请尝试重新生成。";
+    }
+
     // Encoding
     public String getVALID_ENCODING_NOT_AVAILABLE() {
         return "无法为数据类型: %s 提供合法的编码";

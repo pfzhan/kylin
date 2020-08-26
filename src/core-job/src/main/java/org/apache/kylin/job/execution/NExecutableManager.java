@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -44,7 +43,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -54,7 +52,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -85,6 +82,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.DestroyProcessUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
@@ -713,34 +711,7 @@ public class NExecutableManager {
     }
 
     public void destroyProcess(String jobId) {
-        Process originProc = JobProcessContext.getProcess(jobId);
-        if (Objects.nonNull(originProc) && originProc.isAlive()) {
-            try {
-                final int ppid = JobProcessContext.getPid(originProc);
-                logger.info("start to destroy process {} of job {}", ppid, jobId);
-                //build cmd template
-                StringBuilder cmdBuilder = new StringBuilder("bash ");
-                cmdBuilder.append(Paths.get(KylinConfig.getKylinHome(), "sbin", KILL_PROCESS_TREE));
-                cmdBuilder.append(" ");
-                cmdBuilder.append(ppid);
-                final String killCmd = cmdBuilder.toString();
-                Process killProc = Runtime.getRuntime().exec(killCmd);
-                if (killProc.waitFor(CMD_EXEC_TIMEOUT_SEC, TimeUnit.SECONDS)) {
-                    logger.info("try to destroy process {} of job {}, exec cmd '{}', exitValue : {}", ppid, jobId,
-                            killCmd, killProc.exitValue());
-                    if (!originProc.isAlive()) {
-                        logger.info("destroy process {} of job {} SUCCEED.", ppid, jobId);
-                        return;
-                    }
-                    logger.info("destroy process {} of job {} FAILED.", ppid, jobId);
-                }
-
-                //generally, code executing wouldn't reach here
-                logger.warn("destroy process {} of job {} TIMEOUT exceed {}s.", ppid, jobId, CMD_EXEC_TIMEOUT_SEC);
-            } catch (Exception e) {
-                logger.error("destroy process of job {} FAILED.", jobId, e);
-            }
-        }
+        DestroyProcessUtils.destroyProcessByJobId(jobId);
     }
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {

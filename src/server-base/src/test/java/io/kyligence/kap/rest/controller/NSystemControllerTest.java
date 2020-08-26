@@ -25,8 +25,8 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
-import io.kyligence.kap.junit.rule.TransactionExceptedException;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -53,12 +53,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.rule.TransactionExceptedException;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DiagPackageRequest;
+import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
-
-import java.util.List;
 
 public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
@@ -177,6 +178,16 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
                 .param("host", "ip").param("id", "id").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nSystemController).remoteStopPackage(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+    }
+
+    @Test
+    public void testUpdateDiagProgress() throws Exception {
+        DiagProgressRequest request = new DiagProgressRequest();
+        Mockito.doAnswer(x -> null).when(nSystemController).updateDiagProgress(Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/system/diag/progress").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))
+                .content(JsonUtil.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).updateDiagProgress(Mockito.any());
     }
 
     @Test

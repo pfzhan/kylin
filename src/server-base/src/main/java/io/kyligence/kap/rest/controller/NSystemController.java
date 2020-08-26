@@ -24,27 +24,26 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.request.BackupRequest;
-import io.kyligence.kap.rest.request.DiagPackageRequest;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.request.MaintenanceModeRequest;
-import io.kyligence.kap.rest.request.SourceUsageFilter;
-import io.kyligence.kap.rest.response.CapacityDetailsResponse;
-import io.kyligence.kap.rest.response.DiagStatusResponse;
-import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
-import io.kyligence.kap.rest.response.MaintenanceModeResponse;
-import io.kyligence.kap.rest.response.ProjectCapacityResponse;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import io.kyligence.kap.rest.response.ServersResponse;
-import io.kyligence.kap.rest.service.MaintenanceModeService;
-import io.kyligence.kap.rest.service.SystemService;
-import io.swagger.annotations.ApiOperation;
-import lombok.val;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_EMAIL;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -74,24 +73,29 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
-import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_EMAIL;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.request.BackupRequest;
+import io.kyligence.kap.rest.request.DiagPackageRequest;
+import io.kyligence.kap.rest.request.DiagProgressRequest;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.request.MaintenanceModeRequest;
+import io.kyligence.kap.rest.request.SourceUsageFilter;
+import io.kyligence.kap.rest.response.CapacityDetailsResponse;
+import io.kyligence.kap.rest.response.DiagStatusResponse;
+import io.kyligence.kap.rest.response.LicenseInfoWithDetailsResponse;
+import io.kyligence.kap.rest.response.MaintenanceModeResponse;
+import io.kyligence.kap.rest.response.ProjectCapacityResponse;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import io.kyligence.kap.rest.response.ServersResponse;
+import io.kyligence.kap.rest.service.MaintenanceModeService;
+import io.kyligence.kap.rest.service.SystemService;
+import io.swagger.annotations.ApiOperation;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/system", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -360,6 +364,13 @@ public class NSystemController extends NBasicController {
         }
     }
 
+    @PutMapping(value = "/diag/progress")
+    @ResponseBody
+    public EnvelopeResponse<String> updateDiagProgress(@RequestBody DiagProgressRequest diagProgressRequest) {
+        systemService.updateDiagProgress(diagProgressRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
     @GetMapping(value = "/diag/status")
     @ResponseBody
     public EnvelopeResponse<DiagStatusResponse> getRemotePackageStatus(
@@ -389,10 +400,11 @@ public class NSystemController extends NBasicController {
 
     @DeleteMapping(value = "/diag")
     @ResponseBody
-    public EnvelopeResponse<Boolean> remoteStopPackage(@RequestParam(value = "host", required = false) String host,
+    public EnvelopeResponse<String> remoteStopPackage(@RequestParam(value = "host", required = false) String host,
             @RequestParam(value = "id") String id, final HttpServletRequest request) throws Exception {
         if (StringUtils.isEmpty(host)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, systemService.stopDiagTask(id), "");
+            systemService.stopDiagTask(id);
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } else {
             String url = host + "/kylin/api/system/diag?id=" + id;
             return generateTaskForRemoteHost(request, url);

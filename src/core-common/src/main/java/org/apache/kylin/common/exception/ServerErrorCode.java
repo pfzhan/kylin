@@ -194,6 +194,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     // 10023XXX diag
     DIAG_UUID_NOT_EXIST("KE-10023001"), //
     DIAG_PACKAGE_NOT_READY("KE-10023002"), //
+    DIAG_FAILED("KE-10023003"), //
 
     // 10024XXX auth
     ACCESS_DENIED("KE-10024001"), //

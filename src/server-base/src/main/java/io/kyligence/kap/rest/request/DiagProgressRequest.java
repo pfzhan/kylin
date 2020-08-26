@@ -21,21 +21,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ClassUtil;
+package io.kyligence.kap.rest.request;
 
-import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-@Slf4j
-public class SparkLogExtractorFactory {
-    private SparkLogExtractorFactory() {
-    }
-
-    public static ISparkLogExtractor create(KylinConfig kylinConfig) {
-        String sparkLogExtractor = kylinConfig.getSparkLogExtractor();
-        log.debug("Use spark log diagCLI {}", sparkLogExtractor);
-        return (ISparkLogExtractor) ClassUtil.newInstance(sparkLogExtractor);
-    }
+@Data
+public class DiagProgressRequest {
+    @JsonProperty("diag_id")
+    private String diagId;
+    @JsonProperty("stage")
+    private String stage;
+    @JsonProperty("progress")
+    private float progress;
 }

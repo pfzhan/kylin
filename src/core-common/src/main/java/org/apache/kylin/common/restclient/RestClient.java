@@ -51,17 +51,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.CommonErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -69,6 +61,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -77,10 +71,19 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.CommonErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 
 /**
  */
@@ -476,6 +479,30 @@ public class RestClient {
         } finally {
             cleanup(httpPost, response);
         }
+    }
+
+    public boolean updateDiagProgress(String diagId, String stage, float progress) {
+        String url = baseUrl + "/system/diag/progress";
+        HttpPut put = newPut(url);
+        HttpResponse response = null;
+        try {
+            HashMap<String, Object> paraMap = Maps.newHashMap();
+            paraMap.put("diag_id", diagId);
+            paraMap.put("stage", stage);
+            paraMap.put("progress", progress);
+            put.setEntity(new StringEntity(new ObjectMapper().writeValueAsString(paraMap), "UTF-8"));
+            response = client.execute(put);
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                String msg = EntityUtils.toString(response.getEntity());
+                logger.warn("Invalid response {} with updateDiagProgress url: {}\n{}", response.getStatusLine().getStatusCode(), url, msg);
+                return false;
+            }
+        } catch (Exception e) {
+            logger.warn("Error during update diag progress", e);
+        } finally {
+            cleanup(put, response);
+        }
+        return true;
     }
 
 }
