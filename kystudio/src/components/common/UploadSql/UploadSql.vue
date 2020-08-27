@@ -314,6 +314,7 @@ export default class UploadSqlModel extends Vue {
     this.submitModelLoading = false
     this.isNameErrorModelExisted = false
     this.modelType = 'suggest'
+    this.selectRecommendsLength = 0
     this.messageInstance && this.messageInstance.close()
   }
   get emptyText () {
@@ -539,10 +540,7 @@ export default class UploadSqlModel extends Vue {
     }
     this.saveSuggestModels({project: this.currentSelectedProject, ...data}).then((res) => {
       handleSuccess(res, (data) => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.actionSuccess')
-        })
+        this.$message.success(this.$t('kylinLang.common.actionSuccess'))
         this.submitModelLoading = false
         this.hideModal()
         this.$emit('reloadModelList')
@@ -841,10 +839,7 @@ export default class UploadSqlModel extends Vue {
           }
           this.validateLoading = false
           if (data.capable) {
-            this.$message({
-              type: 'success',
-              message: this.$t('kylinLang.common.actionSuccess')
-            })
+            this.$message.success(this.$t('kylinLang.common.actionSuccess'))
             this.whiteMessages = []
             this.inputHeight = 424
             this.isWhiteErrorMessage = false

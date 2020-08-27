@@ -407,6 +407,7 @@ export default class SuggestModel extends Vue {
       color: @text-title-color;
       p {
         margin-bottom: 5px;
+        word-break: break-all;
         &:last-child {
           margin-bottom: 0;
         }
