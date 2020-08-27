@@ -43,12 +43,13 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.util.List;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Before;
@@ -101,7 +102,7 @@ public class NUserGroupControllerTest {
     @InjectMocks
     private NUserGroupController nUserGroupController = Mockito.spy(new NUserGroupController());
 
-    private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+    private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", ROLE_ADMIN);
 
     @Before
     public void setup() {
@@ -185,6 +186,24 @@ public class NUserGroupControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).delUserGroup("g1@.h");
+    }
+
+    @Test
+    public void testDelAdminGroup() throws Exception {
+        Mockito.doNothing().when(userGroupService).deleteGroup(ROLE_ADMIN);
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", ROLE_ADMIN)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nUserGroupController).delUserGroup(ROLE_ADMIN);
+    }
+
+    @Test
+    public void testDelAllUsersGroup() throws Exception {
+        Mockito.doNothing().when(userGroupService).deleteGroup(GROUP_ALL_USERS);
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", GROUP_ALL_USERS)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nUserGroupController).delUserGroup(GROUP_ALL_USERS);
     }
 
     @Test

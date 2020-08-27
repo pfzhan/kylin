@@ -28,6 +28,8 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
+import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -169,6 +171,7 @@ public class NUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
+        checkGroupCanBeDeleted(groupName);
         userGroupService.deleteGroup(groupName);
         aclTCRService.revokeAclTCR(groupName, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del user group");
@@ -201,6 +204,13 @@ public class NUserGroupController extends NBasicController {
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(groupName).find()) {
             throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
+        }
+    }
+
+    private void checkGroupCanBeDeleted(String groupName) {
+        if (groupName.equals(GROUP_ALL_USERS) || groupName.equals(ROLE_ADMIN)) {
+            throw new KylinException(INVALID_USERGROUP_NAME,
+                    "Failed to delete user group, user groups of ALL_USERS and ROLE_ADMIN cannot be deleted.");
         }
     }
 }
