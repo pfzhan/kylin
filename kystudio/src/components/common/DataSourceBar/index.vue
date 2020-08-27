@@ -493,7 +493,7 @@ export default class DataSourceBar extends Vue {
     await this.loadTables({ databaseId, tableName })
   }
   handleClick (data, node) {
-    if (this.clickableNodeTypes.includes(data.type)) {
+    if (data && this.clickableNodeTypes.includes(data.type)) {
       if (this.isShowSelected) {
         this.isSwitchSource = false
         this.setSelectedTable(data)
