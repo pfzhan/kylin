@@ -503,7 +503,8 @@ export default class SettingBasic extends Vue {
             const submitData = _getStorageQuota(this.form, this.project)
             // TB转byte
             this.form.storage_quota_size = submitData.storage_quota_size = +(submitData.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
-            await this.updateStorageQuota(submitData); break
+            await this.updateStorageQuota(submitData)
+            this.handleInit('storage-quota'); break
           } else {
             return errorCallback()
           }
@@ -565,7 +566,9 @@ export default class SettingBasic extends Vue {
         }
         case 'storage-quota': {
           const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'storage_quota_config'})
-          const data = await handleSuccessAsync(res)
+          let data = await handleSuccessAsync(res)
+          const quotaSize = data.storage_quota_size / 1024 / 1024 / 1024 / 1024
+          data = {...data, storage_quota_tb_size: quotaSize % 2 === 0 ? quotaSize.toString() : quotaSize.toFixed(2)}
           this.form = { ...this.form, ..._getStorageQuota(data) }
           this.$refs['setting-storage-quota'].clearValidate()
           break
