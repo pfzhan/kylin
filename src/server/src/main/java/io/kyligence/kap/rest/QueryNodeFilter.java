@@ -79,7 +79,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE+3)
+@Order(Ordered.HIGHEST_PRECEDENCE + 3)
 public class QueryNodeFilter implements Filter {
 
     private static final String API_PREFIX = "/kylin/api";
@@ -88,14 +88,12 @@ public class QueryNodeFilter implements Filter {
     private static final String API_ERROR = "/api/error";
     private static final String FILTER_PASS = "filter_pass";
 
-
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     private static Set<String> notRouteDeleteApiSet = Sets.newHashSet();
     private static Set<String> notRoutePutApiSet = Sets.newHashSet();
 
     private static String ERROR_REQUEST_URL = "/kylin/api/error";
-
 
     static {
         // data source
@@ -109,7 +107,6 @@ public class QueryNodeFilter implements Filter {
         notRoutePostApiSet.add("/kylin/api/user/authentication");
         notRoutePostApiSet.add("/kylin/api/system/maintenance_mode");
         notRouteDeleteApiSet.add("/kylin/api/query");
-
 
         notRoutePostApiSet.add("/kylin/api/health/instance_info");
         notRoutePostApiSet.add("/kylin/api/health/instance_service/query_up_grade");
@@ -165,8 +162,7 @@ public class QueryNodeFilter implements Filter {
             // no leaders
             if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                 Message msg = MsgPicker.getMsg();
-                servletRequest.setAttribute(ERROR,
-                        new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
+                servletRequest.setAttribute(ERROR, new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
                 servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
                 return;
             }
@@ -183,7 +179,7 @@ public class QueryNodeFilter implements Filter {
 
             request = projectInfo.getSecond();
 
-            if(checkProcessLocal(kylinConfig, project, contentType, request)){
+            if (checkProcessLocal(kylinConfig, project, contentType)) {
                 log.info("process local caused by project owner");
                 chain.doFilter(request, response);
                 return;
@@ -243,8 +239,8 @@ public class QueryNodeFilter implements Filter {
             return;
         }
         throw new RuntimeException("unknown status");
-    }  
-    
+    }
+
     private void setResponseHeaders(HttpHeaders responseHeaders, HttpServletResponse servletResponse) {
         responseHeaders.forEach((k, v) -> {
             if (k.equals(HttpHeaders.TRANSFER_ENCODING)) {
@@ -255,7 +251,7 @@ public class QueryNodeFilter implements Filter {
             }
         });
     }
-    
+
     private void tryCatchUp() {
         try {
             ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
@@ -265,27 +261,25 @@ public class QueryNodeFilter implements Filter {
         }
     }
 
-
     @Override
     public void destroy() {
         // just override it
     }
 
     private boolean checkNeedToRoute(HttpServletRequest servletRequest) {
-        final String uri = servletRequest.getRequestURI();
+        final String uri = StringUtils.stripEnd(servletRequest.getRequestURI(), "/");
         final String method = servletRequest.getMethod();
-        return (!uri.startsWith(API_PREFIX)) ||
-                (uri.startsWith(ERROR_REQUEST_URL)) ||
-                (method.equals("GET") && !routeGetApiSet.contains(uri)) ||
-                (method.equals("POST") && notRoutePostApiSet.contains(uri)) ||
-                (method.equals("PUT") && notRoutePutApiSet.contains(uri)) ||
-                (method.equals("DELETE") && notRouteDeleteApiSet.contains(uri)) ||
-                "true".equalsIgnoreCase(servletRequest.getHeader(ROUTED)) ||
-                "true".equals(servletRequest.getAttribute(FILTER_PASS)) ||
-                KylinConfig.getInstanceFromEnv().isUTEnv();
+        return (!uri.startsWith(API_PREFIX)) || (uri.startsWith(ERROR_REQUEST_URL))
+                || (method.equals("GET") && !routeGetApiSet.contains(uri))
+                || (method.equals("POST") && notRoutePostApiSet.contains(uri))
+                || (method.equals("PUT") && notRoutePutApiSet.contains(uri))
+                || (method.equals("DELETE") && notRouteDeleteApiSet.contains(uri))
+                || "true".equalsIgnoreCase(servletRequest.getHeader(ROUTED))
+                || "true".equals(servletRequest.getAttribute(FILTER_PASS))
+                || KylinConfig.getInstanceFromEnv().isUTEnv();
     }
 
-    private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType, ServletRequest request) {
+    private boolean checkProcessLocal(KylinConfig kylinConfig, String project, String contentType) {
         if (!kylinConfig.isQueryNodeOnly()) {
             // process local
             if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
