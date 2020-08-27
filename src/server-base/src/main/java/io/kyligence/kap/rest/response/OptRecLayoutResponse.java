@@ -24,15 +24,35 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import lombok.Data;
 
 @Data
-public class OptRecLayoutResponse extends LayoutRecommendationResponse {
-    @JsonProperty("last_modify_time")
-    private Long lastModifyTime;
+public class OptRecLayoutResponse {
+    @JsonProperty("item_id")
+    private int id;
+    @JsonProperty("is_agg")
+    private boolean isAgg;
+    @JsonProperty("is_add")
+    private boolean isAdd;
+    @JsonProperty("type")
+    private RawRecItem.IndexRecType type;
+    @JsonProperty("create_time")
+    private long createTime;
+    @JsonProperty("last_modified")
+    private long lastModified;
+    @JsonProperty("hit_count")
+    private int usage;
+    @JsonProperty("index_id")
+    private long indexId;
+    @JsonProperty("data_size")
+    private long dataSize;
+    @JsonProperty("memo_info")
+    private Map<String, String> memoInfo = Maps.newHashMap();
 
-    @JsonProperty("version")
-    private int version;
 }

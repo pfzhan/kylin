@@ -74,7 +74,8 @@ public interface RawRecItemMapper extends IKeep {
             @Result(column = "total_time", property = "totalTime", jdbcType = JdbcType.DOUBLE),
             @Result(column = "max_time", property = "maxTime", jdbcType = JdbcType.DOUBLE),
             @Result(column = "min_time", property = "minTime", jdbcType = JdbcType.DOUBLE),
-            @Result(column = "query_history_info", property = "queryHistoryInfo", jdbcType = JdbcType.VARCHAR) })
+            @Result(column = "query_history_info", property = "queryHistoryInfo", jdbcType = JdbcType.VARCHAR),
+            @Result(column = "reserved_field_1", property = "indexOptStrategy", jdbcType = JdbcType.VARCHAR) })
     List<RawRecItem> selectMany(SelectStatementProvider selectStatement);
 
     @SelectProvider(type = SqlProviderAdapter.class, method = "select")

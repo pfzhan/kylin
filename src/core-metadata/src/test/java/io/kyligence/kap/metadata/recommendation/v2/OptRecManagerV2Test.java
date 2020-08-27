@@ -179,7 +179,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
             }
         });
 
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
         Assert.assertEquals(1, layoutRefs.size());
         layoutRefs.forEach((refId, ref) -> {
             Assert.assertEquals(-3, ref.getId());
@@ -248,7 +248,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
 
         });
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
     }
 
     @Test
@@ -264,7 +264,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
         Map<Integer, RecommendationRef> dimensionRefs = optRecV2.getDimensionRefs();
         Map<Integer, RecommendationRef> measureRefs = optRecV2.getMeasureRefs();
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
     }
 
     @Test
@@ -280,7 +280,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
         Map<Integer, RecommendationRef> dimensionRefs = optRecV2.getDimensionRefs();
         Map<Integer, RecommendationRef> measureRefs = optRecV2.getMeasureRefs();
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
 
     }
 
@@ -297,7 +297,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
         Map<Integer, RecommendationRef> dimensionRefs = optRecV2.getDimensionRefs();
         Map<Integer, RecommendationRef> measureRefs = optRecV2.getMeasureRefs();
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
 
     }
 
@@ -314,7 +314,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
         Map<Integer, RecommendationRef> dimensionRefs = optRecV2.getDimensionRefs();
         Map<Integer, RecommendationRef> measureRefs = optRecV2.getMeasureRefs();
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
 
     }
 
@@ -331,7 +331,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
         Map<Integer, RecommendationRef> dimensionRefs = optRecV2.getDimensionRefs();
         Map<Integer, RecommendationRef> measureRefs = optRecV2.getMeasureRefs();
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
     }
 
     @Test
@@ -347,7 +347,7 @@ public class OptRecManagerV2Test extends NLocalFileMetadataTestCase {
         Map<Integer, RecommendationRef> dimensionRefs = optRecV2.getDimensionRefs();
         Map<Integer, RecommendationRef> measureRefs = optRecV2.getMeasureRefs();
         Map<Integer, RecommendationRef> ccRefs = optRecV2.getCcRefs();
-        Map<Integer, LayoutRef> layoutRefs = optRecV2.getLayoutRefs();
+        Map<Integer, LayoutRef> layoutRefs = optRecV2.getAdditionalLayoutRefs();
     }
 
     private void prepareModelAndIndex(String uuid) throws IOException {

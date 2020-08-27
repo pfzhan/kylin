@@ -68,11 +68,11 @@ public class RawRecItem implements IKeep {
     private double maxTime;
     private double minTime;
     private String queryHistoryInfo;
+    private String indexOptStrategy;
 
     // reserved fields
-    private String reserveField1;
-    private String reserveField2;
-    private String reserveField3;
+    private String reservedField2;
+    private String reservedField3;
 
     public RawRecItem() {
     }
@@ -85,26 +85,34 @@ public class RawRecItem implements IKeep {
         this.type = type;
     }
 
-    public boolean needCache() {
-        return id != 0 && state == RawRecItem.RawRecState.INITIAL && type != RawRecType.LAYOUT;
-    }
-
     public boolean isOutOfDate(int semanticVersion) {
         return getSemanticVersion() < semanticVersion;
     }
 
     public boolean isAgg() {
-        Preconditions.checkState(RawRecItem.RawRecType.LAYOUT == getType());
+        Preconditions.checkState(this.isLayoutRec());
         return ((LayoutRecItemV2) getRecEntity()).isAgg();
+    }
+
+    public boolean isLayoutRec() {
+        return RawRecType.ADDITIONAL_LAYOUT == getType() || RawRecType.REMOVAL_LAYOUT == getType();
+    }
+
+    public boolean isAddLayoutRec() {
+        return getType() == RawRecType.ADDITIONAL_LAYOUT;
+    }
+
+    public boolean isRemoveLayoutRec() {
+        return getType() == RawRecType.REMOVAL_LAYOUT;
     }
 
     /**
      * Raw recommendation type
      */
     public enum RawRecType {
-        COMPUTED_COLUMN(1), DIMENSION(2), MEASURE(3), LAYOUT(4);
+        COMPUTED_COLUMN(1), DIMENSION(2), MEASURE(3), ADDITIONAL_LAYOUT(4), REMOVAL_LAYOUT(5);
 
-        private int id;
+        private final int id;
 
         public int id() {
             return this.id;
@@ -121,7 +129,7 @@ public class RawRecItem implements IKeep {
     public enum RawRecState {
         INITIAL(0), RECOMMENDED(1), APPLIED(2), DISCARD(3), BROKEN(4);
 
-        private int id;
+        private final int id;
 
         public int id() {
             return this.id;
@@ -149,7 +157,9 @@ public class RawRecItem implements IKeep {
         case 3:
             return RawRecItem.RawRecType.MEASURE;
         case 4:
-            return RawRecItem.RawRecType.LAYOUT;
+            return RawRecItem.RawRecType.ADDITIONAL_LAYOUT;
+        case 5:
+            return RawRecItem.RawRecType.REMOVAL_LAYOUT;
         default:
             throw new IllegalStateException(String.format(RawRecItem.TYPE_ERROR_FORMAT, recType));
         }
@@ -182,6 +192,7 @@ public class RawRecItem implements IKeep {
             case 3:
                 return JsonUtil.readValue(jsonString, MeasureRecItemV2.class);
             case 4:
+            case 5:
                 return JsonUtil.readValue(jsonString, LayoutRecItemV2.class);
             default:
                 throw new IllegalStateException(String.format(RawRecItem.TYPE_ERROR_FORMAT, recType));
@@ -189,5 +200,22 @@ public class RawRecItem implements IKeep {
         } catch (IOException | IllegalStateException e) {
             throw new IllegalStateException("cannot deserialize recommendation entity.", e);
         }
+    }
+
+    public IndexRecType getLayoutRecType() {
+        Preconditions.checkArgument(this.isLayoutRec());
+        if (isAgg() && isAddLayoutRec()) {
+            return IndexRecType.ADD_AGG_INDEX;
+        } else if (isAgg() && isRemoveLayoutRec()) {
+            return IndexRecType.REMOVE_AGG_INDEX;
+        } else if (isAddLayoutRec()) {
+            return IndexRecType.ADD_TABLE_INDEX;
+        } else {
+            return IndexRecType.REMOVE_TABLE_INDEX;
+        }
+    }
+
+    public enum IndexRecType {
+        ADD_AGG_INDEX, REMOVE_AGG_INDEX, ADD_TABLE_INDEX, REMOVE_TABLE_INDEX
     }
 }

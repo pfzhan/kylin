@@ -51,7 +51,6 @@ import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.OptRecService;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -68,10 +67,6 @@ public class NRecommendationController extends NBasicController {
 
     @Autowired
     private RawRecService rawRecService;
-
-    @Autowired
-    @Qualifier("optimizeRecommendationService")
-    private OptimizeRecommendationService optimizeRecommendationService;
 
     @ApiOperation(value = "approveOptimizeRecommendations", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}")
@@ -106,8 +101,9 @@ public class NRecommendationController extends NBasicController {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optRecService.validateSelectedRecItems(request.getProject(), modelId, request.getLayoutIdsToAdd()), "");
+        OptRecDetailResponse optRecDetailResponse = optRecService.validateSelectedRecItems(request.getProject(),
+                modelId, request.getRecItemsToAddLayout(), request.getRecItemsToRemoveLayout());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecDetailResponse, "");
     }
 
     @ApiOperation(value = "cleanOptimizeRecommendations", notes = "Add URL: {model}")
@@ -127,18 +123,20 @@ public class NRecommendationController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> deleteOptimizeRecommendationsV2(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project,
-            @RequestParam(value = "layouts_to_remove", required = false) List<Integer> layoutsToRemove,
-            @RequestParam(value = "layouts_to_add", required = false) List<Integer> layoutsToAdd) {
+            @RequestParam(value = "recs_to_remove_layout", required = false) List<Integer> layoutsToRemove,
+            @RequestParam(value = "recs_to_add_layout", required = false) List<Integer> layoutsToAdd) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         val request = new OptRecRequest();
         request.setModelId(modelId);
         request.setProject(project);
-        if (layoutsToRemove != null)
-            request.setLayoutIdsToRemove(layoutsToRemove);
-        if (layoutsToAdd != null)
-            request.setLayoutIdsToAdd(layoutsToAdd);
+        if (layoutsToRemove != null) {
+            request.setRecItemsToRemoveLayout(layoutsToRemove);
+        }
+        if (layoutsToAdd != null) {
+            request.setRecItemsToAddLayout(layoutsToAdd);
+        }
 
         optRecService.discard(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

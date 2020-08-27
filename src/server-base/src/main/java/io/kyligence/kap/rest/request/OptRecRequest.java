@@ -37,17 +37,18 @@ import lombok.Data;
 @Data
 public class OptRecRequest implements ProjectInsensitiveRequest {
 
+    @JsonProperty("project")
     private String project;
 
     @JsonProperty("model_id")
     private String modelId;
 
-    @JsonProperty("layouts_to_remove")
-    private List<Integer> layoutIdsToRemove = Lists.newArrayList();
+    @JsonProperty("recs_to_remove_layout")
+    private List<Integer> recItemsToRemoveLayout = Lists.newArrayList();
 
-    @JsonProperty("layouts_to_add")
-    private List<Integer> layoutIdsToAdd = Lists.newArrayList();
+    @JsonProperty("recs_to_add_layout")
+    private List<Integer> recItemsToAddLayout = Lists.newArrayList();
 
     @JsonProperty("names")
-    private Map<Integer, String> names = Maps.newHashMap();;
+    private Map<Integer, String> names = Maps.newHashMap();
 }

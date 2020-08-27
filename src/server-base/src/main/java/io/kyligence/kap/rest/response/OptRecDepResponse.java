@@ -48,10 +48,4 @@ public class OptRecDepResponse implements Serializable {
 
     @JsonProperty("add")
     private boolean add = true;
-
-    public OptRecDepResponse(int version, String name, boolean add) {
-        this.version = version;
-        this.name = name;
-        this.add = add;
-    }
 }

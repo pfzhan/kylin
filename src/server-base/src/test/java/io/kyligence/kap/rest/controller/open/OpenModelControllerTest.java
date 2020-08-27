@@ -68,8 +68,6 @@ import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
-import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
-import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -337,42 +335,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetRecommendationsByModel() throws Exception {
-        String project = "default";
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        mockGetModelName(modelName, project, modelId);
-
-        List<String> sources = Lists.newArrayList();
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "")).when(nModelController)
-                .getOptimizeRecommendations(modelId, project, sources);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models//{model_name:.+}/recommendations", modelName)
-                .contentType(MediaType.APPLICATION_JSON).param("project", project)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).getOptimizeRecommendations(modelName, project, sources);
-    }
-
-    @Test
-    public void testApplyRecommendation() throws Exception {
-        String project = "default";
-        String modelName = "default_model_name";
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        mockGetModelName(modelName, project, modelId);
-
-        val request = new OpenApplyRecommendationsRequest();
-        request.setProject(project);
-
-        Mockito.doAnswer(x -> null).when(nModelController).applyOptimizeRecommendations(eq(modelId), Mockito.any());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name:.+}/recommendations", modelName)
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).applyOptimizeRecommendations(eq(modelName),
-                Mockito.any(OpenApplyRecommendationsRequest.class));
-    }
-
-    @Test
     public void testSuggestModels() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
@@ -400,51 +362,6 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).optimizeModels(Mockito.any());
-    }
-
-    @Test
-    public void testGetRecommendationsByProject() throws Exception {
-        Mockito.doReturn(null).when(nModelController).getRecommendationsByProject("default");
-        // model and project is empty
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "default")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).getRecommendationsByProject("default");
-
-    }
-
-    @Test
-    public void testBatchApplyRecommendations() throws Exception {
-        Mockito.doReturn(null).when(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
-
-        List<String> modelNames = Lists.newArrayList("model1, model2");
-        OpenBatchApplyRecommendationsRequest request = new OpenBatchApplyRecommendationsRequest();
-        request.setProject("default");
-        request.setModelNames(modelNames);
-
-        Mockito.doReturn(null).when(openModelController).getModel(Mockito.anyString(), Mockito.anyString());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).batchApplyRecommendations(Mockito.any());
-    }
-
-    @Test
-    public void testBatchApplyRecommendations_emptyModelNames() throws Exception {
-        Mockito.doReturn(null).when(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
-
-        List<String> modelNames = Lists.newArrayList();
-        OpenBatchApplyRecommendationsRequest request = new OpenBatchApplyRecommendationsRequest();
-        request.setProject("default");
-        request.setModelNames(modelNames);
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(openModelController).batchApplyRecommendations(Mockito.any());
     }
 
     @Test

@@ -53,8 +53,6 @@ import io.kyligence.kap.rest.controller.v2.NModelControllerV2;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
-import io.kyligence.kap.rest.service.ProjectService;
 
 public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
 
@@ -62,12 +60,6 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
-
-    @Mock
-    private ProjectService projectService;
-
-    @Mock
-    private OptimizeRecommendationService optimizeRecommendationService;
 
     @InjectMocks
     private NModelControllerV2 nModelControllerV2 = Mockito.spy(new NModelControllerV2());

@@ -451,6 +451,12 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return r;
     }
 
+    public Map<Long, LayoutEntity> getAllLayoutsMap() {
+        Map<Long, LayoutEntity> map = Maps.newHashMap();
+        getAllLayouts().forEach(layout -> map.putIfAbsent(layout.getId(), layout));
+        return map;
+    }
+
     public List<LayoutEntity> getWhitelistLayouts() {
         List<LayoutEntity> r = Lists.newArrayList();
 

@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.response;
 import java.io.Serializable;
 import java.util.List;
 
+import com.clearspring.analytics.util.Lists;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
@@ -34,15 +35,18 @@ import lombok.Data;
 @Data
 public class OptRecDetailResponse implements Serializable {
 
-    @JsonProperty("layout_item_ids")
-    private List<Integer> layoutItemIds;
+    @JsonProperty("recs_to_remove_layout")
+    private List<Integer> recItemsToRemoveLayout = Lists.newArrayList();
+
+    @JsonProperty("recs_to_add_layout")
+    private List<Integer> recItemsToAddLayout = Lists.newArrayList();
 
     @JsonProperty("dimension_items")
-    private List<OptRecDepResponse> dimensionItems;
+    private List<OptRecDepResponse> dimensionItems = Lists.newArrayList();
 
     @JsonProperty("measure_items")
-    private List<OptRecDepResponse> measureItems;
+    private List<OptRecDepResponse> measureItems = Lists.newArrayList();
 
     @JsonProperty("cc_items")
-    private List<OptRecDepResponse> ccItems;
+    private List<OptRecDepResponse> ccItems = Lists.newArrayList();
 }

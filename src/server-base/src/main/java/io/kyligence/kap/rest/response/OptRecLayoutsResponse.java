@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import lombok.Data;
@@ -33,7 +34,9 @@ import lombok.Data;
 @Data
 public class OptRecLayoutsResponse {
 
+    @JsonProperty("layouts")
     private List<OptRecLayoutResponse> layouts = Lists.newArrayList();
 
+    @JsonProperty("size")
     private int size;
 }

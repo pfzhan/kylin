@@ -81,7 +81,8 @@ public class OptRecV2 {
     private final Map<Integer, RecommendationRef> ccRefs = Maps.newHashMap();
     private final Map<Integer, RecommendationRef> dimensionRefs = Maps.newHashMap();
     private final Map<Integer, RecommendationRef> measureRefs = Maps.newHashMap();
-    private final Map<Integer, LayoutRef> layoutRefs = Maps.newHashMap();
+    private final Map<Integer, LayoutRef> additionalLayoutRefs = Maps.newHashMap();
+    private final Map<Integer, LayoutRef> removalLayoutRefs = Maps.newHashMap();
     private final Map<Integer, RawRecItem> rawRecItemMap = Maps.newHashMap();
     private final Set<Integer> brokenLayoutRefIds;
 
@@ -89,8 +90,6 @@ public class OptRecV2 {
     private final List<LayoutEntity> layouts = getAllLayouts();
     @Getter(lazy = true)
     private final NDataModel model = initModel();
-    @Getter(lazy = true)
-    private final List<NDataModel> otherModels = initOtherModels();
 
     public OptRecV2(String project, String uuid) {
         this.config = KylinConfig.getInstanceFromEnv();
@@ -110,6 +109,7 @@ public class OptRecV2 {
         initModelColumnRefs(getModel());
         initModelMeasureRefs(getModel());
         initLayoutRefs(queryBestLayoutRecItems());
+        initRemovalLayoutRefs(queryAllRemovalLayoutRecItems());
 
         autoNameForMeasure();
 
@@ -204,6 +204,17 @@ public class OptRecV2 {
         bestRecItems.forEach(this::initLayoutRef);
     }
 
+    private void initRemovalLayoutRefs(List<RawRecItem> removalLayoutRecItems) {
+        removalLayoutRecItems.forEach(rawRecItem -> {
+            rawIds.add(rawRecItem.getId());
+            rawRecItemMap.put(rawRecItem.getId(), rawRecItem);
+
+            logTranslateInfo(rawRecItem);
+            LayoutRef ref = convertToLayoutRef(rawRecItem);
+            removalLayoutRefs.put(-rawRecItem.getId(), ref);
+        });
+    }
+
     private List<RawRecItem> queryBestLayoutRecItems() {
         FavoriteRule favoriteRule = FavoriteRuleManager.getInstance(config, project)
                 .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
@@ -213,10 +224,16 @@ public class OptRecV2 {
         return RawRecSelection.getInstance().selectBestLayout(topN, uuid, project);
     }
 
+    private List<RawRecItem> queryAllRemovalLayoutRecItems() {
+        Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(project).queryNonAppliedLayoutRawRecItems(uuid,
+                false);
+        return Lists.newArrayList(recItemMap.values());
+    }
+
     private void initLayoutRef(RawRecItem rawRecItem) {
         logTranslateInfo(rawRecItem);
         LayoutRef ref = convertToLayoutRef(rawRecItem);
-        layoutRefs.put(-rawRecItem.getId(), ref);
+        additionalLayoutRefs.put(-rawRecItem.getId(), ref);
         if (ref.isBroken()) {
             return;
         }
@@ -225,7 +242,7 @@ public class OptRecV2 {
 
     private void checkLayoutExists(RawRecItem recItem) {
         int negRecItemId = -recItem.getId();
-        LayoutRef layoutRef = layoutRefs.get(negRecItemId);
+        LayoutRef layoutRef = additionalLayoutRefs.get(negRecItemId);
         LayoutEntity layout = JsonUtil.deepCopyQuietly(layoutRef.getLayout(), LayoutEntity.class);
         List<Integer> colOrder = Lists.newArrayList();
         List<Integer> sortColumns = Lists.newArrayList();
@@ -252,7 +269,7 @@ public class OptRecV2 {
         }
 
         // avoid the same LayoutRef
-        for (RecommendationRef entry : getEffectiveRefs(layoutRefs)) {
+        for (RecommendationRef entry : getEffectiveRefs(additionalLayoutRefs)) {
             if (entry.getId() == negRecItemId) {
                 continue;
             }
@@ -457,15 +474,14 @@ public class OptRecV2 {
         int negRecItemId = -recItem.getId();
         RecommendationRef dimensionRef = dimensionRefs.get(negRecItemId);
 
-        // check two RawRecItems shares same content
+        // check two raw recommendations share same content
         for (RecommendationRef entry : getEffectiveRefs(dimensionRefs)) {
             if (entry.getId() == negRecItemId) {
                 // pass itself
                 continue;
             }
 
-            // todo: something wrong when renamed
-            // if this RawRecItem has been approved, forward to the approved one
+            // if reference of this raw recommendation has been approved, forward to the approved one
             if (Objects.equals(entry, dimensionRef)) {
                 logDuplicateRawRecItem(recItem, -entry.getId());
                 dimensionRef.setExisted(true);
@@ -485,7 +501,6 @@ public class OptRecV2 {
             return;
         }
 
-        // maybe something wrong will happen
         RecommendationRef ref = new MeasureRef(RawRecUtil.getMeasure(rawRecItem), negRecItemId, false);
         for (int value : rawRecItem.getDependIDs()) {
             TranslatedState state = initDependencyWithState(value, ref);
@@ -571,18 +586,12 @@ public class OptRecV2 {
 
     private Set<Integer> filterBrokenLayoutRefs() {
         Set<Integer> brokenIds = Sets.newHashSet();
-        layoutRefs.forEach((id, ref) -> {
+        additionalLayoutRefs.forEach((id, ref) -> {
             if (ref.isBroken() && id < 0) {
                 brokenIds.add(-id);
             }
         });
         return brokenIds;
-    }
-
-    private List<NDataModel> initOtherModels() {
-        NDataModelManager modelManager = NDataModelManager.getInstance(Objects.requireNonNull(config), project);
-        return modelManager.listAllModels().stream().filter(m -> !m.isBroken())
-                .filter(m -> !m.getId().equals(getModel().getId())).collect(Collectors.toList());
     }
 
     private NDataModel initModel() {
@@ -612,7 +621,8 @@ public class OptRecV2 {
         case COMPUTED_COLUMN:
             type = "CCRef";
             break;
-        case LAYOUT:
+        case ADDITIONAL_LAYOUT:
+        case REMOVAL_LAYOUT:
             type = "LayoutRef";
             break;
         case DIMENSION:

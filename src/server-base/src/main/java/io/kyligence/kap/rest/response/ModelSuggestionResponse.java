@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.response;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -53,7 +54,7 @@ public class ModelSuggestionResponse {
     @NoArgsConstructor
     public static class NRecommendedModelResponse extends NDataModel {
         @JsonProperty("rec_items")
-        private List<LayoutRecDetailResponse> indexes;
+        private List<LayoutRecDetailResponse> indexes = Lists.newArrayList();
         @JsonProperty("index_plan")
         private IndexPlan indexPlan;
 

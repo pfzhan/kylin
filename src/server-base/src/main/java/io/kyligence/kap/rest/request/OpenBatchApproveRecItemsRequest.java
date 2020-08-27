@@ -21,39 +21,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.request;
 
+import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class ApplyRecommendationsRequest implements ProjectInsensitiveRequest {
-    @JsonProperty("project")
+public class OpenBatchApproveRecItemsRequest implements Serializable, ProjectInsensitiveRequest {
+
     private String project;
 
-    @JsonProperty("model")
-    private String modelId;
+    @JsonProperty("rec_action_type")
+    private String recActionType = "both";
 
-    @JsonProperty("cc_recommendations")
-    private List<CCRecommendationItem> ccRecommendations = Lists.newArrayList();
+    @JsonProperty("filter_by_models")
+    private boolean filterByModes = true;
 
-    @JsonProperty("dimension_recommendations")
-    private List<DimensionRecommendationItem> dimensionRecommendations = Lists.newArrayList();
-
-    @JsonProperty("measure_recommendations")
-    private List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
-
-    @JsonProperty("index_recommendation_item_ids")
-    private List<Long> indexRecommendationItemIds = Lists.newArrayList();
+    @JsonProperty("model_names")
+    private List<String> modelNames;
 }

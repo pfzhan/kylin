@@ -50,10 +50,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -61,9 +58,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccelerateRequest;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -80,7 +75,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -90,7 +84,6 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
@@ -100,7 +93,6 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
-import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
@@ -113,8 +105,6 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
-import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import lombok.val;
@@ -125,12 +115,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
-
-    @Mock
-    private ProjectService projectService;
-
-    @Mock
-    private OptimizeRecommendationService optimizeRecommendationService;
 
     @InjectMocks
     private NModelController nModelController = Mockito.spy(new NModelController());
@@ -695,197 +679,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).updateModelConfig("89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
-    }
-
-    @Test
-    public void testGetRecommendationsByModel() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).getOptimizeRecommendations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                Lists.newArrayList());
-    }
-
-    @Test
-    public void testGetRecommendationsWithEmptyProject() throws Exception {
-        // project argument is empty
-        final MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders
-                        .get("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).param("project", "")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).getOptimizeRecommendations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "",
-                Lists.newArrayList());
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(
-                StringUtils.contains(jsonNode.get("msg").textValue(), MsgPicker.getMsg().getEMPTY_PROJECT_NAME()));
-    }
-
-    @Test
-    public void testApplyRecommendation() throws Exception {
-        val request = new ApplyRecommendationsRequest();
-        request.setProject("gc_test");
-        request.setModelId("e0e90065-e7c3-49a0-a801-20465ca64799");
-        Mockito.doNothing().when(optimizeRecommendationService).applyRecommendations(request, "gc_test");
-        mockMvc.perform(MockMvcRequestBuilders
-                .put("/api/models/{model}/recommendations", "e0e90065-e7c3-49a0-a801-20465ca64799")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).applyOptimizeRecommendations(eq("e0e90065-e7c3-49a0-a801-20465ca64799"),
-                Mockito.any(ApplyRecommendationsRequest.class));
-    }
-
-    @Test
-    public void testApplyRecommendationWithEmptyProject() throws Exception {
-        val request = new ApplyRecommendationsRequest();
-        request.setProject("");
-        final MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders
-                        .put("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).applyOptimizeRecommendations(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
-                Mockito.any(ApplyRecommendationsRequest.class));
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(
-                StringUtils.contains(jsonNode.get("msg").textValue(), MsgPicker.getMsg().getEMPTY_PROJECT_NAME()));
-    }
-
-    @Test
-    public void testRemoveRecommendations() throws Exception {
-        val request = new RemoveRecommendationsRequest();
-        request.setProject("gc_test");
-        request.setModelId("e0e90065-e7c3-49a0-a801-20465ca64799");
-        Mockito.doNothing().when(optimizeRecommendationService)
-                .removeRecommendations(Mockito.any(RemoveRecommendationsRequest.class), Mockito.anyString());
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model}/recommendations", request.getModelId())
-                .contentType(MediaType.APPLICATION_JSON).param("project", request.getProject())
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).removeOptimizeRecommendations(request.getModelId(), request.getProject(), null,
-                null, null, null, false);
-
-        // project is empty
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/recommendations")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "").param("model", request.getModelId())
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(
-                StringUtils.contains(jsonNode.get("msg").textValue(), MsgPicker.getMsg().getEMPTY_PROJECT_NAME()));
-    }
-
-    @Test
-    public void testGetRecommendationsByProject_CodeSuccess() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("gc_test");
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "gc_test")
-                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.content().string(
-                        JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, ""))));
-        Mockito.verify(nModelController).getRecommendationsByProject("gc_test");
-
-    }
-
-    @Test
-    public void testGetRecommendationsByProject_CodeIllegalInput() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("other");
-        // model and project is empty
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "other")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).getRecommendationsByProject("other");
-        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
-                String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other")));
-    }
-
-    @Test
-    public void testGetRecommendationsByProject_NotSemiAutoModel() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("default");
-        final MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "default")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).getRecommendationsByProject("default");
-
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
-                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
-    }
-
-    @Test
-    public void testBatchApplyRecommendations_CodeSuccess() throws Exception {
-        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("gc_test"),
-                Mockito.anyList());
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "gc_test")
-                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.content().string(
-                        JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", ""))));
-        Mockito.verify(nModelController).batchApplyRecommendations(eq("gc_test"), Mockito.anyList());
-    }
-
-    @Test
-    public void testBatchApplyRecommendations_NonexistentProject() throws Exception {
-        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
-                Mockito.anyList());
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "other")
-                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).batchApplyRecommendations(eq("other"), Mockito.anyList());
-        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
-                String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other")));
-    }
-
-    @Test
-    public void testBatchApplyRecommendations_WithExpertMode() throws Exception {
-        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
-                Mockito.anyList());
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
-
-        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
-                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
-    }
-
-    @Test
-    public void testBatchApplyRecommendations_CodeNotSemiAutoModel() throws Exception {
-        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
-                Mockito.anyList());
-
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
-
-        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
-                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
     }
 
     @Test

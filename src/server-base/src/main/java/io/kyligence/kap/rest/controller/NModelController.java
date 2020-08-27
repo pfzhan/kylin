@@ -39,12 +39,10 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -54,8 +52,6 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -75,11 +71,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
-import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
@@ -93,7 +86,6 @@ import io.kyligence.kap.rest.request.ModelSuggestionRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
-import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
@@ -110,13 +102,10 @@ import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -126,8 +115,7 @@ import lombok.val;
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
-    private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
-    private static final String MODEL_ID = "modelId";
+    public static final String MODEL_ID = "modelId";
     private static final String NEW_MODEL_NAME = "newModelNAME";
 
     @Autowired
@@ -136,10 +124,6 @@ public class NModelController extends NBasicController {
 
     @Autowired
     private IndexPlanService indexPlanService;
-
-    @Autowired
-    @Qualifier("optimizeRecommendationService")
-    private OptimizeRecommendationService optimizeRecommendationService;
 
     @ApiOperation(value = "getModels{Red}", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
     @GetMapping(value = "")
@@ -248,10 +232,6 @@ public class NModelController extends NBasicController {
 
     /**
      * if exist same name model, then return true.
-     *
-     * @param modelRequest
-     * @return
-     * @throws Exception
      */
     @ApiOperation(value = "validateModelAlias", notes = "")
     @PostMapping(value = "/validate_model")
@@ -632,96 +612,6 @@ public class NModelController extends NBasicController {
             @RequestBody ModelConfigRequest request) {
         checkProjectName(request.getProject());
         modelService.updateModelConfig(request.getProject(), modelId, request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "getOptimizeRecommendations", notes = "Add URL: {model}")
-    @GetMapping(value = "/{model:.+}/recommendations")
-    @ResponseBody
-    public EnvelopeResponse<OptRecommendationResponse> getOptimizeRecommendations(
-            @PathVariable(value = "model") String modelId, //
-            @RequestParam(value = "project") String project, //
-            @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
-        checkProjectName(project);
-        checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optimizeRecommendationService.getRecommendationByModel(project, modelId, sources), "");
-    }
-
-    @ApiOperation(value = "applyOptimizeRecommendations", notes = "Add URL: {model}")
-    @PutMapping(value = "/{model:.+}/recommendations")
-    @ResponseBody
-    public EnvelopeResponse<String> applyOptimizeRecommendations(@PathVariable("model") String modelId,
-            @RequestBody ApplyRecommendationsRequest request) {
-        checkProjectName(request.getProject());
-        checkProjectNotSemiAuto(request.getProject());
-        checkRequiredArg(MODEL_ID, modelId);
-        request.setModelId(modelId);
-        optimizeRecommendationService.applyRecommendations(request, request.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @ApiOperation(value = "removeOptimizeRecommendations", notes = "Add URL: {model}")
-    @DeleteMapping(value = "/{model:.+}/recommendations")
-    @ResponseBody
-    public EnvelopeResponse<String> removeOptimizeRecommendations(@PathVariable(value = "model") String modelId,
-            @RequestParam(value = "project") String project,
-            @RequestParam(value = "cc_recommendations", required = false) List<Long> ccItemIds,
-            @RequestParam(value = "dimension_recommendations", required = false) List<Long> dimensionItemIds,
-            @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
-            @RequestParam(value = "index_recommendations", required = false) List<Long> indexItemIds,
-            @RequestParam(value = "all", required = false) boolean cleanAll) {
-        checkProjectName(project);
-        checkProjectNotSemiAuto(project);
-        checkRequiredArg(MODEL_ID, modelId);
-        val request = new RemoveRecommendationsRequest();
-        request.setModelId(modelId);
-        request.setProject(project);
-        if (cleanAll) {
-            request.setCleanAll(true);
-            val optimizeRecommendation = OptimizeRecommendationManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), project).getOptimizeRecommendation(modelId);
-            request.setCcItemIds(getItemIds(optimizeRecommendation.getCcRecommendations()));
-            request.setDimensionItemIds(getItemIds(optimizeRecommendation.getDimensionRecommendations()));
-            request.setMeasureItemIds(getItemIds(optimizeRecommendation.getMeasureRecommendations()));
-            request.setIndexItemIds(getItemIds(optimizeRecommendation.getLayoutRecommendations()));
-        } else {
-            if (ccItemIds != null)
-                request.setCcItemIds(ccItemIds);
-            if (dimensionItemIds != null)
-                request.setDimensionItemIds(dimensionItemIds);
-            if (measureItemIds != null)
-                request.setMeasureItemIds(measureItemIds);
-            if (indexItemIds != null)
-                request.setIndexItemIds(indexItemIds);
-        }
-
-        optimizeRecommendationService.removeRecommendations(request, request.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    private <T extends RecommendationItem<T>> List<Long> getItemIds(List<T> recommendationItems) {
-        return recommendationItems.stream().map(RecommendationItem::getItemId).collect(Collectors.toList());
-    }
-
-    @ApiOperation(value = "getRecommendationsByProject{Red}", notes = "Del URL: project")
-    @GetMapping(value = "/recommendations")
-    @ResponseBody
-    public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
-            @RequestParam("project") String project) {
-        checkProjectName(project);
-        checkProjectNotSemiAuto(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optimizeRecommendationService.getRecommendationsStatsByProject(project), "");
-    }
-
-    @PutMapping(value = "/recommendations/batch")
-    @ResponseBody
-    public EnvelopeResponse<String> batchApplyRecommendations(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
-        checkProjectName(project);
-        checkProjectNotSemiAuto(project);
-        optimizeRecommendationService.batchApplyRecommendations(project, modelAlias);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

@@ -21,28 +21,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.request;
-
-import java.io.Serializable;
-import java.util.List;
+package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class OpenBatchApplyRecommendationsRequest implements Serializable, ProjectInsensitiveRequest {
-
+public class OpenOptRecLayoutsResponse extends OptRecLayoutsResponse {
+    @JsonProperty("model_id")
+    private String modelId;
+    @JsonProperty("project")
     private String project;
-    @JsonProperty("filter_by_model_names")
-    private boolean filterByModelNames = true;
 
-    @JsonProperty("filter_by_models")
-    private boolean filterByModes = true;
+    public OpenOptRecLayoutsResponse(String project, String modelId, OptRecLayoutsResponse response) {
+        this.setLayouts(response.getLayouts());
+        this.setSize(response.getSize());
+        this.setModelId(modelId);
+        this.setProject(project);
+    }
 
-    @JsonProperty("model_names")
-    private List<String> modelNames;
 }

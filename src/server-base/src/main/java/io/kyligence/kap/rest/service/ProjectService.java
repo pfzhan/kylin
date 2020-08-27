@@ -46,7 +46,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -93,6 +92,7 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -275,6 +275,9 @@ public class ProjectService extends BasicService {
     }
 
     private void cleanRawRecForDeletedProject(NProjectManager projectManager) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return;
+        }
         RawRecManager.getInstance(EpochManager.GLOBAL).cleanForDeletedProject(
                 projectManager.listAllProjects().stream().map(ProjectInstance::getName).collect(Collectors.toList()));
     }

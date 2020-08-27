@@ -67,8 +67,7 @@ import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
-import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
+import io.kyligence.kap.rest.request.OpenBatchApproveRecItemsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
@@ -79,11 +78,11 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
-import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
+import io.kyligence.kap.rest.response.OpenOptRecLayoutsResponse;
+import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.OptRecService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -96,6 +95,9 @@ public class OpenModelController extends NBasicController {
 
     @Autowired
     private ModelService modelService;
+
+    @Autowired
+    private OptRecService optRecService;
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -276,32 +278,36 @@ public class OpenModelController extends NBasicController {
 
     @GetMapping(value = "/{model_name:.+}/recommendations")
     @ResponseBody
-    public EnvelopeResponse<OpenOptRecommendationResponse> getOptimizeRecommendations(
+    public EnvelopeResponse<OpenOptRecLayoutsResponse> getRecommendations(
             @PathVariable(value = "model_name") String modelAlias, //
             @RequestParam(value = "project") String project, //
-            @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
+            @RequestParam(value = "recActionType", required = false, defaultValue = "all") String recActionType) {
         checkProjectName(project);
-
+        checkProjectNotSemiAuto(project);
         String modelId = getModel(modelAlias, project).getId();
-
-        OptRecommendationResponse optRecommendationResponse = modelController
-                .getOptimizeRecommendations(modelId, project, sources).getData();
-
-        OpenOptRecommendationResponse result = null;
-        if (null != optRecommendationResponse) {
-            result = OpenOptRecommendationResponse.convert(optRecommendationResponse);
-        }
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        checkRequiredArg(NModelController.MODEL_ID, modelId);
+        OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(project, modelId, recActionType);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                new OpenOptRecLayoutsResponse(project, modelId, response), "");
     }
 
-    @PutMapping(value = "/{model_name:.+}/recommendations")
+    @PutMapping(value = "/recommendations/batch")
     @ResponseBody
-    public EnvelopeResponse<String> applyOptimizeRecommendations(@PathVariable("model_name") String modelAlias,
-            @RequestBody OpenApplyRecommendationsRequest request) {
+    public EnvelopeResponse<String> batchApproveRecommendations(@RequestBody OpenBatchApproveRecItemsRequest request) {
         checkProjectName(request.getProject());
-        String modelId = getModel(modelAlias, request.getProject()).getId();
-        return modelController.applyOptimizeRecommendations(modelId, OpenApplyRecommendationsRequest.convert(request));
+        boolean filterByModels = request.isFilterByModes();
+        if (filterByModels) {
+            if (CollectionUtils.isEmpty(request.getModelNames())) {
+                throw new KylinException(INVALID_MODEL_NAME, MsgPicker.getMsg().getEMPTY_MODEL_NAME());
+            }
+            for (String modelName : request.getModelNames()) {
+                getModel(modelName, request.getProject());
+            }
+            optRecService.batchApprove(request.getProject(), request.getModelNames(), request.getRecActionType());
+        } else {
+            optRecService.batchApprove(request.getProject(), request.getRecActionType());
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     private OpenModelSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
@@ -358,36 +364,6 @@ public class OpenModelController extends NBasicController {
 
         request.setForce2CreateNewModel(false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOrOptimizeModels(request), "");
-    }
-
-    @GetMapping(value = "/recommendations")
-    @ResponseBody
-    public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
-            @RequestParam("project") String project) {
-        checkProjectName(project);
-
-        return modelController.getRecommendationsByProject(project);
-    }
-
-    @PutMapping(value = "/recommendations/batch")
-    @ResponseBody
-    public EnvelopeResponse<String> batchApplyRecommendations(
-            @RequestBody OpenBatchApplyRecommendationsRequest request) {
-        checkProjectName(request.getProject());
-
-        boolean filterByModels = request.isFilterByModelNames() && request.isFilterByModes();
-        if (filterByModels) {
-            if (CollectionUtils.isEmpty(request.getModelNames())) {
-                throw new KylinException(INVALID_MODEL_NAME, MsgPicker.getMsg().getEMPTY_MODEL_NAME());
-            }
-            for (String modelName : request.getModelNames()) {
-                getModel(modelName, request.getProject());
-            }
-        } else {
-            request.setModelNames(null);
-        }
-
-        return modelController.batchApplyRecommendations(request.getProject(), request.getModelNames());
     }
 
     @DeleteMapping(value = "/{model_name:.+}")

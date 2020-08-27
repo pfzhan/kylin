@@ -26,41 +26,37 @@ package io.kyligence.kap.metadata.recommendation.ref;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.ParameterDesc;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.CCVisitor;
-import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.metadata.recommendation.candidate.LayoutMetric;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
-import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -138,7 +134,7 @@ public class OptRecManagerV2 {
         OptRecV2 optRecV2 = new OptRecV2(project, uuid);
         List<Integer> brokenLayoutIds = Lists.newArrayList(optRecV2.getBrokenLayoutRefIds());
         if (!brokenLayoutIds.isEmpty()) {
-            log.debug("recognized broken layout ids: {}", brokenLayoutIds);
+            log.debug("recognized broken index ids: {}", brokenLayoutIds);
             RawRecManager.getInstance(project).removeByIds(brokenLayoutIds);
         }
         return optRecV2;
@@ -150,7 +146,7 @@ public class OptRecManagerV2 {
         Map<Integer, RawRecItem> rawRecItemMap = optRecV2.getRawRecItemMap();
         List<Integer> layoutRawIds = Lists.newArrayList();
         rawIds.forEach(recId -> {
-            if (rawRecItemMap.get(recId).getType() == RawRecItem.RawRecType.LAYOUT) {
+            if (rawRecItemMap.get(recId).isLayoutRec()) {
                 layoutRawIds.add(recId);
             }
         });
@@ -158,156 +154,75 @@ public class OptRecManagerV2 {
         rawManager.discardByIds(layoutRawIds);
     }
 
-    @VisibleForTesting
-    public List<RawRecItem> convertFromV1(OptimizeRecommendation recommendation) {
-
-        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), recommendation.getProject())
-                .getDataModelDesc(recommendation.getId());
-
-        // from v1 virtual id to v2 raw id.
-        Map<Integer, Integer> columnIdMap = Maps.newHashMap();
-        // from v1 dimension id to v2 raw id.
-        Map<Integer, Integer> dimensionIdMap = Maps.newHashMap();
-        // from v1 measure id to v2 raw id.
-        Map<Integer, Integer> measureIdMap = Maps.newHashMap();
-        // from column full name to column id.
-        Map<String, Integer> columnNameMap = Maps.newHashMap();
-
-        model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .forEach(c -> columnNameMap.put(c.getAliasDotColumn(), c.getId()));
-
-        val rawItems = Lists.<RawRecItem> newArrayList();
-        int id = 1;
-
-        for (CCRecommendationItem item : recommendation.getCcRecommendations()) {
-            val rawItem = convert(id++, columnIdMap, columnNameMap, item);
-            rawItems.add(rawItem);
+    public void genRecItemsFromIndexOptimizer(String project, String modelId,
+            Map<Long, GarbageLayoutType> garbageLayouts) {
+        if (garbageLayouts.isEmpty()) {
+            return;
         }
+        log.info("Generating raw recommendations from index optimizer for model({}/{})", project, modelId);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
+        NDataModel model = modelManager.getDataModelDesc(modelId);
 
-        for (DimensionRecommendationItem item : recommendation.getDimensionRecommendations()) {
-            val rawItem = convert(id++, columnIdMap, dimensionIdMap, item);
-            rawItems.add(rawItem);
-        }
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Map<Long, LayoutEntity> allLayoutsMap = indexPlan.getAllLayoutsMap();
 
-        for (MeasureRecommendationItem item : recommendation.getMeasureRecommendations()) {
-            val rawItem = convert(id++, measureIdMap, columnNameMap, item);
-            rawItems.add(rawItem);
-        }
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        Map<Long, FrequencyMap> hitFrequencyMap = dataflow.getLayoutHitCount();
 
-        for (LayoutRecommendationItem item : recommendation.getLayoutRecommendations()) {
-            if (!item.isAdd()) {
-                continue;
-            }
-            val rawItem = convert(id++, columnIdMap, dimensionIdMap, measureIdMap, item);
-            rawItems.add(rawItem);
-        }
-
-        return rawItems;
-
-    }
-
-    private RawRecItem convert(int id, Map<Integer, Integer> idMap, Map<String, Integer> columnNameMap,
-            CCRecommendationItem cc) {
-        RawRecItem rawRecItem = createBasicRawRecItem(id, RawRecItem.RawRecType.COMPUTED_COLUMN);
-        columnNameMap.put(cc.getCc().getFullName(), -1 * id);
-        idMap.put(cc.getCcColumnId(), -id);
-        CCRecItemV2 itemV2 = new CCRecItemV2();
-        rawRecItem.setRecEntity(itemV2);
-        itemV2.setCc(cc.getCc());
-        itemV2.setCreateTime(System.currentTimeMillis());
-        List<Integer> dependId = Lists.newArrayList();
-        CCVisitor ccVisitor = new CCVisitor() {
-            @Override
-            public SqlIdentifier visit(SqlIdentifier identifier) {
-                if (identifier.names.size() == 2) {
-                    final String[] values = identifier.names.toArray(new String[0]);
-                    final String fullName = values[0] + "." + values[1];
-                    dependId.add(columnNameMap.get(fullName));
+        RawRecManager recManager = RawRecManager.getInstance(project);
+        Map<String, RawRecItem> layoutRecommendations = recManager.queryNonAppliedLayoutRawRecItems(modelId, false);
+        Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
+        layoutRecommendations.forEach((k, v) -> {
+            LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
+            uniqueFlagToUuid.put(recEntity.getLayout().genUniqueFlag(), k);
+        });
+        List<RawRecItem> rawRecItems = Lists.newArrayList();
+        garbageLayouts.forEach((layoutId, type) -> {
+            LayoutEntity layout = allLayoutsMap.get(layoutId);
+            String uniqueString = layout.genUniqueFlag();
+            String uuid = uniqueFlagToUuid.get(uniqueString);
+            FrequencyMap frequencyMap = hitFrequencyMap.getOrDefault(layoutId, new FrequencyMap());
+            RawRecItem recItem;
+            if (uniqueFlagToUuid.containsKey(uniqueString)) {
+                recItem = layoutRecommendations.get(uuid);
+                recItem.setUpdateTime(System.currentTimeMillis());
+                recItem.setIndexOptStrategy(type.name());
+                if (recItem.getState() == RawRecItem.RawRecState.DISCARD) {
+                    recItem.setState(RawRecItem.RawRecState.INITIAL);
+                    LayoutMetric layoutMetric = recItem.getLayoutMetric();
+                    if (layoutMetric == null) {
+                        recItem.setLayoutMetric(new LayoutMetric(frequencyMap, new LayoutMetric.LatencyMap()));
+                    } else {
+                        layoutMetric.setFrequencyMap(frequencyMap);
+                    }
                 }
-                return null;
+            } else {
+                LayoutRecItemV2 item = new LayoutRecItemV2();
+                item.setLayout(layout);
+                item.setCreateTime(System.currentTimeMillis());
+                item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
+                item.setUuid(UUID.randomUUID().toString());
+
+                recItem = new RawRecItem(project, modelId, model.getSemanticVersion(),
+                        RawRecItem.RawRecType.REMOVAL_LAYOUT);
+                recItem.setRecEntity(item);
+                recItem.setCreateTime(item.getCreateTime());
+                recItem.setUpdateTime(item.getCreateTime());
+                recItem.setState(RawRecItem.RawRecState.INITIAL);
+                recItem.setUniqueFlag(item.getUuid());
+                recItem.setDependIDs(item.genDependIds());
+                recItem.setLayoutMetric(new LayoutMetric(frequencyMap, new LayoutMetric.LatencyMap()));
+                recItem.setIndexOptStrategy(type.name());
             }
-        };
-        ccVisitor.visitExpr(cc.getCc().getExpression());
-        rawRecItem.setDependIDs(dependId.stream().mapToInt(Integer::intValue).toArray());
-        return rawRecItem;
-    }
 
-    private RawRecItem convert(int id, Map<Integer, Integer> idMap, Map<Integer, Integer> dimensionIdMap,
-            DimensionRecommendationItem dimension) {
-        RawRecItem rawRecItem = createBasicRawRecItem(id, RawRecItem.RawRecType.DIMENSION);
-        int colId = dimension.getColumn().getId();
-        dimensionIdMap.put(colId, -1 * id);
-
-        int dependId = idMap.getOrDefault(colId, colId);
-        DimensionRecItemV2 itemV2 = new DimensionRecItemV2();
-        itemV2.setDataType(dimension.getDataType());
-        rawRecItem.setRecEntity(itemV2);
-        itemV2.setCreateTime(System.currentTimeMillis());
-        rawRecItem.setDependIDs(new int[] { dependId });
-        return rawRecItem;
-    }
-
-    private RawRecItem convert(int id, Map<Integer, Integer> measureIdMap, Map<String, Integer> columnNameMap,
-            MeasureRecommendationItem measure) {
-        RawRecItem rawRecItem = createBasicRawRecItem(id, RawRecItem.RawRecType.MEASURE);
-        measureIdMap.put(measure.getMeasureId(), -1 * id);
-        MeasureRecItemV2 itemV2 = new MeasureRecItemV2();
-        itemV2.setMeasure(measure.getMeasure());
-        rawRecItem.setRecEntity(itemV2);
-        List<Integer> dependId = Lists.newArrayList();
-        List<ParameterDesc> parameterDescs = measure.getMeasure().getFunction().getParameters();
-        for (ParameterDesc parameterDesc : parameterDescs) {
-            if (parameterDesc.isColumnType()) {
-                dependId.add(columnNameMap.get(parameterDesc.getValue()));
+            if (recItem.getLayoutMetric() != null) {
+                rawRecItems.add(recItem);
             }
-        }
-        rawRecItem.setDependIDs(dependId.stream().mapToInt(Integer::intValue).toArray());
-        return rawRecItem;
-    }
-
-    private RawRecItem convert(int id, Map<Integer, Integer> columnIdMap, Map<Integer, Integer> dimensionIdMap,
-            Map<Integer, Integer> measureIdMap, LayoutRecommendationItem layout) {
-        RawRecItem rawRecItem = createBasicRawRecItem(id, RawRecItem.RawRecType.LAYOUT);
-        LayoutRecItemV2 recItemV2 = new LayoutRecItemV2();
-        rawRecItem.setRecEntity(recItemV2);
-        recItemV2.setAgg(layout.isAggIndex());
-        List<Integer> colOrder = Lists.newArrayList(layout.getLayout().getColOrder());
-        List<Integer> sortBy = Lists.newArrayList(layout.getLayout().getSortByColumns());
-        List<Integer> shardBy = Lists.newArrayList(layout.getLayout().getShardByColumns());
-        List<Integer> partitionBy = Lists.newArrayList(layout.getLayout().getPartitionByColumns());
-        translate(colOrder, dimensionIdMap, measureIdMap);
-        translate(sortBy, dimensionIdMap, measureIdMap);
-        translate(shardBy, dimensionIdMap, measureIdMap);
-        translate(partitionBy, dimensionIdMap, measureIdMap);
-        LayoutEntity layoutEntity = JsonUtil.deepCopyQuietly(layout.getLayout(), LayoutEntity.class);
-        layoutEntity.setColOrder(colOrder);
-        layoutEntity.setSortByColumns(sortBy);
-        layoutEntity.setShardByColumns(shardBy);
-        layoutEntity.setPartitionByColumns(partitionBy);
-        recItemV2.setLayout(layoutEntity);
-        rawRecItem.setDependIDs(colOrder.stream().mapToInt(Integer::intValue).toArray());
-        return rawRecItem;
-    }
-
-    private void translate(List<Integer> colOrder, Map<Integer, Integer> columnIdMap,
-            Map<Integer, Integer> measureIdMap) {
-        for (int i = 0; i < colOrder.size(); i++) {
-            int col = colOrder.get(i);
-            if (columnIdMap.containsKey(col)) {
-                colOrder.set(i, columnIdMap.get(col));
-            }
-            if (measureIdMap.containsKey(col)) {
-                colOrder.set(i, measureIdMap.get(col));
-            }
-        }
-    }
-
-    private RawRecItem createBasicRawRecItem(int id, RawRecItem.RawRecType type) {
-        RawRecItem rawRecItem = new RawRecItem();
-        rawRecItem.setId(id);
-        rawRecItem.setCreateTime(System.currentTimeMillis());
-        rawRecItem.setUpdateTime(System.currentTimeMillis());
-        rawRecItem.setType(type);
-        return rawRecItem;
+        });
+        RawRecManager.getInstance(project).saveOrUpdate(rawRecItems);
+        log.info("Raw recommendations from index optimizer for model({}/{}) successfully generated.", project, modelId);
     }
 }

@@ -44,7 +44,6 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,10 +101,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
@@ -354,18 +349,18 @@ public class ProjectServiceTest extends ServiceTestBase {
             if (projectInstance.getName().equalsIgnoreCase("gc_test")) {
                 // more info please refer to ProjectStorageInfoCollectorTest.testSimilarLayoutGcStrategy
                 NDataModel model = dataflowManager.listUnderliningDataModels().get(0);
-                OptimizeRecommendation optimizeRecommendation = OptimizeRecommendationManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
-                        .getOptimizeRecommendation(model.getUuid());
-                List<LayoutRecommendationItem> layoutRecommendations = optimizeRecommendation
-                        .getLayoutRecommendations();
-                // default index optimizer will not handle manual layouts.
-                Assert.assertEquals(2, layoutRecommendations.size());
-                layoutRecommendations.sort(Comparator.comparingLong(rec -> rec.getLayout().getId()));
-                Assert.assertEquals(70001L, layoutRecommendations.get(0).getLayout().getId());
-                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(0).getRecommendationType());
-                Assert.assertEquals(80001L, layoutRecommendations.get(1).getLayout().getId());
-                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(1).getRecommendationType());
+                //     OptimizeRecommendation optimizeRecommendation = OptimizeRecommendationManager
+                //             .getInstance(KylinConfig.getInstanceFromEnv(), projectInstance.getName())
+                //             .getOptimizeRecommendation(model.getUuid());
+                //     List<LayoutRecommendationItem> layoutRecommendations = optimizeRecommendation
+                //             .getLayoutRecommendations();
+                //     // default index optimizer will not handle manual layouts.
+                //     Assert.assertEquals(2, layoutRecommendations.size());
+                //     layoutRecommendations.sort(Comparator.comparingLong(rec -> rec.getLayout().getId()));
+                //     Assert.assertEquals(70001L, layoutRecommendations.get(0).getLayout().getId());
+                //     Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(0).getRecommendationType());
+                //     Assert.assertEquals(80001L, layoutRecommendations.get(1).getLayout().getId());
+                //     Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(1).getRecommendationType());
                 continue;
             }
 

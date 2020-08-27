@@ -80,15 +80,15 @@ public class RawRecManager {
         Map<String, RawRecItem> recItemMap = Maps.newHashMap();
         List<RawRecItem> recItems = jdbcRawRecStore.queryNonLayoutRecItems(project, model);
         if (CollectionUtils.isEmpty(recItems)) {
-            log.info("There is no RawRecItems of model({}/{}})", project, model);
+            log.info("There is no raw recommendations of model({}/{}})", project, model);
             return recItemMap;
         }
         recItems.forEach(recItem -> recItemMap.putIfAbsent(recItem.getUniqueFlag(), recItem));
         return recItemMap;
     }
 
-    public Map<String, RawRecItem> queryLayoutRawRecItems(String model) {
-        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryLayoutRawRecItems(project, model);
+    public Map<String, RawRecItem> queryNonAppliedLayoutRawRecItems(String model, boolean isAdditionalRec) {
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryNonAppliedLayoutRecItems(project, model, isAdditionalRec);
         Map<String, RawRecItem> map = Maps.newHashMap();
         rawRecItems.forEach(recItem -> map.put(recItem.getUniqueFlag(), recItem));
         return map;
@@ -96,14 +96,14 @@ public class RawRecManager {
 
     public void clearExistingCandidates(String project, String model) {
         long start = System.currentTimeMillis();
-        List<RawRecItem> existingCandidates = jdbcRawRecStore.queryAllLayoutCandidates(project, model);
+        List<RawRecItem> existingCandidates = jdbcRawRecStore.queryAdditionalLayoutRecItems(project, model);
         long updateTime = System.currentTimeMillis();
         existingCandidates.forEach(rawRecItem -> {
             rawRecItem.setUpdateTime(updateTime);
             rawRecItem.setState(RawRecItem.RawRecState.INITIAL);
         });
         jdbcRawRecStore.update(existingCandidates);
-        log.info("clear all existing candiates of project({})/model({}) takes {} ms.", //
+        log.info("clear all existing candidate recommendations of model({}/{}) takes {} ms.", //
                 project, model, System.currentTimeMillis() - start);
     }
 

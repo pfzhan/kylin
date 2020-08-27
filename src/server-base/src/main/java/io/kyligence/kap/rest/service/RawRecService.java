@@ -133,26 +133,27 @@ public class RawRecService {
     public void markFailAccelerateMessageToQueryHistory(ArrayListMultimap<String, QueryHistory> queryHistoryMap,
             AbstractSemiContextV2 semiContextV2) {
         List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
-        semiContextV2.getAccelerateInfoMap().entrySet().stream().filter(entry -> entry.getValue().isNotSucceed())
-                .forEach(entry -> {
-                    queryHistoryMap.get(entry.getKey()).forEach(qh -> {
-                        AccelerateInfo accelerateInfo = entry.getValue();
-                        QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
-                        if (queryHistoryInfo == null) {
-                            queryHistoryInfo = new QueryHistoryInfo();
-                        }
-                        if (accelerateInfo.isFailed()) {
-                            String failMessage = accelerateInfo.getFailedCause().getMessage();
-                            if (failMessage.length() > 256) {
-                                failMessage = failMessage.substring(0, 256);
-                            }
-                            queryHistoryInfo.setErrorMsg(failMessage);
-                        } else if (accelerateInfo.isPending()) {
-                            queryHistoryInfo.setErrorMsg(accelerateInfo.getPendingMsg());
-                        }
-                        idToQHInfoList.add(new Pair<>(qh.getId(), queryHistoryInfo));
-                    });
-                });
+        semiContextV2.getAccelerateInfoMap().forEach((sql, accelerateInfo) -> {
+            if (!accelerateInfo.isNotSucceed()) {
+                return;
+            }
+            queryHistoryMap.get(sql).forEach(qh -> {
+                QueryHistoryInfo queryHistoryInfo = qh.getQueryHistoryInfo();
+                if (queryHistoryInfo == null) {
+                    queryHistoryInfo = new QueryHistoryInfo();
+                }
+                if (accelerateInfo.isFailed()) {
+                    String failMessage = accelerateInfo.getFailedCause().getMessage();
+                    if (failMessage.length() > 256) {
+                        failMessage = failMessage.substring(0, 256);
+                    }
+                    queryHistoryInfo.setErrorMsg(failMessage);
+                } else if (accelerateInfo.isPending()) {
+                    queryHistoryInfo.setErrorMsg(accelerateInfo.getPendingMsg());
+                }
+                idToQHInfoList.add(new Pair<>(qh.getId(), queryHistoryInfo));
+            });
+        });
         RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv()).batchUpdataQueryHistorieInfo(idToQHInfoList);
     }
 
@@ -176,16 +177,16 @@ public class RawRecService {
                         .getByName(FavoriteRule.REC_SELECT_RULE_NAME);
                 for (String model : projectInstance.getModels()) {
                     long current = System.currentTimeMillis();
-                    log.info("Running update topN raw recommendation for {}/({}).", project, model);
+                    log.info("Running update topN raw recommendation for model({}/{}).", project, model);
                     int topN = Integer.parseInt(((FavoriteRule.Condition) FavoriteRule
                             .getDefaultRule(favoriteRule, FavoriteRule.REC_SELECT_RULE_NAME).getConds().get(0))
                                     .getRightThreshold());
                     rawRecManager.updateRecommendedTopN(project, model, topN);
-                    log.info("Update topN raw recommendations for project({})/model({}) takes {} ms", // 
+                    log.info("Update topN raw recommendations for model({}/{}) takes {} ms", // 
                             project, model, System.currentTimeMillis() - current);
                 }
             } catch (Exception e) {
-                log.error("Update cost and update topN failed for project<{}>", project, e);
+                log.error("Update cost and update topN failed for project({})", project, e);
             }
         }
     }
@@ -193,7 +194,7 @@ public class RawRecService {
     List<RawRecItem> transferToLayoutRecItems(AbstractSemiContextV2 semiContextV2,
             ArrayListMultimap<String, QueryHistory> layoutToQHMap, Map<String, RawRecItem> recItemMap) {
         RawRecManager recManager = RawRecManager.getInstance(semiContextV2.getProject());
-        ArrayList<RawRecItem> rawRecItems = Lists.newArrayList();
+        List<RawRecItem> rawRecItems = Lists.newArrayList();
         for (AbstractContext.NModelContext modelContext : semiContextV2.getModelContexts()) {
             NDataModel targetModel = modelContext.getTargetModel();
             if (targetModel == null) {
@@ -203,9 +204,10 @@ public class RawRecService {
             /* For unique string of layout may too long, so it is designed by a uuid,
              * therefore, we need a HashMap to avoid one LayoutRecItemV2 maps to different RawRecItems.
              */
-            Map<String, RawRecItem> layoutRecommendations = recManager.queryLayoutRawRecItems(targetModel.getUuid());
+            Map<String, RawRecItem> layoutRecItems = recManager.queryNonAppliedLayoutRawRecItems(targetModel.getUuid(),
+                    true);
             Map<String, String> uniqueFlagToUuid = Maps.newHashMap();
-            layoutRecommendations.forEach((k, v) -> {
+            layoutRecItems.forEach((k, v) -> {
                 LayoutRecItemV2 recEntity = (LayoutRecItemV2) v.getRecEntity();
                 uniqueFlagToUuid.put(recEntity.getLayout().genUniqueFlag(), k);
             });
@@ -216,7 +218,7 @@ public class RawRecService {
                 String uuid = uniqueFlagToUuid.get(uniqueString);
                 RawRecItem recItem;
                 if (uniqueFlagToUuid.containsKey(uniqueString)) {
-                    recItem = layoutRecommendations.get(uuid);
+                    recItem = layoutRecItems.get(uuid);
                     recItem.setUpdateTime(System.currentTimeMillis());
                     if (recItem.getState() == RawRecItem.RawRecState.DISCARD) {
                         recItem.setState(RawRecItem.RawRecState.INITIAL);
@@ -225,7 +227,7 @@ public class RawRecService {
                     recItem = new RawRecItem(semiContextV2.getProject(), //
                             targetModel.getUuid(), //
                             targetModel.getSemanticVersion(), //
-                            RawRecItem.RawRecType.LAYOUT);
+                            RawRecItem.RawRecType.ADDITIONAL_LAYOUT);
                     recItem.setRecEntity(layoutItem);
                     recItem.setCreateTime(layoutItem.getCreateTime());
                     recItem.setUpdateTime(layoutItem.getCreateTime());

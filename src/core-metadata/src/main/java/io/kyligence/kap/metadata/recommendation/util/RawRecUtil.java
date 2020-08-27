@@ -97,17 +97,11 @@ public class RawRecUtil {
     }
 
     private static LayoutRecItemV2 getLayoutRecItemV2(RawRecItem rawRecItem) {
-        Preconditions.checkNotNull(rawRecItem);
-        Preconditions.checkState(RawRecItem.RawRecType.LAYOUT == rawRecItem.getType());
+        Preconditions.checkArgument(rawRecItem != null && rawRecItem.isLayoutRec());
         return (LayoutRecItemV2) rawRecItem.getRecEntity();
     }
 
     public static LayoutEntity getLayout(RawRecItem rawRecItem) {
         return getLayoutRecItemV2(rawRecItem).getLayout();
     }
-
-    public static boolean isAgg(RawRecItem rawRecItem) {
-        return getLayoutRecItemV2(rawRecItem).isAgg();
-    }
-
 }

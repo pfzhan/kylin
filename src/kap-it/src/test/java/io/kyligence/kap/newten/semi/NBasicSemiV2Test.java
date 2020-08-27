@@ -169,7 +169,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         RawRecItem dimRecItemOfCountry = jdbcRawRecStore.queryById(1);
         RawRecItem layoutRecItemOfCountry = jdbcRawRecStore.queryById(3);
         Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, dimRecItemOfCountry.getType());
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, layoutRecItemOfCountry.getType());
+        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, layoutRecItemOfCountry.getType());
         Assert.assertEquals(1, layoutRecItemOfCountry.getLayoutMetric().getFrequencyMap().getDateFrequency()
                 .get(QUERY_TIME).intValue());
 
@@ -178,7 +178,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         RawRecItem dimRecItemOfFact = jdbcRawRecStore.queryById(2);
         Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, dimRecItemOfFact.getType());
         RawRecItem layoutRecItemOfFact = jdbcRawRecStore.queryById(4);
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, layoutRecItemOfFact.getType());
+        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, layoutRecItemOfFact.getType());
         Assert.assertEquals(1,
                 layoutRecItemOfFact.getLayoutMetric().getFrequencyMap().getDateFrequency().get(QUERY_TIME).intValue());
     }

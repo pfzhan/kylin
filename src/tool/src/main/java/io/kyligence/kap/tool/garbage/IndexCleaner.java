@@ -35,22 +35,19 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class IndexCleaner implements MetadataCleaner {
-    private static final Logger logger = LoggerFactory.getLogger(IndexCleaner.class);
 
     public void cleanup(String project) {
-        logger.info("Start to clean index in project {}", project);
+        log.info("Start to clean index in project {}", project);
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val projectInstance = NProjectManager.getInstance(config).getProject(project);
-
+        OptRecManagerV2 recManagerV2 = OptRecManagerV2.getInstance(project);
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId()).copy();
             Map<Long, GarbageLayoutType> garbageLayouts = IndexOptimizerFactory.getOptimizer(dataflow, true)
@@ -61,10 +58,7 @@ public class IndexCleaner implements MetadataCleaner {
             }
 
             if (projectInstance.isSemiAutoMode()) {
-                // cannot update layout hit count when transfer to recommendation,
-                // but need to update layout hit count when applying recommendation
-                // refer to LayoutRecommendationItem.apply()
-                transferToRecommendation(model.getUuid(), project, garbageLayouts);
+                recManagerV2.genRecItemsFromIndexOptimizer(project, model.getUuid(), garbageLayouts);
             }
 
             if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
@@ -74,13 +68,7 @@ public class IndexCleaner implements MetadataCleaner {
                 cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
             }
         }
-        logger.info("Clean index in project {} finished", project);
-    }
-
-    private void transferToRecommendation(String modelId, String project, Map<Long, GarbageLayoutType> garbageLayouts) {
-        OptimizeRecommendationManager recMgr = OptimizeRecommendationManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
-        recMgr.removeLayouts(modelId, garbageLayouts);
+        log.info("Clean index in project {} finished", project);
     }
 
     private void cleanupIsolatedIndex(String project, String modelId, Set<Long> garbageLayouts) {

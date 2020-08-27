@@ -172,7 +172,8 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10020XXX recommendation
     FAILED_APPROVE_RECOMMENDATION("KE-10020001"), //
-    UNSUPPORTED_RECOMMENDATION_MODE("KE-10020002"), //
+    REC_LIST_OUT_OF_DATE("KE-10020002"), //
+    UNSUPPORTED_REC_OPERATION_TYPE("KE-10020003"), //
 
     // 10021XXX server
     REMOTE_SERVER_ERROR("KE-10021001"), //
@@ -212,10 +213,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_OBTAIN_QUERY_RESULT("KE-10031001"),
 
     // 10032xxx add job result
-    FAILED_CREATE_JOB("KE-10032001"), //
-
-    // 10033xxx invalid recommendation
-    INVALID_RECOMMENDATION("KE-10033001"); //
+    FAILED_CREATE_JOB("KE-10032001"); //
 
     private final ErrorCode errorCode;
 

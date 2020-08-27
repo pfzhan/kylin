@@ -66,7 +66,7 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
 
     @JsonProperty("rec_items")
-    private List<LayoutRecDetailResponse> recItems;
+    private List<LayoutRecDetailResponse> recItems = Lists.newArrayList();
 
     @JsonProperty("index_plan")
     private IndexPlan indexPlan;

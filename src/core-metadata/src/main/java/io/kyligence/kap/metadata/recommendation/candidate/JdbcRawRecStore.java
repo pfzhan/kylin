@@ -141,13 +141,13 @@ public class JdbcRawRecStore {
                     .limit(limit) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
-            log.info("List all recommendations on project({})/model({}, {}) takes {} ms.", project, model,
-                    semanticVersion, System.currentTimeMillis() - startTime);
+            log.info("List all raw recommendations of model({}/{}, semanticVersion: {}) takes {} ms.", //
+                    project, model, semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
     }
 
-    public List<RawRecItem> queryAllLayoutCandidates(String project, String model) {
+    public List<RawRecItem> queryAdditionalLayoutRecItems(String project, String model) {
         int semanticVersion = getSemanticVersion(project, model);
         if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
             log.debug("model({}/{}) does not exist.", project, model);
@@ -161,12 +161,12 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
-                    .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
                     .and(table.state, isEqualTo(RawRecItem.RawRecState.RECOMMENDED)).build()
                     .render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
-            log.info("List existing raw recommendations on project({})/model({}, {}) takes {} ms.", project, model,
-                    semanticVersion, System.currentTimeMillis() - startTime);
+            log.info("Query raw recommendations can add indexes to model({}/{}, semanticVersion: {}) takes {} ms.", //
+                    project, model, semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
     }
@@ -185,24 +185,27 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
-                    .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
                     .and(table.state, isEqualTo(state)) //
                     .orderBy(table.cost.descending(), table.hitCount.descending(), table.id.descending()) //
                     .limit(topN) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> rawRecItems = mapper.selectMany(statementProvider);
-            log.info("List topN({}) recommendations on project({})/model({}, {}) takes {} ms.", topN, project, model,
-                    semanticVersion, System.currentTimeMillis() - startTime);
+            log.info("Query topN({}) recommendations for adding to model({}/{}, semanticVersion: {}) takes {} ms.", //
+                    topN, project, model, semanticVersion, System.currentTimeMillis() - startTime);
             return rawRecItems;
         }
     }
 
-    public List<RawRecItem> queryLayoutRawRecItems(String project, String model) {
+    public List<RawRecItem> queryNonAppliedLayoutRecItems(String project, String model, boolean isAdditionalRec) {
         int semanticVersion = getSemanticVersion(project, model);
         if (semanticVersion == NON_EXIST_MODEL_SEMANTIC_VERSION) {
             log.debug("model({}/{}) does not exist.", project, model);
             return Lists.newArrayList();
         }
+        RawRecItem.RawRecType type = isAdditionalRec //
+                ? RawRecItem.RawRecType.ADDITIONAL_LAYOUT //
+                : RawRecItem.RawRecType.REMOVAL_LAYOUT;
         long start = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
@@ -211,14 +214,14 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
-                    .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.type, isEqualTo(type)) //
                     .and(table.state, isNotEqualTo(RawRecItem.RawRecState.APPLIED)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> recItems = mapper.selectMany(statementProvider);
-            log.info("Query by raw recommendation type, state takes {} ms", System.currentTimeMillis() - start);
+            log.info("Query raw recommendations of model({}/{}, semanticVersion: {}, type: {}) takes {} ms", //
+                    project, model, semanticVersion, type.name(), System.currentTimeMillis() - start);
             return recItems;
         }
-
     }
 
     public List<RawRecItem> queryNonLayoutRecItems(String project, String model) {
@@ -235,10 +238,12 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
-                    .and(table.type, isNotEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                    .and(table.type,
+                            isNotIn(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, RawRecItem.RawRecType.REMOVAL_LAYOUT)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> recItems = mapper.selectMany(statementProvider);
-            log.info("Query non-layout raw recommendations takes {} ms", System.currentTimeMillis() - start);
+            log.info("Query non-index raw recommendations of model({}/{}, semanticVersion: {}) takes {} ms", //
+                    project, model, semanticVersion, System.currentTimeMillis() - start);
             return recItems;
         }
     }
@@ -436,7 +441,7 @@ public class JdbcRawRecStore {
             RawRecItem.RawRecState... states) {
         return select(getSelectFields(table)) //
                 .from(table).where(table.project, isEqualTo(project)) //
-                .and(table.type, isEqualTo(RawRecItem.RawRecType.LAYOUT)) //
+                .and(table.type, isEqualTo(RawRecItem.RawRecType.ADDITIONAL_LAYOUT)) //
                 .and(table.state, isIn(states)) //
                 .limit(limit).offset(offset) //
                 .build().render(RenderingStrategies.MYBATIS3);
@@ -482,6 +487,7 @@ public class JdbcRawRecStore {
                 .map(table.maxTime).toPropertyWhenPresent("maxTime", recItem::getMinTime) //
                 .map(table.minTime).toPropertyWhenPresent("minTime", recItem::getMinTime) //
                 .map(table.queryHistoryInfo).toPropertyWhenPresent("queryHistoryInfo", recItem::getQueryHistoryInfo) //
+                .map(table.indexOptStrategy).toPropertyWhenPresent("indexOptStrategy", recItem::getIndexOptStrategy)
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
@@ -510,6 +516,7 @@ public class JdbcRawRecStore {
                 .set(table.maxTime).equalToWhenPresent(recItem::getMaxTime) //
                 .set(table.minTime).equalToWhenPresent(recItem::getMinTime) //
                 .set(table.queryHistoryInfo).equalToWhenPresent(recItem::getQueryHistoryInfo) //
+                .set(table.indexOptStrategy).equalToWhenPresent(recItem::getIndexOptStrategy) //
                 .where(table.id, isEqualTo(recItem::getId)) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
@@ -536,6 +543,7 @@ public class JdbcRawRecStore {
                 recItemTable.totalTime, //
                 recItemTable.maxTime, //
                 recItemTable.minTime, //
-                recItemTable.queryHistoryInfo);
+                recItemTable.queryHistoryInfo, //
+                recItemTable.indexOptStrategy);
     }
 }
