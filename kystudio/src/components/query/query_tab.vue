@@ -12,13 +12,13 @@
           size="small" plain @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('clear')}}</el-button>
         </p>
         <p class="operator" v-if="isWorkspace">
-          <el-form :inline="true" @submit.native.prevent class="demo-form-inline">
+          <el-form :model="queryForm" :inline="true" ref="queryForm" @submit.native.prevent class="demo-form-inline">
             <el-form-item v-show="showHtrace">
-              <el-checkbox v-model="isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
+              <el-checkbox v-model="queryForm.isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
             </el-form-item><el-form-item>
-              <el-checkbox v-model="hasLimit" @change="changeLimit">Limit</el-checkbox>
-            </el-form-item><el-form-item>
-              <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
+              <el-checkbox v-model="queryForm.hasLimit" @change="changeLimit">Limit</el-checkbox>
+            </el-form-item><el-form-item :rules="limitRule" prop="listRows" :show-message="false">
+              <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="queryForm.listRows" class="limit-input"></el-input>
             </el-form-item><el-form-item>
               <el-button type="primary" v-guide.workSpaceSubmit size="small" class="ksd-btn-minwidth" :disabled="!sourceSchema" :loading="isLoading && isStopping" @click="submitQuery(sourceSchema)">{{!isLoading ? $t('runQuery') : $t('stopQuery')}}</el-button>
             </el-form-item>
@@ -92,7 +92,8 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       queryTips: 'You can enter SQL query in the SQL editor, and the results will be displayed here after the query is run.',
       clear: 'Clear',
       runQuery: 'Run Query',
-      stopQuery: 'Stop Query'
+      stopQuery: 'Stop Query',
+      overIntegerLength: 'Please enter a value no larger than 2,147,483,647.'
     },
     'zh-cn': {
       trace: '追踪',
@@ -102,15 +103,18 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       queryTips: '您可在查询编辑器中输入 SQL 查询，待查询运行完成后，将在此显示结果。',
       clear: '清空',
       runQuery: '运行',
-      stopQuery: '停止'
+      stopQuery: '停止',
+      overIntegerLength: '请输入小于等于 2,147,483,647 的数值。'
     }
   }
 })
 export default class QueryTab extends Vue {
-  hasLimit = true
-  listRows = 500
+  queryForm = {
+    hasLimit: true,
+    listRows: 500,
+    isHtrace: false
+  }
   sourceSchema = ''
-  isHtrace = false
   saveQueryFormVisible = false
   extraoptionObj = null
   isLoading = false
@@ -120,6 +124,25 @@ export default class QueryTab extends Vue {
   isWorkspace = true
   activeQueryId = ''
   isStopping = false
+
+  get limitRule () {
+    return [
+      { validator: this.checkLimitNum, trigger: 'blur' }
+    ]
+  }
+
+  checkLimitNum (rule, value, callback) {
+    if (+value > 2147483647) {
+      this.$message({
+        type: 'error',
+        message: this.$t('overIntegerLength'),
+        closeOtherMessages: true
+      })
+      callback(new Error())
+    } else {
+      callback()
+    }
+  }
 
   uniqueId () {
     return `query_${new Date().getTime().toString(32)}`
@@ -148,14 +171,14 @@ export default class QueryTab extends Vue {
     }
   }
   changeLimit () {
-    if (this.hasLimit) {
-      this.listRows = 500
+    if (this.queryForm.hasLimit) {
+      this.queryForm.listRows = 500
     } else {
-      this.listRows = 0
+      this.queryForm.listRows = 0
     }
   }
   changeTrace () {
-    if (this.isHtrace) {
+    if (this.queryForm.isHtrace) {
       kapConfirm(this.$t('htraceTips'))
     }
   }
@@ -170,7 +193,7 @@ export default class QueryTab extends Vue {
   }
   handleInputChange (value) {
     this.$nextTick(() => {
-      this.listRows = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
+      this.queryForm.listRows = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
     })
   }
   async resetQuery () {
@@ -184,27 +207,34 @@ export default class QueryTab extends Vue {
       editor.$emit('setValue', '')
     })
   }
-  submitQuery (querySql) {
-    if (!this.isLoading) {
-      if (!this.isWorkspace || !querySql) {
+  async submitQuery (querySql) {
+    try {
+      const valid = await this.$refs.queryForm.validate()
+      if (!valid) {
         return
       }
-      this.activeQueryId = this.uniqueId()
-      const queryObj = {
-        acceptPartial: true,
-        limit: this.listRows,
-        offset: 0,
-        project: this.currentSelectedProject,
-        sql: querySql,
-        stopId: this.activeQueryId,
-        backdoorToggles: {
-          DEBUG_TOGGLE_HTRACE_ENABLED: this.isHtrace
+      if (!this.isLoading) {
+        if (!this.isWorkspace || !querySql) {
+          return
         }
+        this.activeQueryId = this.uniqueId()
+        const queryObj = {
+          acceptPartial: true,
+          limit: this.queryForm.listRows,
+          offset: 0,
+          project: this.currentSelectedProject,
+          sql: querySql,
+          stopId: this.activeQueryId,
+          backdoorToggles: {
+            DEBUG_TOGGLE_HTRACE_ENABLED: this.queryForm.isHtrace
+          }
+        }
+        this.$emit('addTab', 'query', queryObj)
+      } else {
+        this.isStopping = true
+        this.stop({id: this.activeQueryId})
       }
-      this.$emit('addTab', 'query', queryObj)
-    } else {
-      this.isStopping = true
-      this.stop({id: this.activeQueryId})
+    } catch (e) {
     }
   }
   resetResult () {
