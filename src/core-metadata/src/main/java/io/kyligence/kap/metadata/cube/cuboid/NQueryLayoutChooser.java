@@ -397,55 +397,69 @@ public class NQueryLayoutChooser {
     }
 
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
-                                          Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
+            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
             if (model.isLookupTable(unmatchedDim.getTableRef())
-                    && model.isQueryDerivedEnabled(unmatchedDim.getTableRef())) {
-                JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
-                Preconditions.checkNotNull(joinByPKSide);
-                TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
-                TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
-
-                if (joinByPKSide.isInnerJoin() && ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
-                    TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
-                    if (indexEntity.dimensionsDerive(relatedCol)) {
-                        needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide,
-                                new TblColRef[]{relatedCol}, true));
-                        unmatchedDimItr.remove();
-                        continue;
-                    }
-                } else if (indexEntity.dimensionsDerive(foreignKeyColumns)
-                        && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
-
-                    DeriveInfo.DeriveType deriveType = matchNonEquiJoinFks(indexEntity, joinByPKSide)
-                            ? DeriveInfo.DeriveType.LOOKUP_NON_EQUI
-                            : DeriveInfo.DeriveType.LOOKUP;
-                    needDeriveCollector.put(unmatchedDim,
-                            new DeriveInfo(deriveType, joinByPKSide, foreignKeyColumns, false));
-                    unmatchedDimItr.remove();
-                    continue;
-                }
+                    && model.isQueryDerivedEnabled(unmatchedDim.getTableRef()) && goThruDerivedDimsFromLookupTable(
+                            indexEntity, dataflow, needDeriveCollector, model, unmatchedDimItr, unmatchedDim)) {
+                continue;
             }
 
             // in some rare cases, FK needs to be derived from PK
-            ImmutableCollection<TblColRef> pks = model.getFk2Pk().get(unmatchedDim);
-            Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, indexEntity::dimensionsDerive);
-            TblColRef pk = Iterables.getFirst(pksOnCuboid, null);
-            if (pk != null) {
-                JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
-                Preconditions.checkNotNull(joinByPKSide);
+            goThruDerivedDimsFromFactTable(indexEntity, needDeriveCollector, model, unmatchedDimItr, unmatchedDim);
 
-                //cannot derived fk from pk when left join
-                if(!joinByPKSide.isInnerJoin()){
-                    continue;
-                }
-                needDeriveCollector.put(unmatchedDim,
-                        new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[]{pk}, true));
-                unmatchedDimItr.remove();
-            }
         }
+    }
+
+    private static void goThruDerivedDimsFromFactTable(IndexEntity indexEntity,
+            Map<TblColRef, DeriveInfo> needDeriveCollector, NDataModel model, Iterator<TblColRef> unmatchedDimItr,
+            TblColRef unmatchedDim) {
+        ImmutableCollection<TblColRef> pks = model.getFk2Pk().get(unmatchedDim);
+        Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, indexEntity::dimensionsDerive);
+        TblColRef pk = Iterables.getFirst(pksOnCuboid, null);
+        if (pk != null) {
+            JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
+            Preconditions.checkNotNull(joinByPKSide);
+
+            //cannot derived fk from pk when left join
+            if (!joinByPKSide.isInnerJoin()) {
+                return;
+            }
+            needDeriveCollector.put(unmatchedDim,
+                    new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[] { pk }, true));
+            unmatchedDimItr.remove();
+        }
+    }
+
+    private static boolean goThruDerivedDimsFromLookupTable(IndexEntity indexEntity, NDataflow dataflow,
+            Map<TblColRef, DeriveInfo> needDeriveCollector, NDataModel model, Iterator<TblColRef> unmatchedDimItr,
+            TblColRef unmatchedDim) {
+        JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
+        Preconditions.checkNotNull(joinByPKSide);
+        TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
+        TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
+
+        if (joinByPKSide.isInnerJoin() && ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
+            TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
+            if (indexEntity.dimensionsDerive(relatedCol)) {
+                needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide,
+                        new TblColRef[] { relatedCol }, true));
+                unmatchedDimItr.remove();
+                return true;
+            }
+        } else if (indexEntity.dimensionsDerive(foreignKeyColumns)
+                && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
+
+            DeriveInfo.DeriveType deriveType = matchNonEquiJoinFks(indexEntity, joinByPKSide)
+                    ? DeriveInfo.DeriveType.LOOKUP_NON_EQUI
+                    : DeriveInfo.DeriveType.LOOKUP;
+            needDeriveCollector.put(unmatchedDim, new DeriveInfo(deriveType, joinByPKSide, foreignKeyColumns, false));
+            unmatchedDimItr.remove();
+            return true;
+        }
+        return false;
     }
 
 }
