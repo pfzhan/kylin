@@ -83,15 +83,18 @@ public class DFLayoutMergeAssist implements Serializable {
         Dataset<Row> mergeDataset = null;
         for (int i = 0; i < toMergeCuboids.size(); i++) {
             NDataLayout nDataLayout = toMergeCuboids.get(i);
-            Dataset<Row> layoutDataset = StorageStoreUtils.toDF(nDataLayout.getSegDetails().getDataSegment(), nDataLayout.getLayout(), ss);
+            ss.sparkContext().setJobDescription("Union segments layout " + nDataLayout.getLayoutId());
+            Dataset<Row> layoutDataset = StorageStoreUtils.toDF(nDataLayout.getSegDetails().getDataSegment(),
+                    nDataLayout.getLayout(), ss);
 
             if (mergeDataset == null) {
                 mergeDataset = layoutDataset;
             } else
                 mergeDataset = mergeDataset.union(layoutDataset);
+
+            ss.sparkContext().setJobDescription(null);
         }
         return mergeDataset;
-
     }
 
 }

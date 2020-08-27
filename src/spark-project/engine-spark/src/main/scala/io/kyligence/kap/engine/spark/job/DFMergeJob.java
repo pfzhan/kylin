@@ -170,9 +170,9 @@ public class DFMergeJob extends SparkApplication {
                     return Lists.newArrayList(saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist));
                 }
             }, config);
-
-            buildLayoutWithUpdate.updateLayout(mergedSeg, config, project);
         }
+
+        buildLayoutWithUpdate.updateLayout(mergedSeg, config, project);
     }
 
     public static Map<Long, DFLayoutMergeAssist> generateMergeAssist(List<NDataSegment> mergingSegments,
@@ -212,7 +212,9 @@ public class DFMergeJob extends SparkApplication {
         val path = NSparkCubingUtil.getStoragePath(seg, layoutId);
         int storageType = layout.getModel().getStorageType();
         StorageStore storage = StorageStoreFactory.create(storageType);
+        ss.sparkContext().setJobDescription("Merge layout " + layoutId);
         WriteTaskStats taskStats = storage.save(layout, new Path(path), KapConfig.wrap(config), dataset);
+        ss.sparkContext().setJobDescription(null);
         dataLayout.setBuildJobId(jobId);
         long rowCount = taskStats.numRows();
         if (rowCount == -1) {
@@ -307,9 +309,9 @@ public class DFMergeJob extends SparkApplication {
 
         // selected cols must be all the same
         Set<String> selectedCols = new HashSet<>(mergingSegments.get(0).getSelectedColumns());
-        for(int i = 1; i < mergingSegments.size(); i++) {
-            if (selectedCols.size() != mergingSegments.get(i).getSelectedColumns().size() ||
-                    !selectedCols.containsAll(mergingSegments.get(i).getSelectedColumns())) {
+        for (int i = 1; i < mergingSegments.size(); i++) {
+            if (selectedCols.size() != mergingSegments.get(i).getSelectedColumns().size()
+                    || !selectedCols.containsAll(mergingSegments.get(i).getSelectedColumns())) {
                 return;
             }
         }
