@@ -70,7 +70,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(sourceUsageRecord);
         sourceUsageManager.updateSourceUsage();
         SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-        Assert.assertEquals(1131588L, usage.getCurrentCapacity());
+        Assert.assertEquals(863982L, usage.getCurrentCapacity());
         Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
         // -1 means UNLIMITED
         Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -80,7 +80,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         SourceUsageRecord.TableCapacityDetail testMeasureTableDetail = projectCapacityDetail
                 .getTableByName("DEFAULT.TEST_MEASURE");
         Assert.assertEquals(SourceUsageRecord.TableKind.FACT, testMeasureTableDetail.getTableKind());
-        Assert.assertEquals(100L, testMeasureTableDetail.getCapacity());
+        Assert.assertEquals(2L, testMeasureTableDetail.getCapacity());
 
         SourceUsageRecord.TableCapacityDetail testCountryTableDetail = projectCapacityDetail
                 .getTableByName("DEFAULT.TEST_COUNTRY");

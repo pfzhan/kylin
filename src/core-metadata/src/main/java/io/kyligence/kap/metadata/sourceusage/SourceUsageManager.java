@@ -78,7 +78,8 @@ public class SourceUsageManager {
 
     private static final Logger logger = LoggerFactory.getLogger(SourceUsageManager.class);
 
-    private static final Serializer<SourceUsageRecord> SOURCE_USAGE_SERIALIZER = new JsonSerializer<>(SourceUsageRecord.class);
+    private static final Serializer<SourceUsageRecord> SOURCE_USAGE_SERIALIZER = new JsonSerializer<>(
+            SourceUsageRecord.class);
     public static final String GLOBAL = "_global";
     private static final String PATH_DELIMITER = "/";
 
@@ -116,23 +117,39 @@ public class SourceUsageManager {
             logger.debug("No effective columns found in segment: {}", segment);
             return columnSourceBytes;
         }
-        long perColumnSize = inputRecordsSize / allColumns.size();
+        List<NDataModel.NamedColumn> allNamedColumns = segment.getModel().getAllNamedColumns();
+        int columnSize = allNamedColumns.isEmpty() ? allColumns.size() : allNamedColumns.size();
+        // all named columns as denominator, since inputRecordsSize includes all cols on table
+        long perColumnSize = inputRecordsSize / columnSize;
         for (TblColRef tblColRef : allColumns) {
             columnSourceBytes.put(tblColRef.getCanonicalName(), perColumnSize);
         }
-        segment.setColumnSourceBytes(columnSourceBytes);
         return columnSourceBytes;
     }
 
     private Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
         Map<String, Long> dataflowSourceMap = new HashMap<>();
-        for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING)) {
+        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
+        NDataSegment lastOldSegment = null;
+        for (NDataSegment segment : segments) {
             Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
-            Map<String, Long> segmentSourceMap = MapUtils.isEmpty(columnSourceBytesMap) ?
-                    calcAvgColumnSourceBytes(segment) : columnSourceBytesMap;
-            for (Map.Entry<String, Long> sourceMap : segmentSourceMap.entrySet()) {
+            if (MapUtils.isEmpty(columnSourceBytesMap)) {
+                // get reference of lastOldSegment
+                lastOldSegment = segment;
+            } else {
+                for (Map.Entry<String, Long> sourceMap : columnSourceBytesMap.entrySet()) {
+                    String column = sourceMap.getKey();
+                    long value = dataflowSourceMap.getOrDefault(column, 0L);
+                    dataflowSourceMap.put(column, sourceMap.getValue() + value);
+                }
+            }
+        }
+        if (lastOldSegment != null) {
+            // only estimate last old segment
+            Map<String, Long> estimateSourceMap = calcAvgColumnSourceBytes(lastOldSegment);
+            for (Map.Entry<String, Long> sourceMap : estimateSourceMap.entrySet()) {
                 String column = sourceMap.getKey();
-                Long value = dataflowSourceMap.getOrDefault(column, 0L);
+                long value = dataflowSourceMap.getOrDefault(column, 0L);
                 dataflowSourceMap.put(column, sourceMap.getValue() + value);
             }
         }
@@ -219,7 +236,7 @@ public class SourceUsageManager {
     }
 
     private long calculateTableSourceBytes(TableCapacityDetail table, ProjectCapacityDetail project) {
-        long sourceBytes = 0L;
+        long sourceBytes;
         if (table.getTableKind().equals(SourceUsageRecord.TableKind.FACT)) {
             sourceBytes = Long.MAX_VALUE - 1;
         } else {
@@ -323,8 +340,7 @@ public class SourceUsageManager {
 
         logger.info("Updating source usage..");
         try {
-            SourceUsageRecord usage = updateSourceUsageInner();
-            return usage;
+            return updateSourceUsageInner();
         } catch (Exception ex) {
             // swallow exception, source usage problem is not as critical as daily operations
             logger.error("Failed to update source usage", ex);
@@ -351,7 +367,8 @@ public class SourceUsageManager {
             for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
                 NDataflow dataflow;
                 try {
-                    dataflow = NDataflowManager.getInstance(config, projectName).getDataflow(projectDataModel.getRealization());
+                    dataflow = NDataflowManager.getInstance(config, projectName)
+                            .getDataflow(projectDataModel.getRealization());
                     if (!isAllSegmentsEmpty(dataflow)) {
                         calculateTableInProject(dataflow, projectDetail);
                     }
@@ -439,9 +456,10 @@ public class SourceUsageManager {
                     if (!isOverCapacityThreshold(record) && !record.isCapacityNotification()) {
                         record.setCapacityNotification(true);
                         logger.info("Capacity usage is less than threshold, enable notification");
-                    } else if (record.isCapacityNotification() && config.isOverCapacityNotificationEnabled() &&
-                            isOverCapacityThreshold(record)) {
-                        if (MailHelper.notifyUserForOverCapacity(record.getLicenseCapacity(), record.getCurrentCapacity())) {
+                    } else if (record.isCapacityNotification() && config.isOverCapacityNotificationEnabled()
+                            && isOverCapacityThreshold(record)) {
+                        if (MailHelper.notifyUserForOverCapacity(record.getLicenseCapacity(),
+                                record.getCurrentCapacity())) {
                             record.setCapacityNotification(false);
                             logger.info("Capacity usage is more than threshold, disable notification");
                         } else {
@@ -468,7 +486,6 @@ public class SourceUsageManager {
             updateSourceUsage();
         }
     }
-
 
     /**
      * Read external data source to refresh lookup table row count for a table.
@@ -509,7 +526,8 @@ public class SourceUsageManager {
 
     public List<SourceUsageRecord> getLatestRecordByMs(long msAgo) {
         long from = System.currentTimeMillis() - msAgo;
-        return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, from, Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
+        return ResourceStore.getKylinMetaStore(config).getAllResources(ResourceStore.HISTORY_SOURCE_USAGE, from,
+                Long.MAX_VALUE, SOURCE_USAGE_SERIALIZER);
     }
 
     public List<SourceUsageRecord> getAllRecords() {
@@ -603,8 +621,7 @@ public class SourceUsageManager {
             }
 
             if (isNotOk(latestHistory.getCapacityStatus())) {
-                List<SourceUsageRecord> recentHistories = SourceUsageManager
-                        .getInstance(config).getLastMonthRecords();
+                List<SourceUsageRecord> recentHistories = SourceUsageManager.getInstance(config).getLastMonthRecords();
 
                 info.setFirstErrorTime(latestHistory.getCheckTime());
                 for (int i = recentHistories.size() - 1; i >= 0; i--) {
@@ -641,7 +658,7 @@ public class SourceUsageManager {
         if (config.isUTEnv()) {
             return;
         }
-        
+
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
         if (!kapConfig.isRecordSourceUsage()) {
             logger.info("Skip check over capacity.");
@@ -675,9 +692,8 @@ public class SourceUsageManager {
                         String.format(MsgPicker.getMsg().getLICENSE_PROJECT_SOURCE_OVER_CAPACITY(),
                                 info.getCurrentCapacity(), info.getCapacity()));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
-                throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
-                                info.getCurrentNode(), info.getNode()));
+                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(
+                        MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
             }
             logger.info("Current capacity status of project: {} is ok", project);
         } else {
@@ -687,12 +703,11 @@ public class SourceUsageManager {
                                 info.getCurrentCapacity(), info.getCapacity(), info.getCurrentNode(), info.getNode()));
             } else if (info.getCapacityStatus() == OVERCAPACITY) {
                 throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(),
-                                info.getCurrentCapacity(), info.getCapacity()));
+                        String.format(MsgPicker.getMsg().getLICENSE_SOURCE_OVER_CAPACITY(), info.getCurrentCapacity(),
+                                info.getCapacity()));
             } else if (info.getNodeStatus() == OVERCAPACITY) {
-                throw new KylinException(LICENSE_OVER_CAPACITY,
-                        String.format(MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(),
-                                info.getCurrentNode(), info.getNode()));
+                throw new KylinException(LICENSE_OVER_CAPACITY, String.format(
+                        MsgPicker.getMsg().getLICENSE_NODES_OVER_CAPACITY(), info.getCurrentNode(), info.getNode()));
             }
             logger.info("Current capacity status is ok");
         }
