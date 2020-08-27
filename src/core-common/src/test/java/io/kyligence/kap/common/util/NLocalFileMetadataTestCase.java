@@ -91,6 +91,18 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         return (ConcurrentHashMap<Class, Object>) filed.get(singletonField.get(getTestConfig()));
     }
 
+    public static ConcurrentHashMap<Class, Object> getGlobalInstances() throws Exception {
+        Field instanceFiled = Singletons.class.getDeclaredField("instance");
+        instanceFiled.setAccessible(true);
+
+        Singletons instanceSingle = (Singletons)instanceFiled.get(instanceFiled);
+
+        Field instancesField = instanceSingle.getClass().getDeclaredField("instances");
+        instancesField.setAccessible(true);
+
+        return (ConcurrentHashMap<Class, Object>) instancesField.get(instanceSingle);
+    }
+
     public <T> T spyManagerByProject(T t, Class<T> tClass,
             ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache, String project) {
         T manager = Mockito.spy(t);
@@ -146,6 +158,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     public static void staticCreateTestMetadata(String... overlay) {
         try {
             getInstances().clear();
+            getGlobalInstances().clear();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -158,6 +171,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     public static void staticCreateTestMetadata() {
         try {
             getInstances().clear();
+            getGlobalInstances().clear();
         } catch (Exception e) {
             // e.printStackTrace();
         }
@@ -178,6 +192,12 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public static void staticCleanupTestMetadata() {
+        try {
+            getInstances().clear();
+            getGlobalInstances().clear();
+        } catch (Exception e) {
+            // e.printStackTrace();
+        }
         File directory = new File(LOCALMETA_TEMP_DATA);
         FileUtils.deleteQuietly(directory);
 

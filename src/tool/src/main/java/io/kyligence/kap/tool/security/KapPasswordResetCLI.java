@@ -48,7 +48,7 @@ public class KapPasswordResetCLI {
 
     public static void main(String[] args) throws UnknownHostException {
         int exit;
-        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        MaintainModeTool maintainModeTool = new MaintainModeTool("reset admin password");
         maintainModeTool.init();
         try {
             maintainModeTool.markEpochs();

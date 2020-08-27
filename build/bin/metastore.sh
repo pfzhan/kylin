@@ -61,13 +61,18 @@ function printRestoreResult() {
     fi
 }
 
+function turn_on_maintain_mode() {
+  ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool'
+  ret=$?
+  if [[ $ret != 0 ]]; then
+      echo "failed to turn on maintain mode, exit!"
+      exit $ret
+  fi
+}
 
-${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on
-ret=$?
-if [[ $ret != 0 ]]; then
-    echo "failed to turn on maintain mode, exit!"
-    exit $ret
-fi
+function turn_off_maintain_mode() {
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off
+}
 
 if [ "$1" == "backup" ]
 then
@@ -86,8 +91,10 @@ elif [ "$1" == "restore" ]
 then
     if [ $# -eq 2 ]; then
         path=`cd $2 && pwd -P`
+        turn_on_maintain_mode
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path}
         printRestoreResult $?
+        turn_off_maintain_mode
     else
        help
     fi
@@ -102,7 +109,6 @@ then
         help
     fi
     BACKUP_OPTS="${BACKUP_OPTS} -project $2"
-
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool ${BACKUP_OPTS}
     printBackupResult $?
 
@@ -110,14 +116,15 @@ elif [ "$1" == "restore-project" ]
 then
     if [ $# -eq 3 ]; then
         path=`cd $3 && pwd -P`
+        turn_on_maintain_mode
         ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project $2
         printRestoreResult $?
+        turn_off_maintain_mode
     else
         help
     fi
 else
     help
 fi
-${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off
 
 

@@ -154,6 +154,10 @@ public class EpochManager implements IKeep {
     }
 
     public boolean tryUpdateEpoch(String epochTarget, boolean force) {
+        return tryUpdateEpoch(epochTarget, force, null);
+    }
+
+    private boolean tryUpdateEpoch(String epochTarget, boolean force, String maintenanceModeReason) {
         if (!force && checkInMaintenanceMode()) {
             return false;
         }
@@ -164,6 +168,7 @@ public class EpochManager implements IKeep {
                 return false;
             }
 
+            finalEpoch.setMaintenanceModeReason(maintenanceModeReason);
             epochStore.saveOrUpdate(finalEpoch);
 
             return true;
@@ -296,7 +301,17 @@ public class EpochManager implements IKeep {
     }
 
     public synchronized boolean forceUpdateEpoch(String epochTarget) {
-        if (tryUpdateEpoch(epochTarget, true)) {
+        return forceUpdateEpoch(epochTarget, null);
+    }
+
+    /**
+     * only for maintainModeTool
+     * @param epochTarget
+     * @param maintenanceModeReason
+     * @return
+     */
+    public synchronized boolean forceUpdateEpoch(String epochTarget, String maintenanceModeReason) {
+        if (tryUpdateEpoch(epochTarget, true, maintenanceModeReason)) {
             currentEpochs.add(epochTarget);
             if (!isMaintenanceMode()) {
                 eventBusFactory.postAsync(new ProjectControlledNotifier(epochTarget));
@@ -339,9 +354,13 @@ public class EpochManager implements IKeep {
     }
 
     public Pair<Boolean, String> getMaintenanceModeDetail() {
-        Epoch globalEpoch = epochStore.getGlobalEpoch();
-        if (globalEpoch != null && globalEpoch.getCurrentEpochOwner().contains(":0000")) {
-            return Pair.newPair(true, globalEpoch.getMaintenanceModeReason());
+        return getMaintenanceModeDetail(GLOBAL);
+    }
+
+    public Pair<Boolean, String> getMaintenanceModeDetail(String epochTarget) {
+        Epoch epoch = epochStore.getEpoch(epochTarget);
+        if (epoch != null && epoch.getCurrentEpochOwner().contains(":0000")) {
+            return Pair.newPair(true, epoch.getMaintenanceModeReason());
         }
 
         return Pair.newPair(false, null);

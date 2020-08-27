@@ -82,7 +82,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         if (projectsToCleanup.isEmpty()) {
             projectsToCleanup = instances.stream().map(ProjectInstance::getName).collect(Collectors.toList());
         }
-        MaintainModeTool maintainModeTool = new MaintainModeTool();
+        MaintainModeTool maintainModeTool = new MaintainModeTool("routine tool");
         maintainModeTool.init();
         try {
             maintainModeTool.markEpochs();
