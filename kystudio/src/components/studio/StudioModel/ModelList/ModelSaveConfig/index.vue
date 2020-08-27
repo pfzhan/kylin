@@ -38,7 +38,7 @@
         <el-row :gutter="5">
           <el-col :span="12">
             <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
-              <el-option :label="$t('noPartition')" value=""></el-option>
+              <!-- <el-option :label="$t('noPartition')" value=""></el-option> -->
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-col>

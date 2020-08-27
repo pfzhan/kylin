@@ -44,7 +44,7 @@
             <el-row :gutter="5">
               <el-col :span="12">
                 <el-select :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
-                  <el-option :label="$t('noPartition')" value=""></el-option>
+                  <!-- <el-option :label="$t('noPartition')" value=""></el-option> -->
                   <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
                 </el-select>
               </el-col>
@@ -65,7 +65,7 @@
           <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
             <el-row :gutter="5">
               <el-col :span="12">
-                <el-select :disabled="isLoadingFormat || !datasourceActions.includes('changePartition')" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
+                <el-select :disabled="isLoadingNewRange || isLoadingFormat || !datasourceActions.includes('changePartition')" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
                   <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
                   <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
                 </el-select>
@@ -76,7 +76,7 @@
                     <el-button
                       size="medium"
                       :loading="isLoadingFormat"
-                      :disabled="!datasourceActions.includes('changePartition')"
+                      :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
                       icon="el-icon-ksd-data_range_search"
                       v-guide.getPartitionColumnFormat
                       v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
@@ -89,85 +89,87 @@
             <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
           </el-form-item>
         </el-form>
-        <div class="divide-block">
-          <span v-if="isExpand" @click="toggleShowPartition">{{$t('showLess')}}</span>
-          <span v-else @click="toggleShowPartition">{{$t('showMore')}}</span>
-          <div class="divide-line"></div>
-        </div>
-        <div class="ksd-title-label-small ksd-mb-10">{{$t('addRangeTitle')}}</div>
-        <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
-          <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
-          <!-- <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
-            <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
-              {{$t('loadExistingData')}}
-            </el-radio>
-            <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
-          </el-form-item> -->
-          <el-form-item prop="dataRangeVal" :class="{'is-error': isShowErrorSegments}" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
-            <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
-              {{$t('customLoadRange')}}
-            </el-radio>
-            <br/> -->
-            <el-alert
-              class="ksd-pt-0"
-              :title="$t('segmentTips')"
-              type="info"
-              :show-background="false"
-              :closable="false"
-              show-icon>
+        <div v-if="partitionMeta.table && partitionMeta.column && partitionMeta.format">
+          <div class="divide-block">
+            <span v-if="isExpand" @click="toggleShowPartition">{{$t('showLess')}}</span>
+            <span v-else @click="toggleShowPartition">{{$t('showMore')}}</span>
+            <div class="divide-line"></div>
+          </div>
+          <div class="ksd-title-label-small ksd-mb-10">{{$t('addRangeTitle')}}</div>
+          <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
+            <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->
+            <!-- <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
+              <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
+                {{$t('loadExistingData')}}
+              </el-radio>
+              <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
+            </el-form-item> -->
+            <el-form-item prop="dataRangeVal" :class="{'is-error': isShowErrorSegments}" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
+              <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
+                {{$t('customLoadRange')}}
+              </el-radio>
+              <br/> -->
+              <el-alert
+                class="ksd-pt-0"
+                :title="$t('segmentTips')"
+                type="info"
+                :show-background="false"
+                :closable="false"
+                show-icon>
+              </el-alert>
+              <div class="ky-no-br-space" style="height:32px;">
+                <el-date-picker
+                  type="datetime"
+                  class="ksd-mr-5"
+                  v-model="modelBuildMeta.dataRangeVal[0]"
+                  :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+                  @change="resetError"
+                  value-format="timestamp"
+                  :format="partitionMeta.format"
+                  :placeholder="$t('kylinLang.common.startTime')">
+                </el-date-picker>
+                <el-date-picker
+                  type="datetime"
+                  v-model="modelBuildMeta.dataRangeVal[1]"
+                  :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+                  value-format="timestamp"
+                  @change="resetError"
+                  :format="partitionMeta.format"
+                  :placeholder="$t('kylinLang.common.endTime')">
+                </el-date-picker>
+                <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
+                  <el-button
+                    size="medium"
+                    class="ksd-ml-10"
+                    v-if="$store.state.project.projectPushdownConfig"
+                    :disabled="modelBuildMeta.isLoadExisted || noPartition"
+                    :loading="isLoadingNewRange"
+                    v-guide.getPartitionRangeDataBtn
+                    icon="el-icon-ksd-data_range_search"
+                    @click="handleLoadNewestRange">
+                  </el-button>
+                </common-tip>
+                <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
+                <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
+              </div>
+            </el-form-item>
+          </el-form>
+          <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
+          <div v-if="isShowErrorSegments" class="error_segments">
+            <el-alert type="error" :show-background="false" :closable="false" show-icon>
+              <span>{{$t('overlapsTips')}}</span>
+              <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}
+                <i class="el-icon-arrow-down" v-show="!showDetail"></i>
+                <i class="el-icon-arrow-up" v-show="showDetail"></i>
+              </a>
             </el-alert>
-            <div class="ky-no-br-space" style="height:32px;">
-              <el-date-picker
-                type="datetime"
-                class="ksd-mr-5"
-                v-model="modelBuildMeta.dataRangeVal[0]"
-                :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-                @change="resetError"
-                value-format="timestamp"
-                :format="partitionMeta.format"
-                :placeholder="$t('kylinLang.common.startTime')">
-              </el-date-picker>
-              <el-date-picker
-                type="datetime"
-                v-model="modelBuildMeta.dataRangeVal[1]"
-                :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
-                value-format="timestamp"
-                @change="resetError"
-                :format="partitionMeta.format"
-                :placeholder="$t('kylinLang.common.endTime')">
-              </el-date-picker>
-              <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
-                <el-button
-                  size="medium"
-                  class="ksd-ml-10"
-                  v-if="$store.state.project.projectPushdownConfig"
-                  :disabled="modelBuildMeta.isLoadExisted || noPartition"
-                  :loading="isLoadingNewRange"
-                  v-guide.getPartitionRangeDataBtn
-                  icon="el-icon-ksd-data_range_search"
-                  @click="handleLoadNewestRange">
-                </el-button>
-              </common-tip>
-              <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
-              <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
-            </div>
-          </el-form-item>
-        </el-form>
-        <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
-        <div v-if="isShowErrorSegments" class="error_segments">
-          <el-alert type="error" :show-background="false" :closable="false" show-icon>
-            <span>{{$t('overlapsTips')}}</span>
-            <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}
-              <i class="el-icon-arrow-down" v-show="!showDetail"></i>
-              <i class="el-icon-arrow-up" v-show="showDetail"></i>
-            </a>
-          </el-alert>
-          <table class="ksd-table small-size" v-if="showDetail">
-            <tr class="ksd-tr" v-for="(s, index) in errorSegments" :key="index">
-              <td>{{s.start | toServerGMTDate}}</td>
-              <td>{{s.end | toServerGMTDate}}</td>
-            </tr>
-          </table>
+            <table class="ksd-table small-size" v-if="showDetail">
+              <tr class="ksd-tr" v-for="(s, index) in errorSegments" :key="index">
+                <td>{{s.start | toServerGMTDate}}</td>
+                <td>{{s.end | toServerGMTDate}}</td>
+              </tr>
+            </table>
+          </div>
         </div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
