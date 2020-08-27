@@ -3290,6 +3290,41 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(initialSize, updatedSize);
     }
 
+    @Test
+    public void testUpdateModelConfigBringBackDeletedLayout() {
+        val project = "default";
+        val model = "82fa7671-a935-45f5-8779-85703601f49a";
+        val modelConfigRequest = new ModelConfigRequest();
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        long initialSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        indexPlanService.removeIndexes(project, model, Sets.newHashSet(10001L, 20001L));
+        long updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        Assert.assertEquals(initialSize - 2, updatedSize);
+        // override prop other than is-base-cuboid-always-valid
+        modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>() {
+            {
+                put("kylin.query.metadata.expose-computed-column", "true");
+            }
+        });
+        modelService.updateModelConfig(project, model, modelConfigRequest);
+        updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        Assert.assertEquals(initialSize - 2, updatedSize);
+        // switch off is-base-cuboid-always-valid
+        modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>() {
+            {
+                put("kylin.cube.aggrgroup.is-base-cuboid-always-valid", "false");
+            }
+        });
+        modelService.updateModelConfig(project, model, modelConfigRequest);
+        updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        Assert.assertEquals(initialSize - 1, updatedSize);
+        // switch on is-base-cuboid-always-valid
+        modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>());
+        modelService.updateModelConfig(project, model, modelConfigRequest);
+        updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        Assert.assertEquals(initialSize, updatedSize);
+    }
+
     private List<AbstractExecutable> mockJobs() {
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();

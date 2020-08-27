@@ -2940,10 +2940,14 @@ public class ModelService extends BasicService {
         val indexPlanManager = getIndexPlanManager(project);
         val overrideProps = request.getOverrideProps();
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.setOverrideProps(overrideProps);
-
             // affected by "kylin.cube.aggrgroup.is-base-cuboid-always-valid" config
-            if (copyForWrite.getRuleBasedIndex() != null) {
+            String affectProp = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
+            String oldProp = copyForWrite.getOverrideProps().get(affectProp);
+            String newProp = overrideProps.get(affectProp);
+            boolean affectedByProp = !StringUtils.equals(oldProp, newProp);
+
+            copyForWrite.setOverrideProps(overrideProps);
+            if (affectedByProp && copyForWrite.getRuleBasedIndex() != null) {
                 val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
                 newRule.setLastModifiedTime(System.currentTimeMillis());
                 newRule.setLayoutIdMapping(Lists.newArrayList());
