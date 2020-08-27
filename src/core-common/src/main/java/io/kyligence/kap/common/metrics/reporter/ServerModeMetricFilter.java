@@ -40,13 +40,13 @@ public class ServerModeMetricFilter implements MetricFilter {
 
     private static final String GLOBAL = "_global";
 
-    private static final String serverMode;
-    private static final String serviceInfo;
+    private static final String SERVER_MODE;
+    private static final String SERVICE_INFO;
 
     static {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        serverMode = config.getServerMode();
-        serviceInfo = AddressUtil.getLocalInstance();
+        SERVER_MODE = config.getServerMode();
+        SERVICE_INFO = AddressUtil.getLocalInstance();
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ServerModeMetricFilter implements MetricFilter {
         }
         if (epoch != null) {
             String currentEpochOwner = epoch.getCurrentEpochOwner();
-            if (currentEpochOwner != null && currentEpochOwner.split("\\|")[0].equals(serviceInfo)) {
+            if (currentEpochOwner != null && currentEpochOwner.split("\\|")[0].equals(SERVICE_INFO)) {
                 isLeader = true;
             }
         }
@@ -70,7 +70,7 @@ public class ServerModeMetricFilter implements MetricFilter {
             String metricName = split[0];
             NMetricsName metricsName = NMetricsName.getMetricsName(metricName);
             if (metricsName != null) {
-                return metricsName.support(serverMode, isLeader);
+                return metricsName.support(SERVER_MODE, isLeader);
             }
         }
         return true;
