@@ -56,12 +56,14 @@ public class NQueryControllerV2 extends NBasicController {
     @PostMapping(value = "", produces = { "application/json" })
     @ResponseBody
     public SQLResponse query4JDBC(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+        checkProjectName(sqlRequest.getProject());
         return queryService.doQueryWithCache(sqlRequest, false);
     }
 
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+        checkProjectName(sqlRequest.getProject());
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
@@ -69,6 +71,7 @@ public class NQueryControllerV2 extends NBasicController {
     @PostMapping(value = "/prestate", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<SQLResponse> prepareQuery(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+        checkProjectName(sqlRequest.getProject());
         Map<String, String> newToggles = Maps.newHashMap();
         if (sqlRequest.getBackdoorToggles() != null)
             newToggles.putAll(sqlRequest.getBackdoorToggles());

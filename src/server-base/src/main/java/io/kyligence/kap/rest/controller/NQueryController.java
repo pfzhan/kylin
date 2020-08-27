@@ -123,6 +123,7 @@ public class NQueryController extends NBasicController {
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+        checkProjectName(sqlRequest.getProject());
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
@@ -140,6 +141,7 @@ public class NQueryController extends NBasicController {
     @PostMapping(value = "/prestate")
     @ResponseBody
     public EnvelopeResponse<SQLResponse> prepareQuery(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
+        checkProjectName(sqlRequest.getProject());
         Map<String, String> newToggles = Maps.newHashMap();
         if (sqlRequest.getBackdoorToggles() != null)
             newToggles.putAll(sqlRequest.getBackdoorToggles());
@@ -236,7 +238,7 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public void downloadQueryResult(@PathVariable("format") String format, SQLRequest sqlRequest,
             HttpServletResponse response) {
-
+        checkProjectName(sqlRequest.getProject());
         KylinConfig config = queryService.getConfig();
         val msg = MsgPicker.getMsg();
 

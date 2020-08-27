@@ -86,6 +86,7 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException {
+        checkProjectName(sqlRequest.getProject());
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final AtomicReference<Boolean> compileResultRef = new AtomicReference<>();
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();

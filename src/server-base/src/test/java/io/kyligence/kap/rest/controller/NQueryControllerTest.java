@@ -124,6 +124,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     private PrepareSqlRequest mockPrepareSqlRequest() {
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setSql("SELECT * FROM empty_table");
+        sqlRequest.setProject(PROJECT);
         return sqlRequest;
     }
 

@@ -23,12 +23,12 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.controller.v2.NQueryControllerV2;
-import io.kyligence.kap.rest.service.KapQueryService;
-import io.kyligence.kap.rest.service.QueryHistoryService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -44,9 +44,12 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.controller.v2.NQueryControllerV2;
+import io.kyligence.kap.rest.service.KapQueryService;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 
-public class NQueryControllerV2Test {
+public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -69,11 +72,18 @@ public class NQueryControllerV2Test {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
+    }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
     }
 
     private PrepareSqlRequest mockPrepareSqlRequest() {
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setSql("SELECT * FROM empty_table");
+        sqlRequest.setProject("default");
         return sqlRequest;
     }
 
