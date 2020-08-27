@@ -117,12 +117,18 @@ class ModelEdgeCollector {
                     SchemaNode.ofPartition(model.getPartitionDesc(), model.getId()));
         }
         for (JoinTableDesc joinTable : model.getJoinTables()) {
-            Stream.concat(Stream.of(joinTable.getJoin().getPrimaryKey()),
-                    Stream.of(joinTable.getJoin().getForeignKey())).forEach(col -> {
-                        val nameColumn = nameColumnIdMap.get(col);
-                        graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getId()),
-                                SchemaNode.ofJoin(nameColumn, model.getId()));
-                    });
+            Stream<String> joinCols = Stream.concat(
+                    Stream.of(joinTable.getJoin().getPrimaryKey()),
+                    Stream.of(joinTable.getJoin().getForeignKey()));
+            if (joinTable.getJoin().getNonEquiJoinCondition() != null) {
+                joinCols = Stream.concat(joinCols, joinTable.getJoin().getNonEquiJoinCondition().getAllReferencingColumns().stream());
+            }
+
+            joinCols.forEach(col -> {
+                val nameColumn = nameColumnIdMap.get(col);
+                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getId()),
+                        SchemaNode.ofJoin(nameColumn, model.getId()));
+            });
         }
 
         if (StringUtils.isNotEmpty(model.getFilterCondition())) {

@@ -26,7 +26,12 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -194,6 +199,20 @@ public class NonEquiJoinCondition implements Serializable {
             }
         }
         return result;
+    }
+
+    public Set<String> getAllReferencingColumns() {
+        return doGetAllReferencingColumns(this);
+    }
+
+    private Set<String> doGetAllReferencingColumns(NonEquiJoinCondition cond) {
+        if (cond.type == NonEquiJoinConditionType.COLUMN) {
+            return Sets.newHashSet(cond.colRef.getIdentity());
+        } else if (cond.type == NonEquiJoinConditionType.EXPRESSION){
+            return Arrays.stream(cond.operands).map(this::doGetAllReferencingColumns).flatMap(Collection::stream).collect(Collectors.toSet());
+        } else {
+            return new HashSet<>();
+        }
     }
 
     @Setter
