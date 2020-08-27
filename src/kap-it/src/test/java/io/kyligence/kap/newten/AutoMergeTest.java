@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
@@ -97,6 +98,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        val prj = prjManager.getProject(DEFAULT_PROJECT);
+        val copy = prjManager.copyForWrite(prj);
+        copy.getSegmentConfig().setAutoMergeEnabled(true);
+        prjManager.updateProject(copy);
         SegmentAutoMergeUtil.autoMergeSegments(DEFAULT_PROJECT, df.getUuid(), "ADMIN");
     }
 

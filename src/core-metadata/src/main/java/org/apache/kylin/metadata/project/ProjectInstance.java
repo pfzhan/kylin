@@ -138,7 +138,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Getter
     @Setter
-    private SegmentConfig segmentConfig = new SegmentConfig(true, Lists.newArrayList(AutoMergeTimeEnum.WEEK,
+    private SegmentConfig segmentConfig = new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK,
             AutoMergeTimeEnum.MONTH, AutoMergeTimeEnum.QUARTER, AutoMergeTimeEnum.YEAR), new VolatileRange(),
             new RetentionRange());
 

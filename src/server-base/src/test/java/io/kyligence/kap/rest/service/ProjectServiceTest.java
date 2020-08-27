@@ -437,7 +437,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         val project = PROJECT;
         val response = projectService.getProjectConfig(project);
         Assert.assertEquals(20, response.getFavoriteQueryThreshold());
-        Assert.assertEquals(true, response.isAutoMergeEnabled());
+        Assert.assertEquals(false, response.isAutoMergeEnabled());
         Assert.assertEquals(false, response.getRetentionRange().isRetentionRangeEnabled());
         Assert.assertEquals(false, response.isExposeComputedColumn());
     }
@@ -673,7 +673,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(5, response.getLowFrequencyThreshold());
 
         response = projectService.resetProjectConfig(PROJECT, "segment_config");
-        Assert.assertTrue(response.isAutoMergeEnabled());
+        Assert.assertFalse(response.isAutoMergeEnabled());
         Assert.assertEquals(4, response.getAutoMergeTimeRanges().size());
 
         response = projectService.resetProjectConfig(PROJECT, "storage_quota_config");

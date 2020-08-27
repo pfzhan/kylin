@@ -817,7 +817,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         //table oriented model
         AutoMergeConfigResponse response = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
-        Assert.assertEquals(response.isAutoMergeEnabled(), true);
+        Assert.assertFalse(response.isAutoMergeEnabled());
         Assert.assertEquals(4, response.getAutoMergeTimeRanges().size());
 
         dataModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -827,7 +827,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         //model Based model
         response = tableService.getAutoMergeConfigByModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
-        Assert.assertEquals(response.isAutoMergeEnabled(), true);
+        Assert.assertFalse(response.isAutoMergeEnabled());
         Assert.assertEquals(4, response.getAutoMergeTimeRanges().size());
 
     }

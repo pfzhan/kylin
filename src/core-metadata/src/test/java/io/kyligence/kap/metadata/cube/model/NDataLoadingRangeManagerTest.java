@@ -24,12 +24,8 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import java.io.IOException;
-import lombok.val;
+
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -41,6 +37,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 @RunWith(TimeZoneTestRunner.class)
 public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
@@ -138,6 +140,11 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         //2012/12/25-2013/01/15
         String start = "2012-12-25 14:27:14.000";
         String end = "2013-01-15 14:27:14.000";
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        val prj = prjManager.getProject("default");
+        val copy = prjManager.copyForWrite(prj);
+        copy.getSegmentConfig().setAutoMergeEnabled(true);
+        prjManager.updateProject(copy);
         val loadingRange = createDataLoadingRange(DateFormat.stringToMillis(start), DateFormat.stringToMillis(end));
         val ranges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(loadingRange);
         Assert.assertEquals(4, ranges.size());
@@ -167,6 +174,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         val copy = prjManager.copyForWrite(prj);
         copy.getSegmentConfig().getVolatileRange().setVolatileRangeNumber(3L);
         copy.getSegmentConfig().getVolatileRange().setVolatileRangeEnabled(true);
+        copy.getSegmentConfig().setAutoMergeEnabled(true);
 
         prjManager.updateProject(copy);
 
@@ -205,6 +213,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
         copy.getSegmentConfig().getAutoMergeTimeRanges().add(AutoMergeTimeEnum.YEAR);
+        copy.getSegmentConfig().setAutoMergeEnabled(true);
         prjManager.updateProject(copy);
         val ranges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(loadingRange);
         Assert.assertEquals(4, ranges.size());
