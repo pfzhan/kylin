@@ -308,8 +308,16 @@ public class CnMessage extends Message {
         return "该可计算列的表达式已被用于模型 '%s'，名称为 '%s'。请修改名称以保持一致，或使用其他的表达式。";
     }
 
+    public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL() {
+        return "该表达式在模型内已存在。";
+    }
+
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED() {
         return "可计算列名称 '%s' 已被用于模型 '%s'，表达式为 '%s'。请修改表达式以保持一致，或使用其他的名称。";
+    }
+
+    public String getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL() {
+        return "该可计算列名在模型内已存在。";
     }
 
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
@@ -856,8 +864,8 @@ public class CnMessage extends Message {
         return "度量 %s 正在被索引引用。请在聚合组或明细索引中删除对应字段后再进行操作。";
     }
 
-    public String getNESTEDCC_CC_NOTFOUND() {
-        return "模型[%s]的嵌套可计算列[%s]已经包含可计算列[%s]";
+    public String getNESTED_CC_CASCADE_ERROR() {
+        return "操作失败，在当前模型中存在嵌套可计算列[%s]依赖于当前可计算列[%s]，嵌套可计算列的表达式为[%s]。";
     }
 
     public String getCHANGE_GLOBALADMIN() {

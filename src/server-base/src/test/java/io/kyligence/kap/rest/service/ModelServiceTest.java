@@ -2318,6 +2318,42 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testAddEquivalentCcConflict() throws IOException {
+
+        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        Serializer<NDataModel> serializer = dataModelManager.getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        ComputedColumnDesc newCC = new ComputedColumnDesc();
+        newCC.setColumnName("CC_TEMP");
+        newCC.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        newCC.setTableAlias("TEST_KYLIN_FACT");
+        newCC.setExpression("SUBSTRING(BUYER_ACCOUNT.ACCOUNT_COUNTRY from 0 for 1)");
+        newCC.setDatatype("string");
+        deserialized.getComputedColumnDescs().add(newCC);
+        ComputedColumnDesc newCC2 = new ComputedColumnDesc();
+        newCC2.setColumnName("CC_TEMP2");
+        newCC2.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        newCC2.setTableAlias("TEST_KYLIN_FACT");
+        newCC2.setExpression("SUBSTRING(BUYER_ACCOUNT.ACCOUNT_COUNTRY, 0, 1)");
+        newCC2.setDatatype("string");
+        deserialized.getComputedColumnDescs().add(newCC2);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        serializer.serialize(deserialized, new DataOutputStream(baos));
+
+        ByteArrayInputStream newBias = new ByteArrayInputStream(baos.toByteArray());
+        NDataModel newModel = serializer.deserialize(new DataInputStream(newBias));
+
+        thrown.expect(BadModelException.class);
+        thrown.expectMessage("This expression has already been used by other computed columns in this model.");
+        modelService.checkComputedColumn(newModel, "default", "TEST_KYLIN_FACT.CC_TEMP");
+    }
+
+    @Test
     public void testNewModelAddSameExprDiffNameOnDifferentAliasTable() throws IOException {
 
         expectedEx.expect(new BaseMatcher() {
@@ -2715,7 +2751,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+                                "This name has already been used by other computed columns in this model.");
             }
         });
 
@@ -2729,47 +2765,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String oneMoreCC = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
                 + "      \"columnName\": \"DEAL_AMOUNT\",\n" + "      \"expression\": \"PRICE * ITEM_COUNT\",\n"
                 + "      \"datatype\": \"decimal\",\n" + "      \"comment\": \"bla bla bla\"\n" + "    },";
-        contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
-
-        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
-        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
-        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
-        //TODO modelService.updateModelToResourceStore(deserialized, "default");
-    }
-
-    @Test
-    public void testSameNameOnDifferentAliasTableInOneModel() throws IOException {
-
-        expectedEx.expect(new BaseMatcher() {
-            @Override
-            public void describeTo(Description description) {
-            }
-
-            @Override
-            public boolean matches(Object item) {
-                if (!(item instanceof BadModelException)) {
-                    return false;
-                }
-                BadModelException ccException = (BadModelException) item;
-                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
-                        && ccException.getAdvise() == null && ccException.getConflictingModel() == null
-                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
-                        && ccException.getMessage().equals(
-                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
-            }
-        });
-
-        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
-        String contents = StringUtils.join(Files.readAllLines(
-                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
-                Charset.defaultCharset()), "\n");
-
-        String str = "\"computed_columns\": [";
-        int i = contents.indexOf(str) + str.length();
-        String oneMoreCC = "  {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_ACCOUNT\",\n"
-                + "      \"tableAlias\": \"BUYER_ACCOUNT\",\n" + "      \"columnName\": \"DEAL_AMOUNT\",\n"
-                + "      \"expression\": \"BUYER_ACCOUNT.ACCOUNT_ID\",\n" + "      \"datatype\": \"bigint\",\n"
-                + "      \"comment\": \"bla bla\"\n" + "    },";
         contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
@@ -2796,7 +2791,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+                                "This expression has already been used by other computed columns in this model.");
             }
         });
 
@@ -2837,7 +2832,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+                                "This expression has already been used by other computed columns in this model.");
             }
         });
 

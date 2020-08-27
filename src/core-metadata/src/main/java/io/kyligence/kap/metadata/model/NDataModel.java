@@ -1205,20 +1205,8 @@ public class NDataModel extends RootPersistentEntity {
             for (int j = 0; j < i; j++) {
                 ComputedColumnDesc a = this.computedColumnDescs.get(i);
                 ComputedColumnDesc b = this.computedColumnDescs.get(j);
-                // self check, two cc cannot define same cc column name, even if it's on different alias table
-                if (StringUtils.equalsIgnoreCase(a.getColumnName(), b.getColumnName())) {
-                    throw new BadModelException(
-                            "In current model, at least two computed columns share the same column name: "
-                                    + a.getColumnName() + ", please use different column name",
-                            BadModelException.CauseType.SELF_CONFLICT, null, null, a.getFullName());
-                }
-                // self check, two cc cannot define same expression
-                if (ComputedColumnUtil.isLiteralSameCCExpr(a, b)) {
-                    throw new BadModelException(
-                            "In current model, computed column " + a.getFullName() + " share same expression as "
-                                    + b.getFullName() + ", please remove one",
-                            BadModelException.CauseType.SELF_CONFLICT, null, null, a.getFullName());
-                }
+                val handler = new ComputedColumnUtil.DefaultCCConflictHandler();
+                ComputedColumnUtil.singleCCConflictCheck(this, this, b, a, handler);
             }
         }
     }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
+import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
@@ -38,7 +39,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MO
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_COMPUTED_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
@@ -80,9 +80,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -2285,7 +2288,7 @@ public class ModelService extends BasicService {
     }
 
     /**
-     * check if the computed column expressions are valid ( in hive)
+     * check if the computed column expressions are valid (in hive)
      * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
@@ -2310,12 +2313,7 @@ public class ModelService extends BasicService {
             checkCCName(cc.getColumnName());
 
             if (!StringUtils.isEmpty(ccInCheck) && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck)) {
-                //check nested cc
-                if (cc.getExpression().toUpperCase().contains(ccInCheck)) {
-                    throw new KylinException(FAILED_UPDATE_COMPUTED_COLUMN,
-                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModelDesc.getAlias(),
-                                    cc.getTableAlias() + "." + cc.getColumnName(), ccInCheck));
-                }
+                checkCascadeErrorOfNestedCC(cc, ccInCheck);
             } else {
                 //replace computed columns with basic columns
                 ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
@@ -2332,9 +2330,7 @@ public class ModelService extends BasicService {
             }
         }
 
-        if (checkedCC == null)
-            throw new IllegalStateException("No computed column match: " + ccInCheck);
-
+        Preconditions.checkState(checkedCC != null, "No computed column match: {}", ccInCheck);
         // check invalid measure removed due to cc data type change
         val modelManager = getDataModelManager(dataModelDesc.getProject());
         val oldDataModel = modelManager.getDataModelDesc(dataModelDesc.getUuid());
@@ -3092,29 +3088,33 @@ public class ModelService extends BasicService {
             UpdateImpact updateImpact = semanticUpdater.updateModelColumns(model, modelRequest, false);
             Set<Integer> modifiedSet = updateImpact.getAffectedIds();
             affectedLayouts = getAffectedLayouts(oldDataModel.getProject(), oldDataModel.getId(), modifiedSet);
-            checkNestedComputedColumn(model, modifiedSet);
         }
         try {
             massageModelFilterCondition(model);
         } catch (Exception e) {
             throw new KylinException(INVALID_FILTER_CONDITION, e);
         }
-        if (affectedLayouts.size() > 0)
+        if (!affectedLayouts.isEmpty())
             return new ModelSaveCheckResponse(true);
         return new ModelSaveCheckResponse();
     }
 
-    private void checkNestedComputedColumn(NDataModel dataModel, Set<Integer> modifiedSet) {
-        for (Integer colId : modifiedSet) {
-            if (colId >= IndexEntity.INDEX_ID_STEP)
-                continue;
-            val colName = dataModel.getColumnNameByColumnId(colId);
-            for (val cc : dataModel.getComputedColumnDescs()) {
-                if (cc.getExpression().toUpperCase().contains(colName))
-                    throw new KylinException(FAILED_UPDATE_MODEL,
-                            String.format(MsgPicker.getMsg().getNESTEDCC_CC_NOTFOUND(), dataModel.getAlias(),
-                                    cc.getTableAlias() + "." + cc.getColumnName(), colName));
-            }
+    private void checkCascadeErrorOfNestedCC(ComputedColumnDesc cc, String ccInCheck) {
+        String upperCcInCheck = ccInCheck.toUpperCase();
+        try {
+            SqlVisitor<Void> sqlVisitor = new SqlBasicVisitor<Void>() {
+                @Override
+                public Void visit(SqlIdentifier id) {
+                    if (id.toString().equals(upperCcInCheck))
+                        throw new Util.FoundOne(id);
+                    return null;
+                }
+            };
+            CalciteParser.getExpNode(cc.getExpression()).accept(sqlVisitor);
+        } catch (Util.FoundOne e) {
+            throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR,
+                    String.format(MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(),
+                            cc.getFullName(), ccInCheck, cc.getExpression()));
         }
     }
 
@@ -3376,7 +3376,7 @@ public class ModelService extends BasicService {
                             computedColumnDesc.getFullName(), ccCopy.getDatatype(), computedColumnDesc.getDatatype()));
                 }
             } catch (Exception e) {
-                logger.error("Error validating computed column {}, {}", computedColumnDesc, e);
+                logger.error("Error validating computed column {}, ", computedColumnDesc, e);
             }
         }
 

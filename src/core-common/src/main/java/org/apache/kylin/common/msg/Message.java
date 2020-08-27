@@ -300,8 +300,16 @@ public class Message {
         return "The expression of computed column has already been used in model '%s' as '%s'. Please modify the name to keep consistent, or use a different expression.";
     }
 
+    public String getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL() {
+        return "This expression has already been used by other computed columns in this model.";
+    }
+
     public String getCOMPUTED_COLUMN_NAME_DUPLICATED() {
         return "The name of computed column '%s' has already been used in model '%s', and the expression is '%s'. Please modify the expression to keep consistent, or use a different name.";
+    }
+
+    public String getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL() {
+        return "This name has already been used by other computed columns in this model.";
     }
 
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
@@ -935,8 +943,10 @@ public class Message {
         return "The measure %s is referenced by indexes. Please try again after deleting it from aggregation group or table index.";
     }
 
-    public String getNESTEDCC_CC_NOTFOUND() {
-        return "model %s's nested computed column %s still contains computed column %s";
+    public String getNESTED_CC_CASCADE_ERROR() {
+        return "Operation failed. "
+                + "There is a nested computed column [%s] in the current model depends on the current computed column [%s]. "
+                + "The expression of nested computed column is [%s].";
     }
 
     public String getDOWNLOAD_FAILED() {

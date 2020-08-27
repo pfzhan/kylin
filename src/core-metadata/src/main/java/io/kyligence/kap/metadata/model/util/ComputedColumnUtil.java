@@ -62,8 +62,11 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.AliasDeduce;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ComputedColumnUtil {
+    private static final Logger logger = LoggerFactory.getLogger(ComputedColumnUtil.class);
     public static final String CC_NAME_PREFIX = "CC_AUTO_";
     public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
@@ -233,6 +236,7 @@ public class ComputedColumnUtil {
     public static void singleCCConflictCheck(NDataModel existingModel, NDataModel newModel,
             ComputedColumnDesc existingCC, ComputedColumnDesc newCC, CCConflictHandler handler) {
         AliasMapping aliasMapping = getCCAliasMapping(existingModel, newModel, existingCC, newCC);
+        boolean sameModel = isSameModel(existingModel, newModel);
         boolean sameName = isSameName(existingCC, newCC);
         boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
 
@@ -241,6 +245,10 @@ public class ComputedColumnUtil {
         }
 
         if (sameName) {
+            if (sameModel) {
+                handler.handleOnSingleModelSameName(existingModel, existingCC, newCC);
+            }
+
             if (!isSameAliasTable(existingCC, newCC, aliasMapping)) {
                 handler.handleOnWrongPositionName(existingModel, existingCC, newCC, aliasMapping);
             }
@@ -251,6 +259,10 @@ public class ComputedColumnUtil {
         }
 
         if (sameCCExpr) {
+            if (sameModel) {
+                handler.handleOnSingleModelSameExpr(existingModel, existingCC, newCC);
+            }
+
             if (!isSameAliasTable(existingCC, newCC, aliasMapping)) {
                 handler.handleOnWrongPositionExpr(existingModel, existingCC, newCC, aliasMapping);
             }
@@ -259,6 +271,13 @@ public class ComputedColumnUtil {
                 handler.handleOnSameExprDiffName(existingModel, existingCC, newCC);
             }
         }
+    }
+
+    private static boolean isSameModel(NDataModel existingModel, NDataModel newModel) {
+        if (existingModel == null)
+            return false;
+
+        return existingModel.equals(newModel);
     }
 
     private static AliasMapping getAliasMappingFromJoinsGraph(JoinsGraph fromGraph, JoinsGraph toMatchGraph) {
@@ -371,6 +390,12 @@ public class ComputedColumnUtil {
 
         void handleOnSameExprSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC);
+
+        void handleOnSingleModelSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC);
+
+        void handleOnSingleModelSameExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC);
     }
 
     public static class BasicCCConflictHandler implements CCConflictHandler {
@@ -400,6 +425,18 @@ public class ComputedColumnUtil {
 
         @Override
         public void handleOnSameExprSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            // do nothing
+        }
+
+        @Override
+        public void handleOnSingleModelSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            // do nothing
+        }
+
+        @Override
+        public void handleOnSingleModelSameExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
             // do nothing
         }
@@ -476,6 +513,24 @@ public class ComputedColumnUtil {
             throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
                     BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName, existingModel.getAlias(),
                     newCC.getFullName());
+        }
+
+        @Override
+        public void handleOnSingleModelSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_DUPLICATED_SINGLE_MODEL());
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_NAME, msg,
+                    BadModelException.CauseType.SELF_CONFLICT, null, null, newCC.getFullName());
+        }
+
+        @Override
+        public void handleOnSingleModelSameExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
+                ComputedColumnDesc newCC) {
+            logger.error(String.format("In model %s, computed columns %s and %s have equivalent expressions.",
+                    existingModel.getAlias(), existingCC.getFullName(), newCC.getFullName()));
+            String msg = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_DUPLICATED_SINGLE_MODEL());
+            throw new BadModelException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, msg,
+                    BadModelException.CauseType.SELF_CONFLICT, null, null, newCC.getFullName());
         }
     }
 

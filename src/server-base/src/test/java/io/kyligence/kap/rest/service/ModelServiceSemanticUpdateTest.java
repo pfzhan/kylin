@@ -759,7 +759,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     @Test
     public void testModifyCCExistInNestedCC() throws Exception {
         // add nested cc
-        var request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        final String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        var request = newSemanticRequest(modelId);
         ComputedColumnDesc newCC = new ComputedColumnDesc();
         newCC.setColumnName("NEST6");
         newCC.setExpression("TEST_KYLIN_FACT.NEST5+1");
@@ -769,13 +770,12 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         request.getComputedColumnDescs().add(newCC);
         modelService.updateDataModelSemantic(getProject(), request);
         // expect a KylinException when modify cc used by a nested cc
-        request = newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.getComputedColumnDescs().get(10)
-                .setExpression(request.getComputedColumnDescs().get(10).getExpression() + "+1");
+        NDataModel modelDesc = getTestModel();
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "model nmodel_basic's nested computed column TEST_KYLIN_FACT.NEST6 still contains computed column TEST_KYLIN_FACT.NEST5");
-        modelService.checkBeforeModelSave(request);
+        thrown.expectMessage("Operation failed. There is a nested computed column [TEST_KYLIN_FACT.NEST6] " +
+                "in the current model depends on the current computed column [TEST_KYLIN_FACT.NEST5]. " +
+                "The expression of nested computed column is [TEST_KYLIN_FACT.NEST5+1].");
+        modelService.checkComputedColumn(modelDesc, getProject(), "TEST_KYLIN_FACT.NEST5");
     }
 
     @Test
