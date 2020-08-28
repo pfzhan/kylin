@@ -60,6 +60,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.user.ManagedUser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -164,6 +165,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
 
+    @Mock
+    protected AccessService accessService = Mockito.spy(AccessService.class);
+
+    @Mock
+    protected UserService userService = Mockito.spy(KylinUserService.class);
+
+    @Mock
+    protected AclService aclService = Mockito.spy(AclService.class);
+
     private int pushdownCount;
 
     @BeforeClass
@@ -186,6 +196,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
         ReflectionTestUtils.setField(queryService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(queryService, "accessService", accessService);
+        ReflectionTestUtils.setField(accessService, "userService", userService);
+        ReflectionTestUtils.setField(accessService, "aclService", aclService);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
         pushdownCount = 0;
@@ -1228,5 +1241,52 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME())).findFirst().get()
                 .getTYPE().isEmpty();
         Assert.assertTrue(noFactTableType);
+    }
+
+    @Test
+    public void testExecuteAsUserSwitchOff() {
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setExecuteAs("unknown");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Configuration item \"kylin.query.query-with-execute-as\" " +
+                "is not enabled. So you cannot use the \"executeAs\" parameter now");
+        queryService.doQueryWithCache(request, false);
+    }
+
+    @Test
+    public void testExecuteAsUserServiceAccountAccessDenied() {
+        try {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new TestingAuthenticationToken("testuser", "testuser", Constant.ROLE_MODELER));
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql("select 2");
+            request.setExecuteAs("ADMIN");
+            getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
+            request.setQueryId(UUID.randomUUID().toString());
+            thrown.expect(KylinException.class);
+            thrown.expectMessage("User [testuser] does not have permissions for all tables, rows, " +
+                    "and columns in the project [default] and cannot use the executeAs parameter");
+            queryService.doQueryWithCache(request, false);
+        } finally {
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        }
+    }
+
+    @Test
+    public void testExecuteAsUserAccessDenied() {
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql("select 2");
+        getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
+        request.setQueryId(UUID.randomUUID().toString());
+        userService.createUser(new ManagedUser("testuser", "KYLIN", false, Arrays.asList()));
+        userService.userExists("testuser");
+        request.setExecuteAs("testuser");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Access is denied.");
+        queryService.doQueryWithCache(request, false);
     }
 }

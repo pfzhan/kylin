@@ -42,6 +42,7 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
@@ -408,6 +409,17 @@ public class QueryService extends BasicService {
         if (!AclPermissionUtil.isAdmin() && !aclTCRManager.isAllTablesAuthorized(username, groups))
             throw new KylinException(PERMISSION_DENIED, String
                     .format(MsgPicker.getMsg().getSERVICE_ACCOUNT_NOT_ALLOWED(), username, sqlRequest.getProject()));
+
+        // check whether execute user has project read permission
+        List<String> grantedProjects;
+        try {
+            grantedProjects = accessService.getGrantedProjectsOfUser(executeUser);
+        } catch (IOException e) {
+            throw new KylinException(ACCESS_DENIED, e);
+        }
+        if (!grantedProjects.contains(sqlRequest.getProject())) {
+            throw new KylinException(ACCESS_DENIED, "Access is denied.");
+        }
     }
 
     private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
