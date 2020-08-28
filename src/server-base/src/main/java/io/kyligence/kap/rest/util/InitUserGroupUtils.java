@@ -24,38 +24,33 @@
 
 package io.kyligence.kap.rest.util;
 
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.constant.Constant;
+import static io.kyligence.kap.rest.util.CreateAdminUserUtils.PROFILE_DEFAULT;
 
-import com.google.common.io.ByteStreams;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.constant.Constant;
+import org.springframework.core.env.Environment;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.acl.UserGroup;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
 import lombok.extern.slf4j.Slf4j;
-
-import static org.apache.kylin.common.persistence.ResourceStore.USER_GROUP_ROOT;
 
 @Slf4j
 public class InitUserGroupUtils {
-    public static void initUserGroups() {
-        val rs = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        if (rs.exists(USER_GROUP_ROOT)) {
-            return;
-        }
-        log.info("Init user group");
-        UserGroup userGroup = new UserGroup();
-        userGroup.add(Constant.GROUP_ALL_USERS);
-        userGroup.add(Constant.ROLE_ADMIN);
-        userGroup.add(Constant.ROLE_MODELER);
-        userGroup.add(Constant.ROLE_ANALYST);
+
+    public static void initUserGroups(Environment env) {
+        String[] groupNames = new String[] { Constant.GROUP_ALL_USERS, Constant.ROLE_ADMIN, Constant.ROLE_MODELER,
+                Constant.ROLE_ANALYST };
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(USER_GROUP_ROOT,
-                    ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), System.currentTimeMillis(), -1L);
+            NUserGroupManager userGroupManager = NUserGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+            if (userGroupManager.getAllGroups().isEmpty() && env.acceptsProfiles(PROFILE_DEFAULT)) {
+                for (String groupName : groupNames) {
+                    userGroupManager.add(groupName);
+                    log.info("Init user group {}.", groupName);
+                }
+            }
             return null;
         }, UnitOfWork.GLOBAL_UNIT);
+
     }
 }

@@ -93,7 +93,7 @@ public class EpochChangedListener implements IKeep {
         } else {
             //TODO need global leader
             CreateAdminUserUtils.createAllAdmins(userService, env);
-            InitUserGroupUtils.initUserGroups();
+            InitUserGroupUtils.initUserGroups(env);
             SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage();
             UnitOfWork.doInTransactionWithRetry(() -> {
                 ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();

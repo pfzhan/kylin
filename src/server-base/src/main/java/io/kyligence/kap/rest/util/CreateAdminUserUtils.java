@@ -58,7 +58,7 @@ public class CreateAdminUserUtils {
 
     private static final Pattern bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
 
-    private static final String PROFILE_DEFAULT = "testing";
+    public static final String PROFILE_DEFAULT = "testing";
 
     private static final String PROFILE_CUSTOM = "custom";
 

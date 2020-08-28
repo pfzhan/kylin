@@ -21,50 +21,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.metadata.acl;
-
-import java.util.List;
-import java.util.TreeSet;
+package io.kyligence.kap.metadata.usergroup;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.common.obf.IKeep;
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
-        getterVisibility = JsonAutoDetect.Visibility.NONE,
-        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-        setterVisibility = JsonAutoDetect.Visibility.NONE)
+@Getter
+@Setter
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class UserGroup extends RootPersistentEntity implements IKeep {
-    @JsonProperty
-    private TreeSet<String> groups = new TreeSet<>();
+    @JsonProperty("group_name")
+    private String groupName;
 
-    public List<String> getAllGroups() {
-        return ImmutableList.copyOf(this.groups);
+    public UserGroup() {
     }
 
-    public boolean exists(String name) {
-        return groups.contains(name);
+    public UserGroup(String groupName) {
+        this.groupName = groupName;
     }
 
-    public UserGroup add(String name) {
-        if (groups.contains(name)) {
-            throw new RuntimeException("Operation failed, group:" + name + " already exists");
-        }
-        this.groups.add(name);
-        return this;
-    }
-
-    public UserGroup delete(String name) {
-        if (!groups.contains(name)) {
-            throw new RuntimeException("Operation failed, group:" + name + " does not exists");
-        }
-        this.groups.remove(name);
-        return this;
+    @Override
+    public String resourceName() {
+        return groupName;
     }
 }

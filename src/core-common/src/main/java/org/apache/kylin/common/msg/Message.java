@@ -354,6 +354,10 @@ public class Message {
         return "Invalid values in parameter “group_name“. The value %s doesn’t exist.";
     }
 
+    public String getUSERGROUP_EXIST() {
+        return "Invalid values in parameter “group_name“. The value %s exist.";
+    }
+
     // user group
     public String getEMPTY_GROUP_NAME() {
         return "User group name should not be empty.";
@@ -1560,5 +1564,9 @@ public class Message {
 
     public String getREC_LIST_OUT_OF_DATE() {
         return "The recommendation is invalid, as some of the related content was deleted. Please refresh the page and try again.";
+    }
+
+    public String getGROUP_UUID_NOT_EXIST() {
+        return "Group uuid %s is not exist.";
     }
 }

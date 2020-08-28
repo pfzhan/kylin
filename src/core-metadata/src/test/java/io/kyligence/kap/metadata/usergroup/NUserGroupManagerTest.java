@@ -22,29 +22,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.acl;
+package io.kyligence.kap.metadata.usergroup;
 
-import com.google.common.collect.Lists;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class UserGroupTest {
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class NUserGroupManagerTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setup() {
+        createTestMetadata();
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
+
     @Test
     public void testCRUD() {
-        UserGroup group = new UserGroup();
+        NUserGroupManager group = NUserGroupManager.getInstance(getTestConfig());
         group.add("g1");
         group.add("g2");
         group.add("g3");
         Assert.assertTrue(group.exists("g1"));
         Assert.assertFalse(group.exists("g4"));
-        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), group.getAllGroups());
+        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), group.getAllGroupNames());
         try {
             group.add("g1");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
-            Assert.assertEquals(
-                    "Operation failed, group:g1 already exists",
-                    e.getMessage());
+            Assert.assertEquals("Invalid values in parameter “group_name“. The value g1 exist.", e.getMessage());
         }
 
         group.delete("g1");
@@ -54,8 +68,7 @@ public class UserGroupTest {
             group.delete("g1");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
-            Assert.assertEquals(
-                    "Operation failed, group:g1 does not exists",
+            Assert.assertEquals("Invalid values in parameter “group_name“. The value g1 doesn’t exist.",
                     e.getMessage());
         }
     }

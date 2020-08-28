@@ -55,6 +55,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserGroupController;
+import io.kyligence.kap.rest.request.AddUserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 
 @Controller
@@ -81,9 +82,8 @@ public class OpenUserGroupController extends NBasicController {
             throws IOException {
         List<String> groups = userGroupService.listAllAuthorities(null);
         if (StringUtils.isNotBlank(groupName)) {
-            groups = groups.stream()
-                    .filter(group -> isCaseSensitive ? group.contains(groupName) : StringUtils.containsIgnoreCase(group, groupName))
-                    .collect(Collectors.toList());
+            groups = groups.stream().filter(group -> isCaseSensitive ? group.contains(groupName)
+                    : StringUtils.containsIgnoreCase(group, groupName)).collect(Collectors.toList());
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(groups, pageOffset, pageSize), "");
@@ -96,7 +96,8 @@ public class OpenUserGroupController extends NBasicController {
             @PathVariable(value = "group_name") String groupName,
             @RequestParam(value = "username", required = false) String username,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) throws IOException {
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
         List<ManagedUser> members = userGroupService.getGroupMembersByName(groupName);
         if (StringUtils.isNotBlank(username)) {
             members = members.stream().filter(user -> StringUtils.containsIgnoreCase(user.getUsername(), username))
@@ -106,9 +107,11 @@ public class OpenUserGroupController extends NBasicController {
         for (ManagedUser user : members) {
             userService.completeUserInfo(user);
         }
-        List<UserInfoResponse> userInfoResponses = members.stream().map(UserInfoResponse::new).collect(Collectors.toList());
+        List<UserInfoResponse> userInfoResponses = members.stream().map(UserInfoResponse::new)
+                .collect(Collectors.toList());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(userInfoResponses, pageOffset, pageSize), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }
 
     @PostMapping(value = "/{group_name:.+}")
@@ -116,7 +119,9 @@ public class OpenUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
-        return userGroupController.addUserGroup(groupName);
+        AddUserGroupRequest request = new AddUserGroupRequest();
+        request.setGroupName(groupName);
+        return userGroupController.addUserGroup(request);
     }
 
     @DeleteMapping(value = "/{group_name:.+}")
@@ -124,7 +129,8 @@ public class OpenUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
-        return userGroupController.delUserGroup(groupName);
+        String groupUuid = userGroupService.getUuidByGroupName(groupName);
+        return userGroupController.delUserGroup(groupUuid);
     }
 
     @PutMapping(value = "/users")

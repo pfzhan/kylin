@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.ServiceTestBase;
@@ -47,6 +49,9 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
+import io.kyligence.kap.rest.response.UserGroupResponse;
+import lombok.val;
 import lombok.var;
 
 public class NUserGroupServiceTest extends ServiceTestBase {
@@ -77,13 +82,21 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"),
                 userGroupService.getAuthoritiesFilterByGroupName("G"));
         Assert.assertEquals(Lists.newArrayList("g1"), userGroupService.getAuthoritiesFilterByGroupName("g1"));
+        val groups = userGroupService.getUserGroupsFilterByGroupName("G");
+        Assert.assertEquals(3, groups.size());
+        for (val group : groups) {
+            Assert.assertNotNull(group.getUuid());
+            Assert.assertTrue(group.getGroupName().contains("g"));
+            Assert.assertEquals(group.getUuid(), userGroupService.getUuidByGroupName(group.getGroupName()));
+            Assert.assertEquals(group.getGroupName(), userGroupService.getGroupNameByUuid(group.getUuid()));
+        }
 
         // test add a existing user group
         try {
             userGroupService.addGroup("g1");
         } catch (Exception e) {
             Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
-                    "Operation failed, group:g1 already exists"));
+                    "Invalid values in parameter “group_name“. The value g1 exist."));
         }
 
         //test modify users in user group
@@ -165,4 +178,45 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         Assert.assertEquals(3, groups.size());
         Assert.assertTrue(groups.contains("t3"));
     }
+
+    @Test
+    public void testGetUserGroupResponse() throws IOException {
+        List<String> users = new ArrayList<>();
+        users.add("ADMIN");
+        userGroupService.addGroup("t1");
+        userGroupService.addGroup("t2");
+        userGroupService.addGroup("t3");
+        userGroupService.modifyGroupUsers("t1", users);
+        userGroupService.modifyGroupUsers("t2", users);
+        List<UserGroup> groups = userGroupService.getUserGroupsFilterByGroupName(null);
+        Assert.assertEquals(3, groups.size());
+        List<UserGroupResponse> result = userGroupService.getUserGroupResponse(groups);
+        Assert.assertEquals(3, result.size());
+        for (val response : result) {
+            if (response.getGroupName().equals("t3")) {
+                Assert.assertEquals(0, response.getUsers().size());
+            } else {
+                Assert.assertEquals(1, response.getUsers().size());
+                Assert.assertTrue(response.getUsers().contains("ADMIN"));
+            }
+        }
+    }
+
+    @Test
+    public void testDelAdminAndAllUsers() {
+        checkDelUserGroupWithException(ROLE_ADMIN);
+        checkDelUserGroupWithException(GROUP_ALL_USERS);
+    }
+
+    private void checkDelUserGroupWithException(String groupName) {
+        try {
+            userGroupService.deleteGroup(groupName);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(ExceptionUtils.getRootCause(e) instanceof KylinException);
+            Assert.assertTrue(ExceptionUtils.getRootCause(e).getMessage().contains(
+                    "Failed to delete user group, user groups of ALL_USERS and ROLE_ADMIN cannot be deleted."));
+        }
+    }
+
 }

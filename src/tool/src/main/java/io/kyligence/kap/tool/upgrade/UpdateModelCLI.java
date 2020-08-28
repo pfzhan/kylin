@@ -129,7 +129,7 @@ public class UpdateModelCLI extends ExecutableApplication implements IKeep {
                 globalUpdateModelList.addAll(updateModelList);
             });
 
-            printlnGreen(String.format("found %d models need to be modified", globalUpdateModelList.size()));
+            printlnGreen(String.format("found %d models need to be modified.", globalUpdateModelList.size()));
             if (optionsHelper.hasOption(OPTION_EXEC)) {
                 globalUpdateModelList.forEach(model -> NDataModelManager.getInstance(kylinConfig, model.getProject())
                         .updateDataModelDesc(model));

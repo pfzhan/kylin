@@ -102,7 +102,7 @@ public class OpenUserGroupControllerTest {
     public void testGetUsersByGroup() throws Exception {
         Mockito.doReturn(
                 new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(Lists.newArrayList(), 0, 10), ""))
-                .when(userGroupController).getUsersByGroup("g1@.h", "", 0, 10);
+                .when(userGroupController).getUsersByGroupName("g1@.h", "", 0, 10);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/group_members/{group_name:.+}", "g1@.h")
                 .contentType(MediaType.APPLICATION_JSON)

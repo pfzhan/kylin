@@ -51,8 +51,6 @@ import java.util.Collections;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.Assert;
 import org.junit.Test;
@@ -63,9 +61,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import io.kyligence.kap.metadata.acl.UserGroup;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 
@@ -82,10 +80,9 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
         super.setUp();
 
         try {
-            UserGroup userGroup = new UserGroup();
-            userGroup.add(GROUP_ALL_USERS);
-            userGroup.add(ROLE_ADMIN);
-            getStore().checkAndPutResource(ResourceStore.USER_GROUP_ROOT, userGroup, new JsonSerializer<>(UserGroup.class));
+            NUserGroupManager userGroupManager = NUserGroupManager.getInstance(getTestConfig());
+            userGroupManager.add(GROUP_ALL_USERS);
+            userGroupManager.add(ROLE_ADMIN);
             request = new ManagedUser();
             request.setUsername(username);
             request.setPassword(Base64.encodeBase64String(password.getBytes("utf-8")));

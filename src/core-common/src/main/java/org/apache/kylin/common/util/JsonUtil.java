@@ -47,6 +47,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -150,6 +151,10 @@ public class JsonUtil {
 
     public static void writeValue(OutputStream out, Object value) throws IOException {
         mapper.writeValue(out, value);
+    }
+
+    public static void writeValue(File out, Object value) throws IOException {
+        writeValue(new FileOutputStream(out), value);
     }
 
     public static String writeValueAsString(Object value) throws JsonProcessingException {

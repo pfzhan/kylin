@@ -28,15 +28,10 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
-import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -44,7 +39,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -66,7 +60,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
+import io.kyligence.kap.rest.request.AddUserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
+import io.kyligence.kap.rest.response.UserGroupResponse;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -88,15 +85,16 @@ public class NUserGroupController extends NBasicController {
     private AclTCRService aclTCRService;
 
     @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/group_members/{group_name:.+}")
+    @GetMapping(value = "/group_members/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<DataResult<List<ManagedUser>>> getUsersByGroup(
-            @PathVariable(value = "group_name") String groupName,
+    public EnvelopeResponse<DataResult<List<ManagedUser>>> getUsersByGroupName(
+            @PathVariable(value = "uuid") String groupUuid, //
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
+        String groupName = userGroupService.getGroupNameByUuid(groupUuid);
         List<ManagedUser> members = userGroupService.getGroupMembersByName(groupName);
 
         if (StringUtils.isNotBlank(name)) {
@@ -124,27 +122,20 @@ public class NUserGroupController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
-    @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<DataResult<List<Pair<String, Set<String>>>>> getUsersWithGroup(
+    public EnvelopeResponse<DataResult<List<UserGroupResponse>>> getUsersWithGroup(
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "user_group_name", required = false, defaultValue = "") String userGroupName)
             throws IOException {
-        List<Pair<String, Set<String>>> usersWithGroup = new ArrayList<>();
-        List<String> groups = userGroupService.getAuthoritiesFilterByGroupName(userGroupName);
-
-        List<String> subList = PagingUtil.cutPage(groups, pageOffset, pageSize);
-        for (String group : subList) {
-            Set<String> groupMembers = new TreeSet<>();
-            for (ManagedUser user : userGroupService.getGroupMembersByName(group)) {
-                groupMembers.add(user.getUsername());
-            }
-            usersWithGroup.add(Pair.newPair(group, groupMembers));
-        }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(usersWithGroup, groups.size()),
-                "get users with group");
+        List<UserGroup> groups = userGroupService.getUserGroupsFilterByGroupName(userGroupName);
+        List<UserGroup> subList = PagingUtil.cutPage(groups, pageOffset, pageSize);
+        List<UserGroupResponse> result = userGroupService.getUserGroupResponse(subList);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, result.size()),
+                "get users with group and id");
     }
 
     @GetMapping(value = "/users_and_groups")
@@ -155,23 +146,22 @@ public class NUserGroupController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_name; Update Param: group_name")
-    @PostMapping(value = "/{group_name:.+}")
+    @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "group_name") String groupName)
+    public EnvelopeResponse<String> addUserGroup(@RequestBody AddUserGroupRequest addUserGroupRequest)
             throws IOException {
-        checkGroupName(groupName);
-        userGroupService.addGroup(groupName);
+        checkGroupName(addUserGroupRequest.getGroupName());
+        userGroupService.addGroup(addUserGroupRequest.getGroupName());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user group");
     }
 
     @ApiOperation(value = "getUsersByGroup", notes = "Update URL: group_name; Update Param: group_name")
-    @DeleteMapping(value = "/{group_name:.+}")
+    @DeleteMapping(value = "/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "group_name") String groupName)
-            throws IOException {
-        checkGroupCanBeDeleted(groupName);
+    public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "uuid") String groupUuid) throws IOException {
+        String groupName = userGroupService.getGroupNameByUuid(groupUuid);
         userGroupService.deleteGroup(groupName);
         aclTCRService.revokeAclTCR(groupName, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del user group");
@@ -204,13 +194,6 @@ public class NUserGroupController extends NBasicController {
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(groupName).find()) {
             throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
-        }
-    }
-
-    private void checkGroupCanBeDeleted(String groupName) {
-        if (groupName.equals(GROUP_ALL_USERS) || groupName.equals(ROLE_ADMIN)) {
-            throw new KylinException(INVALID_USERGROUP_NAME,
-                    "Failed to delete user group, user groups of ALL_USERS and ROLE_ADMIN cannot be deleted.");
         }
     }
 }

@@ -48,12 +48,22 @@ import java.util.Map;
 import java.util.Set;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
+import io.kyligence.kap.rest.response.UserGroupResponse;
 
 public interface IUserGroupService {
     //need project to indicate user's permission.only global admin and project admin can get.
     List<String> listAllAuthorities(String project) throws IOException;
 
     List<String> getAuthoritiesFilterByGroupName(String userGroupName) throws IOException;
+
+    List<UserGroup> listUserGroups() throws IOException;
+
+    List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) throws IOException;
+
+    String getGroupNameByUuid(String uuid);
+
+    String getUuidByGroupName(String groupName);
 
     boolean exists(String name) throws IOException;
 
@@ -70,4 +80,6 @@ public interface IUserGroupService {
     void modifyGroupUsers(String groupName, List<String> users) throws IOException;
 
     Map<String, List<String>> getUserAndUserGroup() throws IOException;
+
+    List<UserGroupResponse> getUserGroupResponse(List<UserGroup> userGroups) throws IOException;
 }

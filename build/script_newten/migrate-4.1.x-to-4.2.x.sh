@@ -28,13 +28,14 @@ function help() {
   echo "Usage: migrate-4.1.x-to-4.2.x.sh -e
 it will
 1. backup current metadata
-2. check project mode
-3. modify session table
-4. create layout candidate table
-5. upgrade recommendation metadata
-6. update and add dimensions according to current models
-7. create epoch table
-8. rollback metadata to metastore, if the upgrade process failed
+2. upgrade user group metadata
+3. check project mode
+4. modify session table
+5. create layout candidate table
+6. upgrade recommendation metadata
+7. update and add dimensions according to current models
+8. create epoch table
+9. rollback metadata to metastore, if the upgrade process failed
 "
   exit 0
 }
@@ -90,6 +91,13 @@ function migrate() {
 
   cp -a "${KYLIN_HOME}"/meta_backups/"${metadata_backup_dir}" "${operator_metadata_backup_dir}"
 
+  step 'start to check user group metadata.'
+  "${KYLIN_HOME}"/bin/kylin.sh io.kyligence.kap.tool.upgrade.UpdateUserGroupCLI -d "${operator_metadata_backup_dir}" $1
+  if [[ $? != 0 ]]; then
+    error "user group metadata upgrade failed, for more details please refer to ${KYLIN_HOME}/logs/shell.stderr."
+    fail
+  fi
+
   step 'start to check project mode.'
   "${KYLIN_HOME}"/bin/kylin.sh io.kyligence.kap.tool.upgrade.CheckProjectModeCLI -d "${operator_metadata_backup_dir}" $1
   if [[ $? != 0 ]]; then
@@ -114,7 +122,7 @@ function migrate() {
   step 'start to check recommendation metadata.'
   "${KYLIN_HOME}"/bin/kylin.sh io.kyligence.kap.tool.upgrade.DeleteFavoriteQueryCLI -d "${operator_metadata_backup_dir}" $1
   if [[ $? != 0 ]]; then
-    error "recommendation metdata upgrade failed, for more details please refer to ${KYLIN_HOME}/logs/shell.stderr"
+    error "recommendation metadata upgrade failed, for more details please refer to ${KYLIN_HOME}/logs/shell.stderr"
     fail
   fi
 

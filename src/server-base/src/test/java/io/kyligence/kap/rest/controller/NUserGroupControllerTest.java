@@ -43,7 +43,6 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.util.List;
@@ -78,6 +77,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.rest.request.AddUserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -132,7 +132,7 @@ public class NUserGroupControllerTest {
                 .param("page_size", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserGroupController).getUsersByGroup("g1@.h", "", 0, 10);
+        Mockito.verify(nUserGroupController).getUsersByGroupName("g1@.h", "", 0, 10);
     }
 
     @Test
@@ -160,23 +160,30 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testAddGroup() throws Exception {
+        AddUserGroupRequest request = new AddUserGroupRequest();
+        request.setGroupName("g1");
         Mockito.doNothing().when(userGroupService).addGroup("g1");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName:.+}", "g1")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nUserGroupController).addUserGroup("g1");
+        Mockito.verify(nUserGroupController).addUserGroup(request);
     }
 
     @Test
     public void testAddEmptyGroup() throws Exception {
         thrown.expect(KylinException.class);
         thrown.expectMessage("User group name should not be empty.");
-        nUserGroupController.addUserGroup("");
+        AddUserGroupRequest request = new AddUserGroupRequest();
+        request.setGroupName("");
+        nUserGroupController.addUserGroup(request);
     }
 
     @Test(expected = KylinException.class)
     public void testAddIllegalGroupName() throws Exception {
-        nUserGroupController.addUserGroup(".hhhh");
+        AddUserGroupRequest request = new AddUserGroupRequest();
+        request.setGroupName(".hhhh");
+        nUserGroupController.addUserGroup(request);
     }
 
     @Test
@@ -186,24 +193,6 @@ public class NUserGroupControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).delUserGroup("g1@.h");
-    }
-
-    @Test
-    public void testDelAdminGroup() throws Exception {
-        Mockito.doNothing().when(userGroupService).deleteGroup(ROLE_ADMIN);
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", ROLE_ADMIN)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nUserGroupController).delUserGroup(ROLE_ADMIN);
-    }
-
-    @Test
-    public void testDelAllUsersGroup() throws Exception {
-        Mockito.doNothing().when(userGroupService).deleteGroup(GROUP_ALL_USERS);
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", GROUP_ALL_USERS)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nUserGroupController).delUserGroup(GROUP_ALL_USERS);
     }
 
     @Test

@@ -25,6 +25,10 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.USERGROUP_NOT_EXIST;
+import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,15 +37,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -57,16 +60,16 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.acl.UserGroup;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
+import io.kyligence.kap.rest.response.UserGroupResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 
 @Component("nUserGroupService")
 public class NUserGroupService implements IUserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
-
-    private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
 
     @Autowired
     @Qualifier("accessService")
@@ -79,17 +82,9 @@ public class NUserGroupService implements IUserGroupService {
     @Qualifier("userService")
     UserService userService;
 
-    private UserGroup getUserGroup() {
-        UserGroup userGroup = getStore().getResource(ResourceStore.USER_GROUP_ROOT, USER_GROUP_SERIALIZER);
-        if (userGroup == null) {
-            userGroup = new UserGroup();
-        }
-        return userGroup;
-    }
-
     @Override
-    public List<String> getAllUserGroups() throws IOException {
-        return getUserGroup().getAllGroups();
+    public List<String> getAllUserGroups() {
+        return getUserGroupManager().getAllGroupNames();
     }
 
     @Override
@@ -106,16 +101,16 @@ public class NUserGroupService implements IUserGroupService {
 
     @Override
     @Transaction
-    public void addGroup(String name) throws IOException {
+    public void addGroup(String name) {
         aclEvaluate.checkIsGlobalAdmin();
-        UserGroup userGroup = getUserGroup();
-        getStore().checkAndPutResource(ResourceStore.USER_GROUP_ROOT, userGroup.add(name), USER_GROUP_SERIALIZER);
+        getUserGroupManager().add(name);
     }
 
     @Override
     @Transaction
     public void deleteGroup(String name) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
+        checkGroupCanBeDeleted(name);
         // remove retained user group in all users
         List<ManagedUser> managedUsers = userService.listUsers();
         for (ManagedUser managedUser : managedUsers) {
@@ -127,8 +122,7 @@ public class NUserGroupService implements IUserGroupService {
         //delete group's project ACL
         accessService.revokeProjectPermission(name, MetadataConstants.TYPE_GROUP);
 
-        getStore().checkAndPutResource(ResourceStore.USER_GROUP_ROOT, getUserGroup().delete(name),
-                USER_GROUP_SERIALIZER);
+        getUserGroupManager().delete(name);
     }
 
     //user's group information is stored by user its own.Object user group does not hold user's ref.
@@ -161,13 +155,13 @@ public class NUserGroupService implements IUserGroupService {
     }
 
     // add param project to check user's permission
-    public List<String> listAllAuthorities(String project) throws IOException {
+    public List<String> listAllAuthorities(String project) {
         checkPermission(project);
         return getAllUserGroups();
     }
 
     @Override
-    public List<String> getAuthoritiesFilterByGroupName(String userGroupName) throws IOException {
+    public List<String> getAuthoritiesFilterByGroupName(String userGroupName) {
         checkPermission(null);
         return StringUtils.isEmpty(userGroupName) ? getAllUserGroups()
                 : getAllUserGroups().stream()
@@ -175,7 +169,45 @@ public class NUserGroupService implements IUserGroupService {
                         .collect(Collectors.toList());
     }
 
-    public boolean exists(String name) throws IOException {
+    @Override
+    public List<UserGroup> listUserGroups() {
+        return getUserGroupManager().getAllGroups();
+    }
+
+    @Override
+    public List<UserGroup> getUserGroupsFilterByGroupName(String userGroupName) {
+        checkPermission(null);
+        return StringUtils.isEmpty(userGroupName) ? listUserGroups()
+                : getUserGroupManager().getAllGroups().stream().filter(
+                        userGroup -> userGroup.getGroupName().toUpperCase().contains(userGroupName.toUpperCase()))
+                        .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getGroupNameByUuid(String uuid) {
+        val groups = getUserGroupManager().getAllGroups();
+        for (val group : groups) {
+            if (StringUtils.equalsIgnoreCase(uuid, group.getUuid())) {
+                return group.getGroupName();
+            }
+        }
+        throw new KylinException(USERGROUP_NOT_EXIST,
+                String.format(MsgPicker.getMsg().getGROUP_UUID_NOT_EXIST(), uuid));
+    }
+
+    @Override
+    public String getUuidByGroupName(String groupName) {
+        val groups = getUserGroupManager().getAllGroups();
+        for (val group : groups) {
+            if (StringUtils.equalsIgnoreCase(groupName, group.getGroupName())) {
+                return group.getUuid();
+            }
+        }
+        throw new KylinException(USERGROUP_NOT_EXIST,
+                String.format(MsgPicker.getMsg().getUSERGROUP_NOT_EXIST(), groupName));
+    }
+
+    public boolean exists(String name) {
         return getAllUserGroups().contains(name);
     }
 
@@ -183,7 +215,7 @@ public class NUserGroupService implements IUserGroupService {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
-    private void checkPermission(String project) {
+    protected void checkPermission(String project) {
         if (StringUtils.isEmpty(project)) {
             aclEvaluate.checkIsGlobalAdmin();
         } else {
@@ -191,7 +223,7 @@ public class NUserGroupService implements IUserGroupService {
         }
     }
 
-    private void checkGroupNameExist(String groupName) throws IOException {
+    private void checkGroupNameExist(String groupName) {
         val groups = getAllUserGroups();
         if (!groups.contains(groupName)) {
             throw new KylinException(INVALID_PARAMETER,
@@ -229,4 +261,44 @@ public class NUserGroupService implements IUserGroupService {
             throw new RuntimeException(e);
         }
     }
+
+    private NUserGroupManager getUserGroupManager() {
+        return NUserGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
+    }
+
+    public List<UserGroupResponse> getUserGroupResponse(List<UserGroup> userGroups) throws IOException {
+        List<UserGroupResponse> result = new ArrayList<>();
+        for (UserGroup group : userGroups) {
+            Set<String> groupMembers = new TreeSet<>();
+            for (ManagedUser user : getGroupMembersByName(group.getGroupName())) {
+                groupMembers.add(user.getUsername());
+            }
+            UserGroupResponse response = new UserGroupResponse();
+            response.setUuid(group.getUuid());
+            response.setGroupName(group.getGroupName());
+            response.setUsers(groupMembers);
+            result.add(response);
+        }
+        return result;
+    }
+
+    protected List<UserGroup> getUserGroupSpecialUuid() {
+        List<String> groups = getAllUserGroups();
+        List<UserGroup> result = new ArrayList<>();
+        for (String group : groups) {
+            UserGroup userGroup = new UserGroup();
+            userGroup.setUuid(group);
+            userGroup.setGroupName(group);
+            result.add(userGroup);
+        }
+        return result;
+    }
+
+    private void checkGroupCanBeDeleted(String groupName) {
+        if (groupName.equals(GROUP_ALL_USERS) || groupName.equals(ROLE_ADMIN)) {
+            throw new KylinException(INVALID_USERGROUP_NAME,
+                    "Failed to delete user group, user groups of ALL_USERS and ROLE_ADMIN cannot be deleted.");
+        }
+    }
+
 }

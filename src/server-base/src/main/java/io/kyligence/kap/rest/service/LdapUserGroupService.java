@@ -52,6 +52,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
 
 public class LdapUserGroupService extends NUserGroupService {
 
@@ -112,6 +113,11 @@ public class LdapUserGroupService extends NUserGroupService {
     }
 
     @Override
+    public List<UserGroup> listUserGroups() {
+        return getUserGroupSpecialUuid();
+    }
+
+    @Override
     public Map<String, List<String>> getUserAndUserGroup() {
         Map<String, List<String>> result = Maps.newHashMap();
         for (String group : getAllUserGroups()) {
@@ -149,5 +155,15 @@ public class LdapUserGroupService extends NUserGroupService {
             ldapGroupsMembersCache.put(name, Collections.unmodifiableList(members));
         }
         return members;
+    }
+
+    @Override
+    public String getGroupNameByUuid(String uuid) {
+        return uuid;
+    }
+
+    @Override
+    public String getUuidByGroupName(String groupName) {
+        return groupName;
     }
 }

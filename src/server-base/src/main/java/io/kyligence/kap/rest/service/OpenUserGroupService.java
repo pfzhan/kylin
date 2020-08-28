@@ -29,12 +29,18 @@ import java.util.List;
 import org.apache.kylin.common.msg.MsgPicker;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.usergroup.UserGroup;
 
 public abstract class OpenUserGroupService extends NUserGroupService {
 
     public abstract List<ManagedUser> getGroupMembersByName(String name);
 
     public abstract List<String> getAllUserGroups();
+
+    @Override
+    public List<UserGroup> listUserGroups() {
+        return getUserGroupSpecialUuid();
+    }
 
     @Override
     public void addGroup(String name) {
@@ -52,5 +58,15 @@ public abstract class OpenUserGroupService extends NUserGroupService {
     public void modifyGroupUsers(String groupName, List<String> users) {
         throw new UnsupportedOperationException(
                 String.format(MsgPicker.getMsg().getGroup_EDIT_NOT_ALLOWED_FOR_CUSTOM(), "modifyGroupUsers"));
+    }
+
+    @Override
+    public String getGroupNameByUuid(String uuid) {
+        return uuid;
+    }
+
+    @Override
+    public String getUuidByGroupName(String groupName) {
+        return groupName;
     }
 }
