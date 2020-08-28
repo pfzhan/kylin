@@ -123,6 +123,7 @@ public class QueryNodeFilter implements Filter {
         notRoutePostApiSet.add("/kylin/api/system/diag");
         notRouteDeleteApiSet.add("/kylin/api/system/diag");
         notRouteDeleteApiSet.add("/kylin/api/system/maintenance_mode");
+        notRoutePutApiSet.add("/kylin/api/system/diag/progress");
 
         //download
         notRoutePostApiSet.add("/kylin/api/metastore/backup/models");
