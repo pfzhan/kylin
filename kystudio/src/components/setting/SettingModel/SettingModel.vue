@@ -502,10 +502,14 @@ export default class SettingStorage extends Vue {
     })
   }
   async getConfigList () {
-    const res = await this.loadModelConfigList(Object.assign({}, {project: this.currentSelectedProject}, this.filter))
-    const resData = await handleSuccessAsync(res)
-    this.modelList = resData.value
-    this.modelListSize = resData.total_size
+    try {
+      const res = await this.loadModelConfigList(Object.assign({}, {project: this.currentSelectedProject}, this.filter))
+      const resData = await handleSuccessAsync(res)
+      this.modelList = resData.value
+      this.modelListSize = resData.total_size
+    } catch (e) {
+      handleError(e)
+    }
   }
   currentChange (size, count) {
     this.filter.page_offset = size

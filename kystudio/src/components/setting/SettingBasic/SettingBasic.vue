@@ -233,9 +233,9 @@
             <div class="vip-users-block">
               <el-form-item prop="users">
                 <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
-                <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" :placeholder="rulesObj.users.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
+                <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable remote :remote-method="remoteMethod" :loading="loading" size="medium" :placeholder="rulesObj.users.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
                   <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.users.length"></span>
-                  <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
+                  <el-option v-for="item in filterSubmitterUserOptions" :key="item" :label="item" :value="item"></el-option>
                 </el-select>
               </el-form-item>
               <el-form-item prop="user_groups">
@@ -348,6 +348,8 @@ export default class SettingBasic extends Vue {
     user: [],
     group: []
   }
+  loading = false
+  filterUsers = []
   rulesObj = {
     count_enable: true,
     count_value: 0,
@@ -628,11 +630,30 @@ export default class SettingBasic extends Vue {
       this.getUserAndGroups().then((res) => {
         handleSuccess(res, (data) => {
           this.allSubmittersOptions = data
+          this.filterUsers = this.allSubmittersOptions.user
         }, (res) => {
           handleError(res)
         })
       })
     }
+  }
+  remoteMethod (query) {
+    if (query !== '') {
+      this.loading = true
+      setTimeout(() => {
+        this.loading = false
+        this.filterUsers = this.allSubmittersOptions.user.filter(item => {
+          return item.toLowerCase()
+            .indexOf(query.toLowerCase()) > -1
+        })
+      }, 0)
+    } else {
+      this.filterUsers = this.allSubmittersOptions.user
+    }
+  }
+  get filterSubmitterUserOptions () {
+    const filterUsers = objectClone(this.filterUsers)
+    return filterUsers.splice(0, 500)
   }
   // 保存优化建议规则
   saveAcclerationRule () {
