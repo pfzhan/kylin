@@ -28,6 +28,7 @@ import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.engine.spark.job.DFChooser
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model._
+import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.spark.InfoHelper
@@ -43,6 +44,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
   private val DEFAULT_PROJECT = "default"
   private val MODEL_NAME1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
   private val MODEL_NAME2 = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94"
+  private val MODEL_NAME3 = "741ca86a-1f13-46da-a59f-95fb68615e3a"
 
   val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
   dateFormat.setTimeZone(TimeZone.getDefault)
@@ -50,6 +52,33 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
   def getTestConfig: KylinConfig = {
     val config = KylinConfig.getInstanceFromEnv
     config
+  }
+
+  test("Check the flattable with model filter") {
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val df: NDataflow = dsMgr.getDataflow(MODEL_NAME3)
+
+    // set model filter
+    val modelMgr = NDataModelManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val modelUpdate: NDataModel = modelMgr.copyForWrite(modelMgr.getDataModelDesc(MODEL_NAME3))
+    modelUpdate.setFilterCondition("TEST_KYLIN_FACT.TRANS_ID <> 123")
+    modelMgr.updateDataModelDesc(modelUpdate)
+
+    // cleanup all segments first
+    val update = new NDataflowUpdate(df.getUuid)
+    update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
+    dsMgr.updateDataflow(update)
+
+    // resource detect mode
+    val seg1 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1356019200000L))
+    val afterJoin1 = generateFlatTable(seg1, df, false)
+    val logicalPlanStr = afterJoin1.queryExecution.logical.toString()
+    // there should be some filter added to the query exec like
+    // Filter ((1 = 1) && NOT (TEST_KYLIN_FACT_0_DOT_0_TRANS_ID#42L = cast(123 as bigint)))
+    Assert.assertTrue(logicalPlanStr.contains("Filter ((1 = 1) && NOT (TEST_KYLIN_FACT_0_DOT_0_TRANS_ID"))
+    Assert.assertTrue(logicalPlanStr.contains("= cast(123 as bigint)"))
+    checkFilterCondition(afterJoin1, seg1)
+    checkEncodeCols(afterJoin1, seg1, false)
   }
 
   test("Check the flattable filter and encode") {

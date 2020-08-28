@@ -371,17 +371,27 @@ object CreateFlatTable extends LogEx {
     val sb = new StringBuilder(original)
 
     for (namedColumn <- model.getAllNamedColumns.asScala) {
-      var start = 0
-      while (sb.toString.toLowerCase.indexOf(
-        namedColumn.getAliasDotColumn.toLowerCase) != -1) {
-        start = sb.toString.toLowerCase
-          .indexOf(namedColumn.getAliasDotColumn.toLowerCase)
-        sb.replace(start,
-          start + namedColumn.getAliasDotColumn.length,
-          convertFromDot(namedColumn.getAliasDotColumn))
+      val colName = namedColumn.getAliasDotColumn.toLowerCase
+      doReplaceDot(sb, colName, namedColumn.getAliasDotColumn)
+
+      // try replacing quoted identifiers if any
+      val quotedColName = colName.split('.').mkString("`", "`.`", "`");
+      if (!quotedColName.isEmpty) {
+        doReplaceDot(sb, quotedColName, namedColumn.getAliasDotColumn)
       }
     }
     sb.toString()
+  }
+
+  private def doReplaceDot(sb: StringBuilder, namedCol: String, colAliasDotColumn: String) = {
+    var start = sb.toString.toLowerCase.indexOf(namedCol)
+    while (start != -1) {
+      sb.replace(start,
+        start + namedCol.length,
+        convertFromDot(colAliasDotColumn))
+      start = sb.toString.toLowerCase
+        .indexOf(namedCol)
+    }
   }
 
   def assemblyGlobalDictTuple(seg: NDataSegment, toBuildTree: NSpanningTree): GlobalDictType = {
