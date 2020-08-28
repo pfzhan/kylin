@@ -50,7 +50,7 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
     private List<SegmentTimeRequest> segmentHoles;
 
     @JsonProperty("build_all_indexes")
-    private boolean buildAllIndexes;
+    private boolean buildAllIndexes = true;
 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;

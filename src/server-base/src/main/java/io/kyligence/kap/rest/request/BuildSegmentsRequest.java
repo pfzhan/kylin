@@ -41,7 +41,7 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
     private String end;
 
     @JsonProperty("build_all_indexes")
-    private boolean buildAllIndexes;
+    private boolean buildAllIndexes = true;
 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
