@@ -1358,7 +1358,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testConcurrentJobLimit() throws InterruptedException {
+    public void testConcurrentJobLimit() {
         String project = "heterogeneous_segment";
         String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         val scheduler = NDefaultScheduler.getInstance(project);
@@ -1377,8 +1377,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
-        val df = NDataflowManager.getInstance(getTestConfig(), project)
-                .getDataflow(modelId);
+        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         DefaultChainedExecutable job1 = generateJob(df, project);
         DefaultChainedExecutable job2 = generateJob(df, project);
         executableManager.addJob(job1);
@@ -1420,9 +1419,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(context.getStepRecords().get(0).getDuration() > 0);
         Assert.assertEquals(0, context.getStepRecords().get(1).getDuration());
         Assert.assertTrue(context.getRecord().getWaitTime() >= 0);
-        if (stepType == ExecutableState.READY) {
-            Assert.assertEquals(interval, context.getStepRecords().get(0).getWaitTime(), 1000);
-        } else if (stepType == ExecutableState.SUCCEED) {
+        if (stepType == ExecutableState.SUCCEED) {
             Assert.assertEquals(0, context.getStepRecords().get(0).getWaitTime());
         }
         Assert.assertEquals(0, context.getStepRecords().get(1).getWaitTime());
@@ -1463,7 +1460,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertTrue(context.getStepRecords().get(0).getDuration() > 0);
         Assert.assertEquals(0, context.getStepRecords().get(1).getDuration());
         Assert.assertTrue(context.getRecord().getWaitTime() >= 0);
-        Assert.assertTrue(context.getStepRecords().get(0).getWaitTime() == 0);
+        Assert.assertEquals(0, context.getStepRecords().get(0).getWaitTime());
         Assert.assertEquals(0, context.getStepRecords().get(1).getWaitTime());
     }
 
@@ -1866,13 +1863,15 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testSchedulerShutdown() throws Exception {
         overwriteSystemProp("kylin.env", "dev");
-        Assert.assertTrue(NDefaultScheduler.getInstance(project).hasStarted());
+        NDefaultScheduler instance = NDefaultScheduler.getInstance(project);
+        Assert.assertTrue(instance.hasStarted());
+        Thread.sleep(2000);
         EpochManager manager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         manager.tryUpdateEpoch(EpochManager.GLOBAL, false);
         manager.forceUpdateEpoch(project);
-        NDefaultScheduler.getInstance(project).fetchJobsImmediately();
+        instance.fetchJobsImmediately();
         Thread.sleep(2000);
-        Assert.assertFalse(NDefaultScheduler.getInstance(project).hasStarted());
+        Assert.assertFalse(instance.hasStarted());
     }
 
 }
