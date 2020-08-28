@@ -126,7 +126,7 @@ export default class Setting extends Vue {
       const response = await this.fetchProjectSettings({ projectName })
       const result = await handleSuccessAsync(response)
       const quotaSize = result.storage_quota_size / 1024 / 1024 / 1024 / 1024
-      this.projectSettings = {...result, storage_quota_tb_size: quotaSize % 2 === 0 ? quotaSize.toString() : quotaSize.toFixed(2)}
+      this.projectSettings = {...result, storage_quota_tb_size: quotaSize.toFixed(2)}
     } catch (e) {
       handleError(e)
     }
