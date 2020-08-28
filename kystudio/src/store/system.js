@@ -191,7 +191,7 @@ export default {
       return new Promise((resolve, reject) => {
         api.system.getAboutKap().then((response) => {
           commit(types.GET_ABOUT, { list: response.data })
-          resolve()
+          resolve(response)
         }).catch((e) => {
           reject(e)
         })

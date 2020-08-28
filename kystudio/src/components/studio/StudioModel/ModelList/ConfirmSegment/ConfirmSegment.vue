@@ -298,8 +298,6 @@ export default class ConfirmSegmentModal extends Vue {
   showSuccessMsg () {
     this.$message({
       type: 'success',
-      duration: 0,
-      showClose: true,
       customClass: 'build-full-load-success',
       message: (
         <div>

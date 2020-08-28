@@ -383,8 +383,6 @@ export default class ModelSegment extends Vue {
           this.$message({
             dangerouslyUseHTMLString: true,
             type: 'success',
-            duration: 0,
-            showClose: true,
             customClass: 'build-full-load-success',
             message: (
               <div>
@@ -438,8 +436,6 @@ export default class ModelSegment extends Vue {
           this.$message({
             dangerouslyUseHTMLString: true,
             type: 'success',
-            duration: 0,
-            showClose: true,
             customClass: 'build-full-load-success',
             message: (
               <div>

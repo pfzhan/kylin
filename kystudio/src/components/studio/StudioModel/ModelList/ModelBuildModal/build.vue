@@ -573,8 +573,6 @@
             this.$message({
               dangerouslyUseHTMLString: true,
               type: 'success',
-              duration: 0,
-              showClose: true,
               customClass: 'build-full-load-success',
               message: (
                 <div>
@@ -725,8 +723,6 @@
                 this.$message({
                   dangerouslyUseHTMLString: true,
                   type: 'success',
-                  duration: 0,
-                  showClose: true,
                   customClass: 'build-full-load-success',
                   message: (
                     <div>
