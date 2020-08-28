@@ -302,11 +302,9 @@ public class SourceUsageManager {
             ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(columnName) == null
                     ? new ColumnCapacityDetail(columnName)
                     : tableDetail.getColumnByName(columnName);
-            long sourceBytes = dataflowColumnsBytes.getOrDefault(columnName, -1L);
-            if (sourceBytes == -1L) {
-                logger.debug("Column: {} calculate failed, set table: {} status to TENTATIVE", columnName, tableName);
-                tableDetail.setStatus(CapacityStatus.TENTATIVE);
-            }
+            // simply return 0 for missing cols in flat table
+            // as the cols in model definition may be different from segment flat table
+            long sourceBytes = dataflowColumnsBytes.getOrDefault(columnName, 0L);
             columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
             tableDetail.updateColumn(columnDetail);
             checkTableKind(tableDetail, model);
