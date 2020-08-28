@@ -24,28 +24,28 @@
         <el-table-column
           :label="$t('kylinLang.common.name')"
           show-overflow-tooltip
-          prop="first">
+          prop="group_name">
           <template slot-scope="scope">
             <i class="el-icon-ksd-table_group ksd-fs-14" style="cursor: default;"></i>
-            <router-link :to="{path: '/admin/group/' + scope.row.first}" class="group-name">{{scope.row.first}}</router-link>
+            <router-link :to="{path: '/admin/group/' + scope.row.group_name}" class="group-name">{{scope.row.group_name}}</router-link>
           </template>
         </el-table-column>
         <el-table-column
           :label="$t('usersCount')"
-          prop="second"
+          prop="users"
           show-overflow-tooltip>
           <template slot-scope="scope">
-            {{scope.row.second && scope.row.second.length || 0}}
+            {{scope.row.users && scope.row.users.length || 0}}
           </template>
         </el-table-column>
         <el-table-column v-if="groupActions.includes('editGroup') && groupActions.includes('deleteGroup')"
           :label="$t('kylinLang.common.action')" :width="83">
           <template slot-scope="scope">
-            <el-tooltip :content="$t('assignUsers')" effect="dark" placement="top" v-show="scope.row.first!=='ALL_USERS' && groupActions.includes('editGroup')">
+            <el-tooltip :content="$t('assignUsers')" effect="dark" placement="top" v-show="scope.row.group_name!=='ALL_USERS' && groupActions.includes('editGroup')">
               <i class="el-icon-ksd-table_assign ksd-fs-14 ksd-mr-10" @click="editGroup('assign', scope.row)"></i>
             </el-tooltip><span>
-            </span><el-tooltip :content="$t('kylinLang.common.drop')" effect="dark" placement="top" v-show="(scope.row.first!=='ROLE_ADMIN' && scope.row.first!=='ALL_USERS') && groupActions.includes('deleteGroup')">
-              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="dropGroup(scope.row.first)"></i>
+            </span><el-tooltip :content="$t('kylinLang.common.drop')" effect="dark" placement="top" v-show="(scope.row.group_name!=='ROLE_ADMIN' && scope.row.group_name!=='ALL_USERS') && groupActions.includes('deleteGroup')">
+              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="dropGroup(scope.row)"></i>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -144,11 +144,12 @@ export default class SecurityGroup extends Vue {
     })
   }
 
-  async dropGroup (groupName) {
+  async dropGroup (group) {
     try {
-      await kapConfirm(this.$t('confirmDelGroup', {groupName: groupName}), null, this.$t('delGroupTitle'))
-      await this.delGroup({group_name: groupName})
+      await kapConfirm(this.$t('confirmDelGroup', {groupName: group.group_name}), null, this.$t('delGroupTitle'))
+      await this.delGroup({group_uuid: group.uuid})
       await this.loadGroupUsers()
+      this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
     } catch (e) {
       e !== 'cancel' && handleError(e)
     }

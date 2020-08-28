@@ -50,13 +50,13 @@ export default {
     return Vue.resource(apiUrl + 'user_group/groups?project=' + para.project).get()
   },
   addGroup: (para) => {
-    return Vue.resource(apiUrl + 'user_group/' + para.group_name).save()
+    return Vue.resource(apiUrl + 'user_group').save(para)
   },
   delGroup: (para) => {
-    return Vue.resource(apiUrl + 'user_group/' + para.group_name).remove()
+    return Vue.resource(apiUrl + 'user_group/' + para.group_uuid).remove()
   },
   getUsersByGroupName: (para) => {
-    return Vue.resource(apiUrl + 'user_group/group_members/' + para.group_name).get(para)
+    return Vue.resource(apiUrl + 'user_group/group_members/' + para.group_uuid).get(para)
   },
   getAccessDetailsByUser: (projectName, roleOrName, data, type) => {
     return Vue.resource(apiUrl + `acl/sid/${type}/${roleOrName}`).get(data)

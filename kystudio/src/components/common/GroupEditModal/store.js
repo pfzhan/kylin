@@ -46,8 +46,8 @@ export default {
       for (const key of Object.keys(state)) {
         switch (key) {
           case 'form':
-            payload.group && (state.form.group_name = payload.group.first)
-            payload.group && (state.form.selected_users = payload.group.second)
+            payload.group && (state.form.group_name = payload.group.group_name)
+            payload.group && (state.form.selected_users = payload.group.users)
             break
           default: {
             payload[key] && (state[key] = payload[key])

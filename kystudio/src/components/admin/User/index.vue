@@ -156,7 +156,10 @@ export default class SecurityUser extends Vue {
     page_offset: 0
   }
   get currentGroup () {
-    return this.$route.params.groupName
+    const current = this.$store.state.user.usersGroupList.filter((g) => {
+      return g.group_name === this.$route.params.groupName
+    })
+    return current.length ? current[0] : null
   }
   get isActionShow () {
     return this.userActions.filter(action => ['addUser'].includes(action)).length
@@ -200,7 +203,7 @@ export default class SecurityUser extends Vue {
         ...this.pagination,
         project: this.currentSelectedProject,
         name: name || '',
-        group_name: this.currentGroup
+        group_uuid: this.currentGroup && this.currentGroup.uuid
       }
       const res = !this.currentGroup
         ? await this.loadUsersList(parameter)
