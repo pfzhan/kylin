@@ -1943,7 +1943,8 @@ public abstract class KylinConfigBase implements Serializable {
 
     public static File getDiagFileName() {
         String uuid = UUID.randomUUID().toString().toUpperCase().substring(0, 6);
-        String packageName = DIAG_ID_PREFIX + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()) + "_" + uuid;
+        String packageName = DIAG_ID_PREFIX + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()) + "_"
+                + uuid;
         String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
         String diagPath = "diag_dump/" + packageName;
         File file;
@@ -2239,5 +2240,9 @@ public abstract class KylinConfigBase implements Serializable {
     public ImmutableSet<String> getDiagTaskTimeoutBlackList() {
         String lists = getOptional("kylin.diag.task-timeout-black-list", "METADATA,LOG").toUpperCase();
         return ImmutableSet.copyOf(lists.split(","));
+    }
+
+    public boolean isMetadataOnlyForRead() {
+        return Boolean.valueOf(getOptional("kylin.env.metadata.only-for-read", FALSE));
     }
 }

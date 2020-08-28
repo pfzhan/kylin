@@ -767,6 +767,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getDiagTaskTimeout", new PropertiesEntity("kylin.diag.task-timeout", "180s", 180L));
         map.put("getDiagTaskTimeoutBlackList", new PropertiesEntity("kylin.diag.task-timeout-black-list",
                 "METADATA,LOG", ImmutableSet.copyOf("METADATA,LOG".split(","))));
+        map.put("isMetadataOnlyForRead", new PropertiesEntity("kylin.env.metadata.only-for-read", "true", true));
     }
 
     @Before
@@ -787,7 +788,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(383, methodsCount);
+        Assert.assertEquals(384, methodsCount);
     }
 
     @Test

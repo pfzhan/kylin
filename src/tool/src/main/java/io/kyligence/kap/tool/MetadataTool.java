@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.tool.util.ScreenPrintUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -173,6 +174,9 @@ public class MetadataTool extends ExecutableApplication {
         val optionsHelper = new OptionsHelper();
         optionsHelper.parseOptions(tool.getOptions(), args);
         boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
+        if (isBackup && ScreenPrintUtil.isMainThread()) {
+            config.setProperty("kylin.env.metadata.only-for-read", "true");
+        }
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         resourceStore.getAuditLogStore().setInstance(AddressUtil.getMockPortAddress());
         tool.execute(args);

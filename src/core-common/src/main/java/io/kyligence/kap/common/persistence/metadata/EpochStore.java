@@ -57,7 +57,9 @@ public abstract class EpochStore implements IKeep {
             }
         });
 
-        epochStore.createIfNotExist();
+        if (!config.isMetadataOnlyForRead()) {
+            epochStore.createIfNotExist();
+        }
         return epochStore;
     }
 }

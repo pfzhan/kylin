@@ -59,8 +59,12 @@ public class ScreenPrintUtil {
     }
 
     public static void systemExitWhenMainThread(int code) {
-        if ("main".equalsIgnoreCase(Thread.currentThread().getName())) {
+        if (isMainThread()) {
             System.exit(code);
         }
+    }
+
+    public static boolean isMainThread() {
+        return "main".equalsIgnoreCase(Thread.currentThread().getName());
     }
 }
