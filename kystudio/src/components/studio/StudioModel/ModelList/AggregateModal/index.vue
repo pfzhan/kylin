@@ -423,21 +423,21 @@
       <div class="ky-simple-table">
         <el-row class="table-header table-row ksd-mt-10">
           <el-col :span="1"><el-checkbox v-model="isSelectAllDimensions" :indeterminate="getSelectedIncludeDimensions.length > 0 && getSelectedIncludeDimensions.length < dimensions().length" @change="selectAllIncludes" size="small"/></el-col>
-          <el-col :span="5">{{$t('th_name')}}</el-col>
-          <el-col :span="5">{{$t('th_column')}}</el-col>
-          <el-col :span="5">{{$t('th_dataType')}}</el-col>
-          <el-col :span="3">{{$t('cardinality')}}</el-col>
+          <el-col :span="6">{{$t('th_name')}}</el-col>
+          <el-col :span="7">{{$t('th_column')}}</el-col>
+          <el-col :span="3">{{$t('th_dataType')}}</el-col>
+          <el-col :span="2">{{$t('cardinality')}}</el-col>
           <el-col :span="3">{{$t('th_info')}}</el-col>
           <el-col :span="2">{{$t('th_order')}}</el-col>
         </el-row>
         <transition-group name="flip-list" tag="div">
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
             <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
-            <el-col :span="5" :title="item.name">{{item.name}}</el-col>
-            <el-col :span="5" :title="item.column">{{item.column}}</el-col>
-            <el-col :span="5">{{item.type}}</el-col>
-            <el-col :span="3">{{item.cardinality}}</el-col>
-            <el-col :span="3" :title="item.comment">{{item.comment}}</el-col>
+            <el-col :span="6"><span v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
+            <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 20}">{{item.column}}</span></el-col>
+            <el-col :span="3">{{item.type}}</el-col>
+            <el-col :span="2">{{item.cardinality}}</el-col>
+            <el-col :span="3"><span v-custom-tooltip="{text: item.comment, w: 20}">{{item.comment}}</span></el-col>
             <el-col :span="2" class="order-actions">
               <template v-if="item.isCheck">
                 <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0}]" @click="moveTo('top', item)"></span>
@@ -490,9 +490,9 @@
         </el-row>
         <el-row class="table-row" v-for="item in measureList" :key="item.id">
           <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" :disabled="item.name === 'COUNT_ALL'" @change="(type) => changeMeasureBox(item, type)"/></el-col>
-          <el-col :span="5" :title="item.name">{{item.name}}</el-col>
+          <el-col :span="5"><span v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
           <el-col :span="3">{{item.expression}}</el-col>
-          <el-col :span="12" :title="JSON.stringify(item.parameter_value)">{{JSON.stringify(item.parameter_value)}}</el-col>
+          <el-col :span="12"><span v-custom-tooltip="{text: JSON.stringify(item.parameter_value), w: 20}">{{JSON.stringify(item.parameter_value)}}</span></el-col>
           <el-col :span="3">{{item.return_type}}</el-col>
         </el-row>
       </div>
