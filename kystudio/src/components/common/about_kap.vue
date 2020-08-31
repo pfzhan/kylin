@@ -14,7 +14,7 @@
       </el-row>
       <el-row>
         <label for="">{{$t('dataVolume')}}</label>
-        {{serverAboutKap['ke.license.volume']}}
+        {{getDataVolume}}
         <!-- <span v-if="license(serverAboutKap && serverAboutKap['ke.license.source.total']) !== 'Unlimited'">{{license(serverAboutKap && serverAboutKap['ke.license.source.used'])}} TB / {{license(serverAboutKap && serverAboutKap['ke.license.source.total'])}} TB</span>
         <span v-else>Unlimited</span> -->
       </el-row>
@@ -57,6 +57,8 @@
 import { mapActions } from 'vuex'
 // import loginKybot from '../common/login_kybot.vue'
 // import { handleSuccess, handleError, kapConfirm } from '../../util/business'
+import filterElements from '../../filter/index'
+
 export default {
   name: 'about_kap',
   props: ['about'],
@@ -86,6 +88,17 @@ export default {
         range = dates[0] + ' ' + this.$t('kylinLang.query.to') + ' ' + dates[1]
       }
       return range
+    },
+    // 增加数据量单位
+    getDataVolume () {
+      const volume = this.serverAboutKap['ke.license.volume']
+      if (volume === null) {
+        return ''
+      } else if (isNaN(volume)) {
+        return volume
+      } else {
+        return filterElements.dataSize(+volume)
+      }
     }
   },
   components: {
