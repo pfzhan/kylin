@@ -119,7 +119,12 @@ public class AppInitializer {
 
         if (isJob) {
             // restore from metadata, should not delete
-            ResourceStore.getKylinMetaStore(kylinConfig);
+            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+            resourceStore.setChecker((e) -> {
+                String instance = e.getInstance();
+                String localIdentify = EpochOrchestrator.getOwnerIdentity().split("\\|")[0];
+                return localIdentify.equalsIgnoreCase(instance);
+            });
 
             // register scheduler listener
             EventBusFactory.getInstance().register(new JobSchedulerListener());

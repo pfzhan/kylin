@@ -42,7 +42,6 @@ import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
-import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccelerateScheduler;
@@ -122,11 +121,6 @@ public class EpochChangedListener implements IKeep {
     public void onEpochStarted(EpochStartedNotifier notifier) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        resourceStore.setChecker((event) -> {
-            String instance = event.getInstance();
-            String localIdentify = EpochOrchestrator.getOwnerIdentity().split("\\|")[0];
-            return localIdentify.equalsIgnoreCase(instance);
-        });
         resourceStore.leaderCatchup();
     }
 }
