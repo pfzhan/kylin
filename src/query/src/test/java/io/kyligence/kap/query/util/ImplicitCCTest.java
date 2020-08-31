@@ -27,11 +27,14 @@ package io.kyligence.kap.query.util;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.relnode.ColumnRowType;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -45,7 +48,17 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 
-public class ImplicitCCTest {
+public class ImplicitCCTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() throws Exception {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() throws Exception {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testGetSubqueries() throws SqlParseException {
@@ -140,8 +153,7 @@ public class ImplicitCCTest {
                 mockComputedColumnDesc("cc3", "table2.c + table2.d", "TABLE2"),
                 mockComputedColumnDesc("cc", "substring(substring(table1.d,1,3),1,3)", "TABLE1"),
                 mockComputedColumnDesc("cc4", "(table1.a + table1.b) + (table1.c + table1.d)", "TABLE1"),
-                mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"),
-                mockComputedColumnDesc("cc6", "{fn convert(table1.a, double)}", "TABLE1"));
+                mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"));
         mockCCs = ConvertToComputedColumn.getCCListSortByLength(mockCCs);
         for (ComputedColumnDesc cc : mockCCs) {
             System.out.println(cc.getColumnName());
@@ -184,12 +196,6 @@ public class ImplicitCCTest {
         String sqlWithSum = "select sum(CAST(T1.a AS double)) from table1";
         Assert.assertEquals("select sum(T1.cc5) from table1", ConvertToComputedColumn.replaceComputedColumn(sqlWithSum,
                 SqlSubqueryFinder.getSubqueries(sqlWithSum).get(0), mockCCs, queryAliasMatchInfo).getFirst());
-        String sqlWithfnconvert = "select sum({fn convert(T1.a, double)}) from table1";
-        Assert.assertEquals("select sum(T1.cc6) from table1",
-                ConvertToComputedColumn
-                        .replaceComputedColumn(sqlWithfnconvert,
-                                SqlSubqueryFinder.getSubqueries(sqlWithfnconvert).get(0), mockCCs, queryAliasMatchInfo)
-                        .getFirst());
 
         //more tables
         String sql2tables = "select t1.a + t1.b as aa, t2.c + t2.d as bb from table1 t1 inner join "

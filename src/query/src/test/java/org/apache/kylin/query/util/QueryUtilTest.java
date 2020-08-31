@@ -360,4 +360,19 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(originString.concat(" limit 1"), replacedString);
     }
 
+    @Test
+    public void testReplaceCC() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String sql1 = "select EXTRACT(minute FROM lineorder.lo_orderdate) from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey";
+        QueryParams queryParams1 = new QueryParams(config, sql1, "cc_test", 0, 0, "ssb", true);
+        String newSql1 = QueryUtil.massageSql(queryParams1);
+        Assert.assertEquals("select LINEORDER.CC_EXTRACT from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey", newSql1);
+
+        String sql2 = "select {fn convert(lineorder.lo_orderkey, double)} from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey";
+        QueryParams queryParams2 = new QueryParams(config, sql2, "cc_test", 0, 0, "ssb", true);
+        String newSql2 = QueryUtil.massageSql(queryParams2);
+        Assert.assertEquals("select LINEORDER.CC_CAST_LO_ORDERKEY from lineorder inner join customer on lineorder.lo_custkey = customer.c_custkey", newSql2);
+
+    }
+
 }

@@ -177,6 +177,22 @@
     "innerExpression" : null,
     "datatype" : "BIGINT",
     "comment" : null
+  }, {
+    "tableIdentity": "SSB.LINEORDER",
+    "tableAlias": "LINEORDER",
+    "columnName": "CC_EXTRACT",
+    "expression": "EXTRACT(minute FROM LINEORDER.LO_ORDERDATE)",
+    "innerExpression": "MINUTE(`LINEORDER`.`LO_ORDERDATE`)",
+    "datatype": "INTEGER",
+    "comment": null
+  }, {
+    "tableIdentity": "SSB.LINEORDER",
+    "tableAlias": "LINEORDER",
+    "columnName": "CC_CAST_LO_ORDERKEY",
+    "expression": "{fn convert(lineorder.lo_orderkey, double)}",
+    "innerExpression": "cast(`lineorder`.`lo_orderkey` as double)",
+    "datatype": "INTEGER",
+    "comment": null
   } ],
   "canvas" : {
     "coordinate" : {

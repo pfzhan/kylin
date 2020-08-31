@@ -288,9 +288,13 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             boolean replaceCcName) {
         List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
         for (ComputedColumnDesc cc : computedColumns) {
-            List<SqlNode> matchedNodes;
-            matchedNodes = getMatchedNodes(selectOrOrderby, replaceCcName ? cc.getFullName() : cc.getExpression(),
-                    queryAliasMatchInfo);
+            List<SqlNode> matchedNodes = Lists.newArrayList();
+            matchedNodes.addAll(getMatchedNodes(selectOrOrderby, replaceCcName ? cc.getFullName() : cc.getExpression(), queryAliasMatchInfo));
+
+            String transformedExpression = new EscapeTransformer().transform(cc.getExpression(), null, null);
+            if (!transformedExpression.equals(cc.getExpression())) {
+                matchedNodes.addAll(getMatchedNodes(selectOrOrderby, transformedExpression, queryAliasMatchInfo));
+            }
 
             for (SqlNode node : matchedNodes) {
                 Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(node, inputSql);
