@@ -173,7 +173,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(5, measureRawRecItem.getId());
 
         // create and save layout rec item
-        RawRecItem layoutRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.LAYOUT);
+        RawRecItem layoutRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.ADDITIONAL_LAYOUT);
         LayoutRecItemV2 layoutRecItemV2 = new LayoutRecItemV2();
         layoutRawRecItem.setState(RawRecItem.RawRecState.INITIAL);
         layoutRawRecItem.setDependIDs(new int[] { -4, -5 });
@@ -207,7 +207,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(5.0, rawRecItems.get(3).getCost(), 0.1);
 
         Assert.assertEquals(6, rawRecItems.get(4).getId());
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, rawRecItems.get(4).getType());
+        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, rawRecItems.get(4).getType());
         Assert.assertEquals(6.0, rawRecItems.get(4).getCost(), 0.1);
     }
 
@@ -265,7 +265,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(6, measureRawRecItem.getId());
 
         // create and save layout rec item
-        RawRecItem layoutRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.LAYOUT);
+        RawRecItem layoutRawRecItem = new RawRecItem("test", "abc", 1, RawRecItem.RawRecType.ADDITIONAL_LAYOUT);
         LayoutRecItemV2 layoutRecItemV2 = new LayoutRecItemV2();
         layoutRawRecItem.setState(RawRecItem.RawRecState.INITIAL);
         layoutRawRecItem.setDependIDs(new int[] { -4, -5 });
@@ -306,7 +306,7 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(6, allRawRecItems.get(5).getCost(), 0.1);
 
         Assert.assertEquals(7, allRawRecItems.get(6).getId(), 0.1);
-        Assert.assertEquals(RawRecItem.RawRecType.LAYOUT, allRawRecItems.get(6).getType());
+        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, allRawRecItems.get(6).getType());
         Assert.assertEquals(7, allRawRecItems.get(6).getCost(), 0.1);
     }
 
