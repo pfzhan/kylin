@@ -54,6 +54,7 @@ import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.BadRequestException;
 
+import io.kyligence.kap.query.exception.NoAuthorizedColsError;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -136,12 +137,17 @@ public class PushDownUtil {
         }
         QueryContext.current().setPushdownEngine(pushdownEngine);
 
-        queryParams.setKylinConfig(kylinConfig);
-        queryParams.setSql(sql);
-        sql = QueryUtil.massagePushDownSql(queryParams);
-
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
+        queryParams.setKylinConfig(kylinConfig);
+        queryParams.setSql(sql);
+        try {
+            sql = QueryUtil.massagePushDownSql(queryParams);
+        } catch (NoAuthorizedColsError e) {
+            // on no authorized cols found, return empty result
+            return Pair.newPair(returnRows, returnColumnMeta);
+        }
 
         if (queryParams.isSelect()) {
             runner.executeQuery(sql, returnRows, returnColumnMeta, project);

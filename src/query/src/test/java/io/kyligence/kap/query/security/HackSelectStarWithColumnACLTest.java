@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.kyligence.kap.query.exception.NoAuthorizedColsError;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.QueryContext;
@@ -171,8 +172,11 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         manager.updateAclTCR(empty, "u1", true);
         manager.updateAclTCR(empty, "g1", false);
 
-        newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA, aclInfo);
-        assertRoughlyEquals("*", newSelectClause);
+        try {
+            HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA, aclInfo);
+        } catch (Exception e) {
+            Assert.assertEquals(NoAuthorizedColsError.class, e.getClass());
+        }
     }
 
     @Test

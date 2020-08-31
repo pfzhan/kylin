@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import io.kyligence.kap.query.exception.NoAuthorizedColsError;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
@@ -93,7 +94,7 @@ public class HackSelectStarWithColumnACL extends TransformWithAcl implements IKe
         StringBuilder newSelectClause = new StringBuilder();
         List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema, aclInfo);
         if (CollectionUtils.isEmpty(allCols)) {
-            return SELECT_STAR;
+            throw new NoAuthorizedColsError();
         }
         for (String col : allCols) {
             if (!col.equals(allCols.get(allCols.size() - 1))) {

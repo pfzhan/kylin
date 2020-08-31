@@ -65,6 +65,7 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
 
     // 20030XXX push down
     INVALID_PARAMETER_PUSH_DOWN("KE-20030001"), //
+    NO_AUTHORIZED_COLUMNS("KE-20030002"), //
 
     // 20032XXX query busy
     BUSY_QUERY("KE-20032001"), //
