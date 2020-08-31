@@ -280,7 +280,7 @@
                     <el-option v-for="item in [10, 20, 50, 100]" :key="item" :label="item" :value="item"></el-option>
                   </el-select>
                 </el-form-item>
-                {{$t('suggestionTip2')}}
+                <span v-html="$t('suggestionTip2')"></span>
               </div>
             </div>
         </div>

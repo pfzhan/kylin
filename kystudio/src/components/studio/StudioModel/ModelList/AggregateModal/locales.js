@@ -86,7 +86,7 @@ export default {
     th_column: 'Column',
     th_dataType: 'Data Type',
     th_num: 'Cardinality',
-    th_info: 'Annotation',
+    th_info: 'Comment',
     th_order: 'Order',
     ok: 'OK',
     cardinality: 'Cardinality',

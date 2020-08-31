@@ -360,7 +360,7 @@
             <!-- 正在检测的情况 -->
             <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'">{{$t('numTitle1')}}<i class="el-icon-loading"></i></span>
             <common-tip :content="$t('includesEmpty')" v-if="isDisabledSaveBtn" >
-              <i class="el-icon-ksd-table_refresh ksd-ml-10 is-disabled"@click="checkCuboids(true)"></i>
+              <i class="el-icon-ksd-table_refresh ksd-ml-10 is-disabled" @click="checkCuboids(true)"></i>
             </common-tip>
             <i class="el-icon-ksd-table_refresh ksd-ml-10" v-else @click="checkCuboids(true)"></i>
           </span>

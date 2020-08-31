@@ -61,10 +61,10 @@ export default {
     from: 'Generate recommendations for queries of which the latency is between',
     to: 'to',
     secondes: 'second(s)',
-    acclerationRuleSettings: 'Generate Recommendations',
+    acclerationRuleSettings: 'Recommendation Settings',
     optimizationSuggestions: 'Limit of Recommendations for Adding Index',
     suggestionTip1: 'Up to',
-    suggestionTip2: 'recommendations for adding indexes would be generated.'
+    suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated everyday be default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">user manual</a> for details.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -117,7 +117,7 @@ export default {
     confirmClose: '确认关闭',
     turnOffTips: '关闭智能推荐后:<br/>* 当前项目将不具备<b>任何索引推荐和优化能力</b>，以及<b>SQL建模</b>等。<br/>* 当前已存在的建议将<b>暂时隐藏</b>，已<b>构建完成</b>的索引仍可以服务于查询。<br/>* 对于优化建议，当模型的定义如<b>关联关系</b>，<b>分区列</b>等发生变化时，为了保证优化建议的准确性此时会<b>清空</b>掉所有的优化建议。<br/>确认关闭吗？',
     turnOff: '关闭',
-    turnOnTips: '请注意，此功能尚属于 BETA 阶段，可能存在潜在风险或已知限制。详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/zh-cn/acceleration/" target="_blank">查看手册</a><br/>确认要开启吗？',
+    turnOnTips: '请注意，此功能尚属于 BETA 阶段，可能存在潜在风险或已知限制。详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/basic_concept_actions.en.html" target="_blank">查看手册</a><br/>确认要开启吗？',
     turnOn: '开启',
     confirmOpen: '确认开启',
     queryFrequency: '查询频率',
@@ -128,9 +128,9 @@ export default {
     from: '对延迟的范围在',
     to: '秒到',
     secondes: '秒的查询生成优化建议。',
-    acclerationRuleSettings: '优化建议规则',
+    acclerationRuleSettings: '优化建议规则设置',
     optimizationSuggestions: '优化建议上限',
-    suggestionTip1: '最多生成',
-    suggestionTip2: '条新增索引的优化建议。'
+    suggestionTip1: '每次最多生成',
+    suggestionTip2: '条新增索引的优化建议。默认每天更新一次，此更新频率可进行配置，详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/zh-cn/acceleration/basic_concept_actions.cn.html" target="_blank">查看手册</a>。'
   }
 }

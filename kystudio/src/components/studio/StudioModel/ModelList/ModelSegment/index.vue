@@ -109,7 +109,7 @@
         <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
             <common-tip :content="$t('showDetail')">
-              <i class="el-icon-ksd-details" @click="handleShowDetail(scope.row)"></i>
+              <i class="el-icon-ksd-desc" @click="handleShowDetail(scope.row)"></i>
             </common-tip>
           </template>
         </el-table-column>
@@ -364,7 +364,7 @@ export default class ModelSegment extends Vue {
           tableData.push(obj)
         })
         await this.callGlobalDetailDialog({
-          msg: this.$t('confirmRefreshSegments', {count: segmentIds.length}),
+          msg: this.$t('confirmRefreshSegments'),
           title: this.$t('refreshSegmentsTitle'),
           detailTableData: tableData,
           detailColumns: [
