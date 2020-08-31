@@ -275,6 +275,29 @@ public class QueryUtil {
         }
     }
 
+    public static List<String> splitBySemicolon(String s) {
+        List<String> r = Lists.newArrayList();
+        StringBuilder sb = new StringBuilder();
+        boolean inQuota = false;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == '\'') {
+                inQuota = !inQuota;
+            }
+            if (s.charAt(i) == ';' && !inQuota) {
+                if (sb.length() != 0) {
+                    r.add(sb.toString());
+                    sb = new StringBuilder();
+                }
+                continue;
+            }
+            sb.append(s.charAt(i));
+        }
+        if (sb.length() != 0) {
+            r.add(sb.toString());
+        }
+        return r;
+    }
+
     public static String addLimit(String originString) {
         Matcher selectMatcher = SELECT_PATTERN.matcher(originString);
         Matcher limitMatcher = LIMIT_PATTERN.matcher(originString);
