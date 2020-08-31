@@ -10,7 +10,7 @@ export default {
     joinNotice: 'Join conditions must meet the following criteria. ',
     joinErrorNotice: 'The join conditions can’t be saved. Please modify and try again.',
     details: 'View Details',
-    notice1: 'Can’t define multiple join conditions for the same columns',
+    notice1: 'Can`t define multiple join conditions for the same columns',
     notice2: 'Join condition ≥ and < must be used in pairs, and same column must be joint in both conditions',
     notice3: 'Join condition for columns should include at least one equal-join condition (=)',
     notice4: 'Two tables could only be joined by the same condition for one time',

@@ -101,8 +101,8 @@ export default {
     seeDetail: 'View Details',
     modelMetadataChangedDesc: 'Source table in the following segment(s) might have been changed. The data might be inconsistent after being built. Please check with your system administrator.<br/>You may try refreshing these segments to ensure the data consistency.',
     refrashWarningSegment: 'Only ONLINE segments could be refreshed',
-    closeSCD2ModalOnlineTip: 'This model can’t go online as it includes non-equal join conditions(≥, <). Please delete those join conditions, or turn on `Support Historical Dimension Table` in project settings.',
-    SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support Historical Dimension Table` in project settings.',
+    closeSCD2ModalOnlineTip: 'This model can`t go online as it includes non-equal join conditions(≥, <). Please delete those join conditions, or turn on `Support History table` in project settings.',
+    SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support History table` in project settings.',
     storageTip: 'Calculates the amount of data built in this model'
   },
   'zh-cn': {
