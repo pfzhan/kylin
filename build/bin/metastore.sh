@@ -65,7 +65,6 @@ function turn_on_maintain_mode() {
   ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool'
   ret=$?
   if [[ $ret != 0 ]]; then
-      echo "failed to turn on maintain mode, exit!"
       exit $ret
   fi
 }

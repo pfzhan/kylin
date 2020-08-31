@@ -127,8 +127,8 @@ public class MaintainModeTool extends ExecutableApplication {
         System.out.println("Start to mark epoch with reason: " + reason);
         Pair<Boolean, String> maintenanceModeDetail = checkMaintenanceMode(false);
         if (maintenanceModeDetail.getFirst()) {
-            System.out.printf("System is already in maintenance mode with reason: %s.", maintenanceModeDetail.getSecond());
-            log.warn("System is already in maintenance mode with reason: {}", maintenanceModeDetail.getSecond());
+            System.out.printf("The system is under maintenance mode for [%s]. Please try again later.", maintenanceModeDetail.getSecond());
+            log.warn("The system is under maintenance mode for [{}]. Please try again later.", maintenanceModeDetail.getSecond());
             System.exit(1);
         }
         System.setProperty(LEADER_RACE_KEY, "false");
@@ -236,9 +236,11 @@ public class MaintainModeTool extends ExecutableApplication {
 
     private Pair<Boolean, String> checkMaintenanceMode(boolean needInMaintenanceMode) {
         for (String project : projects) {
-            Pair<Boolean, String> maintenanceModeDetail = epochManager.getMaintenanceModeDetail(project);
-            if (maintenanceModeDetail.getFirst() != needInMaintenanceMode) {
-                return maintenanceModeDetail;
+            if (epochManager.getEpoch(project) != null) {
+                Pair<Boolean, String> maintenanceModeDetail = epochManager.getMaintenanceModeDetail(project);
+                if (maintenanceModeDetail.getFirst() != needInMaintenanceMode) {
+                    return maintenanceModeDetail;
+                }
             }
         }
 
