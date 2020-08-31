@@ -347,6 +347,14 @@ public class RestoreFromCCOnRealModelTest extends NLocalFileMetadataTestCase {
         check(converter, originSql, ccSql);
     }
 
+    @Test
+    public void testNonEqualJoinCondition() {
+        RestoreFromComputedColumn converter = new RestoreFromComputedColumn();
+        String originSql = "select count(*), sum (F.PRICE * F.ITEM_COUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on ((o.buyer_id = a.account_id) or ((o.buyer_id is NULL) and (a.account_id is NULL))) group by ACCOUNT_COUNTRY";
+        String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on ((o.buyer_id = a.account_id) or ((o.buyer_id is NULL) and (a.account_id is NULL))) group by ACCOUNT_COUNTRY";
+        check(converter, originSql, ccSql);
+    }
+
     private void check(RestoreFromComputedColumn converter, String originSql, String ccSql) {
         String transform = converter.convert(ccSql, "default", "DEFAULT");
         Assert.assertEquals(originSql, transform);

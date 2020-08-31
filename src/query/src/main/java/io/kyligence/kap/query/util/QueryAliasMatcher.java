@@ -184,7 +184,7 @@ public class QueryAliasMatcher {
                     join.getCondition().accept(joinConditionCapturer);
                     JoinDesc joinDesc = joinConditionCapturer.getJoinDescs();
                     foundJoinOnCC = foundJoinOnCC || joinConditionCapturer.foundCC;
-                    if (joinDesc.getForeignKey().length != 0)
+                    if (joinDesc.getForeignKey().length != 0 && !joinConditionCapturer.foundNonEqualJoin)
                         joinDescs.add(joinDesc);
                 } else {
                     throw new IllegalArgumentException("join condition should be SqlBasicCall");
@@ -269,6 +269,7 @@ public class QueryAliasMatcher {
         private List<TblColRef> fks = Lists.newArrayList();
 
         private boolean foundCC = false;
+        private boolean foundNonEqualJoin = false;
 
         JoinConditionCapturer(LinkedHashMap<String, ColumnRowType> alias2CRT, String joinType) {
             this.alias2CRT = alias2CRT;
@@ -384,7 +385,8 @@ public class QueryAliasMatcher {
                 }
             }
 
-            throw new IllegalStateException("Join condition is illegal: " + call.toSqlString(SqlDialect.CALCITE));
+            foundNonEqualJoin = true;
+            return null;
         }
 
     }
