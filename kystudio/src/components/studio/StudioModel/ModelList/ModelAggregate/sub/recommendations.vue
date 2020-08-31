@@ -41,7 +41,7 @@
           prop="id"
           label="Index ID">
           <template slot-scope="scope">
-            <span v-if="scope.row.type !== 'ADD_AGG' && scope.row.type !== 'ADD_TABLE'">{{$t(scope.row.id)}}</span>
+            <span v-if="scope.row.type !== 'ADD_AGG' && scope.row.type !== 'ADD_TABLE_INDEX'">{{$t(scope.row.index_id)}}</span>
           </template>
         </el-table-column>
         <!-- <el-table-column
@@ -67,7 +67,7 @@
         </el-table-column>
         <el-table-column
           width="120"
-          prop="usage"
+          prop="hit_count"
           :label="$t('th_useCount')"
           :render-header="renderHeaderCol"
           sortable>
@@ -85,9 +85,9 @@
         <el-table-column
           :label="$t('th_note')">
           <div slot-scope="scope" class="col-tab-note">
-            <template v-if="('remove_reason' in scope.row.info)">
+            <template v-if="(!scope.row.is_add && 'remove_reason' in scope.row.memo_info)">
               <el-tooltip class="item" effect="dark" :content="removeReasonTip(scope)" placement="top">
-                <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.info.remove_reason)}}</el-tag>
+                <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.memo_info.remove_reason)}}</el-tag>
               </el-tooltip>
             </template>
           </div> 
@@ -150,7 +150,7 @@
         <el-table-column type="index" :label="$t('order')" width="50"></el-table-column>
         <el-table-column :label="$t('th_name')" width="260">
           <template slot-scope="scope">
-            <span class="column-name" :title="scope.row.name">{{scope.row.name}}</span>
+            <span class="column-name" :title="scope.row.name" :style="{width: scope.row.add ? 'calc(100% - 50px)' : '100%'}">{{scope.row.name}}</span>
             <el-tag class="add-tag" size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
           </template>
         </el-table-column>
@@ -287,8 +287,8 @@ import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
       TABLE: 'Table Index',
       ADD_AGG: 'Add Aggregate Index',
       REMOVE_AGG: 'Delete Aggregate Index',
-      ADD_TABLE: 'Add Table Index',
-      REMOVE_TABLE: 'Delete Table Index',
+      ADD_TABLE_INDEX: 'Add Table Index',
+      REMOVE_TABLE_INDEX: 'Delete Table Index',
       usage_time_tip: 'The usage of this index in the past {date} is lower than {time} times.',
       exist_index_tip: 'There already exists one index or more who could include this index.',
       similar_index_tip: 'There already exists one index or more who has a high similarity with this index.',
@@ -347,8 +347,8 @@ import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
       TABLE: '明细索引',
       ADD_AGG: '新增聚合索引',
       REMOVE_AGG: '删除聚合索引',
-      ADD_TABLE: '新增明细索引',
-      REMOVE_TABLE: '删除明细索引',
+      ADD_TABLE_INDEX: '新增明细索引',
+      REMOVE_TABLE_INDEX: '删除明细索引',
       usage_time_tip: '该索引在过去{date}内使用频率低于{time}次。',
       exist_index_tip: '已有索引可以包含该索引。',
       similar_index_tip: '存在与该索引相似的索引。',
@@ -395,7 +395,7 @@ export default class IndexList extends Vue {
     totalSize: 0,
     page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || 10
   }
-  typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE', 'REMOVE_TABLE']
+  typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE_INDEX', 'REMOVE_TABLE_INDEX']
   source = ['imported', 'query_history']
   lowFrequency = {
     frequency_time_window: '',
@@ -533,35 +533,35 @@ export default class IndexList extends Vue {
 
   // 批量删除
   betchDelete () {
-    let layouts_to_add = []
-    let layouts_to_remove = []
+    let recs_to_add_layout = []
+    let recs_to_remove_layout = []
     this.selectedList.forEach(item => {
       if (item.type.split('_')[0] === 'ADD') {
-        layouts_to_add.push(item.item_id)
+        recs_to_add_layout.push(item.item_id)
       } else {
-        layouts_to_remove.push(item.item_id)
+        recs_to_remove_layout.push(item.item_id)
       }
     })
-    this.removeApi(layouts_to_add, layouts_to_remove)
+    this.removeApi(recs_to_add_layout, recs_to_remove_layout)
   }
 
   // 删除优化建议
   removeIndex (row) {
-    let layouts_to_add = []
-    let layouts_to_remove = []
-    row.type.split('_')[0] === 'ADD' ? layouts_to_add.push(row.item_id) : layouts_to_remove.push(row.item_id)
-    this.removeApi(layouts_to_add, layouts_to_remove)
+    let recs_to_add_layout = []
+    let recs_to_remove_layout = []
+    row.type.split('_')[0] === 'ADD' ? recs_to_add_layout.push(row.item_id) : recs_to_remove_layout.push(row.item_id)
+    this.removeApi(recs_to_add_layout, recs_to_remove_layout)
   }
 
-  async removeApi (layouts_to_add, layouts_to_remove) {
+  async removeApi (recs_to_add_layout, recs_to_remove_layout) {
     await this.$confirm(this.$t('deleteRecommendTip'), this.$t('deleteTitle'), {
       confirmButtonText: this.$t('delete')
     })
     this.deleteRecommendations({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      layouts_to_add: layouts_to_add.join(','),
-      layouts_to_remove: layouts_to_remove.join(',')
+      recs_to_add_layout: recs_to_add_layout.join(','),
+      recs_to_remove_layout: recs_to_remove_layout.join(',')
     }).then(async (res) => {
       await handleSuccessAsync(res)
       this.$message({
@@ -584,21 +584,23 @@ export default class IndexList extends Vue {
     this.validateRecommend({
       project: this.currentProject,
       modelId: this.modelDesc.uuid,
-      layouts_to_add: idList.filter(it => it.is_add).map(v => v.item_id)
+      recs_to_add_layout: idList.filter(it => it.is_add).map(v => v.item_id),
+      recs_to_remove_layout: idList.filter(it => !it.is_add).map(v => v.item_id)
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
-      let { layout_item_ids, cc_items, dimension_items, measure_items } = data
+      let { recs_to_add_layout, recs_to_remove_layout, cc_items, dimension_items, measure_items } = data
       if (cc_items.length + dimension_items.length + measure_items.length > 0) {
         this.showValidate = true
         this.validateData = {
-          layout_item_ids,
+          recs_to_add_layout,
+          recs_to_remove_layout,
           list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => ({...it, type: 'measure'}))]
         }
       } else {
-        this.validateData = {layout_item_ids, list: []}
-        const layouts_to_add = idList.filter(it => it.is_add)
-        const layouts_to_remove = idList.filter(it => !it.is_add)
-        this.accessApi(layouts_to_add, layouts_to_remove)
+        this.validateData = {recs_to_add_layout, recs_to_remove_layout, list: []}
+        // const recs_to_add_layout = idList.filter(it => it.is_add)
+        // const recs_to_remove_layout = idList.filter(it => !it.is_add)
+        this.accessApi(recs_to_add_layout, recs_to_remove_layout)
       }
     }).catch((e) => {
       handleError(e)
@@ -608,14 +610,12 @@ export default class IndexList extends Vue {
   // 添加更名后的layout
   addLayout () {
     let names = {}
-    const idList = this.validateData.layout_item_ids
-    const layouts_to_add = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && it.is_add)
-    const layouts_to_remove = this.recommendationsList.list.filter(it => idList.includes(it.item_id) && !it.is_add)
+    const { recs_to_add_layout, recs_to_remove_layout } = this.validateData
     this.isLoading = true
     this.validateData.list.forEach(item => {
       names[item.item_id] = item.name
     })
-    this.accessApi(layouts_to_add, layouts_to_remove, names).then(() => {
+    this.accessApi(recs_to_add_layout, recs_to_remove_layout, names).then(() => {
       this.isLoading = false
       this.showValidate = false
     }).catch(e => {
@@ -623,7 +623,7 @@ export default class IndexList extends Vue {
     })
   }
 
-  async accessApi (layouts_to_add, layouts_to_remove, names) {
+  async accessApi (recs_to_add_layout, recs_to_remove_layout, names) {
     names = names || {}
     return new Promise((resolve, reject) => {
       const emptyName = Object.values(names).some(it => !it)
@@ -633,16 +633,16 @@ export default class IndexList extends Vue {
         this.accessRecommendations({
           project: this.currentProject,
           modelId: this.modelDesc.uuid,
-          layouts_to_add: layouts_to_add.map(item => item.item_id),
-          layouts_to_remove: layouts_to_remove.map(item => item.item_id),
+          recs_to_add_layout: recs_to_add_layout,
+          recs_to_remove_layout: recs_to_remove_layout,
           names
         }).then(async (res) => {
           try {
             await handleSuccessAsync(res)
             let acceptIndexs = () => {
               return {
-                add: [...layouts_to_add, ...layouts_to_remove].filter(item => item.type.split('_')[0] === 'ADD').length,
-                del: [...layouts_to_add, ...layouts_to_remove].filter(item => item.type.split('_')[0] === 'REMOVE').length
+                add: recs_to_add_layout.length,
+                del: recs_to_remove_layout.length
               }
             }
             this.$message({
@@ -691,7 +691,7 @@ export default class IndexList extends Vue {
       'INCLUDED': this.$t('exist_index_tip'),
       'SIMILAR': this.$t('similar_index_tip')
     }
-    return reason[data.row.info.remove_reason]
+    return reason[data.row.memo_info.remove_reason]
   }
 
   // 筛选类型来源
