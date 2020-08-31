@@ -72,4 +72,7 @@ public class SegmentConfig implements Serializable {
 
     @JsonProperty("retention_range")
     private RetentionRange retentionRange;
+
+    @JsonProperty("create_empty_segment_enabled")
+    private Boolean createEmptySegmentEnabled = false;
 }

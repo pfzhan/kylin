@@ -414,6 +414,7 @@ public class ProjectService extends BasicService {
         response.setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
         response.setVolatileRange(projectInstance.getSegmentConfig().getVolatileRange());
         response.setRetentionRange(projectInstance.getSegmentConfig().getRetentionRange());
+        response.setCreateEmptySegmentEnabled(projectInstance.getSegmentConfig().getCreateEmptySegmentEnabled());
 
         response.setFavoriteQueryThreshold(config.getFavoriteQueryAccelerateThreshold());
         response.setFavoriteQueryTipsEnabled(config.getFavoriteQueryAccelerateTipsEnabled());
@@ -543,6 +544,7 @@ public class ProjectService extends BasicService {
             copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(segmentConfigRequest.getAutoMergeTimeRanges());
             copyForWrite.getSegmentConfig().setVolatileRange(segmentConfigRequest.getVolatileRange());
             copyForWrite.getSegmentConfig().setRetentionRange(segmentConfigRequest.getRetentionRange());
+            copyForWrite.getSegmentConfig().setCreateEmptySegmentEnabled(segmentConfigRequest.getCreateEmptySegmentEnabled());
         });
     }
 

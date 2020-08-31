@@ -379,6 +379,7 @@ public class NProjectController extends NBasicController {
             @RequestBody SegmentConfigRequest segmentConfigRequest) {
         checkRequiredArg("auto_merge_enabled", segmentConfigRequest.getAutoMergeEnabled());
         checkRequiredArg("auto_merge_time_ranges", segmentConfigRequest.getAutoMergeTimeRanges());
+        checkRequiredArg("create_empty_segment_enabled", segmentConfigRequest.getCreateEmptySegmentEnabled());
         projectService.updateSegmentConfig(project, segmentConfigRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

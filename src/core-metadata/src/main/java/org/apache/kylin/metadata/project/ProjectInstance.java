@@ -140,7 +140,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @Setter
     private SegmentConfig segmentConfig = new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK,
             AutoMergeTimeEnum.MONTH, AutoMergeTimeEnum.QUARTER, AutoMergeTimeEnum.YEAR), new VolatileRange(),
-            new RetentionRange());
+            new RetentionRange(), false);
 
     @Override
     public String getResourcePath() {

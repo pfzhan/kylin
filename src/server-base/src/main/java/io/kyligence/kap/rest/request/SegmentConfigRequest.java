@@ -43,4 +43,6 @@ public class SegmentConfigRequest {
     private VolatileRange volatileRange = new VolatileRange();
     @JsonProperty("retention_range")
     private RetentionRange retentionRange = new RetentionRange();
+    @JsonProperty("create_empty_segment_enabled")
+    private Boolean createEmptySegmentEnabled = false;
 }

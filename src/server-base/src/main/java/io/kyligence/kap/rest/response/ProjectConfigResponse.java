@@ -69,6 +69,8 @@ public class ProjectConfigResponse {
     private List<AutoMergeTimeEnum> autoMergeTimeRanges;
     @JsonProperty("volatile_range")
     private VolatileRange volatileRange;
+    @JsonProperty("create_empty_segment_enabled")
+    private boolean createEmptySegmentEnabled = false;
 
     @JsonProperty("retention_range")
     private RetentionRange retentionRange;

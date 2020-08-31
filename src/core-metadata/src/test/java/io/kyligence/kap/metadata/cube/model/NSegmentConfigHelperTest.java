@@ -74,7 +74,7 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
         // 2. MODEL_BASED && model segmentConfig is not empty, get mergedSegmentConfig of project segmentConfig and model SegmentConfig
         dataModelManager.updateDataModel(model, copyForWrite -> {
             copyForWrite
-                    .setSegmentConfig(new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK), null, null));
+                    .setSegmentConfig(new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK), null, null, false));
         });
         segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(DEFAULT_PROJECT, model);
         Assert.assertEquals(false, segmentConfig.getAutoMergeEnabled());
@@ -102,7 +102,7 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
 
         // 4. TABLE_ORIENTED && model segmentConfig is empty, dataLoadingRange segmentConfig is not empty, get mergedSegmentConfig of project segmentConfig and dataLoadingRange SegmentConfig
         var copy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-        copy.setSegmentConfig(new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK), null, null));
+        copy.setSegmentConfig(new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK), null, null, false));
         dataLoadingRange = dataLoadingRangeManager.updateDataLoadingRange(copy);
 
         segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(DEFAULT_PROJECT, model);
@@ -115,12 +115,12 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
         dataModelManager.updateDataModel(model, copyForWrite -> {
             copyForWrite.setManagementType(ManagementType.TABLE_ORIENTED);
             copyForWrite
-                    .setSegmentConfig(new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK), null, null));
+                    .setSegmentConfig(new SegmentConfig(false, Lists.newArrayList(AutoMergeTimeEnum.WEEK), null, null, false));
         });
 
         copy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
         copy.setSegmentConfig(new SegmentConfig(null, null, new VolatileRange(1, true, AutoMergeTimeEnum.DAY),
-                new RetentionRange(2, true, AutoMergeTimeEnum.DAY)));
+                new RetentionRange(2, true, AutoMergeTimeEnum.DAY), false));
         dataLoadingRange = dataLoadingRangeManager.updateDataLoadingRange(copy);
 
         segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(DEFAULT_PROJECT, model);
