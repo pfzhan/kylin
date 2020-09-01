@@ -23,7 +23,6 @@
  */
 package org.apache.kylin.job.runners;
 
-import lombok.val;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
@@ -32,6 +31,8 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import lombok.val;
 
 public class JobRunner extends AbstractDefaultSchedulerRunner {
     private static final Logger logger = LoggerFactory.getLogger(JobRunner.class);
@@ -63,8 +64,9 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
         } finally {
             context.removeRunningJob(executable);
             val usingMemory = executable.computeStepDriverMemory();
+            logger.info("Before global memory release {}", NDefaultScheduler.getMemoryRemaining().availablePermits());
             NDefaultScheduler.getMemoryRemaining().release(usingMemory);
-            nDefaultScheduler.getCurrentPrjUsingMemory().addAndGet(-usingMemory);
+            logger.info("After global memory release {}", NDefaultScheduler.getMemoryRemaining().availablePermits());
         }
     }
 }

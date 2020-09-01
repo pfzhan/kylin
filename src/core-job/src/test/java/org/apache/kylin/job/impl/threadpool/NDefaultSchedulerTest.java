@@ -1377,13 +1377,14 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
+        int memory = NDefaultScheduler.getMemoryRemaining().availablePermits();
         val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         DefaultChainedExecutable job1 = generateJob(df, project);
         DefaultChainedExecutable job2 = generateJob(df, project);
         executableManager.addJob(job1);
         executableManager.addJob(job2);
         waitForJobByStatus(job1.getId(), 60000, ExecutableState.RUNNING, executableManager);
-
+        Assert.assertNotEquals(memory, NDefaultScheduler.getMemoryRemaining().availablePermits());
         val runningExecutables = executableManager.getRunningExecutables(project, modelId);
         runningExecutables.sort(Comparator.comparing(AbstractExecutable::getCreateTime));
         Assert.assertEquals(ExecutableState.RUNNING, runningExecutables.get(0).getStatus());
@@ -1395,6 +1396,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job2.getId()).getState());
 
         scheduler.shutdown();
+        Assert.assertEquals(memory, NDefaultScheduler.getMemoryRemaining().availablePermits());
     }
 
     private DefaultChainedExecutable generateJob(NDataflow df, String project) {

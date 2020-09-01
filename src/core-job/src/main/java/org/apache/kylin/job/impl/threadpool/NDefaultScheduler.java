@@ -34,7 +34,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -80,8 +79,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     @Getter
     private static volatile Semaphore memoryRemaining = new Semaphore(Integer.MAX_VALUE);
     private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
-    @Getter
-    private AtomicInteger currentPrjUsingMemory = new AtomicInteger(0);
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
     public NDefaultScheduler() {
@@ -170,7 +167,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         }
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
-        context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), jobEngineConfig.getConfig(), epochId);
+        context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), jobEngineConfig.getConfig(),
+                epochId);
 
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager.resumeAllRunningJobs();
@@ -180,11 +178,14 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         val fetcher = new FetcherRunner(this, jobPool, fetcherPool);
 
         if (config.isCheckQuotaStorageEnabled()) {
-            fetcherPool.scheduleWithFixedDelay(new QuotaStorageCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
+            fetcherPool.scheduleWithFixedDelay(new QuotaStorageCheckRunner(this), RandomUtils.nextInt(0, pollSecond),
+                    pollSecond, TimeUnit.SECONDS);
         }
 
-        fetcherPool.scheduleWithFixedDelay(new JobCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
-        fetcherPool.scheduleWithFixedDelay(new LicenseCapacityCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
+        fetcherPool.scheduleWithFixedDelay(new JobCheckRunner(this), RandomUtils.nextInt(0, pollSecond), pollSecond,
+                TimeUnit.SECONDS);
+        fetcherPool.scheduleWithFixedDelay(new LicenseCapacityCheckRunner(this), RandomUtils.nextInt(0, pollSecond),
+                pollSecond, TimeUnit.SECONDS);
         fetcherPool.scheduleWithFixedDelay(fetcher, RandomUtils.nextInt(0, pollSecond), pollSecond, TimeUnit.SECONDS);
         hasStarted.set(true);
     }
@@ -207,7 +208,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     private void releaseResources() {
         initialized.set(false);
         hasStarted.set(false);
-        memoryRemaining.release(currentPrjUsingMemory.get());
     }
 
     @Override

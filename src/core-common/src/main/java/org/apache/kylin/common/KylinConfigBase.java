@@ -782,7 +782,7 @@ public abstract class KylinConfigBase implements Serializable {
         if (isDevOrUT()) {
             return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", FALSE));
         }
-        return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", TRUE));
     }
 
     public double getMaxLocalConsumptionRatio() {

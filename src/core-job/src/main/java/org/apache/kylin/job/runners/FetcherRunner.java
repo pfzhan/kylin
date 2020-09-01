@@ -23,8 +23,11 @@
  */
 package org.apache.kylin.job.runners;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import lombok.val;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.Executable;
@@ -35,10 +38,8 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import lombok.val;
 
 public class FetcherRunner extends AbstractDefaultSchedulerRunner {
 
@@ -183,7 +184,6 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
             useMemoryCapacity = executable.computeStepDriverMemory();
 
             memoryLock = NDefaultScheduler.getMemoryRemaining().tryAcquire(useMemoryCapacity);
-            nDefaultScheduler.getCurrentPrjUsingMemory().addAndGet(useMemoryCapacity);
             if (memoryLock) {
                 jobDesc = executable.toString();
                 logger.info("{} prepare to schedule", jobDesc);
@@ -200,7 +200,6 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 if (memoryLock) {
                     // may release twice when exception raise after jobPool execute executable
                     NDefaultScheduler.getMemoryRemaining().release(useMemoryCapacity);
-                    nDefaultScheduler.getCurrentPrjUsingMemory().addAndGet(-useMemoryCapacity);
                 }
             }
             logger.warn("{} fail to schedule", jobDesc, ex);
