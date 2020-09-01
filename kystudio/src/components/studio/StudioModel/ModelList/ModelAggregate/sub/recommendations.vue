@@ -62,7 +62,7 @@
           :label="$t('th_dataSize')"
           sortable>
           <template slot-scope="scope">
-            {{scope.row.data_size || 0 | dataSize}}
+            {{formatDataSize(scope.row.data_size)}}
           </template>
         </el-table-column>
         <el-table-column
@@ -232,6 +232,7 @@ import { transToGmtTime } from 'util/business'
 import { mapActions, mapState } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../../../../../util'
 import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
+import { filterElements } from '../../../../../../filter/index'
 
 @Component({
   props: {
@@ -438,6 +439,14 @@ export default class IndexList extends Vue {
 
   get indexDetailTitle () {
     return this.currentIndex ? this.currentIndex.type.split('_')[1] === 'AGG' ? this.$t('aggDetailTitle') : this.$t('tableDetailTitle') : ''
+  }
+
+  formatDataSize (dataSize) {
+    if (dataSize < 0) {
+      return ''
+    } else {
+      return filterElements.dataSize(dataSize)
+    }
   }
 
   getCellClassName (scope) {
