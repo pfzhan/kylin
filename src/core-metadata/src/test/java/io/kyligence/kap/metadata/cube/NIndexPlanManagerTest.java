@@ -29,6 +29,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -37,6 +38,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
@@ -228,6 +230,24 @@ public class NIndexPlanManagerTest {
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
         val indexPlan2 = indexPlanManager.getIndexPlanByModelAlias("AUTO_MODEL_TEST_COUNTRY_1");
         Assert.assertNull(indexPlan2);
+    }
+
+    @Test
+    public void testChangeShardByCol_AfterDeleteAggIndex() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NIndexPlanManager manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        manager.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(20000020001L, 20000010001L, 20000000001L, 30001L, 20001L, 10002L,
+                    10001L, 1000001L, 1060001L, 1050001L), true, true);
+        });
+        manager.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.setAggShardByColumns(Lists.newArrayList(5));
+        });
+
+        val plan = manager.getIndexPlan(modelId);
+        Assert.assertEquals("[1, 1030002, 1140001, 1010001, 1080002, 1070002, 1090001, 1100001, 1020001, 1040001, 1150001, 1130001]",
+                plan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList()).toString());
     }
 
 }

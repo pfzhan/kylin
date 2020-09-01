@@ -560,6 +560,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         if (ruleBasedIndex != null) {
             val ruleLayouts = ruleBasedIndex.genCuboidLayouts();
             this.aggShardByColumns = aggShardByColumns;
+            ruleBasedIndex.setIndexStartId(nextAggregationIndexId);
             ruleBasedIndex.setLayoutIdMapping(Lists.newArrayList());
             ruleBasedIndex.genCuboidLayouts(ruleLayouts);
             this.ruleBasedLayouts = Lists.newArrayList(ruleBasedIndex.genCuboidLayouts());
