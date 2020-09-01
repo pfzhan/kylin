@@ -41,7 +41,7 @@
           prop="id"
           label="Index ID">
           <template slot-scope="scope">
-            <span v-if="scope.row.type !== 'ADD_AGG' && scope.row.type !== 'ADD_TABLE_INDEX'">{{$t(scope.row.index_id)}}</span>
+            <span v-if="scope.row.type !== 'ADD_AGG_INDEX' && scope.row.type !== 'ADD_TABLE_INDEX'">{{$t(scope.row.index_id)}}</span>
           </template>
         </el-table-column>
         <!-- <el-table-column
@@ -285,8 +285,8 @@ import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
       query_history: 'Query History',
       AGG: 'Aggregate Index',
       TABLE: 'Table Index',
-      ADD_AGG: 'Add Aggregate Index',
-      REMOVE_AGG: 'Delete Aggregate Index',
+      ADD_AGG_INDEX: 'Add Aggregate Index',
+      REMOVE_AGG_INDEX: 'Delete Aggregate Index',
       ADD_TABLE_INDEX: 'Add Table Index',
       REMOVE_TABLE_INDEX: 'Delete Table Index',
       usage_time_tip: 'The usage of this index in the past {date} is lower than {time} times.',
@@ -345,8 +345,8 @@ import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
       query_history: '查询历史',
       AGG: '聚合索引',
       TABLE: '明细索引',
-      ADD_AGG: '新增聚合索引',
-      REMOVE_AGG: '删除聚合索引',
+      ADD_AGG_INDEX: '新增聚合索引',
+      REMOVE_AGG_INDEX: '删除聚合索引',
       ADD_TABLE_INDEX: '新增明细索引',
       REMOVE_TABLE_INDEX: '删除明细索引',
       usage_time_tip: '该索引在过去{date}内使用频率低于{time}次。',
@@ -395,7 +395,7 @@ export default class IndexList extends Vue {
     totalSize: 0,
     page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || 10
   }
-  typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE_INDEX', 'REMOVE_TABLE_INDEX']
+  typeList = ['ADD_AGG_INDEX', 'REMOVE_AGG_INDEX', 'ADD_TABLE_INDEX', 'REMOVE_TABLE_INDEX']
   source = ['imported', 'query_history']
   lowFrequency = {
     frequency_time_window: '',
