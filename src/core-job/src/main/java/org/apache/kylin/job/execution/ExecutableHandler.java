@@ -24,6 +24,9 @@
 
 package org.apache.kylin.job.execution;
 
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.OFFLINE;
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
@@ -32,12 +35,13 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 @NoArgsConstructor
@@ -84,5 +88,28 @@ public abstract class ExecutableHandler implements IKeepNames {
         Preconditions.checkNotNull(executable);
         Preconditions.checkArgument(executable instanceof DefaultChainedExecutableOnModel);
         return (DefaultChainedExecutableOnModel) executable;
+    }
+
+    public void markDFStatus() {
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val df = dfManager.getDataflow(getModelId());
+        boolean offlineManually = df.getIndexPlan().isOfflineManually();
+        val status = df.getStatus();
+        switch (status) {
+            case ONLINE:
+                if (offlineManually) {
+                    dfManager.updateDataflow(df.getId(),
+                            copyForWrite -> copyForWrite.setStatus(OFFLINE));
+                }
+                break;
+            case OFFLINE:
+                if (!offlineManually) {
+                    dfManager.updateDataflow(df.getId(),
+                            copyForWrite -> copyForWrite.setStatus(ONLINE));
+                }
+                break;
+            default:
+                break;
+        }
     }
 }

@@ -150,10 +150,13 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         val sql = "select cal_dt, count(*) from test_kylin_fact " +
                 "inner join test_category_groupings on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id " +
                 "where cal_dt >= '2012-01-03' and cal_dt < '2012-01-10' group by cal_dt";
-
-        val sqlResponse = new QueryExec(project, getTestConfig()).executeQuery(sql);
-        Assert.assertNotNull(sqlResponse);
-        Assert.assertEquals(0, sqlResponse.getRows().size());
+        try {
+            new QueryExec(project, getTestConfig()).executeQuery(sql);
+            Assert.fail();
+        } catch (SQLException ex) {
+            // no ready segments
+            Assert.assertTrue(ex.getCause() instanceof NoRealizationFoundException);
+        }
 
         try {
             getTestConfig().setProperty("kylin.query.heterogeneous-segment-enabled", "false");

@@ -1569,4 +1569,8 @@ public class Message {
     public String getGROUP_UUID_NOT_EXIST() {
         return "Group uuid %s is not exist.";
     }
+
+    public String getMODEL_ONLINE_ABANDON() {
+        return "This model can’t go online as it doesn’t have segments. Models with no segment couldn’t serve queries. Please add a segment.";
+    }
 }

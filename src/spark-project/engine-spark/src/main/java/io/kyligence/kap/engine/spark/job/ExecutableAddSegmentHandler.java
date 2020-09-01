@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.LAG_BEHIND;
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -57,15 +58,13 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         val executable = getExecutable();
         val jobId = executable.getId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        val buildTask = executable.getTask(NSparkCubingStep.class);
-        val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val merger = new AfterBuildResourceMerger(kylinConfig, project);
         executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
                 .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
                 .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        markDFOnlineIfNecessary(dfMgr.getDataflow(dataflowId));
+        markDFStatus(dfMgr);
     }
 
     @Override
@@ -89,21 +88,20 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
         seg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(seg);
         dfMgr.updateDataflow(dfUpdate);
-
-        markDFOnlineIfNecessary(dfMgr.getDataflow(df.getId()));
+        markDFStatus(dfMgr);
     }
 
-    private void markDFOnlineIfNecessary(NDataflow dataflow) {
-        if (!RealizationStatusEnum.LAG_BEHIND.equals(dataflow.getStatus())) {
-            return;
-        }
-        val model = dataflow.getModel();
-        Preconditions.checkState(ManagementType.TABLE_ORIENTED.equals(model.getManagementType()));
-
-        if (checkOnline(model)) {
-            val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-            dfManager.updateDataflow(dataflow.getId(),
-                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+    private void markDFStatus(NDataflowManager dfManager) {
+        super.markDFStatus();
+        val df = dfManager.getDataflow(getModelId());
+        val status = df.getStatus();
+        if(LAG_BEHIND.equals(status)){
+            val model = df.getModel();
+            Preconditions.checkState(ManagementType.TABLE_ORIENTED.equals(model.getManagementType()));
+            if (checkOnline(model) && !df.getIndexPlan().isOfflineManually()) {
+                dfManager.updateDataflow(df.getId(),
+                        copyForWrite -> copyForWrite.setStatus(ONLINE));
+            }
         }
     }
 

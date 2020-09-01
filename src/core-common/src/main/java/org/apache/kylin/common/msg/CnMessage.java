@@ -1444,4 +1444,8 @@ public class CnMessage extends Message {
     public String getREC_LIST_OUT_OF_DATE() {
         return "由于优化建议所依赖的内容被删除，该优化建议已失效。请刷新页面后再试。";
     }
+
+    public String getMODEL_ONLINE_ABANDON() {
+        return "该模型尚未添加 Segment，不可服务于查询。请先添加 Segment 后再上线。";
+    }
 }

@@ -1245,7 +1245,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
-
+        val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
+        Assert.assertEquals(df1.getStatus(), RealizationStatusEnum.ONLINE);
         modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
                 false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
@@ -1253,6 +1254,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
         Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
+        Assert.assertEquals(dataflow.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
     @Test

@@ -50,6 +50,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_BROKEN;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_ONLINE_ABANDON;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
@@ -999,7 +1000,7 @@ public class ModelService extends BasicService {
 
             cleanIndexPlanWhenNoSegments(project, modelId);
         }
-
+        offlineModelIfNecessary(dataflowManager, modelId);
     }
 
     @Transaction(project = 1)
@@ -1149,6 +1150,9 @@ public class ModelService extends BasicService {
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
                 nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
+                if (dataflow.getSegments().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getMODEL_ONLINE_ABANDON());
+                }
                 nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             }
             dataflowManager.updateDataflow(nDataflowUpdate);
@@ -1685,7 +1689,7 @@ public class ModelService extends BasicService {
         indexPlan.setUuid(model.getUuid());
         indexPlan.setLastModified(System.currentTimeMillis());
         indexPlanManager.createIndexPlan(indexPlan);
-        val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
+        val df = dataflowManager.createDataflow(indexPlan, model.getOwner(), RealizationStatusEnum.OFFLINE);
         SegmentRange range = null;
         if (model.getPartitionDesc() == null
                 || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
@@ -2473,6 +2477,15 @@ public class ModelService extends BasicService {
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
         cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
+        offlineModelIfNecessary(dataflowManager, model);
+    }
+
+    private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
+        val df = dfManager.getDataflow(modelId);
+        if (df.getSegments().isEmpty() && RealizationStatusEnum.ONLINE.equals(df.getStatus())) {
+            dfManager.updateDataflow(df.getId(),
+                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+        }
     }
 
     private void checkSegmentsExist(String model, String project, String[] ids) {

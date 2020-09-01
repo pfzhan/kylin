@@ -80,6 +80,7 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
                         copyForWrite -> copyForWrite.removeLayouts(toBeDeletedLayoutIds, true, true));
             }
         });
+        markDFStatus();
     }
 
     @Override

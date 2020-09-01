@@ -89,6 +89,8 @@ public class KylinConfig extends KylinConfigBase {
     // thread-local instances, will override SYS_ENV_INSTANCE
     private static transient ThreadLocal<KylinConfig> THREAD_ENV_INSTANCE = new ThreadLocal<>();
 
+    public static final String MODEL_OFFLINE_FLAG = "kylin.model.offline";
+
     static {
         /*
          * Make Calcite to work with Unicode.

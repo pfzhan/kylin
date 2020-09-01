@@ -930,4 +930,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                         && i < OptimizeRecommendationManager.ID_OFFSET + NDataModel.MEASURE_ID_BASE))
                 .collect(Collectors.toList());
     }
+
+    public boolean isOfflineManually() {
+        return getOverrideProps()
+                .getOrDefault(KylinConfig.MODEL_OFFLINE_FLAG, "false").trim()
+                .equals(KylinConfig.TRUE);
+    }
+
 }

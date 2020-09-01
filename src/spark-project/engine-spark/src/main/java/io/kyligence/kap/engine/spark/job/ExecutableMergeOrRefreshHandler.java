@@ -46,7 +46,7 @@ public class ExecutableMergeOrRefreshHandler extends ExecutableHandler {
         executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
                 .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
                 .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
-
+        markDFStatus();
     }
 
     @Override

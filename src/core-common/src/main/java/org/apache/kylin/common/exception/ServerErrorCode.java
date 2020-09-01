@@ -71,6 +71,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     MODEL_METADATA_FILE_ERROR("KE-10002009"), //
     FAILED_CREATE_MODEL("KE-10002010"), //
     MODEL_BROKEN("KE-10002011"), //
+    MODEL_ONLINE_ABANDON("KE-10002012"),
 
     // 10003XXX user
     USER_NOT_EXIST("KE-10003001"), //
