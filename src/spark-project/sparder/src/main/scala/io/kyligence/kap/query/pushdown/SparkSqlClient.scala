@@ -30,6 +30,7 @@ import java.util.{UUID, List => JList}
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
+import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
@@ -56,12 +57,16 @@ object SparkSqlClient {
     HadoopUtil.setCurrentConfiguration(ss.sparkContext.hadoopConfiguration)
     val s = "Start to run sql with SparkSQL..."
     val queryId = QueryContext.current().getQueryId
-    val db = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getDefaultDatabase(project)
     ss.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     logger.info(s)
     Trace.addTimelineAnnotation(s)
 
     try {
+      val db = if (StringUtils.isNotBlank(project)) {
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getDefaultDatabase(project)
+      } else {
+        null
+      }
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, db)
       val df = ss.sql(sql)
 

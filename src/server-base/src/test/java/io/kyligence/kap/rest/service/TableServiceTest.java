@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -66,6 +67,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -73,6 +75,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -93,6 +96,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
@@ -119,9 +123,9 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.source.NHiveSourceInfo;
 import io.kyligence.kap.rest.source.NHiveTableName;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TableServiceTest extends CSVSourceTestCase {
@@ -1107,6 +1111,36 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(tableRefresh.getCode().equals(ResponseCode.CODE_UNDEFINED));
         Assert.assertEquals(tableRefresh.getRefreshed().size(), 1);
         Assert.assertEquals(tableRefresh.getFailed().size(), 1);
+    }
+
+    @Test
+    public void testRefreshSparkTable() throws Exception {
+        String warehousePath = "./spark-warehouse/test_kylin_refresh/";
+        PushDownUtil.trySimplePushDownExecute("drop table if exists test_kylin_refresh", null);
+        PushDownUtil.trySimplePushDownExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
+        PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('a')", null);
+        PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('c')", null);
+        PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
+        CliCommandExecutor commond = new CliCommandExecutor();
+        CliCommandExecutor.CliCmdExecResult res = commond.execute("ls " + warehousePath, null, null);
+        val files = Arrays.asList(res.getCmd().split("\n")).stream().
+                filter(file -> file.endsWith("parquet")).
+                collect(Collectors.toList());
+        commond.execute("rm " + warehousePath + files.get(0), null, null);
+
+        try {
+            PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("REFRESH TABLE tableName"));
+        }
+
+        HashMap<String, Object> request = Maps.newHashMap();
+        request.put("tables", Arrays.asList("test_kylin_refresh"));
+        TableRefresh refreshRes = tableService.refreshSingleCatalogCache(request);
+        PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
+        Assert.assertEquals(refreshRes.getRefreshed().size(), 1);
+        Assert.assertEquals(refreshRes.getRefreshed().get(0), "test_kylin_refresh");
     }
 
     private HashMap mockRefreshTable(String... tables) {
