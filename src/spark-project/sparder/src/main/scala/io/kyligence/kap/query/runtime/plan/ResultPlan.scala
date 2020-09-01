@@ -123,22 +123,24 @@ object ResultPlan extends LogEx {
    * use to check acl  or other
    *
    * @param df   finally df
-   * @param body resultFunc
+   * @param methodBody resultFunc
    * @tparam U
    * @return
    */
-  def withScope[U](df: DataFrame)(body: => U): U = {
+  def withScope[U](df: DataFrame)(methodBody: => U): U = {
     HadoopUtil.setCurrentConfiguration(df.sparkSession.sparkContext.hadoopConfiguration)
-    val r = body
-    // remember clear local properties.
-    df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
-    df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
-    df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.autoBroadcastJoinThreshold", null)
-    FilePrunerListFileTriggerRule.cached = None
-    SparderEnv.setDF(df)
-    TableScanPlan.cacheDf.get().clear()
-    HadoopUtil.setCurrentConfiguration(null)
-    r
+    try {
+      methodBody
+    } finally {
+      // remember clear local properties.
+      df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
+      df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
+      df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.autoBroadcastJoinThreshold", null)
+      FilePrunerListFileTriggerRule.cached = None
+      SparderEnv.setDF(df)
+      TableScanPlan.cacheDf.get().clear()
+      HadoopUtil.setCurrentConfiguration(null)
+    }
   }
 
   def getResult(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = withScope(df) {

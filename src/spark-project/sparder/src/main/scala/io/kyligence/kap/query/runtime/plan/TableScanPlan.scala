@@ -91,23 +91,24 @@ object TableScanPlan extends LogEx {
       logInfo(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
       logInfo(s"size is ${cacheDf.get().size()}")
 
-      var df = if (cacheDf.get().containsKey(path)) {
+      val cached = cacheDf.get().getOrDefault(path, null)
+      var df = if (cached != null && !cached.sparkSession.sparkContext.isStopped) {
         logInfo(s"Reuse df: ${cuboidLayout.getId}")
-        cacheDf.get().get(path)
+        cached
       } else {
         import io.kyligence.kap.query.implicits._
         val segmentIdsCombined = prunedSegments.asScala.map(
           seg => seg.getId
         ).mkString(",")
-        val d = session.kylin
+        val newDf = session.kylin
           .format("parquet")
           .option("parquet.filter.columnindex.enabled", "false")
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout, segmentIdsCombined)
           .toDF(columnNames: _*)
         logInfo(s"Cache df: ${cuboidLayout.getId}")
-        cacheDf.get().put(path, d)
-        d
+        cacheDf.get().put(path, newDf)
+        newDf
       }
 
       /////////////////////////////////////////////
