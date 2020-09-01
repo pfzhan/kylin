@@ -183,19 +183,22 @@
                 <i slot="reference" :class="['filter-status', scope.row.status]" />
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
-                <div v-if="scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
-                <div v-if="scope.row.segment_holes && scope.row.segment_holes.length">
+                <div v-if="scope.row.status === 'WARNING' && scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
+                <div v-if="scope.row.status === 'WARNING' && scope.row.segment_holes && scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('seeDetail')}}</span>
                 </div>
-                <div v-if="scope.row.inconsistent_segment_count">
+                <div v-if="scope.row.status === 'WARNING' && scope.row.inconsistent_segment_count">
                   <span>{{$t('modelMetadataChangedTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="openComplementSegment(scope.row, true)">{{$t('seeDetail')}}</span>
                 </div>
                 <div v-if="scope.row.status === 'OFFLINE' && scope.row.forbidden_online">
                   <span>{{$t('SCD2ModalOfflineTip')}}</span>
+                </div>
+                <div v-if="scope.row.status === 'OFFLINE' && !scope.row.segments.length">
+                  <span>{{$t('noSegmentOnlineTip')}}</span>
                 </div>
               </el-popover>
               <span class="model-alias-title" v-custom-tooltip="{text: scope.row.alias, w: 50, tableClassName: 'model_list_table'}">{{scope.row.alias}}</span>
@@ -334,10 +337,11 @@
                     <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
                     <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
                     <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" :class="{'disabled-online': scope.row.forbidden_online}" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">
-                      <common-tip :content="$t('closeSCD2ModalOnlineTip')" :disabled="!scope.row.forbidden_online">
+                    <el-dropdown-item command="online" :class="{'disabled-online': scope.row.forbidden_online || !scope.row.segments.length}" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">
+                      <common-tip :content="getDisabledOnlineTips(scope.row)" v-if="scope.row.forbidden_online || !scope.row.segments.length">
                         <span>{{$t('onLine')}}</span>
                       </common-tip>
+                      <span v-else>{{$t('onLine')}}</span>
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
@@ -606,6 +610,18 @@ export default class ModelList extends Vue {
   }
   expandTab = ''
   isModelListOpen = false
+  getDisabledOnlineTips (row) {
+    let tips = this.$t('cannotOnlineTips')
+    if (row.forbidden_online) {
+      tips += '<br/>'
+      tips += this.$t('closeSCD2ModalOnlineTip')
+    }
+    if (!row.segments.length) {
+      tips += '<br/>'
+      tips += this.$t('noSegmentOnlineTip')
+    }
+    return tips
+  }
   async showGuide () {
     await this.callGuideModal({ isShowBuildGuide: true })
     localStorage.setItem('isFirstSaveModel', 'false')
@@ -941,14 +957,15 @@ export default class ModelList extends Vue {
       const isSubmit = await this.callCloneModelDialog(objectClone(modelDesc))
       isSubmit && this.loadModelsList()
     } else if (command === 'offline') {
-      kapConfirm(this.$t('disableModelTip', {modelName: modelDesc.alias}), null, this.$t('disableModelTitle')).then(() => {
+      kapConfirm(this.$t('disableModelTip', {modelName: modelDesc.alias}), {confirmButtonText: this.$t('disableModelTitle')}, this.$t('disableModelTitle')).then(() => {
         this.handleDisableModel(objectClone(modelDesc))
       })
     } else if (command === 'online') {
-      if (modelDesc.forbidden_online) return
-      kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
-        this.handleEnableModel(objectClone(modelDesc))
-      })
+      if (modelDesc.forbidden_online || !modelDesc.segments.length) return
+      // 模型上线不再进行二次弹窗确认
+      // kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
+      //   })
+      this.handleEnableModel(objectClone(modelDesc))
     } else if (command === 'exportMetadata') {
       const project = this.currentSelectedProject
       const form = { ids: [modelDesc.uuid] }

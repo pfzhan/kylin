@@ -8,7 +8,7 @@ export default {
     delModelTitle: 'Drop Model',
     pergeModelTip: 'Are you sure to purge all segments of the model {modelName}?',
     pergeModelTitle: 'Purge Model',
-    disableModelTip: 'Are you sure to offline the model {modelName}?',
+    disableModelTip: 'Offline model couldn’t serve queries. Do you want to offline model {modelName}?',
     disableModelTitle: 'Offline Model',
     enableModelTip: 'Are you sure to online the model {modelName}?',
     disableModelSuccessTip: 'Offline the model successfully.',
@@ -103,7 +103,9 @@ export default {
     refrashWarningSegment: 'Only ONLINE segments could be refreshed',
     closeSCD2ModalOnlineTip: 'This model can`t go online as it includes non-equal join conditions(≥, <). Please delete those join conditions, or turn on `Support History table` in project settings.',
     SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support History table` in project settings.',
-    storageTip: 'Calculates the amount of data built in this model'
+    storageTip: 'Calculates the amount of data built in this model',
+    noSegmentOnlineTip: 'This model can’t go online as it doesn’t have segments. Models with no segment couldn’t serve queries. Please add a segment.',
+    cannotOnlineTips: 'This model can’t go online at the moment:'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -114,7 +116,7 @@ export default {
     delModelTitle: '删除模型',
     pergeModelTip: '你确定要清空模型 {modelName} 的所有 Segment 吗？',
     pergeModelTitle: '清空模型',
-    disableModelTip: '你确认要下线模型 {modelName} 吗？',
+    disableModelTip: '模型下线后将无法服务于查询。确定要下线模型 {modelName} 吗？',
     disableModelTitle: '下线模型',
     enableModelTip: '你确认要上线模型 {modelName} 吗？',
     enableModelTitle: '上线模型',
@@ -206,6 +208,8 @@ export default {
     refrashWarningSegment: '仅支持刷新状态为 ONLINE 的 Segment',
     closeSCD2ModalOnlineTip: '该模型因存在 ≥ 或 < 的连接条件，当前不可上线。请删除相应连接条件，或在项目设置中开启支持拉链表开关。',
     SCD2ModalOfflineTip: '该模型中存在 ≥ 或 < 的连接条件，当前不可用。请删除相应连接条件，或在项目设置中开启支持拉链表开关。',
-    storageTip: '模型下已构建数据的存储大小'
+    storageTip: '模型下已构建数据的存储大小',
+    noSegmentOnlineTip: '该模型尚未添加 Segment，不可服务于查询。请先添加 Segment 后再上线。',
+    cannotOnlineTips: '该模型当前不可上线：'
   }
 }
