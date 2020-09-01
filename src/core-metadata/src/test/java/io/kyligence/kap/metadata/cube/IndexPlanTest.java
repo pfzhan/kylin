@@ -43,7 +43,9 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.BiMap;
@@ -66,6 +68,8 @@ import lombok.var;
 
 public class IndexPlanTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -418,16 +422,20 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
                     + newAggIndex.getId());
             newLayout1.setAuto(true);
             newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+            identifierIdMap.get(newAggIndex.createIndexIdentifier()).setNextLayoutOffset(
+                    Math.max(newLayout1.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
             val newLayout2 = new LayoutEntity();
             newLayout2.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
                     + newAggIndex.getId());
             newLayout2.setAuto(true);
             newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(1, 4, 3, 2, 0), measures));
             newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+            newAggIndex.setNextLayoutOffset(
+                    Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
             copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
         });
 
-        Assert.assertEquals(3, newPlan.getIndexEntity(100000).getNextLayoutOffset());
+        Assert.assertEquals(4, newPlan.getIndexEntity(100000).getNextLayoutOffset());
     }
 
     @Test(expected = IllegalStateException.class)
@@ -651,6 +659,87 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(result,
                 newPlan.getAllLayouts().stream().sorted(Comparator.comparingLong(LayoutEntity::getId))
                         .map(l -> l.getId() + "   " + l.getColOrder().toString()).collect(Collectors.joining("\n")));
+    }
+
+    @Test
+    public void testValidate_SameIdWithDifferentLayout() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+        val measures = Lists.newArrayList(newPlan.getModel().getEffectiveMeasures().keySet());
+        val identifierIdMap = newPlan.getAllIndexes().stream()
+                .collect(Collectors.toMap(IndexEntity::createIndexIdentifier, Function.identity()));
+
+        thrown.expectMessage("there are different layout that have same id");
+
+        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+
+            val newAggIndex = new IndexEntity();
+            newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
+            newAggIndex.setMeasures(measures);
+            newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
+
+            //make two layout has same id
+            long layoutId = identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                    + newAggIndex.getId();
+
+            val newLayout1 = new LayoutEntity();
+            newLayout1.setId(layoutId);
+            newLayout1.setAuto(true);
+            newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+            val newLayout2 = new LayoutEntity();
+            newLayout2.setId(layoutId);
+            newLayout2.setAuto(true);
+            newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(1, 4, 3, 2, 0), measures));
+            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+            newAggIndex.setNextLayoutOffset(
+                    Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
+            copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+        });
+    }
+
+    @Test
+    public void testValidate_DuplicateIdWithDifferentLayout() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+        val measures = Lists.newArrayList(newPlan.getModel().getEffectiveMeasures().keySet());
+        val identifierIdMap = newPlan.getAllIndexes().stream()
+                .collect(Collectors.toMap(IndexEntity::createIndexIdentifier, Function.identity()));
+
+        thrown.expectMessage("there are same layout that have different id");
+
+        newPlan = indexPlanManager.updateIndexPlan(newPlan.getId(), copyForWrite -> {
+
+            val newAggIndex = new IndexEntity();
+            newAggIndex.setDimensions(Lists.newArrayList(0, 1, 2, 3, 4));
+            newAggIndex.setMeasures(measures);
+            newAggIndex.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getId());
+
+            val newLayout1 = new LayoutEntity();
+            newLayout1.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                    + newAggIndex.getId());
+            newLayout1.setAuto(true);
+            newLayout1.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+            identifierIdMap.get(newAggIndex.createIndexIdentifier()).setNextLayoutOffset(
+                    Math.max(newLayout1.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
+
+            val newLayout2 = new LayoutEntity();
+            newLayout2.setId(identifierIdMap.get(newAggIndex.createIndexIdentifier()).getNextLayoutOffset()
+                    + newAggIndex.getId());
+            newLayout2.setAuto(true);
+            newLayout2.setColOrder(ListUtils.union(Lists.newArrayList(4, 1, 3, 2, 0), measures));
+            newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2));
+            newAggIndex.setNextLayoutOffset(
+                    Math.max(newLayout2.getId() % IndexEntity.INDEX_ID_STEP + 1, newAggIndex.getNextLayoutOffset()));
+            copyForWrite.setIndexes(Lists.newArrayList(newAggIndex));
+        });
     }
 
 }

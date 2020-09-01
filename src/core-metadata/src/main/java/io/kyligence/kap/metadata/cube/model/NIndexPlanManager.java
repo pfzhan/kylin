@@ -265,18 +265,8 @@ public class NIndexPlanManager implements IKeepNames {
         }
 
         // make sure no layouts have same id
-        val seen = Maps.<LayoutEntity, Long> newHashMap();
-        val allDistinct = Stream
-                .concat(indexPlan.getRuleBaseLayouts().stream(), indexPlan.getWhitelistLayouts().stream())
-                .allMatch(layout -> {
-                    if (seen.containsKey(layout)) {
-                        return seen.get(layout) == layout.getId();
-                    } else {
-                        seen.put(layout, layout.getId());
-                        return true;
-                    }
-                });
-        Preconditions.checkState(allDistinct, "there are layouts have same id");
+        validateSameIdWithDifferentLayout(indexPlan);
+        validateDifferentIdWithSameLayout(indexPlan);
 
         // make sure cube_plan does not have duplicate indexes, duplicate index means two indexes have same dimensions and measures
         val allIndexes = indexPlan.getAllIndexes(false);
@@ -291,6 +281,36 @@ public class NIndexPlanManager implements IKeepNames {
             val scheduler = CuboidScheduler.getInstance(indexPlan, indexPlan.getRuleBasedIndex());
             scheduler.updateOrder();
         }
+    }
+
+    private void validateSameIdWithDifferentLayout(IndexPlan indexPlan) {
+        val seen = Maps.<Long, LayoutEntity> newHashMap();
+        val allDistinct = Stream
+                .concat(indexPlan.getRuleBaseLayouts().stream(), indexPlan.getWhitelistLayouts().stream())
+                .allMatch(layout -> {
+                    if (seen.containsKey(layout.getId())) {
+                        return Objects.equals(seen.get(layout.getId()), layout);
+                    } else {
+                        seen.put(layout.getId(), layout);
+                        return true;
+                    }
+                });
+        Preconditions.checkState(allDistinct, "there are different layout that have same id");
+    }
+
+    private void validateDifferentIdWithSameLayout(IndexPlan indexPlan) {
+        val seen = Maps.<LayoutEntity, Long> newHashMap();
+        val allDistinct = Stream
+                .concat(indexPlan.getRuleBaseLayouts().stream(), indexPlan.getWhitelistLayouts().stream())
+                .allMatch(layout -> {
+                    if (seen.containsKey(layout)) {
+                        return Objects.equals(seen.get(layout), layout.getId());
+                    } else {
+                        seen.put(layout, layout.getId());
+                        return true;
+                    }
+                });
+        Preconditions.checkState(allDistinct, "there are same layout that have different id");
     }
 
 }

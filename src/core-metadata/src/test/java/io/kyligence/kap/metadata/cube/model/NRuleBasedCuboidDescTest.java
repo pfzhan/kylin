@@ -213,7 +213,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         checkIntersection(oldRule, indexPlan, Lists.<List<Integer>> newArrayList(Lists.newArrayList(1, 3, 4, 5, 6),
                 Lists.newArrayList(1), Lists.newArrayList(1, 3, 5), Lists.newArrayList(1, 4, 6)));
         Assert.assertThat(indexPlan.getRuleBasedIndex().getLayoutIdMapping(),
-                CoreMatchers.is(Arrays.asList(130001L, 230001L, 150001L, 160001L, 200001L, 240001L, 250001L, 260001L, 270001L, 280001L, 290001L, 300001L)));
+                CoreMatchers.is(Arrays.asList(130001L, 240001L, 150001L, 160001L, 200001L, 250001L, 260001L, 270001L, 280001L, 290001L, 300001L, 310001L)));
         val actualDims = indexPlan.getRuleBaseLayouts().stream()
                 .map(layout -> layout.getOrderedDimensions().keySet().asList()).collect(Collectors.toSet());
         val expectedDims = Lists.<List> newArrayList(Lists.newArrayList(1, 2, 5), Lists.newArrayList(2, 3, 4),
