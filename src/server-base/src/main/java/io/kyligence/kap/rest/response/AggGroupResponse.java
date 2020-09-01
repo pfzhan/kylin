@@ -43,12 +43,12 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.cube.model.SelectRule;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import lombok.Data;
 
 @Data
@@ -61,9 +61,9 @@ public class AggGroupResponse implements Serializable {
     public AggGroupResponse() {
     }
 
-    public AggGroupResponse(IndexPlan indexPlan, NAggregationGroup aggregationGroup) {
-        includes = intArray2StringArray(aggregationGroup.getIncludes(), indexPlan);
-        aggSelectRule = new AggSelectRule(indexPlan, aggregationGroup.getSelectRule());
+    public AggGroupResponse(NDataModel dataModel, NAggregationGroup aggregationGroup) {
+        includes = intArray2StringArray(aggregationGroup.getIncludes(), dataModel);
+        aggSelectRule = new AggSelectRule(dataModel, aggregationGroup.getSelectRule());
     }
 
     @Data
@@ -80,20 +80,20 @@ public class AggGroupResponse implements Serializable {
         public AggSelectRule() {
         }
 
-        public AggSelectRule(IndexPlan indexPlan, SelectRule selectRule) {
-            hierarchyDims = intArray2StringArray(selectRule.getHierarchyDims(), indexPlan);
-            mandatoryDims = intArray2StringArray(selectRule.getMandatoryDims(), indexPlan);
-            jointDims = intArray2StringArray(selectRule.getJointDims(), indexPlan);
+        public AggSelectRule(NDataModel dataModel, SelectRule selectRule) {
+            hierarchyDims = intArray2StringArray(selectRule.getHierarchyDims(), dataModel);
+            mandatoryDims = intArray2StringArray(selectRule.getMandatoryDims(), dataModel);
+            jointDims = intArray2StringArray(selectRule.getJointDims(), dataModel);
         }
     }
 
-    public static String[] intArray2StringArray(Integer[] ints, IndexPlan indexPlan) {
+    public static String[] intArray2StringArray(Integer[] ints, NDataModel dataModel) {
         int len = ints == null ? 0 : ints.length;
         String[] res;
         if (len > 0) {
             res = new String[len];
             for (int i = 0; i < len; ++i) {
-                res[i] = indexPlan.getEffectiveDimCols().get(ints[i]).getIdentity();
+                res[i] = dataModel.getEffectiveDimensions().get(ints[i]).getIdentity();
             }
         } else {
             res = new String[0];
@@ -101,7 +101,7 @@ public class AggGroupResponse implements Serializable {
         return res;
     }
 
-    public static String[][] intArray2StringArray(Integer[][] ints, IndexPlan indexPlan) {
+    public static String[][] intArray2StringArray(Integer[][] ints, NDataModel dataModel) {
         int p1, p2;
         String[][] res;
         p1 = ints == null ? 0 : ints.length;
@@ -111,7 +111,7 @@ public class AggGroupResponse implements Serializable {
                 p2 = ints[i].length;
                 res[i] = new String[p2];
                 for (int j = 0; j < p2; ++j) {
-                    res[i][j] = indexPlan.getEffectiveDimCols().get(ints[i][j]).getIdentity();
+                    res[i][j] = dataModel.getEffectiveDimensions().get(ints[i][j]).getIdentity();
                 }
             }
         } else {

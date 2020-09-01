@@ -395,7 +395,7 @@ public class ModelService extends BasicService {
     }
 
     private List<NCubeDescResponse.Dimension3X> getDimension3XES(IndexPlan indexPlan, NDataModelResponse cube,
-            List<AggGroupResponse> aggGroupResponses) {
+            List<AggGroupResponse> aggGroupResponses, NDataModel dataModel) {
         String rootFactTable = cube.getRootFactTableName();
         List<NCubeDescResponse.Dimension3X> dims = new ArrayList<>();
         HashMap<String, String> fk2Pk = Maps.newHashMap();
@@ -418,7 +418,7 @@ public class ModelService extends BasicService {
         });
 
         Set<String> allAggDim = Sets.newHashSet();//table.col
-        indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> indexPlan.getEffectiveDimCols().get(x))
+        indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> dataModel.getEffectiveDimensions().get(x))
                 .forEach(x -> allAggDim.add(x.getIdentity()));
 
         List<Set<String>> aggIncludes = new ArrayList<>();
@@ -465,9 +465,9 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(result.getUuid(), projectName);
         if (!dataModel.isBroken() && indexPlan.getRuleBasedIndex() != null) {
             List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
-                    .map(x -> new AggGroupResponse(indexPlan, x)).collect(Collectors.toList());
+                    .map(x -> new AggGroupResponse(dataModel, x)).collect(Collectors.toList());
             result.setAggregationGroups(aggGroupResponses);
-            result.setDimensions(getDimension3XES(indexPlan, cube, aggGroupResponses));
+            result.setDimensions(getDimension3XES(indexPlan, cube, aggGroupResponses, dataModel));
         } else {
             result.setAggregationGroups(new ArrayList<>());
             result.setDimensions(new ArrayList<>());
@@ -3125,9 +3125,8 @@ public class ModelService extends BasicService {
             };
             CalciteParser.getExpNode(cc.getExpression()).accept(sqlVisitor);
         } catch (Util.FoundOne e) {
-            throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR,
-                    String.format(MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(),
-                            cc.getFullName(), ccInCheck, cc.getExpression()));
+            throw new KylinException(COMPUTED_COLUMN_CASCADE_ERROR, String.format(
+                    MsgPicker.getMsg().getNESTED_CC_CASCADE_ERROR(), cc.getFullName(), ccInCheck, cc.getExpression()));
         }
     }
 
@@ -3208,10 +3207,10 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(response.getUuid(), project);
         if (indexPlan.getRuleBasedIndex() != null) {
             List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
-                    .map(x -> new AggGroupResponse(indexPlan, x)).collect(Collectors.toList());
+                    .map(x -> new AggGroupResponse(dataModel, x)).collect(Collectors.toList());
             response.setAggregationGroups(aggGroupResponses);
             Set<String> allAggDim = Sets.newHashSet();
-            indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> indexPlan.getEffectiveDimCols().get(x))
+            indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> dataModel.getEffectiveDimensions().get(x))
                     .forEach(x -> allAggDim.add(x.getIdentity()));
             List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream()
                     .filter(namedColumn -> allAggDim.contains(namedColumn.getAliasDotColumn()))
