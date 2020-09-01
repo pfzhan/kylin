@@ -27,7 +27,7 @@
           prop="group_name">
           <template slot-scope="scope">
             <i class="el-icon-ksd-table_group ksd-fs-14" style="cursor: default;"></i>
-            <router-link :to="{path: '/admin/group/' + scope.row.group_name}" class="group-name">{{scope.row.group_name}}</router-link>
+            <router-link :to="{path: '/admin/group/' + encodeURIComponent(scope.row.group_name)}" class="group-name">{{scope.row.group_name}}</router-link>
           </template>
         </el-table-column>
         <el-table-column
