@@ -102,7 +102,8 @@ export function _getSegmentSettings (data, project) {
       ...data.retention_range,
       retention_range_enabled: data.retention_range.retention_range_enabled,
       retention_range_type: _getRetentionRangeScale(data)
-    }
+    },
+    create_empty_segment_enabled: data.create_empty_segment_enabled
   }
 }
 export function _getPushdownConfig (data) {

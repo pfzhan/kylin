@@ -17,7 +17,7 @@
         {{$t('segmentList')}}<i v-popover:segmentPopover class="el-icon-question ksd-ml-2"></i>
       </div>
       <div class="left ky-no-br-space" v-if="isShowSegmentActions">
-        <el-button-group>
+        <el-button-group v-if="$store.state.project.emptySegmentEnable">
           <el-button size="small" icon="el-icon-ksd-add_2" class="ksd-mr-10" type="default" :disabled="!model.partition_desc && segments.length>0" @click="addSegment">Segment</el-button>
         </el-button-group>
         <el-button-group class="ksd-mr-10">

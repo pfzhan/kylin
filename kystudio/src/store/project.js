@@ -14,7 +14,8 @@ export default {
     projectDefaultDB: '',
     isSemiAutomatic: false,
     projectPushdownConfig: true,
-    scd2_enabled: false
+    scd2_enabled: false,
+    emptySegmentEnable: false
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -90,6 +91,9 @@ export default {
     },
     [types.UPDATE_SCD2_ENABLE] (state, type) {
       state.scd2_enabled = type
+    },
+    [types.UPDATE_EMPTY_SEGMENT_ENABLE]: function (state, emptySegmentEnable) {
+      state.emptySegmentEnable = emptySegmentEnable
     }
   },
   actions: {
@@ -183,6 +187,7 @@ export default {
         let notAutoProjectFlag = !speedProjectTypes.includes(response.data.data.maintain_model_type)
         commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, notAutoProjectFlag && response.data.data.semi_automatic_mode)
         commit(types.UPDATE_SCD2_ENABLE, response.data.data.scd2_enabled || false)
+        commit(types.UPDATE_EMPTY_SEGMENT_ENABLE, response.data.data.create_empty_segment_enabled || false)
         return response
       })
     },

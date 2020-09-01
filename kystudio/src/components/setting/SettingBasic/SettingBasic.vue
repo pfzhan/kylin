@@ -197,6 +197,17 @@
             <span class="setting-input">{{$t(retentionRangeScale)}}</span>
           </div>
         </div>
+        <div class="setting-item">
+          <span class="setting-label font-medium">{{$t('emptySegmentEnable')}} <span class="beta-label">BETA</span></span><span class="setting-value fixed">
+            <el-switch
+              size="small"
+              v-model="form.create_empty_segment_enabled"
+              :active-text="$t('kylinLang.common.OFF')"
+              :inactive-text="$t('kylinLang.common.ON')">
+            </el-switch>
+          </span>
+          <div class="setting-desc">{{$t('emptySegmentEnableDesc')}}</div>
+        </div>
       </el-form>
     </EditableBlock>
     <EditableBlock
@@ -685,6 +696,12 @@ export default class SettingBasic extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .basic-setting {
+  .setting-item {
+    .el-switch {
+      position: relative;
+      top: -2px;
+    }
+  }
   .beta-label {
     display: inline-block;
     height: 18px;
