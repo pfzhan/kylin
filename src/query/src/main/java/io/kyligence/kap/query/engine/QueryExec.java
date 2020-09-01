@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.ReadFsSwitch;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 import org.slf4j.Logger;
@@ -105,8 +106,14 @@ public class QueryExec {
             beforeQuery();         
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
             RelNode node = queryOptimizer.optimize(relRoot).rel;
-            return new QueryResult(executeQueryPlan(postOptimize(node)),
-                    RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType));
+
+            List<StructField> resultFields = RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType);
+            if (resultFields.isEmpty()) { // result fields size may be 0 because of ACL controls and should return immediately
+                QueryContext.fillEmptyResultSetMetrics();
+                return new QueryResult();
+            }
+
+            return new QueryResult(executeQueryPlan(postOptimize(node)), resultFields);
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg
             throw newSqlException(sql, "parse failed: " + e.getMessage(), e);

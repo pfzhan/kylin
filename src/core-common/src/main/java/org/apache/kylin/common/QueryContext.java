@@ -239,6 +239,11 @@ public class QueryContext implements Closeable {
         }
     }
 
+    public static void fillEmptyResultSetMetrics() {
+        QueryContext.current().getMetrics().updateAndCalScanRows(QueryContext.DEFAULT_SCANNED_DATA);
+        QueryContext.current().getMetrics().updateAndCalScanBytes(QueryContext.DEFAULT_SCANNED_DATA);
+    }
+
     // ============================================================================
     /**
      * queryTagInfo

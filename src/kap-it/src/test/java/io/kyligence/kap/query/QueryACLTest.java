@@ -252,4 +252,18 @@ public class QueryACLTest extends NAutoTestBase {
         thrown.expect(SQLException.class);
         new QueryExec(PROJECT, getTestConfig()).executeQuery(sql3);
     }
+
+    @Test
+    public void testSelectStarWithNoAuthCols() throws SQLException {
+        // user1 has access to test_kylin_fact, column trans_id, lstg_format_name
+        // but makes a query to column cal_dt, suppose to throw an exception
+        prepareQueryContextUserInfo(USER1, Sets.newHashSet(), false);
+        val columns = Sets.<String>newHashSet();
+        aclTCRManager.updateAclTCR(generateACLData(FACT_TABLE, columns), USER1, true);
+
+        val queryExec = new QueryExec(PROJECT, getTestConfig());
+        val result = queryExec.executeQuery(sql2);
+        Assert.assertEquals(0, result.getColumns().size());
+        Assert.assertEquals(0, result.getRows().size());
+    }
 }

@@ -70,7 +70,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
             val contexts = ContextUtil.listContexts();
             for (OLAPContext context : contexts) {
                 if (context.olapSchema != null && context.storageContext.isEmptyLayout()) {
-                    updateQueryContextForEmptyResult();
+                    QueryContext.fillEmptyResultSetMetrics();
                     return Lists.newArrayList();
                 }
             }
@@ -142,9 +142,4 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         QueryContext.current().record("end_rewrite");
     }
 
-    private void updateQueryContextForEmptyResult() {
-        //constant query should fill empty list for scan data
-        QueryContext.current().getMetrics().updateAndCalScanRows(QueryContext.DEFAULT_SCANNED_DATA);
-        QueryContext.current().getMetrics().updateAndCalScanBytes(QueryContext.DEFAULT_SCANNED_DATA);
-    }
 }

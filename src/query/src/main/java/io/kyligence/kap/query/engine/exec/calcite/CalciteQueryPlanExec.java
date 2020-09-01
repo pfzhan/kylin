@@ -63,7 +63,8 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
 
         List<List<String>> result = doExecute(rel, dataContext);
 
-        updateQueryContext();
+        //constant query should fill empty list for scan data
+        QueryContext.fillEmptyResultSetMetrics();
 
         return result;
     }
@@ -100,13 +101,6 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
         // see org.apache.calcite.jdbc.CalciteConnectionImpl.DataContextImpl.DataContextImpl
         dataContext.putContextVar(DataContext.Variable.CURRENT_TIMESTAMP.camelName, time + localOffset);
         dataContext.putContextVar(DataContext.Variable.LOCAL_TIMESTAMP.camelName, time + localOffset);
-    }
-
-
-    private void updateQueryContext() {
-        //constant query should fill empty list for scan data
-        QueryContext.current().getMetrics().updateAndCalScanRows(QueryContext.DEFAULT_SCANNED_DATA);
-        QueryContext.current().getMetrics().updateAndCalScanBytes(QueryContext.DEFAULT_SCANNED_DATA);
     }
 
     private String rawQueryResultToString(Object object, RelDataType dataType) {

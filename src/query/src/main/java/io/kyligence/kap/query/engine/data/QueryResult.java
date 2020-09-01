@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.engine.data;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import io.kyligence.kap.metadata.query.StructField;
@@ -32,6 +33,10 @@ public class QueryResult {
 
     private List<List<String>> rows;
     private List<StructField> columns;
+
+    public QueryResult() {
+        this(new LinkedList<>(), new LinkedList<>());
+    }
 
     public QueryResult(List<List<String>> rows, List<StructField> columns) {
         this.rows = rows;
