@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
 import java.util.List;
 
 import com.clearspring.analytics.util.Lists;
@@ -36,7 +37,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Data
-public class LayoutRecDetailResponse {
+public class LayoutRecDetailResponse implements Serializable {
     @JsonProperty("sqls")
     private List<String> sqlList = Lists.newArrayList();
     @JsonProperty("index_id")

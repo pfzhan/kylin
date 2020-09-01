@@ -43,11 +43,13 @@ import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@EqualsAndHashCode(callSuper = false)
 public class ModelRequest extends NDataModel implements ModelInsensitiveRequest {
 
     @JsonProperty("project")
@@ -94,13 +96,13 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
 
     @JsonSetter("all_measures")
     public void setMeasures(List<Measure> measures) {
-        List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
+        List<SimplifiedMeasure> simpleMeasureList = Lists.newArrayList();
         for (NDataModel.Measure measure : measures) {
             SimplifiedMeasure simplifiedMeasure = SimplifiedMeasure.fromMeasure(measure);
-            simplifiedMeasures.add(simplifiedMeasure);
+            simpleMeasureList.add(simplifiedMeasure);
         }
         setAllMeasures(measures);
-        setSimplifiedMeasures(simplifiedMeasures);
+        setSimplifiedMeasures(simpleMeasureList);
     }
 
     private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;

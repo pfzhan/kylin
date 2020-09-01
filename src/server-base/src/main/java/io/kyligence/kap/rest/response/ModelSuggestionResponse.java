@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -52,6 +53,7 @@ public class ModelSuggestionResponse {
     @Getter
     @Setter
     @NoArgsConstructor
+    @EqualsAndHashCode(callSuper = false)
     public static class NRecommendedModelResponse extends NDataModel {
         @JsonProperty("rec_items")
         private List<LayoutRecDetailResponse> indexes = Lists.newArrayList();
