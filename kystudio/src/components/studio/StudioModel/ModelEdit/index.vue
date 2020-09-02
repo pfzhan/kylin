@@ -479,6 +479,14 @@
       <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>
       <div class="ksd-pl-26">
         <div>{{$t('saveSuccessTip')}}</div>
+        <div>{{$t('addIndexTips')}}</div>
+      </div>
+      <span slot="footer" class="dialog-footer" v-if="gotoIndexdialogVisible">
+        <el-button plain @click="ignoreAddIndex">{{$t('ignoreaddIndexTip')}}</el-button>
+        <el-button type="primary" @click="willAddIndex">{{$t('addIndex')}}</el-button>
+      </span>
+      <!-- <div class="ksd-pl-26">
+        <div>{{$t('saveSuccessTip')}}</div>
         <div v-if="saveModelType==='saveModel'&&!isFullLoad || saveModelType==='updataModel'&&modelData.segments&&!modelData.segments.length">{{$t('addSegmentTips')}}</div>
         <div v-if="saveModelType==='saveModel'&&isFullLoad || saveModelType==='updataModel'&&modelData.segments&&modelData.segments.length">{{$t('addIndexTips')}}</div>
       </div>
@@ -486,7 +494,7 @@
         <el-button plain @click="ignoreAddIndex">{{$t('ignoreaddIndexTip')}}</el-button>
         <el-button type="primary" v-if="saveModelType==='saveModel'&&!isFullLoad || saveModelType==='updataModel'&&modelData.segments&&(!modelData.segments.length || isPurgeSegment)" @click="willAddSegment">{{$t('addSegment')}}</el-button>
         <el-button type="primary" v-if="saveModelType==='saveModel'&&isFullLoad || saveModelType==='updataModel'&&modelData.segments&&modelData.segments.length&&!isPurgeSegment" @click="willAddIndex">{{$t('addIndex')}}</el-button>
-      </span>
+      </span> -->
     </el-dialog>
   </div>
 </template>
@@ -1763,8 +1771,6 @@ export default class ModelEdit extends Vue {
                 this.$message({
                   dangerouslyUseHTMLString: true,
                   type: 'success',
-                  duration: 0,
-                  showClose: true,
                   message: (
                     <div>
                       <span>{this.$t('kylinLang.common.buildSuccess')}</span>
