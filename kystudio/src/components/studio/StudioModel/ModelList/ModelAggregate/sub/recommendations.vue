@@ -205,8 +205,8 @@
         <el-table-column :label="$t('th_name')" width="300" show-overflow-tooltip>
           <template slot-scope="scope">
             <el-form :model="scope.row" :rules="scope.row.type !== 'cc' ? rules : rulesCC">
-              <el-form-item prop="name">
-                <el-input v-model="scope.row.name" size="mini"></el-input>
+              <el-form-item prop="name" :show-message="false">
+                <el-input v-model="scope.row.name" size="mini" :disabled="scope.row.type === 'cc' ? !scope.row.add : false"></el-input>
               </el-form-item>
             </el-form>
           </template>
@@ -314,7 +314,7 @@ import filterElements from '../../../../../../filter/index'
       validateModalTip: 'To accept the selected recommendations, the following items have to be added to the model:',
       add: 'Add',
       requiredName: 'Please input alias',
-      sameName: 'The same name',
+      sameName: 'The following dimension/measure name already exists in this model, or CC name is duplicated with existing column names. Please rename and try again',
       bothAcceptAddAndDelete: 'Successfully added {addLength} index(es), and deleted {delLength} index(es).',
       onlyAcceptAdd: 'Successfully added {addLength} index(es).',
       onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
@@ -374,7 +374,7 @@ import filterElements from '../../../../../../filter/index'
       validateModalTip: '通过所选优化建议需要添加以下内容至模型：',
       add: '确认添加',
       requiredName: '请输入别名',
-      sameName: '已存在同名项',
+      sameName: '以下维度/度量名称在模型下已存在，或可计算列名与模型中的列名相同。请重新命名',
       bothAcceptAddAndDelete: '成功新增 {addLength} 条索引，删除 {delLength} 条索引。',
       onlyAcceptAdd: '成功新增 {addLength} 条索引。',
       onlyAcceptDelete: '成功删除 {delLength} 条索引。',
@@ -460,13 +460,25 @@ export default class IndexList extends Vue {
   mounted () {
   }
 
+  // 通过的建议中是否有同名的
+  checkNameInCurrentRecommends (value) {
+    return this.validateData.list.filter(it => it.name === value).length > 1
+  }
+
+  // 校验更改的cc名是否与列名相同
+  checkSameCCNameInColumns (value) {
+    const { all_named_columns } = this.modelDesc
+    return all_named_columns.filter(item => item.name === value).length > 0
+  }
+
   validateName (rule, value, callback) {
     const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
     if (!value || !value.trim()) {
       callback(new Error(this.$t('requiredName')))
     } else if (!NamedRegex1.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
-    } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 1) {
+    } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value)) {
+      this.$message.error(this.$t('sameName'))
       callback(new Error(this.$t('sameName')))
     } else {
       callback()
@@ -481,7 +493,8 @@ export default class IndexList extends Vue {
     if (/^\d|^_+/.test(value)) {
       return callback(new Error(this.$t('onlyStartLetters')))
     }
-    if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 1) {
+    if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value) || this.checkSameCCNameInColumns(value)) {
+      this.$message.error(this.$t('sameName'))
       return callback(new Error(this.$t('sameName')))
     }
     callback()
