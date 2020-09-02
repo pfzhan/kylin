@@ -232,7 +232,7 @@ import { transToGmtTime } from 'util/business'
 import { mapActions, mapState } from 'vuex'
 import { handleSuccessAsync, handleError } from '../../../../../../util'
 import { pageRefTags, NamedRegex1, NamedRegex } from 'config'
-import { filterElements } from '../../../../../../filter/index'
+import filterElements from '../../../../../../filter/index'
 
 @Component({
   props: {
