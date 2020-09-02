@@ -237,7 +237,7 @@
 
         <div class="conds">
           <div class="conds-title">
-            <span>{{$t('querySubmitter')}}</span>
+            <span class="setting-label font-medium">{{$t('querySubmitter')}}</span>
             <el-switch size="small" v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content">
@@ -261,8 +261,7 @@
         </div>
         <div class="conds">
           <div class="conds-title">
-            <span>{{$t('queryDuration')}}</span>
-            <el-switch size="small" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><el-switch size="small" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
@@ -280,7 +279,7 @@
         </div>
         <div class="conds">
           <div class="conds-title">
-            <span>{{$t('optimizationSuggestions')}}</span>
+            <span class="setting-label font-medium">{{$t('optimizationSuggestions')}}</span>
             <!-- <el-switch size="small" v-model="rulesObj.recommendation_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch> -->
           </div>
           <div class="conds-content clearfix">
@@ -743,9 +742,6 @@ export default class SettingBasic extends Vue {
       line-height: 18px;
       display: flex;
       align-items: flex-end;
-      .el-switch--small {
-        margin-left: 10px;
-      }
     }
     .el-form-item--medium .el-form-item__content, .el-form-item--medium .el-form-item__label {
       line-height: 1;

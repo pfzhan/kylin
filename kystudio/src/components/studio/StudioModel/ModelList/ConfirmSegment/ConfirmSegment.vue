@@ -56,7 +56,7 @@
       </kap-pager>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <div class="ksd-fleft" v-if="!refrashWarningSegment&&!isRemoveIndex&&!isFullLoadModel">
-          <el-checkbox v-model="parallel_build_by_segment">
+          <el-checkbox v-model="parallel_build_by_segment" :disabled="selectedSegments.length < 2">
             <span>{{$t('parallelBuild')}}</span>
             <common-tip placement="top" :content="$t('parallelBuildTip')">
               <span class='el-icon-ksd-what'></span>
