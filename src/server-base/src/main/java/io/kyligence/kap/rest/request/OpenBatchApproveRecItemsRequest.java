@@ -39,7 +39,7 @@ public class OpenBatchApproveRecItemsRequest implements Serializable, ProjectIns
     private String project;
 
     @JsonProperty("rec_action_type")
-    private String recActionType = "both";
+    private String recActionType = "all";
 
     @JsonProperty("filter_by_models")
     private boolean filterByModes = true;

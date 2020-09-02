@@ -27,9 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import java.util.List;
-import java.util.Map;
 
-import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +42,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
@@ -77,20 +73,8 @@ public class NRecommendationController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         request.setModelId(modelId);
-        checkUserDefinedNames(request);
         optRecService.approve(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    private void checkUserDefinedNames(OptRecRequest request) {
-        Map<Integer, String> userDefinedNamesMap = request.getNames();
-        if (MapUtils.isEmpty(userDefinedNamesMap)) {
-            return;
-        }
-        userDefinedNamesMap.forEach((k, v) -> {
-            String errorMsg = "User defined name cannot be null or empty.";
-            Preconditions.checkArgument(v != null && !v.trim().isEmpty(), errorMsg);
-        });
     }
 
     @ApiOperation(value = "validateOptimizeRecommendations", notes = "Add URL: {model}")
@@ -110,7 +94,7 @@ public class NRecommendationController extends NBasicController {
     @DeleteMapping(value = "/{model:.+}/all")
     @ResponseBody
     public EnvelopeResponse<String> cleanOptimizeRecommendations(@PathVariable("model") String modelId,
-            @PathVariable("project") String project) {
+            @RequestParam("project") String project) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
