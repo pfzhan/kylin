@@ -85,9 +85,9 @@
         <el-table-column
           :label="$t('th_note')">
           <div slot-scope="scope" class="col-tab-note">
-            <template v-if="(!scope.row.is_add && 'remove_reason' in scope.row.memo_info)">
+            <template v-if="(!scope.row.is_add && 'index_opt_reason' in scope.row.memo_info)">
               <el-tooltip class="item" effect="dark" :content="removeReasonTip(scope)" placement="top">
-                <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.memo_info.remove_reason)}}</el-tag>
+                <el-tag class="th-note-tag" size="small" type="warning">{{$t(scope.row.memo_info.index_opt_reason)}}</el-tag>
               </el-tooltip>
             </template>
           </div> 
@@ -713,7 +713,7 @@ export default class IndexList extends Vue {
       'INCLUDED': this.$t('exist_index_tip'),
       'SIMILAR': this.$t('similar_index_tip')
     }
-    return reason[data.row.memo_info.remove_reason]
+    return reason[data.row.memo_info.index_opt_reason]
   }
 
   // 筛选类型来源
