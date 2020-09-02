@@ -60,7 +60,8 @@ const wrapper = mount(Group, {
   store,
   localVue,
   mocks: {
-    handleError: mockHandleError
+    handleError: mockHandleError,
+    kapConfirm: kapConfirmMockHandle
   },
   components: {
     GroupEditModal: editModal.vm
@@ -72,7 +73,7 @@ describe('Component Group', () => {
     expect(mockLoadGroupUsersList).toBeCalled()
     expect(mockLoadUsersList).toBeCalled()
     expect(mockHandleError).toBeCalled()
-    expect(wrapper.vm.$data.pagination.page_size).toBe(10)
+    expect(wrapper.vm.$data.pagination.page_size).toBe(20)
 
     // console.log(wrapper.html())
     const options = {
@@ -93,15 +94,14 @@ describe('Component Group', () => {
     wrapper.vm.inputFilter('content')
     await wrapper.update()
     expect(wrapper.vm.$data.filterName).toBe('content')
-    expect(wrapper.vm.$data.pagination.page_size).toBe(10)
+    expect(wrapper.vm.$data.pagination.page_size).toBe(20)
 
     wrapper.vm.handleCurrentChange(2, 50)
     expect(wrapper.vm.$data.pagination.page_offset).toBe(2)
     expect(wrapper.vm.$data.pagination.page_size).toBe(50)
 
-    wrapper.vm.dropGroup()
-    expect(kapConfirmMockHandle).toBeCalledWith('Are you sure to delete the group ?', null, 'Delete Group')
-    debugger
+    await wrapper.vm.dropGroup()
+    // expect(kapConfirmMockHandle).toBeCalledWith('Are you sure to delete the group ?', null, 'Delete Group')
     expect(mockHandleError).toBeCalled()
   })
 })

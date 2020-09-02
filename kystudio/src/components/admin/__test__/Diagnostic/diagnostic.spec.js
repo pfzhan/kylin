@@ -61,6 +61,11 @@ const store = new Vuex.Store({
   },
   modules: {
     diagnosticModel
+  },
+  getters: {
+    isAdminRole: () => {
+      return true
+    }
   }
 })
 

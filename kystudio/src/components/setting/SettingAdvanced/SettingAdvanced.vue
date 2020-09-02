@@ -234,6 +234,9 @@ import { apiUrl } from '../../../config'
 import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
+  components: {
+    EditableBlock
+  },
   props: {
     project: {
       type: Object,
@@ -257,9 +260,6 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
     ...mapMutations({
       updateSCD2Enable: 'UPDATE_SCD2_ENABLE'
     })
-  },
-  components: {
-    EditableBlock
   },
   computed: {
     ...mapGetters([
@@ -385,7 +385,7 @@ export default class SettingAdvanced extends Vue {
       case 'kerberos-acc': {
         this.form = { ...this.form, ..._getKerberosSettings(this.project) }
         if (this.$refs['kerberos-setting-form']) {
-          this.$refs['kerberos-setting-form'].clearValidate()
+          this.$refs['kerberos-setting-form'].clearValidate && this.$refs['kerberos-setting-form'].clearValidate()
         }
         break
       }

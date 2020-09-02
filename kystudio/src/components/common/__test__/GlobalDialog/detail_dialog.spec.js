@@ -94,7 +94,7 @@ describe('Component GlobalDialog', () => {
     await wrapper.update()
     expect(wrapper.vm.submitText).toBe('提交')
   })
-  it('methods events', async () => {
+  it('methods events', async (done) => {
     wrapper.vm.$store.state.DetailDialogModal.dialogType = 'error'
 
     wrapper.vm.hideCopyText()
@@ -129,12 +129,13 @@ describe('Component GlobalDialog', () => {
     wrapper.vm.onCopy()
     expect(mockMessage).toHaveBeenCalledWith({'message': 'Failed to copy! Your browser does not support paste boards!', 'type': 'error'})
 
-    wrapper.vm.handleSubmit()
     wrapper.vm.$store.state.DetailDialogModal.callback = mockCallback
     await wrapper.update()
-    expect(wrapper.vm.$data.loading).toBeTruthy()
+    wrapper.vm.handleSubmit()
+    jest.runAllTimers()
+    expect(wrapper.vm.$data.loading).toBeFalsy()
     wrapper.vm.$nextTick(() => {
-      expect(mockCallback).toBeCalled()
+      expect(mockCallback).toBeCalledWith({'isOnlySave': true})
       expect(wrapper.vm.$data.loading).toBeFalsy()
       expect(wrapper.vm.$data.showDetail).toBeFalsy()
       expect(wrapper.vm.$data.multipleSelection).toEqual([])

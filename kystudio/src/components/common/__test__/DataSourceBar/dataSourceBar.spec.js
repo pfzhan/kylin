@@ -94,12 +94,7 @@ const wrapper = shallow(DataSourceBar, {
     handleSuccessAsync: handleSuccessAsync,
     handleError: handleError,
     freshTreeOrder: freshTreeOrder,
-    kapConfirm: mockKapConfirm,
-    $refs: {
-      treeList: {
-        $emit: treeListEmit
-      }
-    }
+    kapConfirm: mockKapConfirm
   },
   propsData: {
     projectName: 'abc'
@@ -110,6 +105,12 @@ const wrapper = shallow(DataSourceBar, {
 
   }
 })
+
+wrapper.vm.$refs = {
+  treeList: {
+    $emit: treeListEmit
+  }
+}
 
 describe('Component DataSourceBar', async () => {
   it('init', () => {

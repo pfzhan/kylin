@@ -639,7 +639,7 @@ export default class SettingBasic extends Vue {
           this.rulesObj = {...data}
           this.rulesAccerationDefault = {...data}
         })
-      }, (res) => {
+      }).catch((res) => {
         handleError(res)
       })
       this.getUserAndGroups().then((res) => {

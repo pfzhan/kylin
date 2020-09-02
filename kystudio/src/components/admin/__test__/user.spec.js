@@ -43,7 +43,8 @@ const mockUpdateStatus = jest.fn().mockResolvedValue(true)
 const store = new Vuex.Store({
   state: {
     user: {
-      currentUser: {}
+      currentUser: {},
+      usersGroupList: [{group_name: 'ROLE_ADMIN'}]
     }
   },
   getters: {
@@ -92,7 +93,7 @@ describe('Component User', () => {
     expect(wrapper.vm.$data.totalSize).toBe(50)
   })
   it('computed', async () => {
-    expect(wrapper.vm.currentGroup).toBe('ROLE_ADMIN')
+    expect(wrapper.vm.currentGroup).toEqual({"group_name": "ROLE_ADMIN"})
     expect(wrapper.vm.isActionShow).toBe(1)
     expect(wrapper.vm.isMoreActionShow).toBe(1)
     expect(wrapper.vm.usersList).toBeInstanceOf(Array)
@@ -104,7 +105,7 @@ describe('Component User', () => {
   })
   it('mothods', async () => {
     wrapper.vm.inputFilter('test')
-    expect(wrapper.vm.pagination).toEqual({'page_offset': 0, 'page_size': 10})
+    expect(wrapper.vm.pagination).toEqual({'page_offset': 0, 'page_size': 20})
     expect(wrapper.vm.filterName).toBe('test')
 
     wrapper.vm.handleCurrentChange(1, 50)

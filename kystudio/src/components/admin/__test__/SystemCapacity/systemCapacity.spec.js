@@ -216,7 +216,7 @@ describe('Components SystemCapacity', () => {
 
     const treeMapCharts = Charts.treeMap(wrapper.vm, [{name: 'test', value: 30}, {name: 'test1', value: 50}], {encodeHTML: mockEncodeHtml})
     expect(treeMapCharts.series[0].data).toEqual([{name: 'test', value: 30}, {name: 'test1', value: 50}])
-    expect(treeMapCharts.tooltip.formatter({data: {capacity: 121343243}, treePathInfo: [{name: 'test'}, {name: 'test1'}]})).toEqual("<div class=\"tooltip-title\">Project Name：test1</div>Used Capacity: 121343243")
+    expect(treeMapCharts.tooltip.formatter({data: {capacity: 121343243}, treePathInfo: [{name: 'test'}, {name: 'test1'}]})).toEqual("<div class=\"tooltip-title\">Project Name：test1</div>Data Volume Used: 121343243")
 
     wrapper.destroy()
     expect(mockRemoveEventListener).toBeCalled()

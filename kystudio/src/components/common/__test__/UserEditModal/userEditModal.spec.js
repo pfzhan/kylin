@@ -2,7 +2,6 @@ import { shallow } from 'vue-test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import UserEditModal from '../../UserEditModal/index.vue'
 import UserEditStore from '../../UserEditModal/store'
-import KyligenceUI from 'kyligence-ui'
 import Vuex from 'vuex'
 import * as util from '../../../../util/business'
 import { getSubmitData } from '../../UserEditModal/handler'
@@ -71,8 +70,6 @@ const mockRemoveEventListener = jest.spyOn(document, 'removeEventListener').mock
 const mockFormValidate = jest.fn().mockImplementation(() => {
   return new Promise(resolve => resolve(true))
 })
-
-localVue.use(KyligenceUI)
 
 const wrapper = shallow(UserEditModal, {
   store,
