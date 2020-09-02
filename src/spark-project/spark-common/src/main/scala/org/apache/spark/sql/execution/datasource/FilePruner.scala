@@ -77,7 +77,7 @@ case class ShardSpec(numShards: Int,
 class FilePruner(val session: SparkSession,
                  val options: Map[String, String],
                  val dataSchema: StructType)
-  extends FileIndex with ResetShufflePartition with ResetBroadcastThreshold with LogEx {
+  extends FileIndex with ResetShufflePartition with LogEx {
 
   private val dataflow: NDataflow = {
     val dataflowId = options.getOrElse("dataflowId", sys.error("dataflowId option is required"))
@@ -245,7 +245,6 @@ class FilePruner(val session: SparkSession,
     QueryContext.current().record("shard_pruning")
     val totalFileSize = selected.flatMap(partition => partition.files).map(_.getLen).sum
     setShufflePartitions(totalFileSize, session)
-    setBroadcastThreshold(totalFileSize, session)
     val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
     QueryContext.current().getMetrics.addAndGetSourceScanRows(sourceRows)
     if (selected.isEmpty) {

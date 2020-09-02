@@ -391,9 +391,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getLargeQueryThreshold",
                 new PropertiesEntity("kylin.query.large-query-threshold", String.valueOf(1000000), 1000000L));
 
-        map.put("getCubeBroadcastThreshold", new PropertiesEntity("kylin.query.cube-broadcast-threshold",
-                String.valueOf(1024L * 1024 * 1024), 1024L * 1024 * 1024));
-
         map.put("getQueryTransformers", new PropertiesEntity("kylin.query.transformers", "", new String[0]));
 
         map.put("getQueryInterceptors", new PropertiesEntity("kylin.query.interceptors", "", new String[0]));
@@ -788,7 +785,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(384, methodsCount);
+        Assert.assertEquals(383, methodsCount);
     }
 
     @Test

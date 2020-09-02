@@ -31,7 +31,6 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
-import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv}
@@ -135,8 +134,6 @@ object ResultPlan extends LogEx {
       // remember clear local properties.
       df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
       df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
-      df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.autoBroadcastJoinThreshold", null)
-      FilePrunerListFileTriggerRule.cached = None
       SparderEnv.setDF(df)
       TableScanPlan.cacheDf.get().clear()
       HadoopUtil.setCurrentConfiguration(null)

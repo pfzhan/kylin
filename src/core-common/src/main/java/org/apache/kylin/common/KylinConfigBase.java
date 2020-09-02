@@ -1237,9 +1237,6 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.query.load-counter-period-seconds", "3s"), TimeUnit.SECONDS);
     }
 
-    public Long getCubeBroadcastThreshold() {
-        return Long.parseLong(getOptional("kylin.query.cube-broadcast-threshold", String.valueOf(1024L * 1024 * 1024)));
-    }
 
     public String[] getQueryTransformers() {
         String value = getOptional("kylin.query.transformers");
