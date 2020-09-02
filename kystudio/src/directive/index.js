@@ -666,27 +666,25 @@ Vue.directive('custom-tooltip', {
   },
   inserted: (el, binding) => {
     if (!el || !el.parentElement) return
-    const parent = el.parentElement
     let id = 'tooltip-' + new Date().getTime().toString(32)
     el.setAttribute('data-id', id)
     const nextElement = el.nextSibling
     const currentElWidth = getTextWidth(el, el.innerText)
+
     parentList[id] = {
-      parent,
+      parent: el.parentElement,
       nextElement,
       textWidth: currentElWidth,
       binding,
       [`resizeFn-${id}`]: function () {
+        const { parent } = parentList[id]
         if (!parent) return
         let textNode = parent.querySelector('.custom-tooltip-text')
         appendTipDom(textNode, getTextWidth(textNode, textNode.innerText), 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
       }
     }
 
-    setTimeout(() => {
-      let _el = el
-      appendTipDom(_el, currentElWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
-    }, 0)
+    appendTipDom(el, currentElWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
 
     setTimeout(() => {
       // 当元素在table中，使用 MutationObserver 方法监听 table 宽度 style 的改变（这里监听的是 el-table__body dom 的宽度）
@@ -772,7 +770,7 @@ function getTextWidth (el, text) {
   const dom = document.createElement('div')
   const fontSize = window.getComputedStyle(el).fontSize || '14px'
   dom.innerText = text
-  dom.style.cssText = `fontSize: ${fontSize}; display: inline-block;`
+  dom.style.cssText = `font-size: ${fontSize}; display: inline-block;`
   document.body.appendChild(dom)
   const width = dom.offsetWidth
   document.body.removeChild(dom)
