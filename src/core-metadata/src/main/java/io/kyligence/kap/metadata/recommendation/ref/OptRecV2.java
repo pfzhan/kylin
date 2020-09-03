@@ -109,7 +109,7 @@ public class OptRecV2 {
         initModelColumnRefs(getModel());
         initModelMeasureRefs(getModel());
         initLayoutRefs(queryBestLayoutRecItems());
-        initRemovalLayoutRefs(queryAllRemovalLayoutRecItems());
+        initRemovalLayoutRefs(queryBestRemovalLayoutRecItems());
 
         autoNameForMeasure();
 
@@ -224,10 +224,16 @@ public class OptRecV2 {
         return RawRecSelection.getInstance().selectBestLayout(topN, uuid, project);
     }
 
-    private List<RawRecItem> queryAllRemovalLayoutRecItems() {
+    private List<RawRecItem> queryBestRemovalLayoutRecItems() {
         Map<String, RawRecItem> recItemMap = RawRecManager.getInstance(project).queryNonAppliedLayoutRawRecItems(uuid,
                 false);
-        return Lists.newArrayList(recItemMap.values());
+        List<RawRecItem> initialRemovalLayoutRecItems = Lists.newArrayList();
+        recItemMap.forEach((key, value) -> {
+            if (value.getState() == RawRecItem.RawRecState.INITIAL) {
+                initialRemovalLayoutRecItems.add(value);
+            }
+        });
+        return initialRemovalLayoutRecItems;
     }
 
     private void initLayoutRef(RawRecItem rawRecItem) {
