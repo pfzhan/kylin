@@ -32,9 +32,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
-import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
@@ -54,7 +51,10 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
@@ -184,8 +184,6 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
 
     @Test
     public void testCollectRecItemWhenDifferenceBatch() {
-
-
 
     }
 
@@ -398,27 +396,260 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(1,
                 layoutRecItemOfFact.getLayoutMetric().getFrequencyMap().getDateFrequency().get(QUERY_TIME).intValue());
     }
-    
-    @Test
-    public void testTransferToCCRawRecItem() {
-        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        // prepare two origin model
-        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
-                new String[] { "select sum(price+1) from test_kylin_fact " });
+    @Test
+    public void testSemiV2BasicWhenInnerJoinPartialMatch() {
+        overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
+
+        // prepare origin model A inner join B inner join C
+        String[] sql1 = new String[] { "select TRANS_ID from test_kylin_fact "
+                + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID "
+                + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sql1);
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
         smartMaster.runUtWithContext(smartUtHook);
-        List<NDataModel> originModels = smartContext.getOriginModels();
+
+        // model(A inner join B) will reuse model(A inner join B inner join C)
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+        String[] sql2 = new String[] { "select CAL_DT,sum(price) from test_kylin_fact "
+                + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID group by CAL_DT" };
+        val context1 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(), sql2, null);
+        AbstractContext.NModelContext modelContext1 = context1.getModelContexts().get(0);
+
+        // validate
+        Assert.assertEquals(1, modelContext1.getDimensionRecItemMap().size());
+        DimensionRecItemV2 dimensionRecItemV2 = modelContext1.getDimensionRecItemMap().get("d__TEST_KYLIN_FACT$2");
+        Assert.assertEquals("date", dimensionRecItemV2.getDataType());
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", dimensionRecItemV2.getColumn().getAliasDotColumn());
+
+        Assert.assertEquals(1, modelContext1.getMeasureRecItemMap().size());
+        MeasureRecItemV2 measureRecItemV2 = modelContext1.getMeasureRecItemMap().get("SUM__TEST_KYLIN_FACT$8");
+        Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE", measureRecItemV2.getMeasure().getName());
+
+        Assert.assertEquals(1, modelContext1.getIndexRexItemMap().size());
+        Assert.assertEquals("{colOrder=[5, 100000, 100001],sortCols=[],shardCols=[]}",
+                Lists.newArrayList(modelContext1.getIndexRexItemMap().keySet()).get(0));
+    }
+
+    @Test
+    public void testTransferToCCRawRecItemBasic() {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact " });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
 
         // generate raw recommendations for origin model
         QueryHistory queryHistory1 = new QueryHistory();
-        queryHistory1.setSql("select sum(price+1+1) from test_kylin_fact group by price * 3");
+        queryHistory1.setSql("select sum(price+1),count(ORDER_ID+TRANS_ID) from test_kylin_fact group by price * 3");
         queryHistory1.setQueryTime(QUERY_TIME);
         queryHistory1.setId(1);
         rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
 
         // validate
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        rawRecItems.sort(new Comparator<RawRecItem>() {
+            @Override
+            public int compare(RawRecItem o1, RawRecItem o2) {
+                if (o1.getType().equals(RawRecItem.RawRecType.COMPUTED_COLUMN)
+                        && o2.getType().equals(RawRecItem.RawRecType.COMPUTED_COLUMN)) {
+                    return ((CCRecItemV2) o1.getRecEntity()).getCc().getExpression()
+                            .compareTo(((CCRecItemV2) o2.getRecEntity()).getCc().getExpression());
+                }
+                return o1.getType().id() - o2.getType().id();
+            }
+        });
+        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(0).getType());
+        Assert.assertEquals(6, rawRecItems.get(0).getDependIDs()[0]);
+        Assert.assertEquals(11, rawRecItems.get(0).getDependIDs()[1]);
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
+        Assert.assertEquals("TEST_KYLIN_FACT.ORDER_ID + TEST_KYLIN_FACT.TRANS_ID",
+                ((CCRecItemV2) rawRecItems.get(0).getRecEntity()).getCc().getExpression());
+
+        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(1).getType());
+        Assert.assertEquals(7, rawRecItems.get(1).getDependIDs()[0]);
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(1).getState());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * 3",
+                ((CCRecItemV2) rawRecItems.get(1).getRecEntity()).getCc().getExpression());
+
+        Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(2).getType());
+        Assert.assertEquals(7, rawRecItems.get(2).getDependIDs()[0]);
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(2).getState());
+        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + 1",
+                ((CCRecItemV2) rawRecItems.get(2).getRecEntity()).getCc().getExpression());
+    }
+
+    @Test
+    public void testTransferToDimensionRawRecItemBasic() {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact" });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // will not recommend existing dimensions
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select count(*) from test_kylin_fact group by price");
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setId(1);
+        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(1, rawRecItems.size());
+        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, rawRecItems.get(0).getType());
+
+        // happy pass
+        queryHistory1.setSql("select count(*) from test_kylin_fact group by cal_dt");
+        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+        rawRecItems = jdbcRawRecStore.queryAll();
+        rawRecItems.sort(new Comparator<RawRecItem>() {
+            @Override
+            public int compare(RawRecItem o1, RawRecItem o2) {
+                return o1.getType().id() - o2.getType().id();
+            }
+        });
+        Assert.assertEquals(0, rawRecItems.get(0).getDependIDs()[0]);
+        Assert.assertEquals(RawRecItem.RawRecType.DIMENSION, rawRecItems.get(0).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
+        Assert.assertEquals("d__TEST_KYLIN_FACT$2", rawRecItems.get(0).getUniqueFlag());
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT",
+                ((DimensionRecItemV2) rawRecItems.get(0).getRecEntity()).getColumn().getAliasDotColumn());
+
+    }
+
+    @Test
+    public void testTransferToMeasureRawRecItemBasic() {
+        // prepare origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact " });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // generate raw recommendations for origin model
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql(
+                "select sum(price),count(price),avg(price),min(ORDER_ID)," + "max(ORDER_ID) from test_kylin_fact");
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setId(1);
+        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+
+        // validate
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        rawRecItems.sort(new Comparator<RawRecItem>() {
+            @Override
+            public int compare(RawRecItem o1, RawRecItem o2) {
+                if (o1.getType().equals(RawRecItem.RawRecType.MEASURE)
+                        && o2.getType().equals(RawRecItem.RawRecType.MEASURE)) {
+                    return o1.getUniqueFlag().compareTo(o2.getUniqueFlag());
+                }
+                return o1.getType().id() - o2.getType().id();
+            }
+        });
+        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(0).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
+        Assert.assertEquals("COUNT__TEST_KYLIN_FACT$8", rawRecItems.get(0).getUniqueFlag());
+        Assert.assertEquals(7, rawRecItems.get(0).getDependIDs()[0]);
+        Assert.assertEquals("COUNT_TEST_KYLIN_FACT_PRICE",
+                ((MeasureRecItemV2) rawRecItems.get(0).getRecEntity()).getMeasure().getName());
+
+        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(1).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(1).getState());
+        Assert.assertEquals("MAX__TEST_KYLIN_FACT$1", rawRecItems.get(1).getUniqueFlag());
+        Assert.assertEquals(6, rawRecItems.get(1).getDependIDs()[0]);
+        Assert.assertEquals("MAX_TEST_KYLIN_FACT_ORDER_ID",
+                ((MeasureRecItemV2) rawRecItems.get(1).getRecEntity()).getMeasure().getName());
+
+        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(2).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(2).getState());
+        Assert.assertEquals("MIN__TEST_KYLIN_FACT$1", rawRecItems.get(2).getUniqueFlag());
+        Assert.assertEquals(6, rawRecItems.get(2).getDependIDs()[0]);
+        Assert.assertEquals("MIN_TEST_KYLIN_FACT_ORDER_ID",
+                ((MeasureRecItemV2) rawRecItems.get(2).getRecEntity()).getMeasure().getName());
+
+        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(3).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(3).getState());
+        Assert.assertEquals("SUM__TEST_KYLIN_FACT$8", rawRecItems.get(3).getUniqueFlag());
+        Assert.assertEquals(7, rawRecItems.get(3).getDependIDs()[0]);
+        Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE",
+                ((MeasureRecItemV2) rawRecItems.get(3).getRecEntity()).getMeasure().getName());
+    }
+
+    @Test
+    public void testTransferToAvgMeasureRawRecItem() {
+        overwriteSystemProp("kylin.query.replace-count-column-with-count-star", "true");
+
+        // prepare origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select count(*) from test_kylin_fact " });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // generate raw recommendations for origin model
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select avg(price) from test_kylin_fact");
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setId(1);
+        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+
+        // count(*) answer avg only work on query
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        rawRecItems.sort(new Comparator<RawRecItem>() {
+            @Override
+            public int compare(RawRecItem o1, RawRecItem o2) {
+                if (o1.getType().equals(RawRecItem.RawRecType.MEASURE)
+                        && o2.getType().equals(RawRecItem.RawRecType.MEASURE)) {
+                    return o1.getUniqueFlag().compareTo(o2.getUniqueFlag());
+                }
+                return o1.getType().id() - o2.getType().id();
+            }
+        });
+
+        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(0).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
+        Assert.assertEquals("COUNT__TEST_KYLIN_FACT$8", rawRecItems.get(0).getUniqueFlag());
+        Assert.assertEquals(7, rawRecItems.get(0).getDependIDs()[0]);
+        Assert.assertEquals("COUNT_TEST_KYLIN_FACT_PRICE",
+                ((MeasureRecItemV2) rawRecItems.get(0).getRecEntity()).getMeasure().getName());
+
+        Assert.assertEquals(RawRecItem.RawRecType.MEASURE, rawRecItems.get(1).getType());
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(1).getState());
+        Assert.assertEquals("SUM__TEST_KYLIN_FACT$8", rawRecItems.get(1).getUniqueFlag());
+        Assert.assertEquals(7, rawRecItems.get(1).getDependIDs()[0]);
+        Assert.assertEquals("SUM_TEST_KYLIN_FACT_PRICE",
+                ((MeasureRecItemV2) rawRecItems.get(1).getRecEntity()).getMeasure().getName());
+    }
+
+    @Test
+    public void testTransferToIndexRawRecItemBasic() {
+        // prepare origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select price from test_kylin_fact" });
+        NSmartMaster smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runUtWithContext(smartUtHook);
+
+        // recommend
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select count(*) from test_kylin_fact group by price");
+        queryHistory1.setQueryTime(QUERY_TIME);
+        queryHistory1.setDuration(30L);
+        queryHistory1.setId(1);
+        rawRecommendation.generateRawRecommendations(getProject(), Lists.newArrayList(queryHistory1));
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
+        Assert.assertEquals(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, rawRecItems.get(0).getType());
+        Assert.assertEquals(7, rawRecItems.get(0).getDependIDs()[0]);
+        Assert.assertEquals(1,
+                Lists.newArrayList(rawRecItems.get(0).getLayoutMetric().getFrequencyMap().getDateFrequency().values())
+                        .get(0).intValue());
+        Assert.assertEquals(30, Lists
+                .newArrayList(rawRecItems.get(0).getLayoutMetric().getLatencyMap().getTotalLatencyMapPerDay().values())
+                .get(0).intValue());
+        Assert.assertEquals(1, rawRecItems.get(0).getHitCount());
     }
 
     @Test
