@@ -1726,13 +1726,13 @@ export default class ModelEdit extends Vue {
     this.gotoIndexdialogVisible = false
   }
   willAddIndex () {
+    if (localStorage.getItem('isFirstAddModel') === 'false' && !localStorage.getItem('isFirstSaveModel')) {
+      localStorage.setItem('isFirstSaveModel', 'true')
+    }
     this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'third' }})
     this.gotoIndexdialogVisible = false
   }
   willAddSegment () {
-    if (localStorage.getItem('isFirstAddModel') === 'false' && !localStorage.getItem('isFirstSaveModel')) {
-      localStorage.setItem('isFirstSaveModel', 'true')
-    }
     this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, expandTab: 'first' }})
     this.gotoIndexdialogVisible = false
   }

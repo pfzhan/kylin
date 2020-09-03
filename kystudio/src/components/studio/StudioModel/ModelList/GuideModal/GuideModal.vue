@@ -12,7 +12,7 @@
         <el-button class="ksd-fright" type="primary" text @click="closeModal">{{$t('iKnow')}}</el-button>
       </div>
     </div>
-    <div class="build-guide-block" :class="{'en-mode': $lang === 'en', 'brief-Menu': briefMenuGet}" v-if="isShowBuildGuide">
+    <div class="build-guide-block" :class="{'en-mode': $lang === 'en', 'brief-Menu': briefMenuGet, 'is-show-global-alter': $store.state.system.isShowGlobalAlter}" v-if="isShowBuildGuide">
       <div class="segment-block" v-if="step==='step1'">
         <div class="segment-tag">Segment</div>
         <div class="segment-desc arrow-top">
@@ -23,7 +23,8 @@
           </div>
           <div class="btn-group clearfix">
             <el-button class="ksd-fleft" type="info" text @click="closeModal">{{$t('ignore')}}</el-button>
-            <el-button class="ksd-fright" type="primary" text @click="next('step2')">{{$t('next')}}</el-button>
+            <el-button class="ksd-fright" type="primary" text @click="closeModal">{{$t('iKnow')}}</el-button>
+            <el-button class="ksd-fright" type="info" text @click="next('step3')">{{$t('pre')}}</el-button>
           </div>
         </div>
       </div>
@@ -43,7 +44,6 @@
           <div class="btn-group clearfix">
             <el-button class="ksd-fleft" type="info" text @click="closeModal">{{$t('ignore')}}</el-button>
             <el-button class="ksd-fright" type="primary" text @click="next('step3')">{{$t('next')}}</el-button>
-            <el-button class="ksd-fright" type="info" text @click="next('step1')">{{$t('pre')}}</el-button>
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@
           </div>
           <div class="btn-group clearfix">
             <el-button class="ksd-fleft" type="info" text @click="closeModal">{{$t('ignore')}}</el-button>
-            <el-button class="ksd-fright" type="primary" text @click="closeModal">{{$t('iKnow')}}</el-button>
+            <el-button class="ksd-fright" type="primary" text @click="next('step1')">{{$t('next')}}</el-button>
             <el-button class="ksd-fright" type="info" text @click="next('step2')">{{$t('pre')}}</el-button>
           </div>
         </div>
@@ -101,12 +101,12 @@ vuex.registerModule(['modals', 'GuideModal'], store)
   locales
 })
 export default class GuideModal extends Vue {
-  step = 'step1'
+  step = 'step2'
   next (step) {
     this.step = step
   }
   closeModal () {
-    this.step = 'step1'
+    this.step = 'step2'
     this.callback && this.callback()
     this.hideModal()
   }
@@ -182,7 +182,7 @@ export default class GuideModal extends Vue {
   .build-guide-block {
     .segment-block {
       position: absolute;
-      top: 310px;
+      top: 271px;
       left: 160px;
       .segment-tag {
         position: absolute;
@@ -221,7 +221,7 @@ export default class GuideModal extends Vue {
     }
     .index-block {
       position: absolute;
-      top: 310px;
+      top: 271px;
       left: 220px;
       .index-tags {
         position: absolute;
@@ -261,7 +261,7 @@ export default class GuideModal extends Vue {
     }
     .build-block {
       position: absolute;
-      top: 260px;
+      top: 221px;
       right: 43px;
       .build-icon {
         position: absolute;
@@ -295,6 +295,15 @@ export default class GuideModal extends Vue {
           font-size: 0;
           line-height: 0;
         }
+      }
+    }
+    &.is-show-global-alter {
+      .segment-block,
+      .index-block {
+        top: 310px;
+      }
+      .build-block {
+        top: 260px;
       }
     }
     &.en-mode {
