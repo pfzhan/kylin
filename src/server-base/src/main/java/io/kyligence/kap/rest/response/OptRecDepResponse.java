@@ -48,4 +48,7 @@ public class OptRecDepResponse implements Serializable {
 
     @JsonProperty("add")
     private boolean add = true;
+
+    @JsonProperty("cross_model")
+    private boolean crossModel;
 }

@@ -48,4 +48,16 @@ public class CCRef extends RecommendationRef {
         cc.setColumnName(newName);
         this.setName(cc.getFullName());
     }
+
+    public boolean isIdentical(CCRef anotherCC) {
+        if (anotherCC == null) {
+            return false;
+        }
+        ComputedColumnDesc thisCC = this.getCc();
+        ComputedColumnDesc thatCC = anotherCC.getCc();
+
+        return thisCC.getFullName().equalsIgnoreCase(thatCC.getFullName())
+                && thisCC.getDatatype().equalsIgnoreCase(thatCC.getDatatype())
+                && thisCC.getInnerExpression().equalsIgnoreCase(thatCC.getInnerExpression());
+    }
 }

@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
@@ -296,6 +297,9 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> batchApproveRecommendations(@RequestBody OpenBatchApproveRecItemsRequest request) {
         checkProjectName(request.getProject());
         boolean filterByModels = request.isFilterByModes();
+        if (request.getRecActionType() == null || StringUtils.isEmpty(request.getRecActionType().trim())) {
+            request.setRecActionType("all");
+        }
         if (filterByModels) {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
                 throw new KylinException(INVALID_MODEL_NAME, MsgPicker.getMsg().getEMPTY_MODEL_NAME());

@@ -55,6 +55,7 @@ public abstract class RecommendationRef implements IKeep {
     private String dataType;
     private boolean isBroken;
     private boolean existed;
+    private boolean crossModel;
     private Object entity;
     private List<RecommendationRef> dependencies = Lists.newArrayList();
 

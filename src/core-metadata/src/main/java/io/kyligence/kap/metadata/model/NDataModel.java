@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -100,6 +101,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -1376,4 +1378,43 @@ public class NDataModel extends RootPersistentEntity {
         return result;
     }
 
+    public static void checkDuplicateMeasure(List<Measure> measures) {
+        checkDuplicate(measures, Measure::getName, measure -> {
+            throw new IllegalStateException("Duplicate measure name occurs: " + measure.getName());
+        });
+    }
+
+    public static void checkDuplicateColumn(List<NamedColumn> namedColumns) {
+        checkDuplicate(namedColumns, NamedColumn::getName, column -> {
+            throw new IllegalStateException("Duplicate column name occurs: " + column.getName());
+        });
+    }
+
+    public static void checkDuplicateCC(List<ComputedColumnDesc> ccList) {
+        checkDuplicate(ccList, ComputedColumnDesc::getColumnName, cc -> {
+            throw new IllegalStateException("Duplicate computed column name occurs: " + cc.getColumnName());
+        });
+    }
+
+    private static <T> void checkDuplicate(List<T> targets, Function<T, String> nameGetter, Consumer<T> whenError) {
+        Set<String> set = Sets.newHashSet();
+        targets.forEach(target -> {
+            if (set.contains(nameGetter.apply(target))) {
+                whenError.accept(target);
+            }
+            set.add(nameGetter.apply(target));
+        });
+    }
+
+    public static void checkIdOrderOfMeasure(List<Measure> measures) {
+        List<Integer> measureIdList = measures.stream().map(Measure::getId).collect(Collectors.toList());
+        Preconditions.checkState(Ordering.natural().isOrdered(measureIdList),
+                "Unsorted measures exception in process of proposing model.");
+    }
+
+    public static void checkIdOrderOfColumn(List<NamedColumn> columns) {
+        List<Integer> columnIdList = columns.stream().map(NamedColumn::getId).collect(Collectors.toList());
+        Preconditions.checkState(Ordering.natural().isOrdered(columnIdList),
+                "Unsorted named columns exception in process of proposing model.");
+    }
 }

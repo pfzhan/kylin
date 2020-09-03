@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -53,7 +52,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
@@ -90,6 +88,8 @@ public class OptRecV2 {
     private final List<LayoutEntity> layouts = getAllLayouts();
     @Getter(lazy = true)
     private final NDataModel model = initModel();
+    @Getter(lazy = true)
+    private final Map<String, ComputedColumnDesc> projectCCMap = initAllCCMap();
 
     public OptRecV2(String project, String uuid) {
         this.config = KylinConfig.getInstanceFromEnv();
@@ -384,8 +384,23 @@ public class OptRecV2 {
             ccRefs.put(negRecItemId, BrokenRefProxy.getProxy(CCRef.class, negRecItemId));
             return;
         }
+        Map<String, ComputedColumnDesc> ccMapOnModel = Maps.newHashMap();
+        dataModel.getComputedColumnDescs().forEach(cc -> ccMapOnModel.put(cc.getInnerExpression(), cc));
 
-        CCRef ccRef = new CCRef(RawRecUtil.getCC(rawRecItem), negRecItemId);
+        ComputedColumnDesc cc = RawRecUtil.getCC(rawRecItem);
+        CCRef ccRef = new CCRef(cc, negRecItemId);
+        if (ccMapOnModel.containsKey(cc.getInnerExpression())) {
+            ComputedColumnDesc existCC = ccMapOnModel.get(cc.getInnerExpression());
+            ccRef = new CCRef(existCC, negRecItemId);
+            ccRef.setExisted(true);
+            ccRef.setCrossModel(false);
+        } else if (getProjectCCMap().containsKey(cc.getInnerExpression())) {
+            ComputedColumnDesc existCC = getProjectCCMap().get(cc.getInnerExpression());
+            ccRef = new CCRef(existCC, negRecItemId);
+            ccRef.setExisted(false);
+            ccRef.setCrossModel(true);
+        }
+
         int[] dependIds = rawRecItem.getDependIDs();
         for (int dependId : dependIds) {
             TranslatedState state = initDependencyWithState(dependId, ccRef);
@@ -405,47 +420,20 @@ public class OptRecV2 {
         if (ref.isExisted() || !(ref instanceof CCRef)) {
             return;
         }
-        CCRef ccRef = (CCRef) ref;
-        // check in model.
-        AtomicInteger id = new AtomicInteger();
-        AtomicBoolean existed = new AtomicBoolean();
-        ComputedColumnUtil.BasicCCConflictHandler handler = new ComputedColumnUtil.BasicCCConflictHandler() {
-            @Override
-            public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                    ComputedColumnDesc newCC) {
-                handleSameExpr();
-            }
-
-            @Override
-            public void handleOnSameExprSameName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                    ComputedColumnDesc newCC) {
-                handleSameExpr();
-            }
-
-            private void handleSameExpr() {
-                ccRef.setExisted(true);
-                existed.set(true);
-                logCCRewriteInfo(recItem, id.get());
-                ccRefs.put(negRecItemId, columnRefs.get(id.get()));
-            }
-        };
-        for (ComputedColumnDesc ccInModel : getModel().getComputedColumnDescs()) {
-            id.set(getModel().getColumnIdByColumnName(ccInModel.getFullName()));
-            ComputedColumnUtil.singleCCConflictCheck(getModel(), getModel(), ccInModel, ccRef.getCc(), handler);
-            if (existed.get()) {
-                return;
-            }
-        }
 
         // check in other raw items.
-        for (RecommendationRef otherCCRef : getEffectiveRefs(ccRefs)) {
-            if (otherCCRef.getId() == negRecItemId) {
+        CCRef ccRef = (CCRef) ref;
+        for (RecommendationRef entry : getEffectiveRefs(ccRefs)) {
+            if (entry.getId() == negRecItemId) {
+                // pass itself
                 continue;
             }
-            id.set(otherCCRef.getId());
-            final CCRef other = (CCRef) otherCCRef;
-            ComputedColumnUtil.singleCCConflictCheck(getModel(), getModel(), other.getCc(), ccRef.getCc(), handler);
-            if (existed.get()) {
+
+            CCRef anotherCCRef = (CCRef) entry;
+            if (ccRef.isIdentical(anotherCCRef)) {
+                logDuplicateRawRecItem(recItem, -entry.getId());
+                ccRef.setExisted(true);
+                ccRefs.put(entry.getId(), ccRefs.get(entry.getId()));
                 return;
             }
         }
@@ -472,8 +460,19 @@ public class OptRecV2 {
             return;
         }
         dimensionRef.init();
-        dimensionRefs.put(negRecItemId, dimensionRef);
+        dimensionRefs.put(negRecItemId, reuseIfAvailable(dimensionRef));
         checkDimensionExist(rawRecItem);
+    }
+
+    private DimensionRef reuseIfAvailable(DimensionRef dimensionRef) {
+        RecommendationRef recommendationRef = dimensionRef.getDependencies().get(0);
+        if (recommendationRef instanceof ModelColumnRef) {
+            NDataModel.NamedColumn column = ((ModelColumnRef) recommendationRef).getColumn();
+            if (column.isDimension()) {
+                dimensionRef = (DimensionRef) dimensionRefs.get(column.getId());
+            }
+        }
+        return dimensionRef;
     }
 
     private void checkDimensionExist(RawRecItem recItem) {
@@ -600,6 +599,19 @@ public class OptRecV2 {
         return brokenIds;
     }
 
+    private Map<String, ComputedColumnDesc> initAllCCMap() {
+        Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
+        NDataModelManager modelManager = NDataModelManager.getInstance(Objects.requireNonNull(config), project);
+        List<NDataModel> allModels = modelManager.listAllModels();
+        allModels.forEach(m -> {
+            List<ComputedColumnDesc> ccList = m.getComputedColumnDescs();
+            for (ComputedColumnDesc cc : ccList) {
+                ccMap.putIfAbsent(cc.getInnerExpression(), cc);
+            }
+        });
+        return ccMap;
+    }
+
     private NDataModel initModel() {
         return NDataModelManager.getInstance(Objects.requireNonNull(config), project).getDataModelDesc(getUuid());
     }
@@ -639,11 +651,6 @@ public class OptRecV2 {
         }
         log.debug("RawRecItem({}) will be translated to {} in Recommendation({}/{})", //
                 recItem.getId(), type, project, getUuid());
-    }
-
-    private void logCCRewriteInfo(RawRecItem recItem, int rewriteId) {
-        log.info("RawRecItem({}) has been rewrite to a NamedColumn({}) for already existing in model({}/{})", //
-                recItem.getId(), rewriteId, getProject(), getUuid());
     }
 
     private void logDependencyLost(RawRecItem rawRecItem, int dependId) {

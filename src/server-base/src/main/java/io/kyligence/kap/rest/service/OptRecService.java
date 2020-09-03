@@ -127,7 +127,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
         public List<RawRecItem> getAllRelatedRecItems(List<Integer> layoutIds, boolean isAdd) {
             Set<RawRecItem> allRecItems = Sets.newLinkedHashSet();
-            Map<Integer, LayoutRef> layoutRefs = isAdd ? recommendation.getAdditionalLayoutRefs()
+            Map<Integer, LayoutRef> layoutRefs = isAdd //
+                    ? recommendation.getAdditionalLayoutRefs()
                     : recommendation.getRemovalLayoutRefs();
             layoutIds.forEach(id -> {
                 if (layoutRefs.containsKey(-id)) {
@@ -211,6 +212,13 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                         break;
                     }
                 }
+
+                // Protect the model from being damaged
+                NDataModel.checkDuplicateColumn(copyForWrite.getAllNamedColumns());
+                NDataModel.checkIdOrderOfColumn(copyForWrite.getAllNamedColumns());
+                NDataModel.checkDuplicateMeasure(copyForWrite.getAllMeasures());
+                NDataModel.checkIdOrderOfMeasure(copyForWrite.getAllMeasures());
+                NDataModel.checkDuplicateCC(copyForWrite.getComputedColumnDescs());
             });
             logFinishRewrite("Model");
         }
@@ -230,10 +238,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 measure = measureRef.getMeasure();
                 measure.setId(++maxMeasureId);
                 recManagerV2.checkMeasureName(model, measure);
+            } else {
+                measure.setId(++maxMeasureId);
             }
             model.getAllMeasures().add(measure);
             measures.put(-rawRecItem.getId(), measure);
-            measures.put(maxMeasureId, measure);
+            measures.put(measure.getId(), measure);
             logWriteProperty(rawRecItem, measure);
         }
 
@@ -435,8 +445,10 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         request.setProject(project);
         request.setModelId(modelId);
         OptRecV2 recommendation = approveContext.getRecommendation();
-        List<Integer> recItemsToAddLayout = Lists.newArrayList(recommendation.getAdditionalLayoutRefs().keySet());
-        List<Integer> recItemsToRemoveLayout = Lists.newArrayList(recommendation.getRemovalLayoutRefs().keySet());
+        List<Integer> recItemsToAddLayout = Lists.newArrayList();
+        List<Integer> recItemsToRemoveLayout = Lists.newArrayList();
+        recommendation.getAdditionalLayoutRefs().forEach((key, value) -> recItemsToAddLayout.add(-value.getId()));
+        recommendation.getRemovalLayoutRefs().forEach((key, value) -> recItemsToRemoveLayout.add(-value.getId()));
         if (recActionType.equalsIgnoreCase(RecActionType.ALL.name())) {
             request.setRecItemsToAddLayout(recItemsToAddLayout);
             request.setRecItemsToRemoveLayout(recItemsToRemoveLayout);
@@ -449,6 +461,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
+        approveRecItemsToRemoveLayout(request, approveContext);
+        approveRecItemsToAddLayout(request, approveContext);
     }
 
     private void approveRecItemsToRemoveLayout(OptRecRequest request, RecApproveContext approveContext) {
@@ -503,8 +517,11 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         response.setContent(ref.getContent());
         response.setName(ref.getName());
         response.setAdd(!ref.isExisted());
+        response.setCrossModel(ref.isCrossModel());
         if (response.isAdd()) {
             response.setItemId(-ref.getId());
+        } else {
+            response.setItemId(ref.getId());
         }
         return response;
     }
@@ -546,9 +563,11 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             });
             healthyList.add(recItemId);
         });
-        detailResponse.getDimensionItems().addAll(dimensionRefResponse);
-        detailResponse.getMeasureItems().addAll(measureRefResponse);
-        detailResponse.getCcItems().addAll(ccRefResponse);
+        if (isAdd) {
+            detailResponse.getDimensionItems().addAll(dimensionRefResponse);
+            detailResponse.getMeasureItems().addAll(measureRefResponse);
+            detailResponse.getCcItems().addAll(ccRefResponse);
+        }
         return healthyList;
     }
 

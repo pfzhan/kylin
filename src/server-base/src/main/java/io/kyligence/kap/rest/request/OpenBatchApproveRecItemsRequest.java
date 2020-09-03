@@ -36,10 +36,11 @@ import lombok.Setter;
 @Setter
 public class OpenBatchApproveRecItemsRequest implements Serializable, ProjectInsensitiveRequest {
 
+    @JsonProperty("project")
     private String project;
 
     @JsonProperty("rec_action_type")
-    private String recActionType = "all";
+    private String recActionType;
 
     @JsonProperty("filter_by_models")
     private boolean filterByModes = true;

@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -45,7 +42,6 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -255,33 +251,15 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
             // 1. publish all measures
             List<Measure> measures = Lists.newArrayList(candidateMeasures.values());
-            checkDuplicate(measures, Measure::getName, measure -> {
-                throw new IllegalStateException("Duplicate measure name occurs: " + measure.getName());
-            });
-            Preconditions.checkState(
-                    Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
-                    "Unsorted measures exception in process of proposing model.");
+            NDataModel.checkDuplicateMeasure(measures);
+            NDataModel.checkIdOrderOfMeasure(measures);
             dataModel.setAllMeasures(measures);
 
             // 2. publish all named columns
             List<NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
-            checkDuplicate(namedColumns, NamedColumn::getName, column -> {
-                throw new IllegalStateException("Duplicate column name occurs: " + column.getName());
-            });
-            Preconditions.checkState(
-                    Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
-                    "Unsorted named columns exception in process of proposing model.");
+            NDataModel.checkDuplicateColumn(namedColumns);
+            NDataModel.checkIdOrderOfColumn(namedColumns);
             dataModel.setAllNamedColumns(namedColumns);
-        }
-
-        private <T> void checkDuplicate(List<T> targets, Function<T, String> nameGetter, Consumer<T> whenError) {
-            Set<String> set = Sets.newHashSet();
-            targets.forEach(target -> {
-                if (set.contains(nameGetter.apply(target))) {
-                    whenError.accept(target);
-                }
-                set.add(nameGetter.apply(target));
-            });
         }
 
         private ParameterDesc copyParameterDesc(ParameterDesc param) {
