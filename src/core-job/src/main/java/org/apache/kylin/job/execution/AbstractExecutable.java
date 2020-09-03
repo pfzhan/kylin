@@ -213,6 +213,8 @@ public abstract class AbstractExecutable implements Executable {
                     // "in this short period user might changed job state" happens
                     logger.info("[LESS_LIKELY_THINGS_HAPPENED] JobStoppedException thrown from in a UnitOfWork", e);
                     tryAgain = true;
+                } else {
+                    throw e;
                 }
             }
         }

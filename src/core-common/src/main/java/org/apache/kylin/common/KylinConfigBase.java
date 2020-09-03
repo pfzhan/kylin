@@ -1962,11 +1962,11 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getEpochExpireTimeSecond() {
-        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-timeout", "120"));
+        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-timeout", "60"));
     }
 
     public long getEpochCheckerIntervalSecond() {
-        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-interval", "60"));
+        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-interval", "30"));
     }
 
     public boolean getJStackDumpTaskEnabled() {

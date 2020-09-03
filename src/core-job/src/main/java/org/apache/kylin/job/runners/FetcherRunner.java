@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -152,6 +153,11 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                     nSuicidal++;
                     break;
                 default:
+                    if (allSubTasksSuccess(id)) {
+                        logger.info("All sub tasks are successful, reschedule job {}", id);
+                        scheduleJob(id);
+                        break;
+                    }
                     logger.warn("Unexpected status for {} <{}>", id, output.getState());
                     if (markErrorJob(id)) {
                         nError++;
@@ -169,6 +175,19 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
         } catch (Exception e) {
             logger.warn("Job Fetcher caught a exception ", e);
         }
+    }
+
+    private boolean allSubTasksSuccess(String id) {
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        // check special case, all sub task success, show make current job to success
+        AbstractExecutable job = executableManager.getJob(id);
+        if (job instanceof DefaultChainedExecutable) {
+            return ((DefaultChainedExecutable) job).getTasks().stream().allMatch(
+                    abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.SUCCEED);
+        }
+
+        return false;
     }
 
     private void scheduleJob(String id) {

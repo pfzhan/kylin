@@ -24,6 +24,7 @@
 package io.kyligence.kap.metadata.project;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -61,7 +62,7 @@ public class EnhancedUnitOfWork implements IKeep {
         if (!config.isUTEnv() && metadataStore instanceof JdbcMetadataStore) {
             params.setEpochChecker(() -> {
                 if (!EpochManager.getInstance(config).checkEpochOwner(params.getUnitName())) {
-                    throw new EpochNotMatchException("System is trying to recover, please try again later",
+                    throw new EpochNotMatchException(MsgPicker.getMsg().getLEADERS_HANDLE_OVER(),
                             params.getUnitName());
                 }
                 return null;

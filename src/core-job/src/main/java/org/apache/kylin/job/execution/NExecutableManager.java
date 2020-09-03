@@ -491,7 +491,7 @@ public class NExecutableManager {
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            tasks.stream().filter(task -> task.getStatus().isNotProgressing())
+            tasks.stream().filter(task -> task.getStatus().isNotProgressing() || task.getStatus() == ExecutableState.RUNNING)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
         updateJobOutput(jobId, ExecutableState.READY);
