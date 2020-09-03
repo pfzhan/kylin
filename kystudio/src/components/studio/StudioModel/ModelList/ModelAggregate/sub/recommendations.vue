@@ -204,8 +204,8 @@
         </el-table-column>
         <el-table-column :label="$t('th_name')" width="300" show-overflow-tooltip>
           <template slot-scope="scope">
-            <el-form :model="scope.row" :rules="scope.row.type !== 'cc' ? rules : rulesCC">
-              <el-form-item prop="name" :show-message="false">
+            <el-form :model="scope.row" :ref="`validateForm_${scope.row.item_id}`" :rules="scope.row.type !== 'cc' ? rules : rulesCC">
+              <el-form-item prop="name">
                 <el-input v-model="scope.row.name" size="mini" :disabled="scope.row.type === 'cc' ? !scope.row.add : false"></el-input>
               </el-form-item>
             </el-form>
@@ -418,6 +418,7 @@ export default class IndexList extends Vue {
   rulesCC = {
     name: [{required: true, validator: this.validateNameCC, trigger: 'blur'}]
   }
+  hasError = false
 
   get emptyText () {
     return this.$t('kylinLang.common.noData')
@@ -478,8 +479,8 @@ export default class IndexList extends Vue {
     } else if (!NamedRegex1.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
     } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value)) {
-      this.$message.error(this.$t('sameName'))
-      callback(new Error(this.$t('sameName')))
+      this.$message({ type: 'error', message: this.$t('sameName'), closeOtherMessages: true })
+      callback('')
     } else {
       callback()
     }
@@ -489,15 +490,14 @@ export default class IndexList extends Vue {
     const {simplified_measures, computed_columns, simplified_dimensions} = this.modelDesc
     if (!NamedRegex.test(value.toUpperCase())) {
       return callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
-    }
-    if (/^\d|^_+/.test(value)) {
+    } else if (/^\d|^_+/.test(value)) {
       return callback(new Error(this.$t('onlyStartLetters')))
+    } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value) || this.checkSameCCNameInColumns(value)) {
+      this.$message({ type: 'error', message: this.$t('sameName'), closeOtherMessages: true })
+      return callback('')
+    } else {
+      callback()
     }
-    if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value) || this.checkSameCCNameInColumns(value)) {
-      this.$message.error(this.$t('sameName'))
-      return callback(new Error(this.$t('sameName')))
-    }
-    callback()
   }
 
   renderHeaderCol (h, { column, index }) {
@@ -611,15 +611,23 @@ export default class IndexList extends Vue {
     }).then(async (res) => {
       let data = await handleSuccessAsync(res)
       let { recs_to_add_layout, recs_to_remove_layout, cc_items, dimension_items, measure_items } = data
-      if (cc_items.length + dimension_items.length + measure_items.length > 0) {
+      const addCCLen = cc_items.filter(it => it.add).length
+      const addDimensionLen = dimension_items.filter(it => it.add).length
+      const addMeasure = measure_items.filter(it => it.add).length
+      if (recs_to_add_layout.length && addCCLen + addDimensionLen + addMeasure > 0) {
         this.showValidate = true
         this.validateData = {
           recs_to_add_layout,
           recs_to_remove_layout,
-          list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => ({...it, type: 'measure'}))]
+          list: [...cc_items.map(it => it.add && ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => it.add && ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => it.add && ({...it, type: 'measure'}))]
         }
       } else {
         this.validateData = {recs_to_add_layout, recs_to_remove_layout, list: []}
+        if (recs_to_remove_layout.length && !recs_to_add_layout.length) {
+          await this.$confirm(this.$t('deleteRecommendTip'), this.$t('deleteTitle'), {
+            confirmButtonText: this.$t('delete')
+          })
+        }
         // const recs_to_add_layout = idList.filter(it => it.is_add)
         // const recs_to_remove_layout = idList.filter(it => !it.is_add)
         this.accessApi(recs_to_add_layout, recs_to_remove_layout)
@@ -630,7 +638,16 @@ export default class IndexList extends Vue {
   }
 
   // 添加更名后的layout
-  addLayout () {
+  async addLayout () {
+    const rfs = Object.keys(this.$refs).filter(it => /^validateForm_/.test(it))
+    for (let item of rfs) {
+      const flag = await this.$refs[item].validate()
+      if (!flag) {
+        this.hasError = true
+        break
+      }
+    }
+    if (this.hasError) return
     let names = {}
     const { recs_to_add_layout, recs_to_remove_layout } = this.validateData
     this.isLoading = true
@@ -852,6 +869,9 @@ export default class IndexList extends Vue {
   .el-dialog__body {
     max-height: 400px;
     overflow: auto;
+    .el-form-item__error {
+      white-space: normal;
+    }
   }
 }
 </style>
