@@ -347,13 +347,16 @@
       let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.tableIndex')})
       if (this.tableIndexMeta.load_data) {
         if (data.type === BuildIndexStatus.NORM_BUILD) {
-          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.tableIndex')}) + `<a href="#/monitor/job">${this.$t('kylinLang.common.toJoblist')}</a>`
+          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.tableIndex')})
           this.$message({
-            message: tipMsg,
             type: 'success',
             dangerouslyUseHTMLString: true,
-            duration: 0,
-            showClose: true
+            message: (
+              <div>
+                <span>{tipMsg}</span>
+                <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+              </div>
+            )
           })
           return
         }
