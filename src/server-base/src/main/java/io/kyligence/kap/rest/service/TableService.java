@@ -395,7 +395,7 @@ public class TableService extends BasicService {
     private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
             throws IOException {
         List<TableDesc> descs = new ArrayList<>();
-        val dataflowManager = getDataflowManager(project);
+        val projectManager = getProjectManager();
         val groups = getCurrentUserGroups();
         final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
                 groups);
@@ -406,8 +406,18 @@ public class TableService extends BasicService {
                 continue;
             }
             TableDescResponse rtableDesc;
-            val models = dataflowManager.getModelsUsingRootTable(table);
-            val modelsUsingTable = dataflowManager.getModelsUsingTable(table);
+            val modelsUsingRootTable = Lists.<NDataModel>newArrayList();
+            val modelsUsingTable = Lists.<NDataModel>newArrayList();
+            for (NDataModel model : projectManager.listHealthyModels(project)) {
+                if (model.containsTable(table)) {
+                    modelsUsingTable.add(model);
+                }
+
+                if (model.isRootFactTable(table)) {
+                    modelsUsingRootTable.add(model);
+                }
+            }
+
             if (withExt) {
                 rtableDesc = getTableResponse(table, project);
             } else {
@@ -422,14 +432,14 @@ public class TableService extends BasicService {
                 filterSamplingRows(project, rtableDesc, isAclGreen, aclTCRS);
             }
 
-            if (CollectionUtils.isNotEmpty(models)) {
+            if (CollectionUtils.isNotEmpty(modelsUsingRootTable)) {
                 rtableDesc.setRootFact(true);
-                rtableDesc.setStorageSize(getStorageSize(project, models));
+                rtableDesc.setStorageSize(getStorageSize(project, modelsUsingRootTable));
             } else if (CollectionUtils.isNotEmpty(modelsUsingTable)) {
                 rtableDesc.setLookup(true);
                 rtableDesc.setStorageSize(getSnapshotSize(project, modelsUsingTable, table.getIdentity()));
             }
-            Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(table, project);
+            Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(project, table, modelsUsingTable);
             NDataLoadingRange dataLoadingRange = getDataLoadingRangeManager(project)
                     .getDataLoadingRange(table.getIdentity());
             if (null != dataLoadingRange) {
@@ -537,12 +547,11 @@ public class TableService extends BasicService {
     }
 
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
-    private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {
+    private Pair<Set<String>, Set<String>> getTableColumnType(String project, TableDesc table, List<NDataModel> modelsUsingTable) {
         val dataModelManager = getDataModelManager(project);
-        val models = getDataflowManager(project).getModelsUsingTable(table);
         Set<String> primaryKey = new HashSet<>();
         Set<String> foreignKey = new HashSet<>();
-        for (val model : models) {
+        for (val model : modelsUsingTable) {
             val joinTables = dataModelManager.getDataModelDesc(model.getUuid()).getJoinTables();
             for (JoinTableDesc joinTable : joinTables) {
                 if (joinTable.getTable().equals(table.getIdentity())) {

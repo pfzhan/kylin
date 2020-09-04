@@ -30,8 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -204,6 +206,10 @@ public class NProjectManager implements IKeepNames {
 
     public Set<IRealization> getRealizationsByTable(String project, String tableName) {
         return projectLoader.getRealizationsByTable(project, tableName.toUpperCase());
+    }
+
+    public List<NDataModel> listHealthyModels(String project) {
+        return listAllRealizations(project).stream().map(IRealization::getModel).collect(Collectors.toList());
     }
 
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String factTable) {
