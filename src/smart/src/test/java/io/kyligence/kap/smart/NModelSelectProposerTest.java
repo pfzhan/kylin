@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.util.List;
 
 import org.apache.calcite.sql.SqlSelect;
@@ -76,7 +78,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
 
         // in smartMode, proposer A inner join B, will not reuse origin A inner join B inner join C model
         // so it will proposer a new model that A inner join B.
@@ -84,7 +86,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
         NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
         List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(1, recommendedModels.get(0).getJoinTables().size());
@@ -101,7 +103,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
 
         // in semiAutoMode, model(A inner join B), will reuse model(A inner join B inner join C)
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -110,7 +112,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
         NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sql2));
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
         List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(2, recommendedModels.get(0).getJoinTables().size());
@@ -128,7 +130,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
 
         // in expertMode, proposer A inner join B, will reuse origin A inner join B inner join C model
         AccelerationContextUtil.transferProjectToPureExpertMode(getTestConfig(), "newten");
@@ -137,7 +139,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
         NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sql2));
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
         List<NDataModel> recommendedModels = smartMaster2.getRecommendedModels();
         Assert.assertEquals(1, recommendedModels.size());
         Assert.assertEquals(2, recommendedModels.get(0).getJoinTables().size());
@@ -155,7 +157,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
         NDataModel dataModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
 
         // A inner join B
@@ -163,7 +165,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
         NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
         ModelTree modelTree = smartMaster2.getContext().getModelContexts().get(0).getModelTree();
 
         // A <-> B share same subGraph with A <-> B <-> C
@@ -184,7 +186,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "left join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
         NDataModel dataModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
 
         // A inner join B
@@ -192,7 +194,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
         NSmartMaster smartMaster2 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
         ModelTree modelTree = smartMaster2.getContext().getModelContexts().get(0).getModelTree();
 
         // [A -> B] can match with [A -> B && A -> C]
@@ -212,7 +214,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 + "inner join TEST_ACCOUNT on test_kylin_fact.ITEM_COUNT = TEST_ACCOUNT.ACCOUNT_ID" };
         NSmartMaster smartMaster1 = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
         NDataModel dataModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
 
         QueryAliasMatcher queryAliasMatcher = new QueryAliasMatcher("newten", "DEFAULT");
@@ -233,7 +235,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         val smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "default", sqls));
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         smartMaster.getContext().getAccelerateInfoMap()
                 .forEach((sql, accInfo) -> Assert.assertFalse(accInfo.isNotSucceed()));
@@ -275,7 +277,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
         val smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newModelReuseContext(getTestConfig(), "default", sqls));
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         smartMaster.getContext().getAccelerateInfoMap()
                 .forEach((sql, accInfo) -> Assert.assertFalse(accInfo.isNotSucceed()));
@@ -318,7 +320,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         val sql2 = new String[] { "select count(*) from test_account group by account_id" };
 
         val smartMaster1 = new NSmartMaster(AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1));
-        smartMaster1.runWithContext();
+        smartMaster1.runUtWithContext(smartUtHook);
 
         Assert.assertEquals(1, dfManager.listUnderliningDataModels().size());
         val model = dfManager.listUnderliningDataModels().get(0);
@@ -328,7 +330,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(indexPlan.getAllLayouts().get(0).getIndex().isTableIndex());
 
         val smartMaster2 = new NSmartMaster(AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql2));
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
 
         Assert.assertEquals(2, dfManager.listUnderliningDataModels().size());
         val models = dfManager.getTableOrientedModelsUsingRootTable(
@@ -351,22 +353,16 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 "LEFT JOIN test_account ON (seller_id = account_id)";
 
         val smartContext1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql1});
-        val smartMaster1 = new NSmartMaster(smartContext1);
-        smartMaster1.runSuggestModel();
-        smartContext1.saveMetadata();
+        runSuggestModelAndSave(smartContext1);
 
         val smartContext2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql2});
-        val smartMaster2 = new NSmartMaster(smartContext2);
-        smartMaster2.runSuggestModel();
-        smartContext2.saveMetadata();
+        runSuggestModelAndSave(smartContext2);
 
         String sql1 = originSql1;
         String sql2 = originSql1 + " limit 100";
         String sql3 = originSql2;
         val smartContext3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", new String[]{sql1, sql2, sql3});
-        val smartMaster3 = new NSmartMaster(smartContext3);
-        smartMaster3.runSuggestModel();
-        smartContext3.saveMetadata();
+        runSuggestModelAndSave(smartContext3);
         Assert.assertEquals(2, smartContext3.getModelContexts().size());
     }
 
@@ -380,14 +376,10 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 "LEFT JOIN test_account ON (seller_id = account_id)";
 
         val smartContext1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql1});
-        val smartMaster1 = new NSmartMaster(smartContext1);
-        smartMaster1.runSuggestModel();
-        smartContext1.saveMetadata();
+        runSuggestModelAndSave(smartContext1);
 
         val smartContext2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[]{originSql2});
-        val smartMaster2 = new NSmartMaster(smartContext2);
-        smartMaster2.runSuggestModel();
-        smartContext2.saveMetadata();
+        runSuggestModelAndSave(smartContext2);
 
         // accelerate two left join sqls together
         String sql1 = "SELECT sum(price), LSTG_FORMAT_NAME\n" +
@@ -398,9 +390,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 "LEFT JOIN test_account ON (seller_id = account_id) group by LSTG_FORMAT_NAME";
 
         val smartContext3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", new String[]{sql1, sql2});
-        val smartMaster3 = new NSmartMaster(smartContext3);
-        smartMaster3.runSuggestModel();
-        smartContext3.saveMetadata();
+        runSuggestModelAndSave(smartContext3);
         Assert.assertEquals(2, smartContext3.getModelContexts().size());
         val modelContext1 = smartContext3.getModelContexts().get(0);
         val modelContext2 = smartContext3.getModelContexts().get(1);
@@ -415,5 +405,12 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         val layout2 = modelContext1.getTargetIndexPlan().getCuboidLayout(layouts1.iterator().next().getLayoutId());
         Assert.assertEquals("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", layout2.getColumns().get(0).getAliasDotName());
 
+    }
+
+    private void runSuggestModelAndSave(AbstractContext smartContext){
+        val smartMaster = new NSmartMaster(smartContext);
+        smartMaster.runSuggestModel();
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
     }
 }

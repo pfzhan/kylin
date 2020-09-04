@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.util.List;
 import java.util.Map;
 
@@ -184,7 +186,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
         context.setSkipEvaluateCC(true);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final AbstractContext smartContext = smartMaster.getContext();
         final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();

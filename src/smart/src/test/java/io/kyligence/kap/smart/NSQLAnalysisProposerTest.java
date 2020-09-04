@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +48,7 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
                         + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"" };
         NSmartMaster smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls));
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final AbstractContext smartContext = smartMaster.getContext();
         final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
@@ -76,7 +78,7 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
                         + "INNER JOIN TEST_ORDER ON TEST_ACCOUNT.ACCOUNT_ID = TEST_ORDER.BUYER_ID AND TEST_CAL_DT.CAL_DT = TEST_ORDER.TEST_DATE_ENC\n" };
         NSmartMaster smartMaster = new NSmartMaster(
                 AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls));
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final AbstractContext smartContext = smartMaster.getContext();
         final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();
@@ -98,7 +100,7 @@ public class NSQLAnalysisProposerTest extends NAutoTestOnLearnKylinData {
         KylinConfig conf = getTestConfig();
         conf.setProperty("kylin.query.non-equi-join-model-enabled", "TRUE");
         NSmartMaster smartMaster = new NSmartMaster(AccelerationContextUtil.newSmartContext(conf, "newten", sqls));
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final AbstractContext smartContext = smartMaster.getContext();
         final List<AbstractContext.NModelContext> modelContexts = smartContext.getModelContexts();

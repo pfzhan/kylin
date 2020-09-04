@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -77,7 +79,7 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
         }
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls.toArray(new String[0]));
         NSmartMaster master = new NSmartMaster(context);
-        master.runWithContext();
+        master.runUtWithContext(smartUtHook);
 
         getTestConfig().clearManagers();
 

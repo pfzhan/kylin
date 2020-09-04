@@ -152,6 +152,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
         // validation after save
         context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
         Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
         Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
@@ -312,6 +313,7 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
 
         // validation after save
         context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
         Assert.assertEquals(3, dataflowManager.listUnderliningDataModels().size());
         Assert.assertEquals(3, indexPlanManager.listAllIndexPlans().size());
         Assert.assertEquals(3, dataflowManager.listAllDataflows().size());

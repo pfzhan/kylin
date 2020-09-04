@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event;
 
+import static io.kyligence.kap.newten.NSuggestTestBase.smartUtHook;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.OFFLINE;
 import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
 
@@ -64,6 +65,9 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 
@@ -127,7 +131,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         allLayouts.removeAll(livedLayouts);
         dataflowManager.removeLayouts(df2, allLayouts);
 
-        waitJobFinish(jobId, 240 * 1000);
+        waitJobFinish(jobId, 240 * 1000, DEFAULT_PROJECT);
 
         val df3 = dataflowManager.getDataflow(df.getUuid());
         val cuboidsMap3 = df3.getLastSegment().getLayoutsMap();
@@ -175,7 +179,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
         val jobId = jobManager.addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
 
-        waitJobFinish(jobId, 240 * 1000);
+        waitJobFinish(jobId, 240 * 1000, DEFAULT_PROJECT);
 
         val df2 = dataflowManager.getDataflow(df.getUuid());
         val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
@@ -219,7 +223,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.removeLayouts(df, removeIds);
 
-        waitJobFinish(jobId, 240 * 1000);
+        waitJobFinish(jobId, 240 * 1000, DEFAULT_PROJECT);
 
         val df2 = dataflowManager.getDataflow(df.getUuid());
         Assert.assertEquals(1, df2.getSegments().size());
@@ -250,6 +254,41 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         prepareFirstSegment(modelId);
         val df2 = dataflowManager.getDataflow(modelId);
         Assert.assertEquals(df2.getStatus(), OFFLINE);
+    }
+
+    @Test
+    public void testScd2OfflineModel() throws InterruptedException {
+        val project = "newten";
+        overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
+        overwriteSystemProp("calcite.keep-in-clause", "true");
+        overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()));
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+        val sql1 = new String[]{"select TEST_ORDER.ORDER_ID,BUYER_ID from \"DEFAULT\".TEST_ORDER " +
+                "left join \"DEFAULT\".TEST_KYLIN_FACT on TEST_ORDER.ORDER_ID=TEST_KYLIN_FACT.ORDER_ID " +
+                "and BUYER_ID>=SELLER_ID and BUYER_ID<LEAF_CATEG_ID " +
+                "group by TEST_ORDER.ORDER_ID,BUYER_ID"};
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sql1);
+        val smartMaster = new NSmartMaster(context);
+        smartMaster.runUtWithContext(smartUtHook);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+
+        projectManager.updateProject("newten", copyForWrite -> copyForWrite.getOverrideKylinProps()
+                .put("kylin.query.non-equi-join-model-enabled", "false"));
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        val model = modelManager
+                .getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+
+        val df = dfManager.getDataflow(model.getId());
+        dfManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        val jobId = JobManager.getInstance(getTestConfig(), project).addFullIndexJob(new JobParam(df.getModel().getUuid(), "ADMIN"));
+        waitJobFinish(jobId, 240 * 1000, project);
+        Assert.assertEquals(dfManager.getDataflow(model.getId()).getStatus(), OFFLINE);
+        scheduler.shutdown();
     }
 
     private void validateDependentFiles(AbstractExecutable job, Class<? extends AbstractExecutable> clazz,
@@ -290,7 +329,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         // add first segment
         val jobId = jobManager.addSegmentJob(new JobParam(newSeg, df.getModel().getUuid(), "ADMIN"));
 
-        waitJobFinish(jobId, 240 * 1000);
+        waitJobFinish(jobId, 240 * 1000, DEFAULT_PROJECT);
 
         val df2 = dataflowManager.getDataflow(df.getUuid());
         val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
@@ -306,8 +345,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         prepareSegment(dfName, "2012-01-01", "2012-06-01", true);
     }
 
-    static void waitJobFinish(String id, long maxMs) throws InterruptedException {
-        val manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+    static void waitJobFinish(String id, long maxMs, String project) throws InterruptedException {
+        val manager = NExecutableManager.getInstance(getTestConfig(), project);
         val start = System.currentTimeMillis();
         while (manager.getJob(id) == null
                 || (!manager.getJob(id).getStatus().isFinalState() && (System.currentTimeMillis() - start) < maxMs)) {

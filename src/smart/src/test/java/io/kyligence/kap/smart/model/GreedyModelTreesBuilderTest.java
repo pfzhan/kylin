@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.model;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -38,6 +39,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
@@ -58,7 +60,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
                 new String[] { sqls[0] });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         val originalIndexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         Assert.assertEquals(1, originalIndexPlan.getAllIndexes().size());
@@ -67,7 +69,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
 
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new NSmartMaster(context2);
-        smartMaster2.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         val layouts = indexPlan.getAllLayouts();
@@ -108,7 +110,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten",
                 new String[] { sqls[0] });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         val originalIndexPlan = NIndexPlanManager.getInstance(getTestConfig(), "newten").listAllIndexPlans().get(0);
         Assert.assertEquals(1, originalIndexPlan.getAllIndexes().size());
@@ -161,7 +163,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
                 "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY" });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // accelerate
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -197,7 +199,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
                 "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // accelerate
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -234,7 +236,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
                 "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY",
                 "select TEST_ORDER.ORDER_ID from TEST_ORDER" });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // accelerate
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -270,7 +272,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
                 "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY left join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID" });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // accelerate
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -304,7 +306,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
                 "select test_kylin_fact.lstg_format_name from test_kylin_fact inner join test_account as account1 on test_kylin_fact.seller_id = account1.account_id inner join test_account as account2 on test_kylin_fact.ORDER_ID = account2.ACCOUNT_SELLER_LEVEL " });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // accelerate
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -333,7 +335,7 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context1 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", new String[] {
                 "select test_kylin_fact.cal_dt from test_kylin_fact inner join test_account on test_kylin_fact.seller_id = test_account.account_id inner join test_country on test_kylin_fact.LSTG_FORMAT_NAME = test_country.COUNTRY" });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // accelerate
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), "newten");
@@ -362,14 +364,14 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         // create model A join B join C
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[0] });
         val smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         val originalModels = NDataModelManager.getInstance(getTestConfig(), "newten").listAllModels();
         Assert.assertEquals(1, originalModels.size());
 
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new NSmartMaster(context2);
-        smartMaster2.runWithContext();
+        smartMaster2.runUtWithContext(smartUtHook);
 
         Assert.assertEquals(3, smartMaster2.getContext().getModelContexts().size());
         Assert.assertEquals(3, NDataModelManager.getInstance(getTestConfig(), "newten").listAllModels().size());
@@ -416,8 +418,9 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
     private List<NDataModel> getRecommendModel(String sql) {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sql });
         val smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         return smartMaster.getRecommendedModels();
     }
 
+    public static Consumer<AbstractContext> smartUtHook = AccelerationContextUtil::onlineModel;
 }

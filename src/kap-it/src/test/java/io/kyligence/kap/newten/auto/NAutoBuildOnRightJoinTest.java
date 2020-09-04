@@ -62,7 +62,7 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
         String[] sqls = queries.stream().map(Pair::getSecond).toArray(String[]::new);
         AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
         NSmartMaster master = new NSmartMaster(context);
-        master.runWithContext();
+        master.runUtWithContext(smartUtHook);
         return master;
     }
 }

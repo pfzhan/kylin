@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,7 +70,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
             model1 = modelContext.getTargetModel();
@@ -83,7 +85,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
             model2 = modelContext.getTargetModel();
@@ -100,7 +102,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
             model1 = modelContext.getTargetModel();
@@ -110,7 +112,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
             model2 = modelContext.getTargetModel();
@@ -126,7 +128,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqlStatements);
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext modelContext = ctx.getModelContexts().get(0);
             model3 = modelContext.getTargetModel();
@@ -140,7 +142,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         String[] sqls = { "select item_count, sum(price) from kylin_sales group by item_count" };
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
 
@@ -221,7 +223,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext ctx = smartMaster.getContext();
             final List<NDataModel.Measure> allMeasures = ctx.getModelContexts().get(0).getTargetModel()
@@ -247,7 +249,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                 + "FROM kylin_category_groupings" };
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext ctx = smartMaster.getContext();
             final List<NDataModel.Measure> allMeasures = ctx.getModelContexts().get(0).getTargetModel()
@@ -276,7 +278,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         initFQData(sqls);
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         final Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
@@ -306,7 +308,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         };
         val context = AccelerationContextUtil.newModelReuseContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final AbstractContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
         // null validation
@@ -328,7 +330,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         final List<NDataModel.Measure> allMeasures = targetModel.getAllMeasures();
         final List<NDataModel.NamedColumn> allNamedColumns = targetModel.getAllNamedColumns();
@@ -345,7 +347,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
             val context1 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), proj, sqls);
             smartMaster = new NSmartMaster(context1);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
 
             final Map<String, AccelerateInfo> accelerateInfoMapCase3 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase3.get(sqls[0]).getRelatedLayouts().size());
@@ -368,7 +370,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                     + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
             val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), proj, sqls);
             smartMaster = new NSmartMaster(context2);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
 
             final Map<String, AccelerateInfo> accelerateInfoMapCase3 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase3.get(sqls[0]).getRelatedLayouts().size());
@@ -435,7 +437,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "rule_based", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final List<AbstractContext.NModelContext> modelContexts = context.getModelContexts();
         final AbstractContext.NModelContext modelContext = modelContexts.get(0);
@@ -501,7 +503,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                         + "group by test_kylin_fact.cal_dt, test_cal_dt.cal_dt" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         accelerationInfoMap.forEach((key, value) -> Assert.assertFalse(value.isNotSucceed()));
         List<AbstractContext.NModelContext> contexts = smartMaster.getContext().getModelContexts();
@@ -534,7 +536,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         NDataModelManager.getInstance(getTestConfig(), "newten").updateDataModelDesc(model1);
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[2] });
         smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerationInfoMap.get(sqls[2]).isFailed());
 
@@ -543,7 +545,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         NDataModelManager.getInstance(getTestConfig(), "newten").updateDataModelDesc(model2);
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sqls[1] });
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerationInfoMap.get(sqls[1]).isFailed());
         Assert.assertEquals("Duplicate measure name occurs: COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY",
@@ -559,7 +561,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerationInfoMap.get(sql).isNotSucceed());
         List<AbstractContext.NModelContext> contexts = smartMaster.getContext().getModelContexts();
@@ -587,6 +589,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         NSmartMaster smartMaster1 = new NSmartMaster(context1);
         smartMaster1.runSuggestModel();
         context1.saveMetadata();
+        AccelerationContextUtil.onlineModel(context1);
         Assert.assertFalse(smartMaster1.getContext().getModelContexts().get(0).isTargetModelMissing());
         val newModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, newModel.getJoinTables().size());

@@ -55,7 +55,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         try {
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "index_missing_dimension", sqls);
             smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.fail();
         } catch (Exception e) {
             assertAccelerationInfoMap(sqls, smartMaster);
@@ -74,7 +74,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         try {
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "index_missing_measure", sqls);
             smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.fail();
         } catch (Exception e) {
             assertAccelerationInfoMap(sqls, smartMaster);
@@ -93,7 +93,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         try {
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "corrupt_colOrder", sqls);
             smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.fail();
         } catch (Exception e) {
             assertAccelerationInfoMap(sqls, smartMaster);
@@ -116,7 +116,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name, a.cal_dt, a.sum_price" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "index_missing", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -143,7 +143,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "index_missing",
                 sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -172,7 +172,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                         + "group by lstg_format_name, cal_dt order by lstg_format_name, cal_dt" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "index_missing_layout", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -200,7 +200,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(),
                 "index_missing_layout", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -226,7 +226,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "index_plan_empty", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         List<AbstractContext.NModelContext> modelContexts = smartMaster.getContext().getModelContexts();
@@ -242,7 +242,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "index_plan_empty",
                 sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
         List<AbstractContext.NModelContext> modelContexts = smartMaster.getContext().getModelContexts();
@@ -259,7 +259,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "model_empty", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isFailed());
@@ -277,7 +277,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "model_empty", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertTrue(accelerateInfo.isPending());
@@ -293,7 +293,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "model_without_index_plan", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isFailed());
         final AbstractContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
@@ -311,7 +311,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(),
                 "model_without_index_plan", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertTrue(accelerateInfo.isPending());
@@ -328,7 +328,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "model_missing_column", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -346,7 +346,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(),
                 "model_missing_column", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
@@ -367,7 +367,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "flaw_model", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -385,7 +385,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(), "flaw_model", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -406,7 +406,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
                 + "group by lstg_format_name order by lstg_format_name" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "model_missing_partition", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());
@@ -430,7 +430,7 @@ public class NCorruptMetadataTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(),
                 "model_missing_partition", sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[0]);
         Assert.assertFalse(accelerateInfo.isFailed());

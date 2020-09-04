@@ -86,7 +86,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), statements);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[0]).isNotSucceed());
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[1]).isNotSucceed());
@@ -126,7 +126,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         val contextFirst = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 statements);
         NSmartMaster smartMaster = new NSmartMaster(contextFirst);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(statements[0]).isNotSucceed());
@@ -145,7 +145,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         val contextSecond = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 new String[] { statements[2], statements[3], statements[4] });
         smartMaster = new NSmartMaster(contextSecond);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(statements[2]).isNotSucceed());
@@ -158,7 +158,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         val contextThird = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 new String[] { statements[4] });
         smartMaster = new NSmartMaster(contextThird);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(statements[4]).isPending());
@@ -182,7 +182,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sql).isPending());
@@ -217,7 +217,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sql).isNotSucceed());
@@ -240,7 +240,7 @@ public class NReuseModelCcTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),
                 new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoMap.get(sql).isNotSucceed());
@@ -272,11 +272,11 @@ public class NReuseModelCcTest extends NAutoTestBase {
         };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[0] });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[1] });
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
     }
 
     private void prepareMoreModels() {
@@ -287,10 +287,10 @@ public class NReuseModelCcTest extends NAutoTestBase {
         };
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[0] });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         val context2 = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[1] });
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
     }
 }

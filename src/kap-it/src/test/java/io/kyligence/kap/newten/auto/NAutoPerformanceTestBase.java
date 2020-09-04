@@ -91,7 +91,7 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
         long proposeStartTime = System.currentTimeMillis();
         AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         long proposeEndTime = System.currentTimeMillis();
 
         double proposeTotalTime = getTotalTime(proposeStartTime, proposeEndTime);
@@ -147,7 +147,7 @@ public class NAutoPerformanceTestBase extends NAutoTestBase {
             long proposeStartTime = System.currentTimeMillis();
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { sqls[i] });
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
 
             long proposeEndTime = System.currentTimeMillis();
             double proposeTime = getTotalTime(proposeStartTime, proposeEndTime);

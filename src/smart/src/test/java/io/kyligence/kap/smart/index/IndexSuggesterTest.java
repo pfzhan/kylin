@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.index;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +64,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                 + "where part_dt = '2012-01-03' group by part_dt, lstg_format_name, buyer_id, seller_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -83,7 +85,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                         + "part_dt = '2012-01-08' order by item_count, lstg_site_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -112,7 +114,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                         + "ORDER BY KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -128,7 +130,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         String[] sqls = { "select sum(price) from kylin_sales" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
 
@@ -144,7 +146,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         String[] sqls2 = { "select count(price) from kylin_sales" };
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls2);
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // assert propose success
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls2[0]).isNotSucceed());
@@ -183,7 +185,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         tableTestKylinFact.setIncrementLoading(true);
         tableManager.updateTableDesc(tableTestKylinFact);
 
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -222,7 +224,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -254,7 +256,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select min(seller_id), max(seller_id) from kylin_sales" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -294,7 +296,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
         String[] sql1 = new String[] { "select part_dt, lstg_format_name, trans_id from kylin_sales" };
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sql1);
         NSmartMaster smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), proj);
@@ -313,7 +315,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
 
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
-        new NSmartMaster(context2).runWithContext();
+        new NSmartMaster(context2).runUtWithContext(smartUtHook);
 
         indexPlan = indexPlanManager.getIndexPlan(modelId);
         val indexEntities = indexPlan.getIndexes();
@@ -347,7 +349,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
 
         val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
-        new NSmartMaster(context3).runWithContext();
+        new NSmartMaster(context3).runUtWithContext(smartUtHook);
 
         indexPlan = indexPlanManager.getIndexPlan(modelId);
         val aggIndexLayouts = indexPlan.getIndexes().get(2).getLayouts();
@@ -373,7 +375,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
@@ -419,7 +421,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                     "select part_dt, count(lstg_format_name), trans_id from kylin_sales group by part_dt, trans_id" };
             val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             AbstractContext ctx = smartMaster.getContext();
             AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
@@ -456,7 +458,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                 "select part_name, lstg_format_name, sum(price) from kylin_sales " };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         // validate sql pattern to layout
         final Map<String, AccelerateInfo> accelerateMap = smartMaster.getContext().getAccelerateInfoMap();
@@ -498,7 +500,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
                         + "from kylin_sales\n" + "where part_dt < '2012-02-01'\n" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -523,7 +525,7 @@ public class IndexSuggesterTest extends NAutoTestOnLearnKylinData {
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.NModelContext mdCtx = ctx.getModelContexts().get(0);

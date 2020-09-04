@@ -257,7 +257,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow createDataflow(IndexPlan plan, String owner) {
-        return createDataflow(plan, owner, RealizationStatusEnum.ONLINE);
+        return createDataflow(plan, owner, RealizationStatusEnum.OFFLINE);
     }
 
     public NDataflow createDataflow(IndexPlan plan, String owner, RealizationStatusEnum realizationStatusEnum) {

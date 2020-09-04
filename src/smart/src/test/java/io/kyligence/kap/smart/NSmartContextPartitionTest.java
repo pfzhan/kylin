@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.util.Map;
 
 import org.junit.Assert;
@@ -56,7 +58,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                         + "LIMIT 500" };
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
@@ -79,7 +81,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "LIMIT 500" };
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(1, collectAllOlapContexts(smartContext).size());
@@ -125,7 +127,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "\tON t5.seller_id = kylin_sales.seller_id\n" + "WHERE kylin_sales.part_dt < '2012-09-10'" };
         val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         smartMaster = new NSmartMaster(context3);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(3, collectAllOlapContexts(smartContext).size());
@@ -166,7 +168,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "GROUP BY kylin_cal_dt.cal_dt" };
         val context4 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         smartMaster = new NSmartMaster(context4);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(1, collectAllOlapContexts(smartContext).size());
@@ -201,7 +203,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         kylinCountry.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinCountry);
 
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(3, collectAllOlapContexts(smartContext).size());
@@ -252,7 +254,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         kylinSales.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinSales);
 
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(5, collectAllOlapContexts(smartContext).size());
@@ -293,7 +295,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + "GROUP BY kylin_cal_dt.cal_dt" };
         val context3 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         smartMaster = new NSmartMaster(context3);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(5, collectAllOlapContexts(smartContext).size());
@@ -322,7 +324,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
 
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         NSmartMaster smartMaster = new NSmartMaster(context1);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, smartContext.getModelContexts().size());
@@ -342,7 +344,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
                 + " kylin_sales, kylin_cal_dt where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
         val context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         smartMaster = new NSmartMaster(context2);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());
@@ -374,7 +376,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         kylinSalesTable.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinSalesTable);
 
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(1, smartContext.getModelContexts().size());
@@ -400,7 +402,7 @@ public class NSmartContextPartitionTest extends NAutoTestOnLearnKylinData {
         kylinCalDtTable.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinCalDtTable);
 
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         {
             AbstractContext smartContext = smartMaster.getContext();
             Assert.assertEquals(2, collectAllOlapContexts(smartContext).size());

@@ -66,7 +66,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { modelQuery });
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
@@ -85,7 +85,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { lookupQuery });
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
@@ -127,7 +127,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { modelQuery });
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
@@ -143,7 +143,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                     new String[] { lookupQuery });
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             Assert.assertNotNull(model);
@@ -181,7 +181,7 @@ public class NAutoLookupTest extends NAutoTestBase {
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { modelQuery, lookupQuery });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
 
         List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();

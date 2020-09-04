@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.lang.reflect.Field;
 
 import org.apache.kylin.metadata.model.TableDesc;
@@ -45,7 +47,7 @@ public class NQueryScopeProposerTest extends NLocalWithSparkSessionTest {
         final String sql = "select order_id from TEST_KYLIN_FACT";
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AbstractContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
         NQueryScopeProposer nQueryScopeProposer = new NQueryScopeProposer(modelContext);
         NQueryScopeProposer.ScopeBuilder scopeBuilder = new NQueryScopeProposer.ScopeBuilder(

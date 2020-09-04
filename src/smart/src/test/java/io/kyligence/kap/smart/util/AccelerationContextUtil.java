@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.smart.util;
 
+import static org.apache.kylin.common.util.AbstractKylinTestCase.getTestConfig;
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.ONLINE;
+
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Maps;
@@ -40,6 +43,7 @@ import io.kyligence.kap.smart.AbstractSemiAutoContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
 import io.kyligence.kap.smart.NSmartContext;
+import lombok.val;
 import lombok.var;
 
 public class AccelerationContextUtil {
@@ -131,6 +135,21 @@ public class AccelerationContextUtil {
             }
             properties.put("kylin.metadata.semi-automatic-mode", "false");
             copyForWrite.setOverrideKylinProps(properties);
+        });
+    }
+
+    public static void onlineModel(AbstractContext context) {
+        if (context == null || context.getModelContexts() == null) {
+            return;
+        }
+        context.getModelContexts().forEach(ctx -> {
+            val dfManager = NDataflowManager.getInstance(getTestConfig(), context.getProject());
+            val model = ctx.getTargetModel();
+            if (model == null || dfManager.getDataflow(model.getId()) == null) {
+                return;
+            }
+            dfManager.updateDataflow(model.getId(),
+                    copyForWrite -> copyForWrite.setStatus(ONLINE));
         });
     }
 }

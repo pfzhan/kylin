@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -54,6 +55,7 @@ public class NSmartMasterRetryTest extends NLocalWithSparkSessionTest {
             Thread.currentThread().setName("First thread");
             return NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(), sqlArray1, smartContext -> {
                 try {
+                    AccelerationContextUtil.onlineModel(smartContext);
                     log.info(Thread.currentThread().getName() + " start to sleep");
                     Thread.sleep(10 * 1000);
                     log.info(Thread.currentThread().getName() + " sleep finished");
@@ -65,7 +67,9 @@ public class NSmartMasterRetryTest extends NLocalWithSparkSessionTest {
 
         Future<AbstractContext> submit2 = executorService.submit(() -> {
             Thread.currentThread().setName("Second thread");
-            return NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(), sqlArray2, null);
+            return NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(), sqlArray2, smartContext -> {
+                AccelerationContextUtil.onlineModel(smartContext);
+            });
         });
 
         AbstractContext context1 = submit1.get();

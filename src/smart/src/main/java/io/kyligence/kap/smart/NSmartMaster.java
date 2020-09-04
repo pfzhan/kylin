@@ -47,8 +47,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class NSmartMaster {
@@ -228,8 +228,8 @@ public class NSmartMaster {
      * This method now only used for testing.
      */
     @VisibleForTesting
-    public void runWithContext() {
-        runWithContext(null);
+    public void runUtWithContext(Consumer<AbstractContext> hook) {
+        runWithContext(hook);
     }
 
     private void runWithContext(Consumer<AbstractContext> hook) {

@@ -286,7 +286,11 @@ class TestExpertMode:
             agg_group['measures'] = measures
         model.add_aggregate_indices(aggregate_index_desc)
 
-        time.sleep(5)
+        # wait jobs to be scheduled
+        time.sleep(_WAIT_INTERVAL)
+        # monitor job status
+        job = Job(headers_test)
+        assert job.await_all_jobs(config.project_name), 'all jobs should have finished.'
 
         # add some validations after revision
         # load data, known bug: https://github.com/Kyligence/KAP/issues/11773

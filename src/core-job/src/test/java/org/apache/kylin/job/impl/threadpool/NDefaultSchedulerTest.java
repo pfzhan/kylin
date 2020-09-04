@@ -925,7 +925,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         job.addTask(task);
 
         executableManager.addJob(job);
-        await().atMost(1500, TimeUnit.MILLISECONDS).until(() -> {
+        await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> {
             val executeManager = NExecutableManager.getInstance(getTestConfig(), project);
             String runningStatus = executeManager.getOutput(task.getId()).getExtra().get("runningStatus");
             return job.getStatus() == ExecutableState.RUNNING && StringUtils.isNotEmpty(runningStatus)

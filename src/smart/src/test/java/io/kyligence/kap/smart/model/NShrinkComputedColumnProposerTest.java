@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.smart.model;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -56,7 +58,7 @@ public class NShrinkComputedColumnProposerTest extends NLocalWithSparkSessionTes
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
                 new String[] { sql, sql1 });
         NSmartMaster smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         Assert.assertTrue(smartMaster.getContext().getAccelerateInfoMap().get(sql).isNotSucceed());
         Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sql1).isNotSucceed());
         Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());

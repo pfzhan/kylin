@@ -81,6 +81,8 @@ import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -502,6 +504,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(originSize, nTableMetadataManager.listAllTables().size());
         dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
         Assert.assertNull(dataLoadingRange);
+        cleanPushdownEnv();
     }
 
     @Test
@@ -1115,13 +1118,18 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testRefreshSparkTable() throws Exception {
+        CliCommandExecutor commond = new CliCommandExecutor();
+        commond.execute("rm -rf ./spark-warehouse", null);
+        val ss = SparkSession.builder().appName("local").master("local[2]")
+                .enableHiveSupport()
+                .getOrCreate();
+        SparderEnv.setSparkSession(ss);
         String warehousePath = "./spark-warehouse/test_kylin_refresh/";
         PushDownUtil.trySimplePushDownExecute("drop table if exists test_kylin_refresh", null);
         PushDownUtil.trySimplePushDownExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
         PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('a')", null);
         PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('c')", null);
         PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
-        CliCommandExecutor commond = new CliCommandExecutor();
         CliCommandExecutor.CliCmdExecResult res = commond.execute("ls " + warehousePath, null, null);
         val files = Arrays.asList(res.getCmd().split("\n")).stream().
                 filter(file -> file.endsWith("parquet")).
@@ -1141,6 +1149,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
         Assert.assertEquals(refreshRes.getRefreshed().size(), 1);
         Assert.assertEquals(refreshRes.getRefreshed().get(0), "test_kylin_refresh");
+        SparderEnv.getSparkSession().stop();
     }
 
     private HashMap mockRefreshTable(String... tables) {

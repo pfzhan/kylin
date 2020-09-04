@@ -74,7 +74,7 @@ public class DynamicQueryTest extends NAutoTestBase {
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
         val context = AccelerationContextUtil.newSmartContext(KylinConfig.getInstanceFromEnv(), PROJECT, sqls);
         val smartMaster = new NSmartMaster(context);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(KylinConfig.getInstanceFromEnv(), PROJECT);
     }
 

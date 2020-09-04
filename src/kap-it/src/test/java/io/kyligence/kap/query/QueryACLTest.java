@@ -153,7 +153,7 @@ public class QueryACLTest extends NAutoTestBase {
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {
         val smartContext = new NSmartContext(getTestConfig(), PROJECT, sqls);
         val smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         buildAllCubes(getTestConfig(), PROJECT);
     }
 

@@ -30,6 +30,7 @@ import org.junit.Test;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
 public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
@@ -112,6 +113,7 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "GROUP BY SELLER_ACCOUNT.ACCOUNT_COUNTRY, CAL_DT";
         val initalContext = NSmartMaster.proposeForAutoMode(getTestConfig(), getProject(), new String[] { prepareSql },
                 null);
+        AccelerationContextUtil.onlineModel(initalContext);
 
         Assert.assertFalse(initalContext.getAccelerateInfoMap().get(prepareSql).isNotSucceed());
 
@@ -146,6 +148,7 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
 
         val context = NSmartMaster.genOptRecommendationForSemiMode(getTestConfig(), getProject(),
                 new String[] { sumSql, maxSql, rawQuery }, null);
+        AccelerationContextUtil.onlineModel(context);
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(maxSql).isNotSucceed());
         Assert.assertFalse(context.getAccelerateInfoMap().get(rawQuery).isNotSucceed());

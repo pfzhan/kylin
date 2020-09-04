@@ -126,7 +126,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact" });
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
@@ -167,7 +167,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 + "group by lstg_format_name, price *  5";
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(), new String[] { query1 });
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // collect recommendation
@@ -205,7 +205,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { query1, query2, query3 });
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
 
         // collect recommendation
@@ -373,7 +373,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select price from test_kylin_fact", "select name from test_country" });
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         List<NDataModel> originModels = smartContext.getOriginModels();
 
         // generate raw recommendations for origin model
@@ -407,7 +407,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select sum(price+1) from test_kylin_fact " });
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
         List<NDataModel> originModels = smartContext.getOriginModels();
 
         // generate raw recommendations for origin model
@@ -431,7 +431,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
                 new String[] { "select ACCOUNT_SELLER_LEVEL from TEST_ACCOUNT" });
         NSmartMaster smartMaster = new NSmartMaster(smartContext);
-        smartMaster.runWithContext();
+        smartMaster.runUtWithContext(smartUtHook);
 
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSql("select ACCOUNT_BUYER_LEVEL from TEST_ACCOUNT");
@@ -464,7 +464,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         val context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
                 new String[] { "SELECT LO_CUSTKEY FROM SSB.LINEORDER limit 10" });
         val originSmartMaster = new NSmartMaster(context1);
-        originSmartMaster.runWithContext();
+        originSmartMaster.runUtWithContext(smartUtHook);
 
         // suggest model
         String[] sqls = new String[] { "SELECT min(LO_CUSTKEY) FROM LINEORDER limit 10",

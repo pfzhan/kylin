@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -125,7 +127,7 @@ public class NSmartDemoTest {
             AbstractContext context = AccelerationContextUtil.newSmartContext(kylinConfig, projectName,
                     sqlList.toArray(new String[0]));
             NSmartMaster smartMaster = new NSmartMaster(context);
-            smartMaster.runWithContext();
+            smartMaster.runUtWithContext(smartUtHook);
 
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, projectName);
             Assert.assertFalse(dataflowManager.listUnderliningDataModels().isEmpty());
