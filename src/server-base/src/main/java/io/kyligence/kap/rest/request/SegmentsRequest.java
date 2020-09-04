@@ -41,6 +41,9 @@ public class SegmentsRequest implements ProjectInsensitiveRequest {
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
 
+    @JsonProperty("refresh_all_indexes")
+    private boolean refreshAllIndexes;
+
     public enum SegmentsRequestType {
         REFRESH, MERGE
     }

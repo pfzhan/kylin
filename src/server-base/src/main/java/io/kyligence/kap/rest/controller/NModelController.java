@@ -739,7 +739,7 @@ public class NModelController extends NBasicController {
             if (ArrayUtils.isEmpty(request.getIds())) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
-            modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId, request.getIds())
+            modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId, request.getIds(), request.isRefreshAllIndexes())
                     .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
