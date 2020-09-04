@@ -1188,7 +1188,8 @@ export default class ModelEdit extends Vue {
     // scd2 join关系从事实表开始连接
     if (table.kind === 'FACT') {
       this.$message({
-        message: this.$t('lockupTableToFactTableTip'),
+        message: this.$t('noStarOrSnowflakeSchema'),
+        dangerouslyUseHTMLString: true,
         type: 'warning'
       })
       return
@@ -1203,8 +1204,30 @@ export default class ModelEdit extends Vue {
       // this.modelInstance.changeLinkDirect(this.currentDragColumnData.guid, null, table.guid)
     }
     if (this.modelInstance.checkLinkCircle(this.currentDragColumnData.guid, table.guid)) {
-      kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
+      this.$message({
+        message: this.$t('noStarOrSnowflakeSchema'),
+        dangerouslyUseHTMLString: true,
+        type: 'warning'
+      })
       return
+    }
+    // 一张维度表不能被指向两次
+    if (table.joinInfo) {
+      let isPTable = false
+      for (let l in table.joinInfo) {
+        if (table.joinInfo[l].table.guid === table.guid) {
+          isPTable = true
+          this.$message({
+            message: this.$t('noStarOrSnowflakeSchema'),
+            dangerouslyUseHTMLString: true,
+            type: 'warning'
+          })
+          break
+        }
+      }
+      if (isPTable) {
+        return
+      }
     }
     if (this.currentDragColumnData.guid) {
       this.currentDropColumnData = {

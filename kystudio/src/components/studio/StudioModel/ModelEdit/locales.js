@@ -72,7 +72,8 @@ export default {
     saveAndSubmitJobSuccess: 'Successfully saved the changes, and submitted the job of loading data',
     tableHasOppositeLinks: 'A reserved join condition already exists between the tables. Please click on the join condition to modify.',
     changeTableJoinCondition: 'Modifying the table’s type would affect the existing join condition. Please delete or modify the join condition first.',
-    lockupTableToFactTableTip: 'Please add join condition from the fact table to a look up table.'
+    lockupTableToFactTableTip: 'Please add join condition from the fact table to a look up table.',
+    noStarOrSnowflakeSchema: 'This join condition is not allowed in neither <a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">star</a> or <a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">snowflake</a> schema. Please adjust and try again.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -147,6 +148,7 @@ export default {
     saveAndSubmitJobSuccess: '保存成功，加载任务已提交',
     tableHasOppositeLinks: '两表之间已经存在一个反向连接条件，请点击连接关系进行修改。',
     changeTableJoinCondition: '修改该表的类型会影响现有的连接条件，请先删除或编辑连接关系。',
-    lockupTableToFactTableTip: '请从事实表开始向维度表添加连接条件。'
+    lockupTableToFactTableTip: '请从事实表开始向维度表添加连接条件。',
+    noStarOrSnowflakeSchema: '该连接不符合<a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">星型</a>或<a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">雪花模型</a>的规范，请重新连接。'
   }
 }
