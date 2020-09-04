@@ -138,6 +138,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             List<NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
             for (NamedColumn column : allNamedColumns) {
                 // Forward compatibility, ensure col name is unique
+                if (!column.isExist()) {
+                    continue;
+                }
                 column.setName(column.getAliasDotColumn().replaceAll("\\.", SEPARATOR));
                 maxColId = Math.max(maxColId, column.getId());
                 candidateNamedColumns.put(column.getAliasDotColumn(), column);
