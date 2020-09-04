@@ -181,7 +181,7 @@
       <el-table
         nested
         border
-        :data="validateData.list"
+        :data="getValidateList"
         class="validate-table"
         size="medium"
         :empty-text="emptyText"
@@ -206,7 +206,9 @@
           <template slot-scope="scope">
             <el-form :model="scope.row" :ref="`validateForm_${scope.row.item_id}`" :rules="scope.row.type !== 'cc' ? rules : rulesCC">
               <el-form-item prop="name">
-                <el-input v-model="scope.row.name" size="mini" :disabled="scope.row.type === 'cc' ? !scope.row.add : false"></el-input>
+                <el-tooltip class="item" effect="dark" :content="$t('usedInOtherModel')" placement="top" :disabled="scope.row.type === 'cc' ? !scope.row.cross_model : true">
+                  <el-input v-model="scope.row.name" size="mini" :disabled="scope.row.type === 'cc' ? scope.row.cross_model : false"></el-input>
+                </el-tooltip>
               </el-form-item>
             </el-form>
           </template>
@@ -321,7 +323,8 @@ import filterElements from '../../../../../../filter/index'
       buildIndexTip: ' Build Index',
       buildIndex: 'Build Index',
       batchBuildSubTitle: 'Please choose which data ranges you’d like to build with the added indexes.',
-      onlyStartLetters: 'Only supports starting with a letter'
+      onlyStartLetters: 'Only supports starting with a letter',
+      usedInOtherModel: 'Can’t rename this computed column, as it’s been used in other models.'
     },
     'zh-cn': {
       recommendations: '优化建议',
@@ -381,7 +384,8 @@ import filterElements from '../../../../../../filter/index'
       buildIndexTip: '立即构建索引',
       buildIndex: '构建索引',
       batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
-      onlyStartLetters: '仅支持字母开头'
+      onlyStartLetters: '仅支持字母开头',
+      usedInOtherModel: '该可计算列已在其他模型中使用，不可修改名称。'
     }
   }
 })
@@ -442,6 +446,23 @@ export default class IndexList extends Vue {
     return this.currentIndex ? this.currentIndex.type.split('_')[1] === 'AGG' ? this.$t('aggDetailTitle') : this.$t('tableDetailTitle') : ''
   }
 
+  get getValidateList () {
+    return this.validateData.list.filter(item => (item.type === 'dimension' && item.add) || (item.type === 'measure' && item.add) || (item.type === 'cc' && item.add))
+  }
+
+  // 移除错误提示信息
+  removeSameNameErrror () {
+    this.$nextTick(() => {
+      const rfs = Object.keys(this.$refs).filter(it => /^validateForm_/.test(it))
+      rfs.forEach(item => {
+        const dom = this.$refs[item] && this.$refs[item].$el.getElementsByClassName('el-form-item__error')
+        if (dom && dom.length > 0 && dom[0].innerText.trim() === 'false') {
+          dom[0].parentNode.removeChild(dom[0])
+        }
+      })
+    })
+  }
+
   formatDataSize (dataSize) {
     if (dataSize < 0) {
       return ''
@@ -479,8 +500,9 @@ export default class IndexList extends Vue {
     } else if (!NamedRegex1.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip2')))
     } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value)) {
+      this.removeSameNameErrror()
       this.$message({ type: 'error', message: this.$t('sameName'), closeOtherMessages: true })
-      callback('')
+      callback(new Error(false))
     } else {
       callback()
     }
@@ -493,8 +515,9 @@ export default class IndexList extends Vue {
     } else if (/^\d|^_+/.test(value)) {
       return callback(new Error(this.$t('onlyStartLetters')))
     } else if ([...simplified_measures.map(it => it.name), ...computed_columns.map(it => it.columnName), ...simplified_dimensions.map(it => it.name)].filter(v => v === value).length > 0 || this.checkNameInCurrentRecommends(value) || this.checkSameCCNameInColumns(value)) {
+      this.removeSameNameErrror()
       this.$message({ type: 'error', message: this.$t('sameName'), closeOtherMessages: true })
-      return callback('')
+      return callback(new Error(false))
     } else {
       callback()
     }
@@ -619,7 +642,7 @@ export default class IndexList extends Vue {
         this.validateData = {
           recs_to_add_layout,
           recs_to_remove_layout,
-          list: [...cc_items.map(it => it.add && ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => it.add && ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => it.add && ({...it, type: 'measure'}))]
+          list: [...cc_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'cc'})), ...dimension_items.map(it => ({...it, name: it.name.split('.').splice(-1).join(''), type: 'dimension'})), ...measure_items.filter(item => item.name !== 'COUNT_ALL').map(it => ({...it, type: 'measure'}))]
         }
       } else {
         this.validateData = {recs_to_add_layout, recs_to_remove_layout, list: []}
@@ -639,7 +662,7 @@ export default class IndexList extends Vue {
 
   // 添加更名后的layout
   async addLayout () {
-    const rfs = Object.keys(this.$refs).filter(it => /^validateForm_/.test(it))
+    const rfs = Object.keys(this.$refs).filter(it => /^validateForm_/.test(it) && this.$refs[it] && this.$refs[it].model.add)
     for (let item of rfs) {
       const flag = await this.$refs[item].validate()
       if (!flag) {
@@ -651,8 +674,8 @@ export default class IndexList extends Vue {
     let names = {}
     const { recs_to_add_layout, recs_to_remove_layout } = this.validateData
     this.isLoading = true
-    this.validateData.list.forEach(item => {
-      names[item.item_id] = item.name
+    this.validateData.list.forEach((it) => {
+      names[it.item_id] = it.name
     })
     this.accessApi(recs_to_add_layout, recs_to_remove_layout, names).then(() => {
       this.isLoading = false
