@@ -51,7 +51,7 @@ export default {
     nonEqualJoin: 'Show non-equal join conditions for History table',
     noEqualDecription: 'With this switch ON, you may use History table for slowly changing dimension (as was): Non-equal join conditions (≥，<) could be used for modeling, building and queries. ',
     confirmOpen: 'Turn On',
-    closeSCDTip: 'With this switch OFF, non-equal join conditions (≥, <) couldn’t be used when editing model. The following models will go offline automatically as they include non-equal join conditions:',
+    closeSCDTip: 'With this switch OFF, non-equal join conditions (≥, <) couldn\'t be used when editing model. The following models will go offline automatically as they include non-equal join conditions:',
     closeSCDTip1: 'To make these models online, please delete the non-equal join conditions, or turn this switch ON. Do you want to continue?',
     confirmClose: 'Turn Off'
   },

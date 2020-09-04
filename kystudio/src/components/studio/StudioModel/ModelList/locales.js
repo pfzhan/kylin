@@ -8,7 +8,7 @@ export default {
     delModelTitle: 'Drop Model',
     pergeModelTip: 'Are you sure to purge all segments of the model {modelName}?',
     pergeModelTitle: 'Purge Model',
-    disableModelTip: 'Offline model couldn’t serve queries. Do you want to offline model {modelName}?',
+    disableModelTip: 'Offline model couldn\'t serve queries. Do you want to offline model {modelName}?',
     disableModelTitle: 'Offline Model',
     enableModelTip: 'Are you sure to online the model {modelName}?',
     disableModelSuccessTip: 'Offline the model successfully.',
@@ -101,11 +101,11 @@ export default {
     seeDetail: 'View Details',
     modelMetadataChangedDesc: 'Source table in the following segment(s) might have been changed. The data might be inconsistent after being built. Please check with your system administrator.<br/>You may try refreshing these segments to ensure the data consistency.',
     refrashWarningSegment: 'Only ONLINE segments could be refreshed',
-    closeSCD2ModalOnlineTip: 'This model can`t go online as it includes non-equal join conditions(≥, <). Please delete those join conditions, or turn on `Support History table` in project settings.',
+    closeSCD2ModalOnlineTip: 'This model can\'t go online as it includes non-equal join conditions(≥, <). Please delete those join conditions, or turn on `Support History table` in project settings.',
     SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support History table` in project settings.',
     storageTip: 'Calculates the amount of data built in this model',
-    noSegmentOnlineTip: 'This model can’t go online as it doesn’t have segments. Models with no segment couldn’t serve queries. Please add a segment.',
-    cannotOnlineTips: 'This model can’t go online at the moment:'
+    noSegmentOnlineTip: 'This model can\'t go online as it doesn\'t have segments. Models with no segment couldn\'t serve queries. Please add a segment.',
+    cannotOnlineTips: 'This model can\'t go online at the moment:'
   },
   'zh-cn': {
     capbility: '加速比例',

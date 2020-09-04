@@ -30,7 +30,7 @@ export default {
     invalidType: 'Please input an integer',
     invalidLarger: 'Input should be no larger than 20,000,000 rows',
     invalidSmaller: 'Input should be no less than 10,000 rows',
-    modelchangeTip: 'After being reloaded, {modelCount} model(s) would be BROKEN and can’t serve queries. You may repair the model(s) manually.',
+    modelchangeTip: 'After being reloaded, {modelCount} model(s) would be BROKEN and can\'t serve queries. You may repair the model(s) manually.',
     indexCountChangeTip: '{indexCount} index(es) would be refreshed and would not be available for querying until being built;',
     addIndexTip: ' while {addIndexCount} index(es) would be added and would not be available for querying until being built.',
     dimChangeTip: '{dimensionCount} dimension(s)',

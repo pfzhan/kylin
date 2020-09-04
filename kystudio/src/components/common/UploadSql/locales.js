@@ -39,7 +39,7 @@ export default {
     th_parameter: 'Function Parameter',
     th_expression: 'Expression',
     th_function: 'Function',
-    uploadSizeTip: 'Please upload .txt or .sql file which’s no larger than 5MB in total. Up to 200 SQLs could be uploaded at a time. Please use semicolon to separate multiple SQLs.',
+    uploadSizeTip: 'Please upload .txt or .sql file which\'s no larger than 5MB in total. Up to 200 SQLs could be uploaded at a time. Please use semicolon to separate multiple SQLs.',
     selectModelsAndRecommends: 'Selected {models} model(s), {recommends} recommendation(s).',
     selectModelTips: 'Selected {models} model(s).',
     selectRecommendTips: 'Selected {recommends} recommendation(s).',
@@ -54,7 +54,7 @@ export default {
     confirmCancel: 'Confirm to Cancel',
     backToEdit: 'Continue Editing',
     closeSqlDialogTip: 'Once cancel, all edits would be discarded and adding model from SQL would be terminated. Are you sure to cancel?',
-    recommendsOverSizeTip: 'Recommendations can’t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.',
+    recommendsOverSizeTip: 'Recommendations can\'t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.',
     recommendsOverSizeTitle: 'Failed to Show all Recommendations',
     mergeSqlTip: 'Similar SQLs might have been merged. Non-equal join condition are not supported. ',
     preview: 'Preview',
@@ -64,8 +64,8 @@ export default {
     editSqlTips: 'You have unsaved edits. Do you want to continue?',
     confirmEditSqlText: 'Save and Continue',
     noRecommendsTip: 'No valid recommendation. Existing models might already include the same indexes.',
-    noModelDetailsTip: 'The selected model’s dimension, measure, computed column, aggregate index would be shown here.',
-    noOriginDetailsTip: 'The selected recommendation’s dimension, measure, computed column would be shown here.'
+    noModelDetailsTip: 'The selected model\'s dimension, measure, computed column, aggregate index would be shown here.',
+    noOriginDetailsTip: 'The selected recommendation\'s dimension, measure, computed column would be shown here.'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',

@@ -359,7 +359,7 @@ describe('Component SuggestModel', () => {
 
     await wrapper.vm.convertSqlsSubmit(true)
     jest.runAllTimers()
-    expect(mockGlobalConfirm).toBeCalledWith('Recommendations can’t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.', 'Failed to Show all Recommendations', {'confirmButtonText': 'OK', 'showCancelButton': false, 'showClose': false, 'type': 'warning'})
+    expect(mockGlobalConfirm).toBeCalledWith('Recommendations can\'t be shown properly due to the extreme large amount. Please try selecting fewer SQLs to import at a time.', 'Failed to Show all Recommendations', {'confirmButtonText': 'OK', 'showCancelButton': false, 'showClose': false, 'type': 'warning'})
     expect(wrapper.vm.generateLoading).toBeFalsy()
     expect(wrapper.vm.convertLoading).toBeFalsy()
     expect(wrapper.vm.cancelConvertLoading).toBeFalsy()

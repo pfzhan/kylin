@@ -34,17 +34,17 @@ export default {
     timeErrorMsg: 'Please fill in a reasonable time range',
     selectServerTip: 'Server is required',
     selectServerPlaceHolder: 'Please select server',
-    downloadJobDiagPackage1: 'For job errors, please download the job diagnostic package (including this job’s logs for Executor, Driver, and this project’s metadata).<br/>For other errors (i.e. query error), please download system diagnostic package in ',
+    downloadJobDiagPackage1: 'For job errors, please download the job diagnostic package (including this job\'s logs for Executor, Driver, and this project\'s metadata).<br/>For other errors (i.e. query error), please download system diagnostic package in ',
     adminMode: 'admin mode',
     downloadJobDiagPackage2: '.',
-    downloadJobDiagPackageForNorAdmin: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata.<br/>For other errors (i.e. query error), please contact your system admin to download system diagnostic package.',
-    downloadSystemDiagPackage1: 'For errors excluding job errors, please download system diagnostic package. It includes the system’s metadata and logs.<br/>For job errors, please go to the ',
+    downloadJobDiagPackageForNorAdmin: 'For job errors, please download the job diagnostic package. It includes this job\'s logs for Executor, Driver, and this project\'s metadata.<br/>For other errors (i.e. query error), please contact your system admin to download system diagnostic package.',
+    downloadSystemDiagPackage1: 'For errors excluding job errors, please download system diagnostic package. It includes the system\'s metadata and logs.<br/>For job errors, please go to the ',
     jobPage: 'job page',
     downloadSystemDiagPackage2: ' to download the respective job diagnostic package.',
-    downloadJobDiagPackage1ForIframe: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata.<br/>For other errors (i.e. failed to scale up/down cluster, query error), please download system diagnostic package in ',
+    downloadJobDiagPackage1ForIframe: 'For job errors, please download the job diagnostic package. It includes this job\'s logs for Executor, Driver, and this project\'s metadata.<br/>For other errors (i.e. failed to scale up/down cluster, query error), please download system diagnostic package in ',
     workspaceList: 'workspace list',
     downloadJobDiagPackage2ForIframe: '.',
-    downloadJobDiagPackageForNorAdminForIframe: 'For job errors, please download the job diagnostic package. It includes this job’s logs for Executor, Driver, and this project’s metadata.<br/>For other errors (i.e. failed to scale up/down cluster, query error), please contact your system admin to download system diagnostic package.'
+    downloadJobDiagPackageForNorAdminForIframe: 'For job errors, please download the job diagnostic package. It includes this job\'s logs for Executor, Driver, and this project\'s metadata.<br/>For other errors (i.e. failed to scale up/down cluster, query error), please contact your system admin to download system diagnostic package.'
   },
   'zh-cn': {
     dialogTitle: '诊断',

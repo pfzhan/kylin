@@ -37,8 +37,8 @@ export default {
     changeBuildTypeTips: 'Please note that modifying the load method will clear all segments',
     editCCBuildTip: 'The modified expression of computed column would be effective until all the related indexes have been built. Do you want to save and build index now? ',
     saveAndBuild: 'Save and Build',
-    purgeSegmentDataTips: 'Model definition has changed. Once saving the model, all data in the segments will be deleted. As a result, this model CAN’T be used to serve queries. We strongly recommend to reload all data (in total {storageSize}).\r\n Do you want to continue?',
-    changeSegmentTips: 'Model partition has changed. Once saving the model, all segments and data will be deleted. As a result, this model CAN’T be used to serve queries.<br/>Do you want to continue?',
+    purgeSegmentDataTips: 'Model definition has changed. Once saving the model, all data in the segments will be deleted. As a result, this model CAN\'T be used to serve queries. We strongly recommend to reload all data (in total {storageSize}).\r\n Do you want to continue?',
+    changeSegmentTips: 'Model partition has changed. Once saving the model, all segments and data will be deleted. As a result, this model CAN\'T be used to serve queries.<br/>Do you want to continue?',
     saveAndLoad: 'Save and Build Index'
   },
   'zh-cn': {

@@ -10,7 +10,7 @@ export default {
     pleaseInputColumn: 'Please select a partition column',
     changeSegmentTip1: 'You have modified the partition column as {tableColumn}, time format {dateType}. After saving, all segments under the model {modelName} will be purged. You need to reload the data, the model cannot serve related queries during data loading. Please confirm whether to submit?',
     changeSegmentTip2: 'You have modified as no partition column. After saving, all segments under the model {modelName} will be purged . The system will automatically rebuild the index and full load the data. The model cannot serve related queries during index building. Please confirm whether to submit?',
-    changeSegmentTips: 'Model partition has changed. Once saving the model, all segments and data will be deleted. As a result, this model CAN’T be used to serve queries.<br/>Do you want to continue?'
+    changeSegmentTips: 'Model partition has changed. Once saving the model, all segments and data will be deleted. As a result, this model CAN\'T be used to serve queries.<br/>Do you want to continue?'
   },
   'zh-cn': {
     partitionSet: '分区设置',
