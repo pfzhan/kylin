@@ -230,7 +230,7 @@ public class RexToTblColRefTranslator {
         try {
             SqlNode sqlCall = rexNodeToSqlConverter.convertCall(call);
             rexToSqlMap.put(call.toString(), sqlCall);
-            return sqlCall.toSqlString(SqlDialect.DatabaseProduct.HIVE.getDialect()).toString();
+            return sqlCall.toSqlString(SqlDialect.DatabaseProduct.CALCITE.getDialect()).toString();
         } catch (Exception | Error e) {
             return call.toString();
         }
@@ -628,7 +628,7 @@ public class RexToTblColRefTranslator {
             TblColRef colRef = nodeAndTblColMap.get(ref);
             String colExpr = colRef.isInnerColumn() && colRef.getParserDescription() != null
                     ? colRef.getParserDescription()
-                    : colRef.getIdentity();
+                    : "\"" + colRef.getTableAlias() + "\".\"" + colRef.getName() + "\"";
             try {
                 return CalciteParser.getExpNode(colExpr);
             } catch (Exception e) {

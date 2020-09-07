@@ -70,6 +70,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NBasicSemiV2Test extends SemiAutoTestBase {
+    private static final String PRICE_COLUMN = "\"TEST_KYLIN_FACT\".\"PRICE\"";
+    private static final String CC_ITEM_COUNT_MULTIPLY_PRICE = "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" * \"TEST_KYLIN_FACT\".\"PRICE\"";
+    private static final String CC_PRICE_MULTIPLY_ITEM_COUNT = "\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"";
+    private static final String CC_ORDER_ID_PLUS_TRANS_ID = "\"TEST_KYLIN_FACT\".\"ORDER_ID\" + \"TEST_KYLIN_FACT\".\"TRANS_ID\"";
 
     private static final long QUERY_TIME = 1595520000000L;
 
@@ -163,7 +167,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 String ccUUID = uniqueContent.split("__")[1];
                 Assert.assertTrue(ccRecItemMap.containsKey(ccUUID));
                 CCRecItemV2 ccRecItemV2 = ccRecItemMap.get(ccUUID);
-                Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE",
+                Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE,
                         ccRecItemV2.getCc().getExpression());
             }
         });
@@ -242,32 +246,32 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Map<String, CCRecItemV2> ccRecItemMap1 = modelContexts.get(0).getCcRecItemMap();
         Assert.assertEquals(2, ccRecItemMap1.size());
         ArrayList<CCRecItemV2> ccRecItemList1 = new ArrayList<>(ccRecItemMap1.values());
-        ccRecItemList1.sort(Comparator.comparingInt(o -> o.getCc().hashCode()));
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * 5", ccRecItemList1.get(0).getCc().getExpression());
-        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList1.get(0).getCc().getTableIdentity());
-        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * 5", ccRecItemList1.get(0).getCc().getInnerExpression());
-        Assert.assertEquals("DECIMAL(21,4)", ccRecItemList1.get(0).getCc().getDatatype());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE",
-                ccRecItemList1.get(1).getCc().getExpression());
+        ccRecItemList1.sort(Comparator.comparing(o -> o.getCc().getExpression()));
+        Assert.assertEquals(PRICE_COLUMN + " * 5", ccRecItemList1.get(1).getCc().getExpression());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList1.get(1).getCc().getTableIdentity());
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * 5", ccRecItemList1.get(1).getCc().getInnerExpression());
+        Assert.assertEquals("DECIMAL(21,4)", ccRecItemList1.get(1).getCc().getDatatype());
+        Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE,
+                ccRecItemList1.get(0).getCc().getExpression());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList1.get(0).getCc().getTableIdentity());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`",
-                ccRecItemList1.get(1).getCc().getInnerExpression());
-        Assert.assertEquals("DECIMAL(30,4)", ccRecItemList1.get(1).getCc().getDatatype());
+                ccRecItemList1.get(0).getCc().getInnerExpression());
+        Assert.assertEquals("DECIMAL(30,4)", ccRecItemList1.get(0).getCc().getDatatype());
 
         Map<String, CCRecItemV2> ccRecItemMap2 = modelContexts.get(1).getCcRecItemMap();
         Assert.assertEquals(2, ccRecItemMap2.size());
         ArrayList<CCRecItemV2> ccRecItemList2 = new ArrayList<>(ccRecItemMap2.values());
-        ccRecItemList2.sort(Comparator.comparingInt(o -> o.getCc().hashCode()));
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * 5", ccRecItemList2.get(0).getCc().getExpression());
-        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList2.get(0).getCc().getTableIdentity());
-        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * 5", ccRecItemList2.get(0).getCc().getInnerExpression());
-        Assert.assertEquals("DECIMAL(21,4)", ccRecItemList2.get(0).getCc().getDatatype());
-        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE",
-                ccRecItemList2.get(1).getCc().getExpression());
+        ccRecItemList2.sort(Comparator.comparing(o -> o.getCc().getExpression()));
+        Assert.assertEquals(PRICE_COLUMN + " * 5", ccRecItemList2.get(1).getCc().getExpression());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList2.get(1).getCc().getTableIdentity());
+        Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * 5", ccRecItemList2.get(1).getCc().getInnerExpression());
+        Assert.assertEquals("DECIMAL(21,4)", ccRecItemList2.get(1).getCc().getDatatype());
+        Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE,
+                ccRecItemList2.get(0).getCc().getExpression());
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList2.get(0).getCc().getTableIdentity());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`",
-                ccRecItemList2.get(1).getCc().getInnerExpression());
-        Assert.assertEquals("DECIMAL(30,4)", ccRecItemList2.get(1).getCc().getDatatype());
+                ccRecItemList2.get(0).getCc().getInnerExpression());
+        Assert.assertEquals("DECIMAL(30,4)", ccRecItemList2.get(0).getCc().getDatatype());
     }
 
     private void collectDimentionRecItemWithMultipleModels(List<AbstractContext.NModelContext> modelContexts) {
@@ -365,7 +369,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         List<AbstractContext.NModelContext> modelContexts = context.getModelContexts();
         Map<String, CCRecItemV2> ccRecItemMap = modelContexts.get(0).getCcRecItemMap();
         Assert.assertEquals(1, ccRecItemMap.size());
-        Assert.assertEquals("TEST_ORDER.BUYER_ID + 1",
+        Assert.assertEquals("\"TEST_ORDER\".\"BUYER_ID\" + 1",
                 Lists.newArrayList(ccRecItemMap.values()).get(0).getCc().getExpression());
         Assert.assertEquals("`TEST_ORDER`.`BUYER_ID` + 1",
                 Lists.newArrayList(ccRecItemMap.values()).get(0).getCc().getInnerExpression());
@@ -431,13 +435,13 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(2, context.getModelContexts().size());
         Assert.assertEquals(1, context.getModelContexts().get(0).getCcRecItemMap().size());
         Assert.assertEquals(1, context.getModelContexts().get(1).getCcRecItemMap().size());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+        Assert.assertEquals(CC_PRICE_MULTIPLY_ITEM_COUNT,
                 Lists.newArrayList(context.getModelContexts().get(0).getCcRecItemMap().values()).get(0).getCc()
                         .getExpression());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`",
                 Lists.newArrayList(context.getModelContexts().get(0).getCcRecItemMap().values()).get(0).getCc()
                         .getInnerExpression());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+        Assert.assertEquals(CC_PRICE_MULTIPLY_ITEM_COUNT,
                 Lists.newArrayList(context.getModelContexts().get(1).getCcRecItemMap().values()).get(0).getCc()
                         .getExpression());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`",
@@ -596,19 +600,19 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals(6, rawRecItems.get(0).getDependIDs()[0]);
         Assert.assertEquals(11, rawRecItems.get(0).getDependIDs()[1]);
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(0).getState());
-        Assert.assertEquals("TEST_KYLIN_FACT.ORDER_ID + TEST_KYLIN_FACT.TRANS_ID",
+        Assert.assertEquals(CC_ORDER_ID_PLUS_TRANS_ID,
                 ((CCRecItemV2) rawRecItems.get(0).getRecEntity()).getCc().getExpression());
 
         Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(1).getType());
         Assert.assertEquals(7, rawRecItems.get(1).getDependIDs()[0]);
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(1).getState());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE * 3",
+        Assert.assertEquals(PRICE_COLUMN + " * 3",
                 ((CCRecItemV2) rawRecItems.get(1).getRecEntity()).getCc().getExpression());
 
         Assert.assertEquals(RawRecItem.RawRecType.COMPUTED_COLUMN, rawRecItems.get(2).getType());
         Assert.assertEquals(7, rawRecItems.get(2).getDependIDs()[0]);
         Assert.assertEquals(RawRecItem.RawRecState.INITIAL, rawRecItems.get(2).getState());
-        Assert.assertEquals("TEST_KYLIN_FACT.PRICE + 1",
+        Assert.assertEquals(PRICE_COLUMN + " + 1",
                 ((CCRecItemV2) rawRecItems.get(2).getRecEntity()).getCc().getExpression());
     }
 

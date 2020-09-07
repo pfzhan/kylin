@@ -105,8 +105,8 @@ public class ExpressionComparator {
                 Preconditions.checkNotNull(modelAlias);
                 Preconditions.checkNotNull(queryCol);
 
-                return StringUtils.equals(modelAlias, exprSqlIdentifier.names.get(0))
-                        && StringUtils.equals(queryCol, exprSqlIdentifier.names.get(1));
+                return StringUtils.equalsIgnoreCase(modelAlias, exprSqlIdentifier.names.get(0))
+                        && StringUtils.equalsIgnoreCase(queryCol, exprSqlIdentifier.names.get(1));
             } catch (NullPointerException | IllegalStateException e) {
                 logger.trace("met exception when doing expressions[{}, {}] comparison", querySqlIdentifier,
                         exprSqlIdentifier, e);

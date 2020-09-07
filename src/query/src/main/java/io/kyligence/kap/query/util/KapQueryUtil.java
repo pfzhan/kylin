@@ -119,6 +119,13 @@ public class KapQueryUtil {
                     dimTable.getAlias()));
             sql.append(sep);
             sql.append("ON ");
+
+            if (pk.length == 0 && join.getNonEquiJoinCondition() != null) {
+                sql.append(join.getNonEquiJoinCondition().getExpr());
+                dimTableCache.add(dimTable);
+                continue;
+            }
+
             for (int i = 0; i < pk.length; i++) {
                 if (i > 0) {
                     sql.append(" AND ");

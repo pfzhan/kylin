@@ -87,7 +87,7 @@ public class ColumnRowType {
 
     public int getIndexByName(String columnName) {
         for (int i = 0; i < columns.size(); i++) {
-            if (columns.get(i).getName().equals(columnName)) {
+            if (columns.get(i).getName().equalsIgnoreCase(columnName)) {
                 return i;
             }
         }

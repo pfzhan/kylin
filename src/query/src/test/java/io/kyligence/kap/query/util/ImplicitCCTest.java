@@ -145,6 +145,7 @@ public class ImplicitCCTest extends NLocalFileMetadataTestCase {
         String sql1 = "select sum(sum(a)) from table1 as t1";
         String sql2 = "select substring(substring(t1.d,1,3),1,3) from table1 as t1";
         String sql3 = "select a + b + (c+d   \t\n) from table1";
+        String sql4 = "select sum(\"0910_a\" * \"0910_b\"), c from \"0910_table3\" group by c";
 
         List<ComputedColumnDesc> mockCCs = Lists.newArrayList(
                 mockComputedColumnDesc("cc0", "table1.a + table1.b + table1.c", "TABLE1"),
@@ -153,7 +154,8 @@ public class ImplicitCCTest extends NLocalFileMetadataTestCase {
                 mockComputedColumnDesc("cc3", "table2.c + table2.d", "TABLE2"),
                 mockComputedColumnDesc("cc", "substring(substring(table1.d,1,3),1,3)", "TABLE1"),
                 mockComputedColumnDesc("cc4", "(table1.a + table1.b) + (table1.c + table1.d)", "TABLE1"),
-                mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"));
+                mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"),
+                mockComputedColumnDesc("cc6", "\"0910_TABLE3\".\"0910_A\" * \"0910_TABLE3\".\"0910_B\"", "0910_TABLE3"));
         mockCCs = ConvertToComputedColumn.getCCListSortByLength(mockCCs);
         for (ComputedColumnDesc cc : mockCCs) {
             System.out.println(cc.getColumnName());
@@ -162,6 +164,7 @@ public class ImplicitCCTest extends NLocalFileMetadataTestCase {
         BiMap<String, String> aliasMapping = HashBiMap.create();
         aliasMapping.put("T1", "TABLE1");
         aliasMapping.put("T2", "TABLE2");
+        aliasMapping.put("0910_TABLE3", "0910_TABLE3");
 
         ColumnRowType columnRowType1 = ColumnRowTypeMockUtil.mock("TABLE1", "T1",
                 ImmutableList.of(Pair.newPair("A", "integer"), //
@@ -226,6 +229,17 @@ public class ImplicitCCTest extends NLocalFileMetadataTestCase {
                 ConvertToComputedColumn.replaceComputedColumn(sql2tableswithquote,
                         SqlSubqueryFinder.getSubqueries(sql2tableswithquote).get(0), mockCCs, queryAliasMatchInfo)
                         .getFirst());
+
+        ColumnRowType columnRowType3 = ColumnRowTypeMockUtil.mock("0910_TABLE3", "0910_TABLE3",
+                ImmutableList.of(Pair.newPair("0910_A", "integer"), //
+                        Pair.newPair("0910_B", "integer"), //
+                        Pair.newPair("C", "integer")));
+
+        mockQueryAlias.put("0910_TABLE3", columnRowType3);
+        queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
+
+        Assert.assertEquals("select sum(\"0910_TABLE3\".cc6), c from \"0910_table3\" group by c",
+                ConvertToComputedColumn.replaceComputedColumn(sql4, SqlSubqueryFinder.getSubqueries(sql4).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
         //        //sub query cannot be mocked here
         //        String sqlwithsubquery = "select count(*), sum(t1.a + t1.b), sum(t22.w) from table1 t1 inner join " + 

@@ -269,6 +269,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             String ccColumnName = replaceCcName ? cc.getInternalCcName() : cc.getColumnName();
             log.debug("Computed column: {} matching {} at [{},{}] using alias in query: {}", cc.getColumnName(), expr,
                     start, end, alias);
+            alias = Character.isAlphabetic(alias.charAt(0)) ? alias : "\"" + alias + "\"";
+            ccColumnName = Character.isAlphabetic(ccColumnName.charAt(0)) ? ccColumnName : "\"" + ccColumnName + "\"";
             result = result.substring(0, start) + alias + "." + ccColumnName + result.substring(end);
         }
         try {
