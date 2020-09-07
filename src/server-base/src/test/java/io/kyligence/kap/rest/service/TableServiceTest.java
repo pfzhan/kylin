@@ -1119,11 +1119,13 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testRefreshSparkTable() throws Exception {
         CliCommandExecutor commond = new CliCommandExecutor();
-        commond.execute("rm -rf ./spark-warehouse", null);
         val ss = SparkSession.builder().appName("local").master("local[2]")
                 .enableHiveSupport()
                 .getOrCreate();
         SparderEnv.setSparkSession(ss);
+        // need to use  derby in memory instead of in real file to avoid conflicting with other hiveContext
+        ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
+                "jdbc:derby:memory:db;create=true");
         String warehousePath = "./spark-warehouse/test_kylin_refresh/";
         PushDownUtil.trySimplePushDownExecute("drop table if exists test_kylin_refresh", null);
         PushDownUtil.trySimplePushDownExecute("create table test_kylin_refresh (word string) STORED AS PARQUET", null);
