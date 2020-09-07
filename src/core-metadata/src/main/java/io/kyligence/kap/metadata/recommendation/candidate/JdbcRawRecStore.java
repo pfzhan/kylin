@@ -383,47 +383,35 @@ public class JdbcRawRecStore {
 
     public void updateAllCost(String project) {
         final int batchToUpdate = 1000;
-        final int limit = 1000;
         long currentTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
             // if no records, no need to update cost
-            int count = mapper.selectAsInt(getContStarProvider());
-            if (count == 0) {
+            if (mapper.selectAsInt(getContStarProvider()) == 0) {
                 return;
             }
 
-            int minId = mapper.selectAsInt(getMinIdProvider());
-            int maxId = mapper.selectAsInt(getMaxIdProvider());
-            log.info("The min and max value of id is ({}, {})", minId, maxId);
-
-            List<RawRecItem> oneBatch = Lists.newArrayList();
-            int step = 1000;
-            int i = 0;
             int totalUpdated = 0;
-            while (oneBatch.size() < batchToUpdate) {
-                SelectStatementProvider selectProvider = getSelectLayoutProvider(project, limit, minId + step * i,
-                        RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED);
-                List<RawRecItem> rawRecItems = mapper.selectMany(selectProvider);
-                oneBatch.addAll(rawRecItems);
-                i++;
-                if (oneBatch.size() >= batchToUpdate) {
-                    updateCost(currentTime, session, mapper, oneBatch);
-                    totalUpdated += oneBatch.size();
-                }
-
-                if (minId + step * i > maxId) {
+            for (int i = 0;; i++) {
+                List<RawRecItem> rawRecItems = mapper.selectMany(getSelectLayoutProvider(project, batchToUpdate,
+                        batchToUpdate * i, RawRecItem.RawRecState.INITIAL, RawRecItem.RawRecState.RECOMMENDED));
+                int size = rawRecItems.size();
+                updateCost(currentTime, session, mapper, rawRecItems);
+                totalUpdated += size;
+                if (size < batchToUpdate) {
                     break;
                 }
             }
-            updateCost(currentTime, session, mapper, oneBatch);
-            totalUpdated += oneBatch.size();
             log.info("Update the cost of all {} raw recommendation takes {} ms", totalUpdated,
                     System.currentTimeMillis() - currentTime);
         }
     }
 
     private void updateCost(long currentTime, SqlSession session, RawRecItemMapper mapper, List<RawRecItem> oneBatch) {
+        if (oneBatch.isEmpty()) {
+            return;
+        }
+
         oneBatch.forEach(recItem -> {
             LayoutMetric.LatencyMap latencyMap = recItem.getLayoutMetric().getLatencyMap();
             recItem.setTotalLatencyOfLastDay(latencyMap.getLatencyByDate(System.currentTimeMillis() - MILLIS_PER_DAY));

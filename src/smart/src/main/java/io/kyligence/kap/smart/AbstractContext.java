@@ -195,7 +195,7 @@ public abstract class AbstractContext {
             item.setCreateTime(System.currentTimeMillis());
             item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
             item.setUuid(UUID.randomUUID().toString());
-            getIndexRexItemMap().putIfAbsent(layout.genUniqueFlag(), item);
+            getIndexRexItemMap().put(layout.genUniqueFlag(), item);
         }
     }
 }
