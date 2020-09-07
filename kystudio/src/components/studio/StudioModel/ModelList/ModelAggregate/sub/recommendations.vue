@@ -646,13 +646,6 @@ export default class IndexList extends Vue {
         }
       } else {
         this.validateData = {recs_to_add_layout, recs_to_remove_layout, list: []}
-        if (recs_to_remove_layout.length && !recs_to_add_layout.length) {
-          await this.$confirm(this.$t('deleteRecommendTip'), this.$t('deleteTitle'), {
-            confirmButtonText: this.$t('delete')
-          })
-        }
-        // const recs_to_add_layout = idList.filter(it => it.is_add)
-        // const recs_to_remove_layout = idList.filter(it => !it.is_add)
         this.accessApi(recs_to_add_layout, recs_to_remove_layout)
       }
     }).catch((e) => {
