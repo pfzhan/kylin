@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.util.JsonUtil;
@@ -69,6 +68,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -153,7 +153,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         log.info("start restore for {}", getTestConfig().getMetadataUrl());
         log.info("restore dir is {}", file.getAbsolutePath());
         val tool = new MetadataTool(getTestConfig());
-        tool.execute(new String[] { "-restore", "-dir", file.getAbsolutePath() });
+        tool.execute(new String[] { "-restore", "-dir", file.getAbsolutePath(), "--after-truncate" });
         log.info("restore finished for {}", getTestConfig().getMetadataUrl());
         long end = System.currentTimeMillis();
         log.info("usage time: {} seconds", (end - start) / 1000.0);
@@ -324,7 +324,8 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
 
             File projectJson = new File(dstFolder2 + File.separator, "project.json");
             var projectJsonContent = new String(Files.readAllBytes(projectJson.toPath()));
-            projectJsonContent = projectJsonContent.replaceAll("958983a5-fad8-4057-9d70-cd6e5a2374af", UUID.randomUUID().toString());
+            projectJsonContent = projectJsonContent.replaceAll("958983a5-fad8-4057-9d70-cd6e5a2374af",
+                    UUID.randomUUID().toString());
             Files.write(projectJson.toPath(), projectJsonContent.getBytes());
 
             val sub = "execute";

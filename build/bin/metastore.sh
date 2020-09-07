@@ -33,9 +33,9 @@ fi
 
 function help {
     echo "usage: metastore.sh backup METADATA_BACKUP_PATH(the default path is KYLIN_HOME/meta_backups/)"
-    echo "       metastore.sh restore METADATA_RESTORE_PATH"
+    echo "       metastore.sh restore METADATA_RESTORE_PATH [--after-truncate]"
     echo "       metastore.sh backup-project PROJECT_NAME METADATA_BACKUP_PATH(the default path is KYLIN_HOME/meta_backups/)"
-    echo "       metastore.sh restore-project PROJECT_NAME METADATA_RESTORE_PATH"
+    echo "       metastore.sh restore-project PROJECT_NAME METADATA_RESTORE_PATH [--after-truncate]"
     exit 1
 }
 
@@ -73,6 +73,7 @@ function turn_off_maintain_mode() {
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off
 }
 
+
 if [ "$1" == "backup" ]
 then
     BACKUP_OPTS="-backup"
@@ -88,10 +89,11 @@ then
 
 elif [ "$1" == "restore" ]
 then
-    if [ $# -eq 2 ]; then
+    if [ $# -ge 2 ]; then
         path=`cd $2 && pwd -P`
+        shift 2
         turn_on_maintain_mode
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path}
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} $*
         printRestoreResult $?
         turn_off_maintain_mode
     else
@@ -113,10 +115,12 @@ then
 
 elif [ "$1" == "restore-project" ]
 then
-    if [ $# -eq 3 ]; then
+    if [ $# -ge 3 ]; then
+        project=$2
         path=`cd $3 && pwd -P`
+        shift 3
         turn_on_maintain_mode
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project $2
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project ${project} $*
         printRestoreResult $?
         turn_off_maintain_mode
     else
