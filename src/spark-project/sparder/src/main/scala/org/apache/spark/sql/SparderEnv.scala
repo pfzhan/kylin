@@ -34,14 +34,22 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
+import org.apache.spark.sql.DDLDesc.DDLType
 import org.apache.spark.sql.KylinSession._
+import org.apache.spark.sql.catalyst.TableIdentifier
+import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, SessionCatalog}
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier}
+import org.apache.spark.sql.execution.QueryExecution
+import org.apache.spark.sql.execution.command.{AlterTableAddPartitionCommand, CreateDatabaseCommand, CreateTableCommand, CreateViewCommand, DropDatabaseCommand, DropTableCommand, ExecutedCommandExec, ShowCreateTableCommand, ShowPartitionsCommand}
 import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
+import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.Utils
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
+import scala.collection.JavaConverters._
 
 // scalastyle:off
 object SparderEnv extends Logging {

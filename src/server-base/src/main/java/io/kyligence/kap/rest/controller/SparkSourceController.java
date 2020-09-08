@@ -1,0 +1,127 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package io.kyligence.kap.rest.controller;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.spark.sql.AnalysisException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.kyligence.kap.rest.request.DDLRequest;
+import io.kyligence.kap.rest.response.DDLResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
+import io.kyligence.kap.rest.service.SparkSourceService;
+import lombok.extern.slf4j.Slf4j;
+
+@ConditionalOnProperty(name = "kylin.env.channel", havingValue = "cloud")
+@RestController
+@RequestMapping(value = "/api/spark_source", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON,
+        HTTP_VND_APACHE_KYLIN_JSON })
+@Slf4j
+public class SparkSourceController extends NBasicController {
+    @Autowired
+    private SparkSourceService sparkSourceService;
+
+    @PostMapping(value = "/execute")
+    @ResponseBody
+    public EnvelopeResponse<DDLResponse> executeSQL(@RequestBody DDLRequest request) {
+        DDLResponse ddlResponse = sparkSourceService.executeSQL(request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, ddlResponse, "");
+    }
+
+    @DeleteMapping(value = "/{database}/tables/{table}")
+    public EnvelopeResponse<String> dropTable(@PathVariable("database") String database,
+                                              @PathVariable("table") String table) throws AnalysisException {
+        sparkSourceService.dropTable(database, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/databases")
+    public EnvelopeResponse<List<String>> listDatabase() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listDatabase(), "");
+    }
+
+    @GetMapping(value = "/{database}/tables")
+    public EnvelopeResponse<List<TableNameResponse>> listTables(@PathVariable("database") String database,
+                                                                @RequestParam("project") String project) throws Exception {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listTables(database, project), "");
+    }
+
+    @GetMapping(value = "/{database}/{table}/columns")
+    public EnvelopeResponse listColumns(@PathVariable("database") String database,
+                                        @PathVariable("table") String table) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listColumns(database, table), "");
+    }
+
+    @GetMapping(value = "/{database}/{table}/desc")
+    public EnvelopeResponse<String> getTableDesc(@PathVariable("database") String database,
+                                                 @PathVariable("table") String table) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.getTableDesc(database, table), "");
+    }
+
+    @GetMapping(value = "{database}/{table}/has_partition")
+    public EnvelopeResponse<Boolean> hasPartition(@PathVariable("database") String database,
+                                                  @PathVariable("table") String table) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.hasPartition(database, table), "");
+    }
+
+    @GetMapping(value = "/{database}/exists")
+    public EnvelopeResponse<Boolean> databaseExists(@PathVariable("database") String database) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.databaseExists(database), "");
+    }
+
+    @GetMapping(value = "/{database}/{table}/exists")
+    public EnvelopeResponse<Boolean> tableExists(@PathVariable("database") String database,
+                                                 @PathVariable("table") String table) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.tableExists(database, table), "");
+    }
+
+    @GetMapping(value = "/load_samples")
+    public EnvelopeResponse<List<String>> loadSamples() throws IOException {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.loadSamples(), "");
+    }
+
+    @GetMapping(value = "/{database}/{table}/msck")
+    public EnvelopeResponse<List<String>> msck(@PathVariable("database") String database,
+                                               @PathVariable("table") String table) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.msck(database, table), "");
+    }
+
+}

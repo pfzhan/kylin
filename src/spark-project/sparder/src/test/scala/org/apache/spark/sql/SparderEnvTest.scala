@@ -53,6 +53,5 @@ class SparderEnvTest extends SparderBaseFunSuite {
 
     assert(1 == SparderEnv.getExecutorNum(sparkConf))
   }
-
 }
 
