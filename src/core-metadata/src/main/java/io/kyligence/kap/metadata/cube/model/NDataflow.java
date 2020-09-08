@@ -448,6 +448,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         segments.validate();
 
         this.segments = segments;
+        // need to offline model to avoid answering query
+        if (segments.isEmpty() && RealizationStatusEnum.ONLINE.equals(this.getStatus())) {
+            this.setStatus(RealizationStatusEnum.OFFLINE);
+        }
     }
 
     public String getOwner() {

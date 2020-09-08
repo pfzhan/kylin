@@ -67,7 +67,6 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -87,7 +86,6 @@ import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.BadModelException;
@@ -486,11 +484,7 @@ public class MetaStoreService extends BasicService {
             srcIndexPlan.setProject(project);
             srcIndexPlan.setMvcc(-1);
             targetIndexPlanManager.createIndexPlan(srcIndexPlan);
-
-            NDataflow dataFlow = targetDataFlowManager.createDataflow(srcIndexPlan,
-                    AclPermissionUtil.getCurrentUsername());
-            targetDataFlowManager.updateDataflow(dataFlow.getId(),
-                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+            targetDataFlowManager.createDataflow(srcIndexPlan, AclPermissionUtil.getCurrentUsername());
         }
     }
 

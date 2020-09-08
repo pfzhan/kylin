@@ -68,6 +68,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -91,6 +92,7 @@ import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -269,6 +271,8 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
         MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
         metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(importedModelUuid));
         NModelDescResponse modelDescResponse = modelService.getModelDesc("warningmodel1", "default");
+        val df = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(modelDescResponse.getUuid());
+        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.OFFLINE);
         Assert.assertNotNull(modelDescResponse);
         Assert.assertNotEquals(0L, modelDescResponse.getLastModified());
     }

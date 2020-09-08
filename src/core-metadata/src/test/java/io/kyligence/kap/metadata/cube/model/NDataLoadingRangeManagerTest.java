@@ -30,6 +30,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -296,10 +297,12 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
 
         NDataflowUpdate update = new NDataflowUpdate(dataflowManager.getDataflowByModelAlias("nmodel_basic").getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        update.setStatus(RealizationStatusEnum.ONLINE);
         dataflowManager.updateDataflow(update);
 
         update = new NDataflowUpdate(dataflowManager.getDataflowByModelAlias("nmodel_basic_inner").getUuid());
         update.setToUpdateSegs(segments2.toArray(new NDataSegment[segments.size()]));
+        update.setStatus(RealizationStatusEnum.ONLINE);
         dataflowManager.updateDataflow(update);
 
         val range = dataLoadingRangeManager.getQuerableSegmentRange(loadingRange);

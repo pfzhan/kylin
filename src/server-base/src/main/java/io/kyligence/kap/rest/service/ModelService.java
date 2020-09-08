@@ -1028,11 +1028,7 @@ public class ModelService extends BasicService {
         nDataModel.setMvcc(-1);
         changeModelOwner(nDataModel);
         val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
-
-        boolean forbiddenOnline = checkSCD2ForbiddenOnline(nDataModel, project);
-        RealizationStatusEnum realizationStatusEnum = forbiddenOnline ? RealizationStatusEnum.OFFLINE
-                : RealizationStatusEnum.ONLINE;
-        cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid(), realizationStatusEnum);
+        cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid(), RealizationStatusEnum.OFFLINE);
     }
 
     private void cloneIndexPlan(String modelId, String project, String owner, String newModelId,

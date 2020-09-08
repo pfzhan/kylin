@@ -39,6 +39,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -849,6 +850,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         Assert.assertEquals(0, df.getSegments().size());
         Assert.assertEquals(tableIndexCount,
                 df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
+        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
     @Test

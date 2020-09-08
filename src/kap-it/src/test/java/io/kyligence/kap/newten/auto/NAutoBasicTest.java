@@ -36,6 +36,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Throwables;
@@ -144,6 +145,7 @@ public class NAutoBasicTest extends NAutoTestBase {
     }
 
     @Test
+    @Ignore
     public void testUsedColumnsIsTomb() {
         String[] sqls = new String[] { "select lstg_format_name from test_kylin_fact group by lstg_format_name",
                 "select sum(price * item_count) from test_kylin_fact" };

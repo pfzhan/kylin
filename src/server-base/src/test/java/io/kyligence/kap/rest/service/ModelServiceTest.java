@@ -383,6 +383,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(20L, 30L));
+        dsMgr.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
 
         val models = modelService.getModels(df.getModelAlias(), getProject(), true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
@@ -899,6 +900,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, originIndexPlan.getToBeDeletedIndexes().size());
         IndexPlan clonedIndexPlan = indexPlanManager.getIndexPlan(newModels.get(0).getUuid());
         Assert.assertEquals(0, clonedIndexPlan.getToBeDeletedIndexes().size());
+        val df = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(newModels.get(0).getUuid());
+        Assert.assertEquals(df.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
     @Test
