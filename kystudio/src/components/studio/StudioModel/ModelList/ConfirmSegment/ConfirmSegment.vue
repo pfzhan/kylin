@@ -205,6 +205,9 @@ export default class ConfirmSegmentModal extends Vue {
   handleSelectSegments (selectedSegments) {
     this.selectedSegments = selectedSegments
     this.selectedSegmentIds = selectedSegments.map(segment => segment.id)
+    if (selectedSegments.length < 2) {
+      this.parallel_build_by_segment = false
+    }
   }
   selectable (row) {
     return (['ONLINE', 'WARNING']).includes(row.status_to_display)
@@ -216,6 +219,7 @@ export default class ConfirmSegmentModal extends Vue {
       this.selectedSegments = []
       this.selectedSegmentIds = []
       this.btnLoading = false
+      this.parallel_build_by_segment = false
     }, 200)
   }
   renderIndexAmountHeader (h, { column, $index }) {
