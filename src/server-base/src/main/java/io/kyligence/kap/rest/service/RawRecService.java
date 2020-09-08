@@ -40,7 +40,6 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -93,15 +92,7 @@ public class RawRecService {
         AbstractSemiContextV2 semiContextV2 = NSmartMaster.genOptRecommendationSemiV2(KylinConfig.getInstanceFromEnv(),
                 project, sqlList.toArray(new String[0]), null);
 
-        RawRecManager rawRecManager = RawRecManager.getInstance(semiContextV2.getProject());
-        Set<String> relatedModels = Sets.newHashSet();
-        semiContextV2.getModelContexts().forEach(context -> {
-            if (context.getTargetModel() == null) {
-                return;
-            }
-            relatedModels.add(context.getTargetModel().getUuid());
-        });
-        Map<String, RawRecItem> nonLayoutRecItemMap = rawRecManager.queryNonLayoutRecItems(relatedModels);
+        Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getRecItemMap();
 
         List<RawRecItem> ccRawRecItems = transferToCCRawRecItem(semiContextV2, nonLayoutRecItemMap);
         saveCCRawRecItems(ccRawRecItems, project);
@@ -212,8 +203,8 @@ public class RawRecService {
                 uniqueFlagToUuid.put(recEntity.getLayout().genUniqueFlag(), k);
             });
 
-            modelContext.getIndexRexItemMap().forEach((colOrder, layoutItem) -> {
-                layoutItem.updateLayoutInfo(targetModel, recItemMap);
+            modelContext.getIndexRexItemMap().forEach((itemUUID, layoutItem) -> {
+                layoutItem.updateLayoutContent(targetModel, recItemMap);
                 String uniqueString = layoutItem.getLayout().genUniqueFlag();
                 String uuid = uniqueFlagToUuid.get(uniqueString);
                 RawRecItem recItem;
@@ -302,8 +293,8 @@ public class RawRecService {
                     item.setCreateTime(measureItem.getCreateTime());
                     item.setUpdateTime(measureItem.getCreateTime());
                     item.setRecEntity(measureItem);
-                    item.setDependIDs(
-                            measureItem.genDependIds(uniqueRecItemMap, uniqueFlag, modelContext.getOriginModel()));
+                    item.setDependIDs(measureItem.genDependIds(uniqueRecItemMap, measureItem.getUniqueContent(),
+                            modelContext.getOriginModel()));
                 }
                 rawRecItems.add(item);
             });
@@ -330,7 +321,7 @@ public class RawRecService {
                     item.setUpdateTime(dimItem.getCreateTime());
                     item.setState(RawRecItem.RawRecState.INITIAL);
                     item.setRecEntity(dimItem);
-                    item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, uniqueFlag.split("__")[1]));
+                    item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, dimItem.getUniqueContent()));
                 }
                 rawRecItems.add(item);
             });

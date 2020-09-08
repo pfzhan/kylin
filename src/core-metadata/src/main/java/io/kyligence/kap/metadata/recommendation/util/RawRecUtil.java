@@ -46,7 +46,7 @@ import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 public class RawRecUtil {
 
     public static String dimUniqueFlag(TblColRef tblColRef, Map<String, ComputedColumnDesc> ccMap) {
-        return "d__" + colUniqueName(tblColRef, ccMap);
+        return colUniqueName(tblColRef, ccMap);
     }
 
     public static String meaUniqueFlag(NDataModel.Measure measure, Map<String, ComputedColumnDesc> ccMap) {

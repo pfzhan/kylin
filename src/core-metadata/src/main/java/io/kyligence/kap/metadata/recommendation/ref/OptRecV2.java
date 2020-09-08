@@ -95,7 +95,6 @@ public class OptRecV2 {
         this.config = KylinConfig.getInstanceFromEnv();
         this.uuid = uuid;
         this.project = project;
-        // cc cross model?
 
         allModelBasedRecItemMap = RawRecManager.getInstance(project).queryNonLayoutRecItems(Sets.newHashSet(uuid));
         allModelBasedRecItemMap.forEach((k, recItem) -> uniqueFlagToId.put(k, recItem.getId()));
@@ -394,6 +393,12 @@ public class OptRecV2 {
             ccRef = new CCRef(existCC, negRecItemId);
             ccRef.setExisted(true);
             ccRef.setCrossModel(false);
+            dataModel.getEffectiveCols().forEach((key, tblColRef) -> {
+                if (tblColRef.getIdentity().equalsIgnoreCase(existCC.getFullName())) {
+                    ccRefs.put(negRecItemId, columnRefs.get(key));
+                }
+            });
+            return;
         } else if (getProjectCCMap().containsKey(cc.getInnerExpression())) {
             ComputedColumnDesc existCC = getProjectCCMap().get(cc.getInnerExpression());
             ccRef = new CCRef(existCC, negRecItemId);

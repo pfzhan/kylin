@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.Map;
-
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
@@ -70,11 +68,6 @@ public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
     @Override
     public void saveMetadata() {
         // do nothing
-    }
-
-    @Override
-    public Map<String, String> getCCInnerExpToUniqueFlag() {
-        return getCcInnerExpToUniqueFlag();
     }
 
     @Override

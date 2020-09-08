@@ -37,4 +37,8 @@ public class RecItemV2 implements IKeep {
     private long id;
     @JsonProperty("create_time")
     private long createTime;
+    @JsonProperty("unique_content")
+    private String uniqueContent;
+    @JsonProperty("uuid")
+    private String uuid;
 }

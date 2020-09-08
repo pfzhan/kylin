@@ -40,6 +40,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
@@ -64,6 +65,8 @@ public abstract class AbstractContext {
     private final Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
     @Getter
     private final Map<NDataModel, OptimizeRecommendation> recommendationMap = Maps.newHashMap();
+    @Getter(lazy = true)
+    private final Map<String, RawRecItem> recItemMap = Maps.newHashMap();
 
     @Setter
     private boolean skipEvaluateCC;
@@ -95,10 +98,6 @@ public abstract class AbstractContext {
     public abstract void saveMetadata();
 
     public abstract String getIdentifier();
-
-    public Map<String, String> getCCInnerExpToUniqueFlag() {
-        return Maps.newHashMap();
-    }
 
     public void recordException(AbstractContext.NModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
@@ -148,6 +147,23 @@ public abstract class AbstractContext {
         private final Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
         @Setter
         private boolean needUpdateCC = false;
+        @Getter(lazy = true)
+        private final Map<String, String> uniqueContentToFlag = loadUniqueContentToFlag();
+
+        private Map<String, String> loadUniqueContentToFlag() {
+            Map<String, String> result = Maps.newHashMap();
+            if (!(getProposeContext() instanceof AbstractSemiContextV2)) {
+                return result;
+            }
+
+            String modelId = getTargetModel().getUuid();
+            getProposeContext().getRecItemMap().forEach((uniqueFlag, item) -> {
+                if (item.getModelID().equalsIgnoreCase(modelId)) {
+                    result.put(item.getRecEntity().getUniqueContent(), uniqueFlag);
+                }
+            });
+            return result;
+        }
 
         public NModelContext(AbstractContext proposeContext, ModelTree modelTree) {
             this.proposeContext = proposeContext;

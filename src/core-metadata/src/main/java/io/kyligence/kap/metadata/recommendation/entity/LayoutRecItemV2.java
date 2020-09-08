@@ -54,8 +54,6 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
     private LayoutEntity layout;
     @JsonProperty("is_agg")
     private boolean isAgg;
-    @JsonProperty("uuid")
-    private String uuid;
 
     public int[] genDependIds() {
         List<Integer> colOrder = layout.getColOrder();
@@ -66,17 +64,24 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         return arr;
     }
 
-    public void updateLayoutInfo(NDataModel dataModel, Map<String, RawRecItem> recItemMap) {
+    public void updateLayoutContent(NDataModel dataModel, Map<String, RawRecItem> recItemMap) {
         LayoutEntity layout = this.getLayout();
-        Map<String, ComputedColumnDesc> ccMap = getCcOnModels(dataModel);
+        Map<String, ComputedColumnDesc> ccMap = getCcNameMapOnModel(dataModel);
+        Map<String, RawRecItem> uniqueContentMap = Maps.newHashMap();
+        recItemMap.forEach((key, value) -> {
+            if (value.getModelID().equalsIgnoreCase(dataModel.getUuid())) {
+                uniqueContentMap.put(value.getRecEntity().getUniqueContent(), value);
+            }
+        });
+
         ImmutableList<Integer> originColOrder = layout.getColOrder();
         List<Integer> originShardCols = layout.getShardByColumns();
         List<Integer> originSortCols = layout.getSortByColumns();
         List<Integer> originPartitionCols = layout.getPartitionByColumns();
-        List<Integer> colOrderInDB = getColIDInDB(ccMap, dataModel, originColOrder, recItemMap);
-        List<Integer> shardColsInDB = getColIDInDB(ccMap, dataModel, originShardCols, recItemMap);
-        List<Integer> sortColsInDB = getColIDInDB(ccMap, dataModel, originSortCols, recItemMap);
-        List<Integer> partitionColsInDB = getColIDInDB(ccMap, dataModel, originPartitionCols, recItemMap);
+        List<Integer> colOrderInDB = getColIDInDB(ccMap, dataModel, originColOrder, uniqueContentMap);
+        List<Integer> shardColsInDB = getColIDInDB(ccMap, dataModel, originShardCols, uniqueContentMap);
+        List<Integer> sortColsInDB = getColIDInDB(ccMap, dataModel, originSortCols, uniqueContentMap);
+        List<Integer> partitionColsInDB = getColIDInDB(ccMap, dataModel, originPartitionCols, uniqueContentMap);
         layout.setColOrder(colOrderInDB);
         layout.setShardByColumns(shardColsInDB);
         layout.setSortByColumns(sortColsInDB);
@@ -87,20 +92,20 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         log.debug("Origin partition columns is {}, converted to {}", originPartitionCols, partitionColsInDB);
     }
 
-    private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccMap, NDataModel model, List<Integer> columnIDs,
-            Map<String, RawRecItem> uniqueRecItemMap) {
+    private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccNameMap, NDataModel model,
+            List<Integer> columnIDs, Map<String, RawRecItem> uniqueContentToRecItemMap) {
         List<Integer> colOrderInDB = Lists.newArrayListWithCapacity(columnIDs.size());
         columnIDs.forEach(colId -> {
             String key;
             if (colId < NDataModel.MEASURE_ID_BASE) {
                 TblColRef tblColRef = model.getEffectiveCols().get(colId);
-                key = RawRecUtil.dimUniqueFlag(tblColRef, ccMap);
+                key = RawRecUtil.dimUniqueFlag(tblColRef, ccNameMap);
             } else {
                 NDataModel.Measure measure = model.getEffectiveMeasures().get(colId);
-                key = RawRecUtil.meaUniqueFlag(measure, ccMap);
+                key = RawRecUtil.meaUniqueFlag(measure, ccNameMap);
             }
-            if (uniqueRecItemMap.containsKey(key)) {
-                colOrderInDB.add(-1 * uniqueRecItemMap.get(key).getId());
+            if (uniqueContentToRecItemMap.containsKey(key)) {
+                colOrderInDB.add(-1 * uniqueContentToRecItemMap.get(key).getId());
             } else {
                 colOrderInDB.add(colId);
             }
@@ -108,7 +113,7 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         return colOrderInDB;
     }
 
-    private Map<String, ComputedColumnDesc> getCcOnModels(NDataModel model) {
+    private Map<String, ComputedColumnDesc> getCcNameMapOnModel(NDataModel model) {
         Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
         model.getComputedColumnDescs().forEach(cc -> {
             String aliasDotName = cc.getTableAlias() + "." + cc.getColumnName();

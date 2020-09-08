@@ -110,7 +110,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             return validCCs;
         }
 
-        Map<String, String> ccInnerExpToUniqueFlag = modelContext.getProposeContext().getCCInnerExpToUniqueFlag();
+        Map<String, String> ccInnerExpToUniqueFlag = modelContext.getUniqueContentToFlag();
         List<NDataModel> otherModels = getOtherModels(dataModel);
         int index = 0;
         long currentTs = System.currentTimeMillis();
@@ -198,7 +198,9 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             CCRecItemV2 item = new CCRecItemV2();
             item.setCc(cc);
             item.setCreateTime(System.currentTimeMillis());
-            modelContext.getCcRecItemMap().putIfAbsent(cc.getUuid(), item);
+            item.setUuid(cc.getUuid());
+            item.setUniqueContent(cc.getInnerExpression());
+            modelContext.getCcRecItemMap().putIfAbsent(item.getUuid(), item);
         });
     }
 
@@ -263,7 +265,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
      * If the cardinality of a column is missing, return config "computed-column.suggestion.enabled-if-no-sampling"
      * @param colRefs TblColRef set
      * @param minCardinality minCardinality
-     * @return
      */
     private boolean checkColumnsMinCardinality(Collection<TblColRef> colRefs, long minCardinality) {
         for (TblColRef colRef : colRefs) {

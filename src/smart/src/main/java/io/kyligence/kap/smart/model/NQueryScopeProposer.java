@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -200,11 +201,19 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             if (!modelContext.getProposeContext().needCollectRecommendations()) {
                 return;
             }
+
+            String uniqueContent = RawRecUtil.dimUniqueFlag(tblColRef, ccMap);
+            if (modelContext.getUniqueContentToFlag().containsKey(uniqueContent)) {
+                return;
+            }
+
             DimensionRecItemV2 item = new DimensionRecItemV2();
             item.setColumn(column);
             item.setDataType(tblColRef.getDatatype());
             item.setCreateTime(System.currentTimeMillis());
-            modelContext.getDimensionRecItemMap().putIfAbsent(RawRecUtil.dimUniqueFlag(tblColRef, ccMap), item);
+            item.setUniqueContent(uniqueContent);
+            item.setUuid(String.format("dimension_%s", UUID.randomUUID().toString()));
+            modelContext.getDimensionRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {
@@ -244,10 +253,17 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 return;
             }
 
+            String uniqueContent = RawRecUtil.meaUniqueFlag(measure, ccMap);
+            if (modelContext.getUniqueContentToFlag().containsKey(uniqueContent)) {
+                return;
+            }
+
             MeasureRecItemV2 item = new MeasureRecItemV2();
             item.setMeasure(measure);
             item.setCreateTime(System.currentTimeMillis());
-            modelContext.getMeasureRecItemMap().putIfAbsent(RawRecUtil.meaUniqueFlag(measure, ccMap), item);
+            item.setUniqueContent(uniqueContent);
+            item.setUuid(String.format("measure_%s", UUID.randomUUID().toString()));
+            modelContext.getMeasureRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 
         private void build() {
