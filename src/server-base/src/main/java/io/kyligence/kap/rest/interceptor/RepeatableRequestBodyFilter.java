@@ -32,8 +32,10 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
+import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -53,10 +55,14 @@ public class RepeatableRequestBodyFilter implements Filter {
         try {
             Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
             String project = projectInfo.getFirst();
+            if (!Strings.isEmpty(project) && !project.equalsIgnoreCase("_global")) {
+                MDC.put("request.project", String.format("[%s] ", project));
+            }
             request = projectInfo.getSecond();
             NProjectLoader.updateCache(project);
             chain.doFilter(request, response);
         } finally {
+            MDC.remove("request.project");
             QueryContext.current().close();
             NProjectLoader.removeCache();
         }
