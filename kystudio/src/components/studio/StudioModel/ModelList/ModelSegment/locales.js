@@ -48,7 +48,7 @@ export default {
     modifyTime: 'Last Updated Time',
     sourceRecords: 'Source Records',
     segmentList: 'Segment List',
-    segmentSubTitle: 'Add segments to define the model’s data range for serving queries.'
+    segmentSubTitle: 'Add segments to define the model\'s data range for serving queries.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',

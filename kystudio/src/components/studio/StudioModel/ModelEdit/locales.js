@@ -71,7 +71,7 @@ export default {
     ignore: 'Ignore',
     saveAndSubmitJobSuccess: 'Successfully saved the changes, and submitted the job of loading data',
     tableHasOppositeLinks: 'A reserved join condition already exists between the tables. Please click on the join condition to modify.',
-    changeTableJoinCondition: 'Modifying the table’s type would affect the existing join condition. Please delete or modify the join condition first.',
+    changeTableJoinCondition: 'Modifying the table\'s type would affect the existing join condition. Please delete or modify the join condition first.',
     lockupTableToFactTableTip: 'Please add join condition from the fact table to a look up table.',
     noStarOrSnowflakeSchema: 'This join condition is not allowed in neither <a href="https://en.wikipedia.org/wiki/Star_schema" target="_blank">star</a> or <a href="https://en.wikipedia.org/wiki/Snowflake_schema" target="_blank">snowflake</a> schema. Please adjust and try again.'
   },

@@ -24,7 +24,7 @@ export default {
     dataAlertTitle: 'Notification',
     projectDetailsTitle: '{projectName} Data Volume Detail',
     noticeLabel: 'Notification：',
-    alertCapacityText: 'Send notification to following email addresses when the amount of data volume used exceeds 80% of the license’s limit:',
+    alertCapacityText: 'Send notification to following email addresses when the amount of data volume used exceeds 80% of the license\'s limit:',
     emailPlaceholder: 'Separate multiple email addresses with commas',
     errorEmailFormat: 'Please input vaild email.',
     noEmail: 'Please input email',

@@ -13,7 +13,7 @@ export default {
     suggestion: 'Suggestion:',
     filesSizeError: 'The total file size cannot exceed 5 MB',
     fileTypeError: 'Invalid file format。',
-    uploadFileTips: 'Please upload .txt or .sql file which’s no larger than 5MB in total. Please use semicolon to separate multiple SQLs.',
+    uploadFileTips: 'Please upload .txt or .sql file which\'s no larger than 5MB in total. Please use semicolon to separate multiple SQLs.',
     submitConfirm: '{unCheckedSQL} validated SQL statements are not selected, do you want to ignore them and submit anyway?',
     addSuccess: '{sqlsNum} new SQL statement(s) has(have) been imported successfully. {importedNum} of them has(have) been added to the waiting list',
     end: '.',

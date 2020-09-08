@@ -4,7 +4,7 @@ export default {
     dimMeasDesc: 'To be used for indexes, please set dimensions and measures here after adding the tables.',
     iKnow: 'I Know',
     segmentTitle: 'Define the data range for serving queries 3/3',
-    segmentSubTitle: 'Add segments to define the model’s data range for serving queries.',
+    segmentSubTitle: 'Add segments to define the model\'s data range for serving queries.',
     ignore: 'Ignore',
     next: 'Next',
     pre: 'Previous',

@@ -322,9 +322,9 @@ import filterElements from '../../../../../../filter/index'
       onlyAcceptDelete: 'Successfully deleted {delLength} index(es). ',
       buildIndexTip: ' Build Index',
       buildIndex: 'Build Index',
-      batchBuildSubTitle: 'Please choose which data ranges you’d like to build with the added indexes.',
+      batchBuildSubTitle: 'Please choose which data ranges you\'d like to build with the added indexes.',
       onlyStartLetters: 'Only supports starting with a letter',
-      usedInOtherModel: 'Can’t rename this computed column, as it’s been used in other models.'
+      usedInOtherModel: 'Can\'t rename this computed column, as it\'s been used in other models.'
     },
     'zh-cn': {
       recommendations: '优化建议',
