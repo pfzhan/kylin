@@ -466,12 +466,14 @@ public class MetadataTool extends ExecutableApplication {
         destResources = destResources == null ? Collections.EMPTY_SET : destResources;
         srcResources = srcResources == null ? Collections.EMPTY_SET : srcResources;
 
+        logger.info("Start insert metadata resource...");
         val insertRes = Sets.difference(srcResources, destResources);
         for (val res : insertRes) {
             val metadataRaw = restoreResourceStore.getResource(res);
             threadViewRS.checkAndPutResource(res, metadataRaw.getByteSource(), -1L);
         }
 
+        logger.info("Start update metadata resource...");
         val updateRes = Sets.intersection(destResources, srcResources);
         for (val res : updateRes) {
             val raw = currentResourceStore.getResource(res);
@@ -479,6 +481,7 @@ public class MetadataTool extends ExecutableApplication {
             threadViewRS.checkAndPutResource(res, metadataRaw.getByteSource(), raw.getMvcc());
         }
         if (delete) {
+            logger.info("Start delete metadata resource...");
             val deleteRes = Sets.difference(destResources, srcResources);
             for (val res : deleteRes) {
                 threadViewRS.deleteResource(res);

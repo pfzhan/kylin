@@ -74,6 +74,23 @@ function turn_off_maintain_mode() {
 }
 
 
+function restore_all() {
+        local path=`cd $1 && pwd -P`
+        turn_on_maintain_mode
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} ${2}
+        printRestoreResult $?
+        turn_off_maintain_mode
+}
+
+function restore_project() {
+        local path=`cd $1 && pwd -P`
+        turn_on_maintain_mode
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project ${2} ${3}
+        printRestoreResult $?
+        turn_off_maintain_mode
+}
+
+
 if [ "$1" == "backup" ]
 then
     BACKUP_OPTS="-backup"
@@ -89,13 +106,10 @@ then
 
 elif [ "$1" == "restore" ]
 then
-    if [ $# -ge 2 ]; then
-        path=`cd $2 && pwd -P`
-        shift 2
-        turn_on_maintain_mode
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} $*
-        printRestoreResult $?
-        turn_off_maintain_mode
+    if [ $# -eq 2 ]; then
+        restore_all ${2}
+    elif [ $# -eq 3 -a "$3" == "--after-truncate" ]; then
+        restore_all ${2} "--after-truncate"
     else
        help
     fi
@@ -115,14 +129,10 @@ then
 
 elif [ "$1" == "restore-project" ]
 then
-    if [ $# -ge 3 ]; then
-        project=$2
-        path=`cd $3 && pwd -P`
-        shift 3
-        turn_on_maintain_mode
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -restore -dir ${path} -project ${project} $*
-        printRestoreResult $?
-        turn_off_maintain_mode
+    if [ $# -eq 3 ]; then
+        restore_project ${3} ${2}
+    elif [ $# -eq 4 -a "$4" == "--after-truncate" ]; then
+        restore_project ${3} ${2} "--after-truncate"
     else
         help
     fi
