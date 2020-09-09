@@ -45,9 +45,9 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 
+import io.kyligence.kap.common.util.InfluxDBUtils;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 
 public class NMetricsController {
     private static final Logger logger = LoggerFactory.getLogger(NMetricsController.class);
@@ -79,16 +79,15 @@ public class NMetricsController {
         return defaultMetricRegistry;
     }
 
-    public static InfluxDB getDefaultInfluxDb() {
+    public static InfluxDB getDefaultInfluxDb() throws Exception {
 
         if (defaultInfluxDb == null) {
             synchronized (NMetricsController.class) {
                 if (defaultInfluxDb == null) {
                     final KapConfig config = KapConfig.getInstanceFromEnv();
 
-                    defaultInfluxDb = InfluxDBFactory.connect(
-                            new StringBuilder("http://").append(config.influxdbAddress()).toString(),
-                            config.influxdbUsername(), config.influxdbPassword());
+                    defaultInfluxDb = InfluxDBUtils.getInfluxDBInstance(config.influxdbAddress(), config.influxdbUsername(), config.influxdbPassword(),
+                            config.isInfluxdbHttpsEnabled(), config.isInfluxdbUnsafeSslEnabled());
 
                     defaultInfluxDb.setDatabase(config.getMetricsDbNameWithMetadataUrlPrefix());
                     defaultInfluxDb.setRetentionPolicy(KE_METRICS_RP);

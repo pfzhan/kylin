@@ -52,7 +52,7 @@ public class InfluxDBInstanceTest extends NLocalFileMetadataTestCase {
     private InfluxDBInstance influxDBInstance;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         createTestMetadata();
         influxDBInstance = new InfluxDBInstance(mockInfluxDB(), "KE_HISTORY", "KE_MONITOR_RP");
     }

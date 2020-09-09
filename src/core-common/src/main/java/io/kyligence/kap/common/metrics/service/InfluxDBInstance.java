@@ -24,26 +24,28 @@
 
 package io.kyligence.kap.common.metrics.service;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Pong;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
-import lombok.Getter;
-import lombok.val;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.common.util.InfluxDBUtils;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Pong;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
+import lombok.Getter;
+import lombok.val;
 
 @Getter
 public class InfluxDBInstance {
@@ -77,7 +79,7 @@ public class InfluxDBInstance {
         return kylinConfig.getMetadataUrlPrefix() + "_" + KapConfig.wrap(kylinConfig).getMonitorRetentionPolicy();
     }
 
-    public InfluxDBInstance(KylinConfig kylinConfig) {
+    public InfluxDBInstance(KylinConfig kylinConfig) throws Exception {
         this.config = kylinConfig;
         this.database = generateDatabase(kylinConfig);
         this.retentionPolicyName = generateRetentionPolicy(kylinConfig);
@@ -89,17 +91,17 @@ public class InfluxDBInstance {
     }
 
     public InfluxDBInstance(String database, String retentionPolicyName, String retentionDuration, String shardDuration,
-            int replicationFactor, boolean useDefault) {
+            int replicationFactor, boolean useDefault) throws Exception {
         this(null, database, retentionPolicyName, retentionDuration, shardDuration, replicationFactor, useDefault);
     }
 
-    public InfluxDBInstance(InfluxDB influxDB, String database, String retentionPolicyName) {
+    public InfluxDBInstance(InfluxDB influxDB, String database, String retentionPolicyName) throws Exception {
         this(influxDB, database, retentionPolicyName, RETENTION_DURATION, SHARD_DURATION, REPLICATION_FACTOR,
                 USE_DEFAULT);
     }
 
     public InfluxDBInstance(InfluxDB influxDB, String database, String retentionPolicyName, String retentionDuration,
-            String shardDuration, int replicationFactor, boolean useDefault) {
+            String shardDuration, int replicationFactor, boolean useDefault) throws Exception {
 
         this.influxDB = influxDB;
 
@@ -115,16 +117,18 @@ public class InfluxDBInstance {
         initInfluxDB();
     }
 
-    private void initInfluxDB() {
+    private void initInfluxDB() throws Exception {
         if (null == influxDB) {
             val kapConfig = KapConfig.wrap(config);
             final String addr = kapConfig.influxdbAddress();
             final String username = kapConfig.influxdbUsername();
             final String password = kapConfig.influxdbPassword();
+            final boolean enableHttps = kapConfig.isInfluxdbHttpsEnabled();
+            final boolean enableUnsafeSsl = kapConfig.isInfluxdbUnsafeSslEnabled();
 
             logger.info("Init influxDB, address: {}, username: {}", addr, username);
 
-            influxDB = InfluxDBFactory.connect("http://" + addr, username, password);
+            influxDB = InfluxDBUtils.getInfluxDBInstance(addr, username, password, enableHttps, enableUnsafeSsl);
         }
 
         checkDatabaseAndRetentionPolicy();

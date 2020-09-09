@@ -359,6 +359,14 @@ public class KapConfig {
         return password;
     }
 
+    public boolean isInfluxdbHttpsEnabled() {
+        return Boolean.valueOf(config.getOptional("kylin.influxdb.https.enabled", FALSE));
+    }
+
+    public boolean isInfluxdbUnsafeSslEnabled() {
+        return Boolean.valueOf(config.getOptional("kylin.influxdb.https.unsafe-ssl.enabled", TRUE));
+    }
+
     public int getInfluxDBFlushDuration() {
         return Integer.valueOf(config.getOptional("kylin.influxdb.flush-duration", "3000"));
     }

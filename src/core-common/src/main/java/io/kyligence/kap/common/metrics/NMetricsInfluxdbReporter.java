@@ -100,7 +100,7 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
         });
     }
 
-    private void startDailyReport(NMetricsConfig config) {
+    private void startDailyReport(NMetricsConfig config) throws Exception {
         influxDBInstance = new InfluxDBInstance(config.getDailyMetricsDB(), DAILY_METRICS_RETENTION_POLICY_NAME, "0d",
                 "30d", 2, true);
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(() -> {
@@ -141,7 +141,7 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
     }
 
     @Override
-    public void init(KapConfig kapConfig) {
+    public void init(KapConfig kapConfig) throws Exception {
 
         synchronized (this) {
             if (!initialized.get()) {

@@ -34,10 +34,11 @@ datasources:
     type: influxdb
     access: proxy
     orgId: 1
-    url: http://$INFLUXDB_ADDRESS
+    url: $INFLUXDB_PROTOCOL://$INFLUXDB_ADDRESS
     password: $INFLUXDB_PASSWORD
     user: $INFLUXDB_USERNAME
     database: $KE_METRICS_DATABASE
     readOnly: false
-
+    jsonData:
+      tlsSkipVerify: true
 

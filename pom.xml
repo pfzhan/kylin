@@ -185,6 +185,7 @@
             **/io/kyligence/kap/common/logging/QueryLoggerAdapter.java,
             **/io/kyligence/kap/common/metrics/reporter/InfluxdbReporter.java,
             **/io/kyligence/kap/common/metrics/NMetricsInfluxdbReporter.java,
+            **/io/kyligence/kap/common/util/InfluxDBUtils.java,
             **/io/kyligence/kap/common/metrics/NMetricsController.java,
             **/io/kyligence/kap/common/metrics/NMetricsGroup.java,
             **/io/kyligence/kap/rest/config/initialize/BootstrapCommand.java,

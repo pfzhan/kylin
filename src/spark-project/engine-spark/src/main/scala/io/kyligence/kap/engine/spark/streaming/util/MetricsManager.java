@@ -15,7 +15,7 @@ public class MetricsManager {
   private static final Logger logger = LoggerFactory
       .getLogger(MetricsManager.class);
 
-  public static void startReporter() {
+  public static void startReporter() throws Exception {
     val config = KylinConfig.getInstanceFromEnv();
     if (config.getStreamingMetricsEnabled()) {
 

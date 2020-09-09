@@ -42,7 +42,7 @@ public class MonitorDao {
     private InfluxDBInstance influxDBInstance;
     public static final String QUERY_METRICS_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE create_time >= %d AND create_time < %d";
 
-    private MonitorDao() {
+    private MonitorDao() throws Exception {
         this.influxDBInstance = new InfluxDBInstance(KylinConfig.getInstanceFromEnv());
     }
 
