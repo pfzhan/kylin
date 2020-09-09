@@ -41,6 +41,7 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
@@ -95,6 +96,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
         Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
     }
 
+    @Ignore
     @Test
     public void testExecuteSQL2() {
         DDLRequest ddlRequest = new DDLRequest();
