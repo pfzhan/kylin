@@ -60,12 +60,14 @@ public class MaintainModeTool extends ExecutableApplication {
     private String owner;
     private KylinConfig config;
     private EpochManager epochManager;
+    private boolean hiddenOutput;
 
     public MaintainModeTool() {
     }
 
     public MaintainModeTool(String reason) {
         this.reason = reason;
+        this.hiddenOutput = true;
     }
 
     private static final Option OPTION_MaintainMode_ON = new Option("on", "on", false, "turn on maintain mode.");
@@ -76,6 +78,7 @@ public class MaintainModeTool extends ExecutableApplication {
             "specify projects to turn on or turn off maintain mode.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
     private static final String LEADER_RACE_KEY = "kylin.server.leader-race.enabled";
+    private static final Option OPTION_HIDDEN_OUTPUT = new Option("hidden", "hidden-output", true, "only show output in logs");
 
     @Override
     protected Options getOptions() {
@@ -85,6 +88,7 @@ public class MaintainModeTool extends ExecutableApplication {
         options.addOption(OPTION_PROJECTS);
         options.addOption(OPTION_HELP);
         options.addOption(OPTION_MaintainMode_OFF);
+        options.addOption(OPTION_HIDDEN_OUTPUT);
         return options;
     }
 
@@ -124,10 +128,10 @@ public class MaintainModeTool extends ExecutableApplication {
     }
 
     public void markEpochs() {
-        System.out.println("Start to mark epoch with reason: " + reason);
+        print("Start to mark epoch with reason: " + reason);
         Pair<Boolean, String> maintenanceModeDetail = checkMaintenanceMode(false);
         if (maintenanceModeDetail.getFirst()) {
-            System.out.printf("The system is under maintenance mode for [%s]. Please try again later.", maintenanceModeDetail.getSecond());
+            System.out.println(String.format("The system is under maintenance mode for [%s]. Please try again later.", maintenanceModeDetail.getSecond()));
             log.warn("The system is under maintenance mode for [{}]. Please try again later.", maintenanceModeDetail.getSecond());
             System.exit(1);
         }
@@ -160,7 +164,7 @@ public class MaintainModeTool extends ExecutableApplication {
         } finally {
             System.clearProperty(LEADER_RACE_KEY);
         }
-        System.out.println("Mark epoch success with reason: " + reason);
+        print("Mark epoch success with reason: " + reason);
     }
 
     private void markOwnerWithRetry(int retryTimes, ResourceStore store, String prj) throws Exception {
@@ -178,7 +182,7 @@ public class MaintainModeTool extends ExecutableApplication {
 
     public void releaseEpochs() {
         try {
-            System.out.println("Start to release epoch");
+            print("Start to release epoch");
             Pair<Boolean, String> maintenanceModeDetail = checkMaintenanceMode(true);
             if (!maintenanceModeDetail.getFirst()) {
                 System.out.println("System is not in maintenance mode.");
@@ -200,7 +204,7 @@ public class MaintainModeTool extends ExecutableApplication {
         } finally {
             System.clearProperty(LEADER_RACE_KEY);
         }
-        System.out.println("Release epoch success");
+        print("Release epoch success");
     }
 
     private boolean printUsage(OptionsHelper optionsHelper) {
@@ -220,6 +224,9 @@ public class MaintainModeTool extends ExecutableApplication {
         if (optionsHelper.hasOption(OPTION_PROJECTS)) {
             this.projects = Lists.newArrayList(optionsHelper.getOptionValue(OPTION_PROJECTS).split(","));
         }
+        if (optionsHelper.hasOption(OPTION_HIDDEN_OUTPUT)) {
+            this.hiddenOutput = Boolean.parseBoolean(optionsHelper.getOptionValue(OPTION_HIDDEN_OUTPUT));
+        }
         this.reason = optionsHelper.getOptionValue(OPTION_MaintainMode_ON_REASON);
         if (maintainModeOn && StringUtils.isEmpty(reason)) {
             log.warn("You need to use the argument -reason to explain why you turn on maintenance mode");
@@ -229,7 +236,7 @@ public class MaintainModeTool extends ExecutableApplication {
         log.info("MaintainModeTool has option maintain mode on: {}{}{}", maintainModeOn,
                 (StringUtils.isEmpty(reason) ? "" : " reason: " + reason),
                 (projects.size() > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
-        System.out.println(String.format("MaintainModeTool has option maintain mode on: %s%s%s", maintainModeOn,
+        print(String.format("MaintainModeTool has option maintain mode on: %s%s%s", maintainModeOn,
                 (StringUtils.isEmpty(reason) ? "" : " reason: " + reason),
                 (projects.size() > 0 ? " projects: " + optionsHelper.getOptionValue(OPTION_PROJECTS) : "")));
     }
@@ -245,6 +252,13 @@ public class MaintainModeTool extends ExecutableApplication {
         }
 
         return Pair.newPair(needInMaintenanceMode, null);
+    }
+
+    private void print(String output) {
+        if (!hiddenOutput) {
+            System.out.println(output);
+        }
+        log.info(output);
     }
 
     public static void main(String[] args) {

@@ -62,7 +62,7 @@ function printRestoreResult() {
 }
 
 function turn_on_maintain_mode() {
-  ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool'
+  ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool' -hidden-output true
   ret=$?
   if [[ $ret != 0 ]]; then
       exit $ret
@@ -70,7 +70,7 @@ function turn_on_maintain_mode() {
 }
 
 function turn_off_maintain_mode() {
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off -hidden-output true
 }
 
 
