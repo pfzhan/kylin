@@ -27,10 +27,11 @@
           show-overflow-tooltip
           :render-header="renderIndexAmountHeader">
           <template slot-scope="scope">
-              <span>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
+              <span v-if="['LOADING', 'REFRESHING', 'MERGING'].indexOf(scope.row.status_to_display) !== -1">--/{{scope.row.index_count_total}}</span>
+              <span v-else>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
           </template>
         </el-table-column>
-        <el-table-column width="90" prop="status" :label="$t('kylinLang.common.status')">
+        <el-table-column width="114" prop="status" :label="$t('kylinLang.common.status')">
           <template slot-scope="scope">
             <el-tag size="mini" :type="getTagType(scope.row)">{{scope.row.status_to_display}}</el-tag>
           </template>
