@@ -24,11 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.DDLRequest;
-import io.kyligence.kap.rest.response.DDLResponse;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -46,14 +48,14 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.DDLRequest;
+import io.kyligence.kap.rest.response.DDLResponse;
 
+@Ignore
 public class SparkSourceServiceTest extends ServiceTestBase {
 
     protected static SparkSession ss;
@@ -96,7 +98,6 @@ public class SparkSourceServiceTest extends ServiceTestBase {
         Assert.assertEquals(ddlDesc, sparkSourceService.executeSQL(sql));
     }
 
-    @Ignore
     @Test
     public void testExecuteSQL2() {
         DDLRequest ddlRequest = new DDLRequest();
