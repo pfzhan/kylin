@@ -39,7 +39,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -115,10 +114,6 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
                 HDFSUtils.listSortedFileFrom(snapshotPath);
                 Path segmentFilePath = new Path(workingDirectory + entry.getValue());
-                if (!segmentFilePath.getFileSystem(HadoopUtil.getCurrentConfiguration()).exists(segmentFilePath)) {
-                    log.warn("{} not exist, Skip update.", segmentFilePath);
-                    continue;
-                }
                 FileStatus segmentFile = HDFSUtils.getFileStatus(segmentFilePath);
                 FileStatus currentFile = null;
                 if (tableDesc.getLastSnapshotPath() != null) {
@@ -126,20 +121,32 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 }
                 val currentModificationTime = currentFile == null ? 0L : currentFile.getModificationTime();
                 val currentPath = currentFile == null ? "null" : currentFile.getPath().toString();
-                if (lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
+                TableDesc copyDesc = manager.copyForWrite(tableDesc);
+                if (segmentFile != null && lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
                     log.info("Update snapshot table {} : from {} to {}", entry.getKey(), currentModificationTime,
                             lastFile.getModificationTime());
                     log.info("Update snapshot table {} : from {} to {}", entry.getKey(), currentPath,
                             segmentFile.getPath());
-                    TableDesc copyDesc = manager.copyForWrite(tableDesc);
                     copyDesc.setLastSnapshotPath(entry.getValue());
                     needUpdateTableDescs.add(copyDesc);
                     snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
                             survivalTimeThreshold, segmentFile.getModificationTime()));
+                } else if (copyDesc.getLastSnapshotPath() == null && System.currentTimeMillis() - segment.getLastBuildTime() < survivalTimeThreshold) {
+                    /**
+                     * when tableDesc's lastSnapshot is null and snapshot within survival time, force update snapshot table.
+                     * see https://olapio.atlassian.net/browse/KE-17343
+                     */
+                    log.info("update snapshot table {} when tableDesc's lastSnapshot is null and snapshot within survival time", entry.getKey());
+                    copyDesc.setLastSnapshotPath(entry.getValue());
+                    needUpdateTableDescs.add(copyDesc);
                 } else {
-                    log.info(
-                            "Skip update snapshot table because current segment snapshot table is too old. Current segment snapshot table ts is: {}",
-                            segmentFile.getModificationTime());
+                    if (segmentFile != null) {
+                        log.info(
+                                "Skip update snapshot table because current segment snapshot table is too old. Current segment snapshot table ts is: {}",
+                                segmentFile.getModificationTime());
+                    } else {
+                        log.info("{}'s FileStatus is null, Skip update.", segmentFilePath);
+                    }
                 }
             }
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
