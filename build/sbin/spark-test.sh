@@ -248,10 +248,6 @@ then
 
     HIVE_TEST_DB=default
 
-    CHECK_TMP_DIR=${WORKING_DIR}/tmp
-    CHECK_TABLE_NAME="kylin_table_for_sparktest"
-    HIVE_TEST_TABLE=${HIVE_TEST_DB}.${CHECK_TABLE_NAME}
-    HIVE_TEST_TABLE_LOCATION=${KAP_HDFS_WORKING_DIR}/"_check_env_tmp"/${CHECK_TABLE_NAME}
     SPARK_HQL_TMP_FILE=spark_hql_tmp__${RANDOM}
     spark_sql="${SPARK_HOME}/bin/spark-sql"
     spark_sql_command="export HADOOP_CONF_DIR=${kylin_hadoop_conf_dir} && ${spark_sql} ${engineConfStr} -f ${SPARK_HQL_TMP_FILE}"
@@ -261,9 +257,7 @@ then
 
     # safeguard cleanup
     verbose "Safeguard cleanup..."
-
     rm -f ${SPARK_HQL_TMP_FILE}
-    hadoop fs -rm -R -skipTrash "${WORKING_DIR}/_check_env_tmp/"
     exit 0
 else
     quit "usage: spark-test.sh test"
