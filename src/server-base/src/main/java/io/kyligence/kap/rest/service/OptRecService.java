@@ -154,6 +154,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         private void shiftLayoutHitCount(String project, String modelUuid, List<RawRecItem> rawRecItems) {
+            if (CollectionUtils.isEmpty(rawRecItems)) {
+                return;
+            }
             Set<Long> layoutsToRemove = Sets.newHashSet();
             rawRecItems.forEach(rawRecItem -> {
                 long layoutId = RawRecUtil.getLayout(rawRecItem).getId();
@@ -178,6 +181,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         private void rewriteModel(List<RawRecItem> recItems) {
+            if (CollectionUtils.isEmpty(recItems)) {
+                return;
+            }
             logBeginRewrite("Model");
             modelManager.updateDataModel(recommendation.getUuid(), copyForWrite -> {
                 copyForWrite.getAllNamedColumns().forEach(column -> {
@@ -214,10 +220,15 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 }
 
                 // Protect the model from being damaged
-                NDataModel.checkDuplicateColumn(copyForWrite.getAllNamedColumns());
-                NDataModel.checkIdOrderOfColumn(copyForWrite.getAllNamedColumns());
-                NDataModel.checkDuplicateMeasure(copyForWrite.getAllMeasures());
-                NDataModel.checkIdOrderOfMeasure(copyForWrite.getAllMeasures());
+                log.info(copyForWrite.getUuid());
+                List<NDataModel.NamedColumn> existedColumns = copyForWrite.getAllNamedColumns().stream()
+                        .filter(NDataModel.NamedColumn::isExist).collect(Collectors.toList());
+                List<NDataModel.Measure> existedMeasure = copyForWrite.getAllMeasures().stream()
+                        .filter(measure -> !measure.isTomb()).collect(Collectors.toList());
+                NDataModel.checkDuplicateColumn(existedColumns);
+                NDataModel.checkIdOrderOfColumn(existedColumns);
+                NDataModel.checkDuplicateMeasure(existedMeasure);
+                NDataModel.checkIdOrderOfMeasure(existedMeasure);
                 NDataModel.checkDuplicateCC(copyForWrite.getComputedColumnDescs());
             });
             logFinishRewrite("Model");
@@ -302,6 +313,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         private void rewriteIndexPlan(List<RawRecItem> recItems) {
+            if (CollectionUtils.isEmpty(recItems)) {
+                return;
+            }
             logBeginRewrite("augment IndexPlan");
             indexPlanManager.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
@@ -351,6 +365,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
 
         private void reduceIndexPlan(List<RawRecItem> recItems) {
+            if (CollectionUtils.isEmpty(recItems)) {
+                return;
+            }
             logBeginRewrite("reduce IndexPlan");
             indexPlanManager.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
