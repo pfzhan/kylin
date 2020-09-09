@@ -74,6 +74,7 @@ import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -306,6 +307,7 @@ public class RestClient {
             }
         } finally {
             cleanup(post, response);
+            tryCatchUp();
         }
         return response;
     }
@@ -503,6 +505,15 @@ public class RestClient {
             cleanup(put, response);
         }
         return true;
+    }
+
+    private void tryCatchUp() {
+        try {
+            ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+            store.getAuditLogStore().catchupManuallyWithTimeOut(store);
+        } catch (Exception e) {
+            logger.error("Failed to catchup manually.", e);
+        }
     }
 
 }
