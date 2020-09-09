@@ -35,7 +35,7 @@ export default {
     refreshError: 'Failed to refresh data source.',
     noSourceData: 'No data source information. Please try refreshing.<br/>Be sure that active job node is available now, and you have permission to access the source tables in Hive.',
     loadTableTips1_1: 'Once a database was selected, ',
-    loadTableTips1_2: 'all the unloaded tables',
+    loadTableTips1_2: 'all the unloaded tables ',
     loadTableTips1_3: 'from it were selected as well.',
     loadTableTips2_1: 'You may ',
     loadTableTips2_2: 'manually input the database or table name',

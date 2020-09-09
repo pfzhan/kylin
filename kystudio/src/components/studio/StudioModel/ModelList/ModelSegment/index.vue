@@ -158,6 +158,61 @@
       </table>
     </el-dialog>
 
+    <el-dialog
+      :title="$t('refreshSegmentsTitle')"
+      append-to-body
+      limited-area
+      class="refresh-comfirm"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      :visible.sync="isShowRefreshConfirm"
+      width="480px">
+      <el-alert type="tip" show-icon class="ksd-ptb-0" :show-background="false" :closable="false">
+        <span v-if="detailTableData.length">{{$t('confirmRefreshSegments2')}}</span>
+        <span v-else>{{$t('confirmRefreshSegments')}}</span>
+      </el-alert>
+      <div class="ksd-mt-10" v-if="detailTableData.length">
+        <el-radio v-model="refreshType" label="refreshOrigin">{{$t('buildCurrentIndexes')}}</el-radio>
+        <el-radio v-model="refreshType" label="refreshAll">{{$t('buildAllIndexes')}}</el-radio>
+      </div>
+      <el-alert v-if="detailTableData.length && refreshType === 'refreshAll'" class="ksd-mt-10 ksd-ptb-0 build-all-tips" type="info" show-icon :show-background="false" :closable="false">
+        <span>{{$t('buildAllIndexesTips')}}</span>
+      </el-alert>
+      <el-table class="ksd-mt-10"
+        border
+        nested
+        size="small"
+        max-height="420"
+        v-if="detailTableData.length"
+        :data="detailTableData">
+        <el-table-column
+          prop="start"
+          :label="$t('kylinLang.common.startTime')"
+          show-overflow-tooltip>
+          <template slot-scope="scope">{{segmentTime(scope.row, scope.row.startTime) | toServerGMTDate}}</template>
+        </el-table-column>
+        <el-table-column
+          prop="end"
+          :label="$t('kylinLang.common.endTime')"
+          show-overflow-tooltip>
+          <template slot-scope="scope">{{segmentTime(scope.row, scope.row.endTime) | toServerGMTDate}}</template>
+        </el-table-column>
+        <el-table-column
+          prop="currentIndexes"
+          align="right"
+          width="130"
+          :label="$t('currentIndexes')">
+          <template slot-scope="scope">
+            <span>{{scope.row.index_count}}/{{scope.row.index_count_total}}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" :loading="refreshLoading" @click="handleSubmit()">{{$t('kylinLang.common.refresh')}}</el-button>
+    </div>
+    </el-dialog>
+
     <!-- <ModelAddSegment v-if="isSegmentOpen" @isWillAddIndex="willAddIndex" @refreshModelList="refreshModelList"/> -->
   </div>
 </template>
@@ -233,6 +288,10 @@ export default class ModelSegment extends Vue {
   isSegmentLoading = false
   isLoading = false
   isSegmentOpen = false
+  isShowRefreshConfirm = false
+  refreshLoading = false
+  refreshType = 'refreshOrigin'
+  detailTableData = []
   get selectedSegments () {
     return this.selectedSegmentIds.map(
       segmentId => this.segments.find(segment => segment.id === segmentId)
@@ -351,54 +410,53 @@ export default class ModelSegment extends Vue {
       this.isLoading = false
     }
   }
-  async handleRefreshSegment () {
+  handleClose () {
+    this.isShowRefreshConfirm = false
+    this.refreshType = 'refreshOrigin'
+  }
+  async handleSubmit () {
     try {
+      const projectName = this.currentSelectedProject
+      const modelId = this.model.uuid
       const segmentIds = this.selectedSegmentIds
-      if (segmentIds.length) {
-        const projectName = this.currentSelectedProject
-        const modelId = this.model.uuid
-        let tableData = []
-        this.selectedSegments.forEach((seg) => {
-          const obj = {}
-          obj['start'] = transToServerGmtTime(this.segmentTime(seg, seg.startTime))
-          obj['end'] = transToServerGmtTime(this.segmentTime(seg, seg.endTime))
-          tableData.push(obj)
+      const refresh_all_indexes = this.refreshType === 'refreshAll'
+      this.refreshLoading = true
+      const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds, refresh_all_indexes })
+      if (isSubmit) {
+        await this.loadSegments()
+        this.$emit('loadModels')
+        this.$message({
+          dangerouslyUseHTMLString: true,
+          type: 'success',
+          customClass: 'build-full-load-success',
+          message: (
+            <div>
+              <span>{this.$t('kylinLang.common.buildSuccess')}</span>
+              <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
+            </div>
+          )
         })
-        await this.callGlobalDetailDialog({
-          msg: this.$t('confirmRefreshSegments'),
-          title: this.$t('refreshSegmentsTitle'),
-          detailTableData: tableData,
-          detailColumns: [
-            {column: 'start', label: this.$t('kylinLang.common.startTime')},
-            {column: 'end', label: this.$t('kylinLang.common.endTime')}
-          ],
-          dialogType: 'tip',
-          showDetailBtn: false,
-          submitText: this.$t('kylinLang.common.refresh')
-        })
-        const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds })
-        if (isSubmit) {
-          await this.loadSegments()
-          this.$emit('loadModels')
-          // this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
-          this.$message({
-            dangerouslyUseHTMLString: true,
-            type: 'success',
-            customClass: 'build-full-load-success',
-            message: (
-              <div>
-                <span>{this.$t('kylinLang.common.buildSuccess')}</span>
-                <a href="javascript:void(0)" onClick={() => this.$router.push('/monitor/job')}>{this.$t('kylinLang.common.toJoblist')}</a>
-              </div>
-            )
-          })
-        }
-      } else {
-        this.$message(this.$t('pleaseSelectSegments'))
+        this.refreshLoading = false
       }
+      this.isShowRefreshConfirm = false
+      this.refreshLoading = false
+      this.refreshType = 'refreshOrigin'
     } catch (e) {
       handleError(e)
+      this.isShowRefreshConfirm = false
+      this.refreshLoading = false
+      this.refreshType = 'refreshOrigin'
       this.loadSegments()
+    }
+  }
+  handleRefreshSegment () {
+    if (this.selectedSegmentIds.length) {
+      this.detailTableData = this.selectedSegments.filter((seg) => {
+        return seg.index_count < seg.index_count_total
+      })
+      this.isShowRefreshConfirm = true
+    } else {
+      this.$message(this.$t('pleaseSelectSegments'))
     }
   }
   async handleMergeSegment () {
@@ -588,5 +646,16 @@ export default class ModelSegment extends Vue {
 .build-full-load-success {
   padding: 10px 30px 10px 10px;
   align-items: center;
+}
+.refresh-comfirm {
+  .build-all-tips {
+    .el-icon-info {
+      font-size: 14px;
+    }
+    .el-alert__content {
+      font-size: 12px;
+      color: @text-disabled-color;
+    }
+  }
 }
 </style>

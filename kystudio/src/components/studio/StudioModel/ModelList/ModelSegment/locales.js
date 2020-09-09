@@ -31,6 +31,7 @@ export default {
     tableIndexStorageSize: 'Table Index Storage Size:',
     fullLoad: 'Full Load',
     confirmRefreshSegments: 'Are you sure to refresh the following segment(s)? The data would be refreshed according to the original indexes in the segment.',
+    confirmRefreshSegments2: 'Refresh segment would refresh data and build index. The following segments have incomplete indexes. Please select how to build. The other segments would build their current indexes.',
     segmentIsEmpty: 'There are no segments in this model, so it can\'t be purged.',
     refreshSegmentsTitle: 'Refresh Segment',
     deleteSegmentTip: 'Delete Segment',
@@ -48,7 +49,11 @@ export default {
     modifyTime: 'Last Updated Time',
     sourceRecords: 'Source Records',
     segmentList: 'Segment List',
-    segmentSubTitle: 'Add segments to define the model\'s data range for serving queries.'
+    segmentSubTitle: 'Add segments to define the model\'s data range for serving queries.',
+    currentIndexes: 'Current Index Amount',
+    buildCurrentIndexes: 'Build current indexes',
+    buildAllIndexes: 'Build all indexes',
+    buildAllIndexesTips: 'To ONLY build all indexes to the selected segments, it\'s recommended to build index on \'Index Overview\' tab. It would save cost for refreshing data.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -82,6 +87,7 @@ export default {
     tableIndexStorageSize: '索引存储空间：',
     fullLoad: '全量加载',
     confirmRefreshSegments: '确定要刷新以下 Segment 吗？数据会按 Segment 中原有索引数进行刷新。',
+    confirmRefreshSegments2: '刷新 Segment 将刷新数据并构建索引。以下 Segment 未包含全部的索引，请选择以何种方式构建。其余 Segment 会按当前索引进行构建并刷新数据。',
     segmentIsEmpty: '模型中没有 segments，无法被清空。',
     refreshSegmentsTitle: '刷新 Segment',
     deleteSegmentTip: '删除 Segment',
@@ -99,6 +105,10 @@ export default {
     modifyTime: '最后更新时间',
     sourceRecords: '行数',
     segmentList: 'Segment 列表',
-    segmentSubTitle: '添加 Segment 来为模型定义可服务查询的数据范围'
+    segmentSubTitle: '添加 Segment 来为模型定义可服务查询的数据范围',
+    currentIndexes: '当前索引数',
+    buildCurrentIndexes: '构建当前索引',
+    buildAllIndexes: '构建至全部索引',
+    buildAllIndexesTips: '若仅需将 Segment 构建至全部索引，建议到索引总览页面进行操作。仅构建索引将不会消耗额外资源刷新数据。'
   }
 }

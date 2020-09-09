@@ -233,7 +233,7 @@ export default {
       return api.model.fetchCuboids(params.modelId, params.projectName)
     },
     [types.REFRESH_SEGMENTS] ({ commit }, params) {
-      return api.model.refreshSegments(params.modelId, params.projectName, params.segmentIds)
+      return api.model.refreshSegments(params.modelId, params.projectName, params.segmentIds, params.refresh_all_indexes)
     },
     [types.MERGE_SEGMENTS] (_, params) {
       return api.model.mergeSegments(params.modelId, params.projectName, params.segmentIds)

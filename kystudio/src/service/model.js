@@ -135,8 +135,8 @@ export default {
   refreshTableIndex: (para) => {
     return Vue.resource(apiUrl + 'index_plans/table_index').save(para)
   },
-  refreshSegments: (modelId, project, ids) => {
-    return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'REFRESH' })
+  refreshSegments: (modelId, project, ids, refresh_all_indexes) => {
+    return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'REFRESH', refresh_all_indexes })
   },
   deleteSegments: (model, project, ids) => {
     return Vue.resource(`${apiUrl}models/${model}/segments/?project=${project}&purge=false`).delete({ ids })
