@@ -660,10 +660,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getEpochCheckerEnabled", new PropertiesEntity("kylin.server.leader-race.enabled", "true", true));
 
         map.put("getEpochExpireTimeSecond",
-                new PropertiesEntity("kylin.server.leader-race.heart-beat-timeout", "120", 120L));
+                new PropertiesEntity("kylin.server.leader-race.heart-beat-timeout", "60", 60L));
 
         map.put("getEpochCheckerIntervalSecond",
-                new PropertiesEntity("kylin.server.leader-race.heart-beat-interval", "60", 60L));
+                new PropertiesEntity("kylin.server.leader-race.heart-beat-interval", "30", 30L));
 
         map.put("getJStackDumpTaskEnabled", new PropertiesEntity("kylin.task.jstack-dump-enabled", "true", true));
 
