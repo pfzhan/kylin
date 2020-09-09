@@ -56,7 +56,6 @@ import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
@@ -172,8 +171,6 @@ public class AppInitializer {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.isJobNode()) {
             new EpochOrchestrator(kylinConfig);
-            EpochManager epochManager = EpochManager.getInstance(kylinConfig);
-            epochManager.updateOwnedEpoch();
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
                         kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);

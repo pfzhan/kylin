@@ -336,19 +336,6 @@ public class EpochManager implements IKeep {
         this.identity = newIdentity;
     }
 
-    // when startup
-    public void updateOwnedEpoch() {
-        List<String> projects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects().stream()
-                .map(ProjectInstance::getName).collect(Collectors.toList());
-
-        epochStore.list().stream()
-                .filter(epoch -> projects.contains(epoch.getEpochTarget())
-                        || Objects.equals(epoch.getEpochTarget(), GLOBAL))
-                .filter(epoch -> Objects.equals(getHostAndPort(epoch.getCurrentEpochOwner()),
-                        AddressUtil.getLocalInstance()))
-                .map(Epoch::getEpochTarget).forEach(this::forceUpdateEpoch);
-    }
-
     public void deleteEpoch(String epochTarget) {
         epochStore.delete(epochTarget);
     }
@@ -376,5 +363,16 @@ public class EpochManager implements IKeep {
             return true;
         }
         return false;
+    }
+
+    // when shutdown
+    public void releaseOwnedEpochs() {
+        logger.debug("Release owned epochs");
+        epochStore.list().stream().filter(epoch -> Objects.equals(epoch.getCurrentEpochOwner(), identity))
+                .forEach(epoch -> {
+                    epoch.setCurrentEpochOwner("");
+                    epoch.setLastEpochRenewTime(-1L);
+                    epochStore.saveOrUpdate(epoch);
+                });
     }
 }

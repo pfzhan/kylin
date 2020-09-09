@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.apache.curator.x.discovery.ServiceInstance;
@@ -41,9 +42,11 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.netflix.ribbon.RibbonClient;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.session.web.http.CookieSerializer;
@@ -59,7 +62,7 @@ import lombok.val;
 @EnableCaching
 @EnableDiscoveryClient
 @RibbonClient(name = "spring-boot-provider", configuration = io.kyligence.kap.rest.LoadBalanced.class)
-public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
+public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
 
@@ -127,7 +130,12 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     }
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
-        logger.info("init backend end...");
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof ApplicationReadyEvent) {
+            logger.info("init backend end...");
+        } else if (event instanceof ContextClosedEvent) {
+            logger.info("Stop Kyligence node...");
+            EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).releaseOwnedEpochs();
+        }
     }
 }
