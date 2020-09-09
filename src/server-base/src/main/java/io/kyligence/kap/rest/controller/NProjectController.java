@@ -389,9 +389,6 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateProjectGeneralInfo(@PathVariable("project") String project,
             @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
-        if (projectService.isProjectWriteLocked(project)) {
-            throw new IllegalStateException(MsgPicker.getMsg().getPROJECT_MODE_CHANGE_ERROR());
-        }
         projectService.updateProjectGeneralInfo(project, projectGeneralInfoRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
