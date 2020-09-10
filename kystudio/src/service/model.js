@@ -168,7 +168,7 @@ export default {
     return Vue.resource(apiUrl + 'index_plans/rule').get({ project, model })
   },
   updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap) => {
-    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap })
+    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap, scheduler_version: 2 })
   },
   getCalcCuboids: (project, modelId, dimensions, aggregationGroups, globalDimCap) => {
     return Vue.resource(apiUrl + 'index_plans/agg_index_count').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, global_dim_cap: globalDimCap })
