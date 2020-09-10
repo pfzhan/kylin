@@ -236,7 +236,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
         private void writeMeasureToModel(NDataModel model, RawRecItem rawRecItem) {
             Map<Integer, RecommendationRef> measureRefs = recommendation.getMeasureRefs();
-            RecommendationRef recommendationRef = measureRefs.get(-rawRecItem.getId());
+            int negRecItemId = -rawRecItem.getId();
+            RecommendationRef recommendationRef = measureRefs.get(negRecItemId);
             if (recommendationRef.isExisted()) {
                 return;
             }
@@ -244,8 +245,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             MeasureRef measureRef = (MeasureRef) recommendationRef;
             NDataModel.Measure measure = measureRef.getMeasure();
             int maxMeasureId = model.getMaxMeasureId();
-            if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
-                measureRef.rebuild(userDefinedRecNameMap.get(rawRecItem.getId()));
+            if (userDefinedRecNameMap.containsKey(negRecItemId)) {
+                measureRef.rebuild(userDefinedRecNameMap.get(negRecItemId));
                 measure = measureRef.getMeasure();
                 measure.setId(++maxMeasureId);
                 recManagerV2.checkMeasureName(model, measure);
@@ -253,14 +254,15 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 measure.setId(++maxMeasureId);
             }
             model.getAllMeasures().add(measure);
-            measures.put(-rawRecItem.getId(), measure);
+            measures.put(negRecItemId, measure);
             measures.put(measure.getId(), measure);
             logWriteProperty(rawRecItem, measure);
         }
 
         private void writeDimensionToModel(RawRecItem rawRecItem) {
             Map<Integer, RecommendationRef> dimensionRefs = recommendation.getDimensionRefs();
-            RecommendationRef dimensionRef = dimensionRefs.get(-rawRecItem.getId());
+            int negRecItemId = -rawRecItem.getId();
+            RecommendationRef dimensionRef = dimensionRefs.get(negRecItemId);
             if (dimensionRef.isExisted()) {
                 return;
             }
@@ -275,12 +277,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             }
             Preconditions.checkArgument(column != null,
                     "Dimension can only depend on a computed column or an existing column");
-            if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
-                column.setName(userDefinedRecNameMap.get(rawRecItem.getId()));
+            if (userDefinedRecNameMap.containsKey(negRecItemId)) {
+                column.setName(userDefinedRecNameMap.get(negRecItemId));
             }
             column.setStatus(NDataModel.ColumnStatus.DIMENSION);
             recManagerV2.checkDimensionName(columns);
-            dimensions.putIfAbsent(-rawRecItem.getId(), column);
+            dimensions.putIfAbsent(negRecItemId, column);
             columns.get(column.getId()).setStatus(column.getStatus());
             columns.get(column.getId()).setName(column.getName());
             logWriteProperty(rawRecItem, column);
@@ -288,14 +290,15 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
         private void writeCCToModel(NDataModel model, RawRecItem rawRecItem) {
             Map<Integer, RecommendationRef> ccRefs = recommendation.getCcRefs();
-            RecommendationRef recommendationRef = ccRefs.get(-rawRecItem.getId());
+            int negRecItemId = -rawRecItem.getId();
+            RecommendationRef recommendationRef = ccRefs.get(negRecItemId);
             if (recommendationRef.isExisted()) {
                 return;
             }
             CCRef ccRef = (CCRef) recommendationRef;
             ComputedColumnDesc cc = ccRef.getCc();
-            if (userDefinedRecNameMap.containsKey(rawRecItem.getId())) {
-                ccRef.rebuild(userDefinedRecNameMap.get(rawRecItem.getId()));
+            if (userDefinedRecNameMap.containsKey(negRecItemId)) {
+                ccRef.rebuild(userDefinedRecNameMap.get(negRecItemId));
                 cc = ccRef.getCc();
                 recManagerV2.checkCCName(model, cc);
             }
@@ -307,7 +310,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             columnInModel.setStatus(NDataModel.ColumnStatus.EXIST);
             model.getAllNamedColumns().add(columnInModel);
             model.getComputedColumnDescs().add(cc);
-            columns.put(-rawRecItem.getId(), columnInModel);
+            columns.put(negRecItemId, columnInModel);
             columns.put(lastColumnId, columnInModel);
             logWriteProperty(rawRecItem, columnInModel);
         }
@@ -535,11 +538,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         response.setName(ref.getName());
         response.setAdd(!ref.isExisted());
         response.setCrossModel(ref.isCrossModel());
-        if (response.isAdd()) {
-            response.setItemId(-ref.getId());
-        } else {
-            response.setItemId(ref.getId());
-        }
+        response.setItemId(ref.getId());
         return response;
     }
 

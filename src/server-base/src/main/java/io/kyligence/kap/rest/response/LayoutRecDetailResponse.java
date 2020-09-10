@@ -52,7 +52,7 @@ public class LayoutRecDetailResponse implements Serializable {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class RecDimension {
+    public static class RecDimension implements Serializable {
         private NDataModel.NamedColumn dimension;
         private String dataType;
         private boolean isNew;
@@ -67,7 +67,7 @@ public class LayoutRecDetailResponse implements Serializable {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class RecMeasure {
+    public static class RecMeasure implements Serializable {
         private NDataModel.Measure measure;
         private boolean isNew;
 
@@ -80,7 +80,7 @@ public class LayoutRecDetailResponse implements Serializable {
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class RecComputedColumn {
+    public static class RecComputedColumn implements Serializable {
         private ComputedColumnDesc cc;
         private boolean isNew;
 

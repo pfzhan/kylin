@@ -152,7 +152,7 @@ public abstract class AbstractContext {
 
         private Map<String, String> loadUniqueContentToFlag() {
             Map<String, String> result = Maps.newHashMap();
-            if (!(getProposeContext() instanceof AbstractSemiContextV2)) {
+            if (!(getProposeContext() instanceof AbstractSemiContextV2) || getTargetModel() == null) {
                 return result;
             }
 

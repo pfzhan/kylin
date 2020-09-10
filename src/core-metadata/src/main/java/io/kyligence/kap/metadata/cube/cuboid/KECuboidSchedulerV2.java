@@ -82,10 +82,12 @@ public class KECuboidSchedulerV2 extends CuboidScheduler {
 
     @Override
     public void validateOrder() {
+        // do nothing
     }
 
     @Override
     public void updateOrder() {
+        // do nothing
     }
 
     @Override
