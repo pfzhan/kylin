@@ -105,7 +105,8 @@
         </div>
         <div class="panel-content" id="scrollBox" :class="{'ksd-pt-38': isShowAlter}">
           <div class="alter-block" v-if="isShowAlter">
-            <el-alert :title="globalAlterTips.text" :type="globalAlterTips.flag === 0 ? 'error' : 'warning'" :closable="globalAlterTips.flag !== 0" show-icon>
+            <el-alert :type="globalAlterTips.flag === 0 ? 'error' : 'warning'" :closable="globalAlterTips.flag !== 0" show-icon>
+              <span slot="title">{{globalAlterTips.text}} <a href="javascript:void(0);" @click="jumpToDetails" v-if="globalAlterTips.detailPath">{{$t('viewDetails')}}</a></span>
             </el-alert>
           </div>
           <div class="grid-content bg-purple-light" id="scrollContent">
@@ -288,7 +289,7 @@ let MessageBox = ElementUI.MessageBox
       if (this.$store.state.capacity.maintenance_mode) {
         this.globalAlterTips = { text: this.$t('systemUprade'), flag: 0 }
       } else if (this.capacityAlert) {
-        this.globalAlterTips = { ...this.capacityAlert, text: this.$t(`kylinLang.capacity.${this.capacityAlert.text}`, this.capacityAlert.query ? this.capacityAlert.query : {}) }
+        this.globalAlterTips = { ...this.capacityAlert, text: this.$t(`kylinLang.capacity.${this.capacityAlert.text}`, this.capacityAlert.query ? this.capacityAlert.query : {}), detailPath: this.capacityAlert.detailPath }
       }
       this.setGlobalAlter(isGlobalAlter)
       return isGlobalAlter
@@ -318,7 +319,8 @@ let MessageBox = ElementUI.MessageBox
       diagnosis: 'Diagnosis',
       disableAddProject: 'Can not create project in edit mode',
       systemUprade: 'System is currently undergoing maintenance. Metadata related operations are temporarily unavailable.',
-      onlyQueryNode: 'There\'s no active job node now. Metadata related operations are temporarily unavailable.'
+      onlyQueryNode: 'There\'s no active job node now. Metadata related operations are temporarily unavailable.',
+      viewDetails: 'View Details'
     },
     'zh-cn': {
       resetPassword: '重置密码',
@@ -343,7 +345,8 @@ let MessageBox = ElementUI.MessageBox
       diagnosis: '诊断',
       disableAddProject: '编辑模式下不可新建项目',
       systemUprade: '系统已进入维护模式，元数据相关操作暂不可用。',
-      onlyQueryNode: '系统中暂无活跃的任务节点，元数据相关操作暂不可用。'
+      onlyQueryNode: '系统中暂无活跃的任务节点，元数据相关操作暂不可用。',
+      viewDetails: '查看详情'
     }
   }
 })
@@ -891,6 +894,9 @@ export default class LayoutLeftRightTop extends Vue {
   }
   showDiagnosticDialog () {
     this.showDiagnostic = true
+  }
+  jumpToDetails () {
+    this.globalAlterTips.detailPath && this.$router.push(this.globalAlterTips.detailPath)
   }
 }
 </script>

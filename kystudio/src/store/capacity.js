@@ -277,33 +277,33 @@ export default {
         const nodeOver = state.systemNodeInfo.current_node > state.systemNodeInfo.node && state.systemNodeInfo.node !== -1
         if ((state.systemCapacityInfo.fail || state.systemNodeInfo.fail) && (capacityOver || nodeOver)) {
           if ((state.systemCapacityInfo.fail || state.systemNodeInfo.fail) && capacityOver && nodeOver) {
-            return { flag: 1, status: 'failApiAndOver', text: 'bothOverAndFailFetch', query: { capacity, nodes } }
+            return { flag: 1, status: 'failApiAndOver', text: 'bothOverAndFailFetch', query: { capacity, nodes }, detailPath: '/admin/systemcapacity' }
           } else if ((state.systemCapacityInfo.fail || state.systemNodeInfo.fail) && capacityOver) {
-            return { flag: 1, status: 'failApiAndOver', text: 'failAndOverCapacityTip', query: { capacity } }
+            return { flag: 1, status: 'failApiAndOver', text: 'failAndOverCapacityTip', query: { capacity }, detailPath: '/admin/systemcapacity' }
           } else {
-            return { flag: 1, status: 'failApiAndOver', text: 'failAndOverNodesTip', query: { nodes } }
+            return { flag: 1, status: 'failApiAndOver', text: 'failAndOverNodesTip', query: { nodes }, detailPath: '/admin/systemcapacity' }
           }
         } else if (state.systemCapacityInfo.fail || state.systemNodeInfo.fail) {
           // let times = 30
           if (state.systemCapacityInfo.fail && state.systemNodeInfo.fail) {
             // times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
-            return { flag: 1, status: 'failApi', text: 'bothCapacityAndNodesFail' }
+            return { flag: 1, status: 'failApi', text: 'bothCapacityAndNodesFail', detailPath: '/admin/systemcapacity' }
           } else if (state.systemCapacityInfo.fail) {
             // times = 30 - Math.ceil((new Date().getTime() - state.systemCapacityInfo.first_error_time) / (1000 * 60 * 60 * 24))
-            return { flag: 1, status: 'failApi', text: 'capacityFailTip' }
+            return { flag: 1, status: 'failApi', text: 'capacityFailTip', detailPath: '/admin/systemcapacity' }
           } else {
-            return { flag: 1, status: 'failApi', text: 'nodesFailTip' }
+            return { flag: 1, status: 'failApi', text: 'nodesFailTip', detailPath: '/admin/systemcapacity' }
           }
           // return { flag: 1, status: 'failApi', text: state.systemCapacityInfo.fail && state.systemNodeInfo.fail ? 'bothCapacityAndNodesFail' : state.systemCapacityInfo.fail ? 'capacityFailTip' : 'nodesFailTip' }
         } else if (state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' || state.systemNodeInfo.node_status === 'OVERCAPACITY') {
           const _types = []
           state.systemCapacityInfo.capacity_status === 'OVERCAPACITY' && _types.push('systemCapacity')
           state.systemNodeInfo.node_status === 'OVERCAPACITY' && _types.push('nodes')
-          return { flag: 0, status: 'overCapacity', target: _types, text: _types.includes('systemCapacity') && _types.includes('nodes') ? 'bothSystemAndNodeAlert' : _types.includes('systemCapacity') ? 'systemCapacityOverAlert' : 'nodeOverAlert', query: { capacity, nodes } }
+          return { flag: 0, status: 'overCapacity', target: _types, text: _types.includes('systemCapacity') && _types.includes('nodes') ? 'bothSystemAndNodeAlert' : _types.includes('systemCapacity') ? 'systemCapacityOverAlert' : 'nodeOverAlert', query: { capacity, nodes }, detailPath: '/admin/systemcapacity' }
         } else if (getters.isOnlyQueryNode) {
-          return { flag: 0, status: 'noAllNodes', text: 'noJobNodes' }
+          return { flag: 0, status: 'noAllNodes', text: 'noJobNodes', detailPath: '/admin/systemcapacity' }
         } else if (state.systemCapacityInfo.current_capacity / state.systemCapacityInfo.capacity * 100 > 80) {
-          return { flag: 2, status: 'warning', text: 'capacityOverPrecent', query: { capacity } }
+          return { flag: 2, status: 'warning', text: 'capacityOverPrecent', query: { capacity }, detailPath: '/admin/systemcapacity' }
         } else {
           return {}
         }
