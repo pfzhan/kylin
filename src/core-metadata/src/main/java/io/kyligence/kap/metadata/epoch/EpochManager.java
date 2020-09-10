@@ -162,7 +162,11 @@ public class EpochManager implements IKeep {
             return false;
         }
         try {
+            String originOwner = null;
             Epoch epoch = epochStore.getEpoch(epochTarget);
+            if (epoch != null) {
+                originOwner = epoch.getCurrentEpochOwner();
+            }
             Epoch finalEpoch = getNewEpoch(epoch, force, epochTarget);
             if (finalEpoch == null) {
                 return false;
@@ -170,6 +174,10 @@ public class EpochManager implements IKeep {
 
             finalEpoch.setMaintenanceModeReason(maintenanceModeReason);
             epochStore.saveOrUpdate(finalEpoch);
+
+            if (!Objects.equals(originOwner, finalEpoch.getCurrentEpochOwner())) {
+                logger.debug("Epoch {} changed from {} to {}", epochTarget, originOwner, finalEpoch.getCurrentEpochOwner());
+            }
 
             return true;
         } catch (Exception e) {
