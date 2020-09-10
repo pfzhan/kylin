@@ -28,7 +28,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode, FalseLiteral}
-import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
+import org.apache.spark.sql.catalyst.util.{DateTimeUtils, GenericArrayData, KapDateTimeUtils}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
 
@@ -521,4 +521,54 @@ case class IntersectCountByCol(children: Expression*) extends Expression {
   }
 
   override def dataType: DataType = LongType
+}
+
+case class SubtractBitmapUUID(child1: Expression, child2: Expression) extends BinaryExpression with ExpectsInputTypes  {
+  override def nullable: Boolean = false
+
+  override def eval(input: InternalRow): Array[Byte] = {
+    val map1 = child1.eval(input).asInstanceOf[Array[Byte]]
+    val map2 = child2.eval(input).asInstanceOf[Array[Byte]]
+    SubtractBitmapImpl.evaluate2Bytes(map1, map2)
+  }
+
+  override def dataType: DataType = BinaryType
+
+  override def left: Expression = child1
+
+  override def right: Expression = child2
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType, BinaryType)
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val sb = SubtractBitmapImpl.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (arg1, arg2) => {
+      s"""$sb.evaluate2Bytes($arg1, $arg2)"""
+    })
+  }
+}
+
+case class SubtractBitmapValue(child1: Expression, child2: Expression, upperBound: Int) extends BinaryExpression with ExpectsInputTypes  {
+  override def nullable: Boolean = false
+
+  override def eval(input: InternalRow): GenericArrayData = {
+    val map1 = child1.eval(input).asInstanceOf[Array[Byte]]
+    val map2 = child2.eval(input).asInstanceOf[Array[Byte]]
+    SubtractBitmapImpl.evaluate2Values(map1, map2, upperBound)
+  }
+
+  override def dataType: DataType = ArrayType.apply(LongType)
+
+  override def left: Expression = child1
+
+  override def right: Expression = child2
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType, BinaryType)
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val sb = SubtractBitmapImpl.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (arg1, arg2) => {
+      s"""$sb.evaluate2Values($arg1, $arg2, $upperBound)"""
+    })
+  }
 }

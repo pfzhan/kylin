@@ -33,6 +33,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -94,6 +97,10 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         testExplodeIntersectValue();
 
         testHllcCanNotAnswerBitmapUUID();
+
+        testSubtractBitmapValue();
+
+        testSubtractBitmapUUID();
     }
 
     private void testDateType() throws SQLException {
@@ -324,4 +331,35 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("855,Others", result.get(4));
     }
 
+    private void testSubtractBitmapValue() throws SQLException {
+        String query = "select subtract_bitmap_value("
+                + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING'),"
+                + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['ABIN', 'Auction'], 'RAWSTRING'))"
+                + "from TEST_KYLIN_FACT";
+        List<Integer> acutal = NExecAndComp.queryCube(getProject(), query).collectAsList().get(0).getList(0).stream()
+                .map(row -> Integer.valueOf(row.toString())).collect(Collectors.toList());
+
+        Dataset<Row> fg = ss.sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'FP-GTC'");
+        Dataset<Row> fng = ss
+                .sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'FP-non GTC'");
+        Dataset<Row> ot = ss.sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'Others'");
+        Dataset<Row> ab = ss.sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'ABIN'");
+        Dataset<Row> au = ss.sql("select distinct SELLER_ID from TEST_KYLIN_FACT where LSTG_FORMAT_NAME = 'Auction'");
+        List<Integer> expect = fg.union(fng).intersect(ot).except(ab.intersect(au)).sort(new Column("SELLER_ID"))
+                .collectAsList().stream().map(row -> row.getInt(0)).collect(Collectors.toList());
+        Assert.assertEquals(expect.size(), acutal.size());
+        for (int i = 0; i < acutal.size(); i++) {
+            Assert.assertEquals(expect.get(i), acutal.get(i));
+        }
+    }
+
+    private void testSubtractBitmapUUID() throws SQLException {
+        String query = "select intersect_count_by_col(Array[t1.a1, t2.a2]) from " + "(select subtract_bitmap_uuid("
+                + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['FP-GTC|FP-non GTC', 'Others'], 'RAWSTRING'),"
+                + "intersect_bitmap_uuid_v2(SELLER_ID, LSTG_FORMAT_NAME, array['ABIN', 'Auction'], 'RAWSTRING')) as a1 "
+                + "from TEST_KYLIN_FACT) t1, " + "(select bitmap_uuid(SELLER_ID) as a2 from TEST_KYLIN_FACT) t2";
+        List<String> result = NExecAndComp.queryCube(getProject(), query).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("210", result.get(0));
+    }
 }

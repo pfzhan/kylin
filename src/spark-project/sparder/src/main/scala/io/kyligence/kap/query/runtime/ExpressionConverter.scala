@@ -29,9 +29,10 @@ import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate}
+import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate, SubtractBitmapUUID, SubtractBitmapValue}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -63,6 +64,8 @@ object ExpressionConverter {
   )
 
   val varArgsFunc = mutable.HashSet("months_between", "locate", "rtrim")
+
+  val bitmapUDF = mutable.HashSet("intersect_count_by_col", "subtract_bitmap_value", "subtract_bitmap_uuid");
 
   // scalastyle:off
   def convert(sqlTypeName: SqlTypeName, relDataType: RelDataType, op: SqlKind, opName: String, children: Seq[Any]): Any = {
@@ -366,8 +369,15 @@ object ExpressionConverter {
               throw new UnsupportedOperationException(
                 s"overlay must provide three or four parameters under sparder")
             }
-          case "intersect_count_by_col" =>
-            new Column(IntersectCountByCol(children.head.asInstanceOf[Column].expr.children.toArray: _*))
+          case func if bitmapUDF.contains(func) =>
+            func match {
+              case "intersect_count_by_col" =>
+                new Column(IntersectCountByCol(children.head.asInstanceOf[Column].expr.children.toArray: _*))
+              case "subtract_bitmap_value" =>
+                new Column(SubtractBitmapValue(children.head.asInstanceOf[Column].expr, children.last.asInstanceOf[Column].expr, KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound))
+              case "subtract_bitmap_uuid" =>
+                new Column(SubtractBitmapUUID(children.head.asInstanceOf[Column].expr, children.last.asInstanceOf[Column].expr))
+            }
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
