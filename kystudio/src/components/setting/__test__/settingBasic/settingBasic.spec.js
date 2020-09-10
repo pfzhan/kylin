@@ -7,13 +7,15 @@ import { localVue } from '../../../../../test/common/spec_common'
 import { project, favoriteRules, groupAndUser } from '../mock'
 import * as utils from '../../../../util/index'
 import * as business from '../../../../util/business'
-import * as handler from '../../SettingAdvanced/handler'
+import * as handler from '../../SettingBasic/handler'
 import EditableBlock from '../../../common/EditableBlock/EditableBlock'
 
 Vue.use(VueI18n)
+jest.useFakeTimers()
 
-const mockHandleSuccess = jest.spyOn(business, 'handleSuccess').mockImplementation((res, callback) => {
+const mockHandleSuccess = jest.spyOn(business, 'handleSuccess').mockImplementation((res, callback, errorCallback) => {
   callback(res)
+  errorCallback && errorCallback()
 })
 const mockHandleSuccessAsync = jest.spyOn(utils, 'handleSuccessAsync').mockImplementation(res => {
   return Promise.resolve(res)
@@ -25,12 +27,24 @@ const mockApi = {
   mockUpdatePushdownConfig: jest.fn().mockImplementation(),
   mockUpdateStorageQuota: jest.fn().mockImplementation(),
   mockUpdateIndexOptimization: jest.fn().mockImplementation(),
-  mockResetConfig: jest.fn().mockImplementation(),
+  mockResetConfig: jest.fn().mockImplementation((store, {project, reset_item}) => {
+    if (reset_item === 'segment_config') {
+      return Promise.resolve({ ...wrapper.vm.form, auto_merge_enabled: false })
+    } else if (reset_item === 'storage_quota_config') {
+      return Promise.resolve({ ...wrapper.vm.form, storage_quota_size: 100000000 })
+    } else if (reset_item === 'garbage_cleanup_config') {
+      return Promise.resolve({ ...wrapper.vm.form, low_frequency_threshold: 10 })
+    } else if (reset_item === 'favorite_rule_config') {
+      return Promise.resolve({ ...wrapper.vm.rulesObj, min_duration: 10, max_duration: 20, favorite_rules: {} })
+    }
+  }),
   mockGetFavoriteRules: jest.fn().mockImplementation(() => {
     return Promise.resolve(favoriteRules)
   }),
   mockGetUserAndGroups: jest.fn().mockResolvedValue(groupAndUser),
-  mockUpdateFavoriteRules: jest.fn().mockImplementation(),
+  mockUpdateFavoriteRules: jest.fn().mockImplementation(() => {
+    return Promise.resolve()
+  }),
   mockCallGlobalDetailDialog: jest.fn().mockImplementation()
 }
 const DetailDialogModal = {
@@ -84,7 +98,14 @@ const wrapper = shallow(SettingBasic, {
     handleSuccess: mockHandleSuccess,
     handleError: mockHandleError,
     handleSuccessAsync: mockHandleSuccessAsync,
-    $message: mockMessage
+    $message: mockMessage,
+    $refs: {
+      acclerationRuleSettings: {
+        $el: {
+          scrollIntoView: jest.fn()
+        }
+      }
+    }
   },
   propsData: {
     project
@@ -100,23 +121,31 @@ wrapper.vm.$refs = {
     }
   },
   'segment-setting-form': {
-    validate: jest.fn(),
+    validate: jest.fn().mockResolvedValue(true),
     clearValidate: jest.fn()
   },
   'setting-storage-quota': {
-    validate: jest.fn().mockResolvedValue(true)
+    validate: jest.fn().mockResolvedValue(true),
+    clearValidate: jest.fn()
   },
   'setting-index-optimization': {
-    validate: jest.fn()
+    validate: jest.fn().mockResolvedValue(true),
+    clearValidate: jest.fn()
   },
   'rulesForm': {
-    validate: jest.fn()
+    validate: jest.fn().mockImplementation((callback) => {
+      return new Promise(resolve => {
+        callback && callback(true)
+        resolve(true)
+      })
+    }),
+    clearValidate: jest.fn()
   }
 }
 
 describe('Component SettingBasic', () => {
   it('init', async () => {
-    expect(wrapper.vm.rulesAccerationDefault).toEqual({"count_enable": true, "count_value": 0, "duration_enable": false, "max_duration": 0, "min_duration": 0, "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": [], "users": []})
+    expect(wrapper.vm.rulesAccerationDefault).toEqual({"count_enable": true, "count_value": 10, "duration_enable": false, "freq_enable": false, "freq_value": null, "max_duration": null, "min_duration": null, "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": ["ROLE_ADMIN"], "users": ["ADMIN"]})
     await wrapper.vm.$options.mounted[0].call(wrapper.vm)
     expect(wrapper.vm.form).toEqual({"alias": "xm_test_1", "auto_merge_enabled": true, "auto_merge_time_ranges": ["WEEK", "MONTH"], "description": undefined, "frequency_time_window": "MONTH", "low_frequency_threshold": 0, "maintain_model_type": "MANUAL_MAINTAIN", "project": "xm_test_1", "push_down_enabled": true, "push_down_range_limited": undefined, "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "semi_automatic_mode": true, "storage_garbage": true, "storage_quota_size": 14293651161088, "storage_quota_tb_size": "13.00", "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
     expect(wrapper.vm.$refs.acclerationRuleSettings.$el.scrollIntoView).toBeCalled()
@@ -134,8 +163,9 @@ describe('Component SettingBasic', () => {
     expect(wrapper.vm.rules['retention_range.retention_range_number'][0].trigger).toBe('change')
     expect(wrapper.vm.storageQuota['storage_quota_tb_size'][0].trigger).toBe('change')
     expect(wrapper.vm.indexOptimization['low_frequency_threshold'][0].trigger).toBe('change')
+    expect(wrapper.vm.filterSubmitterUserOptions).toEqual(["ADMIN", "ANALYST", "fanfan", "fengys", "gaoyuan"])
   })
-  it('methods', async () => {
+  it('methods', async (done) => {
     const callback = jest.fn()
     const error = new Error(null)
     wrapper.vm.validatePass({field: 'duration'}, '', callback)
@@ -179,7 +209,7 @@ describe('Component SettingBasic', () => {
     expect(wrapper.vm.$refs['segment-setting-form'].validate).toBeCalled()
     expect(mockApi.mockUpdateSegmentConfig.mock.calls[0][1]).toEqual({"auto_merge_enabled": false, "auto_merge_time_ranges": ["WEEK", "MONTH"], "project": "xm_test_1", "retention_range": {"retention_range_enabled": false, "retention_range_number": 1, "retention_range_type": "MONTH"}, "volatile_range": {"volatile_range_enabled": true, "volatile_range_number": 0, "volatile_range_type": "DAY"}})
     expect(callbackFnc.success).toBeCalled()
-    expect(wrapper.emitted()['reload-setting'].length).toBe(5)
+    expect(wrapper.emitted()['reload-setting'].length).toBe(6)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
 
     await wrapper.vm.handleSubmit('storage-quota', callbackFnc.success, callbackFnc.error)
@@ -187,8 +217,120 @@ describe('Component SettingBasic', () => {
     expect(wrapper.vm.form.storage_quota_size).toBe(14293651161088)
     expect(mockApi.mockUpdateStorageQuota.mock.calls[0][1]).toEqual({"project": "xm_test_1", "storage_quota_size": 14293651161088, "storage_quota_tb_size": "13.00"})
     expect(callbackFnc.success).toBeCalled()
-    expect(wrapper.emitted()['reload-setting'].length).toBe(6)
+    expect(wrapper.emitted()['reload-setting'].length).toBe(7)
     expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+
+    await wrapper.vm.handleSubmit('index-optimization', callbackFnc.success, callbackFnc.error)
+    expect(wrapper.vm.$refs['setting-index-optimization'].validate).toBeCalled()
+    expect(mockApi.mockUpdateIndexOptimization.mock.calls[0][1]).toEqual({"frequency_time_window": "MONTH", "low_frequency_threshold": 0, "project": "xm_test_1"})
+    expect(callbackFnc.success).toBeCalled()
+    expect(wrapper.emitted()['reload-setting'].length).toBe(8)
+    expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+
+    await wrapper.vm.handleSubmit('accleration-rule-settings', callbackFnc.success, callbackFnc.error)
+    expect(wrapper.vm.$refs['rulesForm'].validate).toBeCalled()
+    expect(callbackFnc.success).toBeCalled()
+    expect(wrapper.emitted()['reload-setting'].length).toBe(9)
+    expect(mockMessage).toBeCalledWith({"message": "Updated successfully.", "type": "success"})
+
+    await wrapper.vm.handleResetForm('segment-settings', callbackFnc.success, callbackFnc.error)
+    expect(mockApi.mockResetConfig.mock.calls[0][1]).toEqual({"project": "Kyligence", "reset_item": "segment_config"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(wrapper.vm.form.auto_merge_enabled).toBeFalsy()
+    expect(wrapper.vm.$refs['segment-setting-form'].clearValidate).toBeCalled()
+    expect(wrapper.emitted()['reload-setting'].length).toBe(10)
+    expect(mockMessage).toBeCalledWith({"message": "Reset successfully.", "type": "success"})
+
+    await wrapper.vm.handleResetForm('storage-quota', callbackFnc.success, callbackFnc.error)
+    expect(mockApi.mockResetConfig.mock.calls[1][1]).toEqual({"project": "Kyligence", "reset_item": "storage_quota_config"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(wrapper.vm.form.storage_quota_size).toBe(100000000)
+    expect(wrapper.vm.form.storage_quota_tb_size).toBe('0.00')
+    expect(wrapper.vm.$refs['setting-storage-quota'].clearValidate).toBeCalled()
+    expect(callbackFnc.success).toBeCalled()
+    expect(wrapper.emitted()['reload-setting'].length).toBe(11)
+    expect(mockMessage).toBeCalledWith({"message": "Reset successfully.", "type": "success"})
+
+    await wrapper.vm.handleResetForm('index-optimization', callbackFnc.success, callbackFnc.error)
+    expect(mockApi.mockResetConfig.mock.calls[2][1]).toEqual({"project": "Kyligence", "reset_item": "garbage_cleanup_config"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(wrapper.vm.form.low_frequency_threshold).toBe(10)
+    expect(wrapper.vm.$refs['setting-index-optimization'].clearValidate).toBeCalled()
+    expect(callbackFnc.success).toBeCalled()
+    expect(wrapper.emitted()['reload-setting'].length).toBe(12)
+    expect(mockMessage).toBeCalledWith({"message": "Reset successfully.", "type": "success"})
+
+    await wrapper.vm.handleResetForm('accleration-rule-settings', callbackFnc.success, callbackFnc.error)
+    expect(mockApi.mockResetConfig.mock.calls[3][1]).toEqual({"project": "Kyligence", "reset_item": "favorite_rule_config"})
+    expect(mockHandleSuccessAsync).toBeCalled()
+    expect(wrapper.vm.rulesObj.min_duration).toBe(10)
+    expect(wrapper.vm.rulesObj.max_duration).toBe(20)
+    expect(callbackFnc.success).toBeCalled()
+    expect(wrapper.emitted()['reload-setting'].length).toBe(13)
+    expect(mockMessage).toBeCalledWith({"message": "Reset successfully.", "type": "success"})
+
+    expect(wrapper.vm.isFormEdited(wrapper.vm.form, 'basic-info')).toBeFalsy()
+    expect(wrapper.vm.isFormEdited(wrapper.vm.form, 'segment-settings')).toBeTruthy()
+    expect(wrapper.vm.isFormEdited(wrapper.vm.form, 'storage-quota')).toBeTruthy()
+    expect(wrapper.vm.isFormEdited(wrapper.vm.form, 'index-optimization')).toBeTruthy()
+    expect(wrapper.vm.isFormEdited(wrapper.vm.form, 'accleration-rule-settings')).toBeFalsy()
+
+    wrapper.vm.remoteMethod('')
+    expect(wrapper.vm.filterUsers).toEqual(["ADMIN", "ANALYST", "fanfan", "fengys", "gaoyuan"])
+    wrapper.vm.remoteMethod('A')
+    jest.runAllTimers()
+    expect(wrapper.vm.filterUsers).toEqual(["ADMIN", "ANALYST", "fanfan", "gaoyuan"])
+
+    wrapper.vm.saveAcclerationRule()
+    expect(mockApi.mockUpdateFavoriteRules.mock.calls[0][1]).toEqual({"count_enable": true, "count_value": 10, "duration_enable": false, "freq_enable": false, "freq_value": null, "max_duration": 0, "min_duration": 0, "project": "Kyligence", "recommendation_enable": true, "recommendations_value": 20, "submitter_enable": true, "user_groups": ["ROLE_ADMIN"], "users": ["ADMIN"]})
+    expect(mockHandleSuccess).toBeCalled()
+    expect(wrapper.vm.rulesAccerationDefault === wrapper.vm.rulesObj).toBeFalsy()
+
+    wrapper.vm.$store._actions.UPDATE_FAVORITE_RULES = [jest.fn().mockImplementation(() => {
+      return {
+        then: (successCallback, errorCallback) => {
+          errorCallback()
+        }
+      }
+    })]
+    wrapper.vm.saveAcclerationRule()
+    expect(mockHandleError).toBeCalled()
+
+    wrapper.vm.$store._actions.GET_FAVORITE_RULES = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.getAccelerationRules()
+    expect(mockHandleError).toBeCalled()
+
+    wrapper.vm.$store._actions.GET_USER_AND_GROUPS = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.getAccelerationRules()
+    expect(mockHandleError).toBeCalled()
+
+    wrapper.vm.$store._actions.RESET_PROJECT_CONFIG = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.handleResetForm('segment-settings', callbackFnc.success, callbackFnc.error)
+    expect(callbackFnc.error).toBeCalled()
+    expect(mockHandleError).toBeCalled()
+
+    wrapper.vm.$store._actions.UPDATE_PROJECT_GENERAL_INFO = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.handleSubmit('basic-info', callbackFnc.success, callbackFnc.error)
+    expect(callbackFnc.error).toBeCalled()
+    expect(mockHandleError).toBeCalled()
+
+    wrapper.vm.$store._actions.UPDATE_SEGMENT_CONFIG = [jest.fn().mockRejectedValue(false)]
+    await wrapper.vm.handleSwitch('auto-merge', false)
+    expect(mockHandleError).toBeCalled()
+
+    // wrapper.setData({
+    //   rulesObj: {
+    //     ...wrapper.vm.rulesObj,
+    //     min_duration: 50
+    //   }
+    // })
+    // await wrapper.update()
+    wrapper.vm.rulesObj.min_duration = 50
+    wrapper.vm.$nextTick(() => {
+      expect(wrapper.vm.durationError).toBeFalsy()
+      done()
+    })
+
     // console.log(wrapper.vm.$store._actions)
     // wrapper.vm.$store._actions.GET_FAVORITE_RULES = jest.fn().mockImplementation(() => {
     //   return Promise.reject()
@@ -196,5 +338,26 @@ describe('Component SettingBasic', () => {
     // await wrapper.update()
     // await wrapper.vm.getAccelerationRules()
     // expect(mockHandleError).toBeCalled()
+  })
+})
+
+describe('SettingBasic handler', () => {
+  it('event', () => {
+    const callbackValidate = jest.fn()
+    global.window.kapVm = wrapper.vm
+    handler.validate.storageQuotaSize(null, '', callbackValidate)
+    expect(callbackValidate).not.toBe()
+    handler.validate.storageQuotaSize(null, 10, callbackValidate)
+    expect(callbackValidate).toBeCalledWith()
+
+    handler.validate.positiveNumber(null, 'ab123', callbackValidate)
+    expect(callbackValidate.mock.calls[0][0]).toBeTruthy()
+    handler.validate.positiveNumber(null, '10.00', callbackValidate)
+    expect(callbackValidate).toBeCalledWith()
+
+    handler.validate.storageQuotaNum(null, '', callbackValidate)
+    expect(callbackValidate.mock.calls[0][0]).toBeTruthy()
+    handler.validate.storageQuotaNum(null, 100, callbackValidate)
+    expect(callbackValidate).toBeCalledWith()
   })
 })

@@ -433,7 +433,7 @@ export default class SettingBasic extends Vue {
     this.initForm()
     this.getAccelerationRules()
     if ('moveTo' in this.$route.query && this.$route.query.moveTo === 'index-suggest-setting') {
-      this.$refs.acclerationRuleSettings && this.$refs.acclerationRuleSettings.$el.scrollIntoView()
+      this.$refs.acclerationRuleSettings && this.$refs.acclerationRuleSettings.$el.scrollIntoView && this.$refs.acclerationRuleSettings.$el.scrollIntoView()
     }
   }
   handleCheckMergeRanges (value) {
@@ -556,7 +556,7 @@ export default class SettingBasic extends Vue {
       }
       case 'segment-settings': {
         this.form = { ...this.form, ..._getSegmentSettings(this.project) }
-        this.$refs['segment-setting-form'].clearValidate()
+        this.$refs['segment-setting-form'] && this.$refs['segment-setting-form'].clearValidate && this.$refs['segment-setting-form'].clearValidate()
         break
       }
       case 'pushdown-settings': {

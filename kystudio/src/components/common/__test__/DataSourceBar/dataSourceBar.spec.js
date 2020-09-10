@@ -17,7 +17,7 @@ const fetchDatabases = jest.fn().mockImplementation(() => {
   })
 })
 const updateTopTable = jest.fn().mockImplementation()
-const freshTreeOrder = jest.spyOn(handlers, 'freshTreeOrder').mockImplementation()
+// const freshTreeOrder = jest.spyOn(handlers, 'freshTreeOrder').mockImplementation()
 
 const handleSuccessAsync = jest.spyOn(utils, 'handleSuccessAsync').mockImplementation((res, callback) => {
   return new Promise((resolve) => (resolve(res.data || res)))
@@ -93,7 +93,7 @@ const wrapper = shallow(DataSourceBar, {
   mocks: {
     handleSuccessAsync: handleSuccessAsync,
     handleError: handleError,
-    freshTreeOrder: freshTreeOrder,
+    // freshTreeOrder: freshTreeOrder,
     kapConfirm: mockKapConfirm
   },
   propsData: {
@@ -313,7 +313,7 @@ describe('Component DataSourceBar', async () => {
     }
     DataSourceBar.options.methods.handleResultModalClosed.call(_options2)
     setTimeout(() => {
-      expect(_options2.loadedTables).toEqual([])
+      expect(_options2.loadedTables).toEqual(['SSB'])
       expect(_options2.failedTables).toEqual([])
       expect(_options2.loadDataBases).toBeCalled()
       done()
@@ -330,8 +330,35 @@ describe('Component DataSourceBar', async () => {
 describe('DataSourceBar handlers', () => {
   it('events', () => {
     expect(handlers.getTableObj(wrapper.vm, 'SSB', {root_fact: true, lookup: false, uuid: '', name: 'KYLIN', increment_loading: false, top: true, columns: [], segment_range: {date_range_start: 103113938123, date_range_end: 103123938123}}, false)).toBeInstanceOf(Object)
-    expect(handlers.freshTreeOrder(wrapper.vm)).toEqual()
+    let data = {
+      datasources: [{
+        children: [
+          { label: 'DEFAULT', children: [{isTopSet: true, isCentral: true, label: 'prices'}, {isTopSet: false, isCentral: false, label: 'prices1'}] },
+          { label: 'SSB', children: [{isTopSet: false, isCentral: true, label: 'date'}, {isTopSet: false, isCentral: false, label: 'date1'}] },
+          { label: 'TEST', children: [{isTopSet: true, isCentral: false, label: 'comment'}, {isTopSet: true, isCentral: false, label: 'comment1'}] },
+          { label: 'TEST_1', children: [{isTopSet: true, isCentral: true, label: 'CC'}] }
+        ]
+      }],
+      $store: {
+        state: {
+          project: {
+            projectDefaultDB: 'DEFAULT'
+          }
+        }
+      }
+    }
+    handlers.freshTreeOrder(data)
+    expect(data.datasources).toBeInstanceOf(Array)
     expect(handlers.getWordsData({type: '', label: '', id: 4})).toEqual({meta: '', caption: '', value: '', id: 4, scope: 1})
     expect(handlers.getTableDBWordsData({type: 'table', database: 'SSB', label: 'SALES', id: 4})).toEqual({meta: 'table', caption: 'SSB.SALES', value: 'SSB.SALES', id: 4, scope: 1})
+    expect(handlers.getFirstTableData([{children: [{ children: [{dbname: 'DB1', size: 3, tables: []}] }]}])).toEqual({"dbname": "DB1", "size": 3, "tables": []})
+    // {label: 'P_LINEORDER', database: 'SSB', datasource: 9, columns: [{cardinality: null, datatype: "varchar(4096)", id: "2", max_value: null, min_value: null, name: "D_DATE", null_count: null}]}
+    expect(handlers.getTableObj({hideFactIcon: false, foreignKeys: [], primaryKeys: []}, { datasource: 9, label: 'P_LINEORDER' }, { root_fact: false, lookup: true, columns: [{cardinality: null, datatype: "varchar(4096)", id: "2", max_value: null, min_value: null, name: "D_DATE", null_count: null}] }, false).__data).toBeTruthy()
+    wrapper.vm.$store.state.config.platform = 'iframe'
+    expect(handlers.getDatasourceObj(wrapper.vm, 9)).toBeInstanceOf(Object)
+    expect(handlers.render.column.render((res) => res, { node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toEqual('div')
+    expect(handlers.render.table.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {label: 'TEST', tags: ['F', 'L', 'N'], dateRange: true, isTopSet: true, isHideFactIcon: false}, store: {}})).toBeInstanceOf(Object)
+    expect(handlers.render.database.render(wrapper.vm.$createElement, { node: null, data: { label: 'TEST', isDefaultDB: true }, store: {} })).toBeInstanceOf(Object)
+    expect(handlers.render.datasource.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {sourceType: 9, label: 'SSB'}, store: {} })).toBeInstanceOf(Object)
   })
 })
