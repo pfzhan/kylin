@@ -63,6 +63,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -216,7 +217,7 @@ public class QueryNodeFilter implements Filter {
                 responseHeaders = exchange.getHeaders();
                 responseBody = exchange.getBody();
                 responseStatus = exchange.getStatusCodeValue();
-            } catch (IllegalStateException e) {
+            } catch (IllegalStateException | ResourceAccessException e) {
                 responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
                 Message msg = MsgPicker.getMsg();
                 ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
