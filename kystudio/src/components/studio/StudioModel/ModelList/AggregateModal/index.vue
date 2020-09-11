@@ -416,6 +416,7 @@
       @close="editIncludeDimension = false"
       :visible="true"
       v-if="editIncludeDimension"
+      ref="includesDimensionDialog"
     >
       <div class="action-layout">
         <p class="alert">{{$t('editIncludeDimensionTip')}}</p>
@@ -423,8 +424,8 @@
           <el-input v-model="searchName" v-global-key-event.enter.debounce="filterChange" @clear="clearFilter" size="medium" prefix-icon="el-icon-search" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
         </div>
       </div>
-      <div class="ky-simple-table">
-        <el-row class="table-header table-row ksd-mt-10">
+      <div class="ky-simple-table" @scroll="scrollEvent">
+        <el-row class="table-header table-row">
           <el-col :span="1"><el-checkbox v-model="isSelectAllDimensions" :indeterminate="getSelectedIncludeDimensions.length > 0 && getSelectedIncludeDimensions.length < dimensions().length" @change="selectAllIncludes" size="small"/></el-col>
           <el-col :span="6">{{$t('th_name')}}</el-col>
           <el-col :span="7">{{$t('th_column')}}</el-col>
@@ -607,6 +608,9 @@ export default class AggregateModal extends Vue {
   isSelectAllMeasure = false
   selectedMeasures = []
   searchMeasure = ''
+  backUpDimensions = []
+  pageOffset = 0
+  pageSize = 50
 
   get clearTips () {
     return this.form.isDimClearable ? this.$t('clearDimTips') : this.$t('disableClear')
@@ -1367,11 +1371,30 @@ export default class AggregateModal extends Vue {
       this.isSelectAllDimensions = false
     }
     this.selectedIncludeDimension = includes
-    this.includeDimensions = [...includes, ...dimensions.filter(it => !this.form.aggregateArray[aggregateIdx].includes.includes(it.label))]
+    this.backUpDimensions = [...includes, ...dimensions.filter(it => !this.form.aggregateArray[aggregateIdx].includes.includes(it.label))]
     this.currentAggregateInfo = {
       aggregateIdx,
       id
     }
+    this.getDimensionList()
+  }
+
+  scrollEvent (e) {
+    const { clientHeight, scrollHeight, scrollTop } = e.target
+    if (clientHeight + scrollTop === scrollHeight) {
+      if (this.pageOffset * this.pageSize >= this.backUpDimensions.length) return
+      this.pageOffset += 1
+      this.getDimensionList()
+    }
+  }
+
+  getDimensionList () {
+    const selectedItems = this.selectedIncludeDimension.map(it => it.label)
+    const filterData = this.backUpDimensions.filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: selectedItems.includes(it.label)}))
+    const labels = filterData.map(it => it.label)
+    const dataList = [...this.selectedIncludeDimension.filter(it => labels.includes(it.label)), ...filterData.filter(it => !it.isCheck)]
+    this.includeDimensions = dataList.slice(0, (this.pageOffset + 1) * this.pageSize)
+    this.orderIncludeDimensions()
   }
 
   // 全选或取消全选 includes 维度
@@ -1415,8 +1438,8 @@ export default class AggregateModal extends Vue {
     const unSelected = this.includeDimensions.filter(it => !it.isCheck)
     const selected = this.includeDimensions.filter(it => it.isCheck)
     this.includeDimensions = [...selected, ...unSelected]
-    selected.length === this.dimensions().length && (this.isSelectAllDimensions = true)
-    unSelected.length === this.includeDimensions.length && (this.isSelectAllDimensions = false)
+    selected.length === this.backUpDimensions.length && (this.isSelectAllDimensions = true)
+    unSelected.length === this.backUpDimensions.length && (this.isSelectAllDimensions = false)
   }
 
   // 移动（置顶、上移、下移）
@@ -1459,15 +1482,16 @@ export default class AggregateModal extends Vue {
 
   // 筛选包含维度的列名
   filterChange () {
-    const selectedItems = this.selectedIncludeDimension.map(it => it.label)
-    this.includeDimensions = this.dimensions().filter(it => it.name.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1 || it.column.toLocaleLowerCase().indexOf(this.searchName.toLocaleLowerCase()) > -1).map(it => ({...it, isCheck: selectedItems.includes(it.label)}))
-    this.orderIncludeDimensions()
+    this.pageOffset = 0
+    if (this.$refs.includesDimensionDialog) {
+      const scrollDom = this.$refs.includesDimensionDialog.$el.querySelector('.ky-simple-table')
+      scrollDom.scrollTop = 0
+    }
+    this.getDimensionList()
   }
 
   clearFilter () {
-    const selectedItems = this.selectedIncludeDimension.map(it => it.label)
-    const unSelectedD = this.dimensions().filter(it => !selectedItems.includes(it.label))
-    this.includeDimensions = [...this.selectedIncludeDimension, ...unSelectedD]
+    this.filterChange()
   }
 
   // 编辑度量
@@ -2053,8 +2077,8 @@ export default class AggregateModal extends Vue {
 }
 .edit-includes-dimensions {
   .el-dialog__body {
-    max-height: 500px;
-    overflow-y: auto;
+    height: 500px;
+    overflow: auto;
   }
   .flip-list-move {
     transition: transform .5s;
@@ -2068,6 +2092,9 @@ export default class AggregateModal extends Vue {
     margin-bottom: 10px;
   }
   .ky-simple-table {
+    height: calc(~'100% - 70px');
+    margin-top: 10px;
+    overflow: auto;
     .order-actions {
       display: flex;
       align-items: center;
