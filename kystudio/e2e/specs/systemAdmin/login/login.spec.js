@@ -26,7 +26,7 @@ describe('系统管理员登录', async function () {
   // 异常用例
   it('空的表单登录', async () => {
     await driver.get(LAUNCH_URL)
-    await driver.manage().window().setRect(1440, 828)
+    await driver.manage().window().setRect(1840, 828)
 
     await driver.findElement(By.css('.login-form .el-button--primary')).click()
     await driver.sleep(1000)

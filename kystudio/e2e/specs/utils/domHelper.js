@@ -194,9 +194,9 @@ async function stopMouseEvents(driver) {
  * @param {String} dragSelector 拖拽元素的选择器字符串
  * @param {String} dropSelector 放置拖拽元素容器的选择器字符串
  */
-async function dragAndDrop(driver, dragSelector, dropSelector) {
+async function dragAndDrop(driver, dragSelector, dropSelector, clientX = 0, clientY = 0) {
   await driver.executeScript(`
-    function customEvent(typeOfEvent) {
+    function customEvent(typeOfEvent, x, y) {
       var event = document.createEvent("CustomEvent");
       event.initCustomEvent(typeOfEvent, true, true, null);
       event.dataTransfer = {
@@ -208,6 +208,8 @@ async function dragAndDrop(driver, dragSelector, dropSelector) {
               return this.data[key];
           }
       };
+      event.clientX = x;
+      event.clientY = y;
       return event;
     }
     function dispatchEvent(element, event, transferData) {
@@ -225,7 +227,7 @@ async function dragAndDrop(driver, dragSelector, dropSelector) {
       var dropEl = document.querySelector('${dropSelector}');
       var dragStartEvent = customEvent('dragstart');
       dispatchEvent(dragEl, dragStartEvent);
-      var dropEvent = customEvent('drop');
+      var dropEvent = customEvent('drop', ${clientX}, ${clientY});
       dispatchEvent(dropEl, dropEvent, dragStartEvent.dataTransfer);
       var dragEndEvent = customEvent('dragend');
       dispatchEvent(dragEl, dragEndEvent, dropEvent.dataTransfer);
@@ -233,20 +235,24 @@ async function dragAndDrop(driver, dragSelector, dropSelector) {
   `);
 }
 
-async function changeFormSelect(driver, selector, popoverSelector, optionIdx) {
-  try {
-    await driver.wait(until.elementLocated(By.css(`${selector} .el-input`)), 10000);
-  } catch (e) {}
-  await driver.findElement(By.css(`${selector} .el-input`)).click();
-  await driver.sleep(1000)
+async function changeFormSelect(driver, selector, popoverSelector, optionIdx, isFilter) {
+  if (!isFilter) {
+    try {
+      await driver.wait(until.elementLocated(By.css(`${selector} .el-input`)), 10000);
+    } catch (e) {}
+    await driver.findElement(By.css(`${selector} .el-input`)).click();
+    await driver.sleep(1000)
+  }
   if (optionIdx instanceof Array) {
     for (const idx of optionIdx) {
       await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${idx})`))), 1000);
       await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${idx})`)).click();
     }
-    await driver.findElement(By.css(`${popoverSelector} .el-kylin-more`)).click();
+    try {
+      await driver.findElement(By.css(`${popoverSelector} .el-kylin-more`)).click();
+    } catch (e) {}
   } else {
-    await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${optionIdx})`))), 1000);
+    await driver.wait(until.elementIsVisible(await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${optionIdx})`))), 2000);
     await driver.findElement(By.css(`${popoverSelector} .el-select-dropdown__item:nth-child(${optionIdx})`)).click();
   }
 }

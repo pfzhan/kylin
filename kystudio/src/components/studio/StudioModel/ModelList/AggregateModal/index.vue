@@ -123,7 +123,8 @@
                           v-guide.aggMandatory
                           multiple
                           filterable
-                          class="mul-filter-select"
+                          class="mul-filter-select mandatory-select"
+                          popper-class="js_mandatory-select"
                           :class="{'reset-padding': aggregate.mandatory.length}"
                           :value="aggregate.mandatory"
                           :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
@@ -151,7 +152,8 @@
                             v-guide.aggHierarchy
                             multiple
                             filterable
-                            class="mul-filter-select"
+                            class="mul-filter-select hierarchy-select"
+                            popper-class="js_hierarchy-select"
                             :class="{'reset-padding': hierarchy.items.length}"
                             :value="hierarchy.items"
                             :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
@@ -189,7 +191,8 @@
                             v-guide.joint
                             multiple
                             filterable
-                            class="mul-filter-select"
+                            class="mul-filter-select joint-select"
+                            popper-class="js_joint-select"
                             :class="{'reset-padding': joint.items.length}"
                             :value="joint.items"
                             :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"

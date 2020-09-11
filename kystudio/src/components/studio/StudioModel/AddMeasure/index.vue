@@ -1,13 +1,23 @@
 <template>
-  <el-dialog append-to-body width="480px" limited-area :title="$t(measureTitle)" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide(false)">
+  <el-dialog
+    append-to-body
+    width="480px"
+    limited-area
+    :title="$t(measureTitle)"
+    :visible.sync="measureVisible"
+    top="5%"
+    class="add-measure-modal"
+    :close-on-press-escape="false"
+    :close-on-click-modal="false"
+    @close="handleHide(false)">
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
-          <el-input v-guide.measureNameInput class="measures-width" size="medium" v-model.trim="measure.name" :placeholder="$t('kylinLang.common.nameFormatValidTip2')"></el-input>
+          <el-input v-guide.measureNameInput class="measures-width measure-name-input" size="medium" v-model.trim="measure.name" :placeholder="$t('kylinLang.common.nameFormatValidTip2')"></el-input>
         </div>
       </el-form-item>
       <el-form-item :label="$t('expression')" prop="expression">
-        <el-select v-guide.measureExpressionSelect :popper-append-to-body="false" class="measures-width" size="medium" v-model="measure.expression" @change="changeExpression">
+        <el-select v-guide.measureExpressionSelect :popper-append-to-body="false" class="measures-width measure-expression-select" popper-class="js_measure-expression" size="medium" v-model="measure.expression" @change="changeExpression">
           <el-option
             v-for="item in expressionsConf"
             :key="item.value"
@@ -17,7 +27,12 @@
         </el-select>
       </el-form-item>
       <el-form-item v-if="measure.expression === 'TOP_N'|| measure.expression === 'PERCENTILE_APPROX' || measure.expression === 'COUNT_DISTINCT'" :label="$t('return_type')" >
-        <el-select :popper-append-to-body="false" size="medium" v-model="measure.return_type" class="measures-width" @change="changeReturnType">
+        <el-select
+          :popper-append-to-body="false"
+          size="medium"
+          v-model="measure.return_type"
+          class="measures-width"
+          @change="changeReturnType">
           <el-option
             v-for="(item, index) in getSelectDataType"
             :key="index"
@@ -31,7 +46,10 @@
         <el-tag type="info" class="measures-width" v-if="measure.expression === 'SUM(constant)' || measure.expression === 'COUNT(constant)'">1</el-tag>
         <div class="measure-flex-row" v-else>
           <div class="flex-item">
-            <el-select v-guide.measureReturnValSelect :class="{
+            <el-select v-guide.measureReturnValSelect
+            class="parameter-select"
+            popper-class="js_parameter-select"
+            :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N',
             'error-tip': showMutipleColumnsTip}"

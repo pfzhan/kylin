@@ -99,7 +99,7 @@
           --><common-tip :content="$t('kylinLang.common.moreActions')">
             <el-dropdown trigger="click">
               <i class="el-icon-ksd-table_others"></i>
-              <el-dropdown-menu slot="dropdown">
+              <el-dropdown-menu slot="dropdown" class="project-dropdown">
                 <el-dropdown-item v-if="canExecuteModelMetadata(scope.row)" @click.native="handleExportModels(scope.row)">{{$t('exportModelsMetadata')}}</el-dropdown-item>
                 <el-dropdown-item v-if="canExecuteModelMetadata(scope.row)" @click.native="handleImportModels(scope.row)">{{$t('importModelsMetadata')}}</el-dropdown-item>
                 <el-dropdown-item v-if="projectActions.includes('changeProjectOwner')" @click.native="openChangeProjectOwner(scope.row.name)">{{$t('changeProjectOwner')}}</el-dropdown-item>

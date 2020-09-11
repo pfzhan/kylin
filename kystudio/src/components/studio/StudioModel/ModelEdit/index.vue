@@ -5,7 +5,7 @@
       <!-- 为了保证 gif 每次都从第一帧开始播放，所以每次都要重新加载 -->
       <kap-empty-data class="gifEmptyData" :content="$t('noTableTip')" :image="require('../../../../assets/img/editmodel.gif') + '?v=' + new Date().getTime()" v-if="!Object.keys(modelRender.tables).length"></kap-empty-data>
       <!-- table box -->
-      <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
+      <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop :class="['js_' + t.alias.toLocaleLowerCase(), {'isLookup':t.kind==='LOOKUP'}]" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
           <common-tip class="name" v-show="!t.aliasIsEdit">
             <span slot="content">{{t.alias}}</span>
@@ -474,6 +474,7 @@
       width="30%"
       append-to-body
       limited-area
+      class="add-index-confirm-dialog"
       :close-on-click-modal="false"
       :show-close="false">
       <i class="el-icon-success ksd-mr-10 ky-dialog-icon"></i>

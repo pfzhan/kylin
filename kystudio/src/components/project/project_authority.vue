@@ -91,13 +91,13 @@
       <!-- <el-alert :title="$t('authorTips')" class="ksd-mb-20" show-icon :closable="false" :show-background="false" type="info" v-if="!isEditAuthor"></el-alert> -->
       <div class="ksd-title-label-small">{{$t('selectUserAccess')}}</div>
       <div v-for="(accessMeta, index) in accessMetas" :key="index" class="user-group-select ksd-mt-10 ky-no-br-space">
-        <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEditAuthor" @change="changeUserType(index)" size="medium" class="user-select" popper-class="js_principal">
+        <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEditAuthor" @change="changeUserType(index)" size="medium" class="user-select" :popper-class="'js_principal' + (index + 1)">
           <el-option label="user" :value="true"></el-option>
           <el-option label="group" :value="false"></el-option>
         </el-select>
         <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select> -->
         <el-select
-          :class="['name-select', {'has-selected': !accessMeta.sids.length}]"
+          :class="['name-select', 'name-select' + (index + 1), 'author-select', {'has-selected': !accessMeta.sids.length}]"
           v-model="accessMeta.sids"
           :disabled="isEditAuthor"
           multiple
@@ -106,7 +106,7 @@
           @blur="(e) => filterUser(e.target.value)"
           :placeholder="$t('kylinLang.common.pleaseInputUserName')"
           :remote-method="filterUser"
-          popper-class="author-select"
+          :popper-class="'js_author-select' + (index + 1)"
           v-if="accessMeta.principal">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!accessMeta.sids.length"></i>
           <el-option
@@ -119,7 +119,7 @@
         </el-select>
         <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select> -->
         <el-select
-          :class="['name-select', {'has-selected': !accessMeta.sids.length}]"
+          :class="['name-select', 'name-select' + (index + 1), {'has-selected': !accessMeta.sids.length}]"
           v-model="accessMeta.sids"
           :disabled="isEditAuthor"
           multiple
@@ -128,7 +128,7 @@
           @blur="(e) => filterGroup(e.target.value)"
           :placeholder="$t('kylinLang.common.pleaseInputUserGroup')"
           :remote-method="filterGroup"
-          popper-class="author-select"
+          :popper-class="'js_author-select' + (index + 1)"
           v-else>
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!accessMeta.sids.length"></i>
           <el-option
@@ -139,7 +139,7 @@
           </el-option>
           <div class="over-limit-tip" v-if="showLimitTips(accessMeta.principal)">{{$t('overLimitTip')}}</div>
         </el-select>
-        <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium" popper-class="js_access_type_sel">
+        <el-select :class="['type-select', 'type-select' + (index + 1)]" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium" :popper-class="'js_access_type_sel' + (index + 1)">
           <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
         </el-select>
         <span class="ky-no-br-space ksd-ml-10 repeatBtn" v-if="!isEditAuthor">

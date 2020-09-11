@@ -225,7 +225,7 @@ export default class TreeList extends Vue {
         ...(type === 'isLoading' ? [{ name: 'loading', value: true }] : [])
       ],
       class: [
-        ...(type === 'isMore' ? ['load-more'] : []),
+        ...(type === 'isMore' ? ['load-more', data.parent.label.toLowerCase() + '-more'] : []),
         ...(data.isSelected ? ['selected'] : [])
       ]
     }
