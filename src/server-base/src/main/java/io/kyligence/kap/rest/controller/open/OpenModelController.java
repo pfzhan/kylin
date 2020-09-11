@@ -166,7 +166,7 @@ public class OpenModelController extends NBasicController {
 
     @PutMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model_name") String modelAlias,
+    public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegmentsByIds(@PathVariable("model_name") String modelAlias,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         String modelId = getModel(modelAlias, request.getProject()).getId();

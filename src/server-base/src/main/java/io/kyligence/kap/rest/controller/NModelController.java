@@ -732,24 +732,29 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "refreshOrMergeSegmentsByIds", notes = "Add URL: {model}")
     @PutMapping(value = "/{model:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
+    public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
+        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
         if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
             if (ArrayUtils.isEmpty(request.getIds())) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
-            modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId, request.getIds(), request.isRefreshAllIndexes())
+            jobInfos = modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId, request.getIds(), request.isRefreshAllIndexes())
                     .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
-            modelService.mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
+            val jobInfo = modelService.mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
+            if (jobInfo != null) {
+                jobInfos.add(jobInfo);
+            }
         }
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        JobInfoResponse response = new JobInfoResponse();
+        response.setJobs(jobInfos);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")

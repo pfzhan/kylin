@@ -59,6 +59,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -367,14 +368,16 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRefreshSegmentsById() throws Exception {
+        List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
+        jobInfos.add(new JobInfoResponse.JobInfo("78847556-2cdb-4b07-b39e-4c29856309aa", "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         SegmentsRequest request = mockSegmentRequest();
-        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById(
-                new RefreshSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
-        mockMvc.perform(
+        Mockito.doAnswer(x -> jobInfos).when(modelService).refreshSegmentById(Mockito.any());
+        String mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
+        Assert.assertTrue(mvcResult.contains("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
@@ -384,13 +387,14 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
         request.setIds(new String[] { "0", "1" });
-        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService).mergeSegmentsManually(
-                new MergeSegmentParams("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getIds()));
-        mockMvc.perform(
+        Mockito.doAnswer(x -> new JobInfoResponse.JobInfo("0312bcc1-092e-42b1-ab0e-27807cf54f16", "79c27a68-343c-4b73-b406-dd5af0add951"))
+                .when(modelService).mergeSegmentsManually(Mockito.any());
+        val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
+        Assert.assertTrue(mvcResult.contains("79c27a68-343c-4b73-b406-dd5af0add951"));
         Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
