@@ -38,6 +38,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -140,6 +141,20 @@ public class NReuseModelCcTest extends NAutoTestBase {
         Assert.assertTrue(accelerateInfoMap.get(statements[4]).isPending());
         Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
                 accelerateInfoMap.get(statements[4]).getPendingMsg());
+
+        // mock apply recommendations of ccs, dimensions and measures
+        List<AbstractContext.NModelContext> modelContexts = contextFirst.getModelContexts();
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelContexts.forEach(modelContext -> {
+            NDataModel targetModel = modelContext.getTargetModel();
+            if (targetModel != null) {
+                dataModelManager.updateDataModel(targetModel.getUuid(), copyForWrite -> {
+                    copyForWrite.setComputedColumnDescs(targetModel.getComputedColumnDescs());
+                    copyForWrite.setAllMeasures(targetModel.getAllMeasures());
+                    copyForWrite.setAllNamedColumns(targetModel.getAllNamedColumns());
+                });
+            }
+        });
 
         // second round
         val contextSecond = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(kylinConfig, getProject(),

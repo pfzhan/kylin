@@ -95,7 +95,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         Field instanceFiled = Singletons.class.getDeclaredField("instance");
         instanceFiled.setAccessible(true);
 
-        Singletons instanceSingle = (Singletons)instanceFiled.get(instanceFiled);
+        Singletons instanceSingle = (Singletons) instanceFiled.get(instanceFiled);
 
         Field instancesField = instanceSingle.getClass().getDeclaredField("instances");
         instancesField.setAccessible(true);
@@ -156,25 +156,41 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public static void staticCreateTestMetadata(String... overlay) {
-        try {
-            getInstances().clear();
-            getGlobalInstances().clear();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        cleanSingletonInstances();
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata(false, overlay);
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }
 
-    public static void staticCreateTestMetadata() {
+    private static void cleanSingletonInstances() {
         try {
             getInstances().clear();
+        } catch (Exception e) {
+            //ignore in it
+        }
+
+        try {
             getGlobalInstances().clear();
         } catch (Exception e) {
-            // e.printStackTrace();
+            //ignore in it
         }
+
+        try {
+            getInstancesFromSingleton().clear();
+        } catch (Exception e) {
+            //ignore in it
+        }
+
+        try {
+            getInstanceByProject().clear();
+        } catch (Exception e) {
+            //ignore in it
+        }
+    }
+
+    public static void staticCreateTestMetadata() {
+        cleanSingletonInstances();
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
@@ -187,17 +203,11 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public static KylinConfig getTestConfig() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        return config;
+        return KylinConfig.getInstanceFromEnv();
     }
 
     public static void staticCleanupTestMetadata() {
-        try {
-            getInstances().clear();
-            getGlobalInstances().clear();
-        } catch (Exception e) {
-            // e.printStackTrace();
-        }
+        cleanSingletonInstances();
         File directory = new File(LOCALMETA_TEMP_DATA);
         FileUtils.deleteQuietly(directory);
 

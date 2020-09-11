@@ -33,11 +33,6 @@ import java.util.Properties;
 
 import javax.sql.DataSource;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import lombok.val;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.mapping.Environment;
@@ -47,16 +42,22 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.apache.ibatis.type.JdbcType;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryMapper;
 import io.kyligence.kap.metadata.query.QueryHistoryRealizationMapper;
 import io.kyligence.kap.metadata.query.QueryStatisticsMapper;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class QueryHisStoreUtil {
 
     private static final String CREATE_QUERY_HISTORY_TABLE = "create.queryhistory.store.table";
@@ -70,13 +71,14 @@ public class QueryHisStoreUtil {
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX1 = "create.queryhistoryrealization.store.tableindex1";
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX2 = "create.queryhistoryrealization.store.tableindex2";
 
-    private volatile static SqlSessionFactory sqlSessionFactory = null;
+    private static SqlSessionFactory sqlSessionFactory = null;
 
-    private static final Logger logger = LoggerFactory.getLogger(QueryHisStoreUtil.class);
+    private QueryHisStoreUtil() {
+    }
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String qhTableName,
-            String qhRealizationTableName) throws SQLException, IOException {
-        if (sqlSessionFactory == null) {
+            String qhRealizationTableName) {
+        Singletons.getInstance(QueryHisStoreUtil.class, clz -> {
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
             Environment environment = new Environment("query history", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);
@@ -85,14 +87,12 @@ public class QueryHisStoreUtil {
             configuration.addMapper(QueryHistoryMapper.class);
             configuration.addMapper(QueryHistoryRealizationMapper.class);
             configuration.addMapper(QueryStatisticsMapper.class);
-            synchronized (QueryHisStoreUtil.class) {
-                if (sqlSessionFactory == null) {
-                    createQueryHistoryIfNotExist((BasicDataSource) dataSource, qhTableName);
-                    createQueryHistoryRealizationIfNotExist((BasicDataSource) dataSource, qhRealizationTableName);
-                    sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
-                }
-            }
-        }
+            createQueryHistoryIfNotExist((BasicDataSource) dataSource, qhTableName);
+            createQueryHistoryRealizationIfNotExist((BasicDataSource) dataSource, qhRealizationTableName);
+            sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
+            return new QueryHisStoreUtil();
+        });
+
         return sqlSessionFactory;
     }
 
@@ -103,7 +103,7 @@ public class QueryHisStoreUtil {
                 return;
             }
         } catch (Exception e) {
-            logger.error("Fail to know if table {} exists", qhTableName, e);
+            log.error("Fail to know if table {} exists", qhTableName, e);
             return;
         }
         try (Connection connection = dataSource.getConnection()) {
@@ -137,7 +137,7 @@ public class QueryHisStoreUtil {
                 return;
             }
         } catch (Exception e) {
-            logger.error("Fail to know if table {} exists", qhRealizationTableName, e);
+            log.error("Fail to know if table {} exists", qhRealizationTableName, e);
             return;
         }
         try (Connection connection = dataSource.getConnection()) {
@@ -170,13 +170,13 @@ public class QueryHisStoreUtil {
                     continue;
                 try {
                     long startTime = System.currentTimeMillis();
-                    logger.info("Start to delete query histories that are beyond max size for project<{}>",
+                    log.info("Start to delete query histories that are beyond max size for project<{}>",
                             project.getName());
                     getQueryHistoryDao().deleteQueryHistoriesIfProjectMaxSizeReached(project.getName());
-                    logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
+                    log.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
                             System.currentTimeMillis() - startTime);
                 } catch (Exception e) {
-                    logger.error("clean query histories<" + project.getName() + "> failed", e);
+                    log.error("clean query histories<" + project.getName() + "> failed", e);
                 }
             }
 

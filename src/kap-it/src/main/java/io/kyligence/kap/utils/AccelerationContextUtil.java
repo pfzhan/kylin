@@ -35,8 +35,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiAutoContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.AbstractSemiContextV2;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartContext;
 import lombok.val;
 import lombok.var;
@@ -50,14 +50,14 @@ public class AccelerationContextUtil {
         return new NSmartContext(kylinConfig, project, sqlArray);
     }
 
-    public static AbstractSemiAutoContext newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
-        return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray);
+        return new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray);
     }
 
-    public static AbstractSemiAutoContext newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
             String[] sqlArray, boolean canCreateNewModel) {
-        return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray, canCreateNewModel);
+        return new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, canCreateNewModel);
     }
 
     public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
@@ -96,8 +96,7 @@ public class AccelerationContextUtil {
             if (model == null || dfManager.getDataflow(model.getId()) == null) {
                 return;
             }
-            dfManager.updateDataflow(model.getId(),
-                    copyForWrite -> copyForWrite.setStatus(ONLINE));
+            dfManager.updateDataflow(model.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
         });
     }
 }

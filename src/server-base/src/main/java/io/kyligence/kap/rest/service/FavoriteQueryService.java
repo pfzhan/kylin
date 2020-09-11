@@ -76,7 +76,7 @@ import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.rate.EnableRateLimit;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -388,27 +388,26 @@ public class FavoriteQueryService extends BasicService {
         logger.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, sqlList.size());
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Set<String> sqlSet = Sets.newHashSet(sqlList);
-        NSmartMaster.genOptRecommendationForSemiMode(kylinConfig, project, sqlList.toArray(new String[0]),
-                smartContext -> {
-                    Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(smartContext);
-                    if (!notAccelerated.isEmpty()) {
-                        sqlSet.removeAll(notAccelerated.keySet());
-                        updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
-                    } // case of sqls with constants
-                    if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
-                        updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-                        return;
-                    }
-                    for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
-                        val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
-                        sqlSet.removeAll(sqls);
-                        if (CollectionUtils.isEmpty(sqls)) {
-                            continue;
-                        }
-                        updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
-                    }
-                    updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
-                });
+        NSmartMaster.genOptRecommendationSemiV2(kylinConfig, project, sqlList.toArray(new String[0]), smartContext -> {
+            Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(smartContext);
+            if (!notAccelerated.isEmpty()) {
+                sqlSet.removeAll(notAccelerated.keySet());
+                updateNotAcceleratedSqlStatus(notAccelerated, KylinConfig.getInstanceFromEnv(), project);
+            } // case of sqls with constants
+            if (CollectionUtils.isEmpty(smartContext.getModelContexts())) {
+                updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+                return;
+            }
+            for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
+                val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
+                sqlSet.removeAll(sqls);
+                if (CollectionUtils.isEmpty(sqls)) {
+                    continue;
+                }
+                updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATED);
+            }
+            updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
+        });
         logger.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
                 System.currentTimeMillis() - startTime);
     }
@@ -599,7 +598,8 @@ public class FavoriteQueryService extends BasicService {
         long duration = System.currentTimeMillis() - startTime;
         logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}", sqlSize,
                 duration, project);
-        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project, duration);
+        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project,
+                duration);
     }
 
     // expert mode no need this
@@ -612,7 +612,7 @@ public class FavoriteQueryService extends BasicService {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
             AbstractContext context = instance.isSemiAutoMode() //
-                    ? new ModelReuseContextOfSemiMode(config, project, sqls)
+                    ? new ModelReuseContextOfSemiV2(config, project, sqls)
                     : new NSmartContext(config, project, sqls);
             NSmartMaster master = new NSmartMaster(context);
             master.executePropose();

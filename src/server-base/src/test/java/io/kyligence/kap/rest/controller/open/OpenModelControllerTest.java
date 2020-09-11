@@ -59,10 +59,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
@@ -75,6 +78,7 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
+import lombok.var;
 
 public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
@@ -336,6 +340,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSuggestModels() throws Exception {
+        changeProjectToSemiAutoMode("default");
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
@@ -351,6 +356,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testOptimizeModels() throws Exception {
+        changeProjectToSemiAutoMode("default");
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         OpenSqlAccelerateRequest favoriteRequest = new OpenSqlAccelerateRequest("default", sqls, null);
 
@@ -380,4 +386,16 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     }
 
+    private void changeProjectToSemiAutoMode(String project) {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kylin.metadata.semi-automatic-mode", "true");
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+    }
 }

@@ -39,9 +39,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.AbstractSemiAutoContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.AbstractSemiContextV2;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartContext;
 import lombok.val;
 import lombok.var;
@@ -55,19 +55,19 @@ public class AccelerationContextUtil {
         return new NSmartContext(kylinConfig, project, sqlArray);
     }
 
-    public static AbstractSemiAutoContext newModelReuseContext(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContextV2 newModelReuseContext(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
-        return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray);
+        return new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray);
     }
 
-    public static AbstractSemiAutoContext newModelReuseContext(KylinConfig kylinConfig, String project,
-            String[] sqlArray, boolean canCreateNewModel) {
-        return new ModelReuseContextOfSemiMode(kylinConfig, project, sqlArray, canCreateNewModel);
+    public static AbstractSemiContextV2 newModelReuseContext(KylinConfig kylinConfig, String project, String[] sqlArray,
+            boolean canCreateNewModel) {
+        return new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, canCreateNewModel);
     }
 
-    public static AbstractSemiAutoContext newModelCreateContext(KylinConfig kylinConfig, String project,
+    public static AbstractSemiContextV2 newModelCreateContext(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
-        return new ModelCreateContextOfSemiMode(kylinConfig, project, sqlArray) {
+        return new ModelCreateContextOfSemiV2(kylinConfig, project, sqlArray) {
 
             @Override
             public void saveMetadata() {
@@ -148,8 +148,7 @@ public class AccelerationContextUtil {
             if (model == null || dfManager.getDataflow(model.getId()) == null) {
                 return;
             }
-            dfManager.updateDataflow(model.getId(),
-                    copyForWrite -> copyForWrite.setStatus(ONLINE));
+            dfManager.updateDataflow(model.getId(), copyForWrite -> copyForWrite.setStatus(ONLINE));
         });
     }
 }

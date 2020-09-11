@@ -296,6 +296,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> batchApproveRecommendations(@RequestBody OpenBatchApproveRecItemsRequest request) {
         checkProjectName(request.getProject());
+        checkProjectNotSemiAuto(request.getProject());
         boolean filterByModels = request.isFilterByModes();
         if (request.getRecActionType() == null || StringUtils.isEmpty(request.getRecActionType().trim())) {
             request.setRecActionType("all");
@@ -356,7 +357,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
         checkProjectName(request.getProject());
-
+        checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOrOptimizeModels(request), "");
     }
@@ -365,7 +366,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
         checkProjectName(request.getProject());
-
+        checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOrOptimizeModels(request), "");
     }

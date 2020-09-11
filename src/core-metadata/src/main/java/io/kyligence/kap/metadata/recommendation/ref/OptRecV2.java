@@ -105,6 +105,12 @@ public class OptRecV2 {
     private void initRecommendation() {
         log.debug("Start to initialize recommendation({}/{}}", project, getUuid());
 
+        NDataModel model = getModel();
+        if (model.isBroken()) {
+            log.warn("Discard all related recommendations for model({}/{}) is broken.", project, uuid);
+            RawRecManager.getInstance(project).discardRecItemsOfBrokenModel(model.getUuid());
+            return;
+        }
         initModelColumnRefs(getModel());
         initModelMeasureRefs(getModel());
         initLayoutRefs(queryBestLayoutRecItems());
@@ -112,7 +118,7 @@ public class OptRecV2 {
 
         autoNameForMeasure();
 
-        log.debug("Initialize recommendation({}/{}} successfully.", project, uuid);
+        log.debug("Initialize recommendation({}/{}) successfully.", project, uuid);
     }
 
     private void autoNameForMeasure() {

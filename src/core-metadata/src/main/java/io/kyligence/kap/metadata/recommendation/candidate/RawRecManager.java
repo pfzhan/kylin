@@ -46,7 +46,6 @@ public class RawRecManager {
     private static final int LAG_SEMANTIC_VERSION = 1;
 
     private final String project;
-    private final KylinConfig kylinConfig;
     private final JdbcRawRecStore jdbcRawRecStore;
 
     // CONSTRUCTOR
@@ -56,8 +55,7 @@ public class RawRecManager {
 
     private RawRecManager(String project) throws Exception {
         this.project = project;
-        this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        this.jdbcRawRecStore = new JdbcRawRecStore(kylinConfig);
+        this.jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
     }
 
     /**
@@ -67,7 +65,7 @@ public class RawRecManager {
     public Map<String, RawRecItem> queryNonLayoutRecItems(Set<String> modelIdSet) {
         Set<String> allModelList = modelIdSet;
         if (modelIdSet == null || modelIdSet.isEmpty()) {
-            allModelList = NDataModelManager.getInstance(kylinConfig, project).listAllModelIds();
+            allModelList = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModelIds();
         }
         Map<String, RawRecItem> allRecItems = Maps.newHashMap();
         for (String model : allModelList) {
@@ -133,7 +131,8 @@ public class RawRecManager {
     }
 
     public void deleteAllOutDated(String project) {
-        ImmutableList<String> models = NProjectManager.getInstance(kylinConfig).getProject(project).getModels();
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ImmutableList<String> models = projectManager.getProject(project).getModels();
         models.forEach(model -> deleteOutDated(model, LAG_SEMANTIC_VERSION));
     }
 
@@ -141,6 +140,10 @@ public class RawRecManager {
         int semanticVersion = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(model).getSemanticVersion();
         jdbcRawRecStore.deleteBySemanticVersion(semanticVersion - lagVersion, model);
+    }
+
+    public void discardRecItemsOfBrokenModel(String model) {
+        jdbcRawRecStore.discardRecItemsOfBrokenModel(model);
     }
 
     public void deleteRecItemsOfNonExistModels(String project, Set<String> existingModels) {

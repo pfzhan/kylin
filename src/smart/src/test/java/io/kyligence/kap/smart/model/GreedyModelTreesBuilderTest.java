@@ -26,9 +26,9 @@ package io.kyligence.kap.smart.model;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -38,12 +38,16 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
 
     @Ignore("Cannot propose in PureExpertMode")
@@ -120,19 +124,17 @@ public class GreedyModelTreesBuilderTest extends NLocalWithSparkSessionTest {
         val context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", sqls);
         val smartMaster2 = new NSmartMaster(context2);
         smartMaster2.runSuggestModel();
-        val recommMap = context2.getRecommendationMap();
-        val model = smartMaster2.getContext().getModelContexts().get(0).getTargetModel();
-        val layoutRecomms = recommMap.get(model).getLayoutRecommendations();
-        val columns = Lists.<String> newArrayList();
-
-        Assert.assertEquals(1, smartMaster2.getContext().getModelContexts().size());
-        Assert.assertNotNull(recommMap);
-        Assert.assertEquals(4, recommMap.get(model).getRecommendationsCount());
-        Assert.assertEquals(2, recommMap.get(model).getLayoutRecommendations().size());
-        layoutRecomms.forEach(layoutRecomm -> {
-            Assert.assertFalse(layoutRecomm.isAggIndex());
-            Assert.assertEquals(1, layoutRecomm.getLayout().getColOrder().size());
-            val columnId = layoutRecomm.getLayout().getColOrder().get(0);
+        List<AbstractContext.NModelContext> modelContexts = context2.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        AbstractContext.NModelContext modelContext = modelContexts.get(0);
+        Map<String, LayoutRecItemV2> indexRexItemMap = modelContext.getIndexRexItemMap();
+        Assert.assertEquals(2, indexRexItemMap.size());
+        NDataModel model = modelContext.getTargetModel();
+        List<String> columns = Lists.newArrayList();
+        indexRexItemMap.forEach((unique, layoutRecItemV2) -> {
+            Assert.assertFalse(layoutRecItemV2.isAgg());
+            Assert.assertEquals(1, layoutRecItemV2.getLayout().getColOrder().size());
+            int columnId = layoutRecItemV2.getLayout().getColOrder().get(0);
             columns.add(model.getColRef(columnId).getIdentity());
         });
         Collections.sort(columns);

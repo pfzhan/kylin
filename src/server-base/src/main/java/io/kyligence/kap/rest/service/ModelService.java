@@ -225,9 +225,9 @@ import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.NModelContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.ModelSelectContextOfSemiMode;
+import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
@@ -1486,7 +1486,7 @@ public class ModelService extends BasicService {
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
 
-        AbstractContext proposeContext = new ModelSelectContextOfSemiMode(KylinConfig.getInstanceFromEnv(), project,
+        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.executePropose();
@@ -1520,7 +1520,7 @@ public class ModelService extends BasicService {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         AbstractContext proposeContext = reuseExistedModel
                 ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), true)
-                : new ModelCreateContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]));
+                : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
         NSmartMaster smartMaster = new NSmartMaster(proposeContext);
         smartMaster.runSuggestModel();
         return buildModelSuggestionResponse(smartMaster.getContext());
@@ -2343,7 +2343,7 @@ public class ModelService extends BasicService {
         val request = new ModelRequest(dataModelDesc);
         request.setProject(dataModelDesc.getProject());
         request.setMeasures(dataModelDesc.getAllMeasures());
-        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, false);
+        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request);
         // get invalid measure names in original model
         val removedMeasures = updateImpact.getInvalidMeasures();
         val measureNames = oldDataModel.getAllMeasures().stream().filter(m -> removedMeasures.contains(m.getId()))
@@ -2479,8 +2479,7 @@ public class ModelService extends BasicService {
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
         val df = dfManager.getDataflow(modelId);
         if (df.getSegments().isEmpty() && RealizationStatusEnum.ONLINE.equals(df.getStatus())) {
-            dfManager.updateDataflow(df.getId(),
-                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
+            dfManager.updateDataflow(df.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.OFFLINE));
         }
     }
 
@@ -2663,7 +2662,7 @@ public class ModelService extends BasicService {
         val originModel = modelManager.getDataModelDesc(modelId);
 
         val copyModel = modelManager.copyForWrite(originModel);
-        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
+        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
@@ -2769,7 +2768,7 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val origin = modelManager.getDataModelDesc(modelRequest.getUuid());
         val copyModel = modelManager.copyForWrite(origin);
-        semanticUpdater.updateModelColumns(copyModel, modelRequest, true);
+        semanticUpdater.updateModelColumns(copyModel, modelRequest);
         copyModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
         copyModel.getAllNamedColumns().forEach(namedColumn -> {
             if (columnIds.contains(namedColumn.getId())) {
@@ -2799,7 +2798,7 @@ public class ModelService extends BasicService {
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
         val format = probeDateFormatIfNotExist(project, broken);
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            semanticUpdater.updateModelColumns(broken, modelRequest, true);
+            semanticUpdater.updateModelColumns(broken, modelRequest);
             val model = getDataModelManager(project).updateDataModelDesc(broken);
             saveDateFormatIfNotExist(project, model.getUuid(), format);
             getDataflowManager(project).updateDataflow(broken.getId(),
@@ -3094,7 +3093,7 @@ public class ModelService extends BasicService {
         Set<Long> affectedLayouts = Sets.newHashSet();
         if (oldDataModel != null && !oldDataModel.isBroken()) {
             model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
-            UpdateImpact updateImpact = semanticUpdater.updateModelColumns(model, modelRequest, false);
+            UpdateImpact updateImpact = semanticUpdater.updateModelColumns(model, modelRequest);
             Set<Integer> modifiedSet = updateImpact.getAffectedIds();
             affectedLayouts = getAffectedLayouts(oldDataModel.getProject(), oldDataModel.getId(), modifiedSet);
         }

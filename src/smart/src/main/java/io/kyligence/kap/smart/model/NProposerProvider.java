@@ -25,7 +25,7 @@
 package io.kyligence.kap.smart.model;
 
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -54,7 +54,7 @@ public class NProposerProvider {
     }
 
     public NAbstractModelProposer getComputedColumnProposer() {
-        return modelContext.getProposeContext() instanceof ModelReuseContextOfSemiMode
+        return modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2
                 ? new NComputedColumnProposer.NComputedColumnProposerOfModelReuseContext(modelContext)
                 : new NComputedColumnProposer(modelContext);
     }

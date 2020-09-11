@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
@@ -98,8 +97,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
@@ -143,15 +140,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
 
-        OptRecManagerV2 optRecManagerV2;
-        try {
-            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance("default"), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton(), getProject());
-            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
-            modelService.setUpdateListeners(Lists.newArrayList());
-        } catch (Exception e) {
-            log.error("Cannot mock a OptRecManagerV2 instance", e);
-        }
     }
 
     @After
@@ -891,36 +879,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(e.getCause() instanceof RuntimeException);
             Assert.assertTrue(e.getCause().getMessage().contains("KE-10007008(Ongoing Jobs)"));
         }
-    }
-
-    @Test
-    public void testReload_CleanRecommendation() throws Exception {
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            removeColumn("EDW.TEST_CAL_DT", "CAL_DT_UPD_USER");
-            tableService.innerReloadTable(PROJECT, "EDW.TEST_CAL_DT", true);
-
-            val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-            val model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
-
-            val modelId = model.getId();
-            AtomicBoolean clean = new AtomicBoolean(false);
-            val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), PROJECT));
-            ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = getInstanceByProject();
-            managersByPrjCache.get(OptimizeRecommendationManager.class).put(PROJECT, manager);
-            Mockito.doAnswer(invocation -> {
-                String id = invocation.getArgument(0);
-                if (modelId.equals(id)) {
-                    clean.set(true);
-                }
-                return null;
-            }).when(manager).cleanAll(Mockito.anyString());
-
-            removeColumn("DEFAULT.TEST_COUNTRY", "NAME");
-            tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY", true);
-
-            Assert.assertTrue(clean.get());
-            return null;
-        }, PROJECT);
     }
 
     @Test

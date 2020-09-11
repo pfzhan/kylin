@@ -57,8 +57,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NSuggestTestBase;
 import io.kyligence.kap.smart.AbstractContext;
@@ -177,7 +175,6 @@ public class SemiAutoTestBase extends NSuggestTestBase {
 
         long startTime = System.currentTimeMillis();
         final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
-        verifyAll();
         updateAccelerateInfoMap(smartMaster);
         final Map<String, RecAndQueryCompareUtil.CompareEntity> compareMap = collectCompareEntity(smartMaster);
         log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
@@ -261,18 +258,6 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runUtWithContext(smartUtHook);
         return smartMaster;
-    }
-
-    protected void verifyAll() {
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        modelManager.listAllModels().stream().filter(m -> !m.isBroken()).forEach(m -> {
-            val optimizeManager = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject());
-            val recommendation = optimizeManager.getOptimizeRecommendation(m.getId());
-            if (recommendation == null) {
-                return;
-            }
-            new OptimizeRecommendationVerifier(getTestConfig(), getProject(), m.getId()).verifyAll();
-        });
     }
 
     protected Map<String, RecAndQueryCompareUtil.CompareEntity> collectCompareEntity(NSmartMaster smartMaster) {

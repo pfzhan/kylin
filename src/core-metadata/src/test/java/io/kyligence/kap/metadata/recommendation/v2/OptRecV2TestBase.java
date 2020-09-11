@@ -24,9 +24,26 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.util.JsonUtil;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -35,32 +52,11 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
 import io.kyligence.kap.metadata.recommendation.ref.ModelColumnRef;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 import io.kyligence.kap.metadata.recommendation.ref.RecommendationRef;
-import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
-import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.util.JsonUtil;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 @Slf4j
 public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
@@ -69,11 +65,11 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
     private String indexPathPattern;
     private String recDirectory;
     private String recPathPattern;
-    private String h2MetadataUrlPattern;
 
     protected NDataModelManager modelManager;
     protected NIndexPlanManager indexPlanManager;
     protected JdbcRawRecStore jdbcRawRecStore;
+    private JdbcTemplate jdbcTemplate;
     protected NDataModel ndataModel;
     NDataflowManager dataflowManager;
 
@@ -85,7 +81,6 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         indexPathPattern = basePath + "/index_plan/%s.json";
         recDirectory = basePath + "/rec_items/";
         recPathPattern = basePath + "/rec_items/%s.json";
-        h2MetadataUrlPattern = "%s@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=";
         this.modelUUIDs = modelUUIDs;
     }
 
@@ -99,48 +94,27 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
-        this.clearSqlSession();
         this.createTestMetadata();
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
+        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        jdbcRawRecStore = new JdbcRawRecStore(getTestConfig());
 
         modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
 
-        val managersByPrjCache = getInstanceByProjectFromSingleton();
-        managersByPrjCache.put(RawRecManager.class, new ConcurrentHashMap<>());
-        getTestConfig().setMetadataUrl(String.format(h2MetadataUrlPattern, "rec_opt"));
-
         List<RawRecItem> recItems = loadAllRecItems(recDirectory);
         recItems.forEach(recItem -> recItem.setState(RawRecItem.RawRecState.INITIAL));
-        jdbcRawRecStore = new JdbcRawRecStore(getTestConfig());
         recItems.sort(Comparator.comparingInt(RawRecItem::getId));
         jdbcRawRecStore.save(recItems);
     }
 
     @After
     public void tearDown() throws Exception {
-        val jdbcTemplate = getJdbcTemplate();
-        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
-        clearSqlSession();
-    }
-
-    private void clearSqlSession() throws  Exception{
-        log.debug("clean SqlSessionFactory...");
-        Class<RawRecStoreUtil> clazz = RawRecStoreUtil.class;
-        Field sqlSessionFactory = clazz.getDeclaredField("sqlSessionFactory");
-        sqlSessionFactory.setAccessible(true);
-        sqlSessionFactory.set(null, null);
-        log.debug("SqlSessionFactory was set to {}", sqlSessionFactory.get(null));
-        sqlSessionFactory.setAccessible(false);
-        log.debug("clean SqlSessionFactory success");
-    }
-
-    private JdbcTemplate getJdbcTemplate() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
-        val props = datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
-        return new JdbcTemplate(dataSource);
     }
 
     protected void recommendItem(List<Integer> recommendItemIds) throws IOException {
@@ -150,6 +124,15 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
             List<RawRecItem> recommendedLayoutItems = Lists.newArrayList(item);
             changeLayoutRecItemState(recommendedLayoutItems, RawRecItem.RawRecState.RECOMMENDED);
             jdbcRawRecStore.update(recommendedLayoutItems);
+        }
+
+        Map<Integer, RawRecItem> map = Maps.newHashMap();
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        rawRecItems.forEach(rawRecItem -> map.put(rawRecItem.getId(), rawRecItem));
+        for (Integer id : recommendItemIds) {
+            log.debug("set RawRecItem({}) to recommended", id);
+            Assert.assertTrue(map.containsKey(id));
+            Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, map.get(id).getState());
         }
 
         prepareModelAndIndex();
@@ -250,7 +233,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(depedencyId.size(), ref.getDependencies().size());
 
                 for (int n = 0; n < depedencyId.size(); n++) {
-                    Assert.assertEquals(ref.getDependencies().get(n).getId() , depedencyId.get(n).intValue());
+                    Assert.assertEquals(ref.getDependencies().get(n).getId(), depedencyId.get(n).intValue());
                     if (depedencyId.get(n) > 0) {
                         Assert.assertTrue(ref.getDependencies().get(n) instanceof ModelColumnRef);
                     }
@@ -272,7 +255,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
             List<RecommendationRef> dependencies = ref.getDependencies();
             Assert.assertEquals(execptedDependencies.size(), dependencies.size());
             for (int n = 0; n < dependencies.size(); n++) {
-                Assert.assertEquals(dependencies.get(n).getId() , execptedDependencies.get(n).intValue());
+                Assert.assertEquals(dependencies.get(n).getId(), execptedDependencies.get(n).intValue());
             }
         });
     }
@@ -290,7 +273,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1, ref.getDependencies().size());
             RecommendationRef recommendationRef = ref.getDependencies().get(0);
             Assert.assertTrue(recommendationRef instanceof ModelColumnRef);
-            Assert.assertEquals(modelDimId.intValue() , recommendationRef.getId());
+            Assert.assertEquals(modelDimId.intValue(), recommendationRef.getId());
         });
     }
 
@@ -315,7 +298,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(depedencyId.size(), ref.getDependencies().size());
 
                 for (int n = 0; n < depedencyId.size(); n++) {
-                    Assert.assertEquals(ref.getDependencies().get(n).getId() , depedencyId.get(n).intValue());
+                    Assert.assertEquals(ref.getDependencies().get(n).getId(), depedencyId.get(n).intValue());
                     if (depedencyId.get(n) > 0) {
                         Assert.assertTrue(ref.getDependencies().get(n) instanceof ModelColumnRef);
                     }

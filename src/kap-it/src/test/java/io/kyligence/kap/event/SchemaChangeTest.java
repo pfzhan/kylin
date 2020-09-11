@@ -63,7 +63,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -82,7 +81,6 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.TableService;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
@@ -149,15 +147,6 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         setupPushdownEnv();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-
-        OptRecManagerV2 optRecManagerV2;
-        try {
-            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton(), getProject());
-            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
-        } catch (Exception e) {
-            log.error("Cannot mock a OptRecManagerV2 instance", e);
-        }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(PROJECT);

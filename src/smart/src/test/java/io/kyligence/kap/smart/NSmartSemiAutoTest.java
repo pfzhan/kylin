@@ -24,30 +24,24 @@
 package io.kyligence.kap.smart;
 
 import java.io.File;
-import java.lang.reflect.Field;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
-import lombok.var;
 
 @Ignore
 public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
@@ -84,44 +78,25 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
         indexPlan.setProject(project);
         indexPlanManager.createIndexPlan(indexPlan);
         dataflowManager.createDataflow(indexPlan, "ADMIN");
+        dataflowManager.updateDataflow(baseModel.getUuid(), copyForWrite -> {
+            copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
+        });
 
         val sql1 = "select sum(TEST_KYLIN_FACT.ITEM_COUNT) from TEST_KYLIN_FACT group by TEST_KYLIN_FACT.CAL_DT;";
         val sql2 = "select LEAF_CATEG_ID from TEST_KYLIN_FACT;";
 
-        val spyFqManager = Mockito.spy(FavoriteQueryManager.getInstance(getTestConfig(), project));
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
-        managersByPrjCache.get(FavoriteQueryManager.class).put(project, spyFqManager);
+        AbstractSemiContextV2 context1 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), project,
+                new String[] { sql1 }, null);
+        List<AbstractContext.NModelContext> modelContexts1 = context1.getModelContexts();
+        Assert.assertEquals(1, modelContexts1.size());
+        AbstractContext.NModelContext modelContext1 = modelContexts1.get(0);
+        Assert.assertEquals(1, modelContext1.getIndexRexItemMap().size());
 
-        Mockito.doAnswer(invocation -> {
-            FavoriteQuery fq = new FavoriteQuery();
-            fq.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
-            return fq;
-        }).when(spyFqManager).get(sql1);
-
-        Mockito.doAnswer(invocation -> {
-            FavoriteQuery fq = new FavoriteQuery();
-            fq.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
-            return fq;
-        }).when(spyFqManager).get(sql2);
-
-        val context1 = NSmartMaster.genOptRecommendationForSemiMode(getTestConfig(), project, new String[] { sql1 },
-                null);
-
-        val recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), project);
-        var recommendation = recommendationManager.getOptimizeRecommendation(baseModel.getId());
-        Assert.assertEquals(1, recommendation.getLayoutRecommendations().size());
-        Assert.assertEquals(LayoutRecommendationItem.IMPORTED,
-                recommendation.getLayoutRecommendations().get(0).getSource());
-
-        val context2 = NSmartMaster.genOptRecommendationForSemiMode(getTestConfig(), project, new String[] { sql2 },
-                null);
-        recommendation = recommendationManager.getOptimizeRecommendation(baseModel.getId());
-        Assert.assertEquals(2, recommendation.getLayoutRecommendations().size());
-        Assert.assertEquals(LayoutRecommendationItem.QUERY_HISTORY,
-                recommendation.getLayoutRecommendations().get(1).getSource());
-
+        AbstractSemiContextV2 context2 = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), project,
+                new String[] { sql2 }, null);
+        List<AbstractContext.NModelContext> modelContexts2 = context2.getModelContexts();
+        Assert.assertEquals(1, modelContexts2.size());
+        AbstractContext.NModelContext modelContext2 = modelContexts2.get(0);
+        Assert.assertEquals(1, modelContext2.getIndexRexItemMap().size());
     }
 }

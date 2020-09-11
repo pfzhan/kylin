@@ -36,7 +36,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Throwables;
@@ -47,8 +46,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NModelOptProposer;
@@ -145,7 +143,6 @@ public class NAutoBasicTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testUsedColumnsIsTomb() {
         String[] sqls = new String[] { "select lstg_format_name from test_kylin_fact group by lstg_format_name",
                 "select sum(price * item_count) from test_kylin_fact" };
@@ -197,19 +194,20 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         // update model to semi-auto-mode
         AccelerationContextUtil.transferProjectToSemiAutoMode(kylinConfig, getProject());
-        val context3 = NSmartMaster.genOptRecommendationForSemiMode(kylinConfig, getProject(), sqls, null);
+        val context3 = NSmartMaster.genOptRecommendationSemiV2(kylinConfig, getProject(), sqls, null);
         val accelerateInfoMap = context3.getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isNotSucceed());
         Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isNotSucceed());
-        NDataModel model = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject())
-                .applyModel(context3.getModelContexts().get(0).getTargetModel().getId());
+        List<AbstractContext.NModelContext> modelContexts = context3.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        AbstractContext.NModelContext modelContext = modelContexts.get(0);
+        NDataModel model = modelContext.getTargetModel();
+        List<NDataModel.Measure> allMeasures = model.getAllMeasures();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        NDataModel.Measure newMeasure = model.getAllMeasures().stream().filter(measure -> measure.getId() == 10100001L)
-                .findFirst().orElse(null);
-        Assert.assertNotNull(newMeasure);
-        Assert.assertFalse(newMeasure.isTomb());
+        Assert.assertEquals(2, allMeasures.size());
+        Map<String, MeasureRecItemV2> measureRecItemMap = modelContext.getMeasureRecItemMap();
+        Assert.assertEquals(1, measureRecItemMap.size());
         NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().stream()
-                .filter(column -> column.getId() >= OptimizeRecommendationManager.ID_OFFSET)
                 .filter(column -> column.getAliasDotColumn().contains("CC_AUTO_")) //
                 .findFirst().orElse(null);
         Assert.assertNotNull(namedColumn);
@@ -448,13 +446,18 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
         Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[1]).isNotSucceed());
         Assert.assertFalse(context2.getAccelerateInfoMap().get(sqls[2]).isNotSucceed());
-        Map<NDataModel, OptimizeRecommendation> recommendationMap = context2.getRecommendationMap();
-        Assert.assertEquals(1, recommendationMap.size());
-        OptimizeRecommendation recommendation = recommendationMap.values().iterator().next();
-        Assert.assertEquals(1, recommendation.getLayoutRecommendations().size());
-        Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
-        Assert.assertEquals(1, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(1, recommendation.getCcRecommendations().size());
+        AbstractContext.NModelContext modelContext1 = modelContexts2.get(0);
+        Assert.assertEquals("AUTO_MODEL_TEST_KYLIN_FACT_1", modelContext1.getTargetModel().getAlias());
+        Assert.assertEquals(1, modelContext1.getCcRecItemMap().size());
+        Assert.assertEquals(1, modelContext1.getDimensionRecItemMap().size());
+        Assert.assertEquals(1, modelContext1.getMeasureRecItemMap().size());
+        Assert.assertEquals(1, modelContext1.getIndexRexItemMap().size());
+        AbstractContext.NModelContext modelContext2 = modelContexts2.get(1);
+        Assert.assertEquals("AUTO_MODEL_TEST_KYLIN_FACT_2", modelContext2.getTargetModel().getAlias());
+        Assert.assertEquals(0, modelContext2.getCcRecItemMap().size());
+        Assert.assertEquals(2, modelContext2.getDimensionRecItemMap().size());
+        Assert.assertEquals(0, modelContext2.getMeasureRecItemMap().size());
+        Assert.assertEquals(1, modelContext2.getIndexRexItemMap().size());
     }
 
     @Test
@@ -488,7 +491,7 @@ public class NAutoBasicTest extends NAutoTestBase {
             copyForWrite.setIndexes(Lists.newArrayList());
         });
 
-        val context2 = NSmartMaster.genOptRecommendationForSemiMode(kylinConfig, project, sqls, null);
+        val context2 = NSmartMaster.genOptRecommendationSemiV2(kylinConfig, project, sqls, null);
         accelerationInfoMap = context2.getAccelerateInfoMap();
         val relatedLayoutsSemiForSql0 = accelerationInfoMap.get(sqls[0]).getRelatedLayouts();
         val relatedLayoutsSemiForSql1 = accelerationInfoMap.get(sqls[1]).getRelatedLayouts();

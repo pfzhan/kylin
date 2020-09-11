@@ -95,14 +95,13 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -219,7 +218,7 @@ public class ModelSemanticHelper extends BasicService {
                 requestJoinDesc.getSimplifiedNonEquiJoinConditions());
 
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
-        AbstractContext context = new ModelCreateContextOfSemiMode(KylinConfig.getInstanceFromEnv(), project,
+        AbstractContext context = new ModelCreateContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
                 new String[] { nonEquiSql });
         NSmartMaster smartMaster = new NSmartMaster(context);
         smartMaster.runSuggestModel();
@@ -352,8 +351,7 @@ public class ModelSemanticHelper extends BasicService {
         return funcDesc.isDatatypeSuitable(ccDataType);
     }
 
-    private NDataModel updateColumnsInit(NDataModel originModel, ModelRequest request,
-            boolean updateRecommendationColumn) {
+    private NDataModel updateColumnsInit(NDataModel originModel, ModelRequest request) {
         val expectedModel = convertToDataModel(request);
 
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
@@ -374,15 +372,6 @@ public class ModelSemanticHelper extends BasicService {
         originModel.setFilterCondition(expectedModel.getFilterCondition());
         updateModelColumnForTableAliasModify(originModel, matchAlias);
 
-        if (updateRecommendationColumn) {
-            val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(),
-                    expectedModel.getProject());
-            String modelId = expectedModel.getUuid();
-            for (val kv : matchAlias.entrySet()) {
-                recommendationManager.handleTableAliasModify(modelId, kv.getKey(), kv.getValue());
-            }
-        }
-
         return expectedModel;
     }
 
@@ -394,9 +383,8 @@ public class ModelSemanticHelper extends BasicService {
         return simpleOld.equals(simpleNew);
     }
 
-    public UpdateImpact updateModelColumns(NDataModel originModel, ModelRequest request,
-            boolean updateRecommendationColumn) {
-        val expectedModel = updateColumnsInit(originModel, request, updateRecommendationColumn);
+    public UpdateImpact updateModelColumns(NDataModel originModel, ModelRequest request) {
+        val expectedModel = updateColumnsInit(originModel, request);
         val updateImpact = new UpdateImpact();
         // handle computed column updates
         List<ComputedColumnDesc> currentComputedColumns = originModel.getComputedColumnDescs();
@@ -631,8 +619,7 @@ public class ModelSemanticHelper extends BasicService {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
-        val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
-        val recommendationManagerV2 = OptRecManagerV2.getInstance(project);
+        val optRecManagerV2 = OptRecManagerV2.getInstance(project);
 
         val indexPlan = indePlanManager.getIndexPlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
@@ -645,8 +632,7 @@ public class ModelSemanticHelper extends BasicService {
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, project, start, end, saveOnly);
-            recommendationManager.cleanAll(model);
-            recommendationManagerV2.discardAll(model);
+            optRecManagerV2.discardAll(model);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimensions().keySet()

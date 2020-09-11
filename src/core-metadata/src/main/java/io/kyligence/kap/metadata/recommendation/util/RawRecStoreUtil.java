@@ -41,6 +41,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.type.JdbcType;
+import org.apache.kylin.common.Singletons;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItemMapper;
@@ -52,14 +53,13 @@ public class RawRecStoreUtil {
 
     public static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
     public static final String CREATE_INDEX = "create.rawrecommendation.store.index";
-    private volatile static SqlSessionFactory sqlSessionFactory = null;
+    private static SqlSessionFactory sqlSessionFactory = null;
 
     private RawRecStoreUtil() {
     }
 
-    public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String tableName)
-            throws IOException, SQLException {
-        if (sqlSessionFactory == null) {
+    public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String tableName) {
+        Singletons.getInstance(RawRecStoreUtil.class, clz -> {
             log.info("Start to build SqlSessionFactory");
             TransactionFactory transactionFactory = new SpringManagedTransactionFactory();
             Environment environment = new Environment("raw recommendation", transactionFactory, dataSource);
@@ -67,13 +67,11 @@ public class RawRecStoreUtil {
             configuration.setUseGeneratedKeys(true);
             configuration.setJdbcTypeForNull(JdbcType.NULL);
             configuration.addMapper(RawRecItemMapper.class);
-            synchronized (RawRecStoreUtil.class) {
-                if (sqlSessionFactory == null) {
-                    createTableIfNotExist((BasicDataSource) dataSource, tableName);
-                    sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
-                }
-            }
-        }
+            createTableIfNotExist((BasicDataSource) dataSource, tableName);
+            sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
+            return new RawRecStoreUtil();
+        });
+
         return sqlSessionFactory;
     }
 

@@ -76,7 +76,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
@@ -118,17 +117,9 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         indexPlanService.setSemanticUpater(semanticService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
-        OptRecManagerV2 optRecManagerV2;
-        try {
-            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton(), getProject());
-            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
-        } catch (Exception e) {
-            log.error("Cannot mock a OptRecManagerV2 instance", e);
-        }
     }
 
-    private AtomicBoolean prepare(String modelId) throws Exception {
+    private AtomicBoolean prepare(String modelId) {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
@@ -136,14 +127,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
         AtomicBoolean clean = new AtomicBoolean(false);
-        val recommendationManager = spyOptimizeRecommendationManager();
-        Mockito.doAnswer(invocation -> {
-            String id = invocation.getArgument(0);
-            if (modelId.equals(id)) {
-                clean.set(true);
-            }
-            return null;
-        }).when(recommendationManager).cleanInEffective(Mockito.anyString());
         Assert.assertFalse(clean.get());
         return clean;
     }
@@ -1065,8 +1048,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("enormous_cuboids_test")
                 .modelId("c4437350-fa42-48b4-b1e4-060ae92ab527")
                 .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
-                .schedulerVersion(version)
-                .build();
+                .schedulerVersion(version).build();
         request.setGlobalDimCap(2);
 
         AggIndexResponse aggIndexResponse = indexPlanService.calculateAggIndexCount(request);

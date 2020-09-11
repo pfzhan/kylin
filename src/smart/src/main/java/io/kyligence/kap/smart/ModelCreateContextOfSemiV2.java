@@ -25,29 +25,21 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ModelCreateContextOfSemiMode extends AbstractSemiAutoContext {
+public class ModelCreateContextOfSemiV2 extends AbstractSemiContextV2 {
 
-    public ModelCreateContextOfSemiMode(KylinConfig kylinConfig, String project, String[] sqlArray) {
+    public ModelCreateContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
 
-    }
-
-    @Override
-    public Map<NDataModel, OptimizeRecommendation> getRecommendationMap() {
-        return Maps.newHashMap();
     }
 
     @Override
@@ -56,8 +48,9 @@ public class ModelCreateContextOfSemiMode extends AbstractSemiAutoContext {
     }
 
     @Override
-    public ChainedProposer createTransactionProposers() {
+    public ChainedProposer createPreProcessProposers() {
         ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
+                new NSQLAnalysisProposer(this), //
                 new NModelOptProposer(this), //
                 new NModelInfoAdjustProposer(this), //
                 new NModelRenameProposer(this), //
@@ -66,6 +59,11 @@ public class ModelCreateContextOfSemiMode extends AbstractSemiAutoContext {
                 new NIndexPlanShrinkProposer(this) //
         );
         return new ChainedProposer(this, proposers);
+    }
+
+    @Override
+    public ChainedProposer createTransactionProposers() {
+        return new ChainedProposer(this, ImmutableList.of());
     }
 
     @Override

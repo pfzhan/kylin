@@ -94,8 +94,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.tool.OptionBuilder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -120,8 +118,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             .withDescription("collect only, show rename resource.(default true)").isRequired(false)
             .withLongOpt("collect-only").create("collect");
 
-    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false).withDescription("print help message.")
-            .isRequired(false).withLongOpt("help").create("h");
+    private static final Option OPTION_HELP = OptionBuilder.getInstance().hasArg(false)
+            .withDescription("print help message.").isRequired(false).withLongOpt("help").create("h");
 
     private KylinConfig fileSystemConfig = KylinConfig.getInstanceFromEnv();
 
@@ -289,9 +287,6 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
         // favorite rule
         results.addAll(updateFavoriteRule(originProjectName, destProjectName));
 
-        // optimize command
-        results.addAll(updateOptimizeRecommendation(originProjectName, destProjectName));
-
         // data loading
         results.addAll(updateDataLoadingRange(originProjectName, destProjectName));
 
@@ -385,7 +380,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateJobStat(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(fileSystemConfig, originProjectName);
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(fileSystemConfig,
+                originProjectName);
         List<JobStatistics> jobStatistics = jobStatisticsManager.getAll();
         for (JobStatistics jobStatistic : jobStatistics) {
             String srcResourcePath = "/" + originProjectName + ResourceStore.JOB_STATISTICS + "/"
@@ -444,35 +440,11 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      * @param destProjectName
      * @return
      */
-    private List<RenameEntity> updateOptimizeRecommendation(String originProjectName, String destProjectName) {
-        List<RenameEntity> results = new ArrayList<>();
-        OptimizeRecommendationManager optimizeRecommendationManager = OptimizeRecommendationManager.getInstance(fileSystemConfig,
-                originProjectName);
-        List<OptimizeRecommendation> optimizeRecommendations = optimizeRecommendationManager
-                .listAllOptimizeRecommendations();
-        for (OptimizeRecommendation optimizeRecommendation : optimizeRecommendations) {
-            String srcOptimizeRecommendationPath = "/" + originProjectName + ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION
-                    + "/" + optimizeRecommendation.resourceName() + MetadataConstants.FILE_SURFIX;
-            optimizeRecommendation.setProject(destProjectName);
-            String destOptimizeRecommendationPath = "/" + destProjectName + ResourceStore.MODEL_OPTIMIZE_RECOMMENDATION
-                    + "/" + optimizeRecommendation.resourceName() + MetadataConstants.FILE_SURFIX;
-
-            results.add(new RenameEntity(srcOptimizeRecommendationPath, destOptimizeRecommendationPath,
-                    optimizeRecommendation, OptimizeRecommendation.class));
-        }
-
-        return results;
-    }
-
-    /**
-     * @param originProjectName
-     * @param destProjectName
-     * @return
-     */
     private List<RenameEntity> updateDataLoadingRange(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        NDataLoadingRangeManager dataLoadingRange = NDataLoadingRangeManager.getInstance(fileSystemConfig, originProjectName);
+        NDataLoadingRangeManager dataLoadingRange = NDataLoadingRangeManager.getInstance(fileSystemConfig,
+                originProjectName);
 
         List<NDataLoadingRange> dataLoadingRanges = dataLoadingRange.getDataLoadingRanges();
         for (NDataLoadingRange loadingRange : dataLoadingRanges) {
@@ -491,7 +463,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateFavoriteQuery(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(fileSystemConfig, originProjectName);
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(fileSystemConfig,
+                originProjectName);
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
         for (FavoriteQuery favoriteQuery : favoriteQueries) {
             String srcResourcePath = favoriteQuery.getResourcePath();
@@ -511,8 +484,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateQueryHistoryTimeOffset(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        QueryHistoryTimeOffsetManager queryHistoryTimeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(fileSystemConfig,
-                originProjectName);
+        QueryHistoryTimeOffsetManager queryHistoryTimeOffsetManager = QueryHistoryTimeOffsetManager
+                .getInstance(fileSystemConfig, originProjectName);
 
         QueryHistoryTimeOffset queryHistoryTimeOffset = queryHistoryTimeOffsetManager.get();
 
@@ -535,7 +508,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateAccelerateRatio(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(fileSystemConfig, originProjectName);
+        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(fileSystemConfig,
+                originProjectName);
         AccelerateRatio accelerateRatio = accelerateRatioManager.get();
         if (accelerateRatio != null) {
             String oriResourcePath = "/" + originProjectName + ResourceStore.ACCELERATE_RATIO_RESOURCE_ROOT + "/"
@@ -556,7 +530,8 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateTable(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(fileSystemConfig, originProjectName);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(fileSystemConfig,
+                originProjectName);
         List<TableDesc> tables = tableMetadataManager.listAllTables();
         for (TableDesc table : tables) {
             String srcTableResourcePath = table.getResourcePath();

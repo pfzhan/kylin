@@ -52,7 +52,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
@@ -113,10 +112,8 @@ public class ModelBrokenListener {
             model.setHandledAfterBroken(true);
             modelManager.updateDataBrokenModelDesc(model);
 
-            val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
-            recommendationManager.cleanAll(model.getId());
-            val recommendationManagerV2 = OptRecManagerV2.getInstance(project);
-            recommendationManagerV2.discardAll(model.getId());
+            OptRecManagerV2 optRecManagerV2 = OptRecManagerV2.getInstance(project);
+            optRecManagerV2.discardAll(model.getId());
 
             UnitOfWork.get()
                     .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));

@@ -39,7 +39,6 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
@@ -63,8 +62,6 @@ public abstract class AbstractContext {
     @Setter
     private List<AbstractContext.NModelContext> modelContexts;
     private final Map<String, AccelerateInfo> accelerateInfoMap = Maps.newHashMap();
-    @Getter
-    private final Map<NDataModel, OptimizeRecommendation> recommendationMap = Maps.newHashMap();
     @Getter(lazy = true)
     private final Map<String, RawRecItem> recItemMap = Maps.newHashMap();
 
@@ -109,7 +106,7 @@ public abstract class AbstractContext {
     }
 
     public boolean needCollectRecommendations() {
-        return this instanceof AbstractSemiContextV2;
+        return this instanceof ModelReuseContextOfSemiV2;
     }
 
     public void handleExceptionAfterModelSelect() {

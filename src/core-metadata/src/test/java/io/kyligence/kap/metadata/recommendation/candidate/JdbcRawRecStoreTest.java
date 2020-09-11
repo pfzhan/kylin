@@ -24,12 +24,8 @@
 
 package io.kyligence.kap.metadata.recommendation.candidate;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
-
-import java.lang.reflect.Field;
 import java.util.List;
 
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.kylin.common.KylinConfig;
@@ -40,6 +36,7 @@ import org.junit.Test;
 import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -47,8 +44,6 @@ import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
-import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -57,36 +52,21 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
     private final String TO_BE_DELETE = "to_be_delete_project";
 
     private JdbcRawRecStore jdbcRawRecStore;
+    private JdbcTemplate jdbcTemplate;
 
     @Before
     public void setup() throws Exception {
         createTestMetadata();
-        getTestConfig().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
     }
 
-    private JdbcTemplate getJdbcTemplate() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
-        val props = datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
-        return new JdbcTemplate(dataSource);
-    }
-
     @After
-    public void destroy() throws Exception {
-        val jdbcTemplate = getJdbcTemplate();
-        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+    public void destroy() {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
-
-        log.debug("clean SqlSessionFactory...");
-        Class<RawRecStoreUtil> clazz = RawRecStoreUtil.class;
-        Field sqlSessionFactory = clazz.getDeclaredField("sqlSessionFactory");
-        sqlSessionFactory.setAccessible(true);
-        sqlSessionFactory.set(null, null);
-        System.out.println(sqlSessionFactory.get(null));
-        sqlSessionFactory.setAccessible(false);
-        log.debug("clean SqlSessionFactory success");
     }
 
     @Test
@@ -379,7 +359,5 @@ public class JdbcRawRecStoreTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, jdbcRawRecStore.queryAll().size());
         Assert.assertEquals("other", jdbcRawRecStore.queryAll().get(0).getProject());
     }
-
-
 
 }

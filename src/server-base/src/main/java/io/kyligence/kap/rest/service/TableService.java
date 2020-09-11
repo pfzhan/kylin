@@ -410,8 +410,8 @@ public class TableService extends BasicService {
                 continue;
             }
             TableDescResponse rtableDesc;
-            val modelsUsingRootTable = Lists.<NDataModel>newArrayList();
-            val modelsUsingTable = Lists.<NDataModel>newArrayList();
+            List<NDataModel> modelsUsingRootTable = Lists.newArrayList();
+            List<NDataModel> modelsUsingTable = Lists.newArrayList();
             projectManager.listHealthyModels(project).forEach(model -> {
                 if (model.containsTable(table)) {
                     modelsUsingTable.add(model);
@@ -551,7 +551,8 @@ public class TableService extends BasicService {
     }
 
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
-    private Pair<Set<String>, Set<String>> getTableColumnType(String project, TableDesc table, List<NDataModel> modelsUsingTable) {
+    private Pair<Set<String>, Set<String>> getTableColumnType(String project, TableDesc table,
+            List<NDataModel> modelsUsingTable) {
         val dataModelManager = getDataModelManager(project);
         Set<String> primaryKey = new HashSet<>();
         Set<String> foreignKey = new HashSet<>();
@@ -1211,7 +1212,6 @@ public class TableService extends BasicService {
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         cleanIndexPlan(projectName, model, changeTypeAffectedModel, needBuild);
-        getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
         getOptRecManagerV2(projectName).discardAll(model.getId());
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, changeTypeAffectedModel, projectName);
@@ -1230,7 +1230,6 @@ public class TableService extends BasicService {
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         cleanIndexPlan(projectName, model, changeTypeAffectedModel, needBuild);
-        getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
         getOptRecManagerV2(projectName).discardAll(model.getId());
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));

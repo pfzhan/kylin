@@ -80,8 +80,13 @@ public class JdbcRawRecStore {
         StorageURL url = config.getMetadataUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         DataSource dataSource = JdbcDataSource.getDataSource(props);
-        table = new RawRecItemTable(url.getIdentifier() + RECOMMENDATION_CANDIDATE);
+        table = new RawRecItemTable(genRawRecTableName(url));
         sqlSessionFactory = RawRecStoreUtil.getSqlSessionFactory(dataSource, table.tableNameAtRuntime());
+    }
+
+    private String genRawRecTableName(StorageURL url) {
+        String tablePrefix = KylinConfig.getInstanceFromEnv().isUTEnv() ? "test_opt" : url.getIdentifier();
+        return tablePrefix + RECOMMENDATION_CANDIDATE;
     }
 
     public void save(RawRecItem recItem) {
@@ -251,7 +256,7 @@ public class JdbcRawRecStore {
     private int getSemanticVersion(String project, String model) {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataModel dataModel = modelManager.getDataModelDesc(model);
-        if (dataModel == null) {
+        if (dataModel == null || dataModel.isBroken()) {
             return NON_EXIST_MODEL_SEMANTIC_VERSION;
         }
         return dataModel.getSemanticVersion();
@@ -364,6 +369,25 @@ public class JdbcRawRecStore {
             int rows = mapper.delete(deleteStatement);
             session.commit();
             log.info("Delete {} row(s) raw recommendation takes {} ms", rows, System.currentTimeMillis() - startTime);
+        }
+    }
+
+    public void discardRecItemsOfBrokenModel(String model) {
+        long startTime = System.currentTimeMillis();
+        RawRecItem.RawRecType[] rawRecTypes = { RawRecItem.RawRecType.ADDITIONAL_LAYOUT,
+                RawRecItem.RawRecType.REMOVAL_LAYOUT };
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            UpdateStatementProvider updateProvider = SqlBuilder.update(table)//
+                    .set(table.updateTime).equalTo(startTime)//
+                    .set(table.state).equalTo(RawRecItem.RawRecState.DISCARD)//
+                    .where(table.modelID, isEqualTo(model)) //
+                    .and(table.type, isIn(rawRecTypes)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            int rows = mapper.update(updateProvider);
+            session.commit();
+            log.info("Discard {} row(s) raw recommendation of broken model takes {} ms", rows,
+                    System.currentTimeMillis() - startTime);
         }
     }
 

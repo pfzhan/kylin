@@ -146,7 +146,7 @@ public class NIndexPlanShrinkProposerTest extends NLocalWithSparkSessionTest {
                 + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
                 + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n";
 
-        val context = NSmartMaster.genOptRecommendationForSemiMode(getTestConfig(), getProject(),
+        val context = NSmartMaster.genOptRecommendationSemiV2(getTestConfig(), getProject(),
                 new String[] { sumSql, maxSql, rawQuery }, null);
         AccelerationContextUtil.onlineModel(context);
         Assert.assertFalse(context.getAccelerateInfoMap().get(sumSql).isNotSucceed());

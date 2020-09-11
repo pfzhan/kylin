@@ -52,6 +52,7 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -59,6 +60,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -68,6 +70,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.AbstractContext;
@@ -86,17 +89,23 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
     protected static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/";
 
     protected KylinConfig kylinConfig;
+    private JdbcTemplate jdbcTemplate;
     protected static Set<String> excludedSqlPatterns = Sets.newHashSet();
 
     @Before
     public void setup() throws Exception {
         super.init();
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
+        new JdbcRawRecStore(getTestConfig());
         kylinConfig = getTestConfig();
     }
 
     @After
     public void tearDown() throws Exception {
         NDefaultScheduler.destroyInstance();
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         super.cleanupTestMetadata();
         ResourceStore.clearCache(kylinConfig);
         excludedSqlPatterns.clear();

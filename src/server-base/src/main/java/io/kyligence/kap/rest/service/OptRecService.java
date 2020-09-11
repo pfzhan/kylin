@@ -605,6 +605,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         Set<Integer> allRecItemIds = Sets.newHashSet(optRecV2.getRawIds());
         Set<Integer> brokenRefIds = optRecV2.getBrokenLayoutRefIds();
         if (!allRecItemIds.contains(recItemId) || brokenRefIds.contains(recItemId)) {
+            log.warn("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
             throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
         }
         Map<Integer, LayoutRef> layoutRefs = isAdd //

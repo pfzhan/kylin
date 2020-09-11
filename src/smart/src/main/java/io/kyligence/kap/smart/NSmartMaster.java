@@ -47,8 +47,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NSmartMaster {
@@ -60,16 +60,9 @@ public class NSmartMaster {
         return context;
     }
 
-    public static AbstractSemiAutoContext proposeNewModelForSemiMode(KylinConfig config, String project, String[] sqls,
+    public static AbstractSemiContextV2 proposeNewModelForSemiMode(KylinConfig config, String project, String[] sqls,
             Consumer<AbstractContext> hook) {
-        AbstractSemiAutoContext context = new ModelCreateContextOfSemiMode(config, project, sqls);
-        new NSmartMaster(context).runWithContext(hook);
-        return context;
-    }
-
-    public static AbstractSemiAutoContext genOptRecommendationForSemiMode(KylinConfig config, String project,
-            String[] sqls, Consumer<AbstractContext> hook) {
-        AbstractSemiAutoContext context = new ModelReuseContextOfSemiMode(config, project, sqls);
+        AbstractSemiContextV2 context = new ModelCreateContextOfSemiV2(config, project, sqls);
         new NSmartMaster(context).runWithContext(hook);
         return context;
     }
@@ -83,15 +76,15 @@ public class NSmartMaster {
 
     public static AbstractContext selectExistedModel(KylinConfig config, String project, String[] sqls,
             Consumer<AbstractContext> hook) {
-        AbstractContext context = new ModelSelectContextOfSemiMode(config, project, sqls);
+        AbstractContext context = new ModelSelectContextOfSemiV2(config, project, sqls);
         new NSmartMaster(context).runWithContext(hook);
         return context;
     }
 
     @Getter
-    private AbstractContext context;
-    private NProposerProvider proposerProvider;
-    private String project;
+    private final AbstractContext context;
+    private final NProposerProvider proposerProvider;
+    private final String project;
 
     public NSmartMaster(AbstractContext proposeContext) {
         this.context = proposeContext;
@@ -132,16 +125,6 @@ public class NSmartMaster {
                 nums.get(AccStatusType.FAILED));
     }
 
-    private void adjustModelInfoByPrjMode() {
-        long start = System.currentTimeMillis();
-        log.info("Start adjust model attribute.");
-        proposerProvider.getModelInfoAdjustProposer().execute();
-        val nums = getAccelerationNumMap();
-        log.info("Model adjust completed, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
-                System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
-                nums.get(AccStatusType.FAILED));
-    }
-
     @VisibleForTesting
     public void selectIndexPlan() {
         long start = System.currentTimeMillis();
@@ -172,13 +155,6 @@ public class NSmartMaster {
         proposerProvider.getModelShrinkProposer().execute();
     }
 
-    public void renameModel() {
-        long start = System.currentTimeMillis();
-        log.info("Start renaming alias of all proposed model.");
-        proposerProvider.getModelRenameProposer().execute();
-        log.info("Model renaming completed successfully, takes {}ms", System.currentTimeMillis() - start);
-    }
-
     /**
      * This method will invoke when there is no need transaction.
      */
@@ -197,14 +173,6 @@ public class NSmartMaster {
 
     public void runSuggestModel() {
         executePropose();
-
-        if (getContext() instanceof ModelReuseContextOfSemiMode) {
-            val recommendationMap = ((ModelReuseContextOfSemiMode) getContext()).genOptRecommendations();
-            recommendationMap.forEach((model, recommendationPair) -> {
-                AbstractSemiAutoContext semiContext = (AbstractSemiAutoContext) getContext();
-                semiContext.getRecommendationMap().putIfAbsent(model, recommendationPair.getFirst());
-            });
-        }
     }
 
     public List<NDataModel> getRecommendedModels() {

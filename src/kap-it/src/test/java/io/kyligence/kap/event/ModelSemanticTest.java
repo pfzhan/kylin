@@ -70,7 +70,6 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -157,15 +156,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                     copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 1011).collect(Collectors.toList()));
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
-
-        OptRecManagerV2 optRecManagerV2;
-        try {
-            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton(), getProject());
-            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
-        } catch (Exception e) {
-            logger.error("Cannot mock a OptRecManagerV2 instance", e);
-        }
     }
 
     @After
@@ -284,9 +274,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(400)).andReturn().getResponse().getContentAsString();
 
-        Assert.assertTrue(errorMessage.contains(
-                "The measure SUM_DEAL_AMOUNT is referenced by indexes. " +
-                        "Please try again after deleting it from aggregation group or table index."));
+        Assert.assertTrue(errorMessage.contains("The measure SUM_DEAL_AMOUNT is referenced by indexes. "
+                + "Please try again after deleting it from aggregation group or table index."));
     }
 
     private ModelRequest getModelRequest() throws Exception {

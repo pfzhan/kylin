@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.server;
 
+import java.io.IOException;
+
 import org.apache.curator.test.TestingServer;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,9 +46,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-
-import java.io.IOException;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = IntegrationConfig.class)
@@ -65,21 +68,27 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
     @Autowired
     protected MockMvc mockMvc;
     private TestingServer zkTestServer;
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeClass
-    public static void setupResource() throws Exception {
+    public static void setupResource() {
         staticCreateTestMetadata();
     }
 
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
+        new JdbcRawRecStore(getTestConfig());
         zkTestServer = new TestingServer(true);
         System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
     }
 
     @After
     public void tearDown() throws IOException {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
         cleanupTestMetadata();
         if (zkTestServer != null) {
             zkTestServer.close();

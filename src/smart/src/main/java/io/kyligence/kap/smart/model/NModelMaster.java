@@ -44,7 +44,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.AbstractContext;
-import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.NModelOptProposer;
 import io.kyligence.kap.smart.NSQLAnalysisProposer;
@@ -83,13 +82,7 @@ public class NModelMaster {
     }
 
     public NDataModel proposeJoins(NDataModel dataModel) {
-        if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiMode) {
-            ModelReuseContextOfSemiMode context = (ModelReuseContextOfSemiMode) modelContext.getProposeContext();
-            if (!context.isCanCreateNewModel()) {
-                Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
-                return dataModel;
-            }
-        } else if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
+        if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiV2) {
             ModelReuseContextOfSemiV2 context = (ModelReuseContextOfSemiV2) modelContext.getProposeContext();
             if (!context.isCanCreateNewModel()) {
                 Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);

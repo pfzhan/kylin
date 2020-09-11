@@ -30,10 +30,14 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.msgpack.core.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -51,7 +55,8 @@ public class JdbcUtil implements IKeep {
         return withTransaction(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ);
     }
 
-    public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer, int isolationLevel) {
+    public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer,
+            int isolationLevel) {
         val definition = new DefaultTransactionDefinition();
         definition.setIsolationLevel(isolationLevel);
         val status = transactionManager.getTransaction(definition);
@@ -82,7 +87,13 @@ public class JdbcUtil implements IKeep {
     }
 
     public static Properties datasourceParameters(StorageURL url) {
-        val props = new Properties();
+        return KylinConfig.getInstanceFromEnv().isUTEnv() //
+                ? datasourceParametersForUT(url) //
+                : datasourceParametersForProd(url);
+    }
+
+    public static Properties datasourceParametersForProd(StorageURL url) {
+        Properties props = new Properties();
         props.put("driverClassName", "org.postgresql.Driver");
         props.put("url", "jdbc:postgresql://sandbox:5432/kylin");
         props.put("username", "postgres");
@@ -96,20 +107,31 @@ public class JdbcUtil implements IKeep {
         return props;
     }
 
+    public static Properties datasourceParametersForUT(StorageURL url) {
+        Properties props = new Properties();
+        props.put("driverClassName", "org.h2.Driver");
+        props.put("url", "jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1");
+        props.put("username", "sa");
+        props.put("password", "");
+        props.put("maxTotal", "10");
+        props.putAll(url.getAllParameters());
+        return props;
+    }
+
     public static Properties getProperties(BasicDataSource dataSource) throws IOException {
         String fileName;
         switch (dataSource.getDriverClassName()) {
-            case "org.postgresql.Driver":
-                fileName = "metadata-jdbc-postgresql.properties";
-                break;
-            case "com.mysql.jdbc.Driver":
-                fileName = "metadata-jdbc-mysql.properties";
-                break;
-            case "org.h2.Driver":
-                fileName = "metadata-jdbc-h2.properties";
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported jdbc driver");
+        case "org.postgresql.Driver":
+            fileName = "metadata-jdbc-postgresql.properties";
+            break;
+        case "com.mysql.jdbc.Driver":
+            fileName = "metadata-jdbc-mysql.properties";
+            break;
+        case "org.h2.Driver":
+            fileName = "metadata-jdbc-h2.properties";
+            break;
+        default:
+            throw new IllegalArgumentException("Unsupported jdbc driver");
         }
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
         Properties properties = new Properties();
@@ -123,5 +145,13 @@ public class JdbcUtil implements IKeep {
         default void onError() {
             // do nothing by default
         }
+    }
+
+    @VisibleForTesting
+    public static JdbcTemplate getJdbcTemplate(KylinConfig kylinConfig) throws Exception {
+        val url = kylinConfig.getMetadataUrl();
+        val props = datasourceParameters(url);
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        return new JdbcTemplate(dataSource);
     }
 }

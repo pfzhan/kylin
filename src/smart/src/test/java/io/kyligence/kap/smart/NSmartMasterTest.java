@@ -632,14 +632,15 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         val context4 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten", secondSqls);
         NSmartMaster smartMaster4 = new NSmartMaster(context4);
         smartMaster4.runSuggestModel();
-        val modelAndRecMap = context4.getRecommendationMap();
-        Assert.assertEquals(1, modelAndRecMap.size());
-        val reusedModel = modelAndRecMap.keySet().iterator().next();
+        List<AbstractContext.NModelContext> modelContexts = context4.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        AbstractContext.NModelContext modelContext = modelContexts.get(0);
+        val reusedModel = modelContext.getTargetModel();
         Assert.assertTrue(
                 reusedModel.getId().equals(reproposalModel.getId()) || reusedModel.getId().equals(newModel.getId()));
-        Assert.assertEquals(0, modelAndRecMap.get(reusedModel).getCcRecommendations().size());
-        Assert.assertEquals(1, modelAndRecMap.get(reusedModel).getLayoutRecommendations().size());
-        Assert.assertEquals(1, modelAndRecMap.get(reusedModel).getMeasureRecommendations().size());
+        Assert.assertEquals(0, modelContext.getCcRecItemMap().size());
+        Assert.assertEquals(1, modelContext.getIndexRexItemMap().size());
+        Assert.assertEquals(1, modelContext.getMeasureRecItemMap().size());
 
         // case 5. create a new model and without recommendation
         String[] thirdSqls = new String[] { "select test_kylin_fact.cal_dt, test_cal_dt.cal_dt, sum(price) \n"
@@ -649,10 +650,14 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         val context5 = AccelerationContextUtil.newModelCreateContext(getTestConfig(), "newten", thirdSqls);
         NSmartMaster smartMaster5 = new NSmartMaster(context5);
         smartMaster5.runSuggestModel();
-        val modelAndRecMap5 = context5.getRecommendationMap();
-        Assert.assertEquals(0, modelAndRecMap5.size());
-        Assert.assertFalse(smartMaster5.getContext().getModelContexts().get(0).isTargetModelMissing());
-        val model5 = smartMaster5.getContext().getModelContexts().get(0).getTargetModel();
-        Assert.assertEquals(1, model5.getJoinTables().size());
+        List<AbstractContext.NModelContext> modelContexts5 = context5.getModelContexts();
+        Assert.assertEquals(1, modelContexts5.size());
+        AbstractContext.NModelContext modelContext5 = modelContexts5.get(0);
+        Assert.assertTrue(modelContext5.getCcRecItemMap().isEmpty());
+        Assert.assertTrue(modelContext5.getDimensionRecItemMap().isEmpty());
+        Assert.assertTrue(modelContext5.getMeasureRecItemMap().isEmpty());
+        Assert.assertTrue(modelContext5.getIndexRexItemMap().isEmpty());
+        Assert.assertFalse(modelContext5.isTargetModelMissing());
+        Assert.assertEquals(1, modelContext5.getTargetModel().getJoinTables().size());
     }
 }

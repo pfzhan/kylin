@@ -24,39 +24,57 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.List;
+
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 
-public abstract class AbstractSemiAutoContext extends AbstractContext {
+public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
-    protected AbstractSemiAutoContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
-        super(kylinConfig, project, sqlArray);
+    public ModelSelectContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqls) {
+        super(kylinConfig, project, sqls);
+        this.partialMatch = kylinConfig.isQueryMatchPartialInnerJoinModel();
     }
 
     @Override
     public ChainedProposer createPreProcessProposers() {
-        return new ChainedProposer(this, ImmutableList.of(new NSQLAnalysisProposer(this)));
+        ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
+                new NSQLAnalysisProposer(this), //
+                new NModelSelectProposer(this));
+        return new ChainedProposer(this, proposers);
+    }
+
+    @Override
+    public ChainedProposer createTransactionProposers() {
+        return new ChainedProposer(this, ImmutableList.of());
+    }
+
+    @Override
+    public void saveMetadata() {
+        throw new NotImplementedException("Save metadata is forbidden in ModelSelectAIAugmentedContext");
     }
 
     @Override
     public IndexPlan getOriginIndexPlan(String modelId) {
-        return OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
-                .applyIndexPlan(modelId);
+        throw new NotImplementedException("Fetch origin indexes is forbidden in ModelSelectAIAugmentedContext!");
+    }
+
+    @Override
+    public List<NDataModel> getOriginModels() {
+        return NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
+
     }
 
     @Override
     public void changeModelMainType(NDataModel model) {
-        model.setManagementType(ManagementType.MODEL_BASED);
-    }
-
-    @Override
-    public String getIdentifier() {
-        return "Auto-Recommendation";
+        throw new NotImplementedException("Modifying ModelMaintainType is forbidden in ModelSelectAIAugmentedContext");
     }
 }

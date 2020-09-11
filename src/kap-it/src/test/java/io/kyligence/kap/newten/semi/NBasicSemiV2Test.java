@@ -24,24 +24,19 @@
 
 package io.kyligence.kap.newten.semi;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.collect.Lists;
 
@@ -52,14 +47,12 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
-import io.kyligence.kap.metadata.recommendation.util.RawRecStoreUtil;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
@@ -80,48 +73,18 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
     private JdbcRawRecStore jdbcRawRecStore;
     private RDBMSQueryHistoryDAO queryHistoryDAO;
     private RawRecService rawRecommendation;
-    private JdbcTemplate jdbcTemplate;
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        getTestConfig().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
         rawRecommendation = new RawRecService();
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
-        jdbcTemplate = getJdbcTemplate();
     }
 
     @After
     public void teardown() throws Exception {
-        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
-        log.debug("clean SqlSessionFactory...");
-        Class<RawRecStoreUtil> clazz = RawRecStoreUtil.class;
-        Field sqlSessionFactory = clazz.getDeclaredField("sqlSessionFactory");
-        sqlSessionFactory.setAccessible(true);
-        sqlSessionFactory.set(null, null);
-        System.out.println(sqlSessionFactory.get(null));
-        sqlSessionFactory.setAccessible(false);
-        log.debug("clean SqlSessionFactory success");
-
-        Class<QueryHisStoreUtil> qhClazz = QueryHisStoreUtil.class;
-        Field qhSqlSessionFactory = qhClazz.getDeclaredField("sqlSessionFactory");
-        qhSqlSessionFactory.setAccessible(true);
-        qhSqlSessionFactory.set(null, null);
-        System.out.println(qhSqlSessionFactory.get(null));
-        qhSqlSessionFactory.setAccessible(false);
-        log.debug("clean SqlSessionFactory success");
-
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> instanceByProject = getInstanceByProjectFromSingleton();
-        instanceByProject.clear();
-    }
-
-    private JdbcTemplate getJdbcTemplate() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
-        val props = datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
-        return new JdbcTemplate(dataSource);
+        super.tearDown();
     }
 
     @Override
@@ -167,8 +130,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
                 String ccUUID = uniqueContent.split("__")[1];
                 Assert.assertTrue(ccRecItemMap.containsKey(ccUUID));
                 CCRecItemV2 ccRecItemV2 = ccRecItemMap.get(ccUUID);
-                Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE,
-                        ccRecItemV2.getCc().getExpression());
+                Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE, ccRecItemV2.getCc().getExpression());
             }
         });
     }
@@ -251,8 +213,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList1.get(1).getCc().getTableIdentity());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * 5", ccRecItemList1.get(1).getCc().getInnerExpression());
         Assert.assertEquals("DECIMAL(21,4)", ccRecItemList1.get(1).getCc().getDatatype());
-        Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE,
-                ccRecItemList1.get(0).getCc().getExpression());
+        Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE, ccRecItemList1.get(0).getCc().getExpression());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList1.get(0).getCc().getTableIdentity());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`",
                 ccRecItemList1.get(0).getCc().getInnerExpression());
@@ -266,8 +227,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList2.get(1).getCc().getTableIdentity());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`PRICE` * 5", ccRecItemList2.get(1).getCc().getInnerExpression());
         Assert.assertEquals("DECIMAL(21,4)", ccRecItemList2.get(1).getCc().getDatatype());
-        Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE,
-                ccRecItemList2.get(0).getCc().getExpression());
+        Assert.assertEquals(CC_ITEM_COUNT_MULTIPLY_PRICE, ccRecItemList2.get(0).getCc().getExpression());
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", ccRecItemList2.get(0).getCc().getTableIdentity());
         Assert.assertEquals("`TEST_KYLIN_FACT`.`ITEM_COUNT` * `TEST_KYLIN_FACT`.`PRICE`",
                 ccRecItemList2.get(0).getCc().getInnerExpression());

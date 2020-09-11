@@ -44,7 +44,6 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.val;
 
 public class CSVSourceTestCase extends ServiceTestBase {
@@ -107,11 +106,6 @@ public class CSVSourceTestCase extends ServiceTestBase {
 
     public EpochManager spyEpochManager() throws Exception {
         return spyManager(EpochManager.getInstance(getTestConfig()), EpochManager.class);
-    }
-
-    public OptimizeRecommendationManager spyOptimizeRecommendationManager() throws Exception {
-        return spyManagerByProject(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()),
-                OptimizeRecommendationManager.class, getProject());
     }
 
     public NDataModelManager spyNDataModelManager() throws Exception {

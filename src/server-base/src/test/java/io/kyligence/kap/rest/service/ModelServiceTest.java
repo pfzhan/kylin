@@ -185,13 +185,6 @@ import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
-import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -205,6 +198,7 @@ import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -295,15 +289,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
 
-        OptRecManagerV2 optRecManagerV2;
-        try {
-            optRecManagerV2 = spyManagerByProject(OptRecManagerV2.getInstance(getProject()), OptRecManagerV2.class,
-                    getInstanceByProjectFromSingleton(), getProject());
-            Mockito.doAnswer(invocation -> null).when(optRecManagerV2).discardAll(Mockito.anyString());
-        } catch (Exception e) {
-            log.error("Cannot mock a OptRecManagerV2 instance", e);
-        }
-
         EventBusFactory.getInstance().register(modelBrokenListener);
     }
 
@@ -388,53 +373,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val models = modelService.getModels(df.getModelAlias(), getProject(), true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
         Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, models.get(0).getStatus());
-    }
-
-    @Test
-    @Ignore
-    public void testGetModelsWithRecommendationCount() {
-        val models = modelService.getModels("nmodel_basic", "default", true, "", null, "last_modify", true);
-        Assert.assertEquals(1, models.size());
-        Assert.assertEquals(0, models.get(0).getRecommendationsCount());
-
-        val modelId1 = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val modelId2 = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-
-        val recommendation1 = new OptimizeRecommendation();
-        recommendation1.setUuid(modelId1);
-        recommendation1.setProject("default");
-
-        val ccRecommendation1 = new CCRecommendationItem();
-        val ccRecommendation2 = new CCRecommendationItem();
-
-        recommendation1.setCcRecommendations(Lists.newArrayList(ccRecommendation1, ccRecommendation2));
-
-        val recommendationManager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), "default"));
-        Mockito.doReturn(recommendation1).when(recommendationManager).getOptimizeRecommendation(modelId1);
-
-        val recommendation2 = new OptimizeRecommendation();
-        recommendation2.setUuid(modelId2);
-
-        recommendation2.setMeasureRecommendations(
-                Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
-        recommendation2.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
-        val layoutRecommendation1 = new LayoutRecommendationItem();
-        val layoutEntity = new LayoutEntity();
-        layoutEntity.setId(10001L);
-        layoutRecommendation1.setLayout(layoutEntity);
-        layoutRecommendation1.setAggIndex(true);
-
-        val layoutRecommendation2 = new LayoutRecommendationItem();
-        layoutRecommendation2.setLayout(layoutEntity);
-        layoutRecommendation2.setAggIndex(true);
-        recommendation2.setLayoutRecommendations(Lists.newArrayList(layoutRecommendation1, layoutRecommendation2));
-
-        Mockito.doReturn(recommendation2).when(recommendationManager).getOptimizeRecommendation(modelId2);
-        Mockito.doReturn(recommendationManager).when(modelService).getOptRecommendationManager("default");
-
-        val allModels = modelService.getModels("", "default", false, "", null, "recommendations_count", true);
-        Assert.assertEquals(5, allModels.get(0).getRecommendationsCount());
-        Assert.assertEquals(2, allModels.get(1).getRecommendationsCount());
     }
 
     @Test
@@ -756,11 +694,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String project = "default";
         JobManager jobManager = JobManager.getInstance(getTestConfig(), project);
         val jobId = jobManager.addFullIndexJob(new JobParam(modelId, "admin"));
-        Assert.assertTrue(jobId == null);
+        Assert.assertNull(jobId);
         AtomicBoolean clean = new AtomicBoolean(false);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val recommendationManager = spyOptimizeRecommendationManager();
             modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
             return null;
         }, "default");
@@ -800,14 +737,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<NDataSegment> segments = modelService.getSegmentsByRange("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
                 "0", "" + Long.MAX_VALUE);
-        Assert.assertTrue(segments.size() == 1);
+        Assert.assertEquals(1, segments.size());
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         dfMgr.updateDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             copyForWrite.setSegments(new Segments());
         });
         RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse("default",
                 "DEFAULT.TEST_KYLIN_FACT", "0", "" + Long.MAX_VALUE);
-        Assert.assertTrue(response.getByteSize() == 0L);
+        Assert.assertEquals(0L, response.getByteSize());
     }
 
     @Test
@@ -840,8 +777,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         });
 
         val response = modelService.getRefreshAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "50");
-        Assert.assertTrue(response.getAffectedStart().equals("0"));
-        Assert.assertTrue(response.getAffectedEnd().equals("30"));
+        Assert.assertEquals("0", response.getAffectedStart());
+        Assert.assertEquals("30", response.getAffectedEnd());
     }
 
     @Test
@@ -934,7 +871,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "new_name");
         List<NDataModelResponse> models = modelService.getModels("new_name", "default", true, "", null, "last_modify",
                 true);
-        Assert.assertTrue(models.get(0).getAlias().equals("new_name"));
+        Assert.assertEquals("new_name", models.get(0).getAlias());
     }
 
     @Test
@@ -1026,7 +963,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetRelatedModels() {
         List<RelatedModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT", "");
-        Assert.assertTrue(models.size() == 0);
+        Assert.assertEquals(0, models.size());
         List<RelatedModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, models2.size());
@@ -1075,60 +1012,56 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(result);
     }
 
-    //    @Test
-    //    public void testMultipleModelContextSelectedTheSameModel() {
-    //        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-    //        projectManager.updateProject(getProject(), copyForWrite -> {
-    //            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-    //            var properties = copyForWrite.getOverrideKylinProps();
-    //            if (properties == null) {
-    //                properties = Maps.newLinkedHashMap();
-    //            }
-    //            properties.put("kylin.metadata.semi-automatic-mode", "true");
-    //            copyForWrite.setOverrideKylinProps(properties);
-    //        });
-    //
-    //        val sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1",
-    //                "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
-    //                "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
-    //                        + "INNER JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n"
-    //                        + "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n"
-    //                        + "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n"
-    //                        + "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n"
-    //                        + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n"
-    //                        + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n"
-    //                        + "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n"
-    //                        + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
-    //                        + "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n"
-    //                        + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n"
-    //                        + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n"
-    //                        + "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n"
-    //                        + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n"
-    //                        + "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n"
-    //                        + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n"
-    //                        + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
-    //                        + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
-    //                        + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt");
-    //        val response = modelService.suggestModel(getProject(), sqls, true);
-    //        Assert.assertEquals(1, response.getReusedModels().size());
-    //        Assert.assertEquals(0, response.getNewModels().size());
-    //        Assert.assertEquals(3, response.getReusedModels().get(0).getSqls().size());
-    //        val recommendationResponse = response.getReusedModels().get(0).getRecommendationResponse();
-    //        Assert.assertEquals(0, recommendationResponse.getDimensionRecommendations().size());
-    //        Assert.assertEquals(0, recommendationResponse.getMeasureRecommendations().size());
-    //        Assert.assertEquals(0, recommendationResponse.getCcRecommendations().size());
-    //        Assert.assertEquals(0, recommendationResponse.getIndexRecommendations().size());
-    //
-    //        val response2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true);
-    //        Assert.assertEquals(1, response2.getReusedModels().size());
-    //        Assert.assertEquals(0, response2.getNewModels().size());
-    //        Assert.assertEquals(2, response2.getReusedModels().get(0).getSqls().size());
-    //        val recommendationResponse2 = response2.getReusedModels().get(0).getRecommendationResponse();
-    //        Assert.assertEquals(0, recommendationResponse2.getDimensionRecommendations().size());
-    //        Assert.assertEquals(0, recommendationResponse2.getMeasureRecommendations().size());
-    //        Assert.assertEquals(0, recommendationResponse2.getCcRecommendations().size());
-    //        Assert.assertEquals(0, recommendationResponse2.getIndexRecommendations().size());
-    //    }
+    @Test
+    public void testMultipleModelContextSelectedTheSameModel() {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kylin.metadata.semi-automatic-mode", "true");
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+
+        val sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1",
+                "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
+                "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
+                        + "INNER JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n"
+                        + "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n"
+                        + "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n"
+                        + "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n"
+                        + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n"
+                        + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n"
+                        + "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n"
+                        + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
+                        + "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n"
+                        + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n"
+                        + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n"
+                        + "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                        + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n"
+                        + "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                        + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n"
+                        + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
+                        + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
+                        + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt");
+        val response = modelService.suggestModel(getProject(), sqls, true);
+        Assert.assertEquals(3, response.getReusedModels().size());
+        Assert.assertEquals(0, response.getNewModels().size());
+        response.getReusedModels().forEach(recommendedModelResponse -> {
+            List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
+            Assert.assertTrue(indexes.isEmpty());
+        });
+
+        val response2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true);
+        Assert.assertEquals(2, response2.getReusedModels().size());
+        Assert.assertEquals(0, response2.getNewModels().size());
+        response2.getReusedModels().forEach(recommendedModelResponse -> {
+            List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
+            Assert.assertTrue(indexes.isEmpty());
+        });
+    }
 
     private void prepareTwoOnlineModels() {
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -1598,8 +1531,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. " +
-                "Please set another dimension table, or adjust other models using this table.");
+        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. "
+                + "Please set another dimension table, or adjust other models using this table.");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1618,8 +1551,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The fact table of this model has been used as dimension table in other models. " +
-                "Please set another fact table, or adjust other models using this table.");
+        thrown.expectMessage("The fact table of this model has been used as dimension table in other models. "
+                + "Please set another fact table, or adjust other models using this table.");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1641,8 +1574,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The fact table of this model has been used as dimension table in other models. " +
-                "Please set another fact table, or adjust other models using this table.");
+        thrown.expectMessage("The fact table of this model has been used as dimension table in other models. "
+                + "Please set another fact table, or adjust other models using this table.");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1661,8 +1594,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. " +
-                "Please set another dimension table, or adjust other models using this table.");
+        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. "
+                + "Please set another dimension table, or adjust other models using this table.");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1684,8 +1617,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setPartitionDesc(null);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. " +
-                "Please set another dimension table, or adjust other models using this table.");
+        thrown.expectMessage("The dimension table of this model has been used as fact table in other models. "
+                + "Please set another dimension table, or adjust other models using this table.");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1878,34 +1811,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     }
 
-    @Test
-    public void testChangeTableAlias_ClearRecommendation() throws Exception {
-        val modelRequest = prepare();
-        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        AtomicBoolean clean = new AtomicBoolean(false);
-        val manager = spyOptimizeRecommendationManager();
-        Mockito.doAnswer(x -> {
-            String id = x.getArgument(0);
-            if (modelId.equals(id)) {
-                clean.set(true);
-            }
-            return null;
-        }).when(manager).handleTableAliasModify(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
-        val oldAlias = modelRequest.getJoinTables().get(0).getAlias();
-        modelRequest.getJoinTables().get(0).setAlias(oldAlias + "_1");
-        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(modelId);
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
-                    copyForWrite -> {
-                        copyForWrite.setIndexes(new ArrayList<>());
-                    });
-            return 0;
-        }, "default");
-        modelService.updateDataModelSemantic("default", modelRequest);
-
-        Assert.assertTrue(clean.get());
-    }
-
     public void testChangePartitionDesc_OriginModelNoPartition() throws Exception {
 
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -2064,7 +1969,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
                 "", false);
-        Assert.assertTrue(dataModelDescs.size() == 1);
+        Assert.assertEquals(1, dataModelDescs.size());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
@@ -2759,9 +2664,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
-                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
-                        && ccException.getMessage().equals(
-                                "This name has already been used by other computed columns in this model.");
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT") && ccException.getMessage()
+                                .equals("This name has already been used by other computed columns in this model.");
             }
         });
 
@@ -3836,27 +3740,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, brokenModelResponse.getOldParams().getInputRecordSizeBytes());
     }
 
-    @Ignore
-    @Test
-    public void testModelBroken_CleanRecommendation() throws NoSuchFieldException, IllegalAccessException {
-        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val recomManger = OptimizeRecommendationManager.getInstance(getTestConfig(), "default");
-        val opt = new OptimizeRecommendation();
-        opt.setUuid(modelId);
-        opt.setLayoutRecommendations(
-                Lists.newArrayList(new LayoutRecommendationItem(), new LayoutRecommendationItem()));
-        recomManger.save(opt);
-
-        Assert.assertEquals(2, recomManger.getOptimizeRecommendation(modelId).getLayoutRecommendations().size());
-        tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
-        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
-        val model = modelManager.getDataModelDesc(modelId);
-        Assert.assertTrue(model.isBroken());
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(0, recomManger.getOptimizeRecommendation(modelId).getLayoutRecommendations().size());
-        });
-    }
-
     private ModelRequest prepare() throws IOException {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         final String project = "default";
@@ -3883,29 +3766,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testUpdateModel_CleanRecommendation() throws Exception {
         val modelRequest = prepare();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        AtomicBoolean clean = new AtomicBoolean(false);
-        val manager = spyOptimizeRecommendationManager();
-        Mockito.doAnswer(invocation -> {
-            String id = invocation.getArgument(0);
-            if (modelId.equals(id)) {
-                clean.set(true);
-            }
-            return null;
-        }).when(manager).cleanInEffective(Mockito.anyString());
         modelRequest.setSimplifiedMeasures(
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100001)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(modelId);
         UnitOfWork.doInTransactionWithRetry(() -> {
             NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
-                    copyForWrite -> {
-                        copyForWrite.setIndexes(new ArrayList<>());
-                    });
+                    copyForWrite -> copyForWrite.setIndexes(new ArrayList<>()));
             return 0;
         }, "default");
         modelService.updateDataModelSemantic("default", modelRequest);
-
-        // Assert.assertTrue(clean.get());
     }
 
     @Test

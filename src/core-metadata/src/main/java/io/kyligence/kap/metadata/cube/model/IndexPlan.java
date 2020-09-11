@@ -79,7 +79,6 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -109,7 +108,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     @Getter
     @JsonProperty("to_be_deleted_indexes")
-    private List<IndexEntity> toBeDeletedIndexes = Lists.newArrayList();
+    private final List<IndexEntity> toBeDeletedIndexes = Lists.newArrayList();
 
     @JsonProperty("auto_merge_time_ranges")
     private long[] autoMergeTimeRanges;
@@ -154,15 +153,15 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     private transient BiMap<Integer, NDataModel.Measure> effectiveMeasures; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
 
     //TODO: should move allColumns and allColumnDescs to model? no need to exist in cubeplan
-    private LinkedHashSet<TblColRef> allColumns = Sets.newLinkedHashSet();
-    private LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
+    private final LinkedHashSet<TblColRef> allColumns = Sets.newLinkedHashSet();
+    private final LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
 
     private List<LayoutEntity> ruleBasedLayouts = Lists.newArrayList();
 
     /**
      * Error messages during resolving json metadata
      */
-    private List<String> errors = Lists.newLinkedList();
+    private final List<String> errors = Lists.newLinkedList();
 
     public void initAfterReload(KylinConfig config, String p) {
         this.project = p;
@@ -690,7 +689,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public LinkedHashMap<String, String> getOverrideProps() {
-        return isCachedAndShared ? new LinkedHashMap(overrideProps) : overrideProps;
+        return isCachedAndShared ? Maps.newLinkedHashMap(overrideProps) : overrideProps;
     }
 
     public void setOverrideProps(LinkedHashMap<String, String> overrideProps) {
@@ -918,24 +917,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     @JsonIgnore
     public List<Integer> getMeasures(LayoutEntity layout) {
-        return layout.getColOrder().stream()
-                .filter(i -> (i >= NDataModel.MEASURE_ID_BASE && i < OptimizeRecommendationManager.ID_OFFSET)
-                        || (i >= OptimizeRecommendationManager.ID_OFFSET + NDataModel.MEASURE_ID_BASE))
-                .collect(Collectors.toList());
+        return layout.getColOrder().stream().filter(i -> i >= NDataModel.MEASURE_ID_BASE).collect(Collectors.toList());
     }
 
     @JsonIgnore
     public List<Integer> getDimensions(LayoutEntity layout) {
-        return layout.getColOrder().stream()
-                .filter(i -> (i < NDataModel.MEASURE_ID_BASE) || (i >= OptimizeRecommendationManager.ID_OFFSET
-                        && i < OptimizeRecommendationManager.ID_OFFSET + NDataModel.MEASURE_ID_BASE))
-                .collect(Collectors.toList());
+        return layout.getColOrder().stream().filter(i -> i < NDataModel.MEASURE_ID_BASE).collect(Collectors.toList());
     }
 
     public boolean isOfflineManually() {
-        return getOverrideProps()
-                .getOrDefault(KylinConfig.MODEL_OFFLINE_FLAG, "false").trim()
-                .equals(KylinConfig.TRUE);
+        return getOverrideProps().getOrDefault(KylinConfig.MODEL_OFFLINE_FLAG, "false").trim().equals(KylinConfig.TRUE);
     }
 
 }
