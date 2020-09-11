@@ -39,11 +39,10 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{AnalysisException, DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
 
 import scala.collection.JavaConverters._
@@ -112,7 +111,8 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     rootFactDataset = CreateFlatTable.changeSchemaToAliasDotName(rootFactDataset, model.getRootFactTable.getAlias)
 
     if (lookupTablesGlobal.isEmpty) {
-      lookupTablesGlobal = generateLookupTableDataset(model, ccCols.toSeq, ss)
+      val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
+      lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
       lookupTablesGlobal.foreach{ case (_, df) =>
         df.persist(StorageLevel.MEMORY_ONLY)
       }
@@ -155,8 +155,9 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
       case (true, true) =>
         val (dictCols, encodeCols): GlobalDictType = assemblyGlobalDictTuple(seg, toBuildTree)
         rootFactDataset = encodeWithCols(rootFactDataset, ccCols, dictCols, encodeCols)
-        val encodedLookupMap = generateLookupTableDataset(model, ccCols.toSeq, ss)
-          .map(lp => (lp._1, encodeWithCols(lp._2, ccCols, dictCols, encodeCols)))
+        val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
+        val encodedLookupMap = generateLookupTableDataset(model, cleanLookupCC, ss)
+          .map(lp => (lp._1, encodeWithCols(lp._2, cleanLookupCC.toSet, dictCols, encodeCols)))
 
         if (encodedLookupMap.nonEmpty) {
           generateDimensionTableMeta(encodedLookupMap)
@@ -169,7 +170,8 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
           filterCols(allTableDataset, dictCols),
           filterCols(allTableDataset, encodeCols))
       case (true, false) =>
-        val lookupTableDatasetMap = generateLookupTableDataset(model, ccCols.toSeq, ss)
+        val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
+        val lookupTableDatasetMap = generateLookupTableDataset(model, cleanLookupCC, ss)
         rootFactDataset = joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap, model, ss)
         rootFactDataset = withColumn(rootFactDataset, ccCols)
       case (false, true) =>
@@ -237,16 +239,6 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 
 object CreateFlatTable extends LogEx {
   type GlobalDictType = (Set[TblColRef], Set[TblColRef])
-
-  @throws(classOf[ParseException])
-  @throws(classOf[AnalysisException])
-  def generateFullFlatTable(model: NDataModel, ss: SparkSession): Dataset[Row] = {
-    val rootFact = model.getRootFactTable
-    val ccCols = rootFact.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-    val rootFactDataset = generateTableDataset(rootFact, ccCols.toSeq, rootFact.getAlias, ss)
-    val lookupTableDataset = generateLookupTableDataset(model, ccCols.toSeq, ss)
-    joinFactTableWithLookupTables(rootFactDataset, lookupTableDataset, model, ss)
-  }
 
 
   private def generateTableDataset(tableRef: TableRef,
@@ -526,4 +518,13 @@ object CreateFlatTable extends LogEx {
     col.getTableAlias + "_" + col.getName
   }
 
+  // For lookup table, CC column may be duplicate of the flat table when it dosen't belong to one specific table like '1+2'
+  def cleanComputColumn(cc: Seq[TblColRef],
+                        flatCols: Set[String]): Seq[TblColRef] = {
+    var cleanCols = cc
+    if (flatCols != null) {
+      cleanCols = cc.filter(col => !flatCols.contains(convertFromDot(col.getIdentity)))
+    }
+    cleanCols
+  }
 }
