@@ -327,6 +327,9 @@ export default class SourceHive extends Vue {
       let total = this.allDatabasesSizeObj[db] ? this.allDatabasesSizeObj[db] : 0
       let loaded = this.databasesSize[db] ? this.databasesSize[db] : 0
       let size = total - loaded
+      if (size < 0) {
+        size = 0
+      }
       dbTables = dbTables + size
     }
     this.tablesNum = dbTables + tablesLen
