@@ -99,6 +99,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
+        this.clearSqlSession();
         this.createTestMetadata();
 
         modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
@@ -122,7 +123,10 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
         this.cleanupTestMetadata();
+        clearSqlSession();
+    }
 
+    private void clearSqlSession() throws  Exception{
         log.debug("clean SqlSessionFactory...");
         Class<RawRecStoreUtil> clazz = RawRecStoreUtil.class;
         Field sqlSessionFactory = clazz.getDeclaredField("sqlSessionFactory");
