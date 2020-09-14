@@ -32,7 +32,7 @@ public class TableauStringUDF {
         if (s == null) {
             return null;
         }
-        return s.codePointAt('0');
+        return s.codePointAt(0);
     }
 
     public String CHR(@Parameter(name = "int1") Integer i) {
