@@ -408,7 +408,7 @@ public class TableService extends BasicService {
             TableDescResponse rtableDesc;
             val modelsUsingRootTable = Lists.<NDataModel>newArrayList();
             val modelsUsingTable = Lists.<NDataModel>newArrayList();
-            for (NDataModel model : projectManager.listHealthyModels(project)) {
+            projectManager.listHealthyModels(project).forEach(model -> {
                 if (model.containsTable(table)) {
                     modelsUsingTable.add(model);
                 }
@@ -416,7 +416,7 @@ public class TableService extends BasicService {
                 if (model.isRootFactTable(table)) {
                     modelsUsingRootTable.add(model);
                 }
-            }
+            });
 
             if (withExt) {
                 rtableDesc = getTableResponse(table, project);
