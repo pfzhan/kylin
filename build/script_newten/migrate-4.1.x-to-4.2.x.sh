@@ -142,7 +142,7 @@ function migrate() {
 
   if [[ "-e" == "$1" ]];then
     step "start to restore the new metadata."
-    "${KYLIN_HOME}"/bin/metastore.sh restore "${operator_metadata_backup_dir}" &> ${KYLIN_HOME}/logs/shell.stderr
+    "${KYLIN_HOME}"/bin/metastore.sh restore "${operator_metadata_backup_dir}" --after-truncate &> ${KYLIN_HOME}/logs/shell.stderr
     if [[ $? != 0 ]]; then
       error "restore failed. please contact technical support for help."
       fail
