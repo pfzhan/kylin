@@ -63,7 +63,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 @Slf4j
-public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
+public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
 
     private String modelPathPattern;
     private String indexPathPattern;
@@ -79,7 +79,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
 
     private String[] modelUUIDs;
 
-    public OptRecV2BaseTest(String basePath, String[] modelUUIDs) {
+    public OptRecV2TestBase(String basePath, String[] modelUUIDs) {
 
         modelPathPattern = basePath + "/model_desc/%s.json";
         indexPathPattern = basePath + "/index_plan/%s.json";
@@ -122,7 +122,6 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
-        this.cleanupTestMetadata();
         clearSqlSession();
     }
 
@@ -251,7 +250,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(depedencyId.size(), ref.getDependencies().size());
 
                 for (int n = 0; n < depedencyId.size(); n++) {
-                    Assert.assertTrue(ref.getDependencies().get(n).getId() == depedencyId.get(n));
+                    Assert.assertEquals(ref.getDependencies().get(n).getId() , depedencyId.get(n).intValue());
                     if (depedencyId.get(n) > 0) {
                         Assert.assertTrue(ref.getDependencies().get(n) instanceof ModelColumnRef);
                     }
@@ -273,7 +272,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
             List<RecommendationRef> dependencies = ref.getDependencies();
             Assert.assertEquals(execptedDependencies.size(), dependencies.size());
             for (int n = 0; n < dependencies.size(); n++) {
-                Assert.assertTrue(dependencies.get(n).getId() == execptedDependencies.get(n));
+                Assert.assertEquals(dependencies.get(n).getId() , execptedDependencies.get(n).intValue());
             }
         });
     }
@@ -282,7 +281,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedDimDep.size(), dimensionRefs.size());
         dimensionRefs.forEach((refId, ref) -> {
             Integer modelDimId = expectedDimDep.get(ref.getId());
-            Assert.assertTrue(modelDimId != null);
+            Assert.assertNotNull(modelDimId);
             NDataModel.NamedColumn modelCol = ndataModel.getAllNamedColumns().stream()
                     .filter(dimCol -> dimCol.getId() == modelDimId).findFirst().get();
             Assert.assertEquals(modelCol.getAliasDotColumn(), ref.getName());
@@ -291,7 +290,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1, ref.getDependencies().size());
             RecommendationRef recommendationRef = ref.getDependencies().get(0);
             Assert.assertTrue(recommendationRef instanceof ModelColumnRef);
-            Assert.assertTrue(modelDimId == recommendationRef.getId());
+            Assert.assertEquals(modelDimId.intValue() , recommendationRef.getId());
         });
     }
 
@@ -316,7 +315,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(depedencyId.size(), ref.getDependencies().size());
 
                 for (int n = 0; n < depedencyId.size(); n++) {
-                    Assert.assertTrue(ref.getDependencies().get(n).getId() == depedencyId.get(n));
+                    Assert.assertEquals(ref.getDependencies().get(n).getId() , depedencyId.get(n).intValue());
                     if (depedencyId.get(n) > 0) {
                         Assert.assertTrue(ref.getDependencies().get(n) instanceof ModelColumnRef);
                     }
@@ -336,7 +335,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
         private boolean cross;
 
         public static class Builder {
-            OptRecV2BaseTest.Dependency dependency = new OptRecV2BaseTest.Dependency();
+            OptRecV2TestBase.Dependency dependency = new OptRecV2TestBase.Dependency();
 
             public Builder addDimDep(ImmutableMap<Integer, Integer> dimDep) {
                 dependency.dimDep = dimDep;
@@ -358,7 +357,7 @@ public class OptRecV2BaseTest extends NLocalFileMetadataTestCase {
                 return this;
             }
 
-            public OptRecV2BaseTest.Dependency builder() {
+            public OptRecV2TestBase.Dependency builder() {
                 return dependency;
             }
 

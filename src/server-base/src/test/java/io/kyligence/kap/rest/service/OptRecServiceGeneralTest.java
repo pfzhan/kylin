@@ -24,11 +24,17 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
+import io.kyligence.kap.rest.request.OptRecRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.Assert;
@@ -37,20 +43,12 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
-import io.kyligence.kap.metadata.recommendation.v2.OptRecV2BaseTest;
-import io.kyligence.kap.rest.request.OptRecRequest;
-
-public class OptRecServiceGeneralTest extends OptRecV2BaseTest {
+public class OptRecServiceGeneralTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock

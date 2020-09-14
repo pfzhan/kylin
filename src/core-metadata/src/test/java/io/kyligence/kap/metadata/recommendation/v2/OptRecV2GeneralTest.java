@@ -35,7 +35,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 @Slf4j
-public class OptRecV2GeneralTest extends OptRecV2BaseTest {
+public class OptRecV2GeneralTest extends OptRecV2TestBase {
 
     public OptRecV2GeneralTest() {
         super("../core-metadata/src/test/resources/rec_v2/general",

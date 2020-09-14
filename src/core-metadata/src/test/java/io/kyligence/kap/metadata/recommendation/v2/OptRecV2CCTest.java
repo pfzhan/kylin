@@ -31,7 +31,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 
-public class OptRecV2CCTest extends OptRecV2BaseTest {
+public class OptRecV2CCTest extends OptRecV2TestBase {
 
     public OptRecV2CCTest() {
         super("../core-metadata/src/test/resources/rec_v2/cc",

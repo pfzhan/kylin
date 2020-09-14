@@ -34,7 +34,7 @@ import java.util.Map;
 import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecState.INITIAL;
 import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecState.RECOMMENDED;
 
-public class OptRecV2DisplayStateTest extends OptRecV2BaseTest {
+public class OptRecV2DisplayStateTest extends OptRecV2TestBase {
 
     public OptRecV2DisplayStateTest() {
         super("../core-metadata/src/test/resources/rec_v2/state",
