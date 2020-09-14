@@ -50,7 +50,7 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
     @Override
     protected void doRun() {
         //only the first 8 chars of the job uuid
-        try (SetThreadName ignored = new SetThreadName("JobWorker(prj:%s,jobid:%s)", project,
+        try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobid:%s)", project,
                 executable.getId().substring(0, 8))) {
             executable.execute(context);
             // trigger the next step asap
