@@ -33,6 +33,7 @@ import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
 
@@ -94,7 +95,7 @@ public class ExecutableAddSegmentHandler extends ExecutableHandler {
     private void markDFStatus(NDataflowManager dfManager) {
         super.markDFStatus();
         val df = dfManager.getDataflow(getModelId());
-        val status = df.getStatus();
+        RealizationStatusEnum status = df.getStatus();
         if(LAG_BEHIND.equals(status)){
             val model = df.getModel();
             Preconditions.checkState(ManagementType.TABLE_ORIENTED.equals(model.getManagementType()));
