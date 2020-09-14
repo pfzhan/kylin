@@ -40,6 +40,9 @@ public abstract class EscapeDialect {
     private static final String FN_FLOOR = "FLOOR";
     private static final String FN_SUBSTR = "SUBSTR";
     private static final String FN_SUBSTRING = "SUBSTRING";
+    private static final String FN_ASCII = "ASCII";
+    private static final String FN_CHR = "CHR";
+    private static final String FN_SPACE = "SPACE";
 
     /* Define SQL dialect for different data source */
 
@@ -79,6 +82,10 @@ public abstract class EscapeDialect {
             register(FN_FLOOR, FnConversion.FLOOR);
             register(FN_SUBSTR, FnConversion.SUSTR);
             register(FN_SUBSTRING, FnConversion.SUSTRING);
+
+            register(FN_ASCII, FnConversion.ASCII);
+            register(FN_CHR, FnConversion.CHR);
+            register(FN_SPACE, FnConversion.SPACE);
         }
 
         @Override
@@ -124,6 +131,10 @@ public abstract class EscapeDialect {
             register(FN_SUBSTRING, FnConversion.SUSTRING);
             register("OVERLAY", FnConversion.OVERLAY_SPARK);
             register("SETS", FnConversion.SETS_SPARK);
+
+            register(FN_ASCII, FnConversion.ASCII);
+            register(FN_CHR, FnConversion.CHR);
+            register(FN_SPACE, FnConversion.SPACE);
         }
 
         @Override

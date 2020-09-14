@@ -22,20 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.spark.sql.udf
+package org.apache.kylin.query.udf.stringUdf;
 
-import org.apache.spark.unsafe.types.UTF8String
+import org.apache.calcite.linq4j.function.Parameter;
 
-object SplitPartImpl {
+public class TableauStringUDF {
 
-  def evaluate(str: String, rex: String, index: Int): UTF8String = {
-    val parts = str.split(rex)
-    if (index - 1 < parts.length && index > 0) {
-      UTF8String.fromString(parts(index - 1))
-    } else if (index < 0 && Math.abs(index) <= parts.length) {
-      UTF8String.fromString(parts(parts.length + index))
-    } else {
-      throw new IllegalArgumentException("the index is invalid")
+    public Integer ASCII(@Parameter(name = "str1") String s) {
+        if (s == null) {
+            return null;
+        }
+        return s.codePointAt('0');
     }
-  }
+
+    public String CHR(@Parameter(name = "int1") Integer i) {
+        if (i == null) {
+            return null;
+        }
+        char c = (char) i.intValue();
+        return String.valueOf(c);
+    }
+
+    public String SPACE(@Parameter(name = "int1") Integer a) {
+        StringBuilder sb = new StringBuilder();
+        while (a-- > 0) {
+            sb.append(' ');
+        }
+        return sb.toString();
+    }
+
 }

@@ -308,6 +308,22 @@ public class EscapeFunction {
             Preconditions.checkArgument(args.length == 1 || args.length == 2, EscapeFunction.FLOOR_EXCEPTION_MSG);
             String[] newArgs = args.length == 1 ? args : new String[] { args[0] + " to " + args[1] };
             return normalFN("FLOOR", newArgs);
+        }),
+
+        // tableau func
+        SPACE(args -> {
+            checkArgs(args, 1);
+            return normalFN("SPACE", args);
+        }),
+
+        CHR(args -> {
+            checkArgs(args, 1);
+            return normalFN("CHR", args);
+        }),
+
+        ASCII(args -> {
+            checkArgs(args, 1);
+            return normalFN("ASCII", args);
         });
 
         private interface IConvert {

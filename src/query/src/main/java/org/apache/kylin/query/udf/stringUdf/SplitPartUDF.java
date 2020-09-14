@@ -48,8 +48,11 @@ public class SplitPartUDF {
 
     public String SPLIT_PART(@Parameter(name = "str") String str, @Parameter(name = "regex") String regex,
             @Parameter(name = "index") int index) {
-        if (index - 1 < str.split(regex).length && index > 0) {
-            return str.split(regex)[index - 1];
+        String[] parts = str.split(regex);
+        if (index - 1 < parts.length && index > 0) {
+            return parts[index - 1];
+        } else if (index < 0 && Math.abs(index) <= parts.length) {
+            return parts[parts.length + index];
         } else {
             throw new IllegalArgumentException("the index is invalid");
         }

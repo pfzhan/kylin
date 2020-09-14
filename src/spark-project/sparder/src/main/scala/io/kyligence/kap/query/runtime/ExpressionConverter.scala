@@ -32,7 +32,8 @@ import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
-import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate, SubtractBitmapUUID, SubtractBitmapValue}
+import org.apache.spark.sql.catalyst.expressions.{If, IfNull, IntersectCountByCol, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
+import org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -378,6 +379,12 @@ object ExpressionConverter {
               case "subtract_bitmap_uuid" =>
                 new Column(SubtractBitmapUUID(children.head.asInstanceOf[Column].expr, children.last.asInstanceOf[Column].expr))
             }
+          case "ascii" =>
+            ascii(k_lit(children.head))
+          case "chr" =>
+            new Column(expressions.Chr(k_lit(children.head).expr))
+          case "space" =>
+            new Column(StringRepeat(k_lit(children.head).expr, k_lit(children.tail).expr))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
