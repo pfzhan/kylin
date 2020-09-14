@@ -56,7 +56,7 @@ public class InfluxDBUtils {
     private static OkHttpClient.Builder getBuilderWithAllTrustManager() throws Exception {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
         X509TrustManager x509TrustManager = TrustManagerUtils.getAcceptAllTrustManager();
-        SSLContext sslContext = SSLContext.getInstance("TLS");
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(null, new TrustManager[] { x509TrustManager }, null);
         SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
