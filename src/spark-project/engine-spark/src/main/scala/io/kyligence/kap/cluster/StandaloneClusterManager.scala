@@ -89,7 +89,7 @@ class StandaloneClusterManager extends IClusterManager with Logging {
   override def getRunningJobs(queues: util.Set[String]): util.List[String] = {
     val state = masterEndpoints(0).askSync[MasterStateResponse](RequestMasterState)
     val jobStepNames = state.activeApps.filter(_.desc.name.startsWith(JOB_STEP_PREFIX)).map(_.desc.name)
-    logInfo(s"Get running jobs $jobStepNames")
+    logInfo(s"Get running jobs ${jobStepNames.toSeq}")
     import scala.collection.JavaConverters._
     jobStepNames.toList.asJava
   }

@@ -39,43 +39,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.spark.dict;
 
-import java.io.IOException;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ClassUtil;
 
-import org.apache.hadoop.fs.Path;
+import lombok.extern.slf4j.Slf4j;
 
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
+@Slf4j
+public class NGlobalDictStoreFactory {
+    private NGlobalDictStoreFactory() {
+    }
 
-public interface NGlobalDictStore {
+    public static NGlobalDictStore getResourceStore(String baseDir) {
+        try {
+            Class<? extends NGlobalDictStore> clz = ClassUtil.forName(getGlobalDictStoreImpl(), NGlobalDictStore.class);
+            log.info("Use global dict store impl {}", clz.getCanonicalName());
+            return clz.getConstructor(String.class).newInstance(baseDir);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to create global dict store", e);
+        }
+    }
 
-    // workingDir should be an absolute path, will create if not exists
-    void prepareForWrite(String workingDir) throws IOException;
-
-    /**
-     * @return all versions of this dictionary in ascending order
-     * @throws IOException on I/O error
-     */
-    Long[] listAllVersions() throws IOException;
-
-    // return the path of specified version dir
-    Path getVersionDir(long version);
-
-    NGlobalDictMetaInfo getMetaInfo(long version) throws IOException;
-
-    Object2LongMap<String> getBucketDict(long version, NGlobalDictMetaInfo metadata, int bucketId)
-            throws IOException;
-
-    void writeBucketCurrDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
-            throws IOException;
-
-    void writeBucketPrevDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
-            throws IOException;
-
-    void writeMetaInfo(int bucketSize, String workingDir) throws IOException;
-
-    void commit(String workingDir, int maxVersions, long versionTTL) throws IOException;
-
-    String getWorkingDir();
+    private static String getGlobalDictStoreImpl() {
+        try {
+            return KylinConfig.getInstanceFromEnv().getGlobalDictV2StoreImpl();
+        } catch (Exception e) {
+            return System.getProperty("kylin.engine.global-dict.store.impl", "org.apache.spark.dict.NGlobalDictHDFSStore");
+        }
+    }
 }

@@ -25,7 +25,7 @@ package org.apache.spark.conf.rule
 
 import io.kyligence.kap.engine.spark.utils.{LogUtils, SparkConfHelper, SparkConfRuleConstants}
 import org.apache.commons.lang3.StringUtils
-import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
 
@@ -141,10 +141,10 @@ class ExecutorInstancesRule extends SparkConfRule {
 
     lazy val executorInstanceInfo = Map(
       "available memory" -> availableMem,
-      "available core" ->availableCore,
-      "available instance"-> queueAvailableInstance,
+      "available core" -> availableCore,
+      "available instance" -> queueAvailableInstance,
       "required core" -> requiredCores,
-      "required instance"-> needInstance,
+      "required instance" -> needInstance,
       "config executor instance" -> baseExecutorInstances
     )
     logInfo(s"set ${SparkConfHelper.EXECUTOR_INSTANCES} = ${executorInstance}, " +
@@ -193,5 +193,14 @@ class ShufflePartitionsRule extends SparkConfRule {
     val sourceTableSize = helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE)
     val partitions = Math.max(2, Utils.byteStringAsMb(sourceTableSize) / 32).toString
     helper.setConf(SparkConfHelper.SHUFFLE_PARTITIONS, partitions)
+  }
+}
+
+class StandaloneConfRule extends SparkConfRule {
+  override def doApply(helper: SparkConfHelper): Unit = {
+    if (KapConfig.getInstanceFromEnv.isCloud) {
+      val executorInstance = helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES)
+      helper.setConf("spark.cores.max", (executorInstance.toInt * helper.getConf(SparkConfHelper.EXECUTOR_CORES).toInt).toString)
+    }
   }
 }

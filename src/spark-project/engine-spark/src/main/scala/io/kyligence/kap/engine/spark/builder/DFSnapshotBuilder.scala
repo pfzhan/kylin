@@ -236,8 +236,8 @@ class DFSnapshotBuilder extends Logging with Serializable {
       fs.createNewFile(new Path(md5Path))
       logInfo(s"Create md5 file: ${md5Path} for snap: ${currSnapFile}")
     }
-
-    (tableDesc.getIdentity, snapshotTablePath)
+    // adapt for alluxio which only recognize starts with '/'
+    (tableDesc.getIdentity, "/" + snapshotTablePath)
   }
 
   def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc, concurrentMap: ConcurrentMap[String, Long], columnSize: Int): Unit = {

@@ -36,8 +36,6 @@ public class NGlobalDictionaryV2 implements Serializable {
 
     protected static final Logger logger = LoggerFactory.getLogger(NGlobalDictionaryV2.class);
 
-    private final static String WORKING_DIR = "working";
-
     public static final String SEPARATOR = "_0_DOT_0_";
 
     private NGlobalDictMetaInfo metadata;
@@ -53,7 +51,7 @@ public class NGlobalDictionaryV2 implements Serializable {
     }
 
     private String getWorkingDir() {
-        return baseDir + WORKING_DIR;
+        return getResourceStore(baseDir).getWorkingDir();
     }
 
     public NGlobalDictionaryV2(String project, String sourceTable, String sourceColumn, String baseDir)
@@ -140,7 +138,7 @@ public class NGlobalDictionaryV2 implements Serializable {
         globalDictStore.commit(getWorkingDir(), maxVersions, versionTTL);
     }
 
-    private static NGlobalDictStore getResourceStore(String baseDir) throws IOException {
-        return new NGlobalDictHDFSStore(baseDir);
+    private NGlobalDictStore getResourceStore(String baseDir) {
+        return NGlobalDictStoreFactory.getResourceStore(baseDir);
     }
 }

@@ -765,6 +765,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getDiagTaskTimeoutBlackList", new PropertiesEntity("kylin.diag.task-timeout-black-list",
                 "METADATA,LOG", ImmutableSet.copyOf("METADATA,LOG".split(","))));
         map.put("isMetadataOnlyForRead", new PropertiesEntity("kylin.env.metadata.only-for-read", "true", true));
+        map.put("getGlobalDictV2StoreImpl", new PropertiesEntity("kylin.engine.global-dict.store.impl",
+                "org.apache.spark.dict.NGlobalDictHDFSStore", "org.apache.spark.dict.NGlobalDictHDFSStore"));
     }
 
     @Before
@@ -785,7 +787,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(383, methodsCount);
+        Assert.assertEquals(385, methodsCount);
     }
 
     @Test

@@ -140,7 +140,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         ProjectRequest projectRequest = new ProjectRequest();
         projectRequest.setName("test");
         projectRequest.setDescription("test");
-        projectRequest.setOverrideKylinProperties(new LinkedHashMap<>());
+        projectRequest.setOverrideKylinProps(new LinkedHashMap<>());
         projectRequest.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
         return projectRequest;
     }

@@ -370,16 +370,11 @@ public class NSparkExecutable extends AbstractExecutable {
         if (UserGroupInformation.isSecurityEnabled()) {
             sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
-
-        KapConfig kapConfig = KapConfig.wrap(config);
-
-        sparkConfigOverride = replaceSparkDriverJavaOpsConfIfNeeded(config, sparkConfigOverride);
-
+        replaceSparkDriverJavaOpsConfIfNeeded(config, sparkConfigOverride);
         return sparkConfigOverride;
     }
 
-    private Map<String, String> replaceSparkDriverJavaOpsConfIfNeeded(KylinConfig config,
-            Map<String, String> sparkConfigOverride) {
+    private void replaceSparkDriverJavaOpsConfIfNeeded(KylinConfig config, Map<String, String> sparkConfigOverride) {
         String sparkDriverExtraJavaOptionsKey = "spark.driver.extraJavaOptions";
         StringBuilder sb = new StringBuilder();
         if (sparkConfigOverride.containsKey(sparkDriverExtraJavaOptionsKey)) {
@@ -395,6 +390,7 @@ public class NSparkExecutable extends AbstractExecutable {
             logger.warn("use the InetAddress get local ip failed!", e);
         }
         String serverPort = config.getServerPort();
+
         String hdfsWorkingDir = config.getHdfsWorkingDirectory();
 
         String sparkDriverHdfsLogPath = null;
@@ -402,6 +398,13 @@ public class NSparkExecutable extends AbstractExecutable {
             Map<String, String> extendedOverrides = ((KylinConfigExt) config).getExtendedOverrides();
             if (Objects.nonNull(extendedOverrides)) {
                 sparkDriverHdfsLogPath = extendedOverrides.get("spark.driver.log4j.appender.hdfs.File");
+            }
+        }
+        if (kapConfig.isCloud()) {
+            String logLocalWorkingDirectory = config.getLogLocalWorkingDirectory();
+            if (StringUtils.isNotBlank(logLocalWorkingDirectory)) {
+                hdfsWorkingDir = logLocalWorkingDirectory;
+                sparkDriverHdfsLogPath = logLocalWorkingDirectory + sparkDriverHdfsLogPath;
             }
         }
 
@@ -425,8 +428,6 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
         sb.append(String.format(" -Dspark.driver.local.logDir=%s ", KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
         sparkConfigOverride.put(sparkDriverExtraJavaOptionsKey, sb.toString());
-
-        return sparkConfigOverride;
     }
 
     protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,

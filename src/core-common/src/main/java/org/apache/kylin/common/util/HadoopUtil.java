@@ -131,7 +131,7 @@ public class HadoopUtil {
         return getFileSystem(new Path(makeURI(path)));
     }
 
-    private static FileSystem getFileSystem(Path path) {
+    public static FileSystem getFileSystem(Path path) {
         Configuration conf = getCurrentConfiguration();
         return getFileSystem(path, conf);
     }

@@ -34,6 +34,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.SetAndUnsetSystemProp;
 import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
@@ -75,15 +76,22 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testGlobalDictionaryRoundTest() throws IOException {
+    public void testGlobalDictHDFSStoreRoundTest() throws IOException {
+        testAll();
+    }
 
-        // round 1
+    @Test
+    public void testGlobalDictS3StoreRoundTest() throws IOException {
+        // global s3 dict store
+        try (SetAndUnsetSystemProp prop = new SetAndUnsetSystemProp("kylin.engine.global-dict.store.impl",
+                "org.apache.spark.dict.NGlobalDictS3Store")) {
+            testAll();
+        }
+    }
+
+    private void testAll() throws IOException {
         roundTest(5);
-
-        // round 2
         roundTest(50);
-
-        // round 3
         roundTest(500);
     }
 

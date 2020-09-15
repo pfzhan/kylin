@@ -47,7 +47,7 @@ public class NBucketDictionary {
             throws IOException {
         this.workingDir = workingDir;
         this.bucketId = bucketId;
-        final NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(baseDir);
+        final NGlobalDictStore globalDictStore = NGlobalDictStoreFactory.getResourceStore(baseDir);
         Long[] versions = globalDictStore.listAllVersions();
         if (versions.length == 0) {
             this.absoluteDictMap = new Object2LongOpenHashMap<>();
@@ -89,14 +89,14 @@ public class NBucketDictionary {
     private void writeBucketPrevDict(int bucketId) throws IOException {
         if (absoluteDictMap.isEmpty())
             return;
-        NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(workingDir);
+        NGlobalDictStore globalDictStore = NGlobalDictStoreFactory.getResourceStore(workingDir);
         globalDictStore.writeBucketPrevDict(workingDir, bucketId, absoluteDictMap);
     }
 
     private void writeBucketCurrDict(int bucketId) throws IOException {
         if (relativeDictMap.isEmpty())
             return;
-        NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(workingDir);
+        NGlobalDictStore globalDictStore = NGlobalDictStoreFactory.getResourceStore(workingDir);
         globalDictStore.writeBucketCurrDict(workingDir, bucketId, relativeDictMap);
     }
 

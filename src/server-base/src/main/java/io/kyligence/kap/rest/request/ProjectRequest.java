@@ -50,7 +50,7 @@ public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     @JsonProperty("description")
     private String description;
     @JsonProperty("override_kylin_properties")
-    private LinkedHashMap<String, String> overrideKylinProperties;
+    private LinkedHashMap<String, String> overrideKylinProps;
     @JsonProperty("maintain_model_type")
     private MaintainModelType maintainModelType;
 

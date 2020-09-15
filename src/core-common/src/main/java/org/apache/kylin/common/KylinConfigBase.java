@@ -2243,4 +2243,12 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isMetadataOnlyForRead() {
         return Boolean.valueOf(getOptional("kylin.env.metadata.only-for-read", FALSE));
     }
+
+    public String getGlobalDictV2StoreImpl() {
+        return getOptional("kylin.dictionary.globalV2-store-class-name", "org.apache.spark.dict.NGlobalDictHDFSStore");
+    }
+
+    public String getLogLocalWorkingDirectory() {
+        return getOptional("kylin.engine.log.local-working-directory", "");
+    }
 }

@@ -261,11 +261,12 @@ public abstract class SparkApplication implements Application, IKeep {
                 logger.info("Set spark conf automatically.");
                 try {
                     if (config.getSparkConfigOverride().size() > 0) {
-                        for (Map.Entry<String, String> entry : config.getSparkConfigOverride().entrySet()) {
+                        Map<String, String> sparkConfigOverride = getSparkConfigOverride(config);
+                        for (Map.Entry<String, String> entry : sparkConfigOverride.entrySet()) {
                             sparkConf.set(entry.getKey(), entry.getValue());
                         }
                         logger.info("Override user-defined spark conf: {}",
-                                JsonUtil.writeValueAsString(config.getSparkConfigOverride()));
+                                JsonUtil.writeValueAsString(sparkConfigOverride));
                     }
                     autoSetSparkConf(sparkConf);
                 } catch (Exception e) {
@@ -436,5 +437,17 @@ public abstract class SparkApplication implements Application, IKeep {
 
     protected Set<String> getIgnoredSnapshotTables() {
         return NSparkCubingUtil.toIgnoredTableSet(getParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES));
+    }
+
+    private Map<String, String> getSparkConfigOverride(KylinConfig config) {
+        Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
+        String sparkExecutorExtraJavaOptionsKey = "spark.executor.extraJavaOptions";
+        StringBuilder sb = new StringBuilder();
+        if (sparkConfigOverride.containsKey(sparkExecutorExtraJavaOptionsKey)) {
+            sb.append(sparkConfigOverride.get(sparkExecutorExtraJavaOptionsKey));
+        }
+        sb.append(String.format(" -Dkylin.dictionary.globalV2-store-class-name=%s ", config.getGlobalDictV2StoreImpl()));
+        sparkConfigOverride.put(sparkExecutorExtraJavaOptionsKey, sb.toString());
+        return sparkConfigOverride;
     }
 }

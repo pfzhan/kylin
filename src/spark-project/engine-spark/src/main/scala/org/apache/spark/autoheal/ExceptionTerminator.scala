@@ -24,6 +24,7 @@
 
 package org.apache.spark.autoheal
 
+import java.io.IOException
 import java.util
 
 import com.google.common.collect.Maps
@@ -43,6 +44,8 @@ object ExceptionTerminator extends Logging {
   def resolveException(rl: ResourceLack, eventLoop: KylinJobEventLoop): Unit = {
     val env = KylinBuildEnv.get()
     val result = rl.throwable match {
+      case _: IOException =>
+        resolveIoException(env, rl.throwable)
       case _: OutOfMemoryError =>
         resolveOutOfMemoryError(env, rl.throwable)
       case throwable: ClassNotFoundException =>
@@ -71,6 +74,23 @@ object ExceptionTerminator extends Logging {
     }
   }
 
+  private def resolveIoException(env: KylinBuildEnv, throwable: Throwable): ResolverResult = {
+    val noSpaceException = "No space left on device"
+    if (throwable.getMessage.contains(noSpaceException)) {
+      logInfo("Resolve 'No space left on device' exception.")
+
+      val conf = env.sparkConf
+      val retryInstance = conf.get(EXECUTOR_INSTANCES).toInt * 2
+      conf.set(EXECUTOR_INSTANCES, retryInstance.toString)
+      logInfo(s"Reset $EXECUTOR_INSTANCES=$retryInstance when retry.")
+      val overrideConf = Maps.newHashMap[String, String]()
+      overrideConf.put(EXECUTOR_INSTANCES, retryInstance.toString)
+      Success(overrideConf)
+    } else {
+      incMemory(env)
+    }
+  }
+
   private def incMemory(env: KylinBuildEnv): ResolverResult = {
     val conf = env.sparkConf
     val gradient = env.kylinConfig.getSparkEngineRetryMemoryGradient
@@ -82,7 +102,7 @@ object ExceptionTerminator extends Logging {
     val proportion = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
     val maxResourceMemory = (env.clusterManager.fetchMaximumResourceAllocation.memory * proportion).toInt
     val overheadMem = Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
-    val maxMemory = (maxResourceMemory/(overheadGradient + 1)).toInt
+    val maxMemory = (maxResourceMemory / (overheadGradient + 1)).toInt
     val maxOverheadMem = (maxMemory * overheadGradient).toInt
     val overrideConf = Maps.newHashMap[String, String]()
     if (prevMemory == maxMemory) {

@@ -53,32 +53,34 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
-public class NGlobalDictHDFSStore extends NGlobalDictStore {
+public class NGlobalDictHDFSStore implements NGlobalDictStore {
 
     static final Logger logger = LoggerFactory.getLogger(NGlobalDictHDFSStore.class);
 
-    private static final String VERSION_PREFIX = "version_";
-    private static final String DICT_METADATA_NAME = "meta";
-    private static final String DICT_CURR_PREFIX = "CURR_";
-    private static final String DICT_PREV_PREFIX = "PREV_";
+    protected static final String VERSION_PREFIX = "version_";
+    protected static final String DICT_METADATA_NAME = "meta";
+    protected static final String DICT_CURR_PREFIX = "CURR_";
+    protected static final String DICT_PREV_PREFIX = "PREV_";
+    protected static final String WORKING_DIR = "working";
 
-    private final Path basePath;
-    private final FileSystem fileSystem;
+    protected final Path basePath;
+    protected final FileSystem fileSystem;
+    protected final String baseDir;
 
     public NGlobalDictHDFSStore(String baseDir) throws IOException {
+        this.baseDir = baseDir;
         this.basePath = new Path(baseDir);
         this.fileSystem = basePath.getFileSystem(new Configuration());
     }
 
     @Override
-    void prepareForWrite(String workingDir) throws IOException {
+    public void prepareForWrite(String workingDir) throws IOException {
         if (!fileSystem.exists(basePath)) {
             logger.info("Global dict store at {} doesn't exist, create a new one", basePath);
             fileSystem.mkdirs(basePath);
@@ -294,8 +296,13 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         cleanUp(maxVersions, versionTTL);
     }
 
+    @Override
+    public String getWorkingDir() {
+        return baseDir + WORKING_DIR;
+    }
+
     // Check versions count, delete expired versions
-    private void cleanUp(int maxVersions, long versionTTL) throws IOException {
+    protected void cleanUp(int maxVersions, long versionTTL) throws IOException {
         long timestamp = System.currentTimeMillis();
         Long[] versions = listAllVersions();
         for (int i = 0; i < versions.length - maxVersions; i++) {

@@ -37,6 +37,7 @@ import org.apache.spark.conf.rule.ExecutorMemoryRule;
 import org.apache.spark.conf.rule.ExecutorOverheadRule;
 import org.apache.spark.conf.rule.ShufflePartitionsRule;
 import org.apache.spark.conf.rule.SparkConfRule;
+import org.apache.spark.conf.rule.StandaloneConfRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +75,7 @@ public class SparkConfHelper {
 
     private static final List<SparkConfRule> EXECUTOR_RULES = ImmutableList.of(new ExecutorMemoryRule(),
             new ExecutorCoreRule(), new ExecutorOverheadRule(), new ExecutorInstancesRule(),
-            new ShufflePartitionsRule());
+            new ShufflePartitionsRule(), new StandaloneConfRule());
 
     public void generateSparkConf() {
         EXECUTOR_RULES.forEach(sparkConfRule -> sparkConfRule.apply(this));
