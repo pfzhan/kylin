@@ -1119,6 +1119,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testRefreshSparkTable() throws Exception {
         CliCommandExecutor commond = new CliCommandExecutor();
+        commond.execute("rm -rf ./spark-warehouse/test_kylin_refresh", null);
         val ss = SparkSession.builder().appName("local").master("local[2]")
                 .enableHiveSupport()
                 .getOrCreate();
