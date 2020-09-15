@@ -98,56 +98,8 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             Map<Path, SnapshotChecker> snapshotCheckerMap = new HashMap<>();
             List<TableDesc> needUpdateTableDescs = new ArrayList<>();
             Map<String, String> snapshots = segment.getSnapshots();
-            NTableMetadataManager manager = NTableMetadataManager.getInstance(getConfig(), segment.getProject());
-            KylinConfig segmentConf = segment.getConfig();
-            val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
-            long survivalTimeThreshold = timeMachineEnabled ? segmentConf.getStorageResourceSurvivalTimeThreshold()
-                    : segmentConf.getSnapshotVersionTTL();
-            String workingDirectory = KapConfig.wrap(segmentConf).getMetadataWorkingDirectory();
             for (Map.Entry<String, String> entry : snapshots.entrySet()) {
-                log.info("Update snapshot table {}", entry.getKey());
-                TableDesc tableDesc = manager.getTableDesc(entry.getKey());
-                Path snapshotPath = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDirectory);
-                if (HDFSUtils.listSortedFileFrom(snapshotPath).isEmpty()) {
-                    throw new RuntimeException("Snapshot path is empty :" + snapshotPath);
-                }
-                FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
-                HDFSUtils.listSortedFileFrom(snapshotPath);
-                Path segmentFilePath = new Path(workingDirectory + entry.getValue());
-                FileStatus segmentFile = HDFSUtils.getFileStatus(segmentFilePath);
-                FileStatus currentFile = null;
-                if (tableDesc.getLastSnapshotPath() != null) {
-                    currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
-                }
-                val currentModificationTime = currentFile == null ? 0L : currentFile.getModificationTime();
-                val currentPath = currentFile == null ? "null" : currentFile.getPath().toString();
-                TableDesc copyDesc = manager.copyForWrite(tableDesc);
-                if (segmentFile != null && lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
-                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(), currentModificationTime,
-                            lastFile.getModificationTime());
-                    log.info("Update snapshot table {} : from {} to {}", entry.getKey(), currentPath,
-                            segmentFile.getPath());
-                    copyDesc.setLastSnapshotPath(entry.getValue());
-                    needUpdateTableDescs.add(copyDesc);
-                    snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
-                            survivalTimeThreshold, segmentFile.getModificationTime()));
-                } else if (copyDesc.getLastSnapshotPath() == null && System.currentTimeMillis() - segment.getLastBuildTime() < survivalTimeThreshold) {
-                    /**
-                     * when tableDesc's lastSnapshot is null and snapshot within survival time, force update snapshot table.
-                     * see https://olapio.atlassian.net/browse/KE-17343
-                     */
-                    log.info("update snapshot table {} when tableDesc's lastSnapshot is null and snapshot within survival time", entry.getKey());
-                    copyDesc.setLastSnapshotPath(entry.getValue());
-                    needUpdateTableDescs.add(copyDesc);
-                } else {
-                    if (segmentFile != null) {
-                        log.info(
-                                "Skip update snapshot table because current segment snapshot table is too old. Current segment snapshot table ts is: {}",
-                                segmentFile.getModificationTime());
-                    } else {
-                        log.info("{}'s FileStatus is null, Skip update.", segmentFilePath);
-                    }
-                }
+                collectNeedUpdateSnapshotTable(segment, entry, snapshotCheckerMap, needUpdateTableDescs);
             }
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NTableMetadataManager updateManager = NTableMetadataManager
@@ -163,6 +115,59 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         } catch (Throwable th) {
             log.error("Error for update snapshot table", th);
             throw new RuntimeException(th);
+        }
+    }
+
+    private void collectNeedUpdateSnapshotTable(NDataSegment segment, Map.Entry<String, String> snapshot,
+             Map<Path, SnapshotChecker> snapshotCheckerMap, List<TableDesc> needUpdateTableDescs) {
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(getConfig(), segment.getProject());
+        KylinConfig segmentConf = segment.getConfig();
+        val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
+        long survivalTimeThreshold = timeMachineEnabled ? segmentConf.getStorageResourceSurvivalTimeThreshold()
+                : segmentConf.getSnapshotVersionTTL();
+        String workingDirectory = KapConfig.wrap(segmentConf).getMetadataWorkingDirectory();
+        log.info("Update snapshot table {}", snapshot.getKey());
+        TableDesc tableDesc = manager.getTableDesc(snapshot.getKey());
+        Path snapshotPath = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDirectory);
+        if (HDFSUtils.listSortedFileFrom(snapshotPath).isEmpty()) {
+            throw new RuntimeException("Snapshot path is empty :" + snapshotPath);
+        }
+        FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
+        HDFSUtils.listSortedFileFrom(snapshotPath);
+        Path segmentFilePath = new Path(workingDirectory + snapshot.getValue());
+        FileStatus segmentFile = HDFSUtils.getFileStatus(segmentFilePath);
+        FileStatus currentFile = null;
+        if (tableDesc.getLastSnapshotPath() != null) {
+            currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
+        }
+        val currentModificationTime = currentFile == null ? 0L : currentFile.getModificationTime();
+        val currentPath = currentFile == null ? "null" : currentFile.getPath().toString();
+        TableDesc copyDesc = manager.copyForWrite(tableDesc);
+        if (segmentFile != null && lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
+            log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentModificationTime,
+                    lastFile.getModificationTime());
+            log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentPath,
+                    segmentFile.getPath());
+            copyDesc.setLastSnapshotPath(snapshot.getValue());
+            needUpdateTableDescs.add(copyDesc);
+            snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
+                    survivalTimeThreshold, segmentFile.getModificationTime()));
+        } else if (copyDesc.getLastSnapshotPath() == null && System.currentTimeMillis() - segment.getLastBuildTime() < survivalTimeThreshold) {
+            /**
+             * when tableDesc's lastSnapshot is null and snapshot within survival time, force update snapshot table.
+             * see https://olapio.atlassian.net/browse/KE-17343
+             */
+            log.info("update snapshot table {} when tableDesc's lastSnapshot is null and snapshot within survival time", snapshot.getKey());
+            copyDesc.setLastSnapshotPath(snapshot.getValue());
+            needUpdateTableDescs.add(copyDesc);
+        } else {
+            if (segmentFile != null) {
+                log.info(
+                        "Skip update snapshot table because current segment snapshot table is too old. Current segment snapshot table ts is: {}",
+                        segmentFile.getModificationTime());
+            } else {
+                log.info("{}'s FileStatus is null, Skip update.", segmentFilePath);
+            }
         }
     }
 }
