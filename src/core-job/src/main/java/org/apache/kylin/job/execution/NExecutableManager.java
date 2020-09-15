@@ -272,14 +272,14 @@ public class NExecutableManager {
      * @param jobId
      * @return
      */
-    public Output getOutputFromHDFSByJobId(String jobId, String stepId) {
+    public Output getOutputFromHDFSByJobId(String jobId, String stepId, int nLines) {
         String outputStorePath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, stepId);
         ExecutableOutputPO jobOutput = getJobOutputFromHDFS(outputStorePath);
         assertOutputNotNull(jobOutput, outputStorePath);
 
         if (Objects.nonNull(jobOutput.getLogPath())) {
             if (isHdfsPathExists(jobOutput.getLogPath())) {
-                jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), 100));
+                jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), nLines));
             } else if (StringUtils.isEmpty(jobOutput.getContent()) && Objects.nonNull(getJob(jobId))
                     && getJob(jobId).getStatus() == ExecutableState.RUNNING) {
                 jobOutput.setContent("Wait a moment ... ");
@@ -287,6 +287,10 @@ public class NExecutableManager {
         }
 
         return parseOutput(jobOutput);
+    }
+
+    public Output getOutputFromHDFSByJobId(String jobId, String stepId) {
+        return getOutputFromHDFSByJobId(jobId, stepId, 100);
     }
 
     private DefaultOutput parseOutput(ExecutableOutputPO jobOutput) {

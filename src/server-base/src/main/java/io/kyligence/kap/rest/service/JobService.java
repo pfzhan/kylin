@@ -27,9 +27,7 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -41,24 +39,17 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
-import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -625,73 +616,10 @@ public class JobService extends BasicService {
         return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
-    /**
-     * write hdfs file input stream to output stream
-     *
-     * @param outputStream
-     * @param hdfsFilePath
-     * @return
-     */
-    public boolean hdfsFileWrite2OutputStream(OutputStream outputStream, String hdfsFilePath) {
-        try {
-            Path path = new Path(hdfsFilePath);
-            FileSystem fs = HadoopUtil.getWorkingFileSystem();
-            if (!fs.exists(path)) {
-                logger.warn("can not find the hdfs file: {}", hdfsFilePath);
-                return false;
-            }
-
-            try (DataInputStream din = fs.open(path)) {
-                IOUtils.copyLarge(din, outputStream);
-            }
-            return true;
-        } catch (IOException e) {
-            logger.error("read hdfs file and write to the output stream failed!", e);
-        }
-
-        return false;
-    }
-
-    /**
-     * get the log path by project and jobId(step id)
-     *
-     * @param project
-     * @param jobId
-     * @return
-     */
-    public String getHdfsLogPath(String project, String jobId) {
+    public String getAllJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        String hdfsPath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId);
-
         val executableManager = getExecutableManager(project);
-        ExecutableOutputPO jobOutput = executableManager.getJobOutputFromHDFS(hdfsPath);
-
-        if (Objects.isNull(jobOutput)) {
-            logger.info("the jobOutput is null, project: {}, jobId {}", project, jobId);
-            return null;
-        }
-
-        if (Objects.nonNull(jobOutput.getLogPath()) && !executableManager.isHdfsPathExists(jobOutput.getLogPath())) {
-            logger.info("job output hdfs path is not exists, path: {}.", jobOutput.getLogPath());
-            return null;
-        }
-
-        return jobOutput.getLogPath();
-    }
-
-    /**
-     * user from web to download the hdfs log file
-     *
-     * @param response
-     */
-    public boolean downloadHdfsLogFile(final HttpServletResponse response, String hdfsLogPath) {
-        try (OutputStream outputStream = response.getOutputStream()) {
-            return hdfsFileWrite2OutputStream(outputStream, hdfsLogPath);
-        } catch (IOException e) {
-            logger.error("read hdfs file and write to the output stream failed!", e);
-        }
-
-        return false;
+        return executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE).getVerboseMsg();
     }
 
     /**

@@ -43,20 +43,17 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -306,8 +303,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()),
-                "default", "PAUSE", Lists.newArrayList());
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE",
+                Lists.newArrayList());
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
         UnitOfWork.doInTransactionWithRetry(() -> {
             jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME",
@@ -350,8 +347,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 
         jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", Lists.newArrayList());
-        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE",
-                Lists.newArrayList());
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 
         jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME",
@@ -379,7 +375,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to DISCARD a SUCCEED job");
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", Lists.newArrayList());
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD",
+                Lists.newArrayList());
     }
 
     @Test
@@ -393,7 +390,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.setName("test");
         manager.addJob(executable);
         thrown.expect(IllegalStateException.class);
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "ROLLBACK", Lists.newArrayList());
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "ROLLBACK",
+                Lists.newArrayList());
     }
 
     @Test
@@ -454,7 +452,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     private List<AbstractExecutable> mockJobs() throws Exception {
         NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase.getInstanceByProject();
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
+                .getInstanceByProject();
         managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
         List<AbstractExecutable> jobs = new ArrayList<>();
         SucceedChainedTestExecutable job1 = new SucceedChainedTestExecutable();
@@ -524,61 +523,27 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testHdfsFileWrite2OutputStream() throws IOException {
-        final String junitFolder = temporaryFolder.getRoot().getAbsolutePath();
-        final String mainFolder = junitFolder + "/testHdfsFileWrite2OutputStream";
-        File file = new File(mainFolder);
-        if (!file.exists()) {
-            Assert.assertTrue(file.mkdir());
-        } else {
-            Assert.fail("exist the test case folder: " + mainFolder);
+    public void testGetAllJobOutput() throws IOException {
+        File file = temporaryFolder.newFile("execute_output.json." + System.currentTimeMillis() + ".log");
+        for (int i = 0; i < 200; i++) {
+            Files.write(file.toPath(), String.format("lines: %s\n", i).getBytes(), StandardOpenOption.APPEND);
         }
 
-        String hdfsPath = mainFolder + "/hdfs.log";
-        List<String> text = Arrays.asList("INFO: this is the line 1", "WARN: this is the line 2",
-                "ERROR: this is the last line");
-        FileUtils.writeLines(new File(hdfsPath), text);
+        String[] exceptLines = Files.readAllLines(file.toPath()).toArray(new String[0]);
 
-        try (FileOutputStream outputStream = new FileOutputStream(new File(mainFolder + "/output.log"))) {
-            Assert.assertTrue(jobService.hdfsFileWrite2OutputStream(outputStream, hdfsPath));
-        }
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
+        executableOutputPO.setStatus("SUCCEED");
+        executableOutputPO.setContent("succeed");
+        executableOutputPO.setLogPath(file.getAbsolutePath());
+        manager.updateJobOutputToHDFS(KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath("default",
+                "e1ad7bb0-522e-456a-859d-2eab1df448de"), executableOutputPO);
 
-        List<String> text1 = FileUtils.readLines(new File(hdfsPath));
+        String[] actualLines = jobService.getAllJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de", "e1ad7bb0-522e-456a-859d-2eab1df448de")
+                .split("\n");
 
-        Assert.assertEquals(text.size(), text1.size());
-        for (int i = 0; i < text.size(); i++) {
-            Assert.assertEquals(text.get(i), text1.get(i));
-        }
-    }
 
-    @Test
-    public void testDownloadHdfsLogFile() throws IOException {
-        final String junitFolder = temporaryFolder.getRoot().getAbsolutePath();
-        final String mainFolder = junitFolder + "/testDownloadHdfsLogFile";
-
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
-        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
-
-        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-        Mockito.when(response.getOutputStream()).thenReturn(null);
-
-        String hdfsLogPath = mainFolder + "/hdfs.log";
-        Mockito.when(jobService.hdfsFileWrite2OutputStream(null, hdfsLogPath)).thenReturn(true);
-
-        ExecutableOutputPO jobOutput = new ExecutableOutputPO();
-        jobOutput.setLogPath(hdfsLogPath);
-        FileUtils.writeLines(new File(jobOutput.getLogPath()), Arrays.asList("line1", "line2"));
-
-        Mockito.when(executableManager.getJobOutputFromHDFS(Mockito.anyString())).thenReturn(jobOutput);
-        Mockito.when(executableManager.isHdfsPathExists(Mockito.anyString())).thenReturn(true);
-        String newHdfsLogPath = jobService.getHdfsLogPath("default", "00000_01");
-        if (Objects.isNull(newHdfsLogPath)) {
-            Assert.fail("hdfs log path is null!");
-        }
-
-        if (!jobService.downloadHdfsLogFile(response, newHdfsLogPath)) {
-            Assert.fail("download file failed!");
-        }
+        Assert.assertTrue(Arrays.deepEquals(exceptLines, actualLines));
     }
 
     @Test

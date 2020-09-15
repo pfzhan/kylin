@@ -28,11 +28,11 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -42,7 +42,6 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -199,16 +198,8 @@ public class NJobController extends NBasicController {
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
         String downloadFilename = String.format("%s_%s.log", project, stepId);
 
-        String hdfsLogpath = jobService.getHdfsLogPath(project, stepId);
-        if (Objects.isNull(hdfsLogpath)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "can not find the log file!");
-        }
-
-        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
-                String.format("attachment; filename=\"%s\"", downloadFilename));
-
-        jobService.downloadHdfsLogFile(response, hdfsLogpath);
+        String jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
+        setDownloadResponse(new ByteArrayInputStream(jobOutput.getBytes()), downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
