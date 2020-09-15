@@ -203,14 +203,14 @@ PY
         mv -vf ${NEW_KYLIN_HOME} ${OLD_KYLIN_HOME} >> $upgrade_log || fail
         info "...................................................[DONE]"
         recordKylinUpgradeResult "${START_TIME}" "true" "${OLD_KYLIN_HOME}"
+        info "Upgrade finished!"
+        # needed by km
+        info "Backup location:${install_dir}/${backup_file}"
     else
         warn "...................................................[SKIP]"
         recordKylinUpgradeResult "${START_TIME}" "true" "${NEW_KYLIN_HOME}"
+        info "Upgrade aborted because you chose to stop"
     fi
-
-    info "Upgrade finished!"
-    # needed by km
-    info "Backup location:${install_dir}/${backup_file}"
 
 }
 
