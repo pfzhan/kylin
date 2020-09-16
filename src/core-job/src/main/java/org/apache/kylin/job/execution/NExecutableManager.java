@@ -656,9 +656,9 @@ public class NExecutableManager {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
-            jobOutput = (Objects.equals(taskOrJobId, jobId)) ? job.getOutput()
-                    : job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
-                            .map(ExecutablePO::getOutput).orElse(null);
+            ExecutablePO taskOrJob = Objects.equals(taskOrJobId, jobId) ? job :
+                    job.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst().orElse(null);
+            jobOutput = taskOrJob.getOutput();
             assertOutputNotNull(jobOutput, taskOrJobId);
             ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
             if (newStatus != null && oldStatus != newStatus) {
@@ -679,7 +679,13 @@ public class NExecutableManager {
             if (ExecutableState.READY == newStatus) {
                 Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
             }
-            info.put("node_info", AddressUtil.getLocalInstance());
+            String oldNodeInfo = info.get("node_info");
+            String newNodeInfo = AddressUtil.getLocalInstance();
+            if (Objects.nonNull(oldNodeInfo) && !Objects.equals(oldNodeInfo, newNodeInfo) && !Objects.equals(taskOrJobId, jobId)) {
+                logger.info("The node running job has changed. Job id: {}, Step name: {}, Switch from {} to {}.",
+                        jobId, taskOrJob.getName(), oldNodeInfo, newNodeInfo);
+            }
+            info.put("node_info", newNodeInfo);
             jobOutput.setInfo(info);
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
             jobOutput.setLastModified(System.currentTimeMillis());
