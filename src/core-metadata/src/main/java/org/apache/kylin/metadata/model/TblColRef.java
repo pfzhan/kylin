@@ -256,6 +256,13 @@ public class TblColRef implements Serializable {
         }
     }
 
+    public String getExpressionInSourceDBWithDoubleQuote() {
+        if (column.isComputedColumn())
+            return column.getComputedColumnExpr();
+
+        return "\"" + getTableAlias() + "\".\"" + getName() + "\"";
+    }
+
     public String getTable() {
         if (column.getTable() == null) {
             return null;

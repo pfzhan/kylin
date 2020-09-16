@@ -130,7 +130,7 @@ public class KapQueryUtil {
                 if (i > 0) {
                     sql.append(" AND ");
                 }
-                sql.append(String.format("%s = %s", fk[i].getExpressionInSourceDB(), pk[i].getExpressionInSourceDB()));
+                sql.append(String.format("%s = %s", fk[i].getExpressionInSourceDBWithDoubleQuote(), pk[i].getExpressionInSourceDBWithDoubleQuote()));
             }
             sql.append(sep);
 
