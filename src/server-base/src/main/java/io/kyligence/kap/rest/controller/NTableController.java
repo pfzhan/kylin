@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
@@ -301,7 +301,7 @@ public class NTableController extends NBasicController {
         try {
             response = tableService.getLatestDataRange(project, table);
         } catch (KylinTimeoutException ke) {
-            throw new KylinException(UNKNOWN_ERROR_CODE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
         } catch (Exception e) {
             throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
@@ -532,7 +532,8 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/prepare_reload", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/prepare_reload", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) throws Exception {
@@ -554,7 +555,8 @@ public class NTableController extends NBasicController {
             if (StringUtils.isEmpty(request.getTable())) {
                 throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
             }
-            if (request.isNeedSample() && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
+            if (request.isNeedSample()
+                    && (request.getMaxRows() < MIN_SAMPLING_ROWS || request.getMaxRows() > MAX_SAMPLING_ROWS)) {
                 throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
@@ -606,7 +608,8 @@ public class NTableController extends NBasicController {
 
     @GetMapping(value = "/model_tables")
     @ResponseBody
-    public EnvelopeResponse getModelTables(@RequestParam("project") String project, @RequestParam("model_name") String modelName) {
+    public EnvelopeResponse getModelTables(@RequestParam("project") String project,
+            @RequestParam("model_name") String modelName) {
         checkProjectName(project);
         val res = tableService.getTablesOfModel(project, modelName);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");

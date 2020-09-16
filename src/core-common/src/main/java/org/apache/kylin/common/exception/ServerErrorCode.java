@@ -49,6 +49,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     INVALID_NAME("KE-10000004"), //
     EMPTY_PARAMETER("KE-10000005"), //
     UNAUTHORIZED_ENTITY("KE-10000006"), //
+    FAILED_DETECT_DATA_RANGE("KE-10000007"), //
 
     // 10001XXX project
     PROJECT_NOT_EXIST("KE-10001001"), //

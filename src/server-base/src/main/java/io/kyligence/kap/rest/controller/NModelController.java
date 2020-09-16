@@ -26,9 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DETECT_DATA_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
@@ -298,7 +298,7 @@ public class NModelController extends NBasicController {
         try {
             response = modelService.getLatestDataRange(project, modelId, partitionDesc);
         } catch (KylinTimeoutException e) {
-            throw new KylinException(UNKNOWN_ERROR_CODE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+            throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
         } catch (Exception e) {
             throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
@@ -740,14 +740,16 @@ public class NModelController extends NBasicController {
             if (ArrayUtils.isEmpty(request.getIds())) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
-            jobInfos = modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId, request.getIds(), request.isRefreshAllIndexes())
-                    .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
+            jobInfos = modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId,
+                    request.getIds(), request.isRefreshAllIndexes())
+                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
-            val jobInfo = modelService.mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
+            val jobInfo = modelService
+                    .mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
             if (jobInfo != null) {
                 jobInfos.add(jobInfo);
             }
