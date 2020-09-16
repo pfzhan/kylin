@@ -41,7 +41,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -164,6 +166,7 @@ public class NUserController extends NBasicController {
         checkPasswordCharacter(password);
         checkUserGroupNotEmpty(user.getAuthorities());
         checkUserGroupExists(user.getAuthorities());
+        checkUserGroupNotDuplicated(user.getAuthorities());
 
         return createAdminUser(user);
     }
@@ -507,6 +510,13 @@ public class NUserController extends NBasicController {
                 throw new KylinException(INVALID_PARAMETER,
                         String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), group));
             }
+        }
+    }
+
+    private void checkUserGroupNotDuplicated(List<SimpleGrantedAuthority> groups) {
+        List<String> authorities = groups.stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toList());
+        if (authorities.size() != Sets.newHashSet(authorities).size()) {
+            throw new KylinException(INVALID_PARAMETER, "Values in authorities can't be duplicated.");
         }
     }
 

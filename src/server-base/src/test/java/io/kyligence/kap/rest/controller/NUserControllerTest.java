@@ -244,6 +244,21 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCreateUserWithDuplicatedGroup() throws IOException {
+        val user = new ManagedUser();
+        user.setUsername("test");
+        user.setPassword("p1234sgw$");
+        userGroupService.addGroup(Constant.GROUP_ALL_USERS);
+        List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS),
+                new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
+        Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
+        user.setGrantedAuthorities(groups);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Values in authorities can't be duplicated.");
+        nUserController.createUser(user);
+    }
+
+    @Test
     public void testCreateUserWithNotEnglishUsername() throws IOException {
         val user = new ManagedUser();
         user.setUsername("中文");
