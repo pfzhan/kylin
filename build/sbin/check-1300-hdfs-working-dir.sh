@@ -41,7 +41,7 @@ TEST_FILE=${WORKING_DIR}/${RANDNAME}
 
 # test local hdfs
 ## in read-write separation mode this is write cluster
-hadoop ${hadoop_conf_param} fs -test -d ${WORKING_DIR} || quit "ERROR: Please create working directory '${WORKING_DIR}' and grant access permission to current user."
+hadoop ${hadoop_conf_param} fs -test -d ${WORKING_DIR} || quit "ERROR: Please check the correctness of hadoop configuration file under ${kylin_hadoop_conf_dir}. At the same time, please make sure the working directory '${WORKING_DIR}' exists and grant access permission to current user."
 
 # test if kylin user (current user) has write permission to working directory
 touch ./${RANDNAME}
