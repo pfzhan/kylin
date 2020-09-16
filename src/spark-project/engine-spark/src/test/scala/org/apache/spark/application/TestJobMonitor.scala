@@ -26,6 +26,7 @@ import java.util
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.amazonaws.services.s3.model.AmazonS3Exception
 import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
@@ -245,6 +246,34 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
     }
   }
 
+  test("retry with original configuration when receive ResourceLack event including specific exception") {
+    withEventLoop { eventLoop =>
+      Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
+      Mockito.when(config.getJobResourceLackIgnoreExceptionClasses).thenReturn(Array("com.amazonaws.services.s3.model.AmazonS3Exception"))
+      val env = KylinBuildEnv.getOrCreate(config)
+      new JobMonitor(eventLoop)
+      val memory = "2000MB"
+      val cores = "2"
+      val maxAllocation = 2400
+      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.sparkConf.set(EXECUTOR_MEMORY, memory)
+      env.sparkConf.set(EXECUTOR_CORES, cores)
+      val countDownLatch = new CountDownLatch(2)
+      val listener = new KylinJobListener {
+        override def onReceive(event: KylinJobEvent): Unit = {
+          countDownLatch.countDown()
+        }
+      }
+      eventLoop.registerListener(listener)
+      eventLoop.post(ResourceLack(new AmazonS3Exception("test")))
+      // receive ResourceLack and RunJob
+      countDownLatch.await()
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == memory)
+      assert(env.sparkConf.get(EXECUTOR_CORES) == cores)
+      assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
+      eventLoop.unregisterListener(listener)
+    }
+  }
 
   test("post JobFailed event when receive UnknownThrowable event") {
     withEventLoop { eventLoop =>

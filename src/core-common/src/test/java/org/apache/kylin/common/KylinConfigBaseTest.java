@@ -767,6 +767,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isMetadataOnlyForRead", new PropertiesEntity("kylin.env.metadata.only-for-read", "true", true));
         map.put("getGlobalDictV2StoreImpl", new PropertiesEntity("kylin.engine.global-dict.store.impl",
                 "org.apache.spark.dict.NGlobalDictHDFSStore", "org.apache.spark.dict.NGlobalDictHDFSStore"));
+        map.put("getJobResourceLackIgnoreExceptionClasses", new PropertiesEntity("kylin.job.resource-lack-ignore-exception-classes",
+                "", new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"}));
     }
 
     @Before
@@ -787,7 +789,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(385, methodsCount);
+        Assert.assertEquals(386, methodsCount);
     }
 
     @Test

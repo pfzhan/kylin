@@ -50,6 +50,8 @@ object ExceptionTerminator extends Logging {
         resolveOutOfMemoryError(env, rl.throwable)
       case throwable: ClassNotFoundException =>
         Failed(throwable.getMessage, throwable)
+      case _: RuntimeException =>
+        resolveRuntimeException(env, rl.throwable)
       case _ =>
         incMemory(env)
     }
@@ -85,6 +87,16 @@ object ExceptionTerminator extends Logging {
       logInfo(s"Reset $EXECUTOR_INSTANCES=$retryInstance when retry.")
       val overrideConf = Maps.newHashMap[String, String]()
       overrideConf.put(EXECUTOR_INSTANCES, retryInstance.toString)
+      Success(overrideConf)
+    } else {
+      incMemory(env)
+    }
+  }
+
+  private def resolveRuntimeException(env: KylinBuildEnv, throwable: Throwable): ResolverResult = {
+    if (env.kylinConfig.getJobResourceLackIgnoreExceptionClasses.contains(throwable.getClass.getName)) {
+      logInfo(s"Retry with original configuration due to exception ${throwable.getClass.getName}")
+      val overrideConf = Maps.newHashMap[String, String]()
       Success(overrideConf)
     } else {
       incMemory(env)
