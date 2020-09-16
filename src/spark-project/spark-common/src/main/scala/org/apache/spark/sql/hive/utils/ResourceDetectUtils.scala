@@ -38,6 +38,7 @@ import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, SparkPl
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 object ResourceDetectUtils extends Logging {
   private val json = new Gson()
@@ -64,12 +65,13 @@ object ResourceDetectUtils extends Logging {
   }
 
   def getPartitions(plan: SparkPlan): String = {
+    val leafNodePartitionsLengthMap: mutable.Map[String, Int] = mutable.Map()
     var pNum = 0
     plan.foreach {
       case node: LeafExecNode =>
         val pn = node match {
           case ree: ReusedExchangeExec if ree.child.isInstanceOf[BroadcastExchangeExec] => 1
-          case _ => node.execute().partitions.length
+          case _ => leafNodePartitionsLengthMap.getOrElseUpdate(node.nodeName, node.execute().partitions.length)
         }
         pNum = pNum + pn
         logInfo(s"${node.nodeName} partition size $pn")

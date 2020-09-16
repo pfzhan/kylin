@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,7 +56,6 @@ import scala.collection.JavaConversions;
 
 public class ResourceDetectBeforeCubingJob extends SparkApplication {
     protected volatile NSpanningTree nSpanningTree;
-    protected volatile List<NBuildSourceInfo> sources = new ArrayList<>();
     protected static final Logger logger = LoggerFactory.getLogger(ResourceDetectBeforeCubingJob.class);
 
     @Override
@@ -76,6 +74,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 ResourceDetectUtils.findCountDistinctMeasure(cuboids));
         ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", "false");
         for (String segId : segmentIds) {
+            List<NBuildSourceInfo> sources = new ArrayList<>();
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
             if (Objects.isNull(seg)) {
                 logger.info("Skip empty segment {}", segId);
