@@ -112,10 +112,12 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -148,6 +150,7 @@ import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.constant.JobInfoEnum;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -156,6 +159,7 @@ import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
+import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.PreReloadTableResponse;
 import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
@@ -1075,9 +1079,33 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0, readonly = true)
-    public PreReloadTableResponse preProcessBeforeReload(String project, String tableIdentity) throws Exception {
+    public OpenPreReloadTableResponse preProcessBeforeReloadWithoutFailFast(String project, String tableIdentity) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        val context = calcReloadContext(project, tableIdentity);
+
+        val context = calcReloadContext(project, tableIdentity, false);
+        PreReloadTableResponse preReloadTableResponse = preProcessBeforeReloadWithContext(project, context);
+
+        OpenPreReloadTableResponse openPreReloadTableResponse = new OpenPreReloadTableResponse(preReloadTableResponse);
+        openPreReloadTableResponse.setDuplicatedColumns(Lists.newArrayList(context.getDuplicatedColumns()));
+        openPreReloadTableResponse.setEffectedJobs(Lists.newArrayList(context.getEffectedJobs()));
+        boolean hasDatasourceChanged = (preReloadTableResponse.getAddColumnCount()
+                + preReloadTableResponse.getRemoveColumnCount()
+                + preReloadTableResponse.getDataTypeChangeColumnCount()) > 0;
+        openPreReloadTableResponse.setHasDatasourceChanged(hasDatasourceChanged);
+        openPreReloadTableResponse.setHasEffectedJobs(!context.getEffectedJobs().isEmpty());
+        openPreReloadTableResponse.setHasDuplicatedColumns(!context.getDuplicatedColumns().isEmpty());
+
+        return openPreReloadTableResponse;
+    }
+
+    @Transaction(project = 0, readonly = true)
+    public PreReloadTableResponse preProcessBeforeReloadWithFailFast(String project, String tableIdentity) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
+        val context = calcReloadContext(project, tableIdentity, true);
+        return preProcessBeforeReloadWithContext(project, context);
+    }
+
+    private PreReloadTableResponse preProcessBeforeReloadWithContext(String project, ReloadTableContext context) {
         val result = new PreReloadTableResponse();
         result.setAddColumnCount(context.getAddColumns().size());
         result.setRemoveColumnCount(context.getRemoveColumns().size());
@@ -1130,7 +1158,7 @@ public class TableService extends BasicService {
         Preconditions.checkNotNull(originTable);
 
         val project = getProjectManager().getProject(projectName);
-        val context = calcReloadContext(projectName, tableIdentity);
+        val context = calcReloadContext(projectName, tableIdentity, true);
         Set<NDataModel> affectedModels = getAffectedModels(projectName, context);
         for (val model : affectedModels) {
             updateBrokenModel(project, model, context, needBuild);
@@ -1372,6 +1400,16 @@ public class TableService extends BasicService {
     }
 
     private void checkNewColumn(Graph<SchemaNode> graph, TableDesc newTableDesc, Set<String> addColumns) {
+        Multimap<String, String> duplicatedColumns = getDuplicatedColumns(graph, newTableDesc, addColumns);
+        if (Objects.nonNull(duplicatedColumns) && !duplicatedColumns.isEmpty()) {
+            Map.Entry<String, String> entry = duplicatedColumns.entries().iterator().next();
+            throw new KylinException(DUPLICATED_COLUMN_NAME, MsgPicker.getMsg()
+                    .getTABLE_RELOAD_ADD_COLUMN_EXIST(entry.getKey(), entry.getValue()));
+        }
+    }
+
+    private Multimap<String, String> getDuplicatedColumns(Graph<SchemaNode> graph, TableDesc newTableDesc, Set<String> addColumns) {
+        Multimap<String, String> duplicatedColumns = HashMultimap.create();
         List<SchemaNode> schemaNodes = graph.nodes().stream()
                 .filter(schemaNode -> SchemaNodeType.MODEL_CC == schemaNode.getType())
                 .filter(schemaNode -> addColumns.contains(schemaNode.getDetail().toUpperCase()))
@@ -1379,39 +1417,14 @@ public class TableService extends BasicService {
         for (SchemaNode schemaNode : schemaNodes) {
             NDataModel model = modelService.getModelById(schemaNode.getSubject(), newTableDesc.getProject());
             if (newTableDesc.getIdentity().equals(model.getRootFactTableRef().getTableDesc().getIdentity())) {
-                throw new KylinException(DUPLICATED_COLUMN_NAME, MsgPicker.getMsg()
-                        .getTABLE_RELOAD_ADD_COLUMN_EXIST(newTableDesc.getIdentity(), schemaNode.getDetail()));
+                duplicatedColumns.put(newTableDesc.getIdentity(), schemaNode.getDetail());
             }
         }
+        return duplicatedColumns;
     }
 
     private void checkEffectedJobs(TableDesc newTableDesc) {
-        val notFinalStateJobs = getExecutableManager(newTableDesc.getProject()).getAllExecutables().stream()
-                .filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
-        checkEffectedJobs(newTableDesc, notFinalStateJobs);
-    }
-
-    @VisibleForTesting
-    public void checkEffectedJobs(TableDesc newTableDesc, List<AbstractExecutable> notFinalStateJobs) {
-        List<String> targetSubjectList = Lists.newArrayList();
-        for (AbstractExecutable job : notFinalStateJobs) {
-            if (JobTypeEnum.TABLE_SAMPLING == job.getJobType()) {
-                if (newTableDesc.getIdentity().equalsIgnoreCase(job.getTargetSubject())) {
-                    targetSubjectList.add(job.getTargetSubject());
-                }
-            } else {
-                try {
-                    NDataModel model = modelService.getModelById(job.getTargetSubject(), newTableDesc.getProject());
-                    if (!model.isBroken() && model.getAllTables().stream().map(TableRef::getTableIdentity)
-                            .anyMatch(s -> s.equalsIgnoreCase(newTableDesc.getIdentity()))) {
-                        targetSubjectList.add(model.getAlias());
-                    }
-                } catch (KylinException e) {
-                    logger.warn("Get model by Job target subject failed!", e);
-                }
-            }
-        }
-
+        List<String> targetSubjectList = getEffectedJobs(newTableDesc, JobInfoEnum.JOB_TARGET_SUBJECT);
         if (CollectionUtils.isNotEmpty(targetSubjectList)) {
             throw new KylinException(ON_GOING_JOB_EXIST,
                     String.format(MsgPicker.getMsg().getTABLE_RELOAD_HAVING_NOT_FINAL_JOB(),
@@ -1419,7 +1432,36 @@ public class TableService extends BasicService {
         }
     }
 
-    private ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
+    private Set<String> getEffectedJobIds(TableDesc newTableDesc) {
+        return Sets.newHashSet(getEffectedJobs(newTableDesc, JobInfoEnum.JOB_ID));
+    }
+
+    private List<String> getEffectedJobs(TableDesc newTableDesc, JobInfoEnum jobInfoType) {
+        val notFinalStateJobs = getExecutableManager(newTableDesc.getProject()).getAllExecutables().stream()
+                .filter(job -> !job.getStatus().isFinalState()).collect(Collectors.toList());
+
+        List<String> effectedJobs = Lists.newArrayList();
+        for (AbstractExecutable job : notFinalStateJobs) {
+            if (JobTypeEnum.TABLE_SAMPLING == job.getJobType()) {
+                if (newTableDesc.getIdentity().equalsIgnoreCase(job.getTargetSubject())) {
+                    effectedJobs.add(JobInfoEnum.JOB_ID == jobInfoType ? job.getId() : job.getTargetSubject());
+                }
+            } else {
+                try {
+                    NDataModel model = modelService.getModelById(job.getTargetSubject(), newTableDesc.getProject());
+                    if (!model.isBroken() && model.getAllTables().stream().map(TableRef::getTableIdentity)
+                            .anyMatch(s -> s.equalsIgnoreCase(newTableDesc.getIdentity()))) {
+                        effectedJobs.add(JobInfoEnum.JOB_ID == jobInfoType ? job.getId() : model.getAlias());
+                    }
+                } catch (KylinException e) {
+                    logger.warn("Get model by Job target subject failed!", e);
+                }
+            }
+        }
+        return effectedJobs;
+    }
+
+    private ReloadTableContext calcReloadContext(String project, String tableIdentity, boolean failFast) throws Exception {
         val context = new ReloadTableContext();
         val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
         val newTableDesc = new TableDesc(tableMeta.getFirst());
@@ -1438,8 +1480,18 @@ public class TableService extends BasicService {
 
         val dependencyGraph = SchemaUtil.dependencyGraph(project);
 
-        checkNewColumn(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
-        checkEffectedJobs(newTableDesc);
+        if (failFast) {
+            checkNewColumn(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
+            checkEffectedJobs(newTableDesc);
+        } else {
+            Set<String> duplicatedColumnsSet = Sets.newHashSet();
+            Multimap<String, String> duplicatedColumns = getDuplicatedColumns(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
+            for (Map.Entry<String, String> entry : duplicatedColumns.entries()) {
+                duplicatedColumnsSet.add(entry.getKey() + "." + entry.getValue());
+            }
+            context.setDuplicatedColumns(duplicatedColumnsSet);
+            context.setEffectedJobs(getEffectedJobIds(newTableDesc));
+        }
 
         Map<String, Set<Pair<Integer, NDataModel.Measure>>> suitableColumnTypeChangedMeasuresMap = getSuitableColumnTypeChangedMeasures(
                 dependencyGraph, project, newTableDesc.getIdentity(), diff.entriesDiffering());
@@ -1483,7 +1535,7 @@ public class TableService extends BasicService {
      * and remove old measure add new measure with suitable function return type
      * @param dependencyGraph
      * @param project
-     * @param table
+     * @param tableIdent
      * @param changeTypeDifference
      * @return
      */

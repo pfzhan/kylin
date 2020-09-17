@@ -536,10 +536,10 @@ public class NTableController extends NBasicController {
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) throws Exception {
+            @RequestParam(value = "table") String table) {
         try {
             checkProjectName(project);
-            val result = tableService.preProcessBeforeReload(project, table);
+            val result = tableService.preProcessBeforeReloadWithFailFast(project, table);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);

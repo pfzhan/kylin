@@ -59,4 +59,18 @@ public class PreReloadTableResponse {
     @JsonProperty("refresh_layouts_count")
     private long refreshLayoutsCount;
 
+    public PreReloadTableResponse() {
+    }
+
+    public PreReloadTableResponse(PreReloadTableResponse otherResponse) {
+        this.addColumnCount = otherResponse.addColumnCount;
+        this.removeColumnCount = otherResponse.removeColumnCount;
+        this.dataTypeChangeColumnCount = otherResponse.dataTypeChangeColumnCount;
+        this.brokenModelCount = otherResponse.brokenModelCount;
+        this.removeMeasureCount = otherResponse.removeMeasureCount;
+        this.removeDimCount = otherResponse.removeDimCount;
+        this.removeLayoutsCount = otherResponse.removeLayoutsCount;
+        this.addLayoutsCount = otherResponse.addLayoutsCount;
+        this.refreshLayoutsCount = otherResponse.refreshLayoutsCount;
+    }
 }

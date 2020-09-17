@@ -25,14 +25,12 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.service.ProjectService;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -51,11 +49,15 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.TableService;
 
 public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
@@ -72,6 +74,9 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ProjectService projectService;
+
+    @Mock
+    private TableService tableService;
 
     @InjectMocks
     private OpenTableController openTableController = Mockito.spy(new OpenTableController());
@@ -181,6 +186,20 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(openTableController).loadTables(tableLoadRequest);
+    }
+
+    @Test
+    public void testPreReloadTable() throws Exception {
+        String project = "default";
+        String tableName = "TEST_KYLIN_FACT";
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/pre_reload") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", project)
+                .param("table", tableName)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).preReloadTable(project, tableName);
     }
 
 }

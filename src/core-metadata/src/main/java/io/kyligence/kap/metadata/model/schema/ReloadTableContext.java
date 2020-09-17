@@ -55,6 +55,10 @@ public class ReloadTableContext {
 
     private Set<String> changeTypeColumns = Sets.newHashSet();
 
+    private Set<String> duplicatedColumns = Sets.newHashSet();
+
+    private Set<String> effectedJobs = Sets.newHashSet();
+
     private TableDesc tableDesc;
 
     private TableExtDesc tableExtDesc;

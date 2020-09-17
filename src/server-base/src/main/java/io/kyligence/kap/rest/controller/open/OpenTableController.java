@@ -26,11 +26,14 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
 
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
@@ -161,4 +164,17 @@ public class OpenTableController extends NBasicController {
         return tableController.refreshSegments(request);
     }
 
+    @GetMapping(value = "/pre_reload")
+    @ResponseBody
+    public EnvelopeResponse<OpenPreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
+                                                                       @RequestParam(value = "table") String table) {
+        try {
+            checkProjectName(project);
+            OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(project, table);
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        } catch (Exception e) {
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
+        }
+    }
 }

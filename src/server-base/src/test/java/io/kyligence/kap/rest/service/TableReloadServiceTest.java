@@ -43,12 +43,12 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -76,7 +76,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -103,6 +102,7 @@ import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.val;
 import lombok.var;
@@ -170,7 +170,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     public void testPreProcess_AffectTwoTables() throws Exception {
         removeColumn("DEFAULT.TEST_COUNTRY", "NAME");
 
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_COUNTRY");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_COUNTRY");
         Assert.assertEquals(1, response.getRemoveColumnCount());
         // affect dimension:
         //     ut_inner_join_cube_partial: 21,25
@@ -186,7 +186,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         createTestFavoriteQuery();
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
 
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(1, response.getRemoveColumnCount());
 
         // affect dimension:
@@ -215,7 +215,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         }, true);
 
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(58, response.getRefreshLayoutsCount());
     }
 
@@ -289,7 +289,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "LSTG_FORMAT_NAME");
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(11, response.getRemoveLayoutsCount());
         Assert.assertEquals(7, response.getAddLayoutsCount());
     }
@@ -311,7 +311,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
         Assert.assertEquals(4, response.getRemoveLayoutsCount());
         Assert.assertEquals(1, response.getAddLayoutsCount());
 
@@ -335,7 +335,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         });
         dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
         Assert.assertEquals(10, response.getRemoveLayoutsCount());
         Assert.assertEquals(8, response.getAddLayoutsCount());
 
@@ -363,7 +363,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         });
         removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
-        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
+        val response = tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
         Assert.assertEquals(6, response.getRemoveLayoutsCount());
         Assert.assertEquals(4, response.getAddLayoutsCount());
 
@@ -855,6 +855,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         addColumn("DEFAULT.TEST_KYLIN_FACT", true, new ColumnDesc("", "DEAL_YEAR", "int", "", "", "", null));
 
+        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertTrue(response.isHasDatasourceChanged());
+        Assert.assertTrue(response.isHasDuplicatedColumns());
+        Assert.assertEquals(1, response.getDuplicatedColumns().size());
+
         try {
             tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
             Assert.fail();
@@ -868,21 +873,24 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testCheckEffectedJobs() throws KylinException {
-        TableDesc tableDesc = tableService.getTableManager(PROJECT).getTableDesc("DEFAULT.TEST_ORDER");
-
+    public void testCheckEffectedJobs() throws Exception {
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         AbstractExecutable job1 = new NTableSamplingJob();
         job1.setTargetSubject("DEFAULT.TEST_ORDER");
         job1.setJobType(JobTypeEnum.TABLE_SAMPLING);
-        AbstractExecutable job2 = new NSparkCubingJob();
-        job2.setJobType(JobTypeEnum.INDEX_BUILD);
-        job2.setTargetSubject("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        List<AbstractExecutable> jobs = Lists.newArrayList(job1, job2);
+        executableManager.addJob(job1);
 
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "The table metadata can’t be reloaded now. There are ongoing jobs with the following target subjects(s): DEFAULT.TEST_ORDER,nmodel_basic_inner. Please try reloading until all the jobs are completed, or manually discard the jobs.");
-        tableService.checkEffectedJobs(tableDesc, jobs);
+        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT, "DEFAULT.TEST_ORDER");
+        Assert.assertTrue(response.isHasEffectedJobs());
+        Assert.assertEquals(1, response.getEffectedJobs().size());
+
+        try {
+            tableService.preProcessBeforeReloadWithFailFast(PROJECT, "DEFAULT.TEST_ORDER");
+            Assert.fail();
+        } catch (TransactionException e) {
+            Assert.assertTrue(e.getCause() instanceof RuntimeException);
+            Assert.assertTrue(e.getCause().getMessage().contains("KE-10007008(Ongoing Jobs)"));
+        }
     }
 
     @Test
