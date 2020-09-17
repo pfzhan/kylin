@@ -769,6 +769,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 "org.apache.spark.dict.NGlobalDictHDFSStore", "org.apache.spark.dict.NGlobalDictHDFSStore"));
         map.put("getJobResourceLackIgnoreExceptionClasses", new PropertiesEntity("kylin.job.resource-lack-ignore-exception-classes",
                 "", new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"}));
+        map.put("getAADUsernameClaim", new PropertiesEntity("kylin.server.aad-username-claim", "upn", "upn"));
+        map.put("getAADClientId", new PropertiesEntity("kylin.server.aad-client-id", "", ""));
+        map.put("getAADTenantId", new PropertiesEntity("kylin.server.aad-tenant-id", "", ""));
+        map.put("getAADTokenClockSkewSeconds", new PropertiesEntity("kylin.server.aad-token-clock-skew-seconds", "0", 0));
     }
 
     @Before
@@ -789,7 +793,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(386, methodsCount);
+        Assert.assertEquals(390, methodsCount);
     }
 
     @Test

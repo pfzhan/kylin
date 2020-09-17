@@ -2256,4 +2256,20 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptionalStringArray("kylin.job.resource-lack-ignore-exception-classes",
                 new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"});
     }
+
+    public String getAADUsernameClaim() {
+        return getOptional("kylin.server.aad-username-claim", "upn");
+    }
+
+    public String getAADClientId() {
+        return getOptional("kylin.server.aad-client-id", "");
+    }
+
+    public String getAADTenantId() {
+        return getOptional("kylin.server.aad-tenant-id", "");
+    }
+
+    public int getAADTokenClockSkewSeconds() {
+        return Integer.valueOf(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
+    }
 }
