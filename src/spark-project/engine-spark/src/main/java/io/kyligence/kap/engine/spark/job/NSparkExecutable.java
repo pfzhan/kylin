@@ -461,7 +461,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     protected void appendSparkConf(StringBuilder sb, String key, String value) {
         // Multiple parameters in "--conf" need to be enclosed in single quotes
-        sb.append(" --conf '").append(key).append("=").append(value).append("' ");
+        sb.append(" --conf '").append(key).append("=").append(value.trim()).append("' ");
     }
 
     private ExecuteResult runLocalMode(String appArgs) {
