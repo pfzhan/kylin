@@ -775,7 +775,7 @@ public class IndexPlanService extends BasicService {
                 TableExtDesc.ColumnStats columnStats = Objects.isNull(tableExt) ? null
                         : tableExt.getColumnStatsByName(colRef.getName());
                 result.add(new IndexResponse.ColOrderPair(columnName, "column",
-                        Objects.isNull(columnStats) ? 0 : columnStats.getCardinality()));
+                        Objects.isNull(columnStats) ? null : columnStats.getCardinality()));
             } else {
                 result.add(new IndexResponse.ColOrderPair(model.getMeasureNameByMeasureId(id), "measure"));
             }
