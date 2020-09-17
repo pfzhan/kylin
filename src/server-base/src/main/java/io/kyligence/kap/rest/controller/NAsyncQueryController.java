@@ -37,14 +37,13 @@ import javax.validation.Valid;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.exception.ForbiddenException;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.service.QueryService;
+import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,12 +56,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
 import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
+import io.kyligence.kap.rest.service.KapQueryService;
 import io.swagger.annotations.ApiOperation;
 
 @RestController
@@ -72,8 +73,8 @@ public class NAsyncQueryController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NAsyncQueryController.class);
 
     @Autowired
-    @Qualifier("queryService")
-    private QueryService queryService;
+    @Qualifier("kapQueryService")
+    private KapQueryService queryService;
 
     @Autowired
     @Qualifier("asyncQueryService")
@@ -85,7 +86,7 @@ public class NAsyncQueryController extends NBasicController {
     @PostMapping(value = "/async_query")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
-            throws InterruptedException {
+            throws InterruptedException, IOException {
         checkProjectName(sqlRequest.getProject());
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final AtomicReference<Boolean> compileResultRef = new AtomicReference<>();
@@ -96,12 +97,13 @@ public class NAsyncQueryController extends NBasicController {
             public void run() {
                 SecurityContextHolder.setContext(context);
 
-                // TODO unsupport Sparder now
-                //                SparderEnv.setAsAsyncQuery();
-                //                SparderEnv.setSeparator(sqlRequest.getSeparator());
-                //                SparderEnv.setResultRef(compileResultRef);
+                SparderEnv.setSeparator(sqlRequest.getSeparator());
+                SparderEnv.setResultRef(compileResultRef);
 
                 QueryContext queryContext = QueryContext.current();
+                sqlRequest.setQueryId(queryContext.getQueryId());
+                queryContext.getQueryTagInfo().setAsyncQuery(true);
+                queryContext.setProject(sqlRequest.getProject());
                 logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
                 String queryId = queryContext.getQueryId();
                 queryIdRef.set(queryId);
@@ -109,59 +111,96 @@ public class NAsyncQueryController extends NBasicController {
                 try {
                     SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
                     if (response.isException()) {
-                        asyncQueryService.createErrorFlag(response.getExceptionMessage(), queryContext.getQueryId());
+                        asyncQueryService.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
+                                response.getExceptionMessage());
                     }
                     asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);
-                    asyncQueryService.saveMetaData(response, queryId);
+                    asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
+                    asyncQueryService.saveUserName(sqlRequest.getProject(), queryId);
                 } catch (Exception e) {
                     try {
                         logger.error("failed to run query " + queryContext.getQueryId(), e);
                         compileResultRef.set(false);
-                        asyncQueryService.createErrorFlag(e.getMessage(), queryContext.getQueryId());
+                        asyncQueryService.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
+                                e.getMessage());
                         exceptionHandle.set(e.getMessage());
                     } catch (Exception e1) {
                         exceptionHandle.set(exceptionHandle.get() + "\n" + e.getMessage());
                         throw new RuntimeException(e1);
                     }
-
                 }
             }
         });
 
         while (compileResultRef.get() == null) {
+            if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                break;
+            }
             Thread.sleep(200);
         }
-        if (compileResultRef.get()) {
+
+        switch (asyncQueryService.queryStatus(sqlRequest.getProject(), sqlRequest.getQueryId())) {
+        case SUCCESS:
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "still running"), "");
-        } else {
-            //todo message
+                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.SUCCESSFUL, "query success"),
+                    "");
+        case FAILED:
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                     new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.FAILED, exceptionHandle.get()),
                     "");
+        case RUNNING:
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "query still running"),
+                    "");
+        default:
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.MISSING, "query status is lost"),
+                    "");
         }
-
     }
 
     @DeleteMapping(value = "/async_query")
     @ResponseBody
-    public EnvelopeResponse<Boolean> cleanAllQuery() throws IOException {
+    public EnvelopeResponse<Boolean> batchDelete(@RequestParam(value = "project", required = false) String project,
+            @RequestParam(value = "older_than", required = false) String time) throws Exception {
+        if (!isAdmin()) {
+            return new EnvelopeResponse<Boolean>(ResponseCode.CODE_UNAUTHORIZED, false,
+                    "Access denied. Only admin users can delete the query results");
+        }
         Message msg = MsgPicker.getMsg();
-
-        boolean result = asyncQueryService.cleanAllFolder();
-        if (result)
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        if (asyncQueryService.batchDelete(project, time))
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
         else
-            throw new BadRequestException(msg.getCLEAN_FOLDER_FAIL());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, msg.getCLEAN_FOLDER_FAIL());
+    }
+
+    @DeleteMapping(value = "/async_query/{query_id:.+}")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> deleteByQueryId(@PathVariable("query_id") String queryId,
+            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest) throws IOException {
+        if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, false,
+                    "Access denied. Only task submitters or admin users can delete the query results");
+        }
+        Message msg = MsgPicker.getMsg();
+        boolean result = asyncQueryService.deleteByQueryId(sqlRequest.getProject(), queryId);
+        if (result)
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+        else
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, msg.getCLEAN_FOLDER_FAIL());
     }
 
     @ApiOperation(value = "query", notes = "Update Response: query_id")
     @GetMapping(value = "/async_query/{query_id:.+}/status")
     @ResponseBody
-    public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@PathVariable("query_id") String queryId)
-            throws IOException {
-        AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(queryId);
-        AsyncQueryResponse asyncQueryResponse = null;
+    public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
+            @PathVariable("query_id") String queryId) throws IOException {
+        if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
+                    "Access denied. Only task submitters or admin users can get the query status");
+        }
+        AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(sqlRequest.getProject(), queryId);
+        AsyncQueryResponse asyncQueryResponse;
         switch (queryStatus) {
         case SUCCESS:
             asyncQueryResponse = new AsyncQueryResponse(queryId, AsyncQueryResponse.Status.SUCCESSFUL,
@@ -172,14 +211,12 @@ public class NAsyncQueryController extends NBasicController {
             break;
         case FAILED:
             asyncQueryResponse = new AsyncQueryResponse(queryId, AsyncQueryResponse.Status.FAILED,
-                    asyncQueryService.retrieveSavedQueryException(queryId));
-            break;
-        case MISS:
-            asyncQueryResponse = new AsyncQueryResponse(queryId, AsyncQueryResponse.Status.MISSING,
-                    "query does not exit or got cleaned"); //
+                    asyncQueryService.retrieveSavedQueryException(sqlRequest.getProject(), queryId));
             break;
         default:
-            throw new IllegalStateException("error queryStatus");
+            asyncQueryResponse = new AsyncQueryResponse(queryId, AsyncQueryResponse.Status.MISSING,
+                    "query status is lost"); //
+            break;
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryResponse, "");
@@ -188,44 +225,61 @@ public class NAsyncQueryController extends NBasicController {
     @ApiOperation(value = "fileStatus", notes = "Update URL: file_status")
     @GetMapping(value = "/async_query/{query_id:.+}/file_status")
     @ResponseBody
-    public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId) throws IOException {
-        long length = asyncQueryService.fileStatus(queryId);
+    public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId,
+            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest) throws IOException {
+        if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, 0L,
+                    "Access denied. Only task submitters or admin users can get the file status");
+        }
+        long length = asyncQueryService.fileStatus(sqlRequest.getProject(), queryId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, length, "");
     }
 
     @GetMapping(value = "/async_query/{query_id:.+}/metadata")
     @ResponseBody
-    public EnvelopeResponse<List<List<String>>> metadata(@PathVariable("query_id") String queryId) throws IOException {
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryService.getMetaData(queryId), "");
+    public EnvelopeResponse<List<List<String>>> metadata(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
+            @PathVariable("query_id") String queryId) throws IOException {
+        if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
+                    "Access denied. Only task submitters or admin users can get the metadata");
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                asyncQueryService.getMetaData(sqlRequest.getProject(), queryId), "");
     }
 
     @ApiOperation(value = "downloadQueryResult", notes = "Update URL: result")
     @GetMapping(value = "/async_query/{query_id:.+}/result")
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
-            HttpServletResponse response) throws IOException {
+            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response)
+            throws IOException {
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
-
-        if ((isAdmin() && !config.isAdminUserExportAllowed())
-                || (!isAdmin() && !config.isNoneAdminUserExportAllowed())) {
-            throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
-        }
-
         response.setContentType("text/csv;charset=utf-8");
         response.setHeader("Content-Disposition", "attachment; filename=\"result.csv\"");
-
-        asyncQueryService.retrieveSavedQueryResult(queryId, response);
+        if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
+                    "Access denied. Only task submitters or admin users can download the query results");
+        }
+        if (((isAdmin() && !config.isAdminUserExportAllowed())
+                || (!isAdmin() && !config.isNoneAdminUserExportAllowed()))) {
+            throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
+        }
+        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/async_query/{query_id:.+}/result_path")
     @ResponseBody
-    public EnvelopeResponse<String> queryPath(@PathVariable("query_id") String queryId, HttpServletResponse response)
+    public EnvelopeResponse<String> queryPath(@PathVariable("query_id") String queryId,
+            @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response)
             throws IOException {
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryService.asyncQueryResultPath(queryId), "");
+        if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
+                    "Access denied. Only task submitters or admin users can get the query path");
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                asyncQueryService.asyncQueryResultPath(sqlRequest.getProject(), queryId), "");
     }
 
 }

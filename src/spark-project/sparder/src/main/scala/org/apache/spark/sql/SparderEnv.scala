@@ -34,22 +34,14 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent, SparkListenerLogRollUp}
-import org.apache.spark.sql.DDLDesc.DDLType
 import org.apache.spark.sql.KylinSession._
-import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTableType, SessionCatalog}
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier}
-import org.apache.spark.sql.execution.QueryExecution
-import org.apache.spark.sql.execution.command.{AlterTableAddPartitionCommand, CreateDatabaseCommand, CreateTableCommand, CreateViewCommand, DropDatabaseCommand, DropTableCommand, ExecutedCommandExec, ShowCreateTableCommand, ShowPartitionsCommand}
 import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
-import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.Utils
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
-import scala.collection.JavaConverters._
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -232,6 +224,8 @@ object SparderEnv extends Logging {
         case e: PostQueryExecutionForKylin =>
           val queryID = e.localProperties.getProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, "")
           QueryToExecutionIDCache.setQueryExecutionID(queryID, e.executionId.toString)
+          val executionID = e.localProperties.getProperty(QueryToExecutionIDCache.KYLIN_QUERY_EXECUTION_ID, "")
+          QueryToExecutionIDCache.setQueryExecution(executionID, e.queryExecution)
         case _ => // Ignore
       }
     }
@@ -273,7 +267,6 @@ object SparderEnv extends Logging {
     t
   }
 
-  val _isAsyncQuery = new ThreadLocal[JBoolean]
   val _separator = new ThreadLocal[JString]
   val _df = new ThreadLocal[Dataset[Row]]
   val _needCompute = new ThreadLocal[JBoolean] {
@@ -297,14 +290,6 @@ object SparderEnv extends Logging {
     _numScanFiles.get()
   }
 
-  def setAsAsyncQuery(): Unit = {
-    _isAsyncQuery.set(true)
-  }
-
-  def isAsyncQuery: java.lang.Boolean =
-    if (_isAsyncQuery.get == null) false
-    else _isAsyncQuery.get
-
   def setSeparator(separator: java.lang.String): Unit = {
     _separator.set(separator)
   }
@@ -327,7 +312,6 @@ object SparderEnv extends Logging {
 
   // clean it after query end
   def clean(): Unit = {
-    _isAsyncQuery.set(null)
     _separator.set(null)
     _df.set(null)
     _needCompute.set(null)

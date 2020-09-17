@@ -82,6 +82,9 @@ public class QueryContext implements Closeable {
 
     @Setter
     private String queryId;
+    @Getter
+    @Setter
+    private String project;
     private long recordMillis;
     @Getter
     @Setter
@@ -263,6 +266,7 @@ public class QueryContext implements Closeable {
         private boolean isTableIndex;
         private boolean isHighPriorityQuery = false;
         private boolean withoutSyntaxError;
+        private boolean isAsyncQuery;
     }
 
 }

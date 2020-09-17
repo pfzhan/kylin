@@ -495,7 +495,7 @@ public class QueryService extends BasicService {
                 sqlResponse = new SQLResponse(null, null, 0, false, null);
             }
 
-            if (sqlResponse == null && isQueryCacheEnabled) {
+            if (sqlResponse == null && isQueryCacheEnabled && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 sqlResponse = queryCacheManager.searchQuery(sqlRequest);
                 Trace.addTimelineAnnotation("query cache searched");
             }

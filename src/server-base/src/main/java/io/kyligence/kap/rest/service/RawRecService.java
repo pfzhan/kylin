@@ -145,7 +145,7 @@ public class RawRecService {
                 idToQHInfoList.add(new Pair<>(qh.getId(), queryHistoryInfo));
             });
         });
-        RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv()).batchUpdataQueryHistorieInfo(idToQHInfoList);
+        RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv()).batchUpdateQueryHistoriesInfo(idToQHInfoList);
     }
 
     public void updateCostsAndTopNCandidates() {

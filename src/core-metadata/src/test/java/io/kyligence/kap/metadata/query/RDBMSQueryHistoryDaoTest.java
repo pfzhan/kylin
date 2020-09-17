@@ -492,7 +492,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         queryHistoryInfo2.setState(QueryHistoryInfo.HistoryState.FAILED);
         qhInfoList.add(new Pair<>(queryMetrics2.id, queryHistoryInfo2));
 
-        queryHistoryDAO.batchUpdataQueryHistorieInfo(qhInfoList);
+        queryHistoryDAO.batchUpdateQueryHistoriesInfo(qhInfoList);
 
         // after update
         List<QueryHistory> queryHistoryList = queryHistoryDAO.getAllQueryHistories();

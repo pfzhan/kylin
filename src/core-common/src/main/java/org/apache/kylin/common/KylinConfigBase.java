@@ -2034,6 +2034,18 @@ public abstract class KylinConfigBase implements Serializable {
                 TimeUnit.MINUTES);
     }
 
+    public long getAsyncQueryCacheExpireDays() {
+        return TimeUtil.timeStringAs(this.getOptional("kylin.query.async.cache-expire-days", "10d"), TimeUnit.DAYS);
+    }
+
+    public int getAsyncQueryCacheMaximumSize() {
+        return Integer.parseInt(this.getOptional("kylin.query.async.cache-maximum-size", "1000"));
+    }
+
+    public long getAsyncQueryResultRetainDays() {
+        return TimeUtil.timeStringAs(this.getOptional("kylin.query.async.result-retain-days", "7d"), TimeUnit.DAYS);
+    }
+
     public Boolean isSparderAsync() {
         return Boolean.valueOf(this.getOptional("kylin.query.init-sparder-async", TRUE));
     }

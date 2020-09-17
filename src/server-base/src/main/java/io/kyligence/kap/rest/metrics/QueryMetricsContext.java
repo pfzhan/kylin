@@ -170,7 +170,7 @@ public class QueryMetricsContext extends QueryMetrics {
 
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().isExactlyMatch(),
                 context.getMetrics().getSegCount(),
-                Objects.nonNull(this.errorType) && this.errorType != QueryHistory.NO_REALIZATION_FOUND_ERROR);
+                Objects.nonNull(this.errorType) && !this.errorType.equals(QueryHistory.NO_REALIZATION_FOUND_ERROR));
         this.queryHistoryInfo = queryHistoryInfo;
     }
 

@@ -24,21 +24,18 @@
 
 package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.rest.request.SQLRequest;
-
 import java.util.Objects;
 
+import org.apache.kylin.rest.request.SQLRequest;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class AsyncQuerySQLRequest extends SQLRequest {
 
-   private String separator;
-
-    public String getSeparator() {
-        return separator;
-    }
-
-    public void setSeparator(String separator) {
-        this.separator = separator;
-    }
+    private String separator;
 
     @Override
     public boolean equals(Object o) {

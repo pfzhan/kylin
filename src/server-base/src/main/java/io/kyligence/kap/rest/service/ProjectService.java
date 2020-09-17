@@ -132,6 +132,9 @@ public class ProjectService extends BasicService {
     @Autowired
     private AccessService accessService;
 
+    @Autowired
+    AsyncQueryService asyncQueryService;
+
     private static final String DEFAULT_VAL = "default";
 
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
@@ -263,6 +266,8 @@ public class ProjectService extends BasicService {
                 try {
                     accelerateImmediately(project.getName());
                     GarbageCleaner.cleanupMetadataAtScheduledTime(project.getName());
+                    asyncQueryService.cleanOldQueryResult(project.getName(),
+                            KylinConfig.getInstanceFromEnv().getAsyncQueryResultRetainDays());
                 } catch (Exception e) {
                     logger.warn("clean project<" + project.getName() + "> failed", e);
                 }

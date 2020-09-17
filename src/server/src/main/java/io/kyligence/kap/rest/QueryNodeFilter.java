@@ -104,6 +104,7 @@ public class QueryNodeFilter implements Filter {
 
         // jdbc, odbc, query, maintain
         notRoutePostApiSet.add("/kylin/api/query");
+        notRoutePostApiSet.add("/kylin/api/async_query");
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
         notRoutePostApiSet.add("/kylin/api/system/maintenance_mode");

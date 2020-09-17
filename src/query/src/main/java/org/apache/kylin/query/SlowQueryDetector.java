@@ -85,11 +85,17 @@ public class SlowQueryDetector extends Thread {
     }
 
     public void queryStart(String stopId) {
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            return;
+        }
         runningQueries.put(currentThread(), new QueryEntry(System.currentTimeMillis(), currentThread(),
                 QueryContext.current().getQueryId(), stopId, false));
     }
 
     public void queryEnd() {
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            return;
+        }
         QueryEntry entry = runningQueries.remove(currentThread());
         if (null != entry && null != canceledSlowQueriesStatus.get(entry.queryId)) {
             canceledSlowQueriesStatus.remove(entry.queryId);

@@ -137,7 +137,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         jdbcQueryHisStore.deleteQueryHistoryRealization(retainTime);
     }
 
-    public void batchUpdataQueryHistorieInfo(List<Pair<Long, QueryHistoryInfo>> idToQHInfoList) {
+    public void batchUpdateQueryHistoriesInfo(List<Pair<Long, QueryHistoryInfo>> idToQHInfoList) {
         jdbcQueryHisStore.updateQueryHistoryInfo(idToQHInfoList);
     }
 

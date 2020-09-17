@@ -176,7 +176,7 @@ object SparderQueryTest extends Logging {
 
   def checkAsyncResultData(dataFrame: DataFrame,
                            sparkSession: SparkSession): Unit = {
-    val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir() + "/" +
+    val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(null) + "/" +
       QueryContext.current.getQueryId
     val rows = sparkSession.read
       .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")

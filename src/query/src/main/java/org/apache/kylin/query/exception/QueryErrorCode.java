@@ -70,6 +70,9 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     // 20032XXX query busy
     BUSY_QUERY("KE-20032001"), //
 
+    // 20040XXX async query
+    ASYNC_QUERY_ILLEGAL_PARAM("KE-20040001"), //
+
     ;
 
     private final ErrorCode errorCode;

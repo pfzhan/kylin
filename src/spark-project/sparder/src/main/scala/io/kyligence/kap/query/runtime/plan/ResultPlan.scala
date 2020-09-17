@@ -22,6 +22,7 @@
 package io.kyligence.kap.query.runtime.plan
 
 import java.util
+import java.util.UUID
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
@@ -31,6 +32,7 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
+import org.apache.spark.sql.execution.QueryExecution
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv}
@@ -141,7 +143,10 @@ object ResultPlan extends LogEx {
   }
 
   def getResult(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = withScope(df) {
-    val result = if (SparderEnv.needCompute()) {
+    if (QueryContext.current().getQueryTagInfo.isAsyncQuery) {
+      saveAsyncQueryResult(df)
+    }
+    val result = if (SparderEnv.needCompute() && !QueryContext.current().getQueryTagInfo.isAsyncQuery) {
       collectInternal(df, rowType)
     } else {
       new util.LinkedList[util.List[String]]
@@ -149,12 +154,30 @@ object ResultPlan extends LogEx {
     SparderEnv.cleanQueryInfo()
     result
   }
+
+  def saveAsyncQueryResult(df: DataFrame): Unit = {
+    SparderEnv.getResultRef.set(true)
+    SparderEnv.setDF(df)
+    val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
+      QueryContext.current.getQueryId
+    val queryExecutionId = UUID.randomUUID.toString
+    df.sparkSession.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_EXECUTION_ID, queryExecutionId)
+    df.write.option("sep", SparderEnv.getSeparator).csv(path)
+    val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
+    val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
+    QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
+    QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
+  }
 }
 
 object QueryToExecutionIDCache extends LogEx {
   val KYLIN_QUERY_ID_KEY = "kylin.query.id"
+  val KYLIN_QUERY_EXECUTION_ID = "kylin.query.execution.id"
 
   private val queryID2ExecutionID: Cache[String, String] =
+    CacheBuilder.newBuilder().maximumSize(1000).build()
+
+  private val executionIDToQueryExecution: Cache[String, QueryExecution] =
     CacheBuilder.newBuilder().maximumSize(1000).build()
 
   def getQueryExecutionID(queryID: String): String = {
@@ -168,6 +191,20 @@ object QueryToExecutionIDCache extends LogEx {
     logWarningIf( !hasQueryID )(s"Can not get query ID.")
     if (hasQueryID) {
       queryID2ExecutionID.put(queryID, executionID)
+    }
+  }
+
+  def getQueryExecution(executionID: String): QueryExecution = {
+    val execution = executionIDToQueryExecution.getIfPresent(executionID)
+    logWarningIf(execution == null)(s"Can not get execution by execution ID $executionID")
+    execution
+  }
+
+  def setQueryExecution(executionID: String, execution: QueryExecution): Unit = {
+    val hasQueryID = executionID != null && !executionID.isEmpty
+    logWarningIf(!hasQueryID)(s"Can not get execution ID.")
+    if (hasQueryID) {
+      executionIDToQueryExecution.put(executionID, execution)
     }
   }
 }

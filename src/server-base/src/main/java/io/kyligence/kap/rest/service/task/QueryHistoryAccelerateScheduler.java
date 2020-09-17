@@ -201,7 +201,7 @@ public class QueryHistoryAccelerateScheduler {
             List<Pair<Long, QueryHistoryInfo>> idToQHInfoList = Lists.newArrayList();
             List<QueryHistory> matchedCandidate = accelerateRuleUtil.findMatchedCandidate(project, queryHistories,
                     idToQHInfoList);
-            queryHistoryDAO.batchUpdataQueryHistorieInfo(idToQHInfoList);
+            queryHistoryDAO.batchUpdateQueryHistoriesInfo(idToQHInfoList);
             rawRecommendation.generateRawRecommendations(project, matchedCandidate);
 
             // update metadata

@@ -319,10 +319,6 @@ public class KapConfig {
     /**
      * Metastore
      */
-    public boolean isSparderEnabled() {
-        return Boolean.valueOf(config.getOptional("kylin.query.engine.sparder-enabled", "true"));
-    }
-
     public boolean needReplaceAggWhenExactlyMatched() {
         return Boolean.valueOf(config.getOptional("kylin.query.engine.need-replace-agg", "true"));
     }
@@ -526,9 +522,9 @@ public class KapConfig {
         }
     }
 
-    public String getAsyncResultBaseDir() {
+    public String getAsyncResultBaseDir(String project) {
         return config.getOptional("kylin.query.engine.sparder-asyncresult-base-dir",
-                KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/async_query_result");
+                KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(project) + "/async_query_result");
     }
 
     /**

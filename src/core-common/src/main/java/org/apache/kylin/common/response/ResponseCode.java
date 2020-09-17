@@ -50,5 +50,6 @@ package org.apache.kylin.common.response;
  */
 public class ResponseCode {
     public final static String CODE_SUCCESS = "000";
+    public final static String CODE_UNAUTHORIZED = "401";
     public final static String CODE_UNDEFINED = "999";
 }

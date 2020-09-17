@@ -146,8 +146,6 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("getLDAPGroupMemberAttr",
                 new PropertiesEntity("kylin.security.ldap.group-member-attr", "member", "member"));
 
-        map.put("isSparderEnabled", new PropertiesEntity("kylin.query.engine.sparder-enabled", "true", true));
-
         map.put("needReplaceAggWhenExactlyMatched",
                 new PropertiesEntity("kylin.query.engine.need-replace-agg", "true", true));
 
@@ -230,11 +228,6 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("getMaxKeepLogFileThresholdMB",
                 new PropertiesEntity("kylin.env.max-keep-log-file-threshold-mb", "256", 256));
 
-        map.put("getAsyncResultBaseDir",
-                new PropertiesEntity("kylin.query.engine.sparder-asyncresult-base-dir",
-                        KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/async_query_result",
-                        KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/async_query_result"));
-
         map.put("getCuboidSpanningTree",
                 new PropertiesEntity("kylin.cube.cuboid-spanning-tree",
                         "io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree",
@@ -313,7 +306,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(119, methodsCount);
+        Assert.assertEquals(118, methodsCount);
     }
 
     @Test

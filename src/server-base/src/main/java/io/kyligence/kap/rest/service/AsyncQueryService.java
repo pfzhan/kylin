@@ -24,47 +24,54 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Lists;
+import static org.apache.kylin.rest.util.AclPermissionUtil.isAdmin;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
 import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @Component("asyncQueryService")
 public class AsyncQueryService extends QueryService {
-
-    @Autowired
-    @Qualifier("queryService")
-    private QueryService queryService;
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryService.class);
 
@@ -72,8 +79,11 @@ public class AsyncQueryService extends QueryService {
         RUNNING, FAILED, SUCCESS, MISS
     }
 
-    private Cache<String, QueryStatus> queryStatusCache = CacheBuilder.newBuilder().maximumSize(1000)
-            .expireAfterWrite(1, TimeUnit.DAYS).build();
+    private long cacheExpireDays = KylinConfig.getInstanceFromEnv().getAsyncQueryCacheExpireDays();
+    private int cacheMaximumSize = KylinConfig.getInstanceFromEnv().getAsyncQueryCacheMaximumSize();
+
+    private Cache<String, QueryStatus> queryStatusCache = CacheBuilder.newBuilder().maximumSize(cacheMaximumSize)
+            .expireAfterWrite(cacheExpireDays, TimeUnit.DAYS).build();
 
     protected FileSystem getFileSystem() {
         return HadoopUtil.getWorkingFileSystem();
@@ -83,7 +93,16 @@ public class AsyncQueryService extends QueryService {
         queryStatusCache.put(queryId, status);
     }
 
-    public void saveMetaData(SQLResponse sqlResponse, String queryId) throws IOException {
+    public void saveUserName(String project, String queryId) throws IOException {
+        FileSystem fileSystem = getFileSystem();
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getUserFileName()));
+                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+            osw.write(getUsername());
+        }
+    }
+
+    public void saveMetaData(String project, SQLResponse sqlResponse, String queryId) throws IOException {
         ArrayList<String> dataTypes = Lists.newArrayList();
         ArrayList<String> columnNames = Lists.newArrayList();
         for (SelectedColumnMeta selectedColumnMeta : sqlResponse.getColumnMetas()) {
@@ -92,34 +111,32 @@ public class AsyncQueryService extends QueryService {
         }
 
         FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getMetaDataFileName())); //
-             OutputStreamWriter osw = new OutputStreamWriter(os)) {
+                OutputStreamWriter osw = new OutputStreamWriter(os)) {
             String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
             osw.write(metaString);
 
         }
     }
 
-    public List<List<String>> getMetaData(String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+    public List<List<String>> getMetaData(String project, String queryId) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         List<List<String>> result = Lists.newArrayList();
+        FileSystem fileSystem = getFileSystem();
         try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getMetaDataFileName()));
-             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
             result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
             result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
         }
-        //
         return result;
-
     }
 
-    public void createErrorFlag(String errorMessage, String queryId) throws IOException {
+    public void createErrorFlag(String project, String queryId, String errorMessage) throws IOException {
         updateStatus(queryId, AsyncQueryService.QueryStatus.FAILED);
         FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
@@ -131,12 +148,11 @@ public class AsyncQueryService extends QueryService {
 
     }
 
-    public void retrieveSavedQueryResult(String queryId, HttpServletResponse response) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+    public void retrieveSavedQueryResult(String project, String queryId, HttpServletResponse response) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultBaseDir();
-        Path dataPath = new Path(asyncQueryResultDir, queryId);
+        Path dataPath = getAsyncQueryResultDir(project, queryId);
 
         if (!fileSystem.exists(dataPath)) {
             throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_FILE_NOT_FOUND());
@@ -156,12 +172,12 @@ public class AsyncQueryService extends QueryService {
         }
     }
 
-    public String retrieveSavedQueryException(String queryId) throws IOException {
+    public String retrieveSavedQueryException(String project, String queryId) throws IOException {
         Message msg = MsgPicker.getMsg();
-        checkStatus(queryId, QueryStatus.FAILED, msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
+        checkStatus(queryId, QueryStatus.FAILED, project, msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
-        Path dataPath = new Path(getAsyncQueryResultDir(queryId), getFailureFlagFileName());
+        Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), getFailureFlagFileName());
 
         if (!fileSystem.exists(dataPath)) {
             throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
@@ -174,12 +190,12 @@ public class AsyncQueryService extends QueryService {
         }
     }
 
-    public QueryStatus queryStatus(String queryId) throws IOException {
+    public QueryStatus queryStatus(String project, String queryId) throws IOException {
         QueryStatus ifPresent = queryStatusCache.getIfPresent(queryId);
         if (ifPresent != null) {
             return ifPresent;
         }
-        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (getFileSystem().exists(asyncQueryResultDir)) {
             if (getFileSystem().exists(new Path(asyncQueryResultDir, getFailureFlagFileName()))) {
                 return QueryStatus.FAILED;
@@ -191,9 +207,32 @@ public class AsyncQueryService extends QueryService {
         return QueryStatus.MISS;
     }
 
-    public long fileStatus(String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
-        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+    public String getUserName(String queryId, String project) throws IOException {
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
+        FileSystem fileSystem = getFileSystem();
+        if (fileSystem.exists(asyncQueryResultDir)) {
+            try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getUserFileName()));
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+                return bufferedReader.readLine();
+            }
+        }
+        return null;
+    }
+
+    public boolean hasPermission(String queryId, String project) throws IOException {
+        if (getUserName(queryId, project) != null && SecurityContextHolder.getContext().getAuthentication().getName()
+                .equals(getUserName(queryId, project))) {
+            return true;
+        }
+        if (isAdmin()) {
+            return true;
+        }
+        return false;
+    }
+
+    public long fileStatus(String project, String queryId) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (getFileSystem().exists(asyncQueryResultDir) && getFileSystem().isDirectory(asyncQueryResultDir)) {
             long totalFileSize = 0;
             FileStatus[] fileStatuses = getFileSystem().listStatus(asyncQueryResultDir);
@@ -207,41 +246,91 @@ public class AsyncQueryService extends QueryService {
         }
     }
 
+    public boolean batchDelete(String project, String time) throws Exception {
+        if (project == null && time == null) {
+            return deleteAllFolder();
+        } else {
+            return deleteOldQueryResult(project, time);
+        }
+    }
 
-    public boolean cleanAllFolder() throws IOException {
-        Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir();
-        if (!getFileSystem().exists(asyncQueryResultBaseDir)) {
+    public boolean deleteAllFolder() throws IOException {
+        NProjectManager projectManager = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class);
+        List<ProjectInstance> projectInstances = projectManager.listAllProjects();
+        boolean allSuccess = true;
+        Set<Path> asyncQueryResultPaths = new HashSet<Path>();
+        FileSystem fileSystem = getFileSystem();
+        for (ProjectInstance projectInstance : projectInstances) {
+            Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir(projectInstance.getName());
+            if (!fileSystem.exists(asyncQueryResultBaseDir)) {
+                continue;
+            }
+            asyncQueryResultPaths.add(asyncQueryResultBaseDir);
+        }
+
+        logger.info("clean all async result dir");
+        for (Path path : asyncQueryResultPaths) {
+            if (!getFileSystem().delete(path, true)) {
+                allSuccess = false;
+            }
+        }
+        return allSuccess;
+    }
+
+    public boolean deleteByQueryId(String project, String queryId) throws IOException {
+        Path resultDir = getAsyncQueryResultDir(project, queryId);
+        if (!getFileSystem().exists(resultDir)) {
             return true;
         }
-        logger.info("clean all async result dir");
-        return getFileSystem().delete(asyncQueryResultBaseDir, true);
+        logger.info("clean async query result for query id [{}]", queryId);
+        return getFileSystem().delete(resultDir, true);
     }
 
-    public String asyncQueryResultPath(String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
-        return getAsyncQueryResultDir(queryId).toString();
-
+    public boolean deleteOldQueryResult(String project, long time) throws IOException {
+        boolean isAllSucceed = true;
+        Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir(project);
+        FileSystem fileSystem = getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(asyncQueryResultBaseDir);
+        for (FileStatus fileStatus : fileStatuses) {
+            if (fileStatus.getModificationTime() < time) {
+                try {
+                    fileSystem.delete(fileStatus.getPath(), true);
+                } catch (Exception e) {
+                    logger.error("Fail to delete async query result for [{}]", fileStatus.getPath(), e);
+                    isAllSucceed = false;
+                }
+            }
+        }
+        return isAllSucceed;
     }
 
-    public void checkStatus(String queryId, QueryStatus queryStatus, String message) throws IOException {
+    public boolean deleteOldQueryResult(String project, String timeString) throws IOException, ParseException {
+        if (project == null || timeString == null) {
+            return false;
+        }
+        long time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(timeString).getTime();
+        return deleteOldQueryResult(project, time);
+    }
+
+    public boolean cleanOldQueryResult(String project, long days) throws IOException {
+        return deleteOldQueryResult(project, System.currentTimeMillis() - days * 24 * 60 * 60 * 1000);
+    }
+
+    public String asyncQueryResultPath(String project, String queryId) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        return getAsyncQueryResultDir(project, queryId).toString();
+    }
+
+    public void checkStatus(String queryId, QueryStatus queryStatus, String project, String message)
+            throws IOException {
         switch (queryStatus) {
         case SUCCESS:
-            if (queryStatus(queryId) != QueryStatus.SUCCESS) {
-                throw new BadRequestException(message);
-            }
-            break;
-        case RUNNING:
-            if (queryStatus(queryId) != QueryStatus.RUNNING) {
+            if (queryStatus(project, queryId) != QueryStatus.SUCCESS) {
                 throw new BadRequestException(message);
             }
             break;
         case FAILED:
-            if (queryStatus(queryId) != QueryStatus.FAILED) {
-                throw new BadRequestException(message);
-            }
-            break;
-        case MISS:
-            if (queryStatus(queryId) != QueryStatus.MISS) {
+            if (queryStatus(project, queryId) != QueryStatus.FAILED) {
                 throw new BadRequestException(message);
             }
             break;
@@ -250,12 +339,12 @@ public class AsyncQueryService extends QueryService {
         }
     }
 
-    public Path getAsyncQueryResultBaseDir() {
-        return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir());
+    public Path getAsyncQueryResultBaseDir(String project) {
+        return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir(project));
     }
 
-    public Path getAsyncQueryResultDir(String queryId) {
-        return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir(), queryId);
+    public Path getAsyncQueryResultDir(String project, String queryId) {
+        return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir(project), queryId);
     }
 
     public String getSuccessFlagFileName() {
@@ -268,5 +357,9 @@ public class AsyncQueryService extends QueryService {
 
     public String getMetaDataFileName() {
         return "_METADATA";
+    }
+
+    public String getUserFileName() {
+        return "_USER";
     }
 }
