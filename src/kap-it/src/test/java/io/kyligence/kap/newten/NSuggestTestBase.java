@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -69,6 +68,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -92,9 +92,6 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
-        if (CollectionUtils.isEmpty(excludedSqlPatterns)) {
-            excludedSqlPatterns = loadWhiteListSqlPatterns();
-        }
     }
 
     @After
@@ -108,8 +105,38 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
 
-    protected Set<String> loadWhiteListSqlPatterns() throws IOException {
-        return Sets.newHashSet();
+    public Set<String> loadWhiteListPatterns() throws IOException {
+        log.info("override loadWhiteListSqlPatterns in NAutoBuildAndQueryTest");
+
+        Set<String> result = Sets.newHashSet();
+        final String folder = getFolder("query/unchecked_layout_list");
+        File[] files = new File(folder).listFiles();
+        if (files == null || files.length == 0) {
+            return result;
+        }
+
+        String[] fileContentArr = new String(getFileBytes(files[0])).split(System.getProperty("line.separator"));
+        final List<String> fileNames = Arrays.stream(fileContentArr)
+                .filter(name -> !name.startsWith("-") && name.length() > 0) //
+                .collect(Collectors.toList());
+        final List<Pair<String, String>> queries = Lists.newArrayList();
+        for (String name : fileNames) {
+            File tmp = new File(NAutoTestBase.IT_SQL_KAP_DIR + "/" + name);
+            final String sql = new String(getFileBytes(tmp));
+            queries.add(new Pair<>(tmp.getCanonicalPath(), sql));
+        }
+
+        queries.forEach(pair -> {
+            String sql = pair.getSecond(); // origin sql
+            result.addAll(changeJoinType(sql));
+
+            // add limit
+            if (!sql.toLowerCase().contains("limit ")) {
+                result.addAll(changeJoinType(sql + " limit 5"));
+            }
+        });
+
+        return result;
     }
 
     @Override

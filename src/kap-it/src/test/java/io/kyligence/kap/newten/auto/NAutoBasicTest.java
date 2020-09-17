@@ -294,6 +294,7 @@ public class NAutoBasicTest extends NAutoTestBase {
 
     @Test
     public void testLimitCorrectness() throws Exception {
+        excludedSqlPatterns.addAll(loadWhiteListPatterns());
         new TestScenario(NExecAndComp.CompareLevel.SAME, true, "query/sql").execute();
     }
 

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -87,6 +86,7 @@ import org.apache.kylin.query.schema.OLAPTable;
 import com.google.common.base.Preconditions;
 
 /**
+ *
  */
 public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
@@ -125,9 +125,8 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
         // assign a hugh cost on right join so that the swapped left join will win in the optimization
-        return joinType == JoinRelType.RIGHT ?
-                super.computeSelfCost(planner, mq).multiplyBy(100) :
-                super.computeSelfCost(planner, mq).multiplyBy(.05);
+        return joinType == JoinRelType.RIGHT ? super.computeSelfCost(planner, mq).multiplyBy(100)
+                : super.computeSelfCost(planner, mq).multiplyBy(.05);
     }
 
     @Override
@@ -230,6 +229,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
     protected ColumnRowType buildColumnRowType() {
         List<TblColRef> columns = new ArrayList<TblColRef>();
+        List<Set<TblColRef>> sourceColumns = new ArrayList<>();
 
         OLAPRel olapLeft = (OLAPRel) this.left;
         ColumnRowType leftColumnRowType = olapLeft.getColumnRowType();
@@ -245,7 +245,10 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
             throw new IllegalStateException(
                     "RowType=" + this.rowType.getFieldCount() + ", ColumnRowType=" + columns.size());
         }
-        return new ColumnRowType(columns);
+
+        columns.stream().forEach(col -> sourceColumns.add(col.getSourceColumns()));
+
+        return new ColumnRowType(columns, sourceColumns);
     }
 
     protected JoinDesc buildJoin(RexCall condition) {
@@ -306,8 +309,8 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
         if (this.hasSubQuery) {
             try {
-                return EnumerableJoin.create(
-                        inputs.get(0), inputs.get(1), condition, leftKeys, rightKeys, variablesSet, joinType);
+                return EnumerableJoin.create(inputs.get(0), inputs.get(1), condition, leftKeys, rightKeys, variablesSet,
+                        joinType);
             } catch (Exception e) {
                 throw new IllegalStateException("Can't create EnumerableJoin!", e);
             }

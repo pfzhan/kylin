@@ -24,13 +24,9 @@
 
 package io.kyligence.kap.newten.auto;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -40,7 +36,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -72,6 +67,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testAllQueries() throws Exception {
+        excludedSqlPatterns.addAll(loadWhiteListPatterns());
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
@@ -359,41 +355,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
             return null;
         }
         return super.executeTestScenario(tests);
-    }
-
-    @Override
-    protected Set<String> loadWhiteListSqlPatterns() throws IOException {
-        log.info("override loadWhiteListSqlPatterns in NAutoBuildAndQueryTest");
-
-        Set<String> result = Sets.newHashSet();
-        final String folder = getFolder("query/unchecked_layout_list");
-        File[] files = new File(folder).listFiles();
-        if (files == null || files.length == 0) {
-            return result;
-        }
-
-        String[] fileContentArr = new String(getFileBytes(files[0])).split(System.getProperty("line.separator"));
-        final List<String> fileNames = Arrays.stream(fileContentArr)
-                .filter(name -> !name.startsWith("-") && name.length() > 0) //
-                .collect(Collectors.toList());
-        final List<Pair<String, String>> queries = Lists.newArrayList();
-        for (String name : fileNames) {
-            File tmp = new File(NAutoTestBase.IT_SQL_KAP_DIR + "/" + name);
-            final String sql = new String(getFileBytes(tmp));
-            queries.add(new Pair<>(tmp.getCanonicalPath(), sql));
-        }
-
-        queries.forEach(pair -> {
-            String sql = pair.getSecond(); // origin sql
-            result.addAll(changeJoinType(sql));
-
-            // add limit
-            if (!sql.toLowerCase().contains("limit ")) {
-                result.addAll(changeJoinType(sql + " limit 5"));
-            }
-        });
-
-        return result;
     }
 
     @Test
