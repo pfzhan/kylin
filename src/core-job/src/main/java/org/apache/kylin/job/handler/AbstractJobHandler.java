@@ -37,6 +37,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -51,8 +53,8 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -80,9 +82,10 @@ public abstract class AbstractJobHandler {
             return;
         }
         log.info("Event {} creates job {}", jobParam, job);
-        val po = NExecutableManager.toPO(job, jobParam.getProject());
+        String project = jobParam.getProject();
+        val po = NExecutableManager.toPO(job, project);
 
-        NExecutableManager executableManager = getExecutableManager(jobParam.getProject(), kylinConfig);
+        NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
         executableManager.addJob(po);
 
         if (job instanceof ChainedExecutable) {
@@ -91,6 +94,9 @@ public abstract class AbstractJobHandler {
             Map<String, String> info = Maps.newHashMap();
             info.put(DEPENDENT_FILES, StringUtils.join(deps, ","));
             executableManager.updateJobOutput(po.getId(), null, info, null, null);
+            JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, project);
+            long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
+            jobStatisticsManager.updateStatistics(startOfDay, jobParam.getModel(), 0, 0);
         }
     }
 

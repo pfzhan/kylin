@@ -30,16 +30,12 @@ import static org.awaitility.Awaitility.await;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +46,7 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -264,22 +261,27 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        val merger = new AfterBuildResourceMerger(config, getProject());
-        merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
-                ExecutableUtils.getRemoteStore(config, sparkStep));
-
         long buildEndTime = sparkStep.getEndTime();
-        ZoneId zoneId = TimeZone.getTimeZone(config.getTimeZone()).toZoneId();
-        LocalDate localDate = Instant.ofEpochMilli(buildEndTime).atZone(zoneId).toLocalDate();
-        long startOfDay = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+        long startOfDay = TimeUtil.getDayStart(buildEndTime);
 
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, sparkStep.getProject());
         Pair<Integer, JobStatistics> overallJobStats = jobStatisticsManager.getOverallJobStats(startOfDay,
                 buildEndTime);
         JobStatistics jobStatistics = overallJobStats.getSecond();
-        // assert date is recorded correctly
+        // assert date is recorded correctly before metadata merge
         Assert.assertEquals(startOfDay, jobStatistics.getDate());
         Assert.assertEquals(1, jobStatistics.getCount());
+
+        val merger = new AfterBuildResourceMerger(config, getProject());
+        merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+                ExecutableUtils.getRemoteStore(config, sparkStep));
+
+        Pair<Integer, JobStatistics> overallJobStats2 = jobStatisticsManager.getOverallJobStats(startOfDay,
+                buildEndTime);
+        JobStatistics jobStatistics2 = overallJobStats2.getSecond();
+        // assert job stats recorded correctly after metadata merge
+        Assert.assertEquals(startOfDay, jobStatistics2.getDate());
+        Assert.assertEquals(1, jobStatistics2.getCount());
 
         /**
          * Round2. Build new layouts, should reuse the data from already existing cuboid.

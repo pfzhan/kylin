@@ -24,21 +24,18 @@
 
 package io.kyligence.kap.engine.spark.merger;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -83,9 +80,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             byteSize += dataCuboid.getByteSize();
         }
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        ZoneId zoneId = TimeZone.getTimeZone(kylinConfig.getTimeZone()).toZoneId();
-        LocalDate localDate = Instant.ofEpochMilli(buildEndTime).atZone(zoneId).toLocalDate();
-        long startOfDay = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+        long startOfDay = TimeUtil.getDayStart(buildEndTime);
         // update
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig,
                 buildTask.getProject());

@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.service.BasicService;
@@ -55,6 +57,7 @@ public class TableSamplingService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
 
         val existingJobs = collectRunningSamplingJobs(tables, project);
         tables.forEach(table -> {
@@ -66,6 +69,8 @@ public class TableSamplingService extends BasicService {
             val tableDesc = tableMgr.getTableDesc(table);
             val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows);
             execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
+            long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
+            jobStatisticsManager.updateStatistics(startOfDay, 0, 0);
         });
     }
 
