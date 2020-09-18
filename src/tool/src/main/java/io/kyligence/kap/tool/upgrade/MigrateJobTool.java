@@ -162,7 +162,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
                 rs = new RawResource(executePath, byteSource, System.currentTimeMillis(), rs.getMvcc() + 1);
 
                 System.out.println("update execute " + executePath);
-                resourceStore.getMetadataStore().putResource(rs, null, 0, UnitOfWork.DEFAULT_EPOCH_ID);
+                resourceStore.getMetadataStore().putResource(rs, null, UnitOfWork.DEFAULT_EPOCH_ID);
 
             } catch (Exception e) {
                 log.warn("read {} failed", executePath, e);

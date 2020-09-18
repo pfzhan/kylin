@@ -82,7 +82,7 @@ public abstract class MetadataStore {
     @Setter
     EpochStore epochStore;
 
-    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId)
+    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long epochId)
             throws Exception;
 
     public abstract void move(String srcPath, String destPath) throws Exception;
@@ -91,14 +91,14 @@ public abstract class MetadataStore {
 
     public abstract RawResource load(String path) throws IOException;
 
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc, long epochId)
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long epochId)
             throws Exception {
         for (Event event : unitMessages.getMessages()) {
             if (event instanceof ResourceCreateOrUpdateEvent) {
                 val rawResource = ((ResourceCreateOrUpdateEvent) event).getCreatedOrUpdated();
-                putResource(rawResource, unitPath, oriMvcc, epochId);
+                putResource(rawResource, unitPath, epochId);
             } else if (event instanceof ResourceDeleteEvent) {
-                deleteResource(((ResourceDeleteEvent) event).getResPath(), unitPath, oriMvcc, epochId);
+                deleteResource(((ResourceDeleteEvent) event).getResPath(), unitPath, epochId);
             }
         }
         if (!skipAuditLog) {
@@ -115,12 +115,12 @@ public abstract class MetadataStore {
         }
     }
 
-    public void putResource(RawResource res, String unitPath, long oriMvcc, long epochId) throws Exception {
-        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), unitPath, oriMvcc, epochId);
+    public void putResource(RawResource res, String unitPath, long epochId) throws Exception {
+        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), unitPath, epochId);
     }
 
-    public void deleteResource(String resPath, String unitName, long oriMvcc, long epochId) throws Exception {
-        save(resPath, null, 0, 0, unitName, oriMvcc, epochId);
+    public void deleteResource(String resPath, String unitName, long epochId) throws Exception {
+        save(resPath, null, 0, 0, unitName, epochId);
     }
 
     public void dump(ResourceStore store) throws Exception {
@@ -135,7 +135,7 @@ public abstract class MetadataStore {
         }
         for (String resPath : resources) {
             val raw = store.getResource(resPath);
-            putResource(raw, null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
+            putResource(raw, null, UnitOfWork.DEFAULT_EPOCH_ID);
         }
     }
 
@@ -149,7 +149,7 @@ public abstract class MetadataStore {
                 if (IMMUTABLE_PREFIX.contains(res.getResPath())) {
                     return;
                 }
-                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
+                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null, UnitOfWork.DEFAULT_EPOCH_ID);
             } catch (Exception e) {
                 throw new IllegalArgumentException("put resource " + res.getResPath() + " failed", e);
             }

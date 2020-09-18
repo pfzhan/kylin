@@ -98,7 +98,7 @@ public class AdminUserInitCLI {
             logger.info("Start init default user.");
             RawResource rawResource = new RawResource(ADMIN_USER_RES_PATH,
                     ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(managedUser)), System.currentTimeMillis(), 0L);
-            metaStore.putResource(rawResource, null, 0L, UnitOfWork.DEFAULT_EPOCH_ID);
+            metaStore.putResource(rawResource, null, UnitOfWork.DEFAULT_EPOCH_ID);
 
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + ADMIN_USER_NAME + StorageCleaner.ANSI_RED;
             String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;

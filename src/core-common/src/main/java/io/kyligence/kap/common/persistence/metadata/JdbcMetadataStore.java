@@ -120,12 +120,12 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId)
+    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long epochId)
             throws Exception {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
             public Object handle() throws Exception {
-                checkEpochModified(unitPath, oriMvcc, epochId);
+                checkEpochModified(unitPath, epochId);
                 int affectedRow = 0;
                 if (bs != null) {
                     val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
@@ -160,7 +160,7 @@ public class JdbcMetadataStore extends MetadataStore {
         });
     }
 
-    public void checkEpochModified(String unitPath, long oriMvcc, long oriEpochId) {
+    public void checkEpochModified(String unitPath, long oriEpochId) {
         if (StringUtils.isNotEmpty(unitPath)) {
             if (unitPath.startsWith("_") && !unitPath.equalsIgnoreCase(GLOBAL_UNIT)) {
                 return;
@@ -171,7 +171,7 @@ public class JdbcMetadataStore extends MetadataStore {
             }
 
             Epoch epoch = epochStore.getEpoch(unitPath);
-            if (epoch == null || epoch.getMvcc() != oriMvcc) {
+            if (epoch == null) {
                 throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
             }
             long epochId = epoch.getEpochId();
@@ -240,13 +240,13 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc, long epochId)
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long epochId)
             throws Exception {
         if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
             return;
         }
         withTransaction(transactionManager, () -> {
-            super.batchUpdate(unitMessages, skipAuditLog, unitPath, oriMvcc, epochId);
+            super.batchUpdate(unitMessages, skipAuditLog, unitPath, epochId);
             return null;
         });
     }

@@ -30,8 +30,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.metadata.Epoch;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.SystemErrorCode;
@@ -262,17 +260,8 @@ public class UnitOfWork {
                 .count();
         log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
         checkEpoch(params);
-        val checker = params.getEpochChecker();
         val unitName = params.getUnitName();
-        long oriMvcc = -1;
-        if (StringUtils.isNotEmpty(unitName) && checker != null) {
-            Epoch epoch = ResourceStore.getKylinMetaStore(originConfig).getEpochStore().getEpoch(unitName);
-            if (epoch != null) {
-                oriMvcc = epoch.getMvcc();
-            }
-        }
-        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, oriMvcc,
-                params.getEpochId());
+        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, params.getEpochId());
         if (!params.isReadonly() && !config.isUTEnv()) {
             factory.postAsync(new AuditLogBroadcastEventNotifier());
         }

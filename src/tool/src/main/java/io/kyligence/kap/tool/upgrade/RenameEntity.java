@@ -128,8 +128,8 @@ class RenameEntity {
         RawResource rawResource = this.getRs();
         if (rawResource != null) {
             metadataStore.move(this.getOriginName(), this.getDestName());
-            metadataStore.deleteResource(this.getOriginName(), null, 0, UnitOfWork.DEFAULT_EPOCH_ID);
-            metadataStore.putResource(rawResource, null, rawResource.getMvcc() + 1, UnitOfWork.DEFAULT_EPOCH_ID);
+            metadataStore.deleteResource(this.getOriginName(), null, UnitOfWork.DEFAULT_EPOCH_ID);
+            metadataStore.putResource(rawResource, null, UnitOfWork.DEFAULT_EPOCH_ID);
         }
     }
 

@@ -54,7 +54,7 @@ public class FileMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc, long epochId) throws Exception {
+    protected void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long epochId) throws Exception {
         File f = file(path);
         f.getParentFile().mkdirs();
         if (bs == null) {
