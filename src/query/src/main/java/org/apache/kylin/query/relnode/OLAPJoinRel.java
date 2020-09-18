@@ -124,8 +124,9 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        // assign a hugh cost on right join so that the swapped left join will win in the optimization
-        return joinType == JoinRelType.RIGHT ? super.computeSelfCost(planner, mq).multiplyBy(100)
+        // assign a huge cost on right join and cross join so that the swapped left join and inner join will win in the optimization
+        return joinType == JoinRelType.RIGHT || condition.isAlwaysTrue()
+                ? super.computeSelfCost(planner, mq).multiplyBy(100)
                 : super.computeSelfCost(planner, mq).multiplyBy(.05);
     }
 
