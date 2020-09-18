@@ -253,15 +253,23 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-                               boolean isAppend) throws Exception {
+            boolean isAppend) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
         NDataflow df = dsMgr.getDataflow(cubeName);
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange);
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN");
+        buildSegment(cubeName, oneSeg, toBuildLayouts, prj, isAppend);
+    }
+
+    protected void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, String prj,
+            boolean isAppend) throws InterruptedException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
+        NDataflow df = dsMgr.getDataflow(cubeName);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), toBuildLayouts, "ADMIN");
         NSparkCubingStep sparkStep = job.getSparkCubingStep();
         StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
@@ -276,10 +284,10 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
         val merger = new AfterBuildResourceMerger(config, getProject());
         if (isAppend) {
-            merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+            merger.mergeAfterIncrement(df.getUuid(), segment.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                     ExecutableUtils.getRemoteStore(config, sparkStep));
         } else {
-            merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(oneSeg.getId()),
+            merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(segment.getId()),
                     ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
         }
     }

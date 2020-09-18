@@ -492,7 +492,6 @@ public class DFBuildJob extends SparkApplication {
             segCopy.setSnapshotReady(false);
             segCopy.setDictReady(false);
             if (resetFlatTable) {
-                segCopy.setSelectedColumns(Lists.newArrayList());
                 segCopy.setFlatTableReady(false);
             }
             segCopy.setFactViewReady(false);

@@ -133,22 +133,16 @@ class DFChooser(toBuildTree: NSpanningTree,
       val toBuildCuboidColumns = columns.distinct.sorted
       logInfo(s"to build cuboid columns are $toBuildCuboidColumns")
       if (df.schema.nonEmpty) {
-        val selectedColumns = flatTableDesc.getIndices.asScala.sorted.map(_.toString)
         val builtFaltTableBefore = seg.isFlatTableReady
         path = s"${config.getFlatTableDir(seg.getProject, seg.getDataflow.getId, seg.getId)}"
-        if (!shouldUpdateFlatTable(new Path(path), selectedColumns)) {
+        if (!shouldUpdateFlatTable(new Path(path), df)) {
           logInfo(s"Skip already persisted flat table, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
         } else {
           ss.sparkContext.setJobDescription("Persist flat table.")
           df.write.mode(SaveMode.Overwrite).parquet(path)
           // checkpoint
-          val oldSelectedColumns = seg.getSelectedColumns.asScala
-          logInfo(s"Persist flat table into: $path. " +
-            s"Selected columns in table are [${selectedColumns.mkString(",")}]. " +
-            s"Old Selected columns in table are [${oldSelectedColumns.mkString(",")}].")
           DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
             copied.setFlatTableReady(true)
-            copied.setSelectedColumns(selectedColumns.toList.asJava)
             if (builtFaltTableBefore) {
               // if flat table is updated, there might be some data inconsistency across indexes
               copied.setStatus(SegmentStatusEnum.WARNING)
@@ -238,17 +232,17 @@ class DFChooser(toBuildTree: NSpanningTree,
     }
   }
 
-  def shouldUpdateFlatTable(flatTablePath: Path, selectedColumns: Seq[String]): Boolean = {
+  def shouldUpdateFlatTable(flatTablePath: Path, df: DataFrame): Boolean = {
     if (seg.isFlatTableReady && HadoopUtil.getWorkingFileSystem.exists(flatTablePath)) {
-      val newSelectedColumns = if (selectedColumns == null) Seq.empty[String]
-      else selectedColumns.filterNot(seg.getSelectedColumns.contains(_)).distinct
-      if (newSelectedColumns.isEmpty) {
-        logInfo(s"Already persisted flat table found without new selected columns," +
-          s" segment: ${seg.getId}, dataFlow: ${seg.getDataflow.getId}")
+      val curr = df.schema.fieldNames
+      val prev = ss.read.parquet(flatTablePath.toString).schema.fieldNames
+      if (curr.forall(prev.contains(_))) {
+        logInfo(s"Reuse persisted flat table on dataFlow: ${seg.getDataflow.getId}, segment: ${seg.getId}." +
+          s" Prev schema: [${prev.mkString(", ")}], curr schema: [${curr.mkString(", ")}]")
         false
       } else {
-        logInfo(s"Already persisted flat table found with new selected columns: [${newSelectedColumns.mkString(",")}]," +
-          s" segment: ${seg.getId}, dataFlow: ${seg.getDataflow.getId}")
+        logInfo(s"Need to update flat table on dataFlow: ${seg.getDataflow.getId}, segment: ${seg.getId}." +
+          s" Prev schema: [${prev.mkString(", ")}], curr schema: [${curr.mkString(", ")}]")
         true
       }
     } else {

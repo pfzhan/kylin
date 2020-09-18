@@ -24,9 +24,8 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +33,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -54,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
@@ -66,6 +63,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 
 public class DFMergeJob extends SparkApplication {
@@ -81,8 +79,11 @@ public class DFMergeJob extends SparkApplication {
         mergeSnapshot(dataflowId, newSegmentId);
 
         //merge flat table
-        mergeFlatTable(dataflowId, newSegmentId);
-
+        try {
+            mergeFlatTable(dataflowId, newSegmentId);
+        } catch (Exception e) {
+            logger.warn("Merge flat table failed.", e);
+        }
         //merge and save segments
         mergeSegments(dataflowId, newSegmentId, layoutIds);
     }
@@ -268,24 +269,6 @@ public class DFMergeJob extends SparkApplication {
                 .collect(Collectors.toList());
     }
 
-    private List<String> getSelectedColumns(List<NDataSegment> segments) {
-        List<String> selectedColumns = null;
-        for (NDataSegment segment : segments) {
-            if (Objects.isNull(selectedColumns)) {
-                selectedColumns = segment.getSelectedColumns();
-            } else {
-                selectedColumns = segment.getSelectedColumns().stream()
-                        .filter(Sets.newHashSet(selectedColumns)::contains).collect(Collectors.toList());
-            }
-
-            if (CollectionUtils.isEmpty(selectedColumns)) {
-                logger.warn("Segments intersected selected columns is empty when merging segment {}", segment.getId());
-                return selectedColumns;
-            }
-        }
-        return selectedColumns;
-    }
-
     private void mergeFlatTable(String dataFlowId, String segmentId) {
         if (!config.isPersistFlatTableEnabled()) {
             logger.info("project {} flat table persisting is not enabled.", project);
@@ -307,20 +290,20 @@ public class DFMergeJob extends SparkApplication {
             return;
         }
 
-        // selected cols must be all the same
-        Set<String> selectedCols = new HashSet<>(mergingSegments.get(0).getSelectedColumns());
-        for (int i = 1; i < mergingSegments.size(); i++) {
-            if (selectedCols.size() != mergingSegments.get(i).getSelectedColumns().size()
-                    || !selectedCols.containsAll(mergingSegments.get(i).getSelectedColumns())) {
-                return;
-            }
-        }
-        List<String> selectedColumns = new ArrayList<>(mergingSegments.get(0).getSelectedColumns());
-
         Dataset<Row> flatTableDs = null;
+        String[] names = ss.read().parquet(flatTables.get(0).toString()).schema().fieldNames();
+        Arrays.sort(names);
         for (Path p : flatTables) {
             Dataset<Row> newDs = ss.read().parquet(p.toString());
-            flatTableDs = Objects.isNull(flatTableDs) ? newDs : flatTableDs.union(newDs);
+            String[] fieldNames = newDs.schema().fieldNames();
+            Arrays.sort(fieldNames);
+            if (Arrays.equals(names, fieldNames)) {
+                flatTableDs = Objects.isNull(flatTableDs) ? newDs : flatTableDs.union(newDs);
+            } else {
+                logger.info("Schema: {} in path: {} is conflict with others: {}. Skip merge flat table.", fieldNames, p,
+                        names);
+                return;
+            }
         }
 
         if (Objects.isNull(flatTableDs)) {
@@ -333,14 +316,12 @@ public class DFMergeJob extends SparkApplication {
         ss.sparkContext().setJobDescription("Persist flat table.");
         flatTableDs.write().mode(SaveMode.Overwrite).parquet(newPath.toString());
 
-        final String selectedColumnsStr = String.join(",", selectedColumns);
-        logger.info("Persist merged flat tables to path {} with selected columns [{}], "
-                + "new segment id: {}, dataFlowId: {}", newPath, selectedColumnsStr, segmentId, dataFlowId);
+        logger.info("Persist merged flat tables to path {} with schema [{}], " + "new segment id: {}, dataFlowId: {}",
+                newPath, names, segmentId, dataFlowId);
 
         NDataflow dfCopied = dataFlow.copy();
         NDataSegment segmentCopied = dfCopied.getSegment(segmentId);
         segmentCopied.setFlatTableReady(true);
-        segmentCopied.setSelectedColumns(selectedColumns);
 
         NDataflowUpdate update = new NDataflowUpdate(dataFlowId);
         update.setToUpdateSegs(segmentCopied);
