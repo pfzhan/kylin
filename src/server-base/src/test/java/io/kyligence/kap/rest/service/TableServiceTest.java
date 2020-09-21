@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -171,6 +172,11 @@ public class TableServiceTest extends CSVSourceTestCase {
                 MaintainModelType.AUTO_MAINTAIN);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
+        try {
+            new JdbcRawRecStore(getTestConfig());
+        } catch (Exception e) {
+            //
+        }
     }
 
     @After
@@ -1120,9 +1126,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testRefreshSparkTable() throws Exception {
         CliCommandExecutor commond = new CliCommandExecutor();
         commond.execute("rm -rf ./spark-warehouse/test_kylin_refresh", null);
-        val ss = SparkSession.builder().appName("local").master("local[2]")
-                .enableHiveSupport()
-                .getOrCreate();
+        val ss = SparkSession.builder().appName("local").master("local[2]").enableHiveSupport().getOrCreate();
         SparderEnv.setSparkSession(ss);
         // need to use  derby in memory instead of in real file to avoid conflicting with other hiveContext
         ss.sparkContext().hadoopConfiguration().set("javax.jdo.option.ConnectionURL",
@@ -1134,9 +1138,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         PushDownUtil.trySimplePushDownExecute("insert into test_kylin_refresh values ('c')", null);
         PushDownUtil.trySimplePushDownExecute("select * from test_kylin_refresh", null);
         CliCommandExecutor.CliCmdExecResult res = commond.execute("ls " + warehousePath, null, null);
-        val files = Arrays.asList(res.getCmd().split("\n")).stream().
-                filter(file -> file.endsWith("parquet")).
-                collect(Collectors.toList());
+        val files = Arrays.asList(res.getCmd().split("\n")).stream().filter(file -> file.endsWith("parquet"))
+                .collect(Collectors.toList());
         commond.execute("rm " + warehousePath + files.get(0), null, null);
 
         try {

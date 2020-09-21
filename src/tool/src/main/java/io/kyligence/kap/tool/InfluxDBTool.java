@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
+import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.tool.util.ToolUtil;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
@@ -50,7 +50,7 @@ public class InfluxDBTool {
     }
 
     public static void dumpInfluxDBMonitorMetrics(File exportDir) {
-        String database = InfluxDBInstance.generateDatabase(KylinConfig.getInstanceFromEnv());
+        String database = MonitorDao.generateDatabase(KylinConfig.getInstanceFromEnv());
         dumpInfluxDB(exportDir, "monitor_metrics", database);
     }
 

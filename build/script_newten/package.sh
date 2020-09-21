@@ -47,7 +47,7 @@ fi
 echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit_SHA1
 
 
-cat > build/CHANGELOG.md <<EOL
+cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
 #### Kyligence Enterprise 4.1.4 release note

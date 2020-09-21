@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -74,9 +73,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -365,7 +364,7 @@ public class JobService extends BasicService {
         case RESUME:
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
-            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, project);
+            MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
             break;
         case RESTART:
             executableManager.restartJob(jobId);
@@ -373,7 +372,7 @@ public class JobService extends BasicService {
             break;
         case DISCARD:
             discardJob(project, jobId);
-            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
+            MetricsGroup.hostTagCounterInc(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, project);
             break;
         case PAUSE:
             executableManager.pauseJob(jobId);

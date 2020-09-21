@@ -33,26 +33,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.metrics.reporter.InfluxdbReporter;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
+import lombok.Getter;
 
-public class NMetricsInfluxdbReporter implements NMetricsReporter {
+public class MetricsInfluxdbReporter implements MetricsReporter {
 
-    private static final Logger logger = LoggerFactory.getLogger(NMetricsInfluxdbReporter.class);
+    private static final Logger logger = LoggerFactory.getLogger(MetricsInfluxdbReporter.class);
 
     public static final String METRICS_MEASUREMENT = "system_metric";
 
+    public static final String KE_METRICS_RP = "KE_METRICS_RP";
     public static final String DAILY_METRICS_RETENTION_POLICY_NAME = "KE_METRICS_DAILY_RP";
     public static final String DAILY_METRICS_MEASUREMENT = "system_metric_daily";
     private AtomicInteger retry = new AtomicInteger(0);
@@ -62,12 +65,21 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final String reporterName = "MetricsReporter";
 
-    private InfluxDB defaultInfluxDb = null;
     private String defaultMeasurement = null;
     private InfluxdbReporter underlying = null;
-    private InfluxDBInstance influxDBInstance = null;
+    private InfluxDBInstance dailyInstance = null;
+    @Getter
+    private InfluxDBInstance metricInstance = null;
 
-    private void updateDailyMetrics(long todayStart, NMetricsConfig config) {
+    public static MetricsInfluxdbReporter getInstance() {
+        return Singletons.getInstance(MetricsInfluxdbReporter.class);
+    }
+
+    private MetricsInfluxdbReporter() {
+        // do nothing
+    }
+
+    private void updateDailyMetrics(long todayStart, MetricsConfig config) {
         long yesterdayStart = TimeUtil.minusDays(todayStart, 1);
         this.underlying.getMetrics().forEach(point -> {
             StringBuilder sql = new StringBuilder("SELECT ");
@@ -95,14 +107,14 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
                 fields.put(columns.get(i), firstLine.get(i));
             }
 
-            influxDBInstance.write(config.getDailyMetricsDB(), DAILY_METRICS_MEASUREMENT, point.getTags(), fields,
-                    yesterdayStart);
+            dailyInstance.write(DAILY_METRICS_MEASUREMENT, point.getTags(), fields, yesterdayStart);
         });
     }
 
-    private void startDailyReport(NMetricsConfig config) throws Exception {
-        influxDBInstance = new InfluxDBInstance(config.getDailyMetricsDB(), DAILY_METRICS_RETENTION_POLICY_NAME, "0d",
+    private void startDailyReport(MetricsConfig config) throws Exception {
+        dailyInstance = new InfluxDBInstance(config.getDailyMetricsDB(), DAILY_METRICS_RETENTION_POLICY_NAME, "0d",
                 "30d", 2, true);
+        dailyInstance.init();
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(() -> {
             try {
                 logger.info("Start to aggregate daily metrics ...");
@@ -145,11 +157,12 @@ public class NMetricsInfluxdbReporter implements NMetricsReporter {
 
         synchronized (this) {
             if (!initialized.get()) {
-                final NMetricsConfig config = new NMetricsConfig(kapConfig);
+                final MetricsConfig config = new MetricsConfig(kapConfig);
                 defaultMeasurement = METRICS_MEASUREMENT;
-                defaultInfluxDb = NMetricsController.getDefaultInfluxDb();
-                underlying = new InfluxdbReporter(defaultInfluxDb, defaultMeasurement,
-                        NMetricsController.getDefaultMetricRegistry(), reporterName);
+                metricInstance = new InfluxDBInstance(config.getMetricsDB(), KE_METRICS_RP, "30d", "7d", 1, true);
+                metricInstance.init();
+                underlying = new InfluxdbReporter(metricInstance, defaultMeasurement,
+                        MetricsController.getDefaultMetricRegistry(), reporterName);
                 initialized.set(true);
                 startReporter(config.pollingIntervalSecs());
                 startDailyReport(config);

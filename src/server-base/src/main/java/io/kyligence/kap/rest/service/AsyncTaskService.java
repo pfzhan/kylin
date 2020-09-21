@@ -26,9 +26,9 @@ package io.kyligence.kap.rest.service;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -47,11 +47,11 @@ public class AsyncTaskService {
             val storageCleaner = new StorageCleaner();
             storageCleaner.execute();
         } catch (Exception e) {
-            NMetricsGroup.hostTagCounterInc(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
+            MetricsGroup.hostTagCounterInc(MetricsName.STORAGE_CLEAN_FAILED, MetricsCategory.GLOBAL, GLOBAL);
             throw e;
         } finally {
-            NMetricsGroup.hostTagCounterInc(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, GLOBAL);
-            NMetricsGroup.hostTagCounterInc(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, GLOBAL,
+            MetricsGroup.hostTagCounterInc(MetricsName.STORAGE_CLEAN, MetricsCategory.GLOBAL, GLOBAL);
+            MetricsGroup.hostTagCounterInc(MetricsName.STORAGE_CLEAN_DURATION, MetricsCategory.GLOBAL, GLOBAL,
                     System.currentTimeMillis() - startAt);
         }
     }

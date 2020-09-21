@@ -41,7 +41,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,9 +58,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -73,7 +74,7 @@ public class InfluxdbReporter extends ScheduledReporter {
 
     private final ConcurrentHashMap<String, PointBuilder.Point> metrics = new ConcurrentHashMap<>();
 
-    private final InfluxDB influxDb;
+    private final InfluxDBInstance influxInstance;
 
     private final Clock clock;
 
@@ -99,9 +100,10 @@ public class InfluxdbReporter extends ScheduledReporter {
     private static final String FIFTEEN_MINUTE = "15-minute";
     private static final String MEAN_MINUTE = "mean-minute";
 
-    public InfluxdbReporter(InfluxDB influxDb, String defaultMeasurement, MetricRegistry registry, String name) {
+    public InfluxdbReporter(InfluxDBInstance influxInstance, String defaultMeasurement, MetricRegistry registry,
+            String name) {
         super(registry, name, new ServerModeMetricFilter(), TimeUnit.SECONDS, TimeUnit.MILLISECONDS);
-        this.influxDb = influxDb;
+        this.influxInstance = influxInstance;
         this.clock = Clock.defaultClock();
         this.transformer = new Transformer();
         this.defaultMeasurement = defaultMeasurement;
@@ -109,7 +111,7 @@ public class InfluxdbReporter extends ScheduledReporter {
     }
 
     public InfluxDB getInfluxDb() {
-        return this.influxDb;
+        return this.influxInstance.getInfluxDB();
     }
 
     public ImmutableList<PointBuilder.Point> getMetrics() {
@@ -122,7 +124,7 @@ public class InfluxdbReporter extends ScheduledReporter {
 
         try {
             long startAt = System.currentTimeMillis();
-            if (!influxDb.ping().isGood()) {
+            if (!getInfluxDb().ping().isGood()) {
                 throw new IllegalStateException("the pinged influxdb is not good.");
             }
 
@@ -137,16 +139,18 @@ public class InfluxdbReporter extends ScheduledReporter {
                     .addAll(transformer.fromTimers(timers, defaultMeasurement, timestamp, TimeUnit.MILLISECONDS))
                     .build();
 
-            points.stream().filter(Objects::nonNull).map(PointBuilder.Point::convert).forEach(influxDb::write);
-            influxDb.flush();
+            points.stream().filter(Objects::nonNull).map(PointBuilder.Point::convert)
+                    .forEach(p -> getInfluxDb().write(p));
+            getInfluxDb().flush();
 
-            NMetricsGroup.counterInc(NMetricsName.SUMMARY_COUNTER, NMetricsCategory.HOST, host);
-            NMetricsGroup.counterInc(NMetricsName.SUMMARY_DURATION, NMetricsCategory.HOST, host, System.currentTimeMillis() - startAt);
+            MetricsGroup.counterInc(MetricsName.SUMMARY_COUNTER, MetricsCategory.HOST, host);
+            MetricsGroup.counterInc(MetricsName.SUMMARY_DURATION, MetricsCategory.HOST, host,
+                    System.currentTimeMillis() - startAt);
 
             points.stream().filter(Objects::nonNull).forEach(point -> metrics.putIfAbsent(point.getUniqueKey(), point));
             logger.debug("ke.metrics report data: {} points", points.size());
         } catch (Exception e) {
-            logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics report data failed", e);
+            logger.info("[UNEXPECTED_THINGS_HAPPENED] ke.metrics report data failed {}", e.getMessage());
         }
     }
 

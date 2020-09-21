@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.common.metrics;
 
-public enum NMetricsCategory {
-    PROJECT("project"), JVM("jvm"), HOST("host"), GLOBAL("global"), MODEL("model");
 
-    private String value;
+public enum MetricsTag {
 
-    NMetricsCategory(String value) {
+    MODEL("model"),
+    HOST("host");
+
+    private final String value;
+
+    MetricsTag(String value) {
         this.value = value;
     }
 

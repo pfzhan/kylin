@@ -32,10 +32,10 @@ import org.apache.kylin.common.KylinConfig;
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.metrics.NMetricsTag;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.extern.slf4j.Slf4j;
@@ -45,15 +45,15 @@ public class ModelDropAddListener {
 
     public static void onDelete(String project, String modelId) {
         log.debug("delete model {} in project {}", modelId, project);
-        NMetricsGroup.removeModelMetrics(project, modelId);
+        MetricsGroup.removeModelMetrics(project, modelId);
     }
 
     public static void onAdd(String project, String modelId, String modelAlias) {
         NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         Map<String, String> tags = Maps.newHashMap();
-        tags.put(NMetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
+        tags.put(MetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
 
-        NMetricsGroup.newGauge(NMetricsName.MODEL_SEGMENTS, NMetricsCategory.PROJECT, project, tags,
+        MetricsGroup.newGauge(MetricsName.MODEL_SEGMENTS, MetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
                     @Override
                     public Long getResult() {
@@ -61,14 +61,14 @@ public class ModelDropAddListener {
                         return df == null ? 0L : df.getSegments().size();
                     }
                 });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags, new GaugeWrapper() {
+        MetricsGroup.newGauge(MetricsName.MODEL_STORAGE, MetricsCategory.PROJECT, project, tags, new GaugeWrapper() {
             @Override
             public Long getResult() {
                 NDataflow df = dfManager.getDataflow(modelId);
                 return df == null ? 0L : df.getStorageBytesSize();
             }
         });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_LAST_QUERY_TIME, NMetricsCategory.PROJECT, project, tags,
+        MetricsGroup.newGauge(MetricsName.MODEL_LAST_QUERY_TIME, MetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
                     @Override
                     public Long getResult() {
@@ -76,7 +76,7 @@ public class ModelDropAddListener {
                         return df == null ? 0L : df.getLastQueryTime();
                     }
                 });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_QUERY_COUNT, NMetricsCategory.PROJECT, project, tags,
+        MetricsGroup.newGauge(MetricsName.MODEL_QUERY_COUNT, MetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
                     @Override
                     public Long getResult() {
@@ -84,7 +84,7 @@ public class ModelDropAddListener {
                         return df == null ? 0L : df.getQueryHitCount();
                     }
                 });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_INDEX_NUM_GAUGE, NMetricsCategory.PROJECT, project, tags,
+        MetricsGroup.newGauge(MetricsName.MODEL_INDEX_NUM_GAUGE, MetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
                     @Override
                     public Long getResult() {
@@ -93,16 +93,16 @@ public class ModelDropAddListener {
                     }
                 });
 
-        NMetricsGroup.newGauge(NMetricsName.MODEL_EXPANSION_RATE_GAUGE, NMetricsCategory.PROJECT, project, tags, () -> {
+        MetricsGroup.newGauge(MetricsName.MODEL_EXPANSION_RATE_GAUGE, MetricsCategory.PROJECT, project, tags, () -> {
             NDataflow df = dfManager.getDataflow(modelId);
             return df == null ? Double.valueOf(0)
                     : Double.valueOf(
                             ModelUtils.computeExpansionRate(df.getStorageBytesSize(), df.getSourceBytesSize()));
         });
 
-        NMetricsGroup.newCounter(NMetricsName.MODEL_BUILD_DURATION, NMetricsCategory.PROJECT, project, tags);
-        NMetricsGroup.newCounter(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, project, tags);
-        NMetricsGroup.newHistogram(NMetricsName.MODEL_BUILD_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, project, tags);
+        MetricsGroup.newCounter(MetricsName.MODEL_BUILD_DURATION, MetricsCategory.PROJECT, project, tags);
+        MetricsGroup.newCounter(MetricsName.MODEL_WAIT_DURATION, MetricsCategory.PROJECT, project, tags);
+        MetricsGroup.newHistogram(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT, project, tags);
     }
 
     abstract static class GaugeWrapper implements Gauge<Long> {

@@ -47,7 +47,7 @@ else
     fi
 fi
 
-tar -zxvf build/grafana-${grafana_version}.linux-amd64.tar.gz -C build/ || { exit 1; }
+tar -zxf build/grafana-${grafana_version}.linux-amd64.tar.gz -C build/ || { exit 1; }
 mv build/grafana-${grafana_version} build/grafana
 
 test -d 'build/grafana/conf/provisioning' && rm -rf build/grafana/conf/provisioning

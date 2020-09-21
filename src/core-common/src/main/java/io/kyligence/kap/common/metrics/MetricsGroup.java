@@ -37,7 +37,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -57,15 +56,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.gauges.QueryRatioGauge;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 
-public class NMetricsGroup {
+public class MetricsGroup {
 
     //redesign: event loop, metrics registering shouldn't block the main process
 
-    private static final Logger logger = LoggerFactory.getLogger(NMetricsGroup.class);
+    private static final Logger logger = LoggerFactory.getLogger(MetricsGroup.class);
 
     private static final Set<String> gauges = Collections.synchronizedSet(new HashSet<>());
 
@@ -75,31 +75,33 @@ public class NMetricsGroup {
 
     private static final ConcurrentHashMap<String, Histogram> histograms = new ConcurrentHashMap();
 
-    private NMetricsGroup() {
+    private MetricsGroup() {
     }
 
-    public static boolean hostTagCounterInc(NMetricsName name, NMetricsCategory category, String entity) {
+    public static boolean hostTagCounterInc(MetricsName name, MetricsCategory category, String entity) {
         return counterInc(name, category, entity, getHostTagMap(entity));
     }
 
-    public static boolean hostTagCounterInc(NMetricsName name, NMetricsCategory category, String entity, long increments) {
+    public static boolean hostTagCounterInc(MetricsName name, MetricsCategory category, String entity,
+                                            long increments) {
         return counterInc(name, category, entity, getHostTagMap(entity), increments);
     }
 
-    public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity) {
+    public static boolean counterInc(MetricsName name, MetricsCategory category, String entity) {
         return counterInc(name, category, entity, Collections.emptyMap());
     }
 
-    public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity,
+    public static boolean counterInc(MetricsName name, MetricsCategory category, String entity,
                                      Map<String, String> tags) {
         return counterInc(name, category, entity, tags, 1);
     }
 
-    public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity, long increments) {
+    public static boolean counterInc(MetricsName name, MetricsCategory category, String entity, long increments) {
         return counterInc(name, category, entity, Collections.emptyMap(), increments);
     }
 
-    public static boolean counterInc(NMetricsName name, NMetricsCategory category, String entity, Map<String, String> tags, long increments) {
+    public static boolean counterInc(MetricsName name, MetricsCategory category, String entity,
+                                     Map<String, String> tags, long increments) {
         if (increments < 0) {
             return false;
         }
@@ -110,21 +112,22 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("ke.metrics counterInc", e);
+            logger.warn("ke.metrics counterInc {}", e.getMessage());
         }
         return false;
     }
 
-    public static boolean hostTagHistogramUpdate(NMetricsName name, NMetricsCategory category, String entity, long updateTo) {
+    public static boolean hostTagHistogramUpdate(MetricsName name, MetricsCategory category, String entity,
+                                                 long updateTo) {
         return histogramUpdate(name, category, entity, getHostTagMap(entity), updateTo);
     }
 
-    public static boolean histogramUpdate(NMetricsName name, NMetricsCategory category, String entity, long updateTo) {
+    public static boolean histogramUpdate(MetricsName name, MetricsCategory category, String entity, long updateTo) {
         return histogramUpdate(name, category, entity, Collections.emptyMap(), updateTo);
     }
 
-    public static boolean histogramUpdate(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags, long updateTo) {
+    public static boolean histogramUpdate(MetricsName name, MetricsCategory category, String entity,
+                                          Map<String, String> tags, long updateTo) {
         if (updateTo < 0) {
             return false;
         }
@@ -135,17 +138,17 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("ke.metrics histogramUpdate", e);
+            logger.warn("ke.metrics histogramUpdate {}", e.getMessage());
         }
         return false;
     }
 
-    public static boolean meterMark(NMetricsName name, NMetricsCategory category, String entity) {
+    public static boolean meterMark(MetricsName name, MetricsCategory category, String entity) {
         return meterMark(name, category, entity, Collections.emptyMap());
     }
 
-    public static boolean meterMark(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags) {
+    public static boolean meterMark(MetricsName name, MetricsCategory category, String entity,
+                                    Map<String, String> tags) {
         try {
             final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (meter != null) {
@@ -153,19 +156,20 @@ public class NMetricsGroup {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("ke.metrics meterMark", e);
+            logger.warn("ke.metrics meterMark {}", e.getMessage());
         }
         return false;
     }
 
     public static boolean removeGlobalMetrics() {
         try {
-            final String metricNameSuffix = metricNameSuffix(NMetricsCategory.GLOBAL.getVal(), "global", Collections.emptyMap());
-            final MetricRegistry registry = NMetricsController.getDefaultMetricRegistry();
+            final String metricNameSuffix = metricNameSuffix(MetricsCategory.GLOBAL.getVal(), "global",
+                    Collections.emptyMap());
+            final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
             removeMetrics(metricNameSuffix, registry);
             return true;
         } catch (Exception e) {
-            logger.error("ke.metrics removeGlobalMetrics", e);
+            logger.warn("ke.metrics removeGlobalMetrics {}", e.getMessage());
         }
         return false;
     }
@@ -175,13 +179,14 @@ public class NMetricsGroup {
             if (StringUtils.isEmpty(projectName)) {
                 throw new IllegalArgumentException("removeProjectMetrics, projectName shouldn't be empty.");
             }
-            final String metricNameSuffix = metricNameSuffix(NMetricsCategory.PROJECT.getVal(), projectName, Collections.emptyMap());
+            final String metricNameSuffix = metricNameSuffix(MetricsCategory.PROJECT.getVal(), projectName,
+                    Collections.emptyMap());
 
-            final MetricRegistry registry = NMetricsController.getDefaultMetricRegistry();
+            final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
             removeMetrics(metricNameSuffix, registry);
             return true;
         } catch (Exception e) {
-            logger.error("ke.metrics removeProjectMetrics, projectName: {}", projectName, e);
+            logger.warn("ke.metrics removeProjectMetrics, projectName: {} {}", projectName, e.getMessage());
         }
         return false;
     }
@@ -195,14 +200,15 @@ public class NMetricsGroup {
                 throw new IllegalArgumentException("removeModelMetrics, modelId shouldn't be empty.");
             }
             Map<String, String> tags = Maps.newHashMap();
-            tags.put(NMetricsTag.MODEL.getVal(), modelId);
-            final String metricNameSuffix = metricNameSuffix(NMetricsCategory.PROJECT.getVal(), project, tags);
-            final MetricRegistry registry = NMetricsController.getDefaultMetricRegistry();
+            tags.put(MetricsTag.MODEL.getVal(), modelId);
+            final String metricNameSuffix = metricNameSuffix(MetricsCategory.PROJECT.getVal(), project, tags);
+            final MetricRegistry registry = MetricsController.getDefaultMetricRegistry();
 
             removeMetrics(metricNameSuffix, registry);
             return true;
         } catch (Exception e) {
-            logger.error("ke.metrics removeModelMetrics, modelId: {}, projectName: {}", modelId, project, e);
+            logger.warn("ke.metrics removeModelMetrics, modelId: {}, projectName: {}, {}", modelId, project,
+                    e.getMessage());
         }
         return false;
     }
@@ -229,7 +235,7 @@ public class NMetricsGroup {
         }
     }
 
-    private static Counter getCounter(NMetricsName name, NMetricsCategory category, String entity,
+    private static Counter getCounter(MetricsName name, MetricsCategory category, String entity,
                                       Map<String, String> tags) {
         final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
         return counters.get(metricName);
@@ -244,85 +250,94 @@ public class NMetricsGroup {
             Map<String, String> tags = getHostTagMap(host, projectName);
 
             // transaction
-            newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.PROJECT, projectName, tags);
-            newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.PROJECT, projectName, tags);
+            newHistogram(MetricsName.TRANSACTION_LATENCY, MetricsCategory.PROJECT, projectName, tags);
             // query
-            newCounter(NMetricsName.QUERY, NMetricsCategory.PROJECT, projectName, tags);
-            Counter denominator = getCounter(NMetricsName.QUERY, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.QUERY_LT_1S, NMetricsCategory.PROJECT, projectName, tags);
-            Counter numerator = getCounter(NMetricsName.QUERY_LT_1S, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_LT_1S_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_1S_3S, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_1S_3S, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_1S_3S_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_3S_5S, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_3S_5S, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_3S_5S_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_5S_10S, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_5S_10S, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_5S_10S_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_SLOW_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_FAILED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_PUSH_DOWN, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_PUSH_DOWN_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_CACHE, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_CACHE, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_CACHE_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_AGG_INDEX, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_AGG_INDEX, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_AGG_INDEX_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_TABLE_INDEX, NMetricsCategory.PROJECT, projectName, tags);
-            numerator = getCounter(NMetricsName.QUERY_TABLE_INDEX, NMetricsCategory.PROJECT, projectName, tags);
-            newGauge(NMetricsName.QUERY_TABLE_INDEX_RATIO, NMetricsCategory.PROJECT, projectName, tags, new QueryRatioGauge(numerator, denominator));
-            newCounter(NMetricsName.QUERY_TIMEOUT, NMetricsCategory.PROJECT, projectName, tags);
-            newMeter(NMetricsName.QUERY_SLOW_RATE, NMetricsCategory.PROJECT, projectName, tags);
-            newMeter(NMetricsName.QUERY_FAILED_RATE, NMetricsCategory.PROJECT, projectName, tags);
-            newMeter(NMetricsName.QUERY_PUSH_DOWN_RATE, NMetricsCategory.PROJECT, projectName, tags);
-            newMeter(NMetricsName.QUERY_TIMEOUT_RATE, NMetricsCategory.PROJECT, projectName, tags);
-            newHistogram(NMetricsName.QUERY_LATENCY, NMetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.QUERY, MetricsCategory.PROJECT, projectName, tags);
+            Counter denominator = getCounter(MetricsName.QUERY, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, projectName, tags);
+            Counter numerator = getCounter(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_LT_1S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_1S_3S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_3S_5S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_5S_10S_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_SLOW_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_FAILED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_PUSH_DOWN_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_CACHE_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_AGG_INDEX, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_AGG_INDEX, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_AGG_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_TABLE_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_TIMEOUT, MetricsCategory.PROJECT, projectName, tags);
+            newMeter(MetricsName.QUERY_SLOW_RATE, MetricsCategory.PROJECT, projectName, tags);
+            newMeter(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, projectName, tags);
+            newMeter(MetricsName.QUERY_PUSH_DOWN_RATE, MetricsCategory.PROJECT, projectName, tags);
+            newMeter(MetricsName.QUERY_TIMEOUT_RATE, MetricsCategory.PROJECT, projectName, tags);
+            newHistogram(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, projectName, tags);
             // job
-            newCounter(NMetricsName.JOB, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_DURATION, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_FINISHED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_RESUMED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_ERROR, NMetricsCategory.PROJECT, projectName, tags);
-            newHistogram(NMetricsName.JOB_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.JOB_WAIT_DURATION, NMetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_DURATION, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_STEP_ATTEMPTED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_ERROR, MetricsCategory.PROJECT, projectName, tags);
+            newHistogram(MetricsName.JOB_DURATION_HISTOGRAM, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, projectName, tags);
             // metadata management
-            newCounter(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.METADATA_BACKUP, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.PROJECT, projectName, tags);
             // favorite queue
-            newCounter(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.FQ_ADJUST_INVOKED, NMetricsCategory.PROJECT, projectName, tags);
-            newCounter(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.FQ_FE_INVOKED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.FQ_ADJUST_INVOKED, MetricsCategory.PROJECT, projectName, tags);
+            newCounter(MetricsName.FQ_ADJUST_INVOKED_DURATION, MetricsCategory.PROJECT, projectName, tags);
 
-            newHistogram(NMetricsName.QUERY_SCAN_BYTES, NMetricsCategory.PROJECT, projectName, tags);
+            newHistogram(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, projectName, tags);
 
             return true;
         } catch (Exception e) {
-            logger.error("ke.metrics registerProjectMetrics, projectName: {}", projectName, e);
+            logger.warn("ke.metrics registerProjectMetrics, projectName: {} {}", projectName, e.getMessage());
         }
         return false;
     }
 
-    public static void newMetricSet(NMetricsName name, NMetricsCategory category, String entity, MetricSet metricSet) {
+    public static void newMetricSet(MetricsName name, MetricsCategory category, String entity, MetricSet metricSet) {
         newMetrics(name.getVal(), metricSet, category, entity);
     }
 
-    private static void newMetrics(String name, MetricSet metricSet, NMetricsCategory category, String entity) {
+    private static void newMetrics(String name, MetricSet metricSet, MetricsCategory category, String entity) {
         for (Map.Entry<String, Metric> entry : metricSet.getMetrics().entrySet()) {
             Metric value = entry.getValue();
             if (value instanceof MetricSet) {
-                newMetrics(name(name, entry.getKey()), (MetricSet)value, category, entity);
-            }else {
+                newMetrics(name(name, entry.getKey()), (MetricSet) value, category, entity);
+            } else {
                 newGauge(name(name, entry.getKey()), category, entity, Collections.emptyMap(), value);
             }
         }
@@ -332,71 +347,72 @@ public class NMetricsGroup {
         return "".concat(prefix).concat(".").concat(part);
     }
 
-    public static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity, Map<String, String> tags, Gauge<T> metric) {
+    public static <T> boolean newGauge(MetricsName name, MetricsCategory category, String entity,
+                                       Map<String, String> tags, Gauge<T> metric) {
         return newGauge(name.getVal(), category, entity, tags, metric);
     }
 
-    public static <T> boolean newGauge(NMetricsName name, NMetricsCategory category, String entity, Gauge<T> metric) {
+    public static <T> boolean newGauge(MetricsName name, MetricsCategory category, String entity, Gauge<T> metric) {
         return newGauge(name.getVal(), category, entity, Collections.emptyMap(), metric);
     }
 
-    private static boolean newGauge(String name, NMetricsCategory category, String entity,
-            Map<String, String> tags, Metric metric) {
+    private static boolean newGauge(String name, MetricsCategory category, String entity, Map<String, String> tags,
+                                    Metric metric) {
         try {
             return registerGaugeIfAbsent(name, category, entity, tags, metric);
         } catch (Exception e) {
-            logger.error("ke.metrics newGauge", e);
+            logger.warn("ke.metrics newGauge {}", e.getMessage());
         }
         return false;
     }
 
-    public static boolean newCounter(NMetricsName name, NMetricsCategory category, String entity) {
+    public static boolean newCounter(MetricsName name, MetricsCategory category, String entity) {
         return newCounter(name, category, entity, Collections.emptyMap());
     }
 
-    public static boolean newCounter(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags) {
+    public static boolean newCounter(MetricsName name, MetricsCategory category, String entity,
+                                     Map<String, String> tags) {
         try {
             final Counter counter = registerCounterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (counter != null) {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("ke.metrics newCounter", e);
+            logger.warn("ke.metrics newCounter {}", e.getMessage());
         }
         return false;
     }
 
-    public static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity) {
+    public static boolean newHistogram(MetricsName name, MetricsCategory category, String entity) {
         return newHistogram(name, category, entity, Collections.emptyMap());
     }
 
-    public static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags) {
+    public static boolean newHistogram(MetricsName name, MetricsCategory category, String entity,
+                                       Map<String, String> tags) {
         try {
             final Histogram histogram = registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (histogram != null) {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("ke.metrics newHistogram", e);
+            logger.warn("ke.metrics newHistogram {}", e.getMessage());
         }
         return false;
     }
 
-    public static boolean newMeter(NMetricsName name, NMetricsCategory category, String entity) {
+    public static boolean newMeter(MetricsName name, MetricsCategory category, String entity) {
         return newMeter(name, category, entity, Collections.emptyMap());
     }
 
-    private static boolean newMeter(NMetricsName name, NMetricsCategory category, String entity,
-            Map<String, String> tags) {
+    private static boolean newMeter(MetricsName name, MetricsCategory category, String entity,
+                                    Map<String, String> tags) {
         try {
             final Meter meter = registerMeterIfAbsent(name.getVal(), category.getVal(), entity, tags);
             if (meter != null) {
                 return true;
             }
         } catch (Exception e) {
-            logger.error("ke.metrics newMeter", e);
+            logger.warn("ke.metrics newMeter {}", e.getMessage());
         }
         return false;
     }
@@ -431,13 +447,13 @@ public class NMetricsGroup {
         return sb.toString();
     }
 
-    private static boolean registerGaugeIfAbsent(String name, NMetricsCategory category, String entity,
-            Map<String, String> tags, Metric metric) {
+    private static boolean registerGaugeIfAbsent(String name, MetricsCategory category, String entity,
+                                                 Map<String, String> tags, Metric metric) {
         final String metricName = metricName(name, category.getVal(), entity, tags);
         if (!gauges.contains(metricName)) {
             synchronized (gauges) {
                 if (!gauges.contains(metricName)) {
-                    NMetricsController.getDefaultMetricRegistry().register(metricName, metric);
+                    MetricsController.getDefaultMetricRegistry().register(metricName, metric);
                     gauges.add(metricName);
                     logger.trace("ke.metrics register gauge: {}", metricName);
                     return true;
@@ -455,7 +471,7 @@ public class NMetricsGroup {
             synchronized (counters) {
                 if (!counters.containsKey(metricName)) {
                     // bad design: 1. Consider async realization; 2. Deadlock maybe occurs here; 3. Add timeout mechanism.
-                    final Counter metric = NMetricsController.getDefaultMetricRegistry().counter(metricName);
+                    final Counter metric = MetricsController.getDefaultMetricRegistry().counter(metricName);
                     final long restoreVal = tryRestoreCounter(name, category, entity, tags);
                     if (restoreVal > 0) {
                         metric.inc(restoreVal);
@@ -474,7 +490,7 @@ public class NMetricsGroup {
             if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
                 return 0;
             }
-            final InfluxDB defaultInfluxDb = NMetricsController.getDefaultInfluxDb();
+            final InfluxDB defaultInfluxDb = MetricsInfluxdbReporter.getInstance().getMetricInstance().getInfluxDB();
             if (!defaultInfluxDb.ping().isGood()) {
                 throw new IllegalStateException("the pinged influxdb is not good.");
             }
@@ -483,7 +499,7 @@ public class NMetricsGroup {
             final StringBuilder sb = new StringBuilder("select ");
             sb.append(fieldName);
             sb.append(" from ");
-            sb.append(NMetricsInfluxdbReporter.METRICS_MEASUREMENT);
+            sb.append(MetricsInfluxdbReporter.METRICS_MEASUREMENT);
             sb.append(" where category='");
             sb.append(category);
             sb.append("' and entity='");
@@ -518,7 +534,7 @@ public class NMetricsGroup {
             logger.trace("ke.metrics tryRestoreCounter, sql=[{}], result=[{}]", querySql, valStr);
             return NumberFormat.getInstance().parse(valStr).longValue();
         } catch (Exception e) {
-            logger.error("ke.metrics tryRestoreCounter error", e);
+            logger.warn("ke.metrics tryRestoreCounter error {}", e.getMessage());
         }
         return 0;
     }
@@ -528,7 +544,7 @@ public class NMetricsGroup {
         if (!meters.containsKey(metricName)) {
             synchronized (meters) {
                 if (!meters.containsKey(metricName)) {
-                    final Meter metric = NMetricsController.getDefaultMetricRegistry().meter(metricName);
+                    final Meter metric = MetricsController.getDefaultMetricRegistry().meter(metricName);
                     meters.put(metricName, metric);
                     logger.trace("ke.metrics register meter: {}", metricName);
                 }
@@ -543,7 +559,7 @@ public class NMetricsGroup {
         if (!histograms.containsKey(metricName)) {
             synchronized (histograms) {
                 if (!histograms.containsKey(metricName)) {
-                    final Histogram metric = NMetricsController.getDefaultMetricRegistry().histogram(metricName);
+                    final Histogram metric = MetricsController.getDefaultMetricRegistry().histogram(metricName);
                     histograms.put(metricName, metric);
                     logger.trace("ke.metrics register histogram: {}", metricName);
                 }
@@ -552,7 +568,8 @@ public class NMetricsGroup {
         return histograms.get(metricName);
     }
 
-    private static void doRemove(final String metricNameSuffix, final Iterator<String> it, final MetricRegistry registry) {
+    private static void doRemove(final String metricNameSuffix, final Iterator<String> it,
+            final MetricRegistry registry) {
         // replace with removeIf
         while (it.hasNext()) {
             //some1:k1=v1,k2=v2,k3=v3,...
@@ -565,7 +582,7 @@ public class NMetricsGroup {
                     logger.trace("ke.metrics remove metric: {}", metricName);
                 }
             } catch (Exception e) {
-                logger.error("ke.metrics remove metric: {}", metricName, e);
+                logger.warn("ke.metrics remove metric: {} {}", metricName, e.getMessage());
             }
         }
     }
@@ -579,7 +596,7 @@ public class NMetricsGroup {
         StringBuilder sb = new StringBuilder(host);
         sb.append("-").append(entity);
         Map<String, String> tags = Maps.newHashMap();
-        tags.put(NMetricsTag.HOST.getVal(), sb.toString());
+        tags.put(MetricsTag.HOST.getVal(), sb.toString());
         return tags;
     }
 }

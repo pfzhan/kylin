@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -75,9 +76,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
@@ -176,7 +176,7 @@ public class NExecutableManager {
         addJobOutput(executablePO);
         executableDao.addJob(executablePO);
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.JOB, NMetricsCategory.PROJECT,
+        MetricsGroup.hostTagCounterInc(MetricsName.JOB, MetricsCategory.PROJECT,
                 executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME));
         // dispatch job-created message out
         if (KylinConfig.getInstanceFromEnv().isUTEnv())

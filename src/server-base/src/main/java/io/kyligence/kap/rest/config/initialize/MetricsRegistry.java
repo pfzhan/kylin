@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.query.util.LoadCounter;
-import io.kyligence.kap.query.util.LoadDesc;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -45,9 +43,9 @@ import org.apache.kylin.rest.util.SpringContext;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -56,17 +54,19 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.query.util.LoadCounter;
+import io.kyligence.kap.query.util.LoadDesc;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
-public class NMetricsRegistry {
+public class MetricsRegistry {
     private static final String GLOBAL = "global";
 
     public static void registerGlobalMetrics(KylinConfig config, String host) {
 
         final NProjectManager projectManager = NProjectManager.getInstance(config);
-        NMetricsGroup.newGauge(NMetricsName.PROJECT_GAUGE, NMetricsCategory.GLOBAL, GLOBAL, () -> {
+        MetricsGroup.newGauge(MetricsName.PROJECT_GAUGE, MetricsCategory.GLOBAL, GLOBAL, () -> {
             List<ProjectInstance> list = projectManager.listAllProjects();
             if (list == null) {
                 return 0;
@@ -75,7 +75,7 @@ public class NMetricsRegistry {
         });
 
         final NKylinUserManager userManager = NKylinUserManager.getInstance(config);
-        NMetricsGroup.newGauge(NMetricsName.USER_GAUGE, NMetricsCategory.GLOBAL, GLOBAL, () -> {
+        MetricsGroup.newGauge(MetricsName.USER_GAUGE, MetricsCategory.GLOBAL, GLOBAL, () -> {
             List<ManagedUser> list = userManager.list();
             if (list == null) {
                 return 0;
@@ -83,48 +83,48 @@ public class NMetricsRegistry {
             return list.size();
         });
 
-        Map<String, String> tags = NMetricsGroup.getHostTagMap(host, GLOBAL);
+        Map<String, String> tags = MetricsGroup.getHostTagMap(host, GLOBAL);
 
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.STORAGE_CLEAN, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.STORAGE_CLEAN_DURATION, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.STORAGE_CLEAN_FAILED, MetricsCategory.GLOBAL, GLOBAL, tags);
 
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.METADATA_BACKUP, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL, tags);
 
-        NMetricsGroup.newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, GLOBAL, tags);
-        NMetricsGroup.newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newCounter(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.GLOBAL, GLOBAL, tags);
+        MetricsGroup.newHistogram(MetricsName.TRANSACTION_LATENCY, MetricsCategory.GLOBAL, GLOBAL, tags);
     }
 
     public static void registerHostMetrics(String host) {
-        NMetricsGroup.newCounter(NMetricsName.SPARDER_RESTART, NMetricsCategory.HOST, host);
-        NMetricsGroup.newCounter(NMetricsName.QUERY_HOST, NMetricsCategory.HOST, host);
-        NMetricsGroup.newCounter(NMetricsName.QUERY_SCAN_BYTES_HOST, NMetricsCategory.HOST, host);
-        NMetricsGroup.newHistogram(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, host);
+        MetricsGroup.newCounter(MetricsName.SPARDER_RESTART, MetricsCategory.HOST, host);
+        MetricsGroup.newCounter(MetricsName.QUERY_HOST, MetricsCategory.HOST, host);
+        MetricsGroup.newCounter(MetricsName.QUERY_SCAN_BYTES_HOST, MetricsCategory.HOST, host);
+        MetricsGroup.newHistogram(MetricsName.QUERY_TIME_HOST, MetricsCategory.HOST, host);
 
         MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
-        NMetricsGroup.newGauge(NMetricsName.HEAP_MAX, NMetricsCategory.HOST, host,
+        MetricsGroup.newGauge(MetricsName.HEAP_MAX, MetricsCategory.HOST, host,
                 () -> mxBean.getHeapMemoryUsage().getMax());
-        NMetricsGroup.newGauge(NMetricsName.HEAP_USED, NMetricsCategory.HOST, host,
+        MetricsGroup.newGauge(MetricsName.HEAP_USED, MetricsCategory.HOST, host,
                 () -> mxBean.getHeapMemoryUsage().getUsed());
-        NMetricsGroup.newGauge(NMetricsName.HEAP_USAGE, NMetricsCategory.HOST, host, () -> {
+        MetricsGroup.newGauge(MetricsName.HEAP_USAGE, MetricsCategory.HOST, host, () -> {
             final MemoryUsage usage = mxBean.getHeapMemoryUsage();
             return RatioGauge.Ratio.of(usage.getUsed(), usage.getMax()).getValue();
         });
 
-        NMetricsGroup.newMetricSet(NMetricsName.JVM_GC, NMetricsCategory.HOST, host, new GarbageCollectorMetricSet());
-        NMetricsGroup.newGauge(NMetricsName.JVM_AVAILABLE_CPU, NMetricsCategory.HOST, host,
+        MetricsGroup.newMetricSet(MetricsName.JVM_GC, MetricsCategory.HOST, host, new GarbageCollectorMetricSet());
+        MetricsGroup.newGauge(MetricsName.JVM_AVAILABLE_CPU, MetricsCategory.HOST, host,
                 () -> Runtime.getRuntime().availableProcessors());
-        NMetricsGroup.newGauge(NMetricsName.QUERY_LOAD, NMetricsCategory.HOST,
+        MetricsGroup.newGauge(MetricsName.QUERY_LOAD, MetricsCategory.HOST,
                 host, () -> {
                     LoadDesc loadDesc = LoadCounter.getLoadDesc();
                     return loadDesc.getLoad();
                 });
 
-        NMetricsGroup.newGauge(NMetricsName.CPU_CORES, NMetricsCategory.HOST,
+        MetricsGroup.newGauge(MetricsName.CPU_CORES, MetricsCategory.HOST,
                 host, () -> {
                     LoadDesc loadDesc = LoadCounter.getLoadDesc();
                     return loadDesc.getCoreNum();
@@ -134,15 +134,15 @@ public class NMetricsRegistry {
 
     static void registerJobMetrics(KylinConfig config, String project) {
         final NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.JOB_ERROR_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.JOB_ERROR_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<AbstractExecutable> list = executableManager.getAllExecutables();
             return list == null ? 0 : list.stream().filter(e -> e.getStatus() == ExecutableState.ERROR).count();
         });
-        NMetricsGroup.newGauge(NMetricsName.JOB_RUNNING_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.JOB_RUNNING_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<AbstractExecutable> list = executableManager.getAllExecutables();
             return list == null ? 0 : list.stream().filter(e -> e.getStatus().isProgressing()).count();
         });
-        NMetricsGroup.newGauge(NMetricsName.JOB_PENDING_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.JOB_PENDING_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<AbstractExecutable> list = executableManager.getAllExecutables();
             return list == null ? 0 : list.stream().filter(e -> e.getStatus() == ExecutableState.READY).count();
         });
@@ -150,11 +150,11 @@ public class NMetricsRegistry {
 
     static void registerStorageMetrics(String project) {
         val projectService = SpringContext.getBean(ProjectService.class);
-        NMetricsGroup.newGauge(NMetricsName.PROJECT_STORAGE_SIZE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project, () -> {
             StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
             return resp == null ? 0L : resp.getTotalStorageSize();
         });
-        NMetricsGroup.newGauge(NMetricsName.PROJECT_GARBAGE_SIZE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.PROJECT_GARBAGE_SIZE, MetricsCategory.PROJECT, project, () -> {
             StorageVolumeInfoResponse resp = projectService.getStorageVolumeInfoResponse(project);
             return resp == null ? 0L : resp.getGarbageStorageSize();
         });
@@ -163,17 +163,17 @@ public class NMetricsRegistry {
     public static void registerProjectMetrics(KylinConfig config, String project, String host) {
 
         // for non-gauges
-        NMetricsGroup.registerProjectMetrics(project, host);
+        MetricsGroup.registerProjectMetrics(project, host);
 
         //for gauges
         final NDataModelManager dataModelManager = NDataModelManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.MODEL_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.MODEL_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<NDataModel> list = dataModelManager.listAllModels();
             return list == null ? 0 : list.size();
         });
 
         final NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.HEALTHY_MODEL_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.HEALTHY_MODEL_GAUGE, MetricsCategory.PROJECT, project, () -> {
             List<NDataModel> list = dataflowManager.listUnderliningDataModels();
             return list == null ? 0 : list.size();
         });
@@ -183,17 +183,17 @@ public class NMetricsRegistry {
         registerJobMetrics(config, project);
 
         final FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.FQ_BLACKLIST, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.FQ_BLACKLIST, MetricsCategory.PROJECT, project, () -> {
             final Set<String> list = favoriteRuleManager.getBlacklistSqls();
             return list == null ? 0 : list.size();
         });
 
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
-        NMetricsGroup.newGauge(NMetricsName.TABLE_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.TABLE_GAUGE, MetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
             return list == null ? 0 : list.size();
         });
-        NMetricsGroup.newGauge(NMetricsName.DB_GAUGE, NMetricsCategory.PROJECT, project, () -> {
+        MetricsGroup.newGauge(MetricsName.DB_GAUGE, MetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
             return list == null ? 0 : list.stream().map(TableDesc::getCaseSensitiveDatabase).collect(toSet()).size();
         });

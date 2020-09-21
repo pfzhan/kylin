@@ -60,7 +60,7 @@
 -keep class io.kyligence.kap.common.persistence.transaction.UnitOfWork {*;}
 -keep class io.kyligence.kap.common.persistence.transaction.UnitOfWork$Callback {*;}
 -keep class org.apache.kylin.common.persistence.ResourceStore {*;}
--keep class io.kyligence.kap.common.metrics.NMetricsGroup {*;}
+-keep class io.kyligence.kap.common.metrics.MetricsGroup {*;}
 -keep class io.kyligence.kap.rest.monitor.SparkContextCanary {*;}
 
 -keep class io.kyligence.kap.tool.shaded.** {*;}

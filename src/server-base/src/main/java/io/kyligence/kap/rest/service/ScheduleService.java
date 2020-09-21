@@ -28,9 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -63,7 +63,7 @@ public class ScheduleService {
 
         EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
 
         String oldThreadName = Thread.currentThread().getName();
         try {
@@ -86,13 +86,13 @@ public class ScheduleService {
             Thread.currentThread().setName(oldThreadName);
         }
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
     }
 
     @Scheduled(cron = "${kylin.metadata.top-recs-filter-cron:0 0 0 * * *}")
     public void selectTopRec() {
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
 
         String oldThreadName = Thread.currentThread().getName();
         try {
@@ -106,6 +106,6 @@ public class ScheduleService {
             Thread.currentThread().setName(oldThreadName);
         }
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
     }
 }

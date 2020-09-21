@@ -42,9 +42,9 @@ import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.EndUnit;
 import io.kyligence.kap.common.persistence.event.Event;
@@ -105,13 +105,13 @@ public class UnitOfWork {
         val traceId = UUID.randomUUID().toString();
         while (retry++ < maxRetry) {
             if (retry > 1) {
-                Map<String, String> tags = NMetricsGroup.getHostTagMap(params.getUnitName());
+                Map<String, String> tags = MetricsGroup.getHostTagMap(params.getUnitName());
 
                 if (!GLOBAL_UNIT.equals(params.getUnitName())) {
-                    NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.PROJECT,
+                    MetricsGroup.counterInc(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.PROJECT,
                             params.getUnitName(), tags);
                 } else {
-                    NMetricsGroup.counterInc(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, "global", tags);
+                    MetricsGroup.counterInc(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.GLOBAL, "global", tags);
                 }
             }
 
@@ -153,7 +153,7 @@ public class UnitOfWork {
                 log.debug("UnitOfWork {} takes {}ms to complete", traceId, duration);
             }
 
-            NMetricsGroup.hostTagHistogramUpdate(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.PROJECT,
+            MetricsGroup.hostTagHistogramUpdate(MetricsName.TRANSACTION_LATENCY, MetricsCategory.PROJECT,
                     !GLOBAL_UNIT.equals(params.getUnitName()) ? params.getUnitName() : "global", duration);
 
             result = Pair.newPair(ret, true);

@@ -26,7 +26,7 @@ package io.kyligence.kap.common.metrics;
 
 import org.apache.kylin.common.KapConfig;
 
-public interface NMetricsReporter {
+public interface MetricsReporter {
     void init(KapConfig props) throws Exception;
 
     void startReporter(int pollingPeriodInSeconds);

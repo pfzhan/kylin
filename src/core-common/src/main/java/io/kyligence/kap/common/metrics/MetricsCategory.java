@@ -24,33 +24,16 @@
 
 package io.kyligence.kap.common.metrics;
 
-import org.apache.kylin.common.KapConfig;
+public enum MetricsCategory {
+    PROJECT("project"), JVM("jvm"), HOST("host"), GLOBAL("global"), MODEL("model");
 
-public class NMetricsConfig {
+    private final String value;
 
-    private KapConfig kapConfig;
-
-    public NMetricsConfig(KapConfig kapConfig) {
-        this.kapConfig = kapConfig;
+    MetricsCategory(String value) {
+        this.value = value;
     }
 
-    public int pollingIntervalSecs() {
-        return this.kapConfig.getMetricsPollingIntervalSecs();
-    }
-
-    public String getMetricsDB() {
-        return this.kapConfig.getMetricsDbNameWithMetadataUrlPrefix();
-    }
-
-    public String getDailyMetricsDB() {
-        return this.kapConfig.getDailyMetricsDbNameWithMetadataUrlPrefix();
-    }
-
-    public int getDailyMetricsRunHour() {
-        return this.kapConfig.getDailyMetricsRunHour();
-    }
-
-    public int getDailyMetricsMaxRetryTimes() {
-        return this.kapConfig.getDailyMetricsMaxRetryTimes();
+    public String getVal() {
+        return this.value;
     }
 }

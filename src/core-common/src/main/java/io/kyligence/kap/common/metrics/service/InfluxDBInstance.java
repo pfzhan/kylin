@@ -29,23 +29,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 import io.kyligence.kap.common.util.InfluxDBUtils;
+import io.kyligence.kap.guava20.shaded.common.base.Throwables;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBIOException;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Pong;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 import lombok.Getter;
-import lombok.val;
+import lombok.Setter;
 
 @Getter
 public class InfluxDBInstance {
@@ -58,53 +59,21 @@ public class InfluxDBInstance {
     private int replicationFactor;
     private boolean useDefault;
 
-    public static final String DEFAULT_DATABASE = "KE_MONITOR";
+    private static final String DEFAULT_DATABASE = "KE_MONITOR";
     private static final String DEFAULT_RETENTION_POLICY_NAME = "KE_MONITOR_RP";
     private static final String RETENTION_DURATION = "90d";
     private static final String SHARD_DURATION = "7d";
     private static final int REPLICATION_FACTOR = 1;
     private static final boolean USE_DEFAULT = true;
 
+    @Setter
     private volatile InfluxDB influxDB;
-    private volatile boolean connected = false;
 
     private ScheduledExecutorService scheduledExecutorService;
-    private KylinConfig config;
-
-    public static String generateDatabase(KylinConfig kylinConfig) {
-        return kylinConfig.getMetadataUrlPrefix() + "_" + KapConfig.wrap(kylinConfig).getMonitorDatabase();
-    }
-
-    public static String generateRetentionPolicy(KylinConfig kylinConfig) {
-        return kylinConfig.getMetadataUrlPrefix() + "_" + KapConfig.wrap(kylinConfig).getMonitorRetentionPolicy();
-    }
-
-    public InfluxDBInstance(KylinConfig kylinConfig) throws Exception {
-        this.config = kylinConfig;
-        this.database = generateDatabase(kylinConfig);
-        this.retentionPolicyName = generateRetentionPolicy(kylinConfig);
-        this.retentionDuration = KapConfig.wrap(kylinConfig).getMonitorRetentionDuration();
-        this.shardDuration = KapConfig.wrap(kylinConfig).getMonitorShardDuration();
-        this.replicationFactor = KapConfig.wrap(kylinConfig).getMonitorReplicationFactor();
-        this.useDefault = KapConfig.wrap(kylinConfig).isMonitorUserDefault();
-        initInfluxDB();
-    }
+    private KapConfig config;
 
     public InfluxDBInstance(String database, String retentionPolicyName, String retentionDuration, String shardDuration,
-            int replicationFactor, boolean useDefault) throws Exception {
-        this(null, database, retentionPolicyName, retentionDuration, shardDuration, replicationFactor, useDefault);
-    }
-
-    public InfluxDBInstance(InfluxDB influxDB, String database, String retentionPolicyName) throws Exception {
-        this(influxDB, database, retentionPolicyName, RETENTION_DURATION, SHARD_DURATION, REPLICATION_FACTOR,
-                USE_DEFAULT);
-    }
-
-    public InfluxDBInstance(InfluxDB influxDB, String database, String retentionPolicyName, String retentionDuration,
-            String shardDuration, int replicationFactor, boolean useDefault) throws Exception {
-
-        this.influxDB = influxDB;
-
+            int replicationFactor, boolean useDefault) {
         this.database = database;
         this.retentionPolicyName = retentionPolicyName;
         this.retentionDuration = retentionDuration;
@@ -112,59 +81,60 @@ public class InfluxDBInstance {
         this.replicationFactor = replicationFactor;
         this.useDefault = useDefault;
 
-        this.config = KylinConfig.getInstanceFromEnv();
-
-        initInfluxDB();
+        this.config = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
     }
 
-    private void initInfluxDB() throws Exception {
-        if (null == influxDB) {
-            val kapConfig = KapConfig.wrap(config);
-            final String addr = kapConfig.influxdbAddress();
-            final String username = kapConfig.influxdbUsername();
-            final String password = kapConfig.influxdbPassword();
-            final boolean enableHttps = kapConfig.isInfluxdbHttpsEnabled();
-            final boolean enableUnsafeSsl = kapConfig.isInfluxdbUnsafeSslEnabled();
-
-            logger.info("Init influxDB, address: {}, username: {}", addr, username);
-
-            influxDB = InfluxDBUtils.getInfluxDBInstance(addr, username, password, enableHttps, enableUnsafeSsl);
+    public void init() {
+        final String addr = config.influxdbAddress();
+        if (StringUtils.isEmpty(addr)) {
+            logger.info("InfluxDB address is empty, skip it");
+            return;
         }
-
-        checkDatabaseAndRetentionPolicy();
-        startMonitorInfluxDB();
-    }
-
-    private void checkDatabaseAndRetentionPolicy() {
         tryConnectInfluxDB();
-
-        getInfluxDB().setDatabase(getDatabase());
-        getInfluxDB().setRetentionPolicy(getRetentionPolicyName());
-
-        // enable async write. max batch size 1000, flush duration 3s.
-        // when bufferLimit > actions，#RetryCapableBatchWriter will be used
-        getInfluxDB().enableBatch(BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000)
-                .flushDuration(KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration()).jitterDuration(500));
-
-        if (!getInfluxDB().databaseExists(getDatabase())) {
-            logger.info("Create influxDB database {}", getDatabase());
-            getInfluxDB().createDatabase(getDatabase());
-            // create retention policy and use it as the default
-            logger.info("Create influxDB retention policy '{}' on database '{}'", getRetentionPolicyName(),
-                    getDatabase());
-            getInfluxDB().createRetentionPolicy(getRetentionPolicyName(), getDatabase(), getRetentionDuration(),
-                    getShardDuration(), getReplicationFactor(), isUseDefault());
-        }
+        startMonitorInfluxDB();
     }
 
     private void tryConnectInfluxDB() {
         try {
-            final Pong pong = getInfluxDB().ping();
-            logger.trace("Connected to influxDB successfully. [{}]", pong);
-            connected = true;
+            if (influxDB == null) {
+                final String addr = config.influxdbAddress();
+                final String username = config.influxdbUsername();
+                final String password = config.influxdbPassword();
+                final boolean enableHttps = config.isInfluxdbHttpsEnabled();
+                final boolean enableUnsafeSsl = config.isInfluxdbUnsafeSslEnabled();
+
+                logger.info("Init influxDB, address: {}, username: {}", addr, username);
+
+                influxDB = InfluxDBUtils.getInfluxDBInstance(addr, username, password, enableHttps, enableUnsafeSsl);
+                influxDB.setDatabase(getDatabase());
+                influxDB.setRetentionPolicy(getRetentionPolicyName());
+
+                // enable async write. max batch size 1000, flush duration 3s.
+                // when bufferLimit > actions，#RetryCapableBatchWriter will be used
+                influxDB.enableBatch(BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000)
+                        .flushDuration(config.getInfluxDBFlushDuration()).jitterDuration(500));
+
+                if (!influxDB.databaseExists(getDatabase())) {
+                    logger.info("Create influxDB database {}", getDatabase());
+                    influxDB.createDatabase(getDatabase());
+                    // create retention policy and use it as the default
+                    logger.info("Create influxDB retention policy '{}' on database '{}'", getRetentionPolicyName(),
+                            getDatabase());
+                    influxDB.createRetentionPolicy(getRetentionPolicyName(), getDatabase(), getRetentionDuration(),
+                            getShardDuration(), getReplicationFactor(), isUseDefault());
+                }
+            } else {
+                final Pong pong = influxDB.ping();
+                logger.trace("Connected to influxDB successfully. [{}]", pong);
+            }
         } catch (Exception ex) {
-            connected = false;
-            throw ex;
+            influxDB = null;
+            if (Throwables.getCausalChain(ex).stream().anyMatch(t -> t instanceof InfluxDBIOException)) {
+                logger.warn("Check influxDB Instance error, database: {}, retentionPolicy: {} ex: {}", getDatabase(),
+                        getRetentionPolicyName(), ex.getMessage());
+                return;
+            }
+            logger.error("Unknown exception happened", ex);
         }
     }
 
@@ -173,14 +143,7 @@ public class InfluxDBInstance {
                 getRetentionPolicyName());
         scheduledExecutorService = Executors
                 .newSingleThreadScheduledExecutor(new NamedThreadFactory("InfluxDBMonitor-" + this.getDatabase()));
-        scheduledExecutorService.scheduleWithFixedDelay(() -> {
-            try {
-                tryConnectInfluxDB();
-            } catch (Exception ex) {
-                logger.error("Check influxDB Instance error, database: {}, retentionPolicy: {}", getDatabase(),
-                        getRetentionPolicyName(), ex);
-            }
-        }, 60, 60, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(this::tryConnectInfluxDB, 60, 600, TimeUnit.SECONDS);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             getInfluxDB().close();
@@ -190,15 +153,11 @@ public class InfluxDBInstance {
         }));
     }
 
-    public boolean write(String database, String measurement, Map<String, String> tags, Map<String, Object> fields,
-            long timestamp) {
-        if (!connected) {
+    public boolean write(String measurement, Map<String, String> tags, Map<String, Object> fields, long timestamp) {
+        if (influxDB == null) {
             logger.error("InfluxDB is not connected, abort writing.");
             return false;
         }
-
-        Preconditions.checkArgument(this.database.equals(database),
-                "This InfluxDB Instance can not write with database: {}", database);
 
         Point p = Point.measurement(measurement) //
                 .time(timestamp, TimeUnit.MILLISECONDS) //
@@ -210,10 +169,11 @@ public class InfluxDBInstance {
         return true;
     }
 
-    public QueryResult read(String database, String sql) {
-        Preconditions.checkArgument(this.database.equals(database),
-                "This InfluxDB Instance can not read with database: {}", database);
-
+    public QueryResult read(String sql) {
+        if (influxDB == null) {
+            logger.error("InfluxDB is not connected, abort reading.");
+            return new QueryResult();
+        }
         return getInfluxDB().query(new Query(sql, getDatabase()));
     }
 }

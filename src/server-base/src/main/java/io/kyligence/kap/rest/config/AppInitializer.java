@@ -49,8 +49,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.date.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.metrics.NMetricsController;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsController;
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
@@ -65,7 +65,7 @@ import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import io.kyligence.kap.rest.config.initialize.NMetricsRegistry;
+import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
@@ -114,7 +114,7 @@ public class AppInitializer {
         boolean isJob = kylinConfig.isJobNode();
 
         //start the embedded metrics reporters
-        NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
+        MetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
         if (isJob) {
             // restore from metadata, should not delete
@@ -199,10 +199,10 @@ public class AppInitializer {
         String host = clusterManager.getLocalServer();
 
         log.info("Register global metrics...");
-        NMetricsRegistry.registerGlobalMetrics(KylinConfig.getInstanceFromEnv(), host);
+        MetricsRegistry.registerGlobalMetrics(KylinConfig.getInstanceFromEnv(), host);
 
         log.info("Register host metrics...");
-        NMetricsRegistry.registerHostMetrics(host);
+        MetricsRegistry.registerHostMetrics(host);
 
         METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
             Set<String> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
@@ -211,14 +211,14 @@ public class AppInitializer {
             Sets.SetView<String> newProjects = Sets.difference(allProjects, allControlledProjects);
             for (String newProject : newProjects) {
                 log.info("Register project metrics for {}", newProject);
-                NMetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
+                MetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
             }
 
             Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);
 
             for (String outDatedProject : outDatedProjects) {
                 log.info("Remove project metrics for {}", outDatedProject);
-                NMetricsGroup.removeProjectMetrics(outDatedProject);
+                MetricsGroup.removeProjectMetrics(outDatedProject);
             }
 
             allControlledProjects.clear();

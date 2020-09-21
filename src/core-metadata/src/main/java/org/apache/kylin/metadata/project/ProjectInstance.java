@@ -66,7 +66,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
@@ -263,7 +262,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         if (realizationType == null)
             return realizationEntries.size();
 
-        return Iterables.size(Iterables.filter(realizationEntries, input -> input.getType().equals(realizationType)));
+        return (int) realizationEntries.stream().filter(input -> input.getType().equals(realizationType)).count();
     }
 
     public String getOwner() {
@@ -276,7 +275,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     public boolean containsModel(String modelId) {
         List<String> models = getModelsFromResource(name);
-        return models != null && models.contains(modelId);
+        return models.contains(modelId);
     }
 
     public LinkedHashMap<String, String> getOverrideKylinProps() {

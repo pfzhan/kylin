@@ -53,7 +53,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.RealizationEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +72,7 @@ import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
+import lombok.val;
 
 public class SourceUsageManager {
 
@@ -364,16 +364,15 @@ public class SourceUsageManager {
             ProjectCapacityDetail projectDetail = new ProjectCapacityDetail(projectName);
 
             // for each dataflow in project, collect table details
-            for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
-                NDataflow dataflow;
+
+            for (NDataModel model : NDataflowManager.getInstance(config, projectName).listUnderliningDataModels()) {
                 try {
-                    dataflow = NDataflowManager.getInstance(config, projectName)
-                            .getDataflow(projectDataModel.getRealization());
+                    val dataflow = NDataflowManager.getInstance(config, projectName).getDataflow(model.getId());
                     if (!isAllSegmentsEmpty(dataflow)) {
                         calculateTableInProject(dataflow, projectDetail);
                     }
                 } catch (Exception e) {
-                    logger.error("Failed to get dataflow for {} in project: {}", projectDataModel, projectName, e);
+                    logger.error("Failed to get dataflow for {} in project: {}", model.getId(), projectName, e);
                 }
             }
             updateProjectSourceUsage(projectDetail);

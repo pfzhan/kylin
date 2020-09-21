@@ -411,7 +411,7 @@ public class TableService extends BasicService {
             if (Objects.isNull(table)) {
                 continue;
             }
-            TableDescResponse rtableDesc;
+            TableDescResponse tableDescResponse;
             val modelsUsingRootTable = Lists.<NDataModel>newArrayList();
             val modelsUsingTable = Lists.<NDataModel>newArrayList();
             for (NDataModel model : healthyModels) {
@@ -425,37 +425,37 @@ public class TableService extends BasicService {
             }
 
             if (withExt) {
-                rtableDesc = getTableResponse(table, project);
+                tableDescResponse = getTableResponse(table, project);
             } else {
-                rtableDesc = new TableDescResponse(table);
+                tableDescResponse = new TableDescResponse(table);
             }
 
             TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
             if (tableExtDesc != null) {
-                rtableDesc.setTotalRecords(tableExtDesc.getTotalRows());
-                rtableDesc.setSamplingRows(tableExtDesc.getSampleRows());
-                rtableDesc.setJodID(tableExtDesc.getJodID());
-                filterSamplingRows(project, rtableDesc, isAclGreen, aclTCRS);
+                tableDescResponse.setTotalRecords(tableExtDesc.getTotalRows());
+                tableDescResponse.setSamplingRows(tableExtDesc.getSampleRows());
+                tableDescResponse.setJodID(tableExtDesc.getJodID());
+                filterSamplingRows(project, tableDescResponse, isAclGreen, aclTCRS);
             }
 
             if (CollectionUtils.isNotEmpty(modelsUsingRootTable)) {
-                rtableDesc.setRootFact(true);
-                rtableDesc.setStorageSize(getStorageSize(project, modelsUsingRootTable));
+                tableDescResponse.setRootFact(true);
+                tableDescResponse.setStorageSize(getStorageSize(project, modelsUsingRootTable, fs));
             } else if (CollectionUtils.isNotEmpty(modelsUsingTable)) {
-                rtableDesc.setLookup(true);
-                rtableDesc.setStorageSize(getSnapshotSize(project, modelsUsingTable, table.getIdentity(), fs));
+                tableDescResponse.setLookup(true);
+                tableDescResponse.setStorageSize(getSnapshotSize(project, table.getIdentity(), fs));
             }
             Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(project, table, modelsUsingTable);
             NDataLoadingRange dataLoadingRange = getDataLoadingRangeManager(project)
                     .getDataLoadingRange(table.getIdentity());
             if (null != dataLoadingRange) {
-                rtableDesc.setPartitionedColumn(dataLoadingRange.getColumnName());
-                rtableDesc.setPartitionedColumnFormat(dataLoadingRange.getPartitionDateFormat());
-                rtableDesc.setSegmentRange(dataLoadingRange.getCoveredRange());
+                tableDescResponse.setPartitionedColumn(dataLoadingRange.getColumnName());
+                tableDescResponse.setPartitionedColumnFormat(dataLoadingRange.getPartitionDateFormat());
+                tableDescResponse.setSegmentRange(dataLoadingRange.getCoveredRange());
             }
-            rtableDesc.setForeignKey(tableColumnType.getSecond());
-            rtableDesc.setPrimaryKey(tableColumnType.getFirst());
-            descs.add(rtableDesc);
+            tableDescResponse.setForeignKey(tableColumnType.getSecond());
+            tableDescResponse.setPrimaryKey(tableColumnType.getFirst());
+            descs.add(tableDescResponse);
         }
 
         return descs;
@@ -509,48 +509,28 @@ public class TableService extends BasicService {
         return getAclTCRManager(project).getAuthorizedTableDesc(originTable, aclTCRS);
     }
 
-    private long getSnapshotSize(String project, List<NDataModel> modelsUsingTable, String table, FileSystem fs) throws IOException {
-        val dfManager = getDataflowManager(project);
-        var hasReadySegs = false;
-        var size = 0;
-        val df = dfManager.getDataflow(modelsUsingTable.get(0).getUuid());
-        val lastSeg = df.getLatestReadySegment();
-        if (lastSeg != null) {
-            hasReadySegs = true;
-            val snapShots = lastSeg.getSnapshots();
-            if (snapShots.containsKey(table)) {
-                val path = new Path(snapShots.get(table));
-                if (fs.exists(path)) {
-                    size += HadoopUtil.getContentSummary(fs, path).getLength();
-                }
-            }
+    private long getSnapshotSize(String project, String table, FileSystem fs) throws IOException {
+        val tableDesc = getTableManager(project).getTableDesc(table);
+        if (tableDesc != null && tableDesc.getLastSnapshotPath() != null) {
+            val path = new Path(tableDesc.getLastSnapshotPath());
+            return HadoopUtil.getContentSummary(fs, path).getLength();
         }
-        if (!hasReadySegs) {
-            return -1;
-        } else {
-            return size;
-        }
+        return 0;
     }
 
-    private long getStorageSize(String project, List<NDataModel> models) {
+    private long getStorageSize(String project, List<NDataModel> models, FileSystem fs) {
         val dfManger = getDataflowManager(project);
-        boolean hasReadySegs = false;
         long size = 0;
         for (val model : models) {
             val df = dfManger.getDataflow(model.getUuid());
             val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
             if (CollectionUtils.isNotEmpty(readySegs)) {
-                hasReadySegs = true;
                 for (NDataSegment segment : readySegs) {
                     size += segment.getStorageBytesSize();
                 }
             }
         }
-        if (!hasReadySegs) {
-            return -1;
-        } else {
-            return size;
-        }
+        return size;
     }
 
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
@@ -914,11 +894,11 @@ public class TableService extends BasicService {
         response.setModels(models.stream().map(NDataModel::getAlias).collect(Collectors.toList()));
 
         val rootTableModels = dataflowManager.getModelsUsingRootTable(tableDesc);
+        val fs = HadoopUtil.getWorkingFileSystem();
         if (CollectionUtils.isNotEmpty(rootTableModels)) {
-            response.setStorageSize(getStorageSize(project, rootTableModels));
+            response.setStorageSize(getStorageSize(project, rootTableModels, fs));
         } else if (CollectionUtils.isNotEmpty(models)) {
-            val fs = HadoopUtil.getWorkingFileSystem();
-            response.setStorageSize(getSnapshotSize(project, models, tableIdentity, fs));
+            response.setStorageSize(getSnapshotSize(project, tableIdentity, fs));
         }
 
         response.setHasJob(
@@ -1085,7 +1065,8 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0, readonly = true)
-    public OpenPreReloadTableResponse preProcessBeforeReloadWithoutFailFast(String project, String tableIdentity) throws Exception {
+    public OpenPreReloadTableResponse preProcessBeforeReloadWithoutFailFast(String project, String tableIdentity)
+            throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
 
         val context = calcReloadContext(project, tableIdentity, false);
@@ -1105,7 +1086,8 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0, readonly = true)
-    public PreReloadTableResponse preProcessBeforeReloadWithFailFast(String project, String tableIdentity) throws Exception {
+    public PreReloadTableResponse preProcessBeforeReloadWithFailFast(String project, String tableIdentity)
+            throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         val context = calcReloadContext(project, tableIdentity, true);
         return preProcessBeforeReloadWithContext(project, context);
@@ -1407,12 +1389,13 @@ public class TableService extends BasicService {
         Multimap<String, String> duplicatedColumns = getDuplicatedColumns(graph, newTableDesc, addColumns);
         if (Objects.nonNull(duplicatedColumns) && !duplicatedColumns.isEmpty()) {
             Map.Entry<String, String> entry = duplicatedColumns.entries().iterator().next();
-            throw new KylinException(DUPLICATED_COLUMN_NAME, MsgPicker.getMsg()
-                    .getTABLE_RELOAD_ADD_COLUMN_EXIST(entry.getKey(), entry.getValue()));
+            throw new KylinException(DUPLICATED_COLUMN_NAME,
+                    MsgPicker.getMsg().getTABLE_RELOAD_ADD_COLUMN_EXIST(entry.getKey(), entry.getValue()));
         }
     }
 
-    private Multimap<String, String> getDuplicatedColumns(Graph<SchemaNode> graph, TableDesc newTableDesc, Set<String> addColumns) {
+    private Multimap<String, String> getDuplicatedColumns(Graph<SchemaNode> graph, TableDesc newTableDesc,
+            Set<String> addColumns) {
         Multimap<String, String> duplicatedColumns = HashMultimap.create();
         List<SchemaNode> schemaNodes = graph.nodes().stream()
                 .filter(schemaNode -> SchemaNodeType.MODEL_CC == schemaNode.getType())
@@ -1465,7 +1448,8 @@ public class TableService extends BasicService {
         return effectedJobs;
     }
 
-    private ReloadTableContext calcReloadContext(String project, String tableIdentity, boolean failFast) throws Exception {
+    private ReloadTableContext calcReloadContext(String project, String tableIdentity, boolean failFast)
+            throws Exception {
         val context = new ReloadTableContext();
         val tableMeta = extractTableMeta(new String[] { tableIdentity }, project).get(0);
         val newTableDesc = new TableDesc(tableMeta.getFirst());
@@ -1489,7 +1473,8 @@ public class TableService extends BasicService {
             checkEffectedJobs(newTableDesc);
         } else {
             Set<String> duplicatedColumnsSet = Sets.newHashSet();
-            Multimap<String, String> duplicatedColumns = getDuplicatedColumns(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
+            Multimap<String, String> duplicatedColumns = getDuplicatedColumns(dependencyGraph, newTableDesc,
+                    Sets.newHashSet(context.getAddColumns()));
             for (Map.Entry<String, String> entry : duplicatedColumns.entries()) {
                 duplicatedColumnsSet.add(entry.getKey() + "." + entry.getValue());
             }

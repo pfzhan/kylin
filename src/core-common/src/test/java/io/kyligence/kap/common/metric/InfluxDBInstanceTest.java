@@ -54,7 +54,9 @@ public class InfluxDBInstanceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
-        influxDBInstance = new InfluxDBInstance(mockInfluxDB(), "KE_HISTORY", "KE_MONITOR_RP");
+        influxDBInstance = new InfluxDBInstance("KE_HISTORY", "KE_MONITOR_RP", "", "", 1, false);
+        influxDBInstance.init();
+        influxDBInstance.setInfluxDB(mockInfluxDB());
     }
 
     @After
@@ -68,9 +70,9 @@ public class InfluxDBInstanceTest extends NLocalFileMetadataTestCase {
         tags.put("project", "default");
         final Map<String, Object> fields = Maps.newHashMap();
         fields.put("sql", "selct * from test_table");
-        influxDBInstance.write(influxDBInstance.getDatabase(), "tb_query", tags, fields, 0);
+        influxDBInstance.write("tb_query", tags, fields, 0);
 
-        QueryResult queryResult = influxDBInstance.read(influxDBInstance.getDatabase(), "SHOW DATABASES");
+        QueryResult queryResult = influxDBInstance.read("SHOW DATABASES");
         Assert.assertNull(queryResult.getError());
         Assert.assertNotNull(queryResult.getResults());
     }

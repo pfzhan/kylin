@@ -179,10 +179,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @Override
     public List<RootPersistentEntity> calcDependencies() {
         val manager = NDataModelManager.getInstance(config, project);
-        NDataModel dataModelDesc = manager.getDataModelDesc(getId());
-
-        return Lists.newArrayList(dataModelDesc != null ? dataModelDesc
-                : new MissingRootPersistentEntity(NDataModel.concatResourcePath(getId(), project)));
+        try {
+            return Lists.newArrayList(manager.getDataModelDesc(getId()));
+        } catch (Exception ignore) {
+            return Lists.newArrayList(new MissingRootPersistentEntity(NDataModel.concatResourcePath(getId(), project)));
+        }
     }
 
     private void initConfig4IndexPlan(KylinConfig config) {

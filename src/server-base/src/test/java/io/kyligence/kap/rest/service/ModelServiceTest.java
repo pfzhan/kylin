@@ -80,6 +80,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -292,6 +293,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val copy = prjManager.copyForWrite(prj);
         copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
+
+        try {
+            new JdbcRawRecStore(getTestConfig());
+        } catch (Exception e) {
+            //
+        }
 
         EventBusFactory.getInstance().register(modelBrokenListener);
     }

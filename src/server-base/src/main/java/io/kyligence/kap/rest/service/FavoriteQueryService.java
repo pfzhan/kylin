@@ -57,9 +57,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -578,7 +578,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private void adjustFQForProject(String project) {
-        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_ADJUST_INVOKED, NMetricsCategory.PROJECT, project);
+        MetricsGroup.hostTagCounterInc(MetricsName.FQ_ADJUST_INVOKED, MetricsCategory.PROJECT, project);
         logger.trace("Start checking favorite query accelerate status adjustment for project {}.", project);
         long startTime = System.currentTimeMillis();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -598,7 +598,7 @@ public class FavoriteQueryService extends BasicService {
         long duration = System.currentTimeMillis() - startTime;
         logger.trace("End favorite query adjustment. Processed {} queries and took {}ms for project {}", sqlSize,
                 duration, project);
-        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project,
+        MetricsGroup.hostTagCounterInc(MetricsName.FQ_ADJUST_INVOKED_DURATION, MetricsCategory.PROJECT, project,
                 duration);
     }
 

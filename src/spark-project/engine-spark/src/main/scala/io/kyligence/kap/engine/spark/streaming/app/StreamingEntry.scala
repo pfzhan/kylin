@@ -25,7 +25,7 @@ import java.io.File
 
 import com.codahale.metrics.Gauge
 import com.google.common.base.Preconditions
-import io.kyligence.kap.common.metrics.{NMetricsCategory, NMetricsGroup, NMetricsName}
+import io.kyligence.kap.common.metrics.{MetricsCategory, MetricsGroup, MetricsName}
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.job.{NSparkCubingUtil, UdfManager}
 import io.kyligence.kap.engine.spark.streaming.job.StreamingSegmentManager
@@ -107,7 +107,7 @@ object StreamingEntry
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId)
     val model = df.getModel
 
-    NMetricsGroup.newGauge(NMetricsName.MODEL_QUERYABLE_SEGMENT_NUM, NMetricsCategory.MODEL, model.getAlias, new Gauge[Long] {
+    MetricsGroup.newGauge(MetricsName.MODEL_QUERYABLE_SEGMENT_NUM, MetricsCategory.MODEL, model.getAlias, new Gauge[Long] {
       override def getValue: Long = {
         df.getQueryableSegments.size()
       }
@@ -124,14 +124,14 @@ object StreamingEntry
       .option("checkpointLocation", baseCheckpointLocation + "/" + model.getId)
       .foreachBatch { (batchDF: DataFrame, batchId: Long) =>
 
-        NMetricsGroup.counterInc(NMetricsName.BATCH_TIMES, NMetricsCategory.MODEL, df.getModelAlias)
+        MetricsGroup.counterInc(MetricsName.BATCH_TIMES, MetricsCategory.MODEL, df.getModelAlias)
         // field time have overlap
         val minMaxTime = batchDF.persist(StorageLevel.MEMORY_ONLY).agg(F.max(F.col(timeColumn)), F.min(F.col(timeColumn))).collect().head
 
         logInfo(s"start process batch: ${batchId} minMaxTime is ${minMaxTime}")
         if (minMaxTime.getTimestamp(0) != null && minMaxTime.getTimestamp(1) != null) {
 
-          NMetricsGroup.counterInc(NMetricsName.NEW_DATA_AVAILABLE_BATCH_TIMRS, NMetricsCategory.MODEL, df.getModelAlias)
+          MetricsGroup.counterInc(MetricsName.NEW_DATA_AVAILABLE_BATCH_TIMRS, MetricsCategory.MODEL, df.getModelAlias)
           val (maxTime, minTime) = (minMaxTime.getTimestamp(0).getTime, minMaxTime.getTimestamp(1).getTime)
           val (committedOffsets, availableOffsets) = OffsetRangeManager.currentOffsetRange(ss)
           val batchSeg = StreamingSegmentManager.allocateSegment(ss, dataflowId,
@@ -187,21 +187,21 @@ object StreamingEntry
 
   def reportBatchMetrics(ss: SparkSession, model: String): Unit = {
 
-    NMetricsGroup.newGauge(NMetricsName.NUM_INPUT_ROWS, NMetricsCategory.MODEL, model, new Gauge[Long] {
+    MetricsGroup.newGauge(MetricsName.NUM_INPUT_ROWS, MetricsCategory.MODEL, model, new Gauge[Long] {
       override def getValue: Long = {
         val activeQuery = ss.sessionState.streamingQueryManager.active
         activeQuery.headOption.map(_.lastProgress).map(_.numInputRows).getOrElse(0)
       }
     })
 
-    NMetricsGroup.newGauge(NMetricsName.INPUT_ROWS_PER_SECOND, NMetricsCategory.MODEL, model, new Gauge[Long] {
+    MetricsGroup.newGauge(MetricsName.INPUT_ROWS_PER_SECOND, MetricsCategory.MODEL, model, new Gauge[Long] {
       override def getValue: Long = {
         val activeQuery = ss.sessionState.streamingQueryManager.active
         activeQuery.headOption.map(_.lastProgress).map(_.inputRowsPerSecond.toLong).getOrElse(0)
       }
     })
 
-    NMetricsGroup.newGauge(NMetricsName.BATCH_DURATION, NMetricsCategory.MODEL, model, new Gauge[Long] {
+    MetricsGroup.newGauge(MetricsName.BATCH_DURATION, MetricsCategory.MODEL, model, new Gauge[Long] {
       override def getValue: Long = {
         val activeQuery = ss.sessionState.streamingQueryManager.active
         activeQuery.headOption.map(_.lastProgress).map(_.durationMs.getOrDefault("addBatch", 30L).toLong).getOrElse(0)

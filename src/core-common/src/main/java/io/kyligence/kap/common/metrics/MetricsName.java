@@ -29,7 +29,7 @@ import java.util.List;
 
 import io.kyligence.kap.common.util.ClusterConstant;
 
-public enum NMetricsName {
+public enum MetricsName {
 
     //summary
     SUMMARY_COUNTER("summary_exec_total_times"), //
@@ -172,25 +172,25 @@ public enum NMetricsName {
 
     ;
 
-    private String value;
+    private final String value;
 
-    private boolean onlyLeader;
+    private final boolean onlyLeader;
 
-    private List<String> clusterList;
+    private final List<String> clusterList;
 
-    NMetricsName(String value) {
+    MetricsName(String value) {
         this(value, false, ClusterConstant.ALL, ClusterConstant.JOB, ClusterConstant.QUERY);
     }
 
-    NMetricsName(String value, boolean onlyLeader) {
+    MetricsName(String value, boolean onlyLeader) {
         this(value, onlyLeader, new String[0]);
     }
 
-    NMetricsName(String value, String... clusterList) {
+    MetricsName(String value, String... clusterList) {
         this(value, false, clusterList);
     }
 
-    NMetricsName(String value, boolean onlyLeader, String... clusterList) {
+    MetricsName(String value, boolean onlyLeader, String... clusterList) {
         this.value = value;
         this.onlyLeader = onlyLeader;
         this.clusterList = Arrays.asList(clusterList);
@@ -208,8 +208,8 @@ public enum NMetricsName {
         return clusterList.contains(cluster);
     }
 
-    public static NMetricsName getMetricsName(String value) {
-        for (NMetricsName metricsName : NMetricsName.values()) {
+    public static MetricsName getMetricsName(String value) {
+        for (MetricsName metricsName : MetricsName.values()) {
             if (metricsName.getVal().equals(value)) {
                 return metricsName;
             }

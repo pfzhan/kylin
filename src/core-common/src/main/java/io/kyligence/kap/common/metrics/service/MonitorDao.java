@@ -26,6 +26,8 @@ package io.kyligence.kap.common.metrics.service;
 import java.util.List;
 import java.util.Map;
 
+import lombok.val;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 
@@ -36,14 +38,25 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MonitorDao {
 
     private InfluxDBInstance influxDBInstance;
     public static final String QUERY_METRICS_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE create_time >= %d AND create_time < %d";
 
-    private MonitorDao() throws Exception {
-        this.influxDBInstance = new InfluxDBInstance(KylinConfig.getInstanceFromEnv());
+    private MonitorDao() {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        val database = generateDatabase(kylinConfig);
+        val rp = generateRetentionPolicy(kylinConfig);
+        val retentionDuration = KapConfig.wrap(kylinConfig).getMonitorRetentionDuration();
+        val shardDuration = KapConfig.wrap(kylinConfig).getMonitorShardDuration();
+        val replicationFactor = KapConfig.wrap(kylinConfig).getMonitorReplicationFactor();
+        val useDefault = KapConfig.wrap(kylinConfig).isMonitorUserDefault();
+        this.influxDBInstance = new InfluxDBInstance(database, rp, retentionDuration, shardDuration, replicationFactor,
+                useDefault);
     }
 
     @VisibleForTesting
@@ -52,7 +65,19 @@ public class MonitorDao {
     }
 
     public static MonitorDao getInstance() {
-        return Singletons.getInstance(MonitorDao.class);
+        return Singletons.getInstance(MonitorDao.class, monitorDaoClass -> {
+            val dao = new MonitorDao();
+            dao.influxDBInstance.init();
+            return dao;
+        });
+    }
+
+    public static String generateDatabase(KylinConfig kylinConfig) {
+        return kylinConfig.getMetadataUrlPrefix() + "_" + KapConfig.wrap(kylinConfig).getMonitorDatabase();
+    }
+
+    public static String generateRetentionPolicy(KylinConfig kylinConfig) {
+        return kylinConfig.getMetadataUrlPrefix() + "_" + KapConfig.wrap(kylinConfig).getMonitorRetentionPolicy();
     }
 
     @Getter
@@ -82,8 +107,8 @@ public class MonitorDao {
     }
 
     public boolean write2InfluxDB(InfluxDBWriteRequest writeRequest) {
-        return this.influxDBInstance.write(writeRequest.getDatabase(), writeRequest.getMeasurement(),
-                writeRequest.getTags(), writeRequest.getFields(), writeRequest.getTimeStamp());
+        return this.influxDBInstance.write(writeRequest.getMeasurement(), writeRequest.getTags(),
+                writeRequest.getFields(), writeRequest.getTimeStamp());
     }
 
     public List<QueryMonitorMetric> readQueryMonitorMetricFromInfluxDB(Long startTime, Long endTime) {
@@ -108,7 +133,7 @@ public class MonitorDao {
         String influxDBSql = String.format(QUERY_METRICS_BY_TIME_SQL_FORMAT, readRequest.getMeasurement(),
                 readRequest.getStartTime(), readRequest.getEndTime());
 
-        return this.influxDBInstance.read(readRequest.getDatabase(), influxDBSql);
+        return this.influxDBInstance.read(influxDBSql);
     }
 
 }

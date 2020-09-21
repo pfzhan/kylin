@@ -76,9 +76,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -227,13 +227,13 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     protected void onExecuteFinished(ExecuteResult result) throws ExecuteException {
-        NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
+        MetricsGroup.hostTagCounterInc(MetricsName.JOB_STEP_ATTEMPTED, MetricsCategory.PROJECT, project, retry);
         if (result.succeed()) {
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(), null);
             });
         } else {
-            NMetricsGroup.hostTagCounterInc(NMetricsName.JOB_FAILED_STEP_ATTEMPTED, NMetricsCategory.PROJECT, project, retry);
+            MetricsGroup.hostTagCounterInc(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, project, retry);
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
                         this::onExecuteErrorHook);

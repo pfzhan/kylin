@@ -30,7 +30,7 @@ import org.apache.kylin.common.KylinConfig;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.util.AddressUtil;
@@ -68,7 +68,7 @@ public class ServerModeMetricFilter implements MetricFilter {
         String[] split = name.split(":");
         if (split.length > 1) {
             String metricName = split[0];
-            NMetricsName metricsName = NMetricsName.getMetricsName(metricName);
+            MetricsName metricsName = MetricsName.getMetricsName(metricName);
             if (metricsName != null) {
                 return metricsName.support(SERVER_MODE, isLeader);
             }

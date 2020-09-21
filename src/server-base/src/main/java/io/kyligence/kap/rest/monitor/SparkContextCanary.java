@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.rest.monitor;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import lombok.Getter;
 import lombok.val;
 import org.apache.kylin.common.KapConfig;
@@ -117,7 +117,7 @@ public class SparkContextCanary {
                     logger.warn("Repairing spark context");
                     SparderEnv.restartSpark();
 
-                    NMetricsGroup.hostTagCounterInc(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, "global");
+                    MetricsGroup.hostTagCounterInc(MetricsName.SPARDER_RESTART, MetricsCategory.GLOBAL, "global");
                 } catch (Throwable th) {
                     logger.error("Restart spark context failed.", th);
                 }

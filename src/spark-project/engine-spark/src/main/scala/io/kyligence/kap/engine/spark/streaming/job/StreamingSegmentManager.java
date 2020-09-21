@@ -2,9 +2,9 @@ package io.kyligence.kap.engine.spark.streaming.job;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.engine.spark.streaming.common.MergeJobEntry;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -39,13 +39,13 @@ public class StreamingSegmentManager {
   }
 
   public static void registMetrics(String model) {
-    NMetricsGroup.newGauge(NMetricsName.RETAIN_SEGMENTS, NMetricsCategory.MODEL, model, () -> {
+    MetricsGroup.newGauge(MetricsName.RETAIN_SEGMENTS, MetricsCategory.MODEL, model, () -> {
       return retainSegments.size();
     });
-    NMetricsGroup.newGauge(NMetricsName.SEGMENTS_MERGE_THRESHOLDS, NMetricsCategory.MODEL, model, () -> {
+    MetricsGroup.newGauge(MetricsName.SEGMENTS_MERGE_THRESHOLDS, MetricsCategory.MODEL, model, () -> {
       return mergeSegmentThresholds;
     });
-    NMetricsGroup.newGauge(NMetricsName.SEGMENTS_MERGE_COST_TIME, NMetricsCategory.MODEL, model, () -> {
+    MetricsGroup.newGauge(MetricsName.SEGMENTS_MERGE_COST_TIME, MetricsCategory.MODEL, model, () -> {
       return globalMergeTime.get();
     });
   }

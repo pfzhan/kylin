@@ -25,16 +25,16 @@
 package io.kyligence.kap.tool.garbage;
 
 import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GarbageCleaner {
 
@@ -64,7 +64,7 @@ public class GarbageCleaner {
             return 0;
         }, project);
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
     }
 
     /**
@@ -82,7 +82,7 @@ public class GarbageCleaner {
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
         sourceUsageManager.updateSourceUsage();
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
     }
 
     public static void doCleanupMetadataManually(String project, SnapshotCleaner snapshotCleaner) {
@@ -121,6 +121,6 @@ public class GarbageCleaner {
         }, project);
         SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
         sourceUsageManager.updateSourceUsage();
-        NMetricsGroup.hostTagCounterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
+        MetricsGroup.hostTagCounterInc(MetricsName.METADATA_CLEAN, MetricsCategory.PROJECT, project);
     }
 }

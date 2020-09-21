@@ -30,6 +30,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.common.metrics.MetricsGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -50,9 +51,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.rest.request.SQLValidateRequest;
@@ -137,7 +137,7 @@ public class FavoriteQueryController extends NBasicController {
         Map<String, List<String>> result = favoriteQueryService.acceptAccelerate(request.getProject(),
                 request.getSqls());
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, request.getProject());
+        MetricsGroup.hostTagCounterInc(MetricsName.FQ_FE_INVOKED, MetricsCategory.PROJECT, request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
@@ -150,7 +150,7 @@ public class FavoriteQueryController extends NBasicController {
         checkProjectUnmodifiable(project);
         favoriteQueryService.acceptAccelerate(project, accelerateSize);
 
-        NMetricsGroup.hostTagCounterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, project);
+        MetricsGroup.hostTagCounterInc(MetricsName.FQ_FE_INVOKED, MetricsCategory.PROJECT, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

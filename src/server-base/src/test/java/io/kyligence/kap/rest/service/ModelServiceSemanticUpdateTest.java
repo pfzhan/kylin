@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -154,6 +155,11 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        try {
+            new JdbcRawRecStore(getTestConfig());
+        } catch (Exception e) {
+            //
+        }
     }
 
     @After
