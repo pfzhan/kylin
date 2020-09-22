@@ -25,7 +25,8 @@ module.exports = {
     '^vue$': 'vue/dist/vue.common.js',
     '^src': '<rootDir>/src',
     '^assets': '<rootDir>/src/assets',
-    '^components': '<rootDir>/src/components',
+    "components(.*)$": "<rootDir>/src/components/$1",
+    // '^components': '<rootDir>/src/components',
     '^lessdir': '<rootDir>/src/less',
     '^util': '<rootDir>/src/util',
     '^config': '<rootDir>/src/config'
@@ -68,7 +69,9 @@ module.exports = {
     '!src/components/common/manage_card.vue',
     '!src/components/common/kap_collapse.vue',
     '!src/components/common/common_popover.vue',
-    '!src/components/studio/Acceleration/*.{js, vue}'
+    '!src/components/studio/Acceleration/*.{js, vue}',
+    '!src/components/monitor/admin.vue',
+    '!src/components/monitor/cluster.vue',
   ],
   // coverageReporters: ['json', 'lcovonly', 'text', 'clover'],
   coverageDirectory: './test/coverage',

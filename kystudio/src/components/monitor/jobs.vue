@@ -231,7 +231,7 @@
                   <li>{{$t('duration')}}: {{step.duration/60/1000 | number(2)}} mins</li>
                   <li>{{$t('startTime')}}: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
                   <li>{{$t('endTime')}}: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
-                  <li v-if="step.info.hdfs_bytes_written">Data Size: <span>{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
+                  <li v-if="step.info&&step.info.hdfs_bytes_written">Data Size: <span>{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
                 </ul>
               </el-popover>
 
@@ -245,7 +245,7 @@
                     {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
                   </span>
 
-                  <div v-if="step.info.hdfs_bytes_written">
+                  <div v-if="step.info&&step.info.hdfs_bytes_written">
                     <span class="jobActivityLabel">Data Size: </span>
                     <span>{{step.info.hdfs_bytes_written|dataSize}}</span>
                   </div>
@@ -263,14 +263,14 @@
                   </div>
                   <div>
                     <span class="active-nodes">{{$t('jobNodes')}}: </span>
-                    <span>{{step.info.node_info || $t('unknow')}}</span>
+                    <span v-if="step.info">{{step.info.node_info || $t('unknow')}}</span>
                     <br />
                   </div>
                 </div>
                 <div class="timeline-footer">
                   
                   <!-- <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i> -->
-                  <common-tip :content="$t('sparkJobTip')">
+                  <common-tip :content="$t('sparkJobTip')" v-if="step.info">
                     <a :href="step.info.yarn_application_tracking_url" target="_blank" v-if="!$store.state.config.platform || ($store.state.config.platform === 'iframe' && step.step_status === 'RUNNING')">
                         <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
                     </a>
@@ -566,10 +566,10 @@ export default class JobsList extends Vue {
     key: '',
     isAuto: false
   }
-  waitingFilter = {
-    isAuto: false,
-    project: ''
-  }
+  // waitingFilter = {
+  //   isAuto: false,
+  //   project: ''
+  // }
   waittingJobsFilter = {
     offset: 0,
     limit: 10
@@ -599,12 +599,6 @@ export default class JobsList extends Vue {
     return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
-  get getJobNodes () {
-    const { details } = this.selectedJob
-    let nodes = details ? details.map(it => it.info.node_info || '').filter(item => item !== '') : []
-    return nodes.join(',')
-  }
-
   get isShowAdminTips () {
     return this.$store.state.user.isShowAdminTips && this.isAdminRole && this.$store.state.config.platform !== 'iframe' && !this.$store.state.system.isShowGlobalAlter
   }
@@ -629,16 +623,16 @@ export default class JobsList extends Vue {
     this.waittingJobsFilter.project = this.currentSelectedProject
     this.waittingJobsFilter.model = uuid
     this.waitingJob.modelName = this.waittingJobModels.data[uuid].model_alias
-    this.getWaittingJobs()
+    // this.getWaittingJobs()
   }
-  getWaittingJobs () {
-    this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
-      handleSuccess(res, (data) => {
-        this.waitingJob.jobsList = data.value
-        this.waitingJob.jobsSize = data.total_size
-      })
-    })
-  }
+  // getWaittingJobs () {
+  //   this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
+  //     handleSuccess(res, (data) => {
+  //       this.waitingJob.jobsList = data.value
+  //       this.waitingJob.jobsSize = data.total_size
+  //     })
+  //   })
+  // }
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
       resume: ['ERROR', 'STOPPED'],
@@ -673,41 +667,6 @@ export default class JobsList extends Vue {
       this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
     }
   }
-  renderColumn (h) {
-    let items = []
-    for (let i = 0; i < this.jobTypeFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.jobTypeFilteArr[i]} key={this.jobTypeFilteArr[i]}>{this.$t(this.jobTypeFilteArr[i])}</el-checkbox>)
-    }
-    return (<span>
-      <span>{this.$t('JobType')}</span>
-      <el-popover
-        ref="jobTypeFilterPopover"
-        placement="bottom"
-        popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.filter.job_names} onInput={val => (this.filter.job_names = val)} onChange={this.filterChange2}>
-          {items}
-        </el-checkbox-group>
-        <i class={this.filter.job_names.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-      </el-popover>
-    </span>)
-  }
-  renderColumn2 (h) {
-    let items = []
-    for (let i = 0; i < this.allStatus.length; i++) {
-      items.push(
-        <el-checkbox label={this.allStatus[i]} key={this.allStatus[i]}>{this.$t(this.allStatus[i])}</el-checkbox>
-      )
-    }
-    return (<span>
-      <span>{this.$t('ProgressStatus')}</span>
-      <el-popover placement="bottom" popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.filter.status} onInput={val => (this.filter.status = val)} onChange={this.filterChange2}>
-          {items}
-        </el-checkbox-group>
-        <i class={this.filter.status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-      </el-popover>
-    </span>)
-  }
   // 清除所有的tags
   handleClearAllTags () {
     this.filter.page_offset = 0
@@ -719,7 +678,7 @@ export default class JobsList extends Vue {
   autoFilter () {
     if (this.stCycle) {
       this.filter.isAuto = true
-      this.waitingFilter.isAuto = true
+      // this.waitingFilter.isAuto = true
     }
     clearTimeout(this.stCycle)
     this.stCycle = setTimeout(() => {
@@ -750,18 +709,18 @@ export default class JobsList extends Vue {
   destroyed () {
     clearTimeout(this.stCycle)
   }
-  mounted () {
-    if (document.getElementById('scrollContent')) {
-      document.getElementById('scrollContent').addEventListener('scroll', this.scrollRightBar, false)
-    }
-  }
+  // mounted () {
+  //   if (document.getElementById('scrollContent')) {
+  //     document.getElementById('scrollContent').addEventListener('scroll', this.scrollRightBar, false)
+  //   }
+  // }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     // window.removeEventListener('click', this.closeIt)
-    if (document.getElementById('scrollContent')) {
-      document.getElementById('scrollContent').removeEventListener('scroll', this.scrollRightBar, false)
-    }
+    // if (document.getElementById('scrollContent')) {
+    //   document.getElementById('scrollContent').removeEventListener('scroll', this.scrollRightBar, false)
+    // }
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
@@ -850,55 +809,55 @@ export default class JobsList extends Vue {
       return ''
     }
   }
-  setRightBarTop () {
-    // 默认右侧详情的位移为 0
-    let result = 0
-    // 左边列表区域的高度
-    let leftTableH = document.getElementById('leftTableBox').clientHeight
-    // 右侧详情的高度
-    let rightStepDetailH = document.getElementById('stepList') && document.getElementById('stepList').clientHeight
-    // 可视区剔除掉导航头后的高度
-    let screenH = document.documentElement.clientHeight - 52
-    // 当前滚动距离
-    let sTop = document.getElementById('scrollContent').scrollTop
-    // this.beforeScrollPos = sTop
-    // 整个列表区距离顶部的位移
-    let listBoxOffsetTop = document.getElementById('listBox').offsetTop
-    /*
-      1、列表在一屏内，详情也在一屏，相当于没有滚动条，不做啥处理
-      2、列表在一屏内，详情超出一屏幕，让详情跟着滚，其实同1
-      3、列表超出一屏，详情在一屏内，让详情始终顶边即可
-      4、列表超出一屏，详情也超出一屏，列表高度比详情高度小，这种只能跟着滚，不做顶边
-      5、列表超出一屏，详情也超出一屏，列表高度比详情高度大，详情不断改位置，一直到，详情底部位置和列表一致了，位置就保持不变了
-    */
-    // 列表在一屏幕以内的，都是跟着滚，保持 0 即可，其余情况开始判断
-    if (leftTableH > screenH) {
-      if (rightStepDetailH <= screenH) { // 详情在一屏幕内的，滚动后超出界面了，保持顶边，其余时候也是 0
-        if (sTop > listBoxOffsetTop) {
-          result = sTop - listBoxOffsetTop
-        }
-      } else {
-        // 列表超出一屏，详情也超出一屏，列表高度比详情高度大，详情不断改位置，一直到，详情底部位置和列表一致了，位置就保持不变了，其余情况就还是跟着滚的 0
-        if (leftTableH > rightStepDetailH) {
-          let temp = leftTableH - rightStepDetailH
-          if (sTop > listBoxOffsetTop) {
-            result = sTop - listBoxOffsetTop > temp ? temp : sTop - listBoxOffsetTop
-          }
-        }
-      }
-    }
-    if (document.getElementById('stepList')) {
-      document.getElementById('stepList').style.top = result + 'px'
-    }
-  }
-  scrollRightBar (e, needRizeTop) {
-    clearTimeout(this.scrollST)
-    this.scrollST = setTimeout(() => {
-      if (this.showStep) {
-        this.setRightBarTop()
-      }
-    }, 400)
-  }
+  // setRightBarTop () {
+  //   // 默认右侧详情的位移为 0
+  //   let result = 0
+  //   // 左边列表区域的高度
+  //   let leftTableH = document.getElementById('leftTableBox').clientHeight
+  //   // 右侧详情的高度
+  //   let rightStepDetailH = document.getElementById('stepList') && document.getElementById('stepList').clientHeight
+  //   // 可视区剔除掉导航头后的高度
+  //   let screenH = document.documentElement.clientHeight - 52
+  //   // 当前滚动距离
+  //   let sTop = document.getElementById('scrollContent').scrollTop
+  //   // this.beforeScrollPos = sTop
+  //   // 整个列表区距离顶部的位移
+  //   let listBoxOffsetTop = document.getElementById('listBox').offsetTop
+  //   /*
+  //     1、列表在一屏内，详情也在一屏，相当于没有滚动条，不做啥处理
+  //     2、列表在一屏内，详情超出一屏幕，让详情跟着滚，其实同1
+  //     3、列表超出一屏，详情在一屏内，让详情始终顶边即可
+  //     4、列表超出一屏，详情也超出一屏，列表高度比详情高度小，这种只能跟着滚，不做顶边
+  //     5、列表超出一屏，详情也超出一屏，列表高度比详情高度大，详情不断改位置，一直到，详情底部位置和列表一致了，位置就保持不变了
+  //   */
+  //   // 列表在一屏幕以内的，都是跟着滚，保持 0 即可，其余情况开始判断
+  //   if (leftTableH > screenH) {
+  //     if (rightStepDetailH <= screenH) { // 详情在一屏幕内的，滚动后超出界面了，保持顶边，其余时候也是 0
+  //       if (sTop > listBoxOffsetTop) {
+  //         result = sTop - listBoxOffsetTop
+  //       }
+  //     } else {
+  //       // 列表超出一屏，详情也超出一屏，列表高度比详情高度大，详情不断改位置，一直到，详情底部位置和列表一致了，位置就保持不变了，其余情况就还是跟着滚的 0
+  //       if (leftTableH > rightStepDetailH) {
+  //         let temp = leftTableH - rightStepDetailH
+  //         if (sTop > listBoxOffsetTop) {
+  //           result = sTop - listBoxOffsetTop > temp ? temp : sTop - listBoxOffsetTop
+  //         }
+  //       }
+  //     }
+  //   }
+  //   if (document.getElementById('stepList')) {
+  //     document.getElementById('stepList').style.top = result + 'px'
+  //   }
+  // }
+  // scrollRightBar (e, needRizeTop) {
+  //   clearTimeout(this.scrollST)
+  //   this.scrollST = setTimeout(() => {
+  //     if (this.showStep) {
+  //       this.setRightBarTop()
+  //     }
+  //   }, 400)
+  // }
   animatedNum (newValue, oldValue) {
     new TWEEN.Tween({
       number: oldValue
@@ -948,7 +907,7 @@ export default class JobsList extends Vue {
     if (this.jobTotal > this.filter.page_size && this.filter.status !== '') {
       this.isSelectAllShow = !this.isSelectAllShow
       this.isSelectAll = false
-      this.selectedNumber = this.animatedNum(this.jobsList.length, 0)
+      this.animatedNum(this.jobsList.length, 0)
     }
   }
   handleSelect (val) {
@@ -1084,11 +1043,6 @@ export default class JobsList extends Vue {
     this.manualRefreshJobs()
     this.showStep = false
   }
-  filterChange2 (status) {
-    this.filter.page_offset = 0
-    this.manualRefreshJobs()
-    this.showStep = false
-  }
   tableRowClassName ({row, rowIndex}) {
     if (row.id === this.selectedJob.id && this.showStep) {
       return 'current-row2'
@@ -1105,7 +1059,7 @@ export default class JobsList extends Vue {
   manualRefreshJobs () {
     // 手动刷新部分，接口skip session 设为false
     this.filter.isAuto = false
-    this.waitingFilter.isAuto = false
+    // this.waitingFilter.isAuto = false
     this.resetSelection()
     this.loadList()
   }
@@ -1299,7 +1253,7 @@ export default class JobsList extends Vue {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.$set(this.selectedJob, 'details', data)
-            this.setRightBarTop()
+            // this.setRightBarTop()
           })
         }, (resError) => {
           handleError(resError)
@@ -1307,11 +1261,11 @@ export default class JobsList extends Vue {
       })
     }
   }
-  clickKey (step) {
-    this.stepAttrToShow = 'cmd'
-    this.outputDetail = step.exec_cmd
-    this.dialogVisible = true
-  }
+  // clickKey (step) {
+  //   this.stepAttrToShow = 'cmd'
+  //   this.outputDetail = step.exec_cmd
+  //   this.dialogVisible = true
+  // }
   clickFile (step) {
     this.stepAttrToShow = 'output'
     this.dialogVisible = true
@@ -1334,10 +1288,10 @@ export default class JobsList extends Vue {
   //     return min.toFixed(2) + ' mins'
   //   }
   // }
-  closeLoginOpenKybot () {
-    this.kyBotUploadVisible = false
-    this.infoKybotVisible = true
-  }
+  // closeLoginOpenKybot () {
+  //   this.kyBotUploadVisible = false
+  //   this.infoKybotVisible = true
+  // }
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {
