@@ -52,14 +52,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.license.Constants;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -93,6 +91,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ContentNegotiationManager;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.license.Constants;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -470,5 +471,21 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));
+    }
+
+    @Test
+    public void testUpdateUserWithDuplicatedGroup() throws Exception {
+        val user = new ManagedUser();
+        user.setUsername("ADMIN");
+        user.setPassword("KYLIN1234@");
+        userGroupService.addGroup(Constant.GROUP_ALL_USERS);
+        List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS),
+                new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
+        user.setGrantedAuthorities(groups);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Values in authorities can't be duplicated.");
+        nUserController.updateUser(user);
     }
 }

@@ -217,6 +217,7 @@ public class NUserController extends NBasicController {
 
         user.setPassword(pwdEncode(user.getPassword()));
         checkUserGroupExists(user.getAuthorities());
+        checkUserGroupNotDuplicated(user.getAuthorities());
         completeAuthorities(user);
 
         boolean noAdminRight = user.getAuthorities().contains(new SimpleGrantedAuthority(ROLE_ADMIN));
