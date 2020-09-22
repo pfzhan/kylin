@@ -230,6 +230,10 @@
 
     <beans profile="testing,ldap,custom">
         <scr:http auto-config="true" use-expressions="true">
+            <scr:headers>
+                <scr:frame-options policy="SAMEORIGIN"/>
+                <scr:cache-control disabled="true"/>
+            </scr:headers>
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="nUnauthorisedEntryPoint"/>
             <scr:intercept-url pattern="/api/health" access="permitAll"/>
@@ -294,6 +298,10 @@
         <!-- Secured Rest API urls with LDAP basic authentication -->
         <scr:http pattern="/api/**" use-expressions="true"
                   authentication-manager-ref="apiAccessAuthManager">
+            <scr:headers>
+                <scr:frame-options policy="SAMEORIGIN"/>
+                <scr:cache-control disabled="true"/>
+            </scr:headers>
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="unauthorisedEntryPoint"/>
 
