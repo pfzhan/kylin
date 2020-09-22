@@ -55,7 +55,7 @@ object ExpressionConverter {
   val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad", "conv")
   val binaryParameterFunc =
     mutable.HashSet("decode", "encode", "find_in_set", "levenshtein", "sha2",
-      "trunc", "add_months", "date_add", "date_sub", "from_unixtime", "from_utc_timestamp", "to_utc_timestamp",
+      "trunc", "add_months", "date_add", "date_sub", "from_utc_timestamp", "to_utc_timestamp",
       // math function
       "bround", "hypot", "log"
     )
@@ -64,7 +64,7 @@ object ExpressionConverter {
     "input_file_name", "monotonically_increasing_id", "now", "spark_partition_id", "uuid"
   )
 
-  val varArgsFunc = mutable.HashSet("months_between", "locate", "rtrim")
+  val varArgsFunc = mutable.HashSet("months_between", "locate", "rtrim", "from_unixtime")
 
   val bitmapUDF = mutable.HashSet("intersect_count_by_col", "subtract_bitmap_value", "subtract_bitmap_uuid");
 

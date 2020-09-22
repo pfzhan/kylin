@@ -84,6 +84,11 @@ public class SparkTimeUDF implements NotConstant {
         throw new CalciteNotSupportException();
     }
 
+    public String FROM_UNIXTIME(@Parameter(name = "long1") Object exp1)
+            throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
+    }
+
     public Timestamp FROM_UTC_TIMESTAMP(@Parameter(name = "t1") Object exp1, @Parameter(name = "str2") String exp2)
             throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
