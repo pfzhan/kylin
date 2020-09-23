@@ -57,7 +57,7 @@ import { NamedRegex } from 'config'
     'en': {
       conditionExpress: 'Note that select one column should contain its table name(or alias table name).',
       numberNameFormatValidTip: 'Invalid computed column name',
-      sameName: 'This name has already been used by other computed columns in this model',
+      sameName: 'The name of computed column can\'t be duplicated within the same model',
       columnName: 'Column Name',
       name: 'Name',
       expression: 'Expression',
@@ -76,7 +76,7 @@ import { NamedRegex } from 'config'
     'zh-cn': {
       conditionExpress: '请注意，表达式中选用某列时，格式为“表名.列名”。',
       numberNameFormatValidTip: '无效的可计算列列名',
-      sameName: '该可计算列名在模型内已存在',
+      sameName: '可计算列名称在同一模型下不可重复',
       columnName: '列名',
       name: '名称',
       expression: '表达式',

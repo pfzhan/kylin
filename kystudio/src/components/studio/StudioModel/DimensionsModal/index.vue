@@ -50,7 +50,7 @@
                         <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
                         </el-input>
                         <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
-                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('sameName')}}</div>
                         <div v-else-if="scope.row.validateNameMaxLen" class="ky-form-error">{{$t('kylinLang.common.nameMaxLen', {len: dimMeasNameMaxLength})}}</div>
                       </div>
                     </template>
@@ -80,7 +80,7 @@
                   </el-table-column>
                 </el-table>
               </div>
-              <div class="same-name-tip" v-if="filterErrorContent(table)">{{$t('sameNameTip')}}</div>
+              <!-- <div class="same-name-tip" v-if="filterErrorContent(table)">{{$t('sameNameTip')}}</div> -->
             </div>
             <!-- 维度表 -->
             <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
@@ -114,7 +114,7 @@
                         <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
                         </el-input>
                         <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
-                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('sameName')}}</div>
                       </div>
                     </template>
                   </el-table-column>
@@ -141,7 +141,7 @@
                   </el-table-column>
                 </el-table>
               </div>
-              <div class="same-name-tip" v-if="filterErrorContent(table)">{{$t('sameNameTip')}}</div>
+              <!-- <div class="same-name-tip" v-if="filterErrorContent(table)">{{$t('sameNameTip')}}</div> -->
             </div>
             <!-- 可计算列 -->
             <template v-if="ccTable.columns.length">
@@ -177,7 +177,7 @@
                           <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
                           </el-input>
                           <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
-                          <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                          <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('sameName')}}</div>
                         </div>
                       </template>
                     </el-table-column>
@@ -198,7 +198,7 @@
                     </el-table-column>
                   </el-table>
                 </div>
-                <div class="same-name-tip" v-if="filterErrorContent(ccTable)">{{$t('sameNameTip')}}</div>
+                <!-- <div class="same-name-tip" v-if="filterErrorContent(ccTable)">{{$t('sameNameTip')}}</div> -->
               </div>
             </template>
           </div>
@@ -224,7 +224,7 @@
                     <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
                     </el-input>
                     <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip2')}}</div>
-                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('sameName')}}</div>
                   </div>
                 </template>
               </el-table-column>

@@ -20,7 +20,8 @@ export default {
     businessOriented: 'Business Oriented',
     noCoincide: 'On the business oriented preference, you are suggested to use most dimensions from SQL patterns. Otherwise, optimizer can barely offer useful suggestion.',
     searchColumn: 'Search column name',
-    sameNameTip: 'Invalid format or duplicate name',
+    sameName: 'The name of dimension can\'t be duplicated within the same model',
+    sameNameTip: 'Dimension name is invalid or the same name already exists in this model. Please rename and try again',
     nameTip: 'This dimension name will be used in BI tools.',
     cardinalityTip: 'Total amount of unique data in this column. Could be gathered from sampling.',
     commentTip: 'Synced from the source table.'
@@ -46,7 +47,8 @@ export default {
     businessOriented: '业务优先',
     noCoincide: '在业务优先的优化偏好下，您未选择输入的 SQL 中出现的维度。优化器将难以提供合适的优化建议。',
     searchColumn: '搜索列名',
-    sameNameTip: '名称格式有误或已重名',
+    sameName: '维度名称在同一模型下不可重复',
+    sameNameTip: '维度名称格式有误或在该模型下存在重名，请重新命名',
     nameTip: '该维度名称将用于 BI 工具中。',
     cardinalityTip: '该列不重复的数据量。该数据可通过采样获得。',
     commentTip: '从数据源中同步的注释信息。'

@@ -9,7 +9,7 @@ export default {
     name: 'Name',
     expression: 'Expression',
     returnType: 'Return Type',
-    sameName: 'Name has been used',
+    sameName: 'The name of dimension can\'t be duplicated within the same model',
     sameColumn: 'Column has been used',
     addCCTip: 'Create Computed Column'
   },
@@ -23,7 +23,7 @@ export default {
     name: '名称',
     expression: '表达式',
     returnType: '返回类型',
-    sameName: '该名称已经被使用过',
+    sameName: '维度名称在同一模型下不可重复',
     sameColumn: '该列已被其他维度使用',
     addCCTip: '创建可计算列'
   }
