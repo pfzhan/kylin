@@ -337,15 +337,16 @@ export default class ModelPartitionModal extends Vue {
         }
       })
     }
-    let ccColumns = this.modelInstance.getComputedColumns()
-    let cloneCCList = objectClone(ccColumns)
-    cloneCCList.forEach((x) => {
-      let cc = {
-        name: x.columnName,
-        datatype: x.datatype
-      }
-      result.push(cc)
-    })
+    // 暂不支持CC列做分区列
+    // let ccColumns = this.modelInstance.getComputedColumns()
+    // let cloneCCList = objectClone(ccColumns)
+    // cloneCCList.forEach((x) => {
+    //   let cc = {
+    //     name: x.columnName,
+    //     datatype: x.datatype
+    //   }
+    //   result.push(cc)
+    // })
     return result
   }
   // get formatList () {
