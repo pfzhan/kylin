@@ -404,15 +404,17 @@ public class TableService extends BasicService {
         final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
                 groups);
         final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project, groups);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        List<NDataModel> healthyModels = projectManager.listHealthyModels(project);
         for (val originTable : tables) {
             TableDesc table = getAuthorizedTableDesc(project, isAclGreen, originTable, aclTCRS);
             if (Objects.isNull(table)) {
                 continue;
             }
             TableDescResponse rtableDesc;
-            List<NDataModel> modelsUsingRootTable = Lists.newArrayList();
-            List<NDataModel> modelsUsingTable = Lists.newArrayList();
-            projectManager.listHealthyModels(project).forEach(model -> {
+            val modelsUsingRootTable = Lists.<NDataModel>newArrayList();
+            val modelsUsingTable = Lists.<NDataModel>newArrayList();
+            for (NDataModel model : healthyModels) {
                 if (model.containsTable(table)) {
                     modelsUsingTable.add(model);
                 }
@@ -420,7 +422,7 @@ public class TableService extends BasicService {
                 if (model.isRootFactTable(table)) {
                     modelsUsingRootTable.add(model);
                 }
-            });
+            }
 
             if (withExt) {
                 rtableDesc = getTableResponse(table, project);
@@ -441,7 +443,7 @@ public class TableService extends BasicService {
                 rtableDesc.setStorageSize(getStorageSize(project, modelsUsingRootTable));
             } else if (CollectionUtils.isNotEmpty(modelsUsingTable)) {
                 rtableDesc.setLookup(true);
-                rtableDesc.setStorageSize(getSnapshotSize(project, modelsUsingTable, table.getIdentity()));
+                rtableDesc.setStorageSize(getSnapshotSize(project, modelsUsingTable, table.getIdentity(), fs));
             }
             Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(project, table, modelsUsingTable);
             NDataLoadingRange dataLoadingRange = getDataLoadingRangeManager(project)
@@ -507,7 +509,7 @@ public class TableService extends BasicService {
         return getAclTCRManager(project).getAuthorizedTableDesc(originTable, aclTCRS);
     }
 
-    private long getSnapshotSize(String project, List<NDataModel> modelsUsingTable, String table) throws IOException {
+    private long getSnapshotSize(String project, List<NDataModel> modelsUsingTable, String table, FileSystem fs) throws IOException {
         val dfManager = getDataflowManager(project);
         var hasReadySegs = false;
         var size = 0;
@@ -517,7 +519,6 @@ public class TableService extends BasicService {
             hasReadySegs = true;
             val snapShots = lastSeg.getSnapshots();
             if (snapShots.containsKey(table)) {
-                FileSystem fs = HadoopUtil.getWorkingFileSystem();
                 val path = new Path(snapShots.get(table));
                 if (fs.exists(path)) {
                     size += HadoopUtil.getContentSummary(fs, path).getLength();
@@ -540,7 +541,9 @@ public class TableService extends BasicService {
             val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
             if (CollectionUtils.isNotEmpty(readySegs)) {
                 hasReadySegs = true;
-                size += dfManger.getDataflowStorageSize(model.getUuid());
+                for (NDataSegment segment : readySegs) {
+                    size += segment.getStorageBytesSize();
+                }
             }
         }
         if (!hasReadySegs) {
@@ -913,7 +916,8 @@ public class TableService extends BasicService {
         if (CollectionUtils.isNotEmpty(rootTableModels)) {
             response.setStorageSize(getStorageSize(project, rootTableModels));
         } else if (CollectionUtils.isNotEmpty(models)) {
-            response.setStorageSize(getSnapshotSize(project, models, tableIdentity));
+            val fs = HadoopUtil.getWorkingFileSystem();
+            response.setStorageSize(getSnapshotSize(project, models, tableIdentity, fs));
         }
 
         response.setHasJob(
