@@ -42,9 +42,9 @@
         </div>
       </div>
       <el-button-group class="diagram-actions" v-if="isShowActions">
-        <el-button plain icon="el-icon-ksd-zoom_in" @click="handleZoom(canvas.stage.zoom * 0.2)" />
-        <el-button plain icon="el-icon-ksd-zoom_out" @click="handleZoom(canvas.stage.zoom * -0.2)" />
-        <el-button plain icon="el-icon-ksd-default_zoom" @click="handleReset" />
+        <el-button plain icon="el-icon-ksd-zoom_in" :disabled="canvas.stage.zoom >= 2" @click="handleZoom(canvas.stage.zoom * 0.2)" />
+        <el-button plain icon="el-icon-ksd-zoom_out" :disabled="canvas.stage.zoom <= 0.25" @click="handleZoom(canvas.stage.zoom * -0.2)" />
+        <el-button plain icon="el-icon-ksd-zoom_to_default" @click="handleReset" />
       </el-button-group>
     </div>
   </div>
@@ -121,10 +121,10 @@ export default class ModelERDiagram extends Vue {
 
   setZoom (zoom) {
     const { canvas: { stage } } = this
-    if (zoom >= 1.4) {
-      stage.zoom = 1.4
-    } else if (zoom <= 0.01) {
-      stage.zoom = 0.01
+    if (zoom >= 2) {
+      stage.zoom = 2
+    } else if (zoom <= 0.25) {
+      stage.zoom = 0.25
     } else {
       stage.zoom = zoom
     }
