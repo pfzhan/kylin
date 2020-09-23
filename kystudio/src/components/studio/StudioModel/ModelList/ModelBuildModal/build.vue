@@ -500,6 +500,7 @@
       this.isLoadingFormat = false
     }
     async handleLoadNewestRange () {
+      this.$refs.buildForm && this.$refs.buildForm.clearValidate()
       this.isLoadingNewRange = true
       this.resetError()
       const partition_desc = {
