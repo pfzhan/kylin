@@ -121,21 +121,23 @@
                 <el-date-picker
                   type="datetime"
                   class="ksd-mr-5"
+                  ref="prevPicker"
                   v-model="modelBuildMeta.dataRangeVal[0]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   @change="resetError"
                   value-format="timestamp"
                   :format="partitionMeta.format"
-                  :placeholder="$t('kylinLang.common.startTime')">
+                >
                 </el-date-picker>
                 <el-date-picker
                   type="datetime"
+                  ref="nextPicker"
                   v-model="modelBuildMeta.dataRangeVal[1]"
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   value-format="timestamp"
                   @change="resetError"
                   :format="partitionMeta.format"
-                  :placeholder="$t('kylinLang.common.endTime')">
+                >
                 </el-date-picker>
                 <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
                   <el-button
