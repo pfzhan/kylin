@@ -241,11 +241,10 @@ class DFSnapshotBuilder extends Logging with Serializable {
   }
 
   def computeSnapshotSize(sourceData: Dataset[Row], tableDesc: TableDesc, concurrentMap: ConcurrentMap[String, Long], columnSize: Int): Unit = {
-    val size = sourceData.mapPartitions {
+    val ds = sourceData.mapPartitions {
       iter =>
         var totalSize = 0l;
         iter.foreach(row => {
-          var i = 0
           for (i <- 0 until columnSize - 1) {
             val value = row.get(i)
             val strValue = if (value == null) null
@@ -254,8 +253,14 @@ class DFSnapshotBuilder extends Logging with Serializable {
           }
         })
         List(totalSize).toIterator
-    }(Encoders.scalaLong).reduce(_ + _)
-    concurrentMap.put(tableDesc.getIdentity, size)
+    }(Encoders.scalaLong)
+
+    if (ds.isEmpty) {
+      concurrentMap.put(tableDesc.getIdentity, 0)
+    } else {
+      val size = ds.reduce(_ + _)
+      concurrentMap.put(tableDesc.getIdentity, size)
+    }
   }
 
   def buildSingleSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String, concurrentMap: ConcurrentMap[String, Long]): (String, String) = {
