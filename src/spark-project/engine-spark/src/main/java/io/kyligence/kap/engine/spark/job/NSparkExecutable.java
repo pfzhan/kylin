@@ -179,15 +179,7 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
         }
-        String hadoopConf = System.getProperty("kylin.hadoop.conf.dir");
-        if (!config.getBuildConf().isEmpty()) {
-            logger.info("write hadoop conf is {} ", config.getBuildConf());
-            hadoopConf = config.getBuildConf();
-        }
-        if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv()) {
-            throw new RuntimeException(
-                    "kylin_hadoop_conf_dir is empty, check if there's error in the output of 'kylin.sh start'");
-        }
+        String hadoopConf = HadoopUtil.getHadoopConfDir();
 
         File hiveConfFile = new File(hadoopConf, "hive-site.xml");
         if (!hiveConfFile.exists() && !config.isUTEnv()) {
@@ -229,9 +221,8 @@ public class NSparkExecutable extends AbstractExecutable {
             return runLocalMode(filePath);
         } else {
             killOrphanApplicationIfExists(getId());
-            val result = runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
+            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
                     "-className " + getSparkSubmitClassName() + " " + filePath, getParent().getId());
-            return result;
         }
     }
 

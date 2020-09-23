@@ -47,9 +47,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-
+import java.nio.file.Paths;
 import java.util.Arrays;
-import lombok.var;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -63,6 +63,9 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.storage.IStorageProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import lombok.val;
+import lombok.var;
 
 public class HadoopUtil {
 
@@ -111,6 +114,43 @@ public class HadoopUtil {
         conf.set("yarn.timeline-service.enabled", "false");
 
         return conf;
+    }
+
+    /**
+     * extract hadoop properties form kylin spark engine
+     * for example :
+     * get yarn.client.failover-max-attempts from kylin.engine.spark-conf.spark.hadoop.yarn.client.failover-max-attempts
+     * @return
+     */
+    public static Configuration getHadoopConfFromSparkEngine() {
+        val conf = new Configuration(false);
+        val hadoopConfDir = getHadoopConfDir();
+
+        conf.addResource(new Path(Paths.get(hadoopConfDir, "core-site.xml").toFile().getAbsolutePath()));
+        conf.addResource(new Path(Paths.get(hadoopConfDir, "hdfs-site.xml").toFile().getAbsolutePath()));
+        conf.addResource(new Path(Paths.get(hadoopConfDir, "yarn-site.xml").toFile().getAbsolutePath()));
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        kylinConfig.getSparkConfigOverride().forEach((key, value) -> {
+            val keyPrefix = "spark.hadoop.";
+            if (key.startsWith(keyPrefix)) {
+                conf.set(key.substring(keyPrefix.length()), value);
+            }
+        });
+        return conf;
+    }
+
+    public static String getHadoopConfDir() {
+        val config = KylinConfig.getInstanceFromEnv();
+        String hadoopConf = System.getProperty("kylin.hadoop.conf.dir");
+        if (!config.getBuildConf().isEmpty()) {
+            logger.info("write hadoop conf is {} ", config.getBuildConf());
+            hadoopConf = config.getBuildConf();
+        }
+        if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv()) {
+            throw new RuntimeException(
+                    "kylin_hadoop_conf_dir is empty, check if there's error in the output of 'kylin.sh start'");
+        }
+        return hadoopConf;
     }
 
     //add sonar rule:  filesystem.get forbidden

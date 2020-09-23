@@ -22,13 +22,21 @@
 
 package io.kyligence.kap.cluster
 
+import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
+
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.SimpleTimeLimiter
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.util.KylinReflectUtils
 
 
 object ClusterManagerFactory {
 
+  val pool: ExecutorService = Executors.newCachedThreadPool
+
   def create(kylinConfig: KylinConfig): IClusterManager = {
-    KylinReflectUtils.createObject(kylinConfig.getClusterManagerClassName)._1.asInstanceOf[IClusterManager]
+    val timeLimiter = new SimpleTimeLimiter(pool)
+    val target = KylinReflectUtils.createObject(kylinConfig.getClusterManagerClassName)._1.asInstanceOf[IClusterManager]
+
+    timeLimiter.newProxy(target, classOf[IClusterManager], kylinConfig.getClusterManagerTimeoutThreshold, TimeUnit.SECONDS);
   }
 }

@@ -27,12 +27,12 @@ import java.util
 
 import com.google.common.collect.Sets
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
-import io.kyligence.kap.engine.spark.utils.StorageUtils
 import org.apache.commons.collections.CollectionUtils
 import org.apache.hadoop.yarn.api.records.{ApplicationId, ApplicationReport, YarnApplicationState}
 import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 
@@ -40,20 +40,22 @@ import scala.collection.JavaConverters._
 
 class YarnClusterManager extends IClusterManager with Logging {
 
-  import io.kyligence.kap.cluster.YarnClusterManager.yarnClient
+  import io.kyligence.kap.cluster.YarnClusterManager._
 
-  private lazy val maximumResourceAllocation = {
-    try {
-      val response = yarnClient.createApplication().getNewApplicationResponse
-      val cap = response.getMaximumResourceCapability
-      val resourceInfo = ResourceInfo(cap.getMemory, cap.getVirtualCores)
-      logInfo(s"Cluster maximum resource allocation $resourceInfo")
-      resourceInfo
-    } catch {
-      case throwable: Throwable =>
-        logError("Error occurred when get resource upper limit per container.", throwable)
-        throw throwable
-    }
+  private lazy val maximumResourceAllocation: ResourceInfo = {
+    withYarnClient(yarnClient => {
+      try {
+        val response = yarnClient.createApplication().getNewApplicationResponse
+        val cap = response.getMaximumResourceCapability
+        val resourceInfo = ResourceInfo(cap.getMemory, cap.getVirtualCores)
+        logInfo(s"Cluster maximum resource allocation $resourceInfo")
+        resourceInfo
+      } catch {
+        case throwable: Throwable =>
+          logError("Error occurred when get resource upper limit per container.", throwable)
+          throw throwable
+      }
+    })
   }
 
   override def fetchMaximumResourceAllocation: ResourceInfo = maximumResourceAllocation
@@ -66,70 +68,83 @@ class YarnClusterManager extends IClusterManager with Logging {
   }
 
   override def getBuildTrackingUrl(sparkSession: SparkSession): String = {
-    val applicationId = sparkSession.sparkContext.applicationId
-    val array = applicationId.split("_")
-    if (array.length < 3) return null
-    val appId = ApplicationId.newInstance(array(1).toLong, array(2).toInt)
-    val applicationReport = yarnClient.getApplicationReport(appId)
-    if (null == applicationReport) null
-    else applicationReport.getTrackingUrl
+    withYarnClient(yarnClient => {
+      val applicationId = sparkSession.sparkContext.applicationId
+      val array = applicationId.split("_")
+      if (array.length < 3) return null
+      val appId = ApplicationId.newInstance(array(1).toLong, array(2).toInt)
+      val applicationReport = yarnClient.getApplicationReport(appId)
+      if (null == applicationReport) null
+      else applicationReport.getTrackingUrl
+    })
   }
 
   override def killApplication(jobStepId: String): Unit = {
-    var orphanApplicationId: String = null
-    try {
-      val types: util.Set[String] = Sets.newHashSet("SPARK")
-      val states: util.EnumSet[YarnApplicationState] = util.EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
-        YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
-      val applicationReports: util.List[ApplicationReport] = yarnClient.getApplications(types, states)
-      if (CollectionUtils.isEmpty(applicationReports)) return
-      import scala.collection.JavaConverters._
-      for (report <- applicationReports.asScala) {
-        if (report.getName.equalsIgnoreCase("job_step_" + jobStepId)) {
-          orphanApplicationId = report.getApplicationId.toString
-          yarnClient.killApplication(report.getApplicationId)
-          logInfo(s"kill orphan yarn application $orphanApplicationId succeed, job step $jobStepId")
+    withYarnClient(yarnClient => {
+      var orphanApplicationId: String = null
+      try {
+        val types: util.Set[String] = Sets.newHashSet("SPARK")
+        val states: util.EnumSet[YarnApplicationState] = util.EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
+          YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
+        val applicationReports: util.List[ApplicationReport] = yarnClient.getApplications(types, states)
+        if (CollectionUtils.isEmpty(applicationReports)) return
+        import scala.collection.JavaConverters._
+        for (report <- applicationReports.asScala) {
+          if (report.getName.equalsIgnoreCase("job_step_" + jobStepId)) {
+            orphanApplicationId = report.getApplicationId.toString
+            yarnClient.killApplication(report.getApplicationId)
+            logInfo(s"kill orphan yarn application $orphanApplicationId succeed, job step $jobStepId")
+          }
         }
+      } catch {
+        case ex@(_: YarnException | _: IOException) =>
+          logError(s"kill orphan yarn application $orphanApplicationId failed, job step $jobStepId", ex)
       }
-    } catch {
-      case ex@(_: YarnException | _: IOException) =>
-        logError(s"kill orphan yarn application $orphanApplicationId failed, job step $jobStepId", ex)
-    }
+    })
   }
 
   def getRunningJobs(queues: util.Set[String]): util.List[String] = {
-    if (queues.isEmpty) {
-      val applications = yarnClient.getApplications(util.EnumSet.of(YarnApplicationState.RUNNING))
-      if (null == applications) List().asJava
-      else applications.asScala.map(_.getName).asJava
-    } else {
-      val runningJobs: util.List[String] = new util.ArrayList[String]()
-      for (queue <- queues.asScala) {
-        val applications = yarnClient.getQueueInfo(queue).getApplications
-        if (null != applications) {
-          applications.asScala.filter(_.getYarnApplicationState == YarnApplicationState.RUNNING).map(_.getName).map(runningJobs.add)
+    withYarnClient(yarnClient => {
+      if (queues.isEmpty) {
+        val applications = yarnClient.getApplications(util.EnumSet.of(YarnApplicationState.RUNNING))
+        if (null == applications) List().asJava
+        else applications.asScala.map(_.getName).asJava
+      } else {
+        val runningJobs: util.List[String] = new util.ArrayList[String]()
+        for (queue <- queues.asScala) {
+          val applications = yarnClient.getQueueInfo(queue).getApplications
+          if (null != applications) {
+            applications.asScala.filter(_.getYarnApplicationState == YarnApplicationState.RUNNING).map(_.getName).map(runningJobs.add)
+          }
         }
+        runningJobs
       }
-      runningJobs
-    }
+    })
   }
 
   override def fetchQueueStatistics(queueName: String): ResourceInfo = {
-    val qs = yarnClient.getQueueInfo(queueName).getQueueStatistics
-    ResourceInfo(qs.getAvailableMemoryMB.toInt, qs.getAvailableVCores.toInt)
+    withYarnClient(yarnClient => {
+      val qs = yarnClient.getQueueInfo(queueName).getQueueStatistics
+      ResourceInfo(qs.getAvailableMemoryMB.toInt, qs.getAvailableVCores.toInt)
+    })
   }
 }
 
 object YarnClusterManager {
-  private lazy val yarnClient = {
-    val client = YarnClient.createYarnClient
-    client.init(getSpecifiedConf)
-    client.start()
-    client
+
+  def withYarnClient[T](body: YarnClient => T): T = {
+    val yarnClient = YarnClient.createYarnClient
+    yarnClient.init(getSpecifiedConf)
+    yarnClient.start()
+    try {
+      body(yarnClient)
+    } finally {
+      yarnClient.close();
+    }
   }
 
   private def getSpecifiedConf: YarnConfiguration = {
-    val yarnConf = StorageUtils.getCurrentYarnConfiguration
+    val yarnConf = new YarnConfiguration(HadoopUtil.getHadoopConfFromSparkEngine)
     // https://issues.apache.org/jira/browse/SPARK-15343
     yarnConf.set("yarn.timeline-service.enabled", "false")
     yarnConf

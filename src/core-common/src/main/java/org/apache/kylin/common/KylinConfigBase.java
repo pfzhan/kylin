@@ -1072,6 +1072,11 @@ public abstract class KylinConfigBase implements Serializable {
                 "io.kyligence.kap.cluster.YarnClusterManager");
     }
 
+    public long getClusterManagerTimeoutThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.engine.cluster-manager-timeout-threshold", "150s"),
+                TimeUnit.SECONDS);
+    }
+
     public void overrideSparkJobJarPath(String path) {
         System.setProperty("kylin.engine.spark.job-jar", path);
     }
