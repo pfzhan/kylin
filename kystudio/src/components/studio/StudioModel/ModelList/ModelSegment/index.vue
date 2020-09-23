@@ -137,7 +137,7 @@
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('segmentPath')}}</th>
-          <td>{{detailSegment.segmentPath}}</td>
+          <td class="segment-path">{{detailSegment.segmentPath}}</td>
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('fileNumber')}}</th>
@@ -591,6 +591,11 @@ export default class ModelSegment extends Vue {
       width:130px;
       
     }
+  }
+}
+.segment-detail {
+  .segment-path {
+    word-break: break-all;
   }
 }
 .model-segment {
