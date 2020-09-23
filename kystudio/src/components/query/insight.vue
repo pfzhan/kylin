@@ -55,7 +55,7 @@
                   <el-checkbox v-model="checkedQueryList" :label="index" class="query_check">
                     <el-form class="narrowForm" label-position="left" label-width="105px">
                       <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
-                        <span>{{savequery.name}}</span>
+                        <span class="save-query_name">{{savequery.name}}</span>
                       </el-form-item>
                       <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem" >
                         <span class="desc-block">{{savequery.description}}</span>
@@ -390,6 +390,12 @@ export default class NewQuery extends Vue {
           height: 503px;
           .saved_query_content {
             margin: 20px;
+            .save-query_name {
+              word-break: break-all;
+              display: inline-block;
+              white-space: pre-wrap;
+              width: calc(~'100% - 50px');
+            }
           }
         }
       }
