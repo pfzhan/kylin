@@ -56,7 +56,7 @@
             <el-table-column type="selection" width="44" align="center" :selectable="selectable"></el-table-column>
             <el-table-column prop="sql" label="SQL" :resizable="false">
               <template slot-scope="props">
-                <span class="ksd-nobr-text" style="width: 382px;">{{props.row.sql}}</span>
+                <span class="ksd-nobr-text">{{props.row.sql}}</span>
               </template>
             </el-table-column>
             <el-table-column prop="capable" :label="$t('kylinLang.common.status')" width="80">
@@ -456,6 +456,9 @@ export default class UploadSqlModel extends Vue {
       this.isWhiteErrorMessage = false
       this.inputHeight = 424
     }
+    this.$nextTick(() => {
+      this.$refs.multipleTable && this.$refs.multipleTable.doLayout()
+    })
   }
   selectAll () {
     this.selectSqls = this.whiteSqlData.data.filter((item) => {

@@ -97,7 +97,6 @@
             border
             v-scroll-shadow
             :ref="tableRef"
-            style="width: 100%"
             @select="handleSelectionRecommends"
             @selection-change="handleSelectionRecommendationChange"
             @row-click="recommendRowClick"
@@ -236,6 +235,8 @@ export default class SuggestModel extends Vue {
       // } else {
       //   this.recommendRowClick(this.suggestModels[0])
       // }
+      // 解决table初次渲染有大部分空白问题
+      this.$refs[this.tableRef] && this.$refs[this.tableRef].doLayout()
     })
   }
   get modelTips () {
