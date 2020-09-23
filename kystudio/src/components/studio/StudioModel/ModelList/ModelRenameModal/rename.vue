@@ -65,6 +65,8 @@
     checkName (rule, value, callback) {
       if (!NamedRegex.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+      } else if (value.length > 50) {
+        callback(new Error(this.$t('kylinLang.common.overLengthTip')))
       } else {
         callback()
       }
