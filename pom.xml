@@ -203,7 +203,10 @@
             **/io/kyligence/kap/rest/security/SecurityLogAspect.java,
             **/io/kyligence/kap/rest/util/SecurityLoggerUtils.java
         </sonar.coverage.exclusions>
-        <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
+        <sonar.organization>kyligence</sonar.organization>
+        <aggregate.report.dir>src/kap-it/target/site/jacoco-aggregate/jacoco.xml</aggregate.report.dir>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../../${aggregate.report.dir}</sonar.coverage.jacoco.xmlReportPaths>
+
 
         <!-- Kylin versions -->
         <kylin.version>3.0.0-SNAPSHOT</kylin.version>
@@ -1493,20 +1496,6 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-war-plugin</artifactId>
-                    <version>2.6</version>
-                    <configuration>
-                        <packagingExcludes>
-                            WEB-INF/lib/servlet-api-*.jar,
-                            WEB-INF/lib/zookeeper-*.jar,
-                            WEB-INF/lib/commons-compiler-*.jar,
-                            WEB-INF/lib/janino-*.jar
-                            META-INF/context.xml
-                        </packagingExcludes>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-antrun-plugin</artifactId>
                 </plugin>
                 <plugin>
@@ -1720,11 +1709,6 @@
                 <artifactId>scalastyle-maven-plugin</artifactId>
             </plugin>
 
-            <!--<plugin>-->
-            <!--<groupId>org.codehaus.mojo</groupId>-->
-            <!--<artifactId>findbugs-maven-plugin</artifactId>-->
-            <!--</plugin>-->
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -1781,9 +1765,6 @@
                             <report>scm</report>
                             <report>issue-tracking</report>
                             <report>mailing-list</report>
-                            <!-- <report>dependency-management</report> -->
-                            <!-- <report>dependencies</report> -->
-                            <!-- <report>dependency-convergence</report> -->
                             <report>cim</report>
                             <report>plugin-management</report>
                             <report>plugins</report>
@@ -1887,7 +1868,7 @@
                         <configuration>
                             <reportsDirectory>${project.basedir}/../../target/surefire-reports
                             </reportsDirectory>
-                            <argLine>-Xms2G -Xmx4G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current
+                            <argLine>-Xms2G -Xmx8G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current
                             </argLine>
                             <reportFormat>plain</reportFormat>
                             <excludes>
