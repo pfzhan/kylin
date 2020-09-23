@@ -23,7 +23,7 @@
 </template>
 <script>
 import Vue from 'vue'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import vuex from '../../../../../store'
 import { NamedRegex } from 'config'
@@ -60,15 +60,6 @@ export default class ModelAddModal extends Vue {
   }
   rules = {
     newName: [{ required: true, validator: this.checkName, trigger: 'blur' }]
-  }
-  @Watch('isShow')
-  changeShowType (newVal, oldVal) {
-    if (!oldVal && newVal) {
-      this.$nextTick(() => {
-        const dom = this.$el.querySelector('input[name=modelName]')
-        dom && !this.isGuideMode && dom.focus()
-      })
-    }
   }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
