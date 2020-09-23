@@ -62,6 +62,10 @@
             prop="cardinality"
             width="100"
             align="center">
+            <span slot-scope="scope">
+              <template v-if="scope.row.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+              <template v-else>{{ scope.row.cardinality }}</template>
+            </span>
           </el-table-column>
           <el-table-column
           label="Shard"
@@ -292,6 +296,12 @@ export default class TableIndexView extends Vue {
           font-size: 14px;
           color: @text-disabled-color;
         }
+      }
+    }
+    .table-index-content {
+      .no-data_placeholder {
+        color: @text-placeholder-color;
+        font-size: 12px;
       }
     }
     .empty-block {

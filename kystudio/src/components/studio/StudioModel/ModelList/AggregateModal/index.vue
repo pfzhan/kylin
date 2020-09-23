@@ -283,6 +283,10 @@
                   prop="value"
                   show-overflow-tooltip
                   :label="currentSelectedTag.ctx">
+                  <span slot-scope="scope">
+                    <template v-if="scope.row.value === null"><i class="no-data_placeholder">NULL</i></template>
+                    <template v-else>{{ scope.row.value }}</template>
+                  </span>
                 </el-table-column>
               </el-table>
               <p class="title">{{$t('sample')}}</p>
@@ -1814,6 +1818,10 @@ export default class AggregateModal extends Vue {
             }
           }
         }
+      }
+      .no-data_placeholder {
+        color: @text-placeholder-color;
+        font-size: 12px;
       }
     }
   }

@@ -42,6 +42,10 @@
         min-width="105"
         show-overflow-tooltip
         :render-header="renderCardinalityHeader">
+        <span slot-scope="scope">
+          <template v-if="scope.row.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+          <template v-else>{{ scope.row.cardinality }}</template>
+        </span>
       </el-table-column>
       <el-table-column
         prop="min_value"
@@ -50,6 +54,10 @@
         min-width="105"
         show-overflow-tooltip
         :label="$t('kylinLang.dataSource.minimal')">
+        <span slot-scope="scope">
+          <template v-if="scope.row.min_value === null"><i class="no-data_placeholder">NULL</i></template>
+          <template v-else>{{ scope.row.min_value }}</template>
+        </span>
       </el-table-column>
       <el-table-column
         prop="max_value"
@@ -58,6 +66,10 @@
         min-width="105"
         show-overflow-tooltip
         :label="$t('kylinLang.dataSource.maximum')">
+        <span slot-scope="scope">
+          <template v-if="scope.row.max_value === null"><i class="no-data_placeholder">NULL</i></template>
+          <template v-else>{{ scope.row.max_value }}</template>
+        </span>
       </el-table-column>
       <el-table-column
         prop="comment"
@@ -167,6 +179,10 @@ export default class TableColumns extends Vue {
   }
   .columns-body {
     width: 100%;
+    .no-data_placeholder {
+      color: @text-placeholder-color;
+      font-size: 12px;
+    }
   }
   .left, .right {
     display: inline-block;

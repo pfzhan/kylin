@@ -32,7 +32,10 @@
                 <el-row v-for="(col, index) in searchAllColumns" :key="col.fullName" class="table-row">
                   <el-col :span="1"><el-checkbox size="small" v-model="col.isUsed" @change="(status) => selectTableIndex(status, col)" /></el-col>
                   <el-col :span="14" class="column-name" :title="col.fullName">{{col.fullName}}</el-col>
-                  <el-col :span="3" class="cardinality-item">{{col.cardinality}}</el-col>
+                  <el-col :span="3" class="cardinality-item">
+                    <template v-if="col.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+                    <template v-else>{{ col.cardinality }}</template>
+                  </el-col>
                   <el-col :span="3" @click.native="toggleShard(col)">
                      <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
                   </el-col>
@@ -546,6 +549,10 @@
         }
         .cardinality-item {
           text-align: right;
+          .no-data_placeholder {
+            color: @text-placeholder-color;
+            font-size: 12px;
+          }
         }
         .icon {
           cursor: pointer;
