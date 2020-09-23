@@ -217,7 +217,7 @@
               popper-class="recommend-tooltip"
               placement="top-start"
               trigger="hover"
-              v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')"
+              v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions') && scope.row.status !== 'BROKEN'"
               :disabled="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">
               <div class="recommend" slot="reference">
                 <i class="el-icon-ksd-status" />
