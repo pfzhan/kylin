@@ -267,11 +267,11 @@
             <div class="ksd-mt-10 ksd-fs-14">
               {{$t('from')}}
               <el-form-item prop="min_duration" style="display: inline-block;">
-                <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable"></el-input>
+                <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('max_duration')"></el-input>
               </el-form-item>
               {{$t('to')}}
               <el-form-item prop="max_duration" style="display: inline-block;">
-                <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable"></el-input>
+                <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('min_duration')"></el-input>
               </el-form-item>
               {{$t('secondes')}}
             </div>
@@ -400,8 +400,20 @@ export default class SettingBasic extends Vue {
     }
   }
   validatePass (rule, value, callback) {
-    if ((!value && value !== 0) && (rule.field === 'count_value' && this.rulesObj.count_enable || rule.field.indexOf('duration') !== -1 && this.rulesObj.duration_enable)) {
-      callback(new Error(null))
+    if (rule.field.indexOf('duration') !== -1 && this.rulesObj.duration_enable) {
+      if (!value && value !== 0) {
+        callback(new Error(null))
+      } else if (+this.rulesObj.min_duration > +this.rulesObj.max_duration) {
+        callback(new Error(null))
+      } else {
+        callback()
+      }
+    } else if (rule.field === 'count_value' && this.rulesObj.count_enable) {
+      if (!value && value !== 0) {
+        callback(new Error(null))
+      } else {
+        callback()
+      }
     } else {
       callback()
     }
