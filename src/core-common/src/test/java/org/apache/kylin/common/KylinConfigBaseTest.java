@@ -44,11 +44,13 @@ package org.apache.kylin.common;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Stream;
 
+import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -844,5 +846,15 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 Assert.assertEquals(propertiesEntity.getExpectValue(), invoke);
             }
         }
+    }
+
+    @Test
+    public void testTimeZone() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ZoneId zoneId = TimeZone.getTimeZone(config.getTimeZone()).toZoneId();
+        // Mock the setting timezone action when launch KE
+        TimeZoneUtils.setDefaultTimeZone(config);
+        ZoneId zoneId1 = TimeZone.getDefault().toZoneId();
+        Assert.assertEquals(zoneId, zoneId1);
     }
 }

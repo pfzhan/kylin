@@ -205,7 +205,7 @@ public class JobStatisticsManager {
 
     // format epoch time to date string
     private String formatDateTime(long time) {
-        ZoneId zoneId = TimeZone.getTimeZone(config.getTimeZone()).toZoneId();
+        ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDateTime localDateTime = Instant.ofEpochMilli(time).atZone(zoneId).toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return localDateTime.format(formatter);
