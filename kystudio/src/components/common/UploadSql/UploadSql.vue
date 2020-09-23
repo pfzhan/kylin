@@ -511,23 +511,6 @@ export default class UploadSqlModel extends Vue {
   }
   submitModels () {
     this.submitModelLoading = true
-    // let models = objectClone(this.getFinalSelectModels)
-    // models.forEach((m) => {
-    //   delete m.sqls
-    //   if (m.index_plan) {
-    //     delete m.index_plan.segment_range_end
-    //   }
-    // })
-    // let recommendations = this.selectRecommends.map(it => it.recommendation ? it.recommendation : '').filter(item => item)
-    // recommendations.forEach(it => {
-    //   if (!it) return
-    //   it.layout_recommendations = it.index_recommendations
-    //   it.layout_recommendation_size = it.index_recommendation_size
-    //   it.model_id = it.modelId
-    //   delete it.index_recommendations
-    //   delete it.index_recommendation_size
-    //   delete it.modelId
-    // })
     let models = [...this.selectModels]
     models.forEach(obj => {
       delete obj.isChecked
@@ -543,16 +526,24 @@ export default class UploadSqlModel extends Vue {
     }
     this.saveSuggestModels({project: this.currentSelectedProject, ...data}).then((res) => {
       handleSuccess(res, (data) => {
-        this.$message.success(this.$t('kylinLang.common.actionSuccess'))
+        // this.$message.success(this.$t('kylinLang.common.actionSuccess'))
         this.submitModelLoading = false
         this.hideModal()
         this.$emit('reloadModelList')
         if (this.selectModels.length && this.selectRecommends.length) {
-          this.$message.success(this.$t('successCreateModelsAndRecommends', {models: this.selectModels.length, recommends: this.selectRecommends.length}))
+          this.$confirm(this.$t('successCreateModelsAndRecommends', {models: this.selectModels.length, recommends: this.selectRecommends.length}), this.$t('importSuccess'), {
+            confirmButtonText: this.$t('kylinLang.common.ok'),
+            showCancelButton: false,
+            type: 'success'
+          })
         } else if (this.selectModels.length) {
           this.$message.success(this.$t('successCreateModels', {models: this.selectModels.length}))
         } else {
-          this.$message.success(this.$t('successCreateRecommends', {recommends: this.selectRecommends.length}))
+          this.$confirm(this.$t('successCreateRecommends', {recommends: this.selectRecommends.length}), this.$t('importSuccess'), {
+            confirmButtonText: this.$t('kylinLang.common.ok'),
+            showCancelButton: false,
+            type: 'success'
+          })
         }
       })
     }, (res) => {

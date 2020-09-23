@@ -49,8 +49,8 @@ export default {
     AGG: 'Aggregate Index',
     TABLE: 'Table Index',
     successCreateModels: 'Successfully added {models} model(s)',
-    successCreateModelsAndRecommends: 'Successfully added {models} model(s), accepted {recommends} recommendation(s)',
-    successCreateRecommends: 'Successfully accepted {recommends} recommendation(s)',
+    successCreateModelsAndRecommends: 'Successfully added {models} model(s), accepted {recommends} recommendation(s), The added indexes would be ready for queries after being built.',
+    successCreateRecommends: 'Successfully accepted {recommends} recommendation(s), The added indexes would be ready for queries after being built.',
     confirmCancel: 'Confirm to Cancel',
     backToEdit: 'Continue Editing',
     closeSqlDialogTip: 'Once cancel, all edits would be discarded and adding model from SQL would be terminated. Are you sure to cancel?',
@@ -65,7 +65,8 @@ export default {
     confirmEditSqlText: 'Save and Continue',
     noRecommendsTip: 'No valid recommendation. Existing models might already include the same indexes.',
     noModelDetailsTip: 'The selected model\'s dimension, measure, computed column, aggregate index would be shown here.',
-    noOriginDetailsTip: 'The selected recommendation\'s dimension, measure, computed column would be shown here.'
+    noOriginDetailsTip: 'The selected recommendation\'s dimension, measure, computed column would be shown here.',
+    importSuccess: 'Imported successfully'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -117,8 +118,8 @@ export default {
     AGG: '聚合索引',
     TABLE: '明细索引',
     successCreateModels: '成功添加 {models} 个模型',
-    successCreateModelsAndRecommends: '成功添加 {models} 个模型，接受 {recommends} 条优化建议',
-    successCreateRecommends: '成功接受 {recommends} 条优化建议',
+    successCreateModelsAndRecommends: '成功添加 {models} 个模型，接受 {recommends} 条优化建议，新增索引在构建之后可以服务于查询。',
+    successCreateRecommends: '成功接受 {recommends} 条优化建议，新增索引在构建之后可以服务于查询。',
     confirmCancel: '确认取消',
     backToEdit: '返回编辑',
     closeSqlDialogTip: '一旦取消，将退出SQL建模，同时所有编辑会被丢弃。确定要取消吗？',
@@ -133,6 +134,7 @@ export default {
     confirmEditSqlText: '保存并继续',
     noRecommendsTip: '没有有效的优化建议。现有模型可能已包含相同的索引。',
     noModelDetailsTip: '选中模型包含的维度、度量、可计算列、聚合索引等信息会显示在这里。',
-    noOriginDetailsTip: '选中优化建议包含的维度、度量、可计算列等信息会显示在这里。'
+    noOriginDetailsTip: '选中优化建议包含的维度、度量、可计算列等信息会显示在这里。',
+    importSuccess: '导入成功'
   }
 }
