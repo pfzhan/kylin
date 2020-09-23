@@ -124,10 +124,11 @@
           @getSelectRecommends="getSelectRecommends"
           @changeSelectRecommendsLength="changeSelectRecommendsLength"
           :isOriginModelsTable="true" />
-        <el-tabs class="upload-tabs" v-model="modelType" v-if="isShowTabModels">
+        <el-tabs class="upload-tabs" v-model="modelType" v-if="isShowTabModels" @tab-click="changeTabs">
           <el-tab-pane :label="$t('model') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
             <SuggestModel
               tableRef="modelsTable"
+              ref="suggestModelRef"
               :suggestModels="suggestModels"
               :maxHeight="365"
               @isValidated="isValidated"
@@ -136,6 +137,7 @@
           <el-tab-pane :label="`${$t('recommendations')} (${selectRecommendsLength}/${getRecommendLength})`" name="origin">
             <SuggestModel
               tableRef="originModelsTable"
+              ref="originModelRef"
               :suggestModels="originModels"
               :maxHeight="365"
               @getSelectRecommends="getSelectRecommends"
@@ -354,6 +356,20 @@ export default class UploadSqlModel extends Vue {
       })
     }
   }
+
+  // 切换预览界面tabs
+  changeTabs (e) {
+    if (e.name === 'suggest') {
+      this.$nextTick(() => {
+        this.$refs.suggestModelRef.initClickItem()
+      })
+    } else {
+      this.$nextTick(() => {
+        this.$refs.originModelRef.initClickItem()
+      })
+    }
+  }
+
   changeSelectRecommendsLength (len) {
     this.selectRecommendsLength = len
   }

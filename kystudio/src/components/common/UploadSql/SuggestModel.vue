@@ -229,6 +229,7 @@ export default class SuggestModel extends Vue {
           this.$refs[this.tableRef] && this.$refs[this.tableRef].toggleRowSelection(model)
         })
       }
+      this.initClickItem()
       document.addEventListener('click', this.handleClickEvent)
       // if (!this.isOriginModelsTable) {
       //   this.modelRowClick(this.suggestModels[0])
@@ -258,8 +259,15 @@ export default class SuggestModel extends Vue {
     }
     return flag
   }
+  initClickItem () {
+    if (this.isOriginModelsTable) {
+      this.recommendDatas.length && this.recommendRowClick(this.recommendDatas[0])
+    } else {
+      this.suggestModels.length && this.modelRowClick(this.suggestModels[0])
+    }
+  }
   handleClickEvent (e) {
-    if (!e.target.closest('.row-click') && !e.target.closest('.details')) {
+    if (!e.target.closest('.row-click') && !e.target.closest('.active-row') && !e.target.closest('.details')) {
       this.activeRowId = ''
     }
   }
