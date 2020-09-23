@@ -1,7 +1,7 @@
 <template>
   <div class="model-guide-mask" v-if="isShow">
     <div class="background"></div>
-    <div class="dim-meas-block" v-if="isShowDimAndMeasGuide">
+    <div class="dim-meas-block" :class="{'is-show-global-alter': $store.state.system.isShowGlobalAlter}" v-if="isShowDimAndMeasGuide">
       <div class="tool-icon-group ksd-fright">
         <div class="tool-icon">D</div>
         <div class="tool-icon">M</div>
@@ -130,8 +130,11 @@ export default class GuideModal extends Vue {
   }
   .dim-meas-block {
     position: absolute;
-    top:142px;
+    top:102px;
     right: 0px;
+    &.is-show-global-alter {
+      top:142px;
+    }
     .tool-icon-group {
       position:absolute;
       width:32px;
