@@ -543,9 +543,8 @@ public class ModelService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    private List<String> getSCD2ModelsNonOffOnline(final String projectName) {
-        List<String> status = getModelNonOffOnlineStatus();
-        return getSCD2ModelsByStatus(projectName, status).stream().map(NDataModel::getId).collect(Collectors.toList());
+    private List<String> getSCD2Models(final String projectName) {
+        return getSCD2ModelsByStatus(projectName, null).stream().map(NDataModel::getId).collect(Collectors.toList());
     }
 
     public List<String> getModelNonOffOnlineStatus() {
@@ -1100,22 +1099,23 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void offlineSCD2ModelsInProjectById(String project) {
+    public void updateSCD2ModelStatusInProjectById(String project, ModelStatusToDisplayEnum status) {
         aclEvaluate.checkProjectWritePermission(project);
-        List<String> scd2Models = getSCD2ModelsNonOffOnline(project);
+        List<String> scd2Models = getSCD2Models(project);
         if (CollectionUtils.isEmpty(scd2Models)) {
             return;
         }
-        offlineModelsInProjectById(project, new HashSet<>(scd2Models));
-
+        updateModelStatusInProjectById(project, new HashSet<>(scd2Models), status);
     }
 
     @Transaction(project = 0)
-    public void offlineModelsInProjectById(String project, Set<String> modelIds) {
+    public void updateModelStatusInProjectById(String project, Set<String> modelIds, ModelStatusToDisplayEnum status) {
         aclEvaluate.checkProjectWritePermission(project);
         for (String id : modelIds) {
-            if (modelIds.contains(id)) {
-                updateDataModelStatus(id, project, ModelStatusToDisplayEnum.OFFLINE.name());
+            try {
+                updateDataModelStatus(id, project, status.name());
+            } catch (Exception e) {
+                logger.warn("Failed update model {} status to {}, {}", id, status.name(), e.getMessage());
             }
         }
     }
@@ -1146,8 +1146,14 @@ public class ModelService extends BasicService {
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
                 nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
+                if (SCD2CondChecker.INSTANCE.isScd2Model(dataflow.getModel()) &&
+                        !projectService.getProjectConfig(project).isScd2Enabled()) {
+                    throw new KylinException(MODEL_ONLINE_ABANDON,
+                            MsgPicker.getMsg().getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF());
+                }
                 if (dataflow.getSegments().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getMODEL_ONLINE_ABANDON());
+                    throw new KylinException(MODEL_ONLINE_ABANDON,
+                            MsgPicker.getMsg().getMODEL_ONLINE_WITH_EMPTY_SEG());
                 }
                 nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             }

@@ -1441,7 +1441,11 @@ public class CnMessage extends Message {
         return "由于优化建议所依赖的内容被删除，该优化建议已失效。请刷新页面后再试。";
     }
 
-    public String getMODEL_ONLINE_ABANDON() {
+    public String getMODEL_ONLINE_WITH_EMPTY_SEG() {
         return "该模型尚未添加 Segment，不可服务于查询。请先添加 Segment 后再上线。";
+    }
+
+    public String getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF() {
+        return "该模型因存在 ≥ 或 < 的连接条件，当前不可上线。请删除相应连接条件，或在项目设置中开启支持拉链表开关";
     }
 }

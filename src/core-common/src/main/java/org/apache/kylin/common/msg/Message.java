@@ -1566,7 +1566,13 @@ public class Message {
         return "Group uuid %s is not exist.";
     }
 
-    public String getMODEL_ONLINE_ABANDON() {
+    public String getMODEL_ONLINE_WITH_EMPTY_SEG() {
         return "This model can’t go online as it doesn’t have segments. Models with no segment couldn’t serve queries. Please add a segment.";
+    }
+
+    public String getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF() {
+        return "This model can’t go online as it includes non-equal join conditions(≥, <)." +
+                " Please delete those join conditions," +
+                " or turn on 'Show non-equal join conditions for History table' in project settings.";
     }
 }

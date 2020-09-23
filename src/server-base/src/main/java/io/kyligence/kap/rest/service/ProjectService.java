@@ -46,6 +46,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -488,13 +489,14 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateSCD2Config(String project, SCD2ConfigRequest scd2ConfigRequest, ModelService modelService) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", KylinConfig.TRUE);
-            } else {
-                copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", KylinConfig.FALSE);
-                modelService.offlineSCD2ModelsInProjectById(project);
-            }
+            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", scd2ConfigRequest.getScd2Enabled().toString());
         });
+
+        if (Boolean.TRUE.equals(scd2ConfigRequest.getScd2Enabled())) {
+            modelService.updateSCD2ModelStatusInProjectById(project, ModelStatusToDisplayEnum.ONLINE);
+        } else {
+            modelService.updateSCD2ModelStatusInProjectById(project, ModelStatusToDisplayEnum.OFFLINE);
+        }
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

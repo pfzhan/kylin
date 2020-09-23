@@ -236,6 +236,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Autowired
     private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
+    @Autowired
+    private ProjectService projectService = Mockito.spy(new ProjectService());
+
     @InjectMocks
     private SegmentHelper segmentHelper = new SegmentHelper();
 
@@ -273,6 +276,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(modelService, "optRecService", optRecService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(modelService, "projectService", projectService);
         Mockito.doReturn(new OptRecLayoutsResponse()).when(optRecService).getOptRecLayoutsResponse(Mockito.anyString(),
                 Mockito.anyString());
         modelService.setSemanticUpdater(semanticService);
@@ -926,6 +930,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.updateDataModelStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "ONLINE");
         modelService.updateDataModelStatus("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", "ONLINE");
     }
+
+    @Test
+    public void testOnlineSCD2Model() throws Exception {
+        final String randomUser = RandomStringUtils.randomAlphabetic(5);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(randomUser, "123456", Constant.ROLE_ADMIN));
+        String projectName = "default";
+        val scd2Model = createNonEquiJoinModel(projectName, "scd2_non_equi");
+
+        //turn off scd2 model
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.query.non-equi-join-model-enabled", "false");
+        });
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("This model can’t go online as it includes non-equal join conditions");
+        modelService.updateDataModelStatus(scd2Model.getId(), "default", "ONLINE");
+    }
+
 
     @Test
     public void testGetSegmentRangeByModel() {
