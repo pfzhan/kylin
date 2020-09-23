@@ -27,12 +27,12 @@ import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.common.SparderBaseFunSuite
 import org.mockito.Mockito
-import org.scalatest.Ignore
 
 class TestCapacitySchedulerParser extends SparderBaseFunSuite {
 
   private val config = Mockito.mock(classOf[KylinConfig])
   Mockito.when(config.getClusterManagerClassName).thenReturn("org.apache.spark.application.MockClusterManager")
+  Mockito.when(config.getClusterManagerTimeoutThreshold).thenReturn(10 * 1000)
 
   /**
    * value store in json:

@@ -50,6 +50,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   Mockito.when(config.getSparkEngineRetryMemoryGradient).thenReturn(gradient)
   Mockito.when(config.getSparkEngineRetryOverheadMemoryGradient).thenReturn(overheadGradient)
   Mockito.when(config.getClusterManagerClassName).thenReturn("org.apache.spark.application.MockClusterManager")
+  Mockito.when(config.getClusterManagerTimeoutThreshold).thenReturn(10 * 1000)
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -105,7 +106,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val overhead = "400MB"
       val cores = "2"
       val maxAllocation = 2400
-      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      java.lang.reflect.Proxy.getInvocationHandler(env.clusterManager).invoke(env.clusterManager,
+        classOf[MockClusterManager].getMethod("setMaxAllocation", classOf[ResourceInfo]),
+        Array(ResourceInfo(maxAllocation, Int.MaxValue)))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       env.sparkConf.set(EXECUTOR_CORES, cores)
@@ -134,7 +137,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val overhead = "400MB"
       val cores = "1"
       val maxAllocation = 2400
-      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      java.lang.reflect.Proxy.getInvocationHandler(env.clusterManager).invoke(env.clusterManager,
+        classOf[MockClusterManager].getMethod("setMaxAllocation", classOf[ResourceInfo]),
+        Array(ResourceInfo(maxAllocation, Int.MaxValue)))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       env.sparkConf.set(EXECUTOR_CORES, cores)
@@ -166,7 +171,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "2000MB"
       val overhead = "400MB"
       val maxAllocation = 2500
-      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      java.lang.reflect.Proxy.getInvocationHandler(env.clusterManager).invoke(env.clusterManager,
+        classOf[MockClusterManager].getMethod("setMaxAllocation", classOf[ResourceInfo]),
+        Array(ResourceInfo(maxAllocation, Int.MaxValue)))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       val countDownLatch = new CountDownLatch(2)
@@ -195,7 +202,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "3000MB"
       val overhead = "400MB"
       val maxAllocation = 2500
-      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      java.lang.reflect.Proxy.getInvocationHandler(env.clusterManager).invoke(env.clusterManager,
+        classOf[MockClusterManager].getMethod("setMaxAllocation", classOf[ResourceInfo]),
+        Array(ResourceInfo(maxAllocation, Int.MaxValue)))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       val receiveJobFailed = new AtomicBoolean(false)
@@ -227,7 +236,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "2000MB"
       val overhead = "400MB"
       val maxAllocation = 4000
-      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      java.lang.reflect.Proxy.getInvocationHandler(env.clusterManager).invoke(env.clusterManager,
+        classOf[MockClusterManager].getMethod("setMaxAllocation", classOf[ResourceInfo]),
+        Array(ResourceInfo(maxAllocation, Int.MaxValue)))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       val countDownLatch = new CountDownLatch(2)
@@ -255,7 +266,9 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "2000MB"
       val cores = "2"
       val maxAllocation = 2400
-      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      java.lang.reflect.Proxy.getInvocationHandler(env.clusterManager).invoke(env.clusterManager,
+        classOf[MockClusterManager].getMethod("setMaxAllocation", classOf[ResourceInfo]),
+        Array(ResourceInfo(maxAllocation, Int.MaxValue)))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_CORES, cores)
       val countDownLatch = new CountDownLatch(2)
