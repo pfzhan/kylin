@@ -15,7 +15,7 @@
           v-guide.hiveTree
           :show-overflow-tooltip="true"
           ref="tree-list"
-          class="table-tree"
+          :class="['table-tree', {'has-refresh': loadHiveTableNameEnabled === 'true'}]"
           :data="treeData"
           :placeholder="$t('filterTableName')"
           :is-show-filter="false"
@@ -741,10 +741,13 @@ export default class SourceHive extends Vue {
     .table-tree {
       width: 400px;
     }
+    .table-tree.has-refresh {
+      .filter-tree {
+        height: 410px;
+      }
+    }
     .refreshNow{
       z-index: 2;
-      position: absolute;
-      bottom: 0px;
       width: 100%;
       text-align: center!important;
       border-top: 1px solid #ccc;
@@ -795,7 +798,7 @@ export default class SourceHive extends Vue {
     width: 210px;
   }
   .filter-tree {
-    height: 432px;
+    height: 430px;
     overflow: auto;
     border: 1px solid @line-border-color;
   }
