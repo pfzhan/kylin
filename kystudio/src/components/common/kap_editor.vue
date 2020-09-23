@@ -206,11 +206,16 @@ export default {
       editor.completers.unshift({
         identifierRegexps: [/[.a-zA-Z_0-9]/],
         getCompletions (editor, session, pos, prefix, callback) {
-          if (prefix.length === 0) {
-            return callback(null, autoCompleteData)
-          } else {
-            return callback(null, autoCompleteData)
-          }
+          setTimeout(() => {
+            const { filtered } = editor.completer.completions
+            const dataList = filtered.map(it => it.value)
+            const list = autoCompleteData.filter(it => !dataList.includes(it.value))
+            if (prefix.length === 0) {
+              return callback(null, list)
+            } else {
+              return callback(null, list)
+            }
+          }, 0)
         }
       })
       editor.commands.on('afterExec', function (e, t) {
