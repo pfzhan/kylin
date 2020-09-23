@@ -1270,10 +1270,10 @@ export default class JobsList extends Vue {
     this.stepAttrToShow = 'output'
     this.dialogVisible = true
     this.outputDetail = this.$t('load')
+    this.stepId = step.id
     this.loadStepOutputs({jobId: this.selectedJob.id, stepId: step.id, project: this.selectedJob.project}).then((res) => {
       handleSuccess(res, (data) => {
         this.outputDetail = data.cmd_output
-        this.stepId = step.id
       })
     }, (resError) => {
       this.outputDetail = this.$t('cmdOutput')
