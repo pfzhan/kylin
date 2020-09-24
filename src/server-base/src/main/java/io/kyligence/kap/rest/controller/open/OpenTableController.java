@@ -86,7 +86,8 @@ public class OpenTableController extends NBasicController {
     public TableDesc getTable(String project, String tableName) {
         TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
         if (null == table) {
-            throw new KylinException(INVALID_TABLE_NAME, String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
+            throw new KylinException(INVALID_TABLE_NAME,
+                    String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
         }
         return table;
     }
@@ -123,9 +124,11 @@ public class OpenTableController extends NBasicController {
                     "Invalid parameters, please check whether the number of sampling rows is between 10000 and 20000000.");
         }
 
-        // default set data_source_type = 9
-        if (ISourceAware.ID_SPARK != tableLoadRequest.getDataSourceType()) {
-            throw new KylinException(UNSUPPORTED_DATA_SOURCE_TYPE, "Only support Hive as the data source. (data_source_type = 9)");
+        // default set data_source_type = 9 and 8
+        if (ISourceAware.ID_SPARK != tableLoadRequest.getDataSourceType()
+                && ISourceAware.ID_JDBC != tableLoadRequest.getDataSourceType()) {
+            throw new KylinException(UNSUPPORTED_DATA_SOURCE_TYPE,
+                    "Only support Hive as the data source. (data_source_type = 9 || 8)");
         }
         updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 

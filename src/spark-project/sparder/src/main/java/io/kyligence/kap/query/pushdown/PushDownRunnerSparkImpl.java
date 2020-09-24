@@ -83,11 +83,11 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
 
     @Override
     public void executeUpdate(String sql, String project) {
-        queryWithPushDown(sql, null);
+        queryWithPushDown(sql, project);
     }
 
     private PushdownResponse queryWithPushDown(String sql, String project) {
-        return SparkSubmitter.submitPushDownTask(sql, project);
+        return SparkSubmitter.getInstance().submitPushDownTask(sql, project);
     }
 
     @Override

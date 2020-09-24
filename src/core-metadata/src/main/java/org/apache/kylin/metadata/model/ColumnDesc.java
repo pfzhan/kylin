@@ -48,7 +48,6 @@ import org.apache.kylin.metadata.datatype.DataType;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -87,6 +86,9 @@ public class ColumnDesc implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String computedColumnExpr = null;//if null, it's not a computed column
 
+    @JsonProperty("case_sensitive_name")
+    public String caseSensitiveName;
+
     // parsed from data type
     private DataType type;
     private DataType upgradedType;
@@ -109,6 +111,7 @@ public class ColumnDesc implements Serializable {
         this.dataGen = other.dataGen;
         this.index = other.index;
         this.computedColumnExpr = other.computedColumnExpr;
+        this.caseSensitiveName = other.caseSensitiveName;
     }
 
     public ColumnDesc(String id, String name, String datatype, String comment, String dataGen, String index,
@@ -184,9 +187,13 @@ public class ColumnDesc implements Serializable {
         this.name = name;
     }
 
-    @JsonGetter("name")
     public String getCaseSensitiveName() {
-        return name;
+        return caseSensitiveName == null ? name : caseSensitiveName;
+    }
+
+    @JsonSetter("case_sensitive_name")
+    public void setCaseSensitiveName(String caseSensitiveName) {
+        this.caseSensitiveName = caseSensitiveName;
     }
 
     public TableDesc getTable() {

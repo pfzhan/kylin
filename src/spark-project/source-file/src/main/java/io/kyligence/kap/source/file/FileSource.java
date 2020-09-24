@@ -23,11 +23,16 @@
  */
 package io.kyligence.kap.source.file;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 
 import io.kyligence.kap.engine.spark.source.NSparkDataSource;
 
 public class FileSource extends NSparkDataSource {
+
+    public FileSource(KylinConfig config) {
+        super(config);
+    }
 
     @Override
     public ISourceMetadataExplorer getSourceMetadataExplorer() {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,10 +46,13 @@ import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 /**
  * Represents a kind of source to Kylin, like Hive.
  */
-public interface ISource {
+public interface ISource extends Closeable {
 
     /**
      * Return an explorer to sync table metadata from the data source.
@@ -81,4 +83,9 @@ public interface ISource {
     ISampleDataDeployer getSampleDataDeployer();
 
     SegmentRange getSegmentRange(String start, String end);
+
+    @Override
+    default void close() throws IOException {
+        // just implement it
+    }
 }

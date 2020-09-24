@@ -42,29 +42,40 @@
 
 package org.apache.kylin.source;
 
-import java.util.List;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ImplementationSwitch;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
-import org.apache.kylin.metadata.model.TableDesc;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@SuppressWarnings("UnstableApiUsage")
 public class SourceFactory {
-
-    // Use thread-local because KylinConfig can be thread-local and implementation might be different among multiple threads.
-    private static ThreadLocal<ImplementationSwitch<ISource>> sources = new ThreadLocal<>();
-
-    private static ISource getSource(int sourceType) {
-        ImplementationSwitch<ISource> current = sources.get();
-        if (current == null) {
-            current = new ImplementationSwitch<>(KylinConfig.getInstanceFromEnv().getSourceEngines(), ISource.class);
-            sources.set(current);
-        }
-        return current.get(sourceType);
+    private SourceFactory() {
     }
 
-    public static ISource getDefaultSource() {
-        return getSource(KylinConfig.getInstanceFromEnv().getDefaultSource());
+    private static final Cache<String, ISource> sourceMap;
+
+    static {
+        sourceMap = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.DAYS)
+                .removalListener((RemovalListener<String, ISource>) entry -> {
+                    ISource s = entry.getValue();
+                    if (s != null) {
+                        try {
+                            s.close();
+                        } catch (IOException e) {
+                            log.error("Failed to close ISource: {}", s.getClass().getName(), e);
+                        }
+                    }
+                }).build();
     }
 
     public static ISource getSparkSource() {
@@ -72,18 +83,59 @@ public class SourceFactory {
     }
 
     public static ISource getSource(ISourceAware aware) {
-        return getSource(aware.getSourceType());
+        String key = createSourceCacheKey(aware);
+        synchronized (SourceFactory.class) {
+            ISource source = sourceMap.getIfPresent(key);
+            if (source != null)
+                return source;
+            source = createSource(aware);
+            sourceMap.put(key, source);
+            return source;
+        }
     }
 
-    public static IReadableTable createReadableTable(TableDesc table) {
-        return getSource(table).createReadableTable(table);
+    public static ISource getSource(int sourceType) {
+        return getSource(new ISourceAware() {
+            @Override
+            public int getSourceType() {
+                return sourceType;
+            }
+
+            @Override
+            public KylinConfig getConfig() {
+                return KylinConfig.getInstanceFromEnv();
+            }
+        });
+    }
+
+    private static ISource createSource(ISourceAware aware) {
+        Map<Integer, String> sources = KylinConfig.getInstanceFromEnv().getSourceEngines();
+        String clazz = sources.get(aware.getSourceType());
+        try {
+            return ClassUtil.forName(clazz, ISource.class).getDeclaredConstructor(KylinConfig.class)
+                    .newInstance(aware.getConfig());
+        } catch (Exception e) {
+            log.error("Failed to create source: SourceType={}", aware.getSourceType(), e);
+            return null;
+        }
+    }
+
+    private static String createSourceCacheKey(ISourceAware aware) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(aware.getSourceType()).append('|');
+
+        KylinConfig config = aware.getConfig();
+        builder.append(config.getJdbcConnectionUrl()).append('|');
+        builder.append(config.getJdbcUser()).append('|');
+        builder.append(config.getJdbcPass()).append('|'); // In case password is wrong at the first time
+        builder.append(config.getJdbcDriver()).append('|');
+        builder.append(config.getJdbcDialect()).append('|');
+        builder.append(config.getJdbcAdaptorClass()).append('|');
+        return builder.toString();
     }
 
     public static <T> T createEngineAdapter(ISourceAware table, Class<T> engineInterface) {
         return getSource(table).adaptToBuildEngine(engineInterface);
     }
 
-    public static List<String> getMRDependentResources(TableDesc table) {
-        return getSource(table).getSourceMetadataExplorer().getRelatedKylinResources(table);
-    }
 }

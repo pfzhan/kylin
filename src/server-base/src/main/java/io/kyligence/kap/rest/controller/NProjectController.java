@@ -43,6 +43,7 @@ import java.util.Random;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.request.JdbcRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -460,5 +461,15 @@ public class NProjectController extends NBasicController {
             @RequestBody Map<String, String> request) {
         projectService.updateProjectConfig(project, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "update jdbc config (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project}/jdbc_config")
+    @ResponseBody
+    public EnvelopeResponse updateJdbcConfig(@RequestBody JdbcRequest jdbcRequest,
+                                             @PathVariable(value = "project") String project) {
+        checkRequiredArg("project", project);
+        projectService.updateJdbcConfig(project, jdbcRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 }

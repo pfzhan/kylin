@@ -213,7 +213,9 @@ public class PushDownUtil {
      */
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String project)
             throws Exception {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        val prj = prjManager.getProject(project);
+        val kylinConfig = prj.getConfig();
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 

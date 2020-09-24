@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.source;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -37,6 +38,10 @@ import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
 public class NSparkDataSource implements ISource, IKeepNames {
+    // for reflection
+    public NSparkDataSource(KylinConfig config) {
+
+    }
 
     @Override
     public ISourceMetadataExplorer getSourceMetadataExplorer() {

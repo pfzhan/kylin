@@ -42,17 +42,37 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
+import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
+import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
+import io.kyligence.kap.rest.request.ShardNumConfigRequest;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.source.file.S3KeyCredential;
+import io.kyligence.kap.source.file.S3KeyCredentialOperator;
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -60,6 +80,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -84,41 +105,21 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
-import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
-import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
-import io.kyligence.kap.rest.request.OwnerChangeRequest;
-import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
-import io.kyligence.kap.rest.request.PushDownConfigRequest;
-import io.kyligence.kap.rest.request.PushDownProjectConfigRequest;
-import io.kyligence.kap.rest.request.SegmentConfigRequest;
-import io.kyligence.kap.rest.request.ShardNumConfigRequest;
-import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.source.file.S3KeyCredential;
-import io.kyligence.kap.source.file.S3KeyCredentialOperator;
-import lombok.val;
-import lombok.var;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class ProjectServiceTest extends ServiceTestBase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
+    private static final String PROJECT_JDBC = "jdbc";
     private static final String PROJECT_ID = "a8f4da94-a8a4-464b-ab6f-b3012aba04d5";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
@@ -523,7 +524,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         pushDownProjectConfigRequest.setRunnerClassName("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         pushDownProjectConfigRequest.setConverterClassNames("org.apache.kylin.query.util.PowerBIConverter");
         projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
-        String[] converterClassNames = new String[] { "org.apache.kylin.query.util.PowerBIConverter" };
+        String[] converterClassNames = new String[]{"org.apache.kylin.query.util.PowerBIConverter"};
         // response
         response = projectService.getProjectConfig(project);
         Assert.assertEquals("io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl", response.getRunnerClassName());
@@ -844,5 +845,33 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         Assert.assertEquals(true, favoriteRules.get("recommendation_enable"));
         Assert.assertEquals(20L, favoriteRules.get("recommendations_value"));
+    }
+
+    @Test
+    public void testUpdateJdbcConfig() {
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName(PROJECT_JDBC);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(projectInstance.getName(), projectInstance);
+            return null;
+        }, projectInstance.getName());
+
+        JdbcRequest jdbcRequest = new JdbcRequest();
+        jdbcRequest.setAdaptor("org.apache.kylin.sdk.datasource.adaptor.H2Adaptor");
+        jdbcRequest.setDialect("h2");
+        jdbcRequest.setDriver("org.h2.Driver");
+        jdbcRequest.setPushdownClass("org.apache.kylin.sdk.datasource.PushDownRunnerSDKImpl");
+        jdbcRequest.setSourceConnector("io.kyligence.kap.source.jdbc.DefaultSourceConnector");
+        jdbcRequest.setUrl("jdbc:h2:mem:db");
+        projectService.updateJdbcConfig(PROJECT_JDBC, jdbcRequest);
+
+        ProjectInstance project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
+        Assert.assertEquals(ISourceAware.ID_JDBC, project.getSourceType());
+        Assert.assertEquals("org.apache.kylin.sdk.datasource.PushDownRunnerSDKImpl",
+                project.getOverrideKylinProps().get("kylin.query.pushdown.runner-class-name"));
+        Assert.assertEquals("org.apache.kylin.sdk.datasource.PushDownRunnerSDKImpl",
+                project.getOverrideKylinProps().get("kylin.query.pushdown.partition-check.runner-class-name"));
+        Assert.assertEquals("io.kyligence.kap.source.jdbc.DefaultSourceConnector",
+                project.getOverrideKylinProps().get("kylin.source.jdbc.connector-class-name"));
     }
 }

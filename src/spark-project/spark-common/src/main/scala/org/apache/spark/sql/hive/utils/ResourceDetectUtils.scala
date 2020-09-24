@@ -34,8 +34,9 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
 import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, ReusedExchangeExec}
-import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, SparkPlan}
+import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, RowDataSourceScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
+import org.apache.spark.sql.sources.NBaseRelation
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -58,6 +59,12 @@ object ResourceDetectUtils extends Logging {
           }
         } else {
           paths :+= new Path(plan.relation.tableMeta.location)
+        }
+      case plan: RowDataSourceScanExec =>
+        plan.relation match {
+          case relation: NBaseRelation =>
+            paths :+= relation.location
+          case _ =>
         }
       case _ =>
     }

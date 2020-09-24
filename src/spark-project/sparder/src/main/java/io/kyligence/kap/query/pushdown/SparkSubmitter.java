@@ -24,31 +24,41 @@
 
 package io.kyligence.kap.query.pushdown;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 import io.kyligence.kap.metadata.query.StructField;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Semaphore;
-
+import io.kyligence.kap.spark.common.CredentialUtils;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
-import io.kyligence.kap.spark.common.CredentialUtils;
+import java.util.List;
+import java.util.UUID;
 
 public class SparkSubmitter {
     public static final Logger logger = LoggerFactory.getLogger(SparkSubmitter.class);
-    private static Semaphore semaphore = new Semaphore((int) (Runtime.getRuntime().totalMemory() / (1024 * 1024)));
 
-    public static PushdownResponse submitPushDownTask(String sql, String project) {
+    public static SparkSubmitter getInstance() {
+        return Singletons.getInstance(SparkSubmitter.class);
+    }
+
+    private SparkSession ss;
+
+    public void setSparkSession(SparkSession ss) {
+        this.ss = ss;
+    }
+
+    public PushdownResponse submitPushDownTask(String sql, String project) {
         if (UnitOfWork.isAlreadyInTransaction()) {
             logger.warn("execute spark job with transaction lock");
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
-        SparkSession ss = SparderEnv.getSparkSession();
+        if (ss == null) {
+            ss = SparderEnv.getSparkSession();
+        }
         CredentialUtils.wrap(ss, project);
         Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
         return new PushdownResponse(pair.getSecond(), pair.getFirst());

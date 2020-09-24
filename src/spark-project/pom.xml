@@ -54,6 +54,7 @@
         <module>source-file</module>
         <module>kylin-user-session</module>
         <module>kylin-user-session-dep</module>
+        <module>source-jdbc</module>
     </modules>
 
     <dependencies>

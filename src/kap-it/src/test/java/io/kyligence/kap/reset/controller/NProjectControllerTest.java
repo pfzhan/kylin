@@ -41,9 +41,12 @@
  */
 package io.kyligence.kap.reset.controller;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
+import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -54,11 +57,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
-import io.kyligence.kap.rest.request.ProjectRequest;
-import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
 
@@ -108,4 +108,25 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
         ProjectInstance project = projectManager.getProject(projectName);
         Assert.assertEquals("false", project.getOverrideKylinProps().get(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF));
     }
+
+    @Test
+    public void testUpdateJdbcConfig() throws Exception {
+        String projectName = "test_update_jdbc_config";
+        ProjectRequest projectRequest = new ProjectRequest();
+        projectRequest.setName(projectName);
+        projectRequest.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(projectRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        JdbcRequest jdbcRequest = new JdbcRequest();
+        mockMvc.perform(MockMvcRequestBuilders
+                .put(String.format("/api/projects/%s/jdbc_config", projectName.toUpperCase()))
+                .content(JsonUtil.writeValueAsString(jdbcRequest)).contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
 }

@@ -105,6 +105,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -1281,14 +1282,17 @@ public class ModelService extends BasicService {
             return;
         }
         try {
-            SparkSession ss = SparderEnv.getSparkSession();
-            String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-            QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
-            queryParams.setKylinConfig(QueryUtil.getKylinConfig(dataModel.getProject()));
-            queryParams.setAclInfo(
-                    AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject(), getCurrentUserGroups()));
-            String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
-            ss.sql(pushdownSql);
+            ProjectInstance project = getProjectManager().getProject(dataModel.getProject());
+            if (project.getSourceType() == ISourceAware.ID_SPARK) {
+                SparkSession ss = SparderEnv.getSparkSession();
+                String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
+                QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
+                queryParams.setKylinConfig(QueryUtil.getKylinConfig(dataModel.getProject()));
+                queryParams.setAclInfo(
+                        AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject(), getCurrentUserGroups()));
+                String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
+                ss.sql(pushdownSql);
+            }
         } catch (Exception e) {
             Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
             Matcher matcher = pattern.matcher(e.getMessage().replaceAll("`", ""));

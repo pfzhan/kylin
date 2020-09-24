@@ -64,7 +64,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         TableDesc fact = tableMgr.getTableDesc(DEFAULT_TABLE);
         ColumnDesc[] colDescs = fact.getColumns();
-        NSparkCubingSource cubingSource = new CsvSource().adaptToBuildEngine(NSparkCubingSource.class);
+        NSparkCubingSource cubingSource = new CsvSource(getTestConfig()).adaptToBuildEngine(NSparkCubingSource.class);
         Dataset<Row> df = cubingSource.getSourceData(fact, ss, Maps.newHashMap());
         df.take(10);
         StructType schema = df.schema();
@@ -78,7 +78,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSourceMetadataExplorer() throws Exception {
-        CsvSource csvSource = new CsvSource();
+        CsvSource csvSource = new CsvSource(getTestConfig());
         ISourceMetadataExplorer sourceMetadataExplorer = csvSource.getSourceMetadataExplorer();
         List<String> databases = sourceMetadataExplorer.listDatabases();
         String database = getProject().toUpperCase();
@@ -124,10 +124,10 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testGetSegmentRange() {
-        SegmentRange segmentRange = new CsvSource().getSegmentRange("0", "21423423");
+        SegmentRange segmentRange = new CsvSource(getTestConfig()).getSegmentRange("0", "21423423");
         Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange
                 && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
-        SegmentRange segmentRange2 = new CsvSource().getSegmentRange("", "");
+        SegmentRange segmentRange2 = new CsvSource(getTestConfig()).getSegmentRange("", "");
         Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
                 && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }

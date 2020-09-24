@@ -48,13 +48,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang3.StringUtils;
 import com.google.common.base.Preconditions;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -412,6 +415,13 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         TableDesc mockup = new TableDesc();
         mockup.setName(tableName);
         return mockup;
+    }
+
+    @Override
+    public KylinConfig getConfig() {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(this.project);
+        return projectInstance.getConfig();
     }
 
     @Override

@@ -24,49 +24,10 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.spark.application.NoRetryException;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
-import org.apache.spark.sql.datasource.storage.StorageStore;
-import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
-import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
-import org.apache.spark.sql.datasource.storage.WriteTaskStats;
-import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
@@ -83,9 +44,46 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import io.kyligence.kap.query.pushdown.SparkSubmitter;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.spark.application.NoRetryException;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
+import org.apache.spark.sql.datasource.storage.StorageStore;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
+import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
+import org.apache.spark.sql.datasource.storage.WriteTaskStats;
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.collection.JavaConversions;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DFBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
@@ -157,7 +155,7 @@ public class DFBuildJob extends SparkApplication {
                     persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
                 }
                 if (!seg2Count.containsKey(segId)) {
-                    seg2Count.put(segId,buildFromFlatTable.getParentDS().count());
+                    seg2Count.put(segId, buildFromFlatTable.getParentDS().count());
                 }
                 build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
             }
@@ -444,7 +442,7 @@ public class DFBuildJob extends SparkApplication {
         nDataflowBuildJob.execute(args);
     }
 
-    private void checkDateFormatIfExist(String project, String modelId) throws NoRetryException {
+    private void checkDateFormatIfExist(String project, String modelId) throws Exception {
         if (config.isUTEnv()) {
             return;
         }
@@ -460,20 +458,18 @@ public class DFBuildJob extends SparkApplication {
 
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
-        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn,
-                modelDesc.getRootFactTableName(), partitionColumn);
-        logger.debug("Check date format with sql: {}", sql);
-        val res = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
-        if (CollectionUtils.isEmpty(res.getFirst())) {
-            return;
-        }
         try {
-            val dateString = res.getFirst().get(0).get(0);
+            SparkSubmitter.getInstance().setSparkSession(ss); // in order to use build spark session to query
+            String dateString = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn,
+                    project);
+            SparkSubmitter.getInstance().setSparkSession(null); // clear build spark session
             val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat());
             val date = sdf.parse(dateString);
             if (date == null || !dateString.equals(sdf.format(date))) {
                 throw new NoRetryException("date format not match");
             }
+        } catch (KylinException ignore) {
+            // ignore it when pushdown return empty row
         } catch (ParseException | NoRetryException e) {
             throw new NoRetryException("date format not match");
         }

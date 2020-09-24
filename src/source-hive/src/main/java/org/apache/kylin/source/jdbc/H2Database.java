@@ -111,6 +111,17 @@ public class H2Database {
         }
     }
 
+    public void dropAll() throws SQLException {
+        try (Statement stmt = h2Connection.createStatement()) {
+            StringBuilder sqlBuilder = new StringBuilder();
+            for (String tblName : ALL_TABLES)
+                sqlBuilder.append("DROP TABLE ").append(tblName).append(";\n");
+            sqlBuilder.append("DROP SCHEMA DEFAULT;\nDROP SCHEMA EDW;\n");
+
+            stmt.executeUpdate(sqlBuilder.toString());
+        }
+    }
+
     private void loadH2Table(String tableName) throws SQLException {
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
         TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());

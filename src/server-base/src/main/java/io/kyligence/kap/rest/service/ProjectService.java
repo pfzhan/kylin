@@ -47,6 +47,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import com.google.common.base.Strings;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.rest.request.JdbcRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -93,7 +96,6 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -927,5 +929,27 @@ public class ProjectService extends BasicService {
             throw new KylinException(EMPTY_PARAMETER, "config map is required");
         }
         updateProjectOverrideKylinProps(project, overrides);
+    }
+
+    @Transaction(project = 0)
+    public void updateJdbcConfig(String project, JdbcRequest jdbcRequest) {
+        Map<String, String> overrideKylinProps = Maps.newLinkedHashMap();
+        overrideKylinProps.put("kylin.source.jdbc.connection-url", jdbcRequest.getUrl());
+        overrideKylinProps.put("kylin.source.jdbc.driver", jdbcRequest.getDriver());
+        overrideKylinProps.put("kylin.source.jdbc.user", jdbcRequest.getUser());
+        overrideKylinProps.put("kylin.source.jdbc.pass", jdbcRequest.getPass());
+        overrideKylinProps.put("kylin.source.jdbc.dialect", jdbcRequest.getDialect());
+        overrideKylinProps.put("kylin.source.jdbc.adaptor", jdbcRequest.getAdaptor());
+        if (!Strings.isNullOrEmpty(jdbcRequest.getPushdownClass())) {
+            overrideKylinProps.put("kylin.query.pushdown.runner-class-name", jdbcRequest.getPushdownClass());
+            overrideKylinProps.put("kylin.query.pushdown.partition-check.runner-class-name",
+                    jdbcRequest.getPushdownClass());
+        }
+        if (!Strings.isNullOrEmpty(jdbcRequest.getSourceConnector())) {
+            overrideKylinProps.put("kylin.source.jdbc.connector-class-name", jdbcRequest.getSourceConnector());
+        }
+        // Use JDBC Source
+        overrideKylinProps.put("kylin.source.default", String.valueOf(ISourceAware.ID_JDBC));
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 }

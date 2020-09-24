@@ -64,7 +64,7 @@ public class NHiveTableName implements Runnable {
     private Map<String, NHiveSourceInfo> sourceInfos;//Map<UGI,NHiveSourceInfo>
     private volatile Map<String, Boolean> isRunnings;
     private volatile Map<String, Long> lastLoadTimes;
-    private final ISourceMetadataExplorer explr;
+    private ISourceMetadataExplorer explr;
 
     public static NHiveTableName getInstance() {
         return Singletons.getInstance(NHiveTableName.class);
@@ -105,7 +105,7 @@ public class NHiveTableName implements Runnable {
         });
 
         long timeInterval = (System.currentTimeMillis() - now) / 1000;
-        logger.info(String.format("Load hive table name successful within %d second", timeInterval));
+        logger.info("Load hive table name successful within {} second", timeInterval);
     }
 
     private void checkIsAllNode() {
@@ -144,6 +144,9 @@ public class NHiveTableName implements Runnable {
         logger.info("Load hive tables immediately {}, force: {}", project, force);
         checkIsAllNode();
         checkKerberosInfo(project);
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        this.explr = SourceFactory.getSource(projectManager.getProject(project)).getSourceMetadataExplorer();
+        logger.info("Use source explorer {}", explr.getClass().getCanonicalName());
         NHiveTableNameResponse response = new NHiveTableNameResponse();
         String ugiName = ugi.getUserName();
         if (isRunnings.get(ugiName) == null || lastLoadTimes.get(ugiName) == null) {
@@ -169,12 +172,7 @@ public class NHiveTableName implements Runnable {
         logger.info("Load hive tables from ugi {}", ugi.getUserName());
         NHiveSourceInfo sourceInfo = null;
         if (UserGroupInformation.isSecurityEnabled()) {
-            sourceInfo = ugi.doAs(new PrivilegedAction<NHiveSourceInfo>() {
-                @Override
-                public NHiveSourceInfo run() {
-                    return fetchTables();
-                }
-            });
+            sourceInfo = ugi.doAs((PrivilegedAction<NHiveSourceInfo>) this::fetchTables);
 
         } else {
             sourceInfo = fetchTables();
@@ -186,12 +184,9 @@ public class NHiveTableName implements Runnable {
     public boolean checkExistsTablesAccess(UserGroupInformation ugi, String project) {
         val kapConfig = KapConfig.getInstanceFromEnv();
         val projectManager = NProjectManager.getInstance(kapConfig.getKylinConfig());
-        return ugi.doAs(new PrivilegedAction<Boolean>() {
-            @Override
-            public Boolean run() {
-                val tables = projectManager.getProject(project).getTables();
-                return explr.checkTablesAccess(tables);
-            }
+        return ugi.doAs((PrivilegedAction<Boolean>) () -> {
+            val tables = projectManager.getProject(project).getTables();
+            return explr.checkTablesAccess(tables);
         });
     }
 

@@ -43,6 +43,7 @@
 
 package org.apache.kylin.metadata.model;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.filter.function.Functions;
@@ -133,6 +134,11 @@ public class ExternalFilterDesc extends RootPersistentEntity implements ISourceA
     @Override
     public int getSourceType() {
         return sourceType;
+    }
+
+    @Override
+    public KylinConfig getConfig() {
+        return null;
     }
 
     public void setSourceType(int sourceType) {

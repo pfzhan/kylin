@@ -42,7 +42,25 @@
 
 package org.apache.kylin.common;
 
-import static java.lang.Math.toIntExact;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
+import io.kyligence.kap.common.util.ClusterConstant;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.text.StrSubstitutor;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.common.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,27 +83,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.text.StrSubstitutor;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.common.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
-import io.kyligence.kap.common.util.ClusterConstant;
+import static java.lang.Math.toIntExact;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -188,7 +186,6 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     /**
-     *
      * @param propertyKeys the collection of the properties; if null will return all properties
      * @return
      */
@@ -521,8 +518,8 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getHdfsMetaStoreFileSystemSchemas() {
         return getOptionalStringArray("kylin.metadata.hdfs-compatible-schemas", //
-                new String[] { "hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
-                        "oss" });
+                new String[]{"hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
+                        "oss"});
     }
 
     public String getSecurityProfile() {
@@ -531,7 +528,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getRealizationProviders() {
         return getOptionalStringArray("kylin.metadata.realization-providers", //
-                new String[] { "io.kyligence.kap.metadata.cube.model.NDataflowManager" });
+                new String[]{"io.kyligence.kap.metadata.cube.model.NDataflowManager"});
     }
 
     public String[] getCubeDimensionCustomEncodingFactories() {
@@ -590,6 +587,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     /**
      * expose computed column in the table metadata and select * queries
+     *
      * @return
      */
     public boolean exposeComputedColumn() {
@@ -887,6 +885,7 @@ public abstract class KylinConfigBase implements Serializable {
         //        r.put(1, "org.apache.kylin.source.kafka.KafkaSource");
         //        r.put(8, "org.apache.kylin.source.jdbc.JdbcSource");
         r.put(1, "io.kyligence.kap.engine.spark.source.kafka.NSparkKafkaSource");
+        r.put(8, "io.kyligence.kap.source.jdbc.JdbcSource");
         r.put(9, "io.kyligence.kap.engine.spark.source.NSparkDataSource");
         r.put(13, "io.kyligence.kap.source.file.FileSource");
 
@@ -993,6 +992,23 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getJdbcPass() {
         return getOptional("kylin.source.jdbc.pass");
+    }
+
+    public String getJdbcAdaptorClass() {
+        return getOptional("kylin.source.jdbc.adaptor");
+    }
+
+    public int getJdbcConnectRetryTimes() {
+        return Integer.parseInt(getOptional("kylin.source.jdbc.connect-retry-times", "1"));
+    }
+
+    public long getJdbcSleepIntervalBetweenRetry() {
+        return TimeUtil.timeStringAs(getOptional("kylin.source.jdbc.connect-retry-sleep-interval", "100ms"),
+                TimeUnit.MILLISECONDS);
+    }
+
+    public String getJdbcSourceConnector() {
+        return getOptional("kylin.source.jdbc.connector-class-name", "io.kyligence.kap.source.jdbc.DefaultSourceConnector");
     }
 
     // ============================================================================
@@ -1130,7 +1146,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int[] getSparkEngineDriverMemoryStrategy() {
-        String[] dft = { "2", "20", "100" };
+        String[] dft = {"2", "20", "100"};
         return getOptionalIntArray("kylin.engine.driver-memory-strategy", dft);
     }
 
@@ -1228,6 +1244,7 @@ public abstract class KylinConfigBase implements Serializable {
      * the threshold for query result caching
      * query result will only be cached if the result is below the threshold
      * the size of the result is counted by its cells (rows * columns)
+     *
      * @return
      */
     public long getLargeQueryThreshold() {
@@ -1245,10 +1262,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getQueryTransformers() {
         String value = getOptional("kylin.query.transformers");
-        return value == null ? new String[] { "org.apache.kylin.query.util.PowerBIConverter",
+        return value == null ? new String[]{"org.apache.kylin.query.util.PowerBIConverter",
                 "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
                 "io.kyligence.kap.query.util.ConvertToComputedColumn",
-                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter" }
+                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter"}
                 : getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
 
@@ -1286,8 +1303,9 @@ public abstract class KylinConfigBase implements Serializable {
 
     /**
      * if FALSE,
-     *     non-equi-inner join will be transformed to inner join and filter
-     *     left join will be transformed runtime-join
+     * non-equi-inner join will be transformed to inner join and filter
+     * left join will be transformed runtime-join
+     *
      * @return
      */
     public boolean isQueryNonEquiJoinModelEnabled() {
@@ -1386,12 +1404,12 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getPushDownConverterClassNames() {
         return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
-                new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
+                new String[]{"org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                         "org.apache.kylin.query.util.PowerBIConverter",
                         "io.kyligence.kap.query.util.RestoreFromComputedColumn",
                         "io.kyligence.kap.query.security.RowFilter",
                         "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
-                        "io.kyligence.kap.query.util.SparkSQLFunctionConverter" });
+                        "io.kyligence.kap.query.util.SparkSQLFunctionConverter"});
     }
 
     public String getPartitionCheckRunnerClassName() {
@@ -2096,7 +2114,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     private double getConfigItemDoubleValue(String configItem, double defaultDoubleValue, double rangeStart,
-            double rangeEnd) {
+                                            double rangeEnd) {
         double resultValue = defaultDoubleValue;
         try {
             resultValue = Integer.parseInt(getOptional(configItem, String.valueOf(defaultDoubleValue)));
@@ -2277,4 +2295,5 @@ public abstract class KylinConfigBase implements Serializable {
     public int getAADTokenClockSkewSeconds() {
         return Integer.valueOf(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
     }
+
 }

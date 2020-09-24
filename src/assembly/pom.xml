@@ -67,9 +67,21 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-source-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-datasource-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-sparder</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-tomcat-ext</artifactId>
+            <scope>compile</scope>
+        </dependency>
         <!-- Env -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

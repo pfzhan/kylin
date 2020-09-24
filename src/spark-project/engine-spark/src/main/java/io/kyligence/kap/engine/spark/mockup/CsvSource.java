@@ -60,6 +60,10 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class CsvSource implements ISource {
 
+    // for reflection
+    public CsvSource(KylinConfig config) {
+    }
+
     @Override
     public ISourceMetadataExplorer getSourceMetadataExplorer() {
         return new ISourceMetadataExplorer() {

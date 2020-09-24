@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,6 +43,8 @@
 
 package org.apache.kylin.metadata.model;
 
+import org.apache.kylin.common.KylinConfig;
+
 public interface ISourceAware {
 
     public static final int ID_HIVE = 0;
@@ -55,4 +57,6 @@ public interface ISourceAware {
     public static final int ID_FILE = 13;
 
     int getSourceType();
+
+    KylinConfig getConfig();
 }

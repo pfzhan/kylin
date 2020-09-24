@@ -344,7 +344,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        return explr.listDatabases().stream().map(s -> s.toUpperCase()).collect(Collectors.toList());
+        return explr.listDatabases().stream().map(String::toUpperCase).collect(Collectors.toList());
     }
 
     public List<String> getSourceTableNames(String project, String database, final String table) throws Exception {
@@ -727,6 +727,7 @@ public class TableService extends BasicService {
             String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
             return DateFormat.proposeDateFormat(cell);
         } catch (Exception e) {
+            logger.error("Failed to get date format.", e);
             throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPUSHDOWN_PARTITIONFORMAT_ERROR());
         }
     }

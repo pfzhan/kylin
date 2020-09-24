@@ -25,17 +25,14 @@ import java.io.File
 import java.util
 import java.util.{List, Map}
 
-import com.google.common.collect.Lists
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import org.apache.kylin.metadata.model.{ColumnDesc, IBuildable, SegmentRange, TableDesc}
+import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.metadata.model.{IBuildable, SegmentRange, TableDesc}
 import org.apache.kylin.source.{IReadableTable, ISampleDataDeployer, ISource, ISourceMetadataExplorer}
-import org.apache.spark.sql.execution.utils.SchemaProcessor
-import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
-import scala.io.Source
 
-class NSparkKafkaSource extends ISource{
+class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource{
   // scalastyle:off
   /**
     * Return an explorer to sync table metadata from the data source.
