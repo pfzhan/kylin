@@ -74,7 +74,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     public static ConcurrentHashMap<Class, Object> getInstancesFromSingleton() throws Exception {
         Field instanceField = Singletons.class.getDeclaredField("instance");
         instanceField.setAccessible(true);
-        Field field = Singletons.class.getDeclaredField("instances");
+        Field field = Singletons.class.getDeclaredField("instancesByPrj");
         field.setAccessible(true);
         val result = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field.get(instanceField.get(null));
         if (result == null) {
@@ -178,6 +178,12 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
         try {
             getInstancesFromSingleton().clear();
+        } catch (Exception e) {
+            //ignore in it
+        }
+
+        try {
+            getInstanceByProjectFromSingleton().clear();
         } catch (Exception e) {
             //ignore in it
         }

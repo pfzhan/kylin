@@ -71,14 +71,12 @@ public class QueryHisStoreUtil {
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX1 = "create.queryhistoryrealization.store.tableindex1";
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX2 = "create.queryhistoryrealization.store.tableindex2";
 
-    private static SqlSessionFactory sqlSessionFactory = null;
-
     private QueryHisStoreUtil() {
     }
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String qhTableName,
             String qhRealizationTableName) {
-        Singletons.getInstance(QueryHisStoreUtil.class, clz -> {
+        return Singletons.getInstance("query-history-sql-session-factory", SqlSessionFactory.class, clz -> {
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
             Environment environment = new Environment("query history", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);
@@ -89,11 +87,8 @@ public class QueryHisStoreUtil {
             configuration.addMapper(QueryStatisticsMapper.class);
             createQueryHistoryIfNotExist((BasicDataSource) dataSource, qhTableName);
             createQueryHistoryRealizationIfNotExist((BasicDataSource) dataSource, qhRealizationTableName);
-            sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
-            return new QueryHisStoreUtil();
+            return new SqlSessionFactoryBuilder().build(configuration);
         });
-
-        return sqlSessionFactory;
     }
 
     private static void createQueryHistoryIfNotExist(BasicDataSource dataSource, String qhTableName)

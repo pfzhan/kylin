@@ -53,13 +53,12 @@ public class RawRecStoreUtil {
 
     public static final String CREATE_REC_TABLE = "create.rawrecommendation.store.table";
     public static final String CREATE_INDEX = "create.rawrecommendation.store.index";
-    private static SqlSessionFactory sqlSessionFactory = null;
 
     private RawRecStoreUtil() {
     }
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String tableName) {
-        Singletons.getInstance(RawRecStoreUtil.class, clz -> {
+        return Singletons.getInstance("raw-recommendation-sql-session-factory", SqlSessionFactory.class, clz -> {
             log.info("Start to build SqlSessionFactory");
             TransactionFactory transactionFactory = new SpringManagedTransactionFactory();
             Environment environment = new Environment("raw recommendation", transactionFactory, dataSource);
@@ -68,11 +67,8 @@ public class RawRecStoreUtil {
             configuration.setJdbcTypeForNull(JdbcType.NULL);
             configuration.addMapper(RawRecItemMapper.class);
             createTableIfNotExist((BasicDataSource) dataSource, tableName);
-            sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
-            return new RawRecStoreUtil();
+            return new SqlSessionFactoryBuilder().build(configuration);
         });
-
-        return sqlSessionFactory;
     }
 
     private static void createTableIfNotExist(BasicDataSource dataSource, String tableName)
@@ -87,8 +83,17 @@ public class RawRecStoreUtil {
         String crateIndexStmt = String.format(properties.getProperty(CREATE_INDEX), tableName, tableName);
         try (Connection connection = dataSource.getConnection()) {
             ScriptRunner sr = new ScriptRunner(connection);
+            log.debug("start to create table({})", tableName);
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(createTableStmt.getBytes())));
+            log.debug("create table finished");
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(crateIndexStmt.getBytes())));
+        }
+
+        if (!JdbcUtil.isTableExists(dataSource.getConnection(), tableName)) {
+            log.debug("failed to create table({})", tableName);
+            throw new IllegalStateException(String.format("create table(%s) failed", tableName));
+        } else {
+            log.debug("table({}) not exist.", tableName);
         }
     }
 }

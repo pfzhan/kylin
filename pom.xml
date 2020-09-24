@@ -241,7 +241,7 @@
         <oshi.version>3.13.2</oshi.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
+        <argLine>-Xms1G -Xmx8G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
 
         <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
     </properties>

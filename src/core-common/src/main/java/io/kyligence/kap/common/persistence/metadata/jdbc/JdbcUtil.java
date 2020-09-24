@@ -110,10 +110,10 @@ public class JdbcUtil implements IKeep {
     public static Properties datasourceParametersForUT(StorageURL url) {
         Properties props = new Properties();
         props.put("driverClassName", "org.h2.Driver");
-        props.put("url", "jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1");
+        props.put("url", "jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MySQL");
         props.put("username", "sa");
         props.put("password", "");
-        props.put("maxTotal", "10");
+        props.put("maxTotal", "50");
         props.putAll(url.getAllParameters());
         return props;
     }
