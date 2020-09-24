@@ -77,8 +77,16 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
 
+        getTestConfig().setProperty("kylin.diag.task-timeout", "180s");
+        long start = System.currentTimeMillis();
         new JobDiagInfoTool().execute(
                 new String[] { "-job", "dd5a6451-0743-4b32-b84d-2ddc8052429f", "-destDir", mainDir.getAbsolutePath() });
+        long duration = System.currentTimeMillis() - start;
+        Assert.assertTrue(
+                "In theory, the running time of this case should not exceed two minutes. "
+                        + "If other data is added subsequently, which causes the running time of the "
+                        + "diagnostic package to exceed two minutes, please adjust this test.",
+                duration < 2 * 60 * 1000);
 
         for (File file1 : mainDir.listFiles()) {
             for (File file2 : file1.listFiles()) {

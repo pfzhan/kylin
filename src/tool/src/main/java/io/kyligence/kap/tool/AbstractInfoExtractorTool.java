@@ -23,6 +23,19 @@
  */
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.AUDIT_LOG;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.BIN;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.CATALOG_INFO;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.CLIENT;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.CONF;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.HADOOP_CONF;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.HADOOP_ENV;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.JSTACK;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.KG_LOGS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.METADATA;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_METRICS;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,9 +45,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -58,14 +72,17 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.tool.constant.DiagSubTaskEnum;
 import io.kyligence.kap.tool.constant.StageEnum;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
 import io.kyligence.kap.tool.util.ToolUtil;
 import io.kyligence.kap.tool.util.ZipFileUtil;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
 public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -105,9 +122,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             .isRequired(false).withDescription("Specify number of threads for parallel extraction.").create("threads");
 
     @SuppressWarnings("static-access")
-    static final Option OPTION_DIAGID = OptionBuilder.getInstance().withArgName("diagId")
-            .hasArg().isRequired(false).withDescription("Specify whether diag from web")
-            .create("diagId");
+    static final Option OPTION_DIAGID = OptionBuilder.getInstance().withArgName("diagId").hasArg().isRequired(false)
+            .withDescription("Specify whether diag from web").create("diagId");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";
     private static final String[] COMMIT_SHA1_FILES = { "commit_SHA1", "commit.sha1" };
@@ -141,8 +157,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     @Getter
     private CliCommandExecutor cmdExecutor;
 
-    @Getter
-    protected ConcurrentSkipListSet<String> canceledTasks;
+    protected ConcurrentHashMap<DiagSubTaskEnum, Long> taskStartTime;
+    protected LinkedBlockingQueue<DiagSubTaskInfo> taskQueue;
 
     private boolean includeSystemEnv;
 
@@ -197,6 +213,9 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         if (isDiag()) {
             final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
             executorService = Executors.newScheduledThreadPool(threadsNum);
+            timerExecutorService = Executors.newScheduledThreadPool(2);
+            taskQueue = new LinkedBlockingQueue<>();
+            taskStartTime = new ConcurrentHashMap<>();
             if (isDiagFromWeb(optionsHelper)) {
                 scheduleDiagProgress(optionsHelper.getOptionValue(OPTION_DIAGID));
             }
@@ -261,9 +280,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         long interval = 3;
         int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
         RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
-        timerExecutorService = Executors.newSingleThreadScheduledExecutor();
-        timerExecutorService.scheduleWithFixedDelay(() -> restClient.updateDiagProgress(diagId, getStage(), getProgress()),
-                0, interval, TimeUnit.SECONDS);
+        timerExecutorService.scheduleWithFixedDelay(
+                () -> restClient.updateDiagProgress(diagId, getStage(), getProgress()), 0, interval, TimeUnit.SECONDS);
     }
 
     private void reportDiagProgressImmediately(String diagId) {
@@ -468,7 +486,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     protected void dumpMetadata(String[] metaToolArgs, File recordTime) {
         Future metadataTask = executorService.submit(() -> {
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(METADATA);
             try {
                 File metaDir = new File(exportDir, "metadata");
                 FileUtils.forceMkdir(metaDir);
@@ -476,81 +494,75 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             } catch (Exception e) {
                 logger.error("Failed to extract metadata.", e);
             }
-            DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(METADATA, recordTime);
         });
 
-        scheduleTimeoutTask(metadataTask, "METADATA");
+        scheduleTimeoutTask(metadataTask, METADATA);
     }
 
     protected void exportKgLogs(File exportDir, long startTime, long endTime, File recordTime) {
         Future kgLogTask = executorService.submit(() -> {
-            logger.info("Start to extract guardian process log.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(KG_LOGS);
             KylinLogTool.extractKGLogs(exportDir, startTime, endTime);
-            DiagnosticFilesChecker.writeMsgToFile("KG_LOGS", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(KG_LOGS, recordTime);
         });
 
-        scheduleTimeoutTask(kgLogTask, "KG_LOGS");
+        scheduleTimeoutTask(kgLogTask, KG_LOGS);
     }
 
     protected void exportAuditLog(String[] auditLogToolArgs, File recordTime) {
         Future auditTask = executorService.submit(() -> {
-            logger.info("Start to dump audit log.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(AUDIT_LOG);
             try {
                 new AuditLogTool(KylinConfig.getInstanceFromEnv()).execute(auditLogToolArgs);
             } catch (Exception e) {
                 logger.error("Failed to extract audit log.", e);
             }
-            DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(AUDIT_LOG, recordTime);
         });
 
-        scheduleTimeoutTask(auditTask, "AUDIT_LOG");
+        scheduleTimeoutTask(auditTask, AUDIT_LOG);
     }
 
     protected void exportInfluxDBMetrics(File exportDir, File recordTime) {
         // influxdb metrics
         Future metricsTask = executorService.submit(() -> {
-            logger.info("Start to dump influxdb metrics.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(SYSTEM_METRICS);
             InfluxDBTool.dumpInfluxDBMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(SYSTEM_METRICS, recordTime);
         });
 
-        scheduleTimeoutTask(metricsTask, "SYSTEM_METRICS");
+        scheduleTimeoutTask(metricsTask, SYSTEM_METRICS);
 
         // influxdb sla monitor metrics
         Future monitorTask = executorService.submit(() -> {
-            logger.info("Start to dump influxdb sla monitor metrics.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(MONITOR_METRICS);
             InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(MONITOR_METRICS, recordTime);
         });
 
-        scheduleTimeoutTask(monitorTask, "MONITOR_METRICS");
+        scheduleTimeoutTask(monitorTask, MONITOR_METRICS);
     }
 
     protected void exportClient(File recordTime) {
         Future clientTask = executorService.submit(() -> {
-            logger.info("Start to extract client info.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(CLIENT);
             CommonInfoTool.exportClientInfo(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("CLIENT", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(CLIENT, recordTime);
         });
 
-        scheduleTimeoutTask(clientTask, "CLIENT");
+        scheduleTimeoutTask(clientTask, CLIENT);
 
     }
 
     protected void exportJstack(File recordTime) {
         Future jstackTask = executorService.submit(() -> {
-            logger.info("Start to extract jstack info.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(JSTACK);
             JStackTool.extractJstack(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("JSTACK", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(JSTACK, recordTime);
         });
 
-        scheduleTimeoutTask(jstackTask, "JSTACK");
+        scheduleTimeoutTask(jstackTask, JSTACK);
 
     }
 
@@ -558,64 +570,103 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         // export conf
         if (includeConf) {
             Future confTask = executorService.submit(() -> {
-                logger.info("Start to extract kylin conf files.");
-                long start = System.currentTimeMillis();
+                recordTaskStartTime(CONF);
                 ConfTool.extractConf(exportDir);
-                DiagnosticFilesChecker.writeMsgToFile("CONF", System.currentTimeMillis() - start, recordTime);
+                recordTaskExecutorTimeToFile(CONF, recordTime);
             });
 
-            scheduleTimeoutTask(confTask, "CONF");
+            scheduleTimeoutTask(confTask, CONF);
         }
 
         // hadoop conf
         Future hadoopConfTask = executorService.submit(() -> {
-            logger.info("Start to extract hadoop conf files.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(HADOOP_CONF);
             ConfTool.extractHadoopConf(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("HADOOP_CONF", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(HADOOP_CONF, recordTime);
         });
 
-        scheduleTimeoutTask(hadoopConfTask, "HADOOP_CONF");
+        scheduleTimeoutTask(hadoopConfTask, HADOOP_CONF);
 
         // export bin
         Future binTask = executorService.submit(() -> {
-            logger.info("Start to extract kylin bin files.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(BIN);
             ConfTool.extractBin(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("BIN", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(BIN, recordTime);
         });
 
-        scheduleTimeoutTask(binTask, "BIN");
+        scheduleTimeoutTask(binTask, BIN);
 
         // export hadoop env
         Future hadoopEnvTask = executorService.submit(() -> {
-            logger.info("Start to extract hadoop env.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(HADOOP_ENV);
             CommonInfoTool.exportHadoopEnv(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("HADOOP_ENV", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(HADOOP_ENV, recordTime);
         });
 
-        scheduleTimeoutTask(hadoopEnvTask, "HADOOP_ENV");
+        scheduleTimeoutTask(hadoopEnvTask, HADOOP_ENV);
 
         // export KYLIN_HOME dir
         Future catcalogTask = executorService.submit(() -> {
-            logger.info("Start to extract KYLIN_HOME dir.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(CATALOG_INFO);
             CommonInfoTool.exportKylinHomeDir(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("CATALOG_INFO", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(CATALOG_INFO, recordTime);
         });
 
-        scheduleTimeoutTask(catcalogTask, "CATALOG_INFO");
+        scheduleTimeoutTask(catcalogTask, CATALOG_INFO);
     }
 
-    public void scheduleTimeoutTask(Future task, String taskName) {
-        if (!KylinConfig.getInstanceFromEnv().getDiagTaskTimeoutBlackList().contains(taskName)) {
-            executorService.schedule(() -> {
-                if (task.cancel(true)) {
-                    logger.error("Cancel '{}' task.", taskName);
-                    canceledTasks.add(taskName);
-                }
-            }, KylinConfig.getInstanceFromEnv().getDiagTaskTimeout(), TimeUnit.SECONDS);
+    protected void scheduleTimeoutTask(Future task, DiagSubTaskEnum taskEnum) {
+        if (!KylinConfig.getInstanceFromEnv().getDiagTaskTimeoutBlackList().contains(taskEnum.name())) {
+            taskQueue.add(new DiagSubTaskInfo(task, taskEnum));
+            logger.info("Add {} to task queue.", taskEnum);
         }
     }
+
+    protected void executeTimeoutTask(LinkedBlockingQueue<DiagSubTaskInfo> tasks) {
+        timerExecutorService.submit(() -> {
+            while (!tasks.isEmpty()) {
+                val info = tasks.poll();
+                Future task = info.getTask();
+                DiagSubTaskEnum taskEnum = info.getTaskEnum();
+                logger.info("Timeout task {} start at {}.", taskEnum, System.currentTimeMillis());
+                Long startTime = taskStartTime.get(taskEnum);
+                if (startTime == null) {
+                    startTime = System.currentTimeMillis();
+                    logger.info("Task {} start time is not set now, choose current time {} as task start time.",
+                            taskEnum, startTime);
+                }
+                long endTime = startTime + KylinConfig.getInstanceFromEnv().getDiagTaskTimeout() * 1000;
+                long waitTime = endTime - System.currentTimeMillis();
+                logger.info("Timeout task {} wait time is {}ms.", taskEnum, waitTime);
+                if (waitTime > 0) {
+                    try {
+                        task.get(waitTime, TimeUnit.MILLISECONDS);
+                    } catch (Exception e) {
+                        logger.warn(String.format("Task %s call get function.", task), e);
+                    }
+                }
+                if (task.cancel(true)) {
+                    logger.error("Cancel '{}' task.", taskEnum);
+                }
+                logger.info("Timeout task {} exit at {}.", taskEnum, System.currentTimeMillis());
+            }
+        });
+    }
+
+    protected void recordTaskStartTime(DiagSubTaskEnum subTask) {
+        logger.info("Start to dump {}.", subTask);
+        taskStartTime.put(subTask, System.currentTimeMillis());
+    }
+
+    protected void recordTaskExecutorTimeToFile(DiagSubTaskEnum subTask, File file) {
+        long startTime = taskStartTime.get(subTask);
+        DiagnosticFilesChecker.writeMsgToFile(subTask.name(), System.currentTimeMillis() - startTime, file);
+    }
+}
+
+@Getter
+@AllArgsConstructor
+class DiagSubTaskInfo {
+    private final Future task;
+    private final DiagSubTaskEnum taskEnum;
 }

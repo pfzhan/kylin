@@ -23,8 +23,11 @@
  */
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.LOG;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARDER_HISTORY;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
+
 import java.io.File;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Future;
 
 import org.apache.commons.cli.Option;
@@ -109,7 +112,6 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         final long endTime = getLongOption(optionsHelper, OPTION_END_TIME, getDefaultEndTime());
         logger.info("Time range: start={}, end={}", startTime, endTime);
 
-        canceledTasks = new ConcurrentSkipListSet<>();
         // calculate time used
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
@@ -142,16 +144,17 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
+        executeTimeoutTask(taskQueue);
+
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
 
         // export logs
         if (includeLog) {
-            long logStartTime = System.currentTimeMillis();
-            logger.info("Start to extract log files.");
+            recordTaskStartTime(LOG);
             KylinLogTool.extractKylinLog(exportDir, startTime, endTime);
             KylinLogTool.extractOtherLogs(exportDir, startTime, endTime);
-            DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
+            recordTaskExecutorTimeToFile(LOG, recordTime);
         }
 
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
@@ -160,26 +163,24 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     private void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime) {
         // job spark log
         Future sparkLogTask = executorService.submit(() -> {
-            logger.info("Start to extract spark logs.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(SPARK_LOGS);
             KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
-            DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
         });
 
-        scheduleTimeoutTask(sparkLogTask, "SPARK_LOGS");
+        scheduleTimeoutTask(sparkLogTask, SPARK_LOGS);
 
         // sparder history rolling eventlog
         Future sparderHistoryTask = executorService.submit(() -> {
-            logger.info("Start to extract sparder history logs.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(SPARDER_HISTORY);
             ILogExtractor extractTool = ExtractFactory.create();
             ToolUtil.waitForSparderRollUp();
             KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
                     extractTool);
-            DiagnosticFilesChecker.writeMsgToFile("SPARDER_HISTORY", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(SPARDER_HISTORY, recordTime);
         });
 
-        scheduleTimeoutTask(sparderHistoryTask, "SPARDER_HISTORY");
+        scheduleTimeoutTask(sparderHistoryTask, SPARDER_HISTORY);
     }
 
     public long getDefaultStartTime() {

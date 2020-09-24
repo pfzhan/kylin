@@ -23,12 +23,16 @@
  */
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.JOB_EVENTLOGS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.JOB_TMP;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.LOG;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.YARN;
+
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -100,7 +104,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_META, true);
         final boolean isCloud = getKapConfig().isCloud();
 
-        canceledTasks = new ConcurrentSkipListSet<>();
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
 
@@ -131,17 +134,12 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         // extract yarn log
         if (includeYarnLogs && !isCloud) {
             Future future = executorService.submit(() -> {
-                logger.info("Start to dump yarn logs...");
+                recordTaskStartTime(YARN);
                 new YarnApplicationTool().extractYarnLogs(exportDir, project, jobId);
-                DiagnosticFilesChecker.writeMsgToFile("YARN", System.currentTimeMillis() - start, recordTime);
+                recordTaskExecutorTimeToFile(YARN, recordTime);
             });
 
-            executorService.schedule(() -> {
-                if (future.cancel(true)) {
-                    logger.error("Failed to extract yarn job logs, yarn service may not be running");
-                }
-            }, 3, TimeUnit.MINUTES);
-
+            scheduleTimeoutTask(future, YARN);
         }
 
         if (includeClient) {
@@ -157,15 +155,16 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         exportKgLogs(exportDir, startTime, endTime, recordTime);
         exportInfluxDBMetrics(exportDir, recordTime);
 
+        executeTimeoutTask(taskQueue);
+
         executorService.shutdown();
         awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
 
         // export logs
-        logger.info("Start to extract log files.");
-        long logStartTime = System.currentTimeMillis();
+        recordTaskStartTime(LOG);
         KylinLogTool.extractKylinLog(exportDir, jobId);
         KylinLogTool.extractOtherLogs(exportDir, startTime, endTime);
-        DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
+        recordTaskExecutorTimeToFile(LOG, recordTime);
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
@@ -173,37 +172,34 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             AbstractExecutable job) {
         // job spark log
         Future sparkLogTask = executorService.submit(() -> {
-            logger.info("Start to extract spark logs.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(SPARK_LOGS);
             KylinLogTool.extractSparkLog(exportDir, project, jobId);
-            DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
         });
 
-        scheduleTimeoutTask(sparkLogTask, "SPARK_LOGS");
+        scheduleTimeoutTask(sparkLogTask, SPARK_LOGS);
 
         // extract job step eventLogs
         Future eventLogTask = executorService.submit(() -> {
-            logger.info("Start to extract job eventLogs.");
-            long start = System.currentTimeMillis();
             if (job instanceof DefaultChainedExecutable) {
+                recordTaskStartTime(JOB_EVENTLOGS);
                 List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
                 Map<String, String> sparkConf = getKylinConfig().getSparkConfigOverride();
                 KylinLogTool.extractJobEventLogs(exportDir, tasks, sparkConf);
-                DiagnosticFilesChecker.writeMsgToFile("JOB_EVENTLOGS", System.currentTimeMillis() - start, recordTime);
+                recordTaskExecutorTimeToFile(JOB_EVENTLOGS, recordTime);
             }
         });
 
-        scheduleTimeoutTask(eventLogTask, "JOB_EVENTLOGS");
+        scheduleTimeoutTask(eventLogTask, JOB_EVENTLOGS);
 
         // job tmp
         Future jobTmpTask = executorService.submit(() -> {
-            logger.info("Start to extract job_tmp.");
-            long start = System.currentTimeMillis();
+            recordTaskStartTime(JOB_TMP);
             KylinLogTool.extractJobTmp(exportDir, project, jobId);
-            DiagnosticFilesChecker.writeMsgToFile("JOB_TMP", System.currentTimeMillis() - start, recordTime);
+            recordTaskExecutorTimeToFile(JOB_TMP, recordTime);
         });
 
-        scheduleTimeoutTask(jobTmpTask, "JOB_TMP");
+        scheduleTimeoutTask(jobTmpTask, JOB_TMP);
     }
 
     @VisibleForTesting

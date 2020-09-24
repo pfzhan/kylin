@@ -62,7 +62,15 @@ public class DiagClientToolTest extends NLocalFileMetadataTestCase {
 
         DiagClientTool diagClientTool = new DiagClientTool();
 
+        getTestConfig().setProperty("kylin.diag.task-timeout", "180s");
+        long start = System.currentTimeMillis();
         diagClientTool.execute(new String[] { "-destDir", mainDir.getAbsolutePath() });
+        long duration = System.currentTimeMillis() - start;
+        Assert.assertTrue(
+                "In theory, the running time of this case should not exceed two minutes. "
+                        + "If other data is added subsequently, which causes the running time of the "
+                        + "diagnostic package to exceed two minutes, please adjust this test.",
+                duration < 2 * 60 * 1000);
 
         for (File file1 : mainDir.listFiles()) {
             for (File file2 : file1.listFiles()) {
