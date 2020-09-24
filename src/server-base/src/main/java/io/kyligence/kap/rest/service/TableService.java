@@ -1315,6 +1315,7 @@ public class TableService extends BasicService {
                     .filter(stats -> !context.getRemoveColumns().contains(stats.getColumnName()))
                     .collect(Collectors.toList());
             context.getTableExtDesc().setColumnStats(validStats);
+            context.getTableExtDesc().setOriginalSize(originTableExt.getOriginalSize());
 
             val originCols = originTableExt.getAllColumnStats().stream().map(TableExtDesc.ColumnStats::getColumnName)
                     .collect(Collectors.toList());
