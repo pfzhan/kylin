@@ -54,6 +54,7 @@
           class="model-table"
           border
           v-scroll-shadow
+          ref="newModelDetails"
           style="width: 100%">
           <el-table-column type="expand" width="44">
             <template slot-scope="scope">
@@ -143,6 +144,7 @@
             :data="recommendDetails"
             class="model-table"
             border
+            ref="originModelDetails"
             v-scroll-shadow
             style="width: 100%">
             <el-table-column type="expand" width="44">
@@ -288,10 +290,16 @@ export default class SuggestModel extends Vue {
     const measures = this.ArrayFlat(row.rec_items.map(it => it.measures))
     this.activeRowId = row.uuid
     this.modelDetails = [...measures.map(it => ({...it, name: it.measure.name, type: 'measure'})), ...dimensions.map(it => ({...it, name: it.dimension.name, type: 'dimension'})), ...computed_columns.map(it => ({...it, name: it.cc.columnName, type: 'cc'}))]
+    this.$nextTick(() => {
+      this.$refs.newModelDetails && this.$refs.newModelDetails.doLayout()
+    })
   }
   recommendRowClick (row) {
     this.activeRowId = row.index_id
     this.recommendDetails = [...row.computed_columns.map(it => ({...it, name: it.cc.columnName, type: 'cc'})), ...row.dimensions.map(it => ({...it.dimension, type: 'dimension'})), ...row.measures.map(it => ({...it, name: it.measure.name, type: 'measure'}))]
+    this.$nextTick(() => {
+      this.$refs.originModelDetails && this.$refs.originModelDetails.doLayout()
+    })
   }
   sqlsTable (sqls) {
     return sqls.map((s) => {

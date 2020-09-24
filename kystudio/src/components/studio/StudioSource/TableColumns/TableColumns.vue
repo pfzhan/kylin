@@ -14,7 +14,7 @@
         </el-input>
       </div>
     </div>
-    <el-table class="columns-body" v-scroll-shadow :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange" border>
+    <el-table class="columns-body" ref="tableColumns" v-scroll-shadow :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange" border>
       <el-table-column
         type="index"
         label="ID"
@@ -164,6 +164,11 @@ export default class TableColumns extends Vue {
       })
     }
     this.handleCurrentChange(0, this.pagination.pageSize)
+  }
+  mounted () {
+    this.$nextTick(() => {
+      this.$refs.tableColumns && this.$refs.tableColumns.doLayout()
+    })
   }
 }
 </script>
