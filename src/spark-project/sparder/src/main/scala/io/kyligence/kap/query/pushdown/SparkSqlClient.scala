@@ -46,6 +46,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.collection.immutable
 
 object SparkSqlClient {
   val DEFAULT_DB: String = "spark.sql.default.database"
@@ -130,10 +131,13 @@ object SparkSqlClient {
     }
   }
 
-  private def rawValueToString(value: Any): String = value match {
+  private def rawValueToString(value: Any, wrapped: Boolean = false): String = value match {
     case null => null
     case value: Timestamp => DateFormat.castTimestampToString(value.getTime)
-    case value: mutable.WrappedArray.ofRef[Any] => value.array.map(v => rawValueToString(v)).mkString("[", ",", "]")
+    case value: String => if (wrapped) "\"" + value + "\"" else value
+    case value: mutable.WrappedArray.ofRef[Any] => value.array.map(v => rawValueToString(v, true)).mkString("[", ",", "]")
+    case value: immutable.Map[Any, Any] =>
+      value.map(p => rawValueToString(p._1, true) + ":" + rawValueToString(p._2, true)).mkString("{", ",", "}")
     case value: Any => value.toString
   }
 }

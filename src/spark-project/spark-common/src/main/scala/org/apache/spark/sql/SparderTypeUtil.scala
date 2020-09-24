@@ -48,6 +48,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import scala.collection.mutable
+import scala.collection.immutable
 
 object SparderTypeUtil extends Logging {
   val DATETIME_FAMILY = List("time", "date", "timestamp", "datetime")
@@ -231,52 +232,61 @@ object SparderTypeUtil extends Logging {
     ret
   }
 
-  def convertToStringWithCalciteType(rawValue: Any, relType: RelDataType): String = (rawValue, relType.getSqlTypeName) match {
-    case (null, _) => null
-    // types that matched
-    case (value: BigDecimal, SqlTypeName.DECIMAL) => value.toString
-    case (value: Integer, SqlTypeName.INTEGER) => value.toString
-    case (value: Byte, SqlTypeName.TINYINT) => value.toString
-    case (value: Short, SqlTypeName.SMALLINT) => value.toString
-    case (value: Long, SqlTypeName.BIGINT) => value.toString
-    case (value: Float, SqlTypeName.FLOAT | SqlTypeName.REAL) => value.toString
-    case (value: Double, SqlTypeName.DOUBLE) => value.toString
-    case (value: java.sql.Date, SqlTypeName.DATE) => value.toString
-    case (value: java.sql.Timestamp, SqlTypeName.TIMESTAMP) => DateFormat.castTimestampToString(value.getTime)
-    case (value: java.sql.Time, SqlTypeName.TIME) => value.toString
-    case (value: Boolean, SqlTypeName.BOOLEAN) => value.toString
-    // handle cast to char/varchar
-    case (value: java.sql.Timestamp, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.castTimestampToString(value.getTime)
-    case (value: java.sql.Date, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.formatToDateStr(value.getTime)
-    case (value, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => value.toString
-    // cast type to align with relType
-    case (value: Any, SqlTypeName.DECIMAL) =>
-      new java.math.BigDecimal(value.toString)
-        .setScale(relType.getScale, BigDecimal.ROUND_HALF_EVEN)
-        .toString
-    case (value: Any, SqlTypeName.INTEGER | SqlTypeName.TINYINT | SqlTypeName.SMALLINT | SqlTypeName.BIGINT) =>
-      value match {
-        case number: Double => number.longValue().toString
-        case number: Float => number.longValue().toString
-        case number: BigDecimal => number.longValue().toString
-        case other => new BigDecimal(other.toString).setScale(0, BigDecimal.ROUND_HALF_EVEN).longValue().toString
-      }
-    case (value: Any, SqlTypeName.FLOAT | SqlTypeName.REAL) => java.lang.Float.parseFloat(value.toString).toString
-    case (value: Any, SqlTypeName.DOUBLE) => java.lang.Double.parseDouble(value.toString).toString
-    case (value: Any, SqlTypeName.TIME) => value.toString
-    case (value: Any, SqlTypeName.DATE | SqlTypeName.TIMESTAMP) =>
-      val millis = DateFormat.stringToMillis(value.toString)
-      if (relType.getSqlTypeName == SqlTypeName.TIMESTAMP) {
-        DateFormat.castTimestampToString(millis)
-      } else {
-        DateFormat.formatToDateStr(new Date(millis).getTime)
-      }
-    // in case the type is not set
-    case (ts: java.sql.Timestamp, _) => DateFormat.castTimestampToString(ts.getTime)
-    case (dt: java.sql.Date, _) => DateFormat.formatToDateStr(dt.getTime)
-    case (value: mutable.WrappedArray.ofRef[Any], _) =>
-      value.array.map(v => convertToStringWithCalciteType(v, relType)).mkString("[", ",", "]")
-    case (other, _) => other.toString
+  def convertToStringWithCalciteType(rawValue: Any, relType: RelDataType, wrapped: Boolean = false): String = {
+    val formatStringValue = (value: String) => if (wrapped) "\"" + value + "\"" else value
+
+    (rawValue, relType.getSqlTypeName) match {
+      case (null, _) => null
+      // types that matched
+      case (value: BigDecimal, SqlTypeName.DECIMAL) => value.toString
+      case (value: Integer, SqlTypeName.INTEGER) => value.toString
+      case (value: Byte, SqlTypeName.TINYINT) => value.toString
+      case (value: Short, SqlTypeName.SMALLINT) => value.toString
+      case (value: Long, SqlTypeName.BIGINT) => value.toString
+      case (value: Float, SqlTypeName.FLOAT | SqlTypeName.REAL) => value.toString
+      case (value: Double, SqlTypeName.DOUBLE) => value.toString
+      case (value: java.sql.Date, SqlTypeName.DATE) => value.toString
+      case (value: java.sql.Timestamp, SqlTypeName.TIMESTAMP) => DateFormat.castTimestampToString(value.getTime)
+      case (value: java.sql.Time, SqlTypeName.TIME) => value.toString
+      case (value: Boolean, SqlTypeName.BOOLEAN) => value.toString
+      // handle cast to char/varchar
+      case (value: java.sql.Timestamp, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => formatStringValue(DateFormat.castTimestampToString(value.getTime))
+      case (value: java.sql.Date, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => formatStringValue(DateFormat.formatToDateStr(value.getTime))
+      case (value, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => formatStringValue(value.toString)
+      // cast type to align with relType
+      case (value: Any, SqlTypeName.DECIMAL) =>
+        new java.math.BigDecimal(value.toString)
+          .setScale(relType.getScale, BigDecimal.ROUND_HALF_EVEN)
+          .toString
+      case (value: Any, SqlTypeName.INTEGER | SqlTypeName.TINYINT | SqlTypeName.SMALLINT | SqlTypeName.BIGINT) =>
+        value match {
+          case number: Double => number.longValue().toString
+          case number: Float => number.longValue().toString
+          case number: BigDecimal => number.longValue().toString
+          case other => new BigDecimal(other.toString).setScale(0, BigDecimal.ROUND_HALF_EVEN).longValue().toString
+        }
+      case (value: Any, SqlTypeName.FLOAT | SqlTypeName.REAL) => java.lang.Float.parseFloat(value.toString).toString
+      case (value: Any, SqlTypeName.DOUBLE) => java.lang.Double.parseDouble(value.toString).toString
+      case (value: Any, SqlTypeName.TIME) => value.toString
+      case (value: Any, SqlTypeName.DATE | SqlTypeName.TIMESTAMP) =>
+        val millis = DateFormat.stringToMillis(value.toString)
+        if (relType.getSqlTypeName == SqlTypeName.TIMESTAMP) {
+          DateFormat.castTimestampToString(millis)
+        } else {
+          DateFormat.formatToDateStr(new Date(millis).getTime)
+        }
+      // in case the type is not set
+      case (ts: java.sql.Timestamp, _) => DateFormat.castTimestampToString(ts.getTime)
+      case (dt: java.sql.Date, _) => DateFormat.formatToDateStr(dt.getTime)
+      case (str: java.lang.String, _) => formatStringValue(str)
+      case (value: mutable.WrappedArray.ofRef[Any], _) =>
+        value.array.map(v => convertToStringWithCalciteType(v, relType, true)).mkString("[", ",", "]")
+      case (value: immutable.Map[Any, Any], _) =>
+        value
+          .map(v => convertToStringWithCalciteType(v._1, relType, true) + ":" + convertToStringWithCalciteType(v._2, relType, true))
+          .mkString("{", ",", "}")
+      case (other, _) => other.toString
+    }
   }
 
   // scalastyle:off

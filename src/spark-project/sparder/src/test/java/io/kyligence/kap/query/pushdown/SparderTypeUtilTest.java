@@ -56,6 +56,10 @@ import org.apache.spark.sql.util.SparderTypeUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
+import scala.Tuple2;
+import scala.collection.mutable.WrappedArray;
+import scala.collection.immutable.HashMap;
+
 public class SparderTypeUtilTest {
 
     private RelDataType baiscSqlType(SqlTypeName typeName) {
@@ -63,11 +67,11 @@ public class SparderTypeUtilTest {
     }
 
     private String convertToStringWithCalciteType(Object value, SqlTypeName typeName) {
-        return SparderTypeUtil.convertToStringWithCalciteType(value, baiscSqlType(typeName));
+        return SparderTypeUtil.convertToStringWithCalciteType(value, baiscSqlType(typeName), false);
     }
 
     private String convertToStringWithDecimalType(Object value, int precision, int scale) {
-        return SparderTypeUtil.convertToStringWithCalciteType(value, new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DECIMAL, precision, scale));
+        return SparderTypeUtil.convertToStringWithCalciteType(value, new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DECIMAL, precision, scale), false);
     }
 
     @Test
@@ -106,6 +110,13 @@ public class SparderTypeUtilTest {
         Assert.assertEquals("9.1", convertToStringWithCalciteType(Float.valueOf("9.1"), SqlTypeName.ANY));
         Assert.assertEquals("2012-01-01 12:34:56", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.ANY));
         Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.ANY));
+        // array, map
+        Assert.assertEquals("[\"a\",\"b\"]", convertToStringWithCalciteType(WrappedArray.make(new String[]{"a", "b"}), SqlTypeName.ANY));
+        Assert.assertEquals("[1,null,2]", convertToStringWithCalciteType(WrappedArray.make(new Integer[]{1, null, 2}), SqlTypeName.ANY));
+        HashMap<String, Integer> map = new HashMap<>();
+        map = map.$plus(new Tuple2<>("foo", 123));
+        map = map.$plus(new Tuple2<>("bar", null));
+        Assert.assertEquals("{\"bar\":null,\"foo\":123}", convertToStringWithCalciteType(map, SqlTypeName.ANY));
     }
 
     @Test
