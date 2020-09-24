@@ -546,8 +546,8 @@ export default class UploadSqlModel extends Vue {
         this.submitModelLoading = false
         this.hideModal()
         this.$emit('reloadModelList')
-        if (this.selectModels.length && this.selectRecommends.length) {
-          this.$confirm(this.$t('successCreateModelsAndRecommends', {models: this.selectModels.length, recommends: this.selectRecommends.length}), this.$t('importSuccess'), {
+        if (this.selectModels.length && this.selectRecommendsLength) {
+          this.$confirm(this.$t('successCreateModelsAndRecommends', {models: this.selectModels.length, recommends: this.selectRecommendsLength}), this.$t('importSuccess'), {
             confirmButtonText: this.$t('kylinLang.common.ok'),
             showCancelButton: false,
             type: 'success'
@@ -555,7 +555,7 @@ export default class UploadSqlModel extends Vue {
         } else if (this.selectModels.length) {
           this.$message.success(this.$t('successCreateModels', {models: this.selectModels.length}))
         } else {
-          this.$confirm(this.$t('successCreateRecommends', {recommends: this.selectRecommends.length}), this.$t('importSuccess'), {
+          this.$confirm(this.$t('successCreateRecommends', {recommends: this.selectRecommendsLength}), this.$t('importSuccess'), {
             confirmButtonText: this.$t('kylinLang.common.ok'),
             showCancelButton: false,
             type: 'success'
