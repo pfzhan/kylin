@@ -1180,7 +1180,7 @@ KapOLAPToEnumerableConverter
         <Resource name="query40.planBefore">
             <![CDATA[
 KapOLAPToEnumerableConverter
-  KapProjectRel(EXPR$0=[FLOOR($0)], EXPR$1=[$1], ctx=[])
+  KapProjectRel(EXPR$0=[ROUND($0, -1)], EXPR$1=[$1], ctx=[])
     KapAggregateRel(group-set=[[]], groups=[null], agg#0=[PERCENTILE($0, $1)], EXPR$1=[SUM($2)], ctx=[])
       KapProjectRel(PRICE=[$8], $f1=[0.5], $f2=[CASE(>($0, 100), $9, 0)], ctx=[])
         KapTableScan(table=[[DEFAULT, TEST_KYLIN_FACT]], ctx=[], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38]])
@@ -1189,7 +1189,7 @@ KapOLAPToEnumerableConverter
         <Resource name="query40.planAfter">
             <![CDATA[
 KapOLAPToEnumerableConverter
-  KapProjectRel(EXPR$0=[FLOOR($0)], EXPR$1=[$1], ctx=[])
+  KapProjectRel(EXPR$0=[ROUND($0, -1)], EXPR$1=[$1], ctx=[])
     KapJoinRel(condition=[true], joinType=[inner], ctx=[])
       KapAggregateRel(group-set=[[]], groups=[null], agg#0=[PERCENTILE($0, $1)], ctx=[])
         KapProjectRel(PRICE=[$8], $f1=[0.5], $f2=[CAST(0):INTEGER], ctx=[])
