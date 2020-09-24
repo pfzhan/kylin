@@ -441,7 +441,7 @@
         <transition-group name="flip-list" tag="div">
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
             <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
-            <el-col :span="6"><span v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
+            <el-col :span="6"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
             <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 20}">{{item.column}}</span></el-col>
             <el-col :span="3">{{item.type}}</el-col>
             <el-col :span="2">
@@ -501,7 +501,7 @@
         </el-row>
         <el-row class="table-row" v-for="item in measureList" :key="item.id">
           <el-col :span="1"><el-checkbox size="small" v-model="item.isCheck" :disabled="item.name === 'COUNT_ALL'" @change="(type) => changeMeasureBox(item, type)"/></el-col>
-          <el-col :span="5"><span v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
+          <el-col :span="5"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
           <el-col :span="3">{{item.expression}}</el-col>
           <el-col :span="12"><span v-custom-tooltip="{text: JSON.stringify(item.parameter_value), w: 20}">{{JSON.stringify(item.parameter_value)}}</span></el-col>
           <el-col :span="3">{{item.return_type}}</el-col>
@@ -2132,6 +2132,9 @@ export default class AggregateModal extends Vue {
       .el-checkbox {
         cursor: pointer;
       }
+      .text {
+        white-space: pre-wrap;
+      }
     }
   }
 }
@@ -2147,6 +2150,9 @@ export default class AggregateModal extends Vue {
   .table-row {
     .el-col {
       text-align: left;
+    }
+    .text {
+      white-space: pre-wrap;
     }
   }
 }
