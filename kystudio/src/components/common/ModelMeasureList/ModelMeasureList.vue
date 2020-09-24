@@ -15,8 +15,10 @@
           />
         </div>
       </div>
-      <el-table border :data="measures.data" style="width: 100%">
-        <el-table-column prop="name" :label="$t('kylinLang.cube.measure')" />
+      <el-table class="model-measure-table" border :data="measures.data" style="width: 100%">
+        <el-table-column prop="name" :label="$t('kylinLang.cube.measure')">
+          <span slot-scope="scope" class="text">{{scope.row.name}}</span>
+        </el-table-column>
         <el-table-column prop="expression" :label="$t('kylinLang.dataSource.expression')" width="170px" />
         <el-table-column prop="parameters" :label="$t('kylinLang.model.parameters')">
           <template slot-scope="scope">
@@ -108,6 +110,11 @@ export default class ModelMeasureList extends Vue {
   }
   .el-table .cell {
     line-height: 18px;
+  }
+  .model-measure-table {
+    .text {
+      white-space: pre-wrap;
+    }
   }
 }
 </style>
