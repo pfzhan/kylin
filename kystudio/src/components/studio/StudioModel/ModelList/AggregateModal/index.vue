@@ -444,7 +444,10 @@
             <el-col :span="6"><span v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
             <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 20}">{{item.column}}</span></el-col>
             <el-col :span="3">{{item.type}}</el-col>
-            <el-col :span="2">{{item.cardinality}}</el-col>
+            <el-col :span="2">
+              <template v-if="item.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+              <template v-else>{{ item.cardinality }}</template>
+            </el-col>
             <el-col :span="3"><span v-custom-tooltip="{text: item.comment, w: 20}">{{item.comment}}</span></el-col>
             <el-col :span="2" class="order-actions">
               <template v-if="item.isCheck">
@@ -1819,10 +1822,6 @@ export default class AggregateModal extends Vue {
           }
         }
       }
-      .no-data_placeholder {
-        color: @text-placeholder-color;
-        font-size: 12px;
-      }
     }
   }
   .aggregate-group {
@@ -2150,5 +2149,9 @@ export default class AggregateModal extends Vue {
       text-align: left;
     }
   }
+}
+.no-data_placeholder {
+  color: @text-placeholder-color;
+  font-size: 12px;
 }
 </style>

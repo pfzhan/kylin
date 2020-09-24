@@ -70,9 +70,12 @@
                     header-align="right"
                     align="right"
                     show-overflow-tooltip
-                    prop="cardinality"
                     :render-header="renderCardinalityHeader"
                     width="100">
+                    <span slot-scope="scope">
+                      <template v-if="scope.row.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+                      <template v-else>{{ scope.row.cardinality }}</template>
+                    </span>
                   </el-table-column>
                   <el-table-column
                     prop="comment"
@@ -130,10 +133,13 @@
                     width="110">
                   </el-table-column>
                   <el-table-column
-                    prop="cardinality"
                     show-overflow-tooltip
                     :render-header="renderCardinalityHeader"
                     width="100">
+                    <span slot-scope="scope">
+                      <template v-if="scope.row.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+                      <template v-else>{{ scope.row.cardinality }}</template>
+                    </span>
                   </el-table-column>
                   <el-table-column
                     prop="comment"
@@ -767,6 +773,10 @@ export default class DimensionsModal extends Vue {
   }
   .error-content-tip {
     border: 1px solid @error-color-1;
+  }
+  .no-data_placeholder {
+    color: @text-placeholder-color;
+    font-size: 12px;
   }
 }
 </style>
