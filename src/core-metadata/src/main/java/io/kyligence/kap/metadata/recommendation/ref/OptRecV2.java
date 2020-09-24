@@ -52,6 +52,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecSelection;
@@ -65,6 +66,7 @@ public class OptRecV2 {
 
     private static final int CONSTANT = Integer.MAX_VALUE;
     private static final String MEASURE_NAME_PREFIX = "MEASURE_AUTO_";
+    private static final String CC_AS_DIMENSION_PREFIX = "DIMENSION_AUTO_";
 
     private final String uuid;
     private final KylinConfig config;
@@ -464,13 +466,18 @@ public class OptRecV2 {
         DimensionRef dimensionRef = new DimensionRef(negRecItemId);
         final int[] dependIDs = rawRecItem.getDependIDs();
         Preconditions.checkArgument(dependIDs.length == 1);
-        final TranslatedState state = initDependencyWithState(dependIDs[0], dimensionRef);
+        int dependID = dependIDs[0];
+        TranslatedState state = initDependencyWithState(dependID, dimensionRef);
         if (state == TranslatedState.BROKEN) {
-            logDependencyLost(rawRecItem, dependIDs[0]);
+            logDependencyLost(rawRecItem, dependID);
             dimensionRefs.put(negRecItemId, BrokenRefProxy.getProxy(DimensionRef.class, negRecItemId));
             return;
         }
         dimensionRef.init();
+        if (dependID < 0) {
+            String dimRefName = dimensionRef.getName();
+            dimensionRef.setName(dimRefName.replace(ComputedColumnUtil.CC_NAME_PREFIX, CC_AS_DIMENSION_PREFIX));
+        }
         dimensionRefs.put(negRecItemId, reuseIfAvailable(dimensionRef));
         checkDimensionExist(rawRecItem);
     }
@@ -614,7 +621,7 @@ public class OptRecV2 {
         Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
         NDataModelManager modelManager = NDataModelManager.getInstance(Objects.requireNonNull(config), project);
         List<NDataModel> allModels = modelManager.listAllModels();
-        allModels.forEach(m -> {
+        allModels.stream().filter(m -> !m.isBroken()).forEach(m -> {
             List<ComputedColumnDesc> ccList = m.getComputedColumnDescs();
             for (ComputedColumnDesc cc : ccList) {
                 ccMap.putIfAbsent(cc.getInnerExpression(), cc);
