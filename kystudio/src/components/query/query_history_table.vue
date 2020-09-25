@@ -163,12 +163,12 @@
 </template>
 
 <script>
-import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime, getStringLength } from '../../util/business'
+import { transToUtcTimeFormat, transToGmtTime, getStringLength } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
-import $ from 'jquery'
+// import $ from 'jquery'
 import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
 // import sqlFormatter from 'sql-formatter'
 @Component({
@@ -331,6 +331,7 @@ export default class QueryHistoryTable extends Vue {
       return false
     }
   }
+
   checkShowCount (arr) {
     let str = ''
     let idx = 1
@@ -371,7 +372,8 @@ export default class QueryHistoryTable extends Vue {
     e.editorH = 0
     this.toggleExpandId.push(e.query_id)
     this.$nextTick(() => {
-      const tableHeigth = $('#detailTable_' + e.query_id) && $('#detailTable_' + e.query_id).height()
+      // const tableHeigth = $('#detailTable_' + e.query_id) && $('#detailTable_' + e.query_id).height()
+      const tableHeigth = document.getElementById(`detailTable_${e.query_id}`) && document.getElementById(`detailTable_${e.query_id}`).offsetHeight
       if (tableHeigth) {
         e.flexHeight = e.flexHeight + tableHeigth
         let showLimitTip = false
@@ -406,35 +408,35 @@ export default class QueryHistoryTable extends Vue {
     this.$message(this.$t('kylinLang.common.copyfail'))
   }
 
-  flyEvent (event) {
-    const targetArea = $('#studio')
-    const targetDom = this.briefMenuGet ? targetArea.find('.menu-icon') : targetArea.find('#favo-menu-item')
-    const offset = targetDom.offset()
-    const flyer = $('<span class="fly-box"></span>')
-    flyer.fly({
-      start: {
-        left: event.pageX,
-        top: event.pageY
-      },
-      end: {
-        left: offset.left,
-        top: offset.top,
-        width: 4,
-        height: 4
-      },
-      onEnd: function () {
-        $('#favo-menu-item').css('opacity', 1)
-        targetDom.addClass('rotateY')
-        flyer.remove()
-        setTimeout(() => {
-          targetDom.fadeTo('slow', 0.5, function () {
-            targetDom.removeClass('rotateY')
-            targetDom.fadeTo('fast', 1)
-          })
-        }, 3000)
-      }
-    })
-  }
+  // flyEvent (event) {
+  //   const targetArea = $('#studio')
+  //   const targetDom = this.briefMenuGet ? targetArea.find('.menu-icon') : targetArea.find('#favo-menu-item')
+  //   const offset = targetDom.offset()
+  //   const flyer = $('<span class="fly-box"></span>')
+  //   flyer.fly({
+  //     start: {
+  //       left: event.pageX,
+  //       top: event.pageY
+  //     },
+  //     end: {
+  //       left: offset.left,
+  //       top: offset.top,
+  //       width: 4,
+  //       height: 4
+  //     },
+  //     onEnd: function () {
+  //       $('#favo-menu-item').css('opacity', 1)
+  //       targetDom.addClass('rotateY')
+  //       flyer.remove()
+  //       setTimeout(() => {
+  //         targetDom.fadeTo('slow', 0.5, function () {
+  //           targetDom.removeClass('rotateY')
+  //           targetDom.fadeTo('fast', 1)
+  //         })
+  //       }, 3000)
+  //     }
+  //   })
+  // }
   getLayoutIds (realizations) {
     if (realizations && realizations.length) {
       let firstSnapshot = false
@@ -453,18 +455,18 @@ export default class QueryHistoryTable extends Vue {
     }
   }
 
-  toAcce (event, row) {
-    this.markFav({project: this.currentSelectedProject, sql: row.sql_text, sqlPattern: row.sql_pattern, queryTime: row.query_time, queryStatus: row.query_status}).then((res) => {
-      handleSuccess(res, () => {
-        if (this._isDestroyed) {
-          return
-        }
-        this.flyEvent(event)
-      })
-    }, (res) => {
-      handleError(res)
-    })
-  }
+  // toAcce (event, row) {
+  //   this.markFav({project: this.currentSelectedProject, sql: row.sql_text, sqlPattern: row.sql_pattern, queryTime: row.query_time, queryStatus: row.query_status}).then((res) => {
+  //     handleSuccess(res, () => {
+  //       if (this._isDestroyed) {
+  //         return
+  //       }
+  //       // this.flyEvent(event)
+  //     })
+  //   }, (res) => {
+  //     handleError(res)
+  //   })
+  // }
 
   onSqlFilterChange () {
     if (this.filterData.sql.trim().match(/\s/)) {
@@ -478,10 +480,10 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
 
-  filterServer (server) {
-    this.filterData.server = this.filterData.server === server ? '' : server
-    this.filterList()
-  }
+  // filterServer (server) {
+  //   this.filterData.server = this.filterData.server === server ? '' : server
+  //   this.filterList()
+  // }
   filterList () {
     this.toggleExpandId = []
     this.$emit('loadFilterList', {...this.filterData, server: this.filterData.server.join('')})
@@ -624,64 +626,64 @@ export default class QueryHistoryTable extends Vue {
       </span>)
     }
   }
-  renderColumn3 (h) {
-    let items = []
-    for (let i = 0; i < this.realFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.realFilteArr[i].value} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
-    }
-    return (<span>
-      <span>{this.$t('kylinLang.query.realization_th')}</span>
-      <el-popover
-        ref="realFilterPopover"
-        placement="bottom"
-        popperClass="history-filter">
-        <el-checkbox-group class="filter-groups" value={this.filterData.realization} onInput={val => (this.filterData.realization = val)} onChange={this.filterList}>
-          {items}
-        </el-checkbox-group>
-        <i class={this.filterData.realization.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-      </el-popover>
-    </span>)
-  }
-  renderColumnStatus (h) {
-    let statusList = ['SUCCEEDED', 'FAILED']
-    let items = []
-    for (let i = 0; i < statusList.length; i++) {
-      items.push(<el-checkbox label={statusList[i]} key={statusList[i]}>{this.$t('kylinLang.query.' + statusList[i])}</el-checkbox>)
-    }
-    return (<span>
-      <span>{this.$t('kylinLang.query.query_status')}</span>
-      <el-popover
-        ref="statusFilterPopover"
-        placement="bottom"
-        popperClass="history-filter">
-        <el-checkbox-group class="filter-groups" value={this.filterData.query_status} onInput={val => (this.filterData.query_status = val)} onChange={this.filterList}>
-          {items}
-        </el-checkbox-group>
-        <i class={this.filterData.query_status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-      </el-popover>
-    </span>)
-  }
-  renderColumn4 (h) {
-    let items = []
-    for (let i = 0; i < this.queryNodes.length; i++) {
-      items.push(
-        <div onClick={() => { this.filterServer(this.queryNodes[i]) }}>
-          <el-dropdown-item class={this.queryNodes[i] === this.filterData.server ? 'active' : ''} key={i}>{this.queryNodes[i]}</el-dropdown-item>
-        </div>
-      )
-    }
-    return (<span>
-      <span>{this.$t('kylinLang.query.queryNode')}</span>
-      <el-dropdown hide-on-click={false} trigger="click">
-        <i class={this.filterData.server ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
-        <template slot="dropdown">
-          <el-dropdown-menu class="jobs-dropdown">
-            {items}
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </span>)
-  }
+  // renderColumn3 (h) {
+  //   let items = []
+  //   for (let i = 0; i < this.realFilteArr.length; i++) {
+  //     items.push(<el-checkbox label={this.realFilteArr[i].value} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
+  //   }
+  //   return (<span>
+  //     <span>{this.$t('kylinLang.query.realization_th')}</span>
+  //     <el-popover
+  //       ref="realFilterPopover"
+  //       placement="bottom"
+  //       popperClass="history-filter">
+  //       <el-checkbox-group class="filter-groups" value={this.filterData.realization} onInput={val => (this.filterData.realization = val)} onChange={this.filterList}>
+  //         {items}
+  //       </el-checkbox-group>
+  //       <i class={this.filterData.realization.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+  //     </el-popover>
+  //   </span>)
+  // }
+  // renderColumnStatus (h) {
+  //   let statusList = ['SUCCEEDED', 'FAILED']
+  //   let items = []
+  //   for (let i = 0; i < statusList.length; i++) {
+  //     items.push(<el-checkbox label={statusList[i]} key={statusList[i]}>{this.$t('kylinLang.query.' + statusList[i])}</el-checkbox>)
+  //   }
+  //   return (<span>
+  //     <span>{this.$t('kylinLang.query.query_status')}</span>
+  //     <el-popover
+  //       ref="statusFilterPopover"
+  //       placement="bottom"
+  //       popperClass="history-filter">
+  //       <el-checkbox-group class="filter-groups" value={this.filterData.query_status} onInput={val => (this.filterData.query_status = val)} onChange={this.filterList}>
+  //         {items}
+  //       </el-checkbox-group>
+  //       <i class={this.filterData.query_status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+  //     </el-popover>
+  //   </span>)
+  // }
+  // renderColumn4 (h) {
+  //   let items = []
+  //   for (let i = 0; i < this.queryNodes.length; i++) {
+  //     items.push(
+  //       <div onClick={() => { this.filterServer(this.queryNodes[i]) }}>
+  //         <el-dropdown-item class={this.queryNodes[i] === this.filterData.server ? 'active' : ''} key={i}>{this.queryNodes[i]}</el-dropdown-item>
+  //       </div>
+  //     )
+  //   }
+  //   return (<span>
+  //     <span>{this.$t('kylinLang.query.queryNode')}</span>
+  //     <el-dropdown hide-on-click={false} trigger="click">
+  //       <i class={this.filterData.server ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
+  //       <template slot="dropdown">
+  //         <el-dropdown-menu class="jobs-dropdown">
+  //           {items}
+  //         </el-dropdown-menu>
+  //       </template>
+  //     </el-dropdown>
+  //   </span>)
+  // }
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {

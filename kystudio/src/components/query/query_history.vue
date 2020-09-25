@@ -118,15 +118,18 @@ export default class QueryHistory extends Vue {
     const data = await handleSuccessAsync(res)
     this.queryHistoryData = data
   }
+
   loadFilterList (data) {
     this.filterData = data
     this.pageCurrentChange(0, this.pageSize)
   }
+
   async created () {
     this.currentSelectedProject && this.loadHistoryList()
     const res = await this.loadOnlineQueryNodes()
     this.queryNodes = await handleSuccessAsync(res)
   }
+
   pageCurrentChange (offset, pageSize) {
     this.pageSize = pageSize
     this.queryCurrentPage = offset + 1

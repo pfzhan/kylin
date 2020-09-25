@@ -277,7 +277,7 @@ export default class AddMeasure extends Vue {
   get getCCGroups () {
     if (this.ccGroups.length) {
       if (this.measure.expression === 'SUM(column)' || this.measure.expression === 'TOP_N') {
-        return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase()))
+        return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
       } else {
         return this.ccGroups
       }

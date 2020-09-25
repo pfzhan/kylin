@@ -61,7 +61,8 @@ const wrapper = shallow(SuggestModel, {
 
 wrapper.vm.$refs = {
   modelsTable: {
-    toggleRowSelection: jest.fn()
+    toggleRowSelection: jest.fn(),
+    doLayout: jest.fn()
   }
 }
 
@@ -69,6 +70,7 @@ describe('Component SuggestModel', () => {
   it('init', () => {
     expect(mockEventListener.mock.calls[0][0]).toBe('click')
     expect(wrapper.vm.$refs.modelsTable.toggleRowSelection).toBeCalled()
+    expect(wrapper.vm.$refs.modelsTable.doLayout).toBeCalled()
   })
   it('computed', async () => {
     expect(wrapper.vm.modelTips).toBe('You can observe the number of new recommendations for existing models and expand to see which SQL these recommendations come from. The new recommendations have been added to the recommendation lists of the corresponding models, where you can accept the required recommendations.')

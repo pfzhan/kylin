@@ -273,6 +273,7 @@ export default class NewQuery extends Vue {
     this.queryCurrentPage++
     this.loadSavedQuery(this.queryCurrentPage - 1)
   }
+
   removeQuery (query) {
     kapConfirm(this.$t('confirmDel', {queryName: query.name}), null, this.$t('delSqlTitle')).then(() => {
       this.delQuery({project: this.currentSelectedProject, id: query.id}).then((response) => {

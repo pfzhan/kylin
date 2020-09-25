@@ -277,12 +277,14 @@ export default class DataSourceBar extends Vue {
   get ignoreColumnTree () {
     return this.ignoreNodeTypes.indexOf('column') >= 0
   }
+
   get currentSourceTypes () {
     const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
     return overrideKylinProperties && overrideKylinProperties['kylin.source.default']
       ? [+overrideKylinProperties['kylin.source.default']]
       : []
   }
+
   get foreignKeys () {
     return this.tableArray.reduce((foreignKeys, table) => {
       const currentFK = table.__data.foreign_key.map(foreignKey => `${table.datasource}.${table.database}.${foreignKey}`)

@@ -66,14 +66,12 @@
     -->
   </div>
 </template>
-
 <script>
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
 import { Component } from 'vue-property-decorator'
-
 import locales from './locales'
-import { sourceTypes } from '../../../../config'
+import * as config from '../../../../config'
 
 @Component({
   props: [ 'sourceType' ],
@@ -85,7 +83,7 @@ import { sourceTypes } from '../../../../config'
   locales
 })
 export default class SourceSelect extends Vue {
-  sourceTypes = sourceTypes
+  sourceTypes = config.sourceTypes
 
   getSourceClass (sourceTypes = []) {
     return {
@@ -101,7 +99,7 @@ export default class SourceSelect extends Vue {
     // 设置默认数据源
     // this.clickHandler(this.globalDefaultDatasource)
     // for newten 设置CSV为默认数据源
-    this.clickHandler(sourceTypes.HIVE)
+    this.clickHandler(this.sourceTypes.HIVE)
   }
 }
 </script>

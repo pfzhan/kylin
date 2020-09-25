@@ -173,7 +173,8 @@ const wrapper = shallow(UploadSql, {
 wrapper.vm.$refs = {
   multipleTable: {
     clearSelection: mockClearSelection,
-    toggleRowSelection: mockToggleRowSelection
+    toggleRowSelection: mockToggleRowSelection,
+    doLayout: jest.fn()
   },
   whiteInputBox: {
     $emit: jest.fn(),
@@ -281,9 +282,10 @@ describe('Component SuggestModel', () => {
 
     wrapper.setData({ whiteSqlData: {capable_sql_num: 1, size: 1, data: [{id: 0, capable: true, sql: 'sql1', sql_advices: []}, {id: 1, capable: true, sql: 'sql2', sql_advices: []}]} })
     await wrapper.update()
-    wrapper.vm.whiteSqlDatasPageChange(1, 10)
+    await wrapper.vm.whiteSqlDatasPageChange(1, 10)
     expect(wrapper.vm.whiteCurrentPage).toBe(1)
     expect(wrapper.vm.whitePageSize).toBe(10)
+    expect(wrapper.vm.$refs.multipleTable.doLayout).toBeCalled()
     wrapper.vm.delWhite(0)
     // wrapper.vm.whiteSqlDatasPageChange(1, 10)
     expect(wrapper.vm.whiteSql).toEqual('')
@@ -319,8 +321,8 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.submitModelLoading).toBeFalsy()
     expect(saveSuggestModels.mock.calls[0][1]).toEqual({'new_models': [], 'project': 'learn_kylin', 'reused_models': []})
     expect(handleSuccess).toBeCalled()
-    expect($message.success.mock.calls[2][0]).toEqual('Operate successfully.')
-    expect($message.success.mock.calls[0][1]).toBe()
+    expect(wrapper.emitted().reloadModelList).toEqual([[], []])
+    expect(mockGlobalConfirm).toBeCalledWith('Successfully accepted 0 recommendation(s), The added indexes would be ready for queries after being built.', 'Imported successfully', {'confirmButtonText': 'OK', 'showCancelButton': false, 'type': 'success'})
 
     wrapper.setData({ isEditSql: true })
     await wrapper.update()
@@ -410,9 +412,9 @@ describe('Component SuggestModel', () => {
     expect(wrapper.vm.inputHeight).toBe(242)
     expect(formatSql).toBeCalled()
     expect(handleSuccessAsync).toBeCalled()
-    expect(wrapper.vm.sqlFormatterObj).toEqual({"2": {"capable": true, "id": 1}})
+    expect(wrapper.vm.sqlFormatterObj).toEqual({'2': {'capable': true, 'id': 1}, '4': {'capable': true, 'id': 1}})
     expect(wrapper.vm.$refs.whiteInputBox.$emit).toBeCalled()
-    expect(wrapper.vm.activeSqlObj).toEqual({'capable': true, 'id': '2'})
+    expect(wrapper.vm.activeSqlObj).toEqual({'capable': false, 'id': 4})
     expect(wrapper.vm.isReadOnly).toBeFalsy()
     // expect(wrapper.vm.whiteSqlData).toEqual()
     expect($message.success.mock.calls[0][0]).toBe('Operate successfully.')
