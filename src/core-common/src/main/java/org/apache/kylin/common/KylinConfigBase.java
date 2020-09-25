@@ -1259,7 +1259,6 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.query.load-counter-period-seconds", "3s"), TimeUnit.SECONDS);
     }
 
-
     public String[] getQueryTransformers() {
         String value = getOptional("kylin.query.transformers");
         return value == null ? new String[]{"org.apache.kylin.query.util.PowerBIConverter",
@@ -2210,6 +2209,11 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.tool.spark-log-extractor", "io.kyligence.kap.tool.YarnSparkLogExtractor");
     }
 
+    public String getLicenseExtractor() {
+        return getOptional("kylin.tool.license-extractor", "org.apache.kylin.rest.service.DefaultLicenseExtractor");
+
+    }
+
     public String getMountSparkLogDir() {
         return getOptional("kylin.tool.mount-spark-log-dir", "");
     }
@@ -2277,7 +2281,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getJobResourceLackIgnoreExceptionClasses() {
         return getOptionalStringArray("kylin.job.resource-lack-ignore-exception-classes",
-                new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"});
+                new String[] { "com.amazonaws.services.s3.model.AmazonS3Exception" });
     }
 
     public String getAADUsernameClaim() {

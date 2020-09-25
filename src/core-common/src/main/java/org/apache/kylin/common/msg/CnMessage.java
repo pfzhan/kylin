@@ -779,11 +779,11 @@ public class CnMessage extends Message {
     }
 
     public String getLICENSE_INVALID_LICENSE() {
-        return "无效许可证，请联系 Kyligence 销售人员。";
+        return "无效许可证。请上传新的许可证或联系 Kyligence 销售人员。";
     }
 
     public String getLICENSE_MISMATCH_LICENSE() {
-        return "许可证适用的集群信息与当前不符，请重新上传新的许可证或联系 Kyligence 销售人员。";
+        return "该许可证适用的集群信息与当前不符。请上传新的许可证或联系 Kyligence 销售人员。";
     }
 
     public String getLICENSE_NOT_EFFECTIVE() {
@@ -791,7 +791,7 @@ public class CnMessage extends Message {
     }
 
     public String getLICENSE_EXPIRED() {
-        return "许可证已过期，当前有效期为 [%s - %s]。请联系 Kyligence 销售人员。";
+        return "该许可证已过期。请上传新的许可证或联系 Kyligence 销售人员。";
     }
 
     public String getLICENSE_SOURCE_OVER_CAPACITY() {

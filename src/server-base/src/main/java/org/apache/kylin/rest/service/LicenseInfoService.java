@@ -66,7 +66,6 @@ import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.ShellException;
@@ -216,8 +215,7 @@ public class LicenseInfoService extends BasicService {
 
     private void gatherMetastore(UUID prefix) {
         try {
-            ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            String metaStoreId = store.getMetaStoreUUID();
+            String metaStoreId = getMetastoreUUID();
             setProperty(Constants.KE_METASTORE, prefix, metaStoreId);
         } catch (Exception e) {
             log.error("Cannot get metastore uuid", e);
@@ -225,8 +223,7 @@ public class LicenseInfoService extends BasicService {
     }
 
     private String getMetastoreUUID() {
-        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        return store.getMetaStoreUUID();
+        return LicenseExtractorFactory.create(getConfig()).extractMetastoreUUID();
     }
 
     private String calculateSignature(String input) {
@@ -405,16 +402,13 @@ public class LicenseInfoService extends BasicService {
     private void checkLicenseInfo(String volume, String node, UUID prefix) throws IOException {
         String realVolume = getRealNode(volume, Double::parseDouble);
         String realNode = getRealNode(node, Long::parseLong);
-        if (!UNLIMITED.equals(realVolume)) {
-            double realVol = Double.parseDouble(realVolume);
-            realVolume = String.valueOf(tbToByte(realVol));
-        }
+        realVolume = getLicenseExtractor().extractLicenseVolume(realVolume);
         setProperty(Constants.KE_LICENSE_VOLUME, prefix, realVolume);
         setProperty(Constants.KE_LICENSE_NODES, prefix, realNode);
     }
 
-    private long tbToByte(double tb) {
-        return (long) (tb * 1024 * 1024 * 1024 * 1024);
+    private LicenseExtractorFactory.ILicenseExtractor getLicenseExtractor() {
+        return LicenseExtractorFactory.create(getConfig());
     }
 
     private String getRealNode(String node, Consumer<String> checker) throws IOException {
@@ -795,4 +789,9 @@ public class LicenseInfoService extends BasicService {
         sourceUsageManager.updateSourceUsage();
     }
 
+    public void refreshLicenseVolume() {
+        log.debug("refresh license volume");
+        LicenseExtractorFactory.ILicenseExtractor licenseExtractor = getLicenseExtractor();
+        licenseExtractor.refreshLicenseVolume();
+    }
 }

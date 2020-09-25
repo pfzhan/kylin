@@ -27,8 +27,10 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -55,6 +57,9 @@ public class BroadcastController extends NBasicController {
     @Qualifier("kapQueryService")
     private KapQueryService queryService;
 
+    @Autowired
+    private LicenseInfoService licenseInfoService;
+
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> notifyCatchUp(@RequestBody BroadcastEventReadyNotifier notifier) {
@@ -62,6 +67,8 @@ public class BroadcastController extends NBasicController {
             auditLogService.notifyCatchUp();
         } else if (notifier instanceof StopQueryBroadcastEventNotifier) {
             queryService.stopQuery(((StopQueryBroadcastEventNotifier) notifier).getId());
+        } else if (notifier instanceof RefreshVolumeBroadcastEventNotifier) {
+            licenseInfoService.refreshLicenseVolume();
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

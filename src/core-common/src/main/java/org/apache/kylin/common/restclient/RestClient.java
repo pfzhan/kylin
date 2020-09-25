@@ -302,8 +302,8 @@ public class RestClient {
             response = client.execute(post);
             if (response.getStatusLine().getStatusCode() != 200) {
                 String msg = EntityUtils.toString(response.getEntity());
-                logger.error("Invalid response " + response.getStatusLine().getStatusCode()
-                        + " with update user " + url + "\n" + msg);
+                logger.error("Invalid response " + response.getStatusLine().getStatusCode() + " with update user " + url
+                        + "\n" + msg);
             }
         } finally {
             cleanup(post, response);
@@ -321,7 +321,8 @@ public class RestClient {
             response = client.execute(put);
             if (response.getStatusLine().getStatusCode() != 200) {
                 String msg = EntityUtils.toString(response.getEntity());
-                logger.error("Invalid response: {} for refresh capacity: {} \n{}", response.getStatusLine().getStatusCode(), url, msg);
+                logger.error("Invalid response: {} for refresh capacity: {} \n{}",
+                        response.getStatusLine().getStatusCode(), url, msg);
             }
         } finally {
             cleanup(put, response);
@@ -353,8 +354,8 @@ public class RestClient {
             response = client.execute(post);
             if (response.getStatusLine().getStatusCode() != 200) {
                 String msg = EntityUtils.toString(response.getEntity());
-                throw new KylinException(CommonErrorCode.FAILED_NOTIFY_CATCHUP, "Invalid response " + response.getStatusLine().getStatusCode()
-                        + " with notify catch up url " + url + "\n" + msg);
+                throw new KylinException(CommonErrorCode.FAILED_NOTIFY_CATCHUP, "Invalid response "
+                        + response.getStatusLine().getStatusCode() + " with notify catch up url " + url + "\n" + msg);
             }
         } finally {
             cleanup(post, response);
@@ -496,7 +497,8 @@ public class RestClient {
             response = client.execute(put);
             if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
                 String msg = EntityUtils.toString(response.getEntity());
-                logger.warn("Invalid response {} with updateDiagProgress url: {}\n{}", response.getStatusLine().getStatusCode(), url, msg);
+                logger.warn("Invalid response {} with updateDiagProgress url: {}\n{}",
+                        response.getStatusLine().getStatusCode(), url, msg);
                 return false;
             }
         } catch (Exception e) {

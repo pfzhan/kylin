@@ -44,6 +44,8 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -299,22 +301,24 @@ public class NSystemController extends NBasicController {
     @GetMapping(value = "/capacity_info")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoSingleProject(@RequestParam(value = "project") String project,
-                                                               @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
+            @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
         Map<Long, Long> projectCapacities = licenseInfoService.getProjectCapacities(project, dataRange);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacities, "");
     }
 
-    @ApiOperation(value = "get license monitor info in project",  notes = "Update Param: page_offset, page_size;")
+    @ApiOperation(value = "get license monitor info in project", notes = "Update Param: page_offset, page_size;")
     @GetMapping(value = "/capacity")
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoInProject(@RequestParam(value = "project") String project,
-                                                           @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-                                                           @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
-                                                           @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
-                                                           @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "capacity") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         aclEvaluate.checkProjectAdminPermission(project);
-        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), Lists.newArrayList(), sortBy, reverse);
-        ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project, sourceUsageFilter);
+        SourceUsageFilter sourceUsageFilter = new SourceUsageFilter(Lists.newArrayList(), Lists.newArrayList(), sortBy,
+                reverse);
+        ProjectCapacityResponse projectCapacityResponse = licenseInfoService.getLicenseMonitorInfoByProject(project,
+                sourceUsageFilter);
         if (projectCapacityResponse.getSize() > 0) {
             List<CapacityDetailsResponse> tables = projectCapacityResponse.getTables();
             List<CapacityDetailsResponse> tableCapacityDetailsPaging = PagingUtil.cutPage(tables, pageOffset, pageSize);
@@ -326,7 +330,8 @@ public class NSystemController extends NBasicController {
     @ApiOperation(value = "get last month/quarter/year license monitor info")
     @GetMapping(value = "/capacity/dashboard")
     @ResponseBody
-    public EnvelopeResponse getLicenseMonitorInfoHistory(@RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
+    public EnvelopeResponse getLicenseMonitorInfoHistory(
+            @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getSourceUsageHistory(dataRange), "");
     }
 
@@ -413,7 +418,8 @@ public class NSystemController extends NBasicController {
 
     @PostMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> setReadMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest) throws Exception {
+    public EnvelopeResponse<String> setReadMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest)
+            throws Exception {
         maintenanceModeService.setMaintenanceMode(maintenanceModeRequest.getReason());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -444,5 +450,14 @@ public class NSystemController extends NBasicController {
             response.setServers(servers.stream().map(ServerInfoResponse::getHost).collect(Collectors.toList()));
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    //for kc
+    @PutMapping(value = "/license/volume", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<LicenseInfo> modifyLicense() {
+        licenseInfoService.refreshLicenseVolume();
+        EventBusFactory.getInstance().postAsync(new RefreshVolumeBroadcastEventNotifier());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 }

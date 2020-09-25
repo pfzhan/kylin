@@ -835,7 +835,7 @@ public class Message {
     // License
 
     public String getLICENSE_OVERDUE_TRIAL() {
-        return "The license has expired and the validity period is [%s - %s]. Please upload a new license or contact the Kyligence sales staff.";
+        return "The license has expired and the validity period is [%s - %s]. Please upload a new license or contact Kyligence.";
     }
 
     public String getLICENSE_NODES_EXCEED() {
@@ -843,7 +843,7 @@ public class Message {
     }
 
     public String getLICENSE_NODES_NOT_MATCH() {
-        return "The cluster imformation dose not match the license. Please upload a new license or contact the Kyligence salse staff.";
+        return "The cluster information dose not match the license. Please upload a new license or contact Kyligence.";
     }
 
     public String getLICENSE_OVER_VOLUME() {
@@ -851,19 +851,19 @@ public class Message {
     }
 
     public String getLICENSE_WRONG_CATEGORY() {
-        return "The current version of Kyligence Enterprise does not match the license. Please upload a new license or contact the Kyligence sales staff.";
+        return "The current version of Kyligence Enterprise does not match the license. Please upload a new license or contact Kyligence.";
     }
 
     public String getLICENSE_NO_LICENSE() {
-        return "No license file. Please contact the Kyligence sales staff.";
+        return "No license file. Please contact Kyligence.";
     }
 
     public String getLICENSE_INVALID_LICENSE() {
-        return "Invalid license, please contact the Kyligence sales staff.";
+        return "The license is invalid. Please upload a new license, or contact Kyligence.";
     }
 
     public String getLICENSE_MISMATCH_LICENSE() {
-        return "The cluster information does not match the license. Please upload a new license or contact the Kyligence sales staff.";
+        return "The license doesn’t match the current cluster information. Please upload a new license, or contact Kyligence.";
     }
 
     public String getLICENSE_NOT_EFFECTIVE() {
@@ -871,7 +871,7 @@ public class Message {
     }
 
     public String getLICENSE_EXPIRED() {
-        return "This license has expired and the validity period is [%s - %s]. Please contact the Kyligence sales staff.";
+        return "The license has expired. Please upload a new license, or contact Kyligence.";
     }
 
     public String getLICENSE_SOURCE_OVER_CAPACITY() {
