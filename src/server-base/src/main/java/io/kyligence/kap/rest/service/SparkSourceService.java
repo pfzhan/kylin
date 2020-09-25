@@ -23,13 +23,16 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.rest.request.DDLRequest;
+import io.kyligence.kap.rest.response.DDLResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -46,25 +49,21 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalog.Database;
+import org.apache.spark.sql.catalog.Table;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.rest.request.DDLRequest;
-import io.kyligence.kap.rest.response.DDLResponse;
-import io.kyligence.kap.rest.response.TableNameResponse;
-import lombok.Data;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 import scala.Option;
 import scala.collection.Iterator;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -121,6 +120,13 @@ public class SparkSourceService extends BasicService {
     }
 
     public List<TableNameResponse> listTables(String db, String project) throws Exception {
+        if (Strings.isNullOrEmpty(project)) {
+            SparkSession sparkSession = SparderEnv.getSparkSession();
+            Dataset<Table> tableDataset = sparkSession.catalog().listTables(db);
+            List<Table> sparkTables = tableDataset.collectAsList();
+            return sparkTables.stream().map(table -> new TableNameResponse(table.name().toUpperCase(), false))
+                    .collect(Collectors.toList());
+        }
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
         List<String> tables = explr.listTables(db).stream().map(String::toUpperCase).collect(Collectors.toList());
