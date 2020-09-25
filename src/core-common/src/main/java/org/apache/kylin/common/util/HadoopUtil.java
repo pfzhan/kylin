@@ -146,6 +146,13 @@ public class HadoopUtil {
             logger.info("write hadoop conf is {} ", config.getBuildConf());
             hadoopConf = config.getBuildConf();
         }
+
+        //used for Driver
+        String hadoopConfDirEnv = System.getenv("HADOOP_CONF_DIR");
+        if (StringUtils.isEmpty(hadoopConf) && StringUtils.isNotEmpty(hadoopConfDirEnv)) {
+            hadoopConf = hadoopConfDirEnv;
+        }
+
         if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv()) {
             throw new RuntimeException(
                     "kylin_hadoop_conf_dir is empty, check if there's error in the output of 'kylin.sh start'");
