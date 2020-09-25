@@ -60,7 +60,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -114,6 +113,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
@@ -126,9 +126,9 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.source.NHiveSourceInfo;
 import io.kyligence.kap.rest.source.NHiveTableName;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TableServiceTest extends CSVSourceTestCase {
@@ -200,6 +200,16 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
         Assert.assertEquals(true, table2.get(0).getName().equals("TEST_COUNTRY"));
+        Assert.assertEquals(0L, ((TableDescResponse) table2.get(0)).getStorageSize());
+
+        val manager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        val countryTable = manager.copyForWrite(manager.getTableDesc("DEFAULT.TEST_COUNTRY"));
+        countryTable.setLastSnapshotPath("cannot/find/it");
+        manager.updateTableDesc(countryTable);
+
+        table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
+        Assert.assertEquals(true, table2.get(0).getName().equals("TEST_COUNTRY"));
+        Assert.assertEquals(0L, ((TableDescResponse) table2.get(0)).getStorageSize());
 
         // get a not existing table desc
         tableDesc = tableService.getTableDesc("default", true, "not_exist_table", "DEFAULT", false);

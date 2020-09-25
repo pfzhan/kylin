@@ -65,6 +65,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
@@ -412,8 +413,8 @@ public class TableService extends BasicService {
                 continue;
             }
             TableDescResponse tableDescResponse;
-            val modelsUsingRootTable = Lists.<NDataModel>newArrayList();
-            val modelsUsingTable = Lists.<NDataModel>newArrayList();
+            val modelsUsingRootTable = Lists.<NDataModel> newArrayList();
+            val modelsUsingTable = Lists.<NDataModel> newArrayList();
             for (NDataModel model : healthyModels) {
                 if (model.containsTable(table)) {
                     modelsUsingTable.add(model);
@@ -512,8 +513,13 @@ public class TableService extends BasicService {
     private long getSnapshotSize(String project, String table, FileSystem fs) throws IOException {
         val tableDesc = getTableManager(project).getTableDesc(table);
         if (tableDesc != null && tableDesc.getLastSnapshotPath() != null) {
-            val path = new Path(tableDesc.getLastSnapshotPath());
-            return HadoopUtil.getContentSummary(fs, path).getLength();
+            try {
+                val path = new Path(KapConfig.wrap(KylinConfig.getInstanceFromEnv()).getMetadataWorkingDirectory(),
+                        tableDesc.getLastSnapshotPath());
+                return HadoopUtil.getContentSummary(fs, path).getLength();
+            } catch (Exception e) {
+                logger.warn("cannot get snapshot path {}", tableDesc.getLastSnapshotPath(), e);
+            }
         }
         return 0;
     }
