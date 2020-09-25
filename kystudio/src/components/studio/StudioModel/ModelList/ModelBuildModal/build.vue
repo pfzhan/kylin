@@ -193,7 +193,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from 'store'
   import { handleError, transToUTCMs, getGmtDateFromUtcLike, kapMessage } from 'util/business'
-  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, objectClone, kapConfirm } from 'util/index'
+  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, kapConfirm } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
@@ -367,15 +367,15 @@
           }
         })
       }
-      let ccColumns = this.modelInstance.getComputedColumns()
-      let cloneCCList = objectClone(ccColumns)
-      cloneCCList.forEach((x) => {
-        let cc = {
-          name: x.columnName,
-          datatype: x.datatype
-        }
-        result.push(cc)
-      })
+      // let ccColumns = this.modelInstance.getComputedColumns()
+      // let cloneCCList = objectClone(ccColumns)
+      // cloneCCList.forEach((x) => {
+      //   let cc = {
+      //     name: x.columnName,
+      //     datatype: x.datatype
+      //   }
+      //   result.push(cc)
+      // })
       return result
     }
 
