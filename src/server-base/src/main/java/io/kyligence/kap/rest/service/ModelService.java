@@ -31,7 +31,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_DIMENS
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MEASURE_NAME;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SEGMENT_RANGE;
@@ -203,7 +202,6 @@ import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
-import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse.NRecommendedModelResponse;
@@ -340,7 +338,7 @@ public class ModelService extends BasicService {
     }
 
     @VisibleForTesting
-    public Boolean isProjectNotExist(String project) {
+    public boolean isProjectNotExist(String project) {
         List<ProjectInstance> projectInstances = projectService.getReadableProjects(project, true);
         return CollectionUtils.isEmpty(projectInstances);
     }
@@ -408,12 +406,12 @@ public class ModelService extends BasicService {
         });
 
         HashMap<String, List<String>> tableToAllDim = Maps.newHashMap();
-        cube.getNamedColumns().stream().forEach(namedColumn -> {
+        cube.getNamedColumns().forEach(namedColumn -> {
             String aliasDotColumn = namedColumn.getAliasDotColumn();
             String table = aliasDotColumn.split("\\.")[0];
             String column = aliasDotColumn.split("\\.")[1];
             if (!tableToAllDim.containsKey(table)) {
-                tableToAllDim.put(table, new ArrayList());
+                tableToAllDim.put(table, Lists.newArrayList());
             }
             tableToAllDim.get(table).add(column);
         });
@@ -423,9 +421,9 @@ public class ModelService extends BasicService {
                 .forEach(x -> allAggDim.add(x.getIdentity()));
 
         List<Set<String>> aggIncludes = new ArrayList<>();
-        aggGroupResponses.stream().forEach(agg -> aggIncludes.add(Sets.newHashSet(agg.getIncludes())));
+        aggGroupResponses.forEach(agg -> aggIncludes.add(Sets.newHashSet(agg.getIncludes())));
 
-        cube.getNamedColumns().stream().forEach(namedColumn -> {
+        cube.getNamedColumns().forEach(namedColumn -> {
             String aliasDotColumn = namedColumn.getAliasDotColumn();
             String table = aliasDotColumn.split("\\.")[0];
             boolean isRootFactTable = rootFactTable.endsWith("." + table);
@@ -461,7 +459,7 @@ public class ModelService extends BasicService {
         result.setUuid(cube.getUuid());
         result.setName(cube.getAlias());
         result.setMeasures(
-                cube.getMeasures().stream().map(x -> new NCubeDescResponse.Measure3X(x)).collect(Collectors.toList()));
+                cube.getMeasures().stream().map(NCubeDescResponse.Measure3X::new).collect(Collectors.toList()));
 
         IndexPlan indexPlan = getIndexPlan(result.getUuid(), projectName);
         if (!dataModel.isBroken() && indexPlan.getRuleBasedIndex() != null) {
@@ -1179,7 +1177,8 @@ public class ModelService extends BasicService {
     }
 
     public boolean isModelsUsingTable(String table, String project) {
-        return getDataflowManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table)).size() > 0;
+        TableDesc tableDesc = getTableManager(project).getTableDesc(table);
+        return CollectionUtils.isNotEmpty(getDataflowManager(project).getModelsUsingTable(tableDesc));
     }
 
     public List<NDataModel> getModelsUsingTable(String table, String project) {
@@ -1208,10 +1207,10 @@ public class ModelService extends BasicService {
 
         if (loadingRange != null) {
             // check if toBeRefreshSegmentRange is within covered ready segment range
-            checkRefreshRangeWithinCoveredRange(loadingRange, project, table, toBeRefreshSegmentRange);
+            checkRefreshRangeWithinCoveredRange(loadingRange, toBeRefreshSegmentRange);
         }
 
-        Segments<NDataSegment> affetedSegments = new Segments<NDataSegment>();
+        Segments<NDataSegment> affectedSegments = new Segments<>();
 
         for (NDataModel model : models) {
             val dataflow = dfManager.getDataflow(model.getId());
@@ -1234,13 +1233,13 @@ public class ModelService extends BasicService {
             } else {
                 checkSegRefreshingInLagBehindModel(segments);
             }
-            affetedSegments.addAll(segments);
+            affectedSegments.addAll(segments);
         }
-        Preconditions.checkState(CollectionUtils.isNotEmpty(affetedSegments));
-        Collections.sort(affetedSegments);
-        String affectedStart = affetedSegments.getFirstSegment().getSegRange().getStart().toString();
-        String affectedEnd = affetedSegments.getLastSegment().getSegRange().getEnd().toString();
-        for (NDataSegment segment : affetedSegments) {
+        Preconditions.checkState(CollectionUtils.isNotEmpty(affectedSegments));
+        Collections.sort(affectedSegments);
+        String affectedStart = affectedSegments.getFirstSegment().getSegRange().getStart().toString();
+        String affectedEnd = affectedSegments.getLastSegment().getSegRange().getEnd().toString();
+        for (NDataSegment segment : affectedSegments) {
             byteSize += segment.getStorageBytesSize();
         }
         return new RefreshAffectedSegmentsResponse(byteSize, affectedStart, affectedEnd);
@@ -1255,7 +1254,7 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkRefreshRangeWithinCoveredRange(NDataLoadingRange dataLoadingRange, String project, String table,
+    private void checkRefreshRangeWithinCoveredRange(NDataLoadingRange dataLoadingRange,
             SegmentRange toBeRefreshSegmentRange) {
         SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
         if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
@@ -1298,7 +1297,7 @@ public class ModelService extends BasicService {
             }
         } catch (Exception e) {
             Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
-            Matcher matcher = pattern.matcher(e.getMessage().replaceAll("`", ""));
+            Matcher matcher = pattern.matcher(e.getMessage().replace("`", ""));
             if (matcher.find()) {
                 String column = matcher.group(1);
                 String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
@@ -1401,7 +1400,7 @@ public class ModelService extends BasicService {
                 Map<String, ComputedColumnDesc> newCCMap = Maps.newLinkedHashMap();
                 Map<String, NDataModel.NamedColumn> newDimMap = Maps.newLinkedHashMap();
                 Map<String, NDataModel.Measure> newMeasureMap = Maps.newLinkedHashMap();
-                for (LayoutRecDetailResponse recItem : recItems) {
+                recItems.forEach(recItem -> {
                     recItem.getComputedColumns().stream() //
                             .filter(LayoutRecDetailResponse.RecComputedColumn::isNew) //
                             .forEach(recCC -> {
@@ -1420,7 +1419,7 @@ public class ModelService extends BasicService {
                                 NDataModel.Measure measure = recMeasure.getMeasure();
                                 newMeasureMap.putIfAbsent(measure.getName(), measure);
                             });
-                }
+                });
                 newCCMap.forEach((ccName, cc) -> {
                     copyForWrite.getComputedColumnDescs().add(cc);
                     NDataModel.NamedColumn column = columnMap.get(cc.getFullName());
@@ -1434,9 +1433,7 @@ public class ModelService extends BasicService {
                         allNamedColumns.add(dim);
                     }
                 });
-                newMeasureMap.forEach((measureName, measure) -> {
-                    copyForWrite.getAllMeasures().add(measure);
-                });
+                newMeasureMap.forEach((measureName, measure) -> copyForWrite.getAllMeasures().add(measure));
             });
 
             // update IndexPlan
@@ -1560,6 +1557,9 @@ public class ModelService extends BasicService {
     private void collectResponseOfReusedModels(AbstractContext.NModelContext modelContext,
             List<NRecommendedModelResponse> responseOfReusedModels) {
         Map<Long, Set<String>> layoutToSqlSet = mapLayoutToSqlSet(modelContext);
+        Map<String, ComputedColumnDesc> oriCCMap = Maps.newHashMap();
+        List<ComputedColumnDesc> oriCCList = modelContext.getOriginModel().getComputedColumnDescs();
+        oriCCList.forEach(cc -> oriCCMap.put(cc.getFullName(), cc));
         Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
         List<ComputedColumnDesc> ccList = modelContext.getTargetModel().getComputedColumnDescs();
         ccList.forEach(cc -> ccMap.put(cc.getFullName(), cc));
@@ -1579,8 +1579,9 @@ public class ModelService extends BasicService {
                 } else if (idx < NDataModel.MEASURE_ID_BASE) {
                     NDataModel.NamedColumn col = targetModel.getAllNamedColumns().get(idx);
                     TblColRef tblColRef = targetModel.getEffectiveDimensions().get(idx);
-                    if (tblColRef.getColumnDesc().isComputedColumn()) {
-                        ccStateMap.putIfAbsent(ccMap.get(tblColRef.getAliasDotName()), true);
+                    String colRefAliasDotName = tblColRef.getAliasDotName();
+                    if (tblColRef.getColumnDesc().isComputedColumn() && !oriCCMap.containsKey(colRefAliasDotName)) {
+                        ccStateMap.putIfAbsent(ccMap.get(colRefAliasDotName), true);
                     }
                     String dataType = tblColRef.getDatatype();
                     response.getDimensions().add(new LayoutRecDetailResponse.RecDimension(col, true, dataType));
@@ -1591,8 +1592,9 @@ public class ModelService extends BasicService {
                     NDataModel.Measure measure = targetModel.getEffectiveMeasures().get(idx);
                     List<TblColRef> colRefs = measure.getFunction().getColRefs();
                     colRefs.forEach(colRef -> {
-                        if (colRef.getColumnDesc().isComputedColumn()) {
-                            ccStateMap.putIfAbsent(ccMap.get(colRef.getAliasDotName()), true);
+                        String colRefAliasDotName = colRef.getAliasDotName();
+                        if (colRef.getColumnDesc().isComputedColumn() && !oriCCMap.containsKey(colRefAliasDotName)) {
+                            ccStateMap.putIfAbsent(ccMap.get(colRefAliasDotName), true);
                         }
                     });
                     response.getMeasures().add(new LayoutRecDetailResponse.RecMeasure(measure, true));
@@ -1716,7 +1718,7 @@ public class ModelService extends BasicService {
 
     void updateIndexPlan(String project, IndexPlan indexPlan) {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        indexPlanManager.updateIndexPlan(indexPlan.getId(), (copyForWrite) -> {
+        indexPlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
             if (indexPlan.getAggShardByColumns() != null) {
                 copyForWrite.setAggShardByColumns(indexPlan.getAggShardByColumns());
             }
@@ -1819,29 +1821,6 @@ public class ModelService extends BasicService {
                 joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
             }
         }
-    }
-
-    @Deprecated
-    private void proposeAndSaveDateFormatIfNotExist(String project, String modelId) throws Exception {
-        val modelManager = getDataModelManager(project);
-        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
-        val partitionDesc = modelDesc.getPartitionDesc();
-        if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
-                || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
-            return;
-
-        if (StringUtils.isNotEmpty(partitionDesc.getPartitionDateColumn())
-                && StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat())) {
-            return;
-        }
-
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
-
-        val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn, project);
-        val format = DateFormat.proposeDateFormat(date);
-        modelManager.updateDataModel(modelId, model -> {
-            model.getPartitionDesc().setPartitionDateFormat(format);
-        });
     }
 
     private String probeDateFormatIfNotExist(String project, NDataModel modelDesc) throws Exception {
@@ -2027,7 +2006,7 @@ public class ModelService extends BasicService {
         return res;
     }
 
-    private JobInfoResponse.JobInfo constructIncrementBuild(IncrementBuildSegmentParams params) throws Exception {
+    private JobInfoResponse.JobInfo constructIncrementBuild(IncrementBuildSegmentParams params) {
         String project = params.getProject();
         String modelId = params.getModelId();
 
@@ -2157,7 +2136,7 @@ public class ModelService extends BasicService {
         return jobInfoResponse;
     }
 
-    private List<JobInfoResponse.JobInfo> innerIncrementBuild(IncrementBuildSegmentParams params) throws Exception {
+    private List<JobInfoResponse.JobInfo> innerIncrementBuild(IncrementBuildSegmentParams params) throws IOException {
 
         checkModelAndIndexManually(params);
         if (CollectionUtils.isEmpty(params.getSegmentHoles())) {
@@ -2257,9 +2236,7 @@ public class ModelService extends BasicService {
 
     private void checkSegmentToBuildOverlapsBuilt(String project, String model, SegmentRange segmentRangeToBuild) {
         Segments<NDataSegment> segments = getSegmentsByRange(model, project, "0", "" + Long.MAX_VALUE);
-        if (CollectionUtils.isEmpty(segments)) {
-            return;
-        } else {
+        if (!CollectionUtils.isEmpty(segments)) {
             for (NDataSegment existedSegment : segments) {
                 if (existedSegment.getSegRange().overlaps(segmentRangeToBuild)) {
                     throw new KylinException(SEGMENT_RANGE_OVERLAP,
@@ -2534,33 +2511,6 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkDeleteSegmentLegally(String model, String project, String[] ids) {
-        NDataflowManager dataflowManager = getDataflowManager(project);
-        val indexPlan = getIndexPlan(model, project);
-        List<String> idsToDelete = Lists.newArrayList(ids);
-        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
-        Segments<NDataSegment> allSegments = dataflow.getSegments();
-        if (allSegments.size() <= 2) {
-            return;
-        } else {
-            for (int i = 1; i < allSegments.size() - 1; i++) {
-                for (String id : idsToDelete) {
-                    if (id.equals(allSegments.get(i).getId())) {
-                        checkNeighbouringSegmentsDeleted(idsToDelete, i, allSegments);
-                    }
-                }
-            }
-
-        }
-    }
-
-    private void checkNeighbouringSegmentsDeleted(List<String> idsToDelete, int i, Segments<NDataSegment> allSegments) {
-        if (!idsToDelete.contains(allSegments.get(i - 1).getId())
-                || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REMOVE_SEGMENT());
-        }
-    }
-
     private void checkSegmentsContinuous(String modelId, String project, String[] ids) {
         val dfManager = getDataflowManager(project);
         val indexPlan = getIndexPlan(modelId, project);
@@ -2706,7 +2656,7 @@ public class ModelService extends BasicService {
         val indePlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlan = indePlanManager.getIndexPlan(modelId);
         for (LayoutEntity layoutEntity : indexPlan.getAllLayouts()) {
-            if (layoutEntity.getColOrder().stream().anyMatch(layout -> modifiedSet.contains(layout))) {
+            if (layoutEntity.getColOrder().stream().anyMatch(modifiedSet::contains)) {
                 affectedLayoutSet.add(layoutEntity.getId());
             }
         }
@@ -2869,46 +2819,6 @@ public class ModelService extends BasicService {
                         MsgPicker.getMsg().getINVALID_SET_TABLE_INC_LOADING(), tableName, modelDesc.getAlias()));
             }
         }
-    }
-
-    private void checkProjectWhenModelSelected(String model, List<String> projects) {
-        if (!isSelectAll(model) && (CollectionUtils.isEmpty(projects) || projects.size() != 1)) {
-            throw new KylinException(DUPLICATE_MODEL_NAME,
-                    "Only one project name should be specified while model is specified!");
-        }
-    }
-
-    private List<ModelInfoResponse> getModelInfoByProject(List<String> projects) {
-        List<ModelInfoResponse> modelInfoLists = Lists.newArrayList();
-
-        for (val project : projects) {
-            val dfManager = getDataflowManager(project);
-            val models = dfManager.listUnderliningDataModels();
-            for (val model : models) {
-                modelInfoLists.add(getModelInfoByModel(model.getId(), project));
-            }
-        }
-        return modelInfoLists;
-    }
-
-    private ModelInfoResponse getModelInfoByModel(String model, String project) {
-        val dataflowManager = getDataflowManager(project);
-        val modelManager = getDataModelManager(project);
-        val modelDesc = modelManager.getDataModelDesc(model);
-        if (modelDesc == null) {
-            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), model));
-        }
-        val modelInfoResponse = new ModelInfoResponse();
-        modelInfoResponse.setProject(project);
-        modelInfoResponse.setAlias(modelDesc.getAlias());
-        modelInfoResponse.setModel(model);
-        val modelSize = dataflowManager.getDataflowStorageSize(model);
-        modelInfoResponse.setModelStorageSize(modelSize);
-        return modelInfoResponse;
-    }
-
-    private boolean isSelectAll(String field) {
-        return "*".equals(field);
     }
 
     public List<ModelConfigResponse> getModelConfig(String project, String modelName) {
@@ -3290,7 +3200,7 @@ public class ModelService extends BasicService {
     public List<NDataModel> updateReponseAcl(List<NDataModel> models, String project) {
         Set<String> groups = getCurrentUserGroups();
         if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project, groups)) {
-            for (val model : models) {
+            models.forEach(model -> {
                 NDataModelAclParams aclParams = new NDataModelAclParams();
                 aclParams.setUnauthorizedTables(Sets.newHashSet());
                 aclParams.setUnauthorizedColumns(Sets.newHashSet());
@@ -3299,7 +3209,7 @@ public class ModelService extends BasicService {
                 } else if (model instanceof RelatedModelResponse) {
                     ((RelatedModelResponse) model).setAclParams(aclParams);
                 }
-            }
+            });
             return models;
         }
         String username = AclPermissionUtil.getCurrentUsername();
@@ -3316,21 +3226,19 @@ public class ModelService extends BasicService {
         }
         List<NDataModel> normalModel = new ArrayList<>();
         List<NDataModel> noVisibleModel = new ArrayList<>();
-        for (val model : models) {
+        models.forEach(model -> {
             Set<String> tablesNoAcl = Sets.newHashSet();
             Set<String> columnsNoAcl = Sets.newHashSet();
             Set<String> tables = Sets.newHashSet();
             model.getJoinTables().forEach(table -> tables.add(table.getTable()));
             tables.add(model.getRootFactTableName());
-            tables.stream().filter(table -> !allAuthTables.contains(table)).forEach(table -> tablesNoAcl.add(table));
-            for (String table : tables) {
-                if (!allAuthTables.contains(table))
-                    continue;
+            tables.stream().filter(table -> !allAuthTables.contains(table)).forEach(tablesNoAcl::add);
+            tables.stream().filter(allAuthTables::contains).forEach(table -> {
                 ColumnDesc[] columnDescs = NTableMetadataManager.getInstance(getConfig(), project).getTableDesc(table)
                         .getColumns();
                 Arrays.stream(columnDescs).map(column -> table + "." + column.getName())
-                        .filter(column -> !allAuthColumns.contains(column)).forEach(column -> columnsNoAcl.add(column));
-            }
+                        .filter(column -> !allAuthColumns.contains(column)).forEach(columnsNoAcl::add);
+            });
             NDataModelAclParams aclParams = new NDataModelAclParams();
             aclParams.setUnauthorizedTables(tablesNoAcl);
             aclParams.setUnauthorizedColumns(columnsNoAcl);
@@ -3340,7 +3248,7 @@ public class ModelService extends BasicService {
                 ((RelatedModelResponse) model).setAclParams(aclParams);
             }
             (aclParams.isVisible() ? normalModel : noVisibleModel).add(model);
-        }
+        });
         List<NDataModel> result = new ArrayList<>(normalModel);
         result.addAll(noVisibleModel);
         return result;
@@ -3434,18 +3342,16 @@ public class ModelService extends BasicService {
         NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (dataModelDesc.isBroken())
             return null;
-        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null
+        return dataModelDesc.getPartitionDesc() == null ? null
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
-        return partitionDateFormat;
     }
 
     public String getPartitionColumnFormatByAlias(String project, String modelAlias) {
         NDataModel dataModelDesc = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (dataModelDesc.isBroken())
             return null;
-        String partitionDateFormat = dataModelDesc.getPartitionDesc() == null ? null
+        return dataModelDesc.getPartitionDesc() == null ? null
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
-        return partitionDateFormat;
     }
 
 }

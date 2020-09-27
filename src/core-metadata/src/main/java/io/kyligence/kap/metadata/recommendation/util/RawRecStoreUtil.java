@@ -93,7 +93,7 @@ public class RawRecStoreUtil {
             log.debug("failed to create table({})", tableName);
             throw new IllegalStateException(String.format("create table(%s) failed", tableName));
         } else {
-            log.debug("table({}) not exist.", tableName);
+            log.debug("table({}) already exists.", tableName);
         }
     }
 }
