@@ -36,8 +36,8 @@ import java.util.TimeZone;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -72,6 +72,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.metadata.random-admin-password.enabled");
         propertyKeys.add("kylin.model.recommendation-page-size");
         propertyKeys.add("kylin.model.dimension-measure-name.max-length");
+        propertyKeys.add("kylin.favorite.import-sql-max-size");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 

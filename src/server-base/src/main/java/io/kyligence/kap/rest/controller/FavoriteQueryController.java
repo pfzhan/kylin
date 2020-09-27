@@ -56,6 +56,7 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.rest.request.SQLValidateRequest;
+import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
@@ -192,12 +193,12 @@ public class FavoriteQueryController extends NBasicController {
     @ApiOperation(value = "importSqls (response)", notes = "sql_advices")
     @PostMapping(value = "/sql_files")
     @ResponseBody
-    public EnvelopeResponse<Map<String, Object>> importSqls(@RequestParam("project") String project,
+    public EnvelopeResponse<SQLParserResponse> importSqls(@RequestParam("project") String project,
             @RequestParam("files") MultipartFile[] files) {
         checkProjectName(project);
         checkProjectUnmodifiable(project);
-        Map<String, Object> data = favoriteRuleService.importSqls(files, project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, (String) data.get("msg"));
+        SQLParserResponse data = favoriteRuleService.importSqls(files, project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     @ApiOperation(value = "sqlValidate", notes = "Update Response: incapable_reason, sql_advices")

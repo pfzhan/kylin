@@ -24,9 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FILE_TYPE_MISMATCH;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,14 +50,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
+import io.kyligence.kap.rest.response.SQLParserResponse;
 import io.kyligence.kap.rest.response.SQLValidateResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
@@ -133,12 +130,11 @@ public class FavoriteRuleService extends BasicService {
         return map;
     }
 
-    public Map<String, Object> importSqls(MultipartFile[] files, String project) {
+    public SQLParserResponse importSqls(MultipartFile[] files, String project) {
         Message msg = MsgPicker.getMsg();
         aclEvaluate.checkProjectWritePermission(project);
-        Map<String, Object> result = Maps.newHashMap();
         List<String> sqls = Lists.newArrayList();
-        List<String> filesParseFailed = Lists.newArrayList();
+        List<String> wrongFormatFiles = Lists.newArrayList();
 
         // add user info before invoking row-filter and hack-select-star
         QueryContext context = QueryContext.current();
@@ -146,20 +142,24 @@ public class FavoriteRuleService extends BasicService {
         // parse file to sqls
         for (MultipartFile file : files) {
             String fileName = file.getOriginalFilename();
-            if (!fileName.endsWith(".sql") && !fileName.endsWith(".txt")) {
-                throw new KylinException(FILE_TYPE_MISMATCH, msg.getSQL_FILE_TYPE_MISMATCH());
+            if (!StringUtils.endsWithIgnoreCase(fileName, ".sql")
+                    && !StringUtils.endsWithIgnoreCase(fileName, ".txt")) {
+                wrongFormatFiles.add(file.getOriginalFilename());
+                continue;
             }
             try {
                 sqls.addAll(transformFileToSqls(file, project));
-            } catch (Exception ex) {
+            } catch (Exception | Error ex) {
                 logger.error("[UNEXPECTED_THINGS_HAPPENED]Error caught when parsing file {} because {} ",
                         file.getOriginalFilename(), ex);
-                filesParseFailed.add(file.getOriginalFilename());
+                wrongFormatFiles.add(file.getOriginalFilename());
             }
         }
+        SQLParserResponse result = new SQLParserResponse();
         if (sqls.size() > getConfig().getFavoriteImportSqlMaxSize()) {
-            throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT,
-                    String.format(msg.getSQL_NUMBER_EXCEEDS_LIMIT(), getConfig().getFavoriteImportSqlMaxSize()));
+            result.setSize(sqls.size());
+            result.setWrongFormatFile(wrongFormatFiles);
+            return result;
         }
 
         List<ImportSqlResponse> sqlData = Lists.newArrayList();
@@ -198,13 +198,10 @@ public class FavoriteRuleService extends BasicService {
             return 0;
         });
 
-        result.put("data", sqlData);
-        result.put("size", sqlData.size());
-        result.put("capable_sql_num", capableSqlNum);
-
-        if (!filesParseFailed.isEmpty()) {
-            result.put("msg", Joiner.on(",").join(filesParseFailed) + " parse failed");
-        }
+        result.setData(sqlData);
+        result.setSize(sqlData.size());
+        result.setCapableSqlNum(capableSqlNum);
+        result.setWrongFormatFile(wrongFormatFiles);
 
         return result;
     }

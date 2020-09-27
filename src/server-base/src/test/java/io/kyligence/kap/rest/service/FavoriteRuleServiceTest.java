@@ -29,7 +29,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
@@ -59,6 +58,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
+import io.kyligence.kap.rest.response.SQLParserResponse;
 import lombok.val;
 import lombok.var;
 
@@ -193,30 +193,32 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         // add jdbc type sql
         MockMultipartFile file3 = new MockMultipartFile("sqls3.txt", "sqls3.txt", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls3.txt")));
-
         MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql",
                 "text/plain", "".getBytes());
+        MockMultipartFile errorFile = new MockMultipartFile("error_file.sql", "error_file.sql", "text/plain",
+                "".getBytes());
 
         Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile, PROJECT)).thenThrow(IOException.class);
+        Mockito.when(favoriteRuleService.transformFileToSqls(errorFile, PROJECT)).thenThrow(Error.class);
 
-        Map<String, Object> result = favoriteRuleService
-                .importSqls(new MultipartFile[] { file1, file2, file3, exceptionFile }, PROJECT);
-        List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
+        SQLParserResponse result = favoriteRuleService
+                .importSqls(new MultipartFile[] { file1, file2, file3, exceptionFile, errorFile }, PROJECT);
+        List<ImportSqlResponse> responses = result.getData();
         Assert.assertEquals(10, responses.size());
         Assert.assertFalse(responses.get(0).isCapable());
         Assert.assertTrue(responses.get(8).isCapable());
-        Assert.assertEquals(10, result.get("size"));
-        Assert.assertEquals(3, result.get("capable_sql_num"));
-        String failedFilesMsg = (String) result.get("msg");
-        Assert.assertNotNull(failedFilesMsg);
-        Assert.assertEquals("exception_file.sql parse failed", failedFilesMsg);
-
+        Assert.assertEquals(10, result.getSize());
+        Assert.assertEquals(3, result.getCapableSqlNum());
+        List<String> failedFilesMsg = result.getWrongFormatFile();
+        Assert.assertEquals(2, failedFilesMsg.size());
+        Assert.assertEquals("exception_file.sql", failedFilesMsg.get(0));
+        Assert.assertEquals("error_file.sql", failedFilesMsg.get(1));
         // import empty file
         MockMultipartFile emptyFile = new MockMultipartFile("empty_file.sql", "empty_file.sql", "text/plain",
                 "".getBytes());
         result = favoriteRuleService.importSqls(new MultipartFile[] { emptyFile }, PROJECT);
         Assert.assertNotNull(result);
-        Assert.assertEquals(0, result.get("size"));
+        Assert.assertEquals(0, result.getSize());
     }
 
     @Test
@@ -287,12 +289,12 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         String sql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
 
         MockMultipartFile file1 = new MockMultipartFile("file.sql", "file.sql", "text/plain", sql.getBytes());
-        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[] { file1 }, PROJECT);
-        List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
+        SQLParserResponse result = favoriteRuleService.importSqls(new MultipartFile[] { file1 }, PROJECT);
+        List<ImportSqlResponse> responses = result.getData();
         Assert.assertEquals(1, responses.size());
         Assert.assertTrue(responses.get(0).isCapable());
-        Assert.assertEquals(1, result.get("size"));
-        Assert.assertEquals(1, result.get("capable_sql_num"));
+        Assert.assertEquals(1, result.getSize());
+        Assert.assertEquals(1, result.getCapableSqlNum());
 
         // same cc expression not replaced with existed cc
         Assert.assertEquals(sql, responses.get(0).getSql());
@@ -307,18 +309,10 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         MockMultipartFile file4 = new MockMultipartFile("sqls4.sql", "sqls4.sql", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls4.sql")));
 
-        try {
-            favoriteRuleService.importSqls(new MultipartFile[] { file4 }, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertEquals("Up to 1000 SQLs could be imported at a time", ex.getMessage());
-        }
+        var response = favoriteRuleService.importSqls(new MultipartFile[] { file4 }, PROJECT);
+        Assert.assertEquals(1200, response.getSize());
 
-        try {
-            favoriteRuleService.importSqls(new MultipartFile[] { file1, file2, file4 }, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertEquals("Up to 1000 SQLs could be imported at a time", ex.getMessage());
-        }
+        response = favoriteRuleService.importSqls(new MultipartFile[] { file1, file2, file4 }, PROJECT);
+        Assert.assertEquals(1210, response.getSize());
     }
 }
