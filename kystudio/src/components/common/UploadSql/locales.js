@@ -39,7 +39,7 @@ export default {
     th_parameter: 'Function Parameter',
     th_expression: 'Expression',
     th_function: 'Function',
-    uploadSizeTip: 'Please upload .txt or .sql file which\'s no larger than 5MB in total. Up to 200 SQLs could be uploaded at a time. Please use semicolon to separate multiple SQLs.',
+    uploadSizeTip: 'Please use semicolon to separate multiple SQLs.',
     selectModelsAndRecommends: 'Selected {models} model(s), {recommends} recommendation(s).',
     selectModelTips: 'Selected {models} model(s).',
     selectRecommendTips: 'Selected {recommends} recommendation(s).',
@@ -66,7 +66,11 @@ export default {
     noRecommendsTip: 'No valid recommendation. Existing models might already include the same indexes.',
     noModelDetailsTip: 'The selected model\'s dimension, measure, computed column, aggregate index would be shown here.',
     noOriginDetailsTip: 'The selected recommendation\'s dimension, measure, computed column would be shown here.',
-    importSuccess: 'Imported successfully'
+    importSuccess: 'Imported successfully',
+    uploadRule1: 'Please upload .txt or .sql file',
+    uploadRule2: 'Valid SQLs shall be included in the file',
+    uploadRule3: 'The total file size can’t be larger than 5 MB',
+    uploadRule4: 'Up to {size} SQLs could be uploaded at a time'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -108,7 +112,7 @@ export default {
     measure: '度量',
     dimension: '维度',
     cc: '可计算列',
-    uploadSizeTip: '请上传总量不超过 5MB 的 .txt 或 .sql 文件，一次最多可上传 200 条 SQL。多条 SQL 请使用英文分号隔开。',
+    uploadSizeTip: '多条 SQL 请使用英文分号隔开。',
     selectModelsAndRecommends: '已选择 {models} 个模型，{recommends} 条优化建议',
     selectModelTips: '已选择 {models} 个模型',
     selectRecommendTips: '已选择 {recommends} 条优化建议',
@@ -135,6 +139,10 @@ export default {
     noRecommendsTip: '没有有效的优化建议。现有模型可能已包含相同的索引。',
     noModelDetailsTip: '选中模型包含的维度、度量、可计算列、聚合索引等信息会显示在这里。',
     noOriginDetailsTip: '选中优化建议包含的维度、度量、可计算列等信息会显示在这里。',
-    importSuccess: '导入成功'
+    importSuccess: '导入成功',
+    uploadRule1: '请上传 .txt 或 .sql 文件',
+    uploadRule2: '文件包含有效的 SQL',
+    uploadRule3: '文件大小总量不超过 5MB',
+    uploadRule4: '一次最多可上传 {size} 条 SQL'
   }
 }

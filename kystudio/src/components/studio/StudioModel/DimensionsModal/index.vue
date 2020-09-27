@@ -73,7 +73,7 @@
                     :render-header="renderCardinalityHeader"
                     width="100">
                     <span slot-scope="scope">
-                      <template v-if="scope.row.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+                      <template v-if="!scope.row.cardinality"><i class="no-data_placeholder">NULL</i></template>
                       <template v-else>{{ scope.row.cardinality }}</template>
                     </span>
                   </el-table-column>
@@ -137,7 +137,7 @@
                     :render-header="renderCardinalityHeader"
                     width="100">
                     <span slot-scope="scope">
-                      <template v-if="scope.row.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
+                      <template v-if="!scope.row.cardinality"><i class="no-data_placeholder">NULL</i></template>
                       <template v-else>{{ scope.row.cardinality }}</template>
                     </span>
                   </el-table-column>

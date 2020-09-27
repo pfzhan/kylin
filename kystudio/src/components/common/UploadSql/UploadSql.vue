@@ -13,7 +13,7 @@
       <div class="upload-block" v-if="uploadFlag==='step1'">
         <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
         <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
-        <span class="upload-size-tip" v-show="!uploadItems.length">{{$t('uploadSizeTip')}}</span>
+        <!-- <span class="upload-size-tip" v-show="!uploadItems.length">{{$t('uploadSizeTip')}}</span> -->
         <el-upload
           ref="sqlUpload"
           class="sql-upload"
@@ -26,6 +26,12 @@
           :auto-upload="false">
           <el-button type="primary" size="medium">{{$t('sqlFiles')}}
           </el-button>
+          <div :class="['upload-rules', {'check-rules': showUploadRules}]">
+            <ul class="rule-list">
+              <li :class="['rule-item', item.status === 'success' ? 'is-success' : item.status === 'error' ? 'is-error' : null]" v-for="item in uploadRules" :key="item.type"><span v-if="item.status === 'default'">•</span><i class="el-icon-ksd-accept" v-else-if="item.status === 'success'"></i><i v-else class="el-icon-ksd-close"></i> {{item.query ? $t(item.text, item.query()): $t(item.text)}}</li>
+              <p class="rule-info"><i class="el-icon-ksd-info ksd-mr-5"></i>{{$t('uploadSizeTip')}}</p>
+            </ul>
+          </div>
         </el-upload>
       </div>
       <el-row :gutter="15" v-if="uploadFlag==='step2'">
@@ -160,7 +166,7 @@
         </div>
         <div class="ky-no-br-space">
           <el-button plain size="medium" @click="handleCancel" v-if="!isShowOriginModels">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" size="medium" v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
+          <el-button type="primary" size="medium" v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||checkedUploadRules"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.ok')}}</el-button>
@@ -210,6 +216,9 @@ vuex.registerModule(['modals', 'UploadSqlModel'], store)
       isShow: state => state.isShow,
       isGenerateModel: state => state.isGenerateModel,
       callback: state => state.callback
+    }),
+    ...mapState({
+      favoriteImportSqlMaxSize: state => +state.system.favoriteImportSqlMaxSize
     })
   },
   methods: {
@@ -244,7 +253,6 @@ export default class UploadSqlModel extends Vue {
   messageInstance = null
   uploadItems = []
   pagerTableData = []
-  fileSizeError = false
   isWhiteErrorMessage = false
   whiteMessages = []
   validateLoading = false
@@ -278,6 +286,14 @@ export default class UploadSqlModel extends Vue {
   convertLoading = false
   cancelConvertLoading = false
   convertSqls = []
+  uploadRules = {
+    fileFormat: {type: 'fileFormat', text: 'uploadRule1', status: 'default'},
+    unValidSqls: {type: 'unValidSqls', text: 'uploadRule2', status: 'default'},
+    totalSize: {type: 'totalSize', text: 'uploadRule3', status: 'default'},
+    sqlSizes: {type: 'sqlSizes', text: 'uploadRule4', status: 'default', query: this.queryHandler}
+  }
+  showUploadRules = false
+  wrongFormatFile = []
   handleClose () {
     this.hideModal()
     this.resetModalForm()
@@ -318,6 +334,11 @@ export default class UploadSqlModel extends Vue {
     this.modelType = 'suggest'
     this.selectRecommendsLength = 0
     this.messageInstance && this.messageInstance.close()
+    this.wrongFormatFile = []
+    this.showUploadRules = false
+    for (let item in this.uploadRules) {
+      this.uploadRules[item].status = 'default'
+    }
   }
   get emptyText () {
     return this.whiteSqlFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -355,6 +376,10 @@ export default class UploadSqlModel extends Vue {
         this.isShowEditor = true
       })
     }
+  }
+
+  queryHandler () {
+    return {size: this.favoriteImportSqlMaxSize}
   }
 
   // 切换预览界面tabs
@@ -726,6 +751,9 @@ export default class UploadSqlModel extends Vue {
       return {'Accept-Language': 'cn'}
     }
   }
+  get checkedUploadRules () {
+    return Object.keys(this.uploadRules).filter(item => this.uploadRules[item].status === 'error').length > 0
+  }
   async editWhiteSql (sqlObj) {
     if (this.isEditSql) {
       await kapWarn(this.$t('editSqlTips'), {
@@ -797,36 +825,27 @@ export default class UploadSqlModel extends Vue {
     }
   }
   fileItemChange (file, fileList) {
-    let totalSize = 0
-    this.uploadItems = fileList.filter((file) => {
-      return file.name.toLowerCase().indexOf('.txt') !== -1 || file.name.toLowerCase().indexOf('.sql') !== -1
-    }).map((item) => {
-      totalSize = totalSize + item.size
-      item.raw && (item.raw.status = item.status)
-      return item.raw ? item.raw : item
-    })
-    if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
-      this.messageInstance = this.$message.warning(this.$t('filesSizeError'))
-      this.fileSizeError = true
-    } else {
-      this.fileSizeError = false
-    }
-    if (!(file.name.toLowerCase().indexOf('.txt') !== -1 || file.name.toLowerCase().indexOf('.sql') !== -1)) {
-      this.$message.error(this.$t('fileTypeError'))
-    }
+    this.wrongFormatFile = []
+    this.checkUploadFiles(fileList)
+    this.flagFiles()
   }
   handleRemove (file, fileList) {
     this.messageInstance && this.messageInstance.close()
     this.uploadItems = fileList
-    let totalSize = 0
-    this.uploadItems.forEach((item) => {
-      totalSize = totalSize + item.size
-    })
-    if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
-      this.messageInstance = this.$message.warning(this.$t('filesSizeError'))
-      this.fileSizeError = true
-    } else {
-      this.fileSizeError = false
+    // let totalSize = 0
+    // this.uploadItems.forEach((item) => {
+    //   totalSize = totalSize + item.size
+    // })
+    // if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
+    //   this.messageInstance = this.$message.warning(this.$t('filesSizeError'))
+    // }
+    for (let item in this.uploadRules) {
+      this.uploadRules[item].status = 'default'
+    }
+    this.wrongFormatFile = []
+    if (fileList.length) {
+      this.checkUploadFiles(fileList)
+      this.flagFiles()
     }
   }
   selectable (row) {
@@ -882,18 +901,42 @@ export default class UploadSqlModel extends Vue {
       })
     })
   }
+  checkUploadFiles (fileList) {
+    let totalSize = 0
+    this.uploadItems = fileList.map((item) => {
+      totalSize += item.size
+      item.raw && (item.raw.status = item.status)
+      return item.raw ? item.raw : item
+    })
+    const fileNames = fileList.map(it => it.name)
+    if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
+      this.uploadRules.totalSize.status = 'error'
+    } else {
+      this.uploadRules.totalSize.status = 'success'
+    }
+    if (fileNames.filter(name => name.toLowerCase().indexOf('.txt') === -1 && name.toLowerCase().indexOf('.sql') === -1).length > 0) {
+      this.uploadRules.fileFormat.status = 'error'
+    } else {
+      this.uploadRules.fileFormat.status = 'success'
+    }
+  }
   submitFiles () {
     const formData = new FormData()   // 利用H5 FORMDATA 同时传输多文件和数据
-    this.uploadItems.forEach(file => {
+    this.uploadItems.filter((item) => {
+      return item.name.toLowerCase().indexOf('.txt') !== -1 || item.name.toLowerCase().indexOf('.sql') !== -1
+    }).forEach(file => {
       formData.append('files', file)
     })
     this.importLoading = true
     this.importSqlFiles({project: this.currentSelectedProject, formData: formData}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
+        this.checkUploadFiles(this.uploadItems)
+        this.showUploadRules = true
         this.importLoading = false
-        if (data.size > 200) {
-          this.$message.error(this.$t('sqlOverSizeTip'))
-        } else {
+        this.uploadRules.sqlSizes.status = data.size > this.favoriteImportSqlMaxSize ? 'error' : 'success'
+        this.uploadRules.unValidSqls.status = data.wrong_format_file && data.wrong_format_file.length ? 'error' : 'success'
+        this.wrongFormatFile = data.wrong_format_file || []
+        if (Object.keys(this.uploadRules).filter(item => this.uploadRules[item].status === 'success').length === Object.keys(this.uploadRules).length) {
           this.uploadFlag = 'step2'
           this.whiteSqlData = data
           this.selectAll()
@@ -902,10 +945,31 @@ export default class UploadSqlModel extends Vue {
             this.$message.warning(msg)
           }
         }
+        this.flagFiles()
       })
     }, (res) => {
       handleError(res)
       this.importLoading = false
+    })
+  }
+  // 标记有问题的文件
+  flagFiles () {
+    this.$nextTick(() => {
+      const doms = this.$refs.sqlUpload ? this.$refs.sqlUpload.$el.querySelectorAll('.el-upload-list__item') : []
+      const indexs = []
+      for (let i in this.uploadItems) {
+        const target = this.uploadItems[i]
+        if (target.name.toLowerCase().indexOf('.txt') === -1 && target.name.toLowerCase().indexOf('.sql') === -1) {
+          indexs.push(+i)
+        }
+        if (this.wrongFormatFile.includes(target.name)) {
+          indexs.push(+i)
+        }
+      }
+      doms.forEach((item, index) => {
+        indexs.includes(index) && (doms[index].style.cssText = 'border: 1px solid #E73371;')
+        !indexs.includes(index) && (doms[index].style.cssText = '')
+      })
     })
   }
   mounted () {
@@ -1083,6 +1147,32 @@ export default class UploadSqlModel extends Vue {
             &:hover {
               background-color: inherit;
             }
+          }
+        }
+        .upload-rules {
+          text-align: left;
+          max-width: 300px;
+          margin: auto;
+          background-color: #FAFAFA;
+          font-size: 12px;
+          margin-top: 10px;
+          padding: 5px 20px;
+          color: #5c5c5c;
+          line-height: 20px;
+          &.check-rules {
+            background-color: transparent;
+          }
+          .rule-item {
+            &.is-success {
+              color: #4CB050;
+            }
+            &.is-error {
+              color: #E73371;
+            }
+          }
+          .rule-info {
+            margin-top: 10px;
+            margin-left: -7px;
           }
         }
       }

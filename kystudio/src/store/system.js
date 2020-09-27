@@ -50,7 +50,8 @@ export default {
     isEditForm: false,
     recommendationPageSize: 0,
     isShowGlobalAlter: false,
-    dimMeasNameMaxLength: 300
+    dimMeasNameMaxLength: 300,
+    favoriteImportSqlMaxSize: 1000
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -158,6 +159,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.metadata.random-admin-password.enabled', key: 'showRevertPasswordDialog', defaultValue: 'true'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.recommendation-page-size', key: 'recommendationPageSize'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.model.dimension-measure-name.max-length', key: 'dimMeasNameMaxLength', defaultValue: 300})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.favorite.import-sql-max-size', key: 'favoriteImportSqlMaxSize'})
           resolve(response)
         }, () => {
           reject()
