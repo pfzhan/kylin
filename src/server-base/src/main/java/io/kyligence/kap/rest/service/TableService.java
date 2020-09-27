@@ -278,6 +278,7 @@ public class TableService extends BasicService {
                     nTableExtDesc.setUuid(origExt.getUuid());
                     nTableExtDesc.setLastModified(origExt.getLastModified());
                     nTableExtDesc.setMvcc(origExt.getMvcc());
+                    nTableExtDesc.setOriginalSize(origExt.getOriginalSize());
                 }
                 val colNameMap = Stream.of(nTableDesc.getColumns())
                         .collect(Collectors.toMap(ColumnDesc::getName, col -> {
