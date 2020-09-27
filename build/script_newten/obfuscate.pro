@@ -5,6 +5,7 @@
 -dontusemixedcaseclassnames
 -ignorewarnings
 
+-keep class io.kyligence.kap.common.obf.IKeep
 -keep @org.aspectj.lang.annotation.Aspect public class * {*;}
 -keep class * implements io.kyligence.kap.common.obf.IKeep {*;}
 -keepclassmembers class * implements io.kyligence.kap.common.obf.IKeepClassMembers {*;}
