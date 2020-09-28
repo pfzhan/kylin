@@ -39,6 +39,7 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,8 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         long startOfDay = TimeUtil.getDayStart(buildEndTime);
         // update
+        NExecutableManager executableManager = NExecutableManager.getInstance(kylinConfig, project);
+        executableManager.updateJobOutput(buildTask.getParentId(), null, null, null, null, byteSize);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig,
                 buildTask.getProject());
         jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize);
@@ -114,7 +117,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
     }
 
     private void collectNeedUpdateSnapshotTable(NDataSegment segment, Map.Entry<String, String> snapshot,
-             Map<Path, SnapshotChecker> snapshotCheckerMap, List<TableDesc> needUpdateTableDescs) {
+            Map<Path, SnapshotChecker> snapshotCheckerMap, List<TableDesc> needUpdateTableDescs) {
         NTableMetadataManager manager = NTableMetadataManager.getInstance(getConfig(), segment.getProject());
         KylinConfig segmentConf = segment.getConfig();
         val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
@@ -141,18 +144,19 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         if (segmentFile != null && lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
             log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentModificationTime,
                     lastFile.getModificationTime());
-            log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentPath,
-                    segmentFile.getPath());
+            log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentPath, segmentFile.getPath());
             copyDesc.setLastSnapshotPath(snapshot.getValue());
             needUpdateTableDescs.add(copyDesc);
             snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
                     survivalTimeThreshold, segmentFile.getModificationTime()));
-        } else if (copyDesc.getLastSnapshotPath() == null && System.currentTimeMillis() - segment.getLastBuildTime() < survivalTimeThreshold) {
+        } else if (copyDesc.getLastSnapshotPath() == null
+                && System.currentTimeMillis() - segment.getLastBuildTime() < survivalTimeThreshold) {
             /**
              * when tableDesc's lastSnapshot is null and snapshot within survival time, force update snapshot table.
              * see https://olapio.atlassian.net/browse/KE-17343
              */
-            log.info("update snapshot table {} when tableDesc's lastSnapshot is null and snapshot within survival time", snapshot.getKey());
+            log.info("update snapshot table {} when tableDesc's lastSnapshot is null and snapshot within survival time",
+                    snapshot.getKey());
             copyDesc.setLastSnapshotPath(snapshot.getValue());
             needUpdateTableDescs.add(copyDesc);
         } else {

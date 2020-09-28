@@ -92,6 +92,9 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("is_resumable")
     private boolean resumable = false;
 
+    @JsonProperty("byte_size")
+    private long byteSize;
+
     public void addStartTime(long time) {
         if (startTime == 0) {
             startTime = time;

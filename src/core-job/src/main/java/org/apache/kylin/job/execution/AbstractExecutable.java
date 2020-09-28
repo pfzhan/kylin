@@ -457,6 +457,14 @@ public abstract class AbstractExecutable implements Executable {
         return output.getLastModified();
     }
 
+    public final long getByteSize() {
+        return getByteSize(getOutput());
+    }
+
+    public static long getByteSize(Output output) {
+        return output.getByteSize();
+    }
+
     public void notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
         boolean hasEmptyLayout = false;
         for (NDataLayout dataCuboid : addOrUpdateCuboids) {

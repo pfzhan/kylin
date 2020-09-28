@@ -27,7 +27,6 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -47,6 +46,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -189,7 +189,6 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         long endTime = job.getEndTime();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         long startOfDay = TimeUtil.getDayStart(endTime);
-
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, getProject());
         jobStatisticsManager.updateStatistics(startOfDay, duration, 0);
     }

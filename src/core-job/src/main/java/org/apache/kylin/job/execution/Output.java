@@ -64,4 +64,6 @@ public interface Output {
     ExecutableState getState();
 
     long getLastModified();
+
+    long getByteSize();
 }

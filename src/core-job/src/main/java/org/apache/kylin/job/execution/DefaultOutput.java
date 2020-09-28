@@ -64,5 +64,6 @@ public class DefaultOutput implements Output {
     private long endTime;
     private long waitTime;
     private long createTime;
+    private long byteSize;
 
 }
