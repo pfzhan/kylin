@@ -826,6 +826,9 @@ export default class UploadSqlModel extends Vue {
   }
   fileItemChange (file, fileList) {
     this.wrongFormatFile = []
+    for (let item in this.uploadRules) {
+      this.uploadRules[item].status = 'default'
+    }
     this.checkUploadFiles(fileList)
     this.flagFiles()
   }
