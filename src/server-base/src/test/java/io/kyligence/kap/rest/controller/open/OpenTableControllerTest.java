@@ -25,8 +25,10 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -58,6 +60,8 @@ import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
+
+import java.util.List;
 
 public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
@@ -200,6 +204,54 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).preReloadTable(project, tableName);
+    }
+
+    @Test
+    public void testReloadTable() throws Exception {
+        String project = "default";
+        String tableName = "TEST_KYLIN_FACT";
+
+        OpenReloadTableRequest request = new OpenReloadTableRequest();
+        request.setProject(project);
+        request.setTable(tableName);
+        request.setNeedSampling(false);
+
+        Mockito.doReturn(new Pair<String, List<String>>()).when(tableService)
+                .reloadTable(request.getProject(), request.getTable(), request.getNeedSampling(), 0, false);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).reloadTable(request);
+
+        // test request without need_sampling
+        OpenReloadTableRequest request2 = new OpenReloadTableRequest();
+        request2.setProject(project);
+        request2.setTable(tableName);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request2)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(openTableController).reloadTable(request2);
+    }
+
+    @Test
+    public void testGetPartitioinColumnFormat() throws Exception {
+        String project = "default";
+        String tableName = "TEST_KYLIN_FACT";
+        String columnName = "PART_DT";
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/column_format") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", project)
+                .param("table", tableName)
+                .param("column_name", columnName)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).getPartitioinColumnFormat(project, tableName, columnName);
     }
 
 }

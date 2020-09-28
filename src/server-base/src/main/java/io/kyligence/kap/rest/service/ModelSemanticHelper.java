@@ -787,8 +787,8 @@ public class ModelSemanticHelper extends BasicService {
 
         // new cuboid
         if (difference.size() > 0 || forceFireEvent) {
-            jobManager.addFullIndexJob(new JobParam(model, getUsername()));
-            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
+            String jobId = jobManager.addFullIndexJob(new JobParam(model, getUsername()));
+            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
         }
 
         return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);

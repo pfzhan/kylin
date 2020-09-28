@@ -26,17 +26,19 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
 
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.response.DataResult;
@@ -57,15 +59,21 @@ import com.google.common.annotations.VisibleForTesting;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.OpenPartitionColumnFormatResponse;
+import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
+import io.kyligence.kap.rest.response.OpenReloadTableResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenTableController extends NBasicController {
+
+    private static final String TABLE = "table";
 
     @Autowired
     private NTableController tableController;
@@ -179,5 +187,49 @@ public class OpenTableController extends NBasicController {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
+    }
+
+    @PostMapping(value = "/reload")
+    @ResponseBody
+    public EnvelopeResponse<OpenReloadTableResponse> reloadTable(@RequestBody OpenReloadTableRequest request) throws KylinException {
+        try {
+            checkProjectName(request.getProject());
+            checkRequiredArg("need_sampling", request.getNeedSampling());
+            if (StringUtils.isEmpty(request.getTable())) {
+                throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+            }
+            if (request.getNeedSampling() && (request.getSamplingRows() < MIN_SAMPLING_ROWS || request.getSamplingRows() > MAX_SAMPLING_ROWS)) {
+                throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
+            }
+
+            Pair<String, List<String>> pair =  tableService.reloadTable(request.getProject(), request.getTable(), request.getNeedSampling(),
+                    request.getSamplingRows(), request.getNeedBuilding());
+
+            OpenReloadTableResponse response = new OpenReloadTableResponse();
+            response.setSamplingId(pair.getFirst());
+            response.setJobIds(pair.getSecond());
+
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        } catch (Exception e) {
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
+        }
+    }
+
+    @GetMapping(value = "/column_format")
+    @ResponseBody
+    public EnvelopeResponse<OpenPartitionColumnFormatResponse> getPartitioinColumnFormat(@RequestParam(value = "project") String project,
+                                                                                         @RequestParam(value = "table") String table,
+                                                                                         @RequestParam(value = "column_name") String columnName) throws Exception {
+        checkProjectName(project);
+        checkRequiredArg(TABLE, table);
+        checkRequiredArg("column_name", columnName);
+
+        String columnFormat = tableService.getPartitionColumnFormat(project, table, columnName);
+        OpenPartitionColumnFormatResponse columnFormatResponse = new OpenPartitionColumnFormatResponse();
+        columnFormatResponse.setColumnName(columnName);
+        columnFormatResponse.setColumnFormat(columnFormat);
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, columnFormatResponse, "");
     }
 }

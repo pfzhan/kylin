@@ -667,7 +667,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setRows(20000);
         request.setQualifiedTableName("default.test_kylin_fact");
-        Mockito.doNothing().when(tableSamplingService) //
+        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -746,7 +746,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setRows(20000);
 
         String errorMsg = "Please input at least one table(database.table) for sampling!";
-        Mockito.doNothing().when(tableSamplingService) //
+        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -766,7 +766,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setQualifiedTableName("test_kylin_fact");
 
         String errorMsg = "Illegal table name 'test_kylin_fact', please input a qualified table name as database.table!";
-        Mockito.doNothing().when(tableSamplingService) //
+        Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows());
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //

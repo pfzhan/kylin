@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
@@ -37,7 +38,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -57,7 +57,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -84,6 +83,7 @@ import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
+import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -228,19 +228,31 @@ public class OpenModelController extends NBasicController {
     }
 
     @VisibleForTesting
-    public Pair<Set<String>, Set<String>> batchSqlValidate(String project, List<String> sqls) {
+    public OpenModelValidationResponse batchSqlValidate(String project, List<String> sqls) {
         Set<String> normalSqls = Sets.newHashSet();
         Set<String> errorSqls = Sets.newHashSet();
+        Set<OpenModelValidationResponse.ErrorSqlDetail> errorSqlDetailSet = Sets.newHashSet();
 
         val validatedSqls = favoriteRuleService.batchSqlValidate(sqls, project);
         for (val entry : validatedSqls.entrySet()) {
+            String sql = entry.getKey();
             if (entry.getValue().isCapable()) {
-                normalSqls.add(entry.getKey());
+                normalSqls.add(sql);
             } else {
-                errorSqls.add(entry.getKey());
+                SQLValidateResult validateResult = entry.getValue();
+                errorSqls.add(sql);
+                errorSqlDetailSet.add(new OpenModelValidationResponse.ErrorSqlDetail(sql, validateResult.getSqlAdvices()));
             }
         }
-        return new Pair<>(normalSqls, errorSqls);
+
+        Map<String, List<NDataModel>> answeredModels = modelService.answeredByExistedModels(project, normalSqls);
+        Map<String, List<String>> validSqls = answeredModels.keySet().stream().collect(Collectors.toMap(sql -> sql,
+                sql -> answeredModels.get(sql).stream()
+                        .map(NDataModel::getAlias)
+                        .collect(Collectors.toList()),
+                (a, b) -> b));
+
+        return new OpenModelValidationResponse(validSqls, Lists.newArrayList(errorSqls), Lists.newArrayList(errorSqlDetailSet));
     }
 
     @PostMapping(value = "/model_validation")
@@ -248,24 +260,11 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<OpenModelValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
         aclEvaluate.checkProjectWritePermission(request.getProject());
-
-        Map<String, List<String>> validSqls = Maps.newHashMap();
-        List<String> errorSqls = Lists.newArrayList();
-        if (CollectionUtils.isNotEmpty(request.getSqls())) {
-            Pair<Set<String>, Set<String>> validatedSqls = batchSqlValidate(request.getProject(), request.getSqls());
-            errorSqls.addAll(validatedSqls.getSecond());
-
-            Map<String, List<NDataModel>> answeredModels = modelService.answeredByExistedModels(request.getProject(),
-                    validatedSqls.getFirst());
-
-            for (String sql : answeredModels.keySet()) {
-                validSqls.put(sql,
-                        answeredModels.get(sql).stream().map(NDataModel::getAlias).collect(Collectors.toList()));
-            }
+        if (CollectionUtils.isEmpty(request.getSqls())) {
+            throw new KylinException(EMPTY_SQL_EXPRESSION, MsgPicker.getMsg().getNULL_EMPTY_SQL());
         }
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, new OpenModelValidationResponse(validSqls, errorSqls),
-                "");
+        OpenModelValidationResponse response = batchSqlValidate(request.getProject(), request.getSqls());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @PostMapping(value = "/{model_name:.+}/indexes")

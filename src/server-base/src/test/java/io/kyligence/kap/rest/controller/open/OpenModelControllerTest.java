@@ -33,7 +33,6 @@ import java.util.UUID;
 
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -60,7 +59,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -75,6 +73,7 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
@@ -314,7 +313,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
-        Mockito.doReturn(new Pair<>(Sets.newHashSet(sqls), Sets.newHashSet())).when(openModelController)
+        Mockito.doReturn(new OpenModelValidationResponse()).when(openModelController)
                 .batchSqlValidate("default", sqls);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_validation")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))

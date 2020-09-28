@@ -21,37 +21,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.response;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
-import lombok.AllArgsConstructor;
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class OpenModelValidationResponse implements Serializable {
-    @JsonProperty("valid_sqls")
-    private Map<String, List<String>> validSqls;
-    @JsonProperty("error_sqls")
-    private List<String> errorSqls;
-    @JsonProperty("error_sqls_detail")
-    private List<ErrorSqlDetail> errorSqlsDetail;
-
-    @Data
-    @AllArgsConstructor
-    public static class ErrorSqlDetail implements Serializable{
-        @JsonProperty("sql")
-        private String sql;
-        @JsonProperty("sql_advices")
-        private Set<SQLAdvice> sqlAdvices;
-    }
+public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
+    @JsonProperty("project")
+    private String project;
+    @JsonProperty("table")
+    private String table;
+    @JsonProperty("need_sampling")
+    private Boolean needSampling;
+    @JsonProperty("sampling_rows")
+    private int samplingRows;
+    @JsonProperty("need_building")
+    private Boolean needBuilding = false;
 }

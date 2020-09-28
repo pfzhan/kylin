@@ -21,37 +21,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.response;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class OpenModelValidationResponse implements Serializable {
-    @JsonProperty("valid_sqls")
-    private Map<String, List<String>> validSqls;
-    @JsonProperty("error_sqls")
-    private List<String> errorSqls;
-    @JsonProperty("error_sqls_detail")
-    private List<ErrorSqlDetail> errorSqlsDetail;
+public class OpenReloadTableResponse {
+    @JsonProperty("sampling_id")
+    private String samplingId;
 
-    @Data
-    @AllArgsConstructor
-    public static class ErrorSqlDetail implements Serializable{
-        @JsonProperty("sql")
-        private String sql;
-        @JsonProperty("sql_advices")
-        private Set<SQLAdvice> sqlAdvices;
-    }
+    @JsonProperty("job_ids")
+    private List<String> jobIds;
 }

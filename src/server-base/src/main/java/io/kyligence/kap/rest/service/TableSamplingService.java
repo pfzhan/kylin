@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
+import com.google.common.collect.Lists;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.service.BasicService;
@@ -53,13 +54,14 @@ public class TableSamplingService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     @Transaction(project = 1)
-    public void sampling(Set<String> tables, String project, int rows) {
+    public List<String> sampling(Set<String> tables, String project, int rows) {
         aclEvaluate.checkProjectWritePermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(getConfig(), project);
 
         val existingJobs = collectRunningSamplingJobs(tables, project);
+        List<String> jobIds = Lists.newArrayList();
         tables.forEach(table -> {
             // if existing a related job, discard it
             if (existingJobs.containsKey(table)) {
@@ -68,10 +70,12 @@ public class TableSamplingService extends BasicService {
 
             val tableDesc = tableMgr.getTableDesc(table);
             val samplingJob = NTableSamplingJob.create(tableDesc, project, getUsername(), rows);
+            jobIds.add(samplingJob.getId());
             execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
             jobStatisticsManager.updateStatistics(startOfDay, 0, 0);
         });
+        return jobIds;
     }
 
     public boolean hasSamplingJob(String project, String table) {
