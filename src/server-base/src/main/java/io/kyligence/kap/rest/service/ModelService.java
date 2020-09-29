@@ -584,8 +584,12 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                 nDataModelResponse.setInconsistentSegmentCount(inconsistentSegmentCount);
                 if (!modelDesc.isBroken()) {
-                    nDataModelResponse.setRecommendationsCount(!prj.isSemiAutoMode() ? 0
-                            : optRecService.getOptRecLayoutsResponse(projectName, modelDesc.getId()).getSize());
+                    int recCount = 0;
+                    if (prj.isSemiAutoMode()) {
+                        recCount = optRecService.getOptRecLayoutsResponse(projectName, modelDesc.getId(),
+                                OptRecService.RecActionType.ALL.name()).getSize();
+                    }
+                    nDataModelResponse.setRecommendationsCount(recCount);
                     nDataModelResponse
                             .setAvailableIndexesCount(getAvailableIndexesCount(projectName, modelDesc.getId()));
                     nDataModelResponse.setTotalIndexes(
@@ -1147,14 +1151,13 @@ public class ModelService extends BasicService {
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
                 nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
-                if (SCD2CondChecker.INSTANCE.isScd2Model(dataflow.getModel()) &&
-                        !projectService.getProjectConfig(project).isScd2Enabled()) {
+                if (SCD2CondChecker.INSTANCE.isScd2Model(dataflow.getModel())
+                        && !projectService.getProjectConfig(project).isScd2Enabled()) {
                     throw new KylinException(MODEL_ONLINE_ABANDON,
                             MsgPicker.getMsg().getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF());
                 }
                 if (dataflow.getSegments().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    throw new KylinException(MODEL_ONLINE_ABANDON,
-                            MsgPicker.getMsg().getMODEL_ONLINE_WITH_EMPTY_SEG());
+                    throw new KylinException(MODEL_ONLINE_ABANDON, MsgPicker.getMsg().getMODEL_ONLINE_WITH_EMPTY_SEG());
                 }
                 nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             }

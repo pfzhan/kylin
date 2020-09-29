@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -42,6 +43,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -618,8 +620,34 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         return layoutRef;
     }
 
-    public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId) {
-        return getOptRecLayoutsResponse(project, modelId, RecActionType.ALL.name());
+    public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId, List<String> recTypeList,
+            String key, boolean desc, String orderBy, int offset, int limit) {
+        Set<RawRecItem.IndexRecType> userDefinedTypes = Sets.newHashSet();
+        recTypeList.forEach(type -> {
+            if (RawRecItem.IndexRecType.ADD_TABLE_INDEX.name().equalsIgnoreCase(type)) {
+                userDefinedTypes.add(RawRecItem.IndexRecType.ADD_TABLE_INDEX);
+            } else if (RawRecItem.IndexRecType.ADD_AGG_INDEX.name().equalsIgnoreCase(type)) {
+                userDefinedTypes.add(RawRecItem.IndexRecType.ADD_AGG_INDEX);
+            } else if (RawRecItem.IndexRecType.REMOVE_AGG_INDEX.name().equalsIgnoreCase(type)) {
+                userDefinedTypes.add(RawRecItem.IndexRecType.REMOVE_AGG_INDEX);
+            } else {
+                userDefinedTypes.add(RawRecItem.IndexRecType.REMOVE_TABLE_INDEX);
+            }
+        });
+
+        List<OptRecLayoutResponse> allRecRespList = getRecLayoutResponses(project, modelId, RecActionType.ALL.name());
+        List<OptRecLayoutResponse> filterOutRecList = recTypeList.isEmpty()
+                || userDefinedTypes.size() == RawRecItem.IndexRecType.values().length //
+                        ? allRecRespList
+                        : allRecRespList.stream().filter(resp -> userDefinedTypes.contains(resp.getType()))
+                                .collect(Collectors.toList());
+        if (StringUtils.isNotEmpty(orderBy)) {
+            filterOutRecList.sort(propertyComparator(orderBy, !desc));
+        }
+        OptRecLayoutsResponse response = new OptRecLayoutsResponse();
+        response.setLayouts(PagingUtil.cutPage(filterOutRecList, offset, limit));
+        response.setSize(filterOutRecList.size());
+        return response;
     }
 
     /**
@@ -630,20 +658,27 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      */
     public OptRecLayoutsResponse getOptRecLayoutsResponse(String project, String modelId, String recActionType) {
         aclEvaluate.checkProjectReadPermission(project);
-        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
         OptRecLayoutsResponse layoutsResponse = new OptRecLayoutsResponse();
+        layoutsResponse.getLayouts().addAll(getRecLayoutResponses(project, modelId, recActionType));
+        layoutsResponse.setSize(layoutsResponse.getLayouts().size());
+        return layoutsResponse;
+    }
+
+    private List<OptRecLayoutResponse> getRecLayoutResponses(String project, String modelId, String recActionType) {
+        aclEvaluate.checkProjectReadPermission(project);
+        List<OptRecLayoutResponse> recLayoutResponses = Lists.newArrayList();
+        OptRecV2 optRecV2 = OptRecManagerV2.getInstance(project).loadOptRecV2(modelId);
         if (recActionType.equalsIgnoreCase(RecActionType.ALL.name())) {
-            layoutsResponse.getLayouts().addAll(convertToV2RecResponse(optRecV2, true));
-            layoutsResponse.getLayouts().addAll(convertToV2RecResponse(optRecV2, false));
+            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, true));
+            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, false));
         } else if (recActionType.equalsIgnoreCase(RecActionType.ADD_INDEX.name())) {
-            layoutsResponse.getLayouts().addAll(convertToV2RecResponse(optRecV2, true));
+            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, true));
         } else if (recActionType.equalsIgnoreCase(RecActionType.REMOVE_INDEX.name())) {
-            layoutsResponse.getLayouts().addAll(convertToV2RecResponse(optRecV2, false));
+            recLayoutResponses.addAll(convertToV2RecResponse(optRecV2, false));
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
-        layoutsResponse.setSize(layoutsResponse.getLayouts().size());
-        return layoutsResponse;
+        return recLayoutResponses;
     }
 
     /**
@@ -696,7 +731,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         }
     }
 
-    private enum RecActionType {
+    public enum RecActionType {
         ALL, ADD_INDEX, REMOVE_INDEX
     }
 }

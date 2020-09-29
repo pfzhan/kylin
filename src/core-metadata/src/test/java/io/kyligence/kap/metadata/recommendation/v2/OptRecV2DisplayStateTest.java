@@ -23,16 +23,19 @@
  */
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
-import org.junit.Assert;
-import org.junit.Test;
+import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecState.INITIAL;
+import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecState.RECOMMENDED;
 
 import java.util.Map;
 
-import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecState.INITIAL;
-import static io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecState.RECOMMENDED;
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.ref.LayoutRef;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
 
 public class OptRecV2DisplayStateTest extends OptRecV2TestBase {
 
@@ -43,25 +46,27 @@ public class OptRecV2DisplayStateTest extends OptRecV2TestBase {
 
     @Test
     public void testAddLayoutDisplay() throws Exception {
-        recommendItem(Lists.newArrayList(3, 14));
+        prepareEnv(Lists.newArrayList(3, 14));
         OptRecV2 recommendation = new OptRecV2(getProject(), getDefaultUUID());
         Map<Integer, LayoutRef> addRef = recommendation.getAdditionalLayoutRefs();
         Assert.assertEquals(2, addRef.size());
-        addRef.values().forEach(ref -> {
-            Assert.assertEquals(RECOMMENDED, recommendation.getRawRecItemMap().get(-ref.getId()).getState());
+        addRef.forEach((k, ref) -> {
+            RawRecItem recItem = recommendation.getRawRecItemMap().get(-ref.getId());
+            Assert.assertEquals(RECOMMENDED, recItem.getState());
         });
     }
 
     @Test
     public void testRemLayoutDisplay() throws Exception {
-        recommendItem(Lists.newArrayList(15, 16));
+        // at present, all removal layout recommendation will display
+        prepareEnv(Lists.newArrayList(15, 16));
         OptRecV2 recommendation = new OptRecV2(getProject(), getDefaultUUID());
 
         Map<Integer, LayoutRef> removeRef = recommendation.getRemovalLayoutRefs();
-        Assert.assertEquals(2, removeRef.size());
-        removeRef.values().forEach(ref -> {
-            Assert.assertEquals(INITIAL, recommendation.getRawRecItemMap().get(-ref.getId()).getState());
+        Assert.assertEquals(4, removeRef.size());
+        removeRef.forEach((k, ref) -> {
+            RawRecItem recItem = recommendation.getRawRecItemMap().get(-ref.getId());
+            Assert.assertEquals(INITIAL, recItem.getState());
         });
     }
-
 }

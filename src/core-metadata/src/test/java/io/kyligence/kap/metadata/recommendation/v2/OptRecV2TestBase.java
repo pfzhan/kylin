@@ -30,9 +30,11 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -48,6 +50,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
@@ -61,10 +65,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
 
-    private String modelPathPattern;
-    private String indexPathPattern;
-    private String recDirectory;
-    private String recPathPattern;
+    private final String modelPathPattern;
+    private final String indexPathPattern;
+    private final String recDirectory;
+    private final String recPathPattern;
 
     protected NDataModelManager modelManager;
     protected NIndexPlanManager indexPlanManager;
@@ -73,7 +77,7 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
     protected NDataModel ndataModel;
     NDataflowManager dataflowManager;
 
-    private String[] modelUUIDs;
+    private final String[] modelUUIDs;
 
     public OptRecV2TestBase(String basePath, String[] modelUUIDs) {
 
@@ -117,14 +121,24 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    protected void recommendItem(List<Integer> recommendItemIds) throws IOException {
+    protected void prepareEnv(List<Integer> recommendItemIds) throws IOException {
+        recommendRecItems(recommendItemIds);
+        prepareModelAndIndex();
+    }
 
+    private void recommendRecItems(List<Integer> recommendItemIds) {
+        List<RawRecItem> recommendedLayoutItems = Lists.newArrayList();
         for (int id : recommendItemIds) {
-            RawRecItem item = jdbcRawRecStore.queryById(id);
-            List<RawRecItem> recommendedLayoutItems = Lists.newArrayList(item);
-            changeLayoutRecItemState(recommendedLayoutItems, RawRecItem.RawRecState.RECOMMENDED);
-            jdbcRawRecStore.update(recommendedLayoutItems);
+            recommendedLayoutItems.add(jdbcRawRecStore.queryById(id));
         }
+        List<RawRecItem> addLayoutRecs = recommendedLayoutItems.stream()
+                .filter(item -> item.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT).collect(Collectors.toList());
+        List<RawRecItem> removeLayoutRecs = recommendedLayoutItems.stream()
+                .filter(item -> item.getType() == RawRecItem.RawRecType.REMOVAL_LAYOUT).collect(Collectors.toList());
+
+        changeLayoutRecItemState(addLayoutRecs, RawRecItem.RawRecState.RECOMMENDED);
+        changeLayoutRecItemState(removeLayoutRecs, RawRecItem.RawRecState.INITIAL);
+        jdbcRawRecStore.update(recommendedLayoutItems);
 
         Map<Integer, RawRecItem> map = Maps.newHashMap();
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
@@ -132,10 +146,21 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         for (Integer id : recommendItemIds) {
             log.debug("set RawRecItem({}) to recommended", id);
             Assert.assertTrue(map.containsKey(id));
-            Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, map.get(id).getState());
+            RawRecItem recItem = map.get(id);
+            if (recItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT) {
+                Assert.assertEquals(RawRecItem.RawRecState.RECOMMENDED, recItem.getState());
+            } else {
+                Assert.assertEquals(RawRecItem.RawRecState.INITIAL, recItem.getState());
+            }
         }
+    }
 
-        prepareModelAndIndex();
+    protected void changeRecTopN(int topN) {
+        FavoriteRule recRule = FavoriteRule.getDefaultRule(null, FavoriteRule.REC_SELECT_RULE_NAME);
+        FavoriteRule.Condition abstractCondition = (FavoriteRule.Condition) recRule.getConds().get(0);
+        abstractCondition.setRightThreshold(String.valueOf(topN));
+        FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());
+        favoriteRuleManager.createRule(recRule);
     }
 
     protected void prepareModelAndIndex() throws IOException {
@@ -145,8 +170,17 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
             modelManager.createDataModelDesc(dataModel, dataModel.getOwner());
             indexPlanManager.createIndexPlan(indexPlan);
             dataflowManager.createDataflow(indexPlan, dataModel.getOwner());
+            dataflowManager.updateDataflow(id, copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
         }
         ndataModel = modelManager.getDataModelDesc(getDefaultUUID());
+    }
+
+    protected NDataModel getModel() {
+        return modelManager.getDataModelDesc(getDefaultUUID());
+    }
+
+    protected IndexPlan getIndexPlan() {
+        return indexPlanManager.getIndexPlan(getDefaultUUID());
     }
 
     private void changeLayoutRecItemState(List<RawRecItem> allRecItems, RawRecItem.RawRecState state) {
@@ -249,7 +283,6 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
 
             Assert.assertTrue(expectedLayoutDep.containsKey(ref.getId()));
             List<Integer> execptedDependencies = expectedLayoutDep.get(ref.getId());
-            //            Assert.assertTrue(ref.isAgg());
             Assert.assertFalse(ref.isExisted());
             Assert.assertFalse(ref.isBroken());
             List<RecommendationRef> dependencies = ref.getDependencies();

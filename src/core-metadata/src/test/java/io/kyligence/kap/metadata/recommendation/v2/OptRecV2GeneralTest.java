@@ -24,15 +24,17 @@
 
 package io.kyligence.kap.metadata.recommendation.v2;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class OptRecV2GeneralTest extends OptRecV2TestBase {
@@ -47,7 +49,7 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
      */
     @Test
     public void testInitRecommendationOfAggIndex() throws Exception {
-        recommendItem(Lists.newArrayList(3));
+        prepareEnv(Lists.newArrayList(3));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(27).addDimDep(ImmutableMap.of(-1, 8))
                 .addMeasureDep(ImmutableMap.of(-2, Lists.newArrayList(3), 100000, Lists.newArrayList(100000)))
@@ -61,7 +63,7 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
      */
     @Test
     public void testInitRecommendationOfDimIndexWithCCOnModel() throws IOException {
-        recommendItem(Lists.newArrayList(6));
+        prepareEnv(Lists.newArrayList(6));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(27).addDimDep(ImmutableMap.of(-4, 26))
                 .addMeasureDep(ImmutableMap.of(-5, Lists.newArrayList(5), 100000, Lists.newArrayList(100000)))
@@ -72,7 +74,7 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationOfAggIndexWithModelCC() throws IOException {
-        recommendItem(Lists.newArrayList(9));
+        prepareEnv(Lists.newArrayList(9));
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(27).addDimDep(ImmutableMap.of(-7, 12))
                 .addMeasureDep(ImmutableMap.of(-8, Lists.newArrayList(26), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-9, Lists.newArrayList(-7, 100000, -8))).addCCDep(ImmutableMap.of());
@@ -82,7 +84,7 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationOfAggIndexWithProposedCC() throws IOException {
-        recommendItem(Lists.newArrayList(13));
+        prepareEnv(Lists.newArrayList(13));
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(27).addDimDep(ImmutableMap.of(-11, 15))
                 .addMeasureDep(ImmutableMap.of(-12, Lists.newArrayList(-10), 100000, Lists.newArrayList(100000)))
                 .addLayDep(ImmutableMap.of(-13, Lists.newArrayList(-11, 100000, -12)))
@@ -93,7 +95,7 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationOfTableIndex() throws IOException {
-        recommendItem(Lists.newArrayList(18));
+        prepareEnv(Lists.newArrayList(18));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(27)
                 .addDimDep(ImmutableMap.of(-16, 1, -15, 17, -17, 13))
@@ -105,7 +107,7 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationOfReuseDimAndMeasure() throws IOException {
-        recommendItem(Lists.newArrayList(3, 28));
+        prepareEnv(Lists.newArrayList(3, 28));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(27)
                 .addDimDep(ImmutableMap.of(-1, 8, -27, 23))
@@ -119,14 +121,14 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
 
     @Test
     public void testInitErrorForColumnOnModelMissing() throws IOException {
-        recommendItem(Lists.newArrayList(29));
+        prepareEnv(Lists.newArrayList(29));
         OptRecV2 optRecV2 = new OptRecV2(getProject(), getDefaultUUID());
         Assert.assertTrue(optRecV2.getBrokenLayoutRefIds().contains(29));
     }
 
     @Test
     public void testInitErrorForMeasureOnModelMissing() throws IOException {
-        recommendItem(Lists.newArrayList(31));
+        prepareEnv(Lists.newArrayList(31));
         OptRecV2 optRecV2 = new OptRecV2(getProject(), getDefaultUUID());
         Assert.assertTrue(optRecV2.getBrokenLayoutRefIds().contains(31));
     }

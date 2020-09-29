@@ -80,7 +80,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -186,6 +185,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -204,7 +204,6 @@ import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -278,8 +277,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
-        Mockito.doReturn(new OptRecLayoutsResponse()).when(optRecService).getOptRecLayoutsResponse(Mockito.anyString(),
-                Mockito.anyString());
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
         modelService.setIndexPlanService(indexPlanService);
@@ -954,7 +951,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("This model can’t go online as it includes non-equal join conditions");
         modelService.updateDataModelStatus(scd2Model.getId(), "default", "ONLINE");
     }
-
 
     @Test
     public void testGetSegmentRangeByModel() {

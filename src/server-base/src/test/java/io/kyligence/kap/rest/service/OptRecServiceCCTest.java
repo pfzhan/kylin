@@ -44,6 +44,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
@@ -53,7 +54,7 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
 
     OptRecService optRecService = Mockito.spy(new OptRecService());
     @Mock
-    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     public OptRecServiceCCTest() {
         super("../server-base/src/test/resources/ut_rec_v2/CC",
@@ -291,20 +292,16 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
                 .collect(Collectors.toMap(ComputedColumnDesc::getColumnName, ComputedColumnDesc::getInnerExpression));
     }
 
-    private NDataModel getModel() {
-        return modelManager.getDataModelDesc(getDefaultUUID());
-    }
-
     private void prepare(List<Integer> addLayoutId) throws IOException {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(optRecService, "aclEvaluate", aclEvaluate);
-        recommendItem(addLayoutId);
+        prepareEnv(addLayoutId);
     }
 
     private void checkIndexPlan(List<List<Integer>> layoutColOrder, IndexPlan actualPlan) {
         Assert.assertEquals(layoutColOrder.size(), actualPlan.getAllLayouts().size());
         Assert.assertEquals(layoutColOrder,
-                actualPlan.getAllLayouts().stream().map(lay -> lay.getColOrder()).collect(Collectors.toList()));
+                actualPlan.getAllLayouts().stream().map(LayoutEntity::getColOrder).collect(Collectors.toList()));
     }
 
     private OptRecRequest buildOptRecRequest(List<Integer> addLayoutId) {
@@ -313,10 +310,6 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
 
     private OptRecRequest buildOptRecRequest(List<Integer> addLayoutId, Map<Integer, String> nameMap) {
         return buildOptRecRequest(addLayoutId, ImmutableList.of(), nameMap);
-    }
-
-    private OptRecRequest buildOptRecRequest(List<Integer> addLayoutId, List<Integer> removeLayoutId) {
-        return buildOptRecRequest(addLayoutId, removeLayoutId, ImmutableMap.of());
     }
 
     private OptRecRequest buildOptRecRequest(List<Integer> addLayoutId, List<Integer> removeLayoutId,
@@ -329,9 +322,4 @@ public class OptRecServiceCCTest extends OptRecV2TestBase {
         recRequest.setNames(nameMap);
         return recRequest;
     }
-
-    private IndexPlan getIndexPlan() {
-        return indexPlanManager.getIndexPlan(getDefaultUUID());
-    }
-
 }

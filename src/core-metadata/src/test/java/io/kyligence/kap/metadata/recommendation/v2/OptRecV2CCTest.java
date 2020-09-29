@@ -40,7 +40,7 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationUseCC() throws Exception {
-        recommendItem(Lists.newArrayList(3));
+        prepareEnv(Lists.newArrayList(3));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(28).addDimDep(ImmutableMap.of(-1, 8))
                 .addMeasureDep(ImmutableMap.of(-2, Lists.newArrayList(18), 100000, Lists.newArrayList(100000)))
@@ -52,7 +52,7 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationCCReuseCrossModel() throws Exception {
-        recommendItem(Lists.newArrayList(9));
+        prepareEnv(Lists.newArrayList(9));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(28).addDimDep(ImmutableMap.of(-1, 8))
                 .addMeasureDep(ImmutableMap.of(-8, Lists.newArrayList(-7), 100000, Lists.newArrayList(100000)))
@@ -65,7 +65,7 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationNewCC() throws Exception {
-        recommendItem(Lists.newArrayList(6));
+        prepareEnv(Lists.newArrayList(6));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(28).addDimDep(ImmutableMap.of(-1, 8))
                 .addMeasureDep(ImmutableMap.of(-5, Lists.newArrayList(-4), 100000, Lists.newArrayList(100000)))
@@ -78,7 +78,7 @@ public class OptRecV2CCTest extends OptRecV2TestBase {
 
     @Test
     public void testInitRecommendationCCReuseSameModel() throws Exception {
-        recommendItem(Lists.newArrayList(12));
+        prepareEnv(Lists.newArrayList(12));
 
         Dependency.Builder depBuilder = new Dependency.Builder().addColSize(28).addDimDep(ImmutableMap.of(-1, 8))
                 .addMeasureDep(ImmutableMap.of(-11, Lists.newArrayList(27), 100000, Lists.newArrayList(100000)))

@@ -130,12 +130,19 @@ public class NRecommendationController extends NBasicController {
     @GetMapping(value = "/{model:.+}")
     @ResponseBody
     public EnvelopeResponse<OptRecLayoutsResponse> getOptimizeRecommendations(
-            @PathVariable(value = "model") String modelId, @RequestParam(value = "project") String project) {
+            @PathVariable(value = "model") String modelId, @RequestParam(value = "project") String project,
+            @RequestParam(value = "type", required = false, defaultValue = "") List<String> recTypeList,
+            @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
+            @RequestParam(value = "key", required = false, defaultValue = "") String key,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "") String sortBy,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                optRecService.getOptRecLayoutsResponse(project, modelId), "");
+        OptRecLayoutsResponse optRecLayoutsResponse = optRecService.getOptRecLayoutsResponse(project, modelId,
+                recTypeList, key, desc, sortBy, offset, limit);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecLayoutsResponse, "");
     }
 
     @ApiOperation(value = "getOptimizeRecommendationDetail", notes = "Add URL: {model}")
