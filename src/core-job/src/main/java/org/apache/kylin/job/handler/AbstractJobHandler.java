@@ -96,7 +96,7 @@ public abstract class AbstractJobHandler {
             executableManager.updateJobOutput(po.getId(), null, info, null, null);
             JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, project);
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-            jobStatisticsManager.updateStatistics(startOfDay, jobParam.getModel(), 0, 0);
+            jobStatisticsManager.updateStatistics(startOfDay, jobParam.getModel(), 0, 0, 1);
         }
     }
 

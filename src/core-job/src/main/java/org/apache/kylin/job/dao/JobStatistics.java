@@ -68,13 +68,13 @@ public class JobStatistics extends JobStatisticsBasic {
         setTotalByteSize(totalByteSize);
     }
 
-    public void update(String model, long duration, long byteSize) {
-        super.update(duration, byteSize);
+    public void update(String model, long duration, long byteSize, int deltaCount) {
+        super.update(duration, byteSize, deltaCount);
         JobStatisticsBasic jobStatisticsByModel = jobStatisticsByModels.get(model);
         if (jobStatisticsByModel == null) {
             jobStatisticsByModel = new JobStatisticsBasic(duration, byteSize);
         } else {
-            jobStatisticsByModel.update(duration, byteSize);
+            jobStatisticsByModel.update(duration, byteSize, deltaCount);
         }
 
         jobStatisticsByModels.put(model, jobStatisticsByModel);

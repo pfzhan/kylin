@@ -43,8 +43,8 @@ public class JobStatisticsBasic extends RootPersistentEntity {
     @JsonProperty("total_byte_size")
     private long totalByteSize;
 
-    public void update(long duration, long byteSize) {
-        this.count ++;
+    public void update(long duration, long byteSize, int deltaCount) {
+        this.count += deltaCount;
         this.totalDuration += duration;
         this.totalByteSize += byteSize;
     }

@@ -71,7 +71,7 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         } catch (ParseException e) {
             // ignore
         }
-        jobStatisticsManager.updateStatistics(time, "test_model", 1000, 1024*1024);
+        jobStatisticsManager.updateStatistics(time, "test_model", 1000, 1024*1024, 1);
         jobStatistics = jobStatisticsManager.getAll();
         Assert.assertEquals(1, jobStatistics.size());
         Assert.assertEquals(time, jobStatistics.get(0).getDate());
@@ -158,7 +158,7 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         List<JobStatistics> jobStatisticsForTest = getTestJobStats();
         for (JobStatistics jobStatistics : jobStatisticsForTest) {
             for (Map.Entry<String, JobStatisticsBasic> model : jobStatistics.getJobStatisticsByModels().entrySet()) {
-                jobStatisticsManager.updateStatistics(jobStatistics.getDate(), model.getKey(), jobStatistics.getTotalDuration(), jobStatistics.getTotalByteSize());
+                jobStatisticsManager.updateStatistics(jobStatistics.getDate(), model.getKey(), jobStatistics.getTotalDuration(), jobStatistics.getTotalByteSize(), 1);
             }
         }
 

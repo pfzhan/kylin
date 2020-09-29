@@ -87,7 +87,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         executableManager.updateJobOutput(buildTask.getParentId(), null, null, null, null, byteSize);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig,
                 buildTask.getProject());
-        jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize);
+        jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize, 0);
     }
 
     protected void updateSnapshotTableIfNeed(NDataSegment segment) {
