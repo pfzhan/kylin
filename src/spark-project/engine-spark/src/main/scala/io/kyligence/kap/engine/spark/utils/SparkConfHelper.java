@@ -109,7 +109,7 @@ public class SparkConfHelper {
         KylinBuildEnv.get().buildJobInfos().recordAutoSparkConfs(confs);
         logger.info("Auto set spark conf: {}", JsonUtil.writeValueAsString(confs));
         for (Map.Entry<String, String> entry : confs.entrySet()) {
-            sparkConf.set(entry.getKey(), entry.getValue());
+            sparkConf.set(entry.getKey(), entry.getValue().trim());
         }
     }
 
