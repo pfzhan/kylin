@@ -190,7 +190,7 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         long startOfDay = TimeUtil.getDayStart(endTime);
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, getProject());
-        jobStatisticsManager.updateStatistics(startOfDay, duration, 0);
+        jobStatisticsManager.updateStatistics(startOfDay, duration, 0, 0);
     }
 
 }

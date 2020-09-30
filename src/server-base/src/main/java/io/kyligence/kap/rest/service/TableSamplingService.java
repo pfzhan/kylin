@@ -73,7 +73,7 @@ public class TableSamplingService extends BasicService {
             jobIds.add(samplingJob.getId());
             execMgr.addJob(NExecutableManager.toPO(samplingJob, project));
             long startOfDay = TimeUtil.getDayStart(System.currentTimeMillis());
-            jobStatisticsManager.updateStatistics(startOfDay, 0, 0);
+            jobStatisticsManager.updateStatistics(startOfDay, 0, 0, 1);
         });
         return jobIds;
     }

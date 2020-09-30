@@ -105,7 +105,7 @@ public class JobStatisticsManager {
         return crud.save(jobStatisticsToUpdate);
     }
 
-    public JobStatistics updateStatistics(long date, long duration, long byteSize) {
+    public JobStatistics updateStatistics(long date, long duration, long byteSize, int deltaCount) {
         JobStatistics jobStatistics = crud.get(String.valueOf(date));
         JobStatistics jobStatisticsToUpdate;
         if (jobStatistics == null) {
@@ -114,7 +114,7 @@ public class JobStatisticsManager {
         }
 
         jobStatisticsToUpdate = crud.copyForWrite(jobStatistics);
-        jobStatisticsToUpdate.update(duration, byteSize, 1);
+        jobStatisticsToUpdate.update(duration, byteSize, deltaCount);
         return crud.save(jobStatisticsToUpdate);
     }
 
