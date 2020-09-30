@@ -202,7 +202,7 @@ public class OpenTableController extends NBasicController {
                 throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
             }
 
-            Pair<String, List<String>> pair =  tableService.reloadTable(request.getProject(), request.getTable(), request.getNeedSampling(),
+            Pair<String, List<String>> pair =  tableService.reloadTable(request.getProject(), request.getTable().toUpperCase(), request.getNeedSampling(),
                     request.getSamplingRows(), request.getNeedBuilding());
 
             OpenReloadTableResponse response = new OpenReloadTableResponse();
@@ -225,7 +225,7 @@ public class OpenTableController extends NBasicController {
         checkRequiredArg(TABLE, table);
         checkRequiredArg("column_name", columnName);
 
-        String columnFormat = tableService.getPartitionColumnFormat(project, table, columnName);
+        String columnFormat = tableService.getPartitionColumnFormat(project, table.toUpperCase(), columnName);
         OpenPartitionColumnFormatResponse columnFormatResponse = new OpenPartitionColumnFormatResponse();
         columnFormatResponse.setColumnName(columnName);
         columnFormatResponse.setColumnFormat(columnFormat);
