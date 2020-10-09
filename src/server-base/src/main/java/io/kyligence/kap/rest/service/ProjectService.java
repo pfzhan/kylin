@@ -35,7 +35,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIS
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +91,6 @@ import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -541,8 +539,11 @@ public class ProjectService extends BasicService {
             throw new KylinException(INVALID_PARAMETER, "No valid value for 'auto_merge_time_ranges'. Please set "
                     + "{'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'} to specify the period of auto-merge. ");
         }
-        segmentConfigRequest.getRetentionRange().setRetentionRangeType(segmentConfigRequest.getAutoMergeTimeRanges()
-                .stream().max(Comparator.comparing(AutoMergeTimeEnum::ordinal)).orElse(AutoMergeTimeEnum.YEAR));
+        if (null == segmentConfigRequest.getRetentionRange().getRetentionRangeType()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    "No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention. ");
+        }
+
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getSegmentConfig().setAutoMergeEnabled(segmentConfigRequest.getAutoMergeEnabled());
             copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(segmentConfigRequest.getAutoMergeTimeRanges());

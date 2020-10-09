@@ -461,6 +461,20 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testUpdateSegmentConfigWhenError() {
+        val project = PROJECT;
+
+        val segmentConfigRequest = new SegmentConfigRequest();
+        segmentConfigRequest.setAutoMergeEnabled(false);
+        segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
+
+        segmentConfigRequest.getRetentionRange().setRetentionRangeType(null);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("No valid value for 'retention_range_type', Please set {'DAY', 'MONTH', 'YEAR'} to specify the period of retention.");
+        projectService.updateSegmentConfig(project, segmentConfigRequest);
+    }
+
+    @Test
     public void testUpdateProjectConfig() throws IOException {
         val project = PROJECT;
 
