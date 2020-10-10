@@ -101,7 +101,7 @@ export function _getSegmentSettings (data, project) {
     retention_range: {
       ...data.retention_range,
       retention_range_enabled: data.retention_range.retention_range_enabled,
-      retention_range_type: _getRetentionRangeScale(data)
+      retention_range_type: data.retention_range.retention_range_type
     },
     create_empty_segment_enabled: data.create_empty_segment_enabled
   }
