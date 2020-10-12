@@ -74,8 +74,8 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
             throw new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
         }
         String[] host = owner.split(":");
-        Server server = new Server(host[0], Integer.valueOf(host[1]));
-        log.info("Request {} is redirecting to {}.", request.getRequestURI(), server);
+        Server server = new Server(host[0], Integer.parseInt(host[1]));
+        log.info("Request {} is redirecting to project's owner node {}.", request.getRequestURI(), server);
         return server;
     }
 

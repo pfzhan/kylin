@@ -27,6 +27,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Data;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -45,6 +46,7 @@ import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 public class ProjectInfoParser implements IKeep {
     private static final Pattern[] URL_PROJECT_PATTERNS = new Pattern[] {
             Pattern.compile("^/kylin/api/projects/([^/]+)/(backup|default_database" +
@@ -91,6 +93,7 @@ public class ProjectInfoParser implements IKeep {
             project = UnitOfWork.GLOBAL_UNIT;
         }
 
+        log.debug("Parsed project {} from request {}", project, ((HttpServletRequest) request).getRequestURI());
         return new Pair<>(project, requestWrapper);
     }
 

@@ -73,4 +73,16 @@ public class Epoch extends RootPersistentEntity {
     @Setter
     private long mvcc;
 
+    @Override
+    public String toString() {
+        return "Epoch{" +
+                "epochId=" + epochId +
+                ", epochTarget='" + epochTarget + '\'' +
+                ", currentEpochOwner='" + currentEpochOwner + '\'' +
+                ", lastEpochRenewTime=" + lastEpochRenewTime +
+                ", serverMode='" + serverMode + '\'' +
+                ", maintenanceModeReason='" + maintenanceModeReason + '\'' +
+                ", mvcc=" + mvcc +
+                '}';
+    }
 }

@@ -276,8 +276,20 @@ public class EpochManager implements IKeep {
     }
 
     public boolean isEpochLegal(Epoch epoch) {
-        return epoch != null && StringUtils.isNotEmpty(epoch.getCurrentEpochOwner()) && System.currentTimeMillis()
-                - epoch.getLastEpochRenewTime() <= config.getEpochExpireTimeSecond() * 1000;
+        if (epoch == null) {
+            logger.debug("Get null epoch");
+            return false;
+        } else if (StringUtils.isEmpty(epoch.getCurrentEpochOwner())) {
+            logger.debug("Epoch {}'s owner is empty", epoch);
+            return false;
+        } else if (System.currentTimeMillis() - epoch.getLastEpochRenewTime() > config.getEpochExpireTimeSecond()
+                * 1000) {
+            logger.debug("Epoch {}'s last renew time is expired. Current time is {}, expiredTime is {}", epoch,
+                    System.currentTimeMillis(), config.getEpochExpireTimeSecond());
+            return false;
+        }
+
+        return true;
     }
 
     public String getEpochOwner(String epochTarget) {
