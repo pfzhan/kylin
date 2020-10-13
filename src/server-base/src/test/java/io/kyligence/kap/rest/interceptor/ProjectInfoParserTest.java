@@ -24,8 +24,12 @@
 
 package io.kyligence.kap.rest.interceptor;
 
+import javax.servlet.ServletRequest;
+
+import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 public class ProjectInfoParserTest {
     private final String project = "test";
@@ -87,5 +91,48 @@ public class ProjectInfoParserTest {
         for (String url : urls) {
             Assert.assertNotEquals(project, ProjectInfoParser.extractProject(url));
         }
+    }
+
+    @Test
+    public void testRequest() {
+        // project in parameter
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServerName("localhost");
+        request.setRequestURI("/kylin/api/test");
+        request.setParameter("project", "AAA");
+
+        Pair<String, ServletRequest> pair = ProjectInfoParser.parseProjectInfo(request);
+        Assert.assertEquals(pair.getFirst(), "AAA");
+
+        // project in body
+        request = new MockHttpServletRequest();
+        request.setServerName("localhost");
+        request.setRequestURI("/kylin/api/test");
+        String body = "{\"project\": \"BBB\"}";
+
+        request.setContent(body.getBytes());
+
+        request.setContentType("application/json");
+        pair = ProjectInfoParser.parseProjectInfo(request);
+        Assert.assertEquals(pair.getFirst(), "BBB");
+
+        // delete request
+        request = new MockHttpServletRequest();
+        request.setServerName("localhost");
+        request.setRequestURI("/kylin/api/projects/CCC");
+        request.setMethod("DELETE");
+
+        request.setContentType("application/json");
+        pair = ProjectInfoParser.parseProjectInfo(request);
+        Assert.assertEquals(pair.getFirst(), "CCC");
+
+        // project is empty
+        request = new MockHttpServletRequest();
+        request.setServerName("localhost");
+        request.setRequestURI("/kylin/api/test");
+
+        request.setContentType("application/json");
+        pair = ProjectInfoParser.parseProjectInfo(request);
+        Assert.assertEquals(pair.getFirst(), "_global");
     }
 }

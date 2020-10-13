@@ -79,16 +79,18 @@ public class ProjectInfoParser implements IKeep {
                 }
 
             }
-
-            if (StringUtils.isEmpty(project)) {
-                project = extractProject(((HttpServletRequest) request).getRequestURI());
-            }
         } catch (IOException e) {
             // ignore JSON exception
         }
+
+        if (StringUtils.isEmpty(project)) {
+            project = extractProject(((HttpServletRequest) request).getRequestURI());
+        }
+
         if (StringUtils.isEmpty(project)) {
             project = UnitOfWork.GLOBAL_UNIT;
         }
+
         return new Pair<>(project, requestWrapper);
     }
 
