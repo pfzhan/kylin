@@ -27,10 +27,7 @@ package io.kyligence.kap.rest.scheduler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -40,9 +37,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -52,25 +47,19 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
-    @Before
-    public void setUp() {
-        this.createTestMetadata();
-    }
-
-    @After
-    public void tearDown() {
-        this.cleanupTestMetadata();
-    }
-    
+public class JobSchedulerListenerTest {
     static CountDownLatch latch;
 
-    static JobSchedulerListener.JobInfo modelInfo = new JobSchedulerListener.JobInfo(
-            "f26641d7-2094-473b-972a-4e1cebe55091", "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
-            Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"), Sets.newHashSet(1L), 1000L, "SUCCEED",
-            "INDEX_BUILD", new ArrayList<>());
+    static JobFinishedNotifier.JobInfo modelInfo = new JobFinishedNotifier.JobInfo(
+            "test_project",
+            "9f85e8a0-3971-4012-b0e7-70763c471a01",
+            Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"),
+            Sets.newHashSet(1L),
+            0L,
+            Long.MAX_VALUE,
+            1000L,
+            "SUCCEED");
 
     static boolean assertMeet = false;
 
@@ -78,7 +67,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
     public void testPostJobInfoSucceed() {
         List<Integer> ports = Lists.newArrayList(10000, 20000, 30000);
 
-        for (int port : ports) {
+        for (int port: ports) {
             try {
                 latch = new CountDownLatch(1);
                 KylinConfig config = Mockito.mock(KylinConfig.class);
@@ -164,38 +153,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
 
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
-            latch.countDown();
+                latch.countDown();
         }
-    }
-
-    @Test
-    public void testExtractInfo() {
-        String jobId = "test_job_id";
-        String project = "default";
-        String subject = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        long duration = 1000L;
-        String jobState = "SUCCEED";
-        String jobType = "INDEX_BUILD";
-        Set<String> segIds = new HashSet<>();
-        segIds.add("11124840-b3e3-43db-bcab-2b78da666d00");
-        Set<Long> layoutIds = new HashSet<>();
-        layoutIds.add(1L);
-        JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds);
-        JobSchedulerListener.JobInfo jobInfo = JobSchedulerListener.extractJobInfo(notifier);
-        Assert.assertEquals(jobId, jobInfo.getJobId());
-        Assert.assertEquals(project, jobInfo.getProject());
-        Assert.assertEquals(subject, jobInfo.getModelId());
-        Assert.assertEquals(duration, jobInfo.getDuration());
-        Assert.assertEquals(jobState, jobInfo.getState());
-        Assert.assertEquals(jobType, jobInfo.getJobType());
-        Assert.assertTrue(jobInfo.getSegmentIds().containsAll(segIds));
-        Assert.assertEquals(segIds.size(), jobInfo.getSegmentIds().size());
-        JobSchedulerListener.SegRange segRange = jobInfo.getSegRanges().get(0);
-        Assert.assertEquals("11124840-b3e3-43db-bcab-2b78da666d00", segRange.getSegmentId());
-        Assert.assertEquals(1309891513770L, segRange.getStart());
-        Assert.assertEquals(1509891513770L, segRange.getEnd());
-        Assert.assertTrue(jobInfo.getIndexIds().containsAll(layoutIds));
-        Assert.assertEquals(layoutIds.size(), jobInfo.getIndexIds().size());
     }
 }
