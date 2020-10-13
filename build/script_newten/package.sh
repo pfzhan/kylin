@@ -50,6 +50,199 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.2.0 release note
+
+In this new release, Kyligence Enterprise supports **flexible index building**, which enables queries from business could get more faster response.
+
+At the same time, a new **data volume statistics system** is added, which is convenient and flexible for users to monitor the usage in project and table level, and we support **slowly changing dimension type 2**, which helps to cover more comprehensive business scenario.
+
+In addition, the existing **index management mechanism** has also been optimized and improved, allowing the AI augmented engine to provide better OLAP modeling, analysis and management assistance.
+
+**Flexible Index Building**
+
+A more flexible index building mode is provided, that is, selected indexes could be built into a specified segment. In most usage scenarios, while the building cost is reduced, the indexes could respond faster to the query needs of business. What's more, the maintenance and management costs of automated scheduling will be reduced as well.
+
+**Data Volume Statistics System**
+
+The data volume statistics system will provide data volume statistics on different levels, and historical data volume usage trends can also be viewed. While the platform manager could get and statistical data usage conveniently and swiftly, the system also satisfies the flexible management and control requirements of enterprise users on the use of resources.
+
+**Slowly Changing Dimension Type 2**
+
+The new version Kyligence Enterprise supports slowly changing dimensions (Type 2) based on self-maintaining history table, so the system could flexibly respond to the analysis requirements of slow changing dimensions in business. Based on reasonable models, Kyligence can support a wider range of business scenarios.
+
+**Optimized Index Management Mechanism**
+
+The existing index recommendation system is greatly optimized and a scorer is added to provide more efficient recommendations, so as to aid index management and enhance the availability and ease of use of index recommendations.
+
+
+
+#### Kyligence Enterprise 4.1.9 release note
+
+**Enhancement**
+
+- Stability Optimization
+  - Using the separate process to generate diagnosis package to avoid the influence on Kyligence instances
+- Security Optimization
+  - Support connect InfluxDB with SSL
+- Tableau Compatibility Optimization
+  - Support ascii, chr, space functions
+- Optimize loading performance when there are plenty of source tables
+- Add the project name to the common operations, such as query and build APIs within logs
+- Improve the detection of hive warehouse access permissions at starting step
+- Improve metadata restore tool and clarify the behavior expectations corresponding to each command
+- Add the Spark encoding of the global dictionary in the configuration file
+
+**Bugfix**
+
+- Query node does not report metrics to InfluxDB
+- When the snapshot file is too large, the metadata might be updated failed due to the long transaction
+- When the table or column name used in the computed columns starts with a number, the implicit query might not hit the correct indexes
+- If there is a repetitive expression of a computed column, the model can be saved normally but build failed
+- After adding or modifying the model-level custom configurations, the deleted index will be automatically recovered
+- When the Hive table stored as ORC and its partition column type is Date, incremental building failed
+- When the query user does not have any column-level access permissions for a table, the select * statement will return all column information
+- Some information was leaked by JS files
+- When the project name contains the epoch, the forwarding request failed
+- ROLE_ADMIN user group can be deleted through Rest API
+- When the number of users is too large, the acceleration rule page fails to load the user list
+- When building or merging Segments, the path of snapshot may not be updated correctly leading query failed
+- After setting the filter conditions for the model with multiple joint tables, the creating flat table step failed
+
+#### Kyligence Enterprise 4.1.8 release note
+
+**Enhancement**
+
+- Support separate configuration tool parameters
+- Support a table in the same project can be used as a fact table and a dimension table
+- Optimize the logic of automatic tuning of spark
+- Optimize the prompt message after reloading the table
+- Optimize the page display of the table in the interface
+- Optimize the automatic adjustment of job tasks
+- Diagnostic package copywriting optimization
+- Provide callback API for build tasks
+- Optimize the response time of table structure interface calls
+- Configure the maximum number of characters for dimension measure names
+- Add the function of stopping query
+- Support CDH 6.2
+- Add V4 version REST API of resume the build task
+- Supports adding table-to-table association relationships to correct the correctness of derived queries
+
+**Bugfix**
+
+- Inconsistent results of index query and push-down query due to time zone processing issues
+- When multiple sets of Hadoop clusters are configured, one set of clusters cannot be used and all sparks cannot be started.
+- When building index in a cloud environment, the dimension table is too big, resulting in broadcast OOM
+- Modifications to tables with the same name in different databases will have wrong effects
+- Performing audit log recovery operations will cause NPE errors
+- When the audit log is excessive, exporting the log will cause KE to stuck.
+- When an error occurs when modifying a computable column, the error message is not clear
+- Cannot create a project after the Query node has executed garbage cleanup
+- Failed to reset ADMIN password
+- When KE is started, the garbage cleaning and password reset cannot be successful
+- User rewrite spark.executor.instance configuration does not take effect
+
+
+#### Kyligence Enterprise 4.1.7 release note
+
+**Enhancement**
+
+- Support to turn on Sanity Check for building jobs to reduce possible incorrect building problems
+  - Add parameter , which is enabled by default
+  - When this parameter is turned on, it may cause a certain build performance degradation. In the laboratory environment, the build performance drops by about 2%
+- Optimize system monitoring information and add Spark Task Queue Metrics into InfluxDB
+  - The monitoring metrics of Query node are not supported
+- Improve product usability
+  - Optimize the permanent display of naming conventions and enhance the guidance when creating a name or password
+  - Optimize the editing of computed columns, including only refreshing the relevant indexes after modifying the computed columns, etc.
+
+**Bugfix**
+
+- After enabling Kerberos in Cloudera CDH 6.3.1, the environment check may fail
+- When there are multiple Cloudera CDH versions in the environment, it may fail to obtain the correct version, resulting in startup errors
+- During cluster migrating, if the Snapshot file is not migrated correctly, the building jobs may not be completed
+- In read-write separation deployment mode, the failure of obtaining *hadoop_conf*  may cause startup errors
+- When the JVM memory is small, the memory may become full during "Save and Build Index", which may cause the service to be unavailable
+- When the fact table is a view, checking the partition column format may cause the building jobs to take too long to execute
+- When using row-level permissions, the query may incorrectly match the model
+- If an error occurs when the dimension table is associated with a snapshot, it may cause the new building job to fail
+- When the browser is Chrome 67 and below and IE browser, the pages of editing aggregation group, viewing aggregation group, and rewriting model settings may not work properly
+- When multiple SQLs are imported for automatical modeling to establish an inner join model, if the partial matching configuration is enabled, SQL cannot be accelerated in batches
+- After the Sum Expression function is turned on, the index cannot be hit when the query contains both Count Distinct and Sum Case measures
+- When resetting the password of the system administrator, the history records in the  log file will be cleared, which may affect the ability to diagnose problems
+- In the rewriting model configuration page and the project setting page, the optional time range of the automatic merge setting does not match, resulting in the retention setting cannot be submitted
+- When importing SQL for modeling, if the SQL is in the editing state, the editing content will be lost when click Next
+- When computed columns are added to the table index with sort, there may be duplicate computed columns which may cause the table index cannot be modified
+- For an index that contains TOPN, if the order of the results in the query is from small to large, the index can also be incorrectly hit
+- In the model editing page, the column description is only available in the fact table when editing the dimension
+
+
+
+#### Kyligence Enterprise 4.1.6 release note
+
+Enhancement
+
+- Enhance the check of reloading source table
+  - check whether there are ongoing jobs in the source table
+  - check whether there will be a column with the same name after the source table is reloaded
+  - only update the model related to the source table when reloading the table
+- Improve the intersection function and support bitmap functions
+- Enhance the implementation of obtaining Spark eventlog in the diagnostic package
+
+Usability Improvements
+
+- Optimize the data source module and improve the readability
+- Optimize the model module and enrich the information when designing the models
+
+Security Improvements
+
+- cross-domain policy allows setting origin
+
+BI Integration Improvements
+
+- Users are now able to achieve MicroStrategy Single Sign-on with Kyligence Enterprise 4 and be able to reflect the row-level, column-level, and table-level access control of the Kyligence Enterprise in the MicroStrategy reports.
+
+  > Note: this feature need to cooperate with Kyligence ODBC Driver 3.1.9.1003 and above.
+
+Bug
+
+- When the database name is not declared in the query statement, the query might fail due to failure to match the default database - If the imported file contains defined computed column names, it might fail to execute when using SQL to create models - The measures and aggregate indexes might not be updated after the data type of the column in the source table is modified
+- When the metastore is MySQL, the query history result is empty when filtering by response time
+- The query might fail if it contains computed column and SQL_WVARCHAR type when using pushdown engine.
+- The computable column in the subquery might not be expanded into an expression when the query is answered by pushdown engine, which will cause the query failed
+- After the model is broken due to the source table changes, it might not be repairable
+- After 4.0 is upgraded to 4.1, the columnTypeName field in the query interface might be changed
+
+
+#### Kyligence Enterprise 4.1.5 release note
+
+**Enhancement**
+
+- Support to edit computed columns
+
+  > For the time being, we only support modifying the expressions of computable columns, while the modifying of the names of computable columns is not supported.
+
+- Provide public API for model import and output
+
+- Optimize the logic of obtaining garbage files in the cloud environment to ensure the normal operation of garbage cleaning
+
+**Bugfix**
+
+- Add a parameter  to control the size of the result set returned by the query
+- In HA deployment mode, the number of active nodes displayed on different nodes may be different
+- Fix the problem of inconsistent front-end and back-end verification in some forms to prevent possible security holes
+- Upgrade Jackson version to 2.9.10.3 to fix possible security holes
+
+- Calling index overview API may take a long time
+- When the filter contains clauses of the form *NOT IN (constant, constant)*, the query may fail
+- In the login state, if the wrong URL is entered, you can still enter the login page, and  log in normally by entering any password at this time
+- When deleting the dimension table on the model editing page, it needs to be deleted twice to delete the dimension table correctly
+- When only Query node is included in the cluster, the data source page error shows no permission
+- In the return of the V2 version job recovery API, there may exist incorrect task status
+- During the automatic tuning process, due to the incorrect calculation formula of Spark Executor Memory, the resulting value may be negative
+- Regulate password reset behavior: when the system administrator resets the passwords of other users, there is no need to fill in the old password
+- When the number of query result rows exceeds the set maximum value, the front end does not report an error
+- When the name of the computed column differs only in case, the same-name-check is not performed correctly
+
 #### Kyligence Enterprise 4.1.4 release note
 
 **Enhancement**
