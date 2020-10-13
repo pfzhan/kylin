@@ -587,20 +587,20 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     @VisibleForTesting
-    public boolean markIndexesToBeDeleted(String indexPlanId, final Set<LayoutEntity> toBeDeletedSet) {
+    public void markIndexesToBeDeleted(String indexPlanId, final Set<LayoutEntity> toBeDeletedSet) {
         Preconditions.checkNotNull(indexPlanId);
         Preconditions.checkNotNull(toBeDeletedSet);
         checkIsNotCachedAndShared();
 
         if (CollectionUtils.isEmpty(toBeDeletedSet)) {
-            return true;
+            return;
         }
 
         NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(indexPlanId);
         val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         NDataSegment lastReadySegment = readySegs.getLatestReadySegment();
         if (null == lastReadySegment) {
-            return true;
+            return;
         }
 
         val toBeDeletedMap = getToBeDeletedIndexesMap();
@@ -619,10 +619,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             toBeDeletedMap.get(identifier).getLayouts().add(JsonUtil.deepCopyQuietly(layoutEntity, LayoutEntity.class));
         }
 
-        return true;
     }
 
-    public boolean markTableIndexesToBeDeleted(String indexPlanId, final Set<Long> layoutIds) {
+    public void markTableIndexesToBeDeleted(String indexPlanId, final Set<Long> layoutIds) {
         Preconditions.checkNotNull(indexPlanId);
         Preconditions.checkNotNull(layoutIds);
         checkIsNotCachedAndShared();
@@ -646,7 +645,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             layoutEntity.getIndex().removeLayouts(Lists.newArrayList(layoutEntity), null, true, true);
         }
 
-        return true;
     }
 
     public void addRuleBasedBlackList(Collection<Long> blacklist) {

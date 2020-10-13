@@ -46,7 +46,6 @@ import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQu
 
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
@@ -76,7 +75,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
-        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
     }
 
     @After
@@ -467,7 +466,7 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(4, queryHistoryList.size());
 
         // after delete
-        queryHistoryDAO.deleteQueryHistoryForProject(PROJECT);
+        queryHistoryDAO.deleteQueryHistoryByProject(PROJECT);
         queryHistoryList = queryHistoryDAO.getAllQueryHistories();
         Assert.assertEquals(1, queryHistoryList.size());
         Assert.assertEquals("other", queryHistoryList.get(0).getProjectName());

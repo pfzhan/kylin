@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeUtil;
@@ -43,30 +44,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.val;
 
-@NoArgsConstructor
 public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     private static final Logger logger = LoggerFactory.getLogger(RDBMSQueryHistoryDAO.class);
     @Setter
     private String queryMetricMeasurement;
     private String realizationMetricMeasurement;
     private JdbcQueryHistoryStore jdbcQueryHisStore;
-    private static final long RETAIN_TIME = 30;
 
     public static final String WEEK = "week";
     public static final String DAY = "day";
 
-    public static RDBMSQueryHistoryDAO getInstance(KylinConfig config) {
-        return config.getManager(RDBMSQueryHistoryDAO.class);
+    public static RDBMSQueryHistoryDAO getInstance() {
+        return Singletons.getInstance(RDBMSQueryHistoryDAO.class);
     }
 
-    static RDBMSQueryHistoryDAO newInstance(KylinConfig kylinConfig) throws Exception {
-        return new RDBMSQueryHistoryDAO(kylinConfig);
-    }
-
-    public RDBMSQueryHistoryDAO(KylinConfig config) throws Exception {
+    public RDBMSQueryHistoryDAO() throws Exception {
+        val config = KylinConfig.getInstanceFromEnv();
         if (!UnitOfWork.isAlreadyInTransaction())
             logger.info("Initializing RDBMSQueryHistoryDAO with KylinConfig Id: {} ", System.identityHashCode(config));
         String metadataIdentifier = StorageURL.replaceUrl(config.getMetadataUrl());
@@ -99,11 +95,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         jdbcQueryHisStore.deleteQueryHistory();
     }
 
-    public void deleteAllQueryHistoryRealization() {
-        jdbcQueryHisStore.deleteQueryHistoryRealization();
-    }
-
-    public void deleteQueryHistoryForProject(String project) {
+    public void deleteQueryHistoryByProject(String project) {
         jdbcQueryHisStore.deleteQueryHistory(project);
     }
 
@@ -142,7 +134,9 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     }
 
     public static long getRetainTime() {
-        return new Date(System.currentTimeMillis() - RETAIN_TIME * 86400000L).getTime();
+        return new Date(
+                System.currentTimeMillis() - KylinConfig.getInstanceFromEnv().getQueryHistorySurvivalThreshold())
+                        .getTime();
     }
 
     public void dropProjectMeasurement(String project) {

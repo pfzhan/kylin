@@ -81,7 +81,7 @@ public class QueryHistoryAccelerateScheduler {
 
     public QueryHistoryAccelerateScheduler(String project) {
         this.project = project;
-        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         accelerateRuleUtil = new AccelerateRuleUtil();
         rawRecommendation = new RawRecService();
         log.debug("New QueryHistoryAccelerateScheduler created by project {}", project);

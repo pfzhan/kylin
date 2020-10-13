@@ -79,7 +79,7 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
         super.setup();
         jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
         rawRecommendation = new RawRecService();
-        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+        queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
     }
 
     @After

@@ -139,7 +139,7 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             String kylinJobJar = System.getProperty("KYLIN_HOME") + "/lib/job.jar";
             String appArgs = "/tmp/output";
 
-            String cmd = sparkExecutable.generateSparkCmd(kylinConfig, hadoopConf, kylinJobJar, kylinJobJar, appArgs);
+            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("spark-submit"));
             Assert.assertTrue(cmd.contains("log4j.configuration=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));

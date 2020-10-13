@@ -26,7 +26,6 @@ package io.kyligence.kap.tool;
 
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,7 @@ public class QueryHistoryAccessCLI {
     private RDBMSQueryHistoryDAO queryHistoryDAO;
 
     public QueryHistoryAccessCLI() {
-        this.queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+        this.queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
     }
 
     public boolean testAccessQueryHistory() {
@@ -80,7 +79,7 @@ public class QueryHistoryAccessCLI {
             queryHistoryDAO.insert(queryMetrics);
 
             // clean test data
-            queryHistoryDAO.deleteQueryHistoryForProject(PROJECT);
+            queryHistoryDAO.deleteQueryHistoryByProject(PROJECT);
             queryHistoryDAO.deleteAllQueryHistoryRealizationForProject(PROJECT);
         } catch (Exception e) {
             logger.error(FAIL_LOG, e);

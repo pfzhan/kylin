@@ -347,20 +347,6 @@ public class JdbcQueryHistoryStore {
         }
     }
 
-    public void deleteQueryHistoryRealization() {
-        long startTime = System.currentTimeMillis();
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);
-            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(queryHistoryRealizationTable) //
-                    .build().render(RenderingStrategies.MYBATIS3);
-            int deleteRows = mapper.delete(deleteStatement);
-            session.commit();
-            if (deleteRows > 0) {
-                log.info(DELETE_REALIZATION_LOG, deleteRows, System.currentTimeMillis() - startTime);
-            }
-        }
-    }
-
     public void deleteQueryHistoryRealization(long queryTime) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
@@ -503,8 +489,8 @@ public class JdbcQueryHistoryStore {
 
         if (StringUtils.isNotEmpty(request.getLatencyFrom()) && StringUtils.isNotEmpty(request.getLatencyTo())) {
             filterSql = filterSql
-                    .and(queryHistoryTable.duration, isGreaterThanOrEqualTo(Long.valueOf(request.getLatencyFrom()) * 1000L))
-                    .and(queryHistoryTable.duration, isLessThan(Long.valueOf(request.getLatencyTo()) * 1000L))
+                    .and(queryHistoryTable.duration, isGreaterThanOrEqualTo(Long.parseLong(request.getLatencyFrom()) * 1000L))
+                    .and(queryHistoryTable.duration, isLessThan(Long.parseLong(request.getLatencyTo()) * 1000L))
                     .and(queryHistoryTable.queryStatus, isEqualTo("SUCCEEDED"));
         }
 
@@ -524,7 +510,7 @@ public class JdbcQueryHistoryStore {
                 filterSql = filterSql.and(queryHistoryTable.indexHit, isEqualTo(false));
             } else if (!pushdown && model) {
                 filterSql = filterSql.and(queryHistoryTable.indexHit, isEqualTo(true));
-            } else if (!pushdown && !model) {
+            } else if (!pushdown) {
                 throw new IllegalArgumentException("Illegal realization type ");
             }
         }

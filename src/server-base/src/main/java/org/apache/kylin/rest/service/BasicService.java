@@ -161,7 +161,7 @@ public abstract class BasicService {
     }
 
     public QueryHistoryDAO getQueryHistoryDao() {
-        return RDBMSQueryHistoryDAO.getInstance(getConfig());
+        return RDBMSQueryHistoryDAO.getInstance();
     }
 
     public MonitorDao getMonitorDao() {

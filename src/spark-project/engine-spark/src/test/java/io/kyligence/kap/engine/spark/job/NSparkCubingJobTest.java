@@ -571,7 +571,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             copyForWrite.getOverrideKylinProps().put("kylin.engine.spark-conf.spark.locality.wait", "10");
         });
         // get SparkConfigOverride from project overrideProps
-        KylinConfig config = executable.wrapConfig(context);
+        KylinConfig config = executable.getConfig();
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
         Assert.assertEquals("10", config.getSparkConfigOverride().get("spark.locality.wait"));
@@ -582,7 +582,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 copyForWrite -> {
                     copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.locality.wait", "20");
                 });
-        config = executable.wrapConfig(context);
+        config = executable.getConfig();
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
         Assert.assertEquals("20", config.getSparkConfigOverride().get("spark.locality.wait"));

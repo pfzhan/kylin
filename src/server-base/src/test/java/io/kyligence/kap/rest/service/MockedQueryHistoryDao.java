@@ -46,8 +46,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
-
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.query.QueryHistory;
@@ -61,8 +59,8 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
     @Setter
     private List<QueryHistory> overallQueryHistories = Lists.newArrayList();
 
-    public MockedQueryHistoryDao(KylinConfig config) throws Exception {
-        super(config);
+    public MockedQueryHistoryDao() throws Exception {
+        super();
         init();
     }
 

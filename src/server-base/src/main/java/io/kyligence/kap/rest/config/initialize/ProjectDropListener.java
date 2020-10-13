@@ -50,7 +50,7 @@ public class ProjectDropListener {
 
         try {
             NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
-            RDBMSQueryHistoryDAO.getInstance(kylinConfig).dropProjectMeasurement(project);
+            RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             RawRecManager.getInstance(project).deleteByProject(project);
             QueryHistoryAccelerateScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);

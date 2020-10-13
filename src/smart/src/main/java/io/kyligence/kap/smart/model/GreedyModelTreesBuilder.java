@@ -214,7 +214,7 @@ public class GreedyModelTreesBuilder {
 
         private void addOLAPContext(String sql, OLAPContext ctx) {
             if (!this.contexts.containsKey(sql)) {
-                this.contexts.put(sql, new ArrayList<OLAPContext>());
+                this.contexts.put(sql, new ArrayList<>());
             }
             this.contexts.get(sql).add(ctx);
             ctx.sql = sql;

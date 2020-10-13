@@ -111,7 +111,8 @@ public class UnitOfWork {
                     MetricsGroup.counterInc(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.PROJECT,
                             params.getUnitName(), tags);
                 } else {
-                    MetricsGroup.counterInc(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.GLOBAL, "global", tags);
+                    MetricsGroup.counterInc(MetricsName.TRANSACTION_RETRY_COUNTER, MetricsCategory.GLOBAL, "global",
+                            tags);
                 }
             }
 
@@ -231,12 +232,12 @@ public class UnitOfWork {
         return temp;
     }
 
-    static <T> UnitOfWorkContext endTransaction(String traceId, UnitOfWorkParams<T> params) throws Exception {
+    static <T> void endTransaction(String traceId, UnitOfWorkParams<T> params) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val work = get();
         if (work.isReadonly() || !work.isUseSandbox()) {
             work.cleanResource();
-            return null;
+            return;
         }
         val threadViewRS = (ThreadViewResourceStore) ResourceStore.getKylinMetaStore(config);
         List<RawResource> data = threadViewRS.getResources();
@@ -274,7 +275,6 @@ public class UnitOfWork {
             log.error("Unexpected error happened! Aborting right now.", e);
             System.exit(1);
         }
-        return null;
     }
 
     private static void handleError(Throwable throwable, UnitOfWorkParams<?> params, int retry, String traceId) {

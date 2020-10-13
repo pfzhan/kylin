@@ -57,7 +57,7 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.service.QueryService;
+import org.apache.kylin.rest.service.BasicService;
 import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 @Component("asyncQueryService")
-public class AsyncQueryService extends QueryService {
+public class AsyncQueryService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryService.class);
 
@@ -215,7 +215,7 @@ public class AsyncQueryService extends QueryService {
         return QueryStatus.MISS;
     }
 
-    public String getUserName(String queryId, String project) throws IOException {
+    private String getQueryUsername(String queryId, String project) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         FileSystem fileSystem = getFileSystem();
         if (fileSystem.exists(asyncQueryResultDir)) {
@@ -228,14 +228,11 @@ public class AsyncQueryService extends QueryService {
     }
 
     public boolean hasPermission(String queryId, String project) throws IOException {
-        if (getUserName(queryId, project) != null && SecurityContextHolder.getContext().getAuthentication().getName()
-                .equals(getUserName(queryId, project))) {
+        if (getQueryUsername(queryId, project) != null && SecurityContextHolder.getContext().getAuthentication()
+                .getName().equals(getQueryUsername(queryId, project))) {
             return true;
         }
-        if (isAdmin()) {
-            return true;
-        }
-        return false;
+        return isAdmin();
     }
 
     public long fileStatus(String project, String queryId) throws IOException {
@@ -336,14 +333,8 @@ public class AsyncQueryService extends QueryService {
 
     public void checkStatus(String queryId, QueryStatus queryStatus, String project, String message)
             throws IOException {
-        switch (queryStatus) {
-        case SUCCESS:
-            if (queryStatus(project, queryId) != QueryStatus.SUCCESS) {
-                throw new NAsyncQueryIllegalParamException(message);
-            }
-            break;
-        default:
-            break;
+        if (queryStatus == QueryStatus.SUCCESS && queryStatus(project, queryId) != QueryStatus.SUCCESS) {
+            throw new NAsyncQueryIllegalParamException(message);
         }
     }
 

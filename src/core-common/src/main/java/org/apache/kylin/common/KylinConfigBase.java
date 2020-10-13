@@ -518,8 +518,8 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getHdfsMetaStoreFileSystemSchemas() {
         return getOptionalStringArray("kylin.metadata.hdfs-compatible-schemas", //
-                new String[]{"hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
-                        "oss"});
+                new String[] { "hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
+                        "oss" });
     }
 
     public String getSecurityProfile() {
@@ -528,7 +528,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getRealizationProviders() {
         return getOptionalStringArray("kylin.metadata.realization-providers", //
-                new String[]{"io.kyligence.kap.metadata.cube.model.NDataflowManager"});
+                new String[] { "io.kyligence.kap.metadata.cube.model.NDataflowManager" });
     }
 
     public String[] getCubeDimensionCustomEncodingFactories() {
@@ -1012,7 +1012,8 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getJdbcSourceConnector() {
-        return getOptional("kylin.source.jdbc.connector-class-name", "io.kyligence.kap.source.jdbc.DefaultSourceConnector");
+        return getOptional("kylin.source.jdbc.connector-class-name",
+                "io.kyligence.kap.source.jdbc.DefaultSourceConnector");
     }
 
     // ============================================================================
@@ -1150,7 +1151,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int[] getSparkEngineDriverMemoryStrategy() {
-        String[] dft = {"2", "20", "100"};
+        String[] dft = { "2", "20", "100" };
         return getOptionalIntArray("kylin.engine.driver-memory-strategy", dft);
     }
 
@@ -1265,10 +1266,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getQueryTransformers() {
         String value = getOptional("kylin.query.transformers");
-        return value == null ? new String[]{"org.apache.kylin.query.util.PowerBIConverter",
+        return value == null ? new String[] { "org.apache.kylin.query.util.PowerBIConverter",
                 "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
                 "io.kyligence.kap.query.util.ConvertToComputedColumn",
-                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter"}
+                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter" }
                 : getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
 
@@ -1407,12 +1408,12 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getPushDownConverterClassNames() {
         return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
-                new String[]{"org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
+                new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                         "org.apache.kylin.query.util.PowerBIConverter",
                         "io.kyligence.kap.query.util.RestoreFromComputedColumn",
                         "io.kyligence.kap.query.security.RowFilter",
                         "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
-                        "io.kyligence.kap.query.util.SparkSQLFunctionConverter"});
+                        "io.kyligence.kap.query.util.SparkSQLFunctionConverter" });
     }
 
     public String getPartitionCheckRunnerClassName() {
@@ -2016,6 +2017,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.queryhistory.project-max-size", "1000000"));
     }
 
+    public long getQueryHistorySurvivalThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.query.queryhistory.survival-time-threshold", "30d"),
+                TimeUnit.MILLISECONDS);
+    }
+
     public int getQueryHistoryBufferSize() {
         return Integer.parseInt(getOptional("kylin.query.queryhistory.buffer-size", "500"));
     }
@@ -2121,7 +2127,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     private double getConfigItemDoubleValue(String configItem, double defaultDoubleValue, double rangeStart,
-                                            double rangeEnd) {
+            double rangeEnd) {
         double resultValue = defaultDoubleValue;
         try {
             resultValue = Integer.parseInt(getOptional(configItem, String.valueOf(defaultDoubleValue)));

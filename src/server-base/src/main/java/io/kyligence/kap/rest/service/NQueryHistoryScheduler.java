@@ -106,7 +106,7 @@ public class NQueryHistoryScheduler {
         RDBMSQueryHistoryDAO queryHistoryDAO;
 
         WriteQueryHistoryRunner() throws Exception {
-            queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+            queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         }
 
         @Override

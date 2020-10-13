@@ -47,6 +47,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
@@ -65,7 +66,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -75,6 +75,7 @@ import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -91,28 +92,13 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private static final String COMMA = ",";
 
-    void setDataflowId(String dataflowId) {
-        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
-    }
-
     public String getDataflowId() {
         return this.getParam(NBatchConstants.P_DATAFLOW_ID);
     }
 
-    void setJobId(String jobId) {
-        this.setParam(NBatchConstants.P_JOB_ID, jobId);
-    }
-
-    void setSegmentIds(Set<String> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(COMMA).join(segmentIds));
-    }
-
+    @Override
     public Set<String> getSegmentIds() {
         return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS), COMMA));
-    }
-
-    void setCuboidLayoutIds(Set<Long> clIds) {
-        this.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(clIds));
     }
 
     public Set<Long> getCuboidLayoutIds() {
@@ -168,9 +154,9 @@ public class NSparkExecutable extends AbstractExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
-        final KylinConfig config = wrapConfig(context);
+        final KylinConfig config = getConfig();
 
-        String sparkHome = KylinConfig.getSparkHome();
+        String sparkHome = KylinConfigBase.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
             throw new RuntimeException("Missing spark home");
         }
@@ -191,10 +177,7 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isEmpty(jars)) {
             jars = kylinJobJar;
         }
-
-        if (!isResumable() && config.isDeleteJobTmpWhenRetry()) {
-            deleteJobTmpDirectoryOnExists();
-        }
+        deleteJobTmpDirectoryOnExists();
 
         onExecuteStart();
 
@@ -220,9 +203,8 @@ public class NSparkExecutable extends AbstractExecutable {
         if (config.isUTEnv()) {
             return runLocalMode(filePath);
         } else {
-            killOrphanApplicationIfExists(getId());
-            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
-                    "-className " + getSparkSubmitClassName() + " " + filePath, getParent().getId());
+            return runSparkSubmit(hadoopConf, jars, kylinJobJar,
+                    "-className " + getSparkSubmitClassName() + " " + filePath);
         }
     }
 
@@ -279,8 +261,9 @@ public class NSparkExecutable extends AbstractExecutable {
                 System.currentTimeMillis());
     }
 
-    protected KylinConfig wrapConfig(ExecutableContext context) {
-        val originalConfig = context.getConfig();
+    @Override
+    protected KylinConfig getConfig() {
+        val originalConfig = KylinConfig.getInstanceFromEnv();
         KylinConfigExt kylinConfigExt = null;
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
@@ -311,13 +294,8 @@ public class NSparkExecutable extends AbstractExecutable {
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
-    private void killOrphanApplicationIfExists(String jobStepId) {
-        final IClusterManager cm = ClusterManagerFactory.create(getConfig());
-        cm.killApplication(jobStepId);
-    }
-
-    private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String appArgs, String jobId) {
+    private ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
+        val config = getConfig();
         PatternedLogger patternedLogger;
         if (config.isJobLogPrintEnabled()) {
             patternedLogger = new PatternedLogger(logger);
@@ -326,17 +304,18 @@ public class NSparkExecutable extends AbstractExecutable {
         }
 
         try {
-            String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
+            killOrphanApplicationIfExists(getId());
+            String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
 
             CliCommandExecutor exec = new CliCommandExecutor();
-            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, jobId);
+            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getParentId());
             if (StringUtils.isNotEmpty(r.getProcessId())) {
                 try {
                     Map<String, String> updateInfo = Maps.newHashMap();
                     updateInfo.put("process_id", r.getProcessId());
                     EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(jobId,
-                                this.getStatus(), updateInfo, null, null);
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                                .updateJobOutput(getParentId(), this.getStatus(), updateInfo, null, null);
                         return null;
                     }, project);
                 } catch (Exception e) {
@@ -353,7 +332,23 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
+    private void killOrphanApplicationIfExists(String jobStepId) {
+        try {
+            val sparkConfs = getSparkConfigOverride();
+            val sparkMaster = sparkConfs.getOrDefault("spark.master", "local");
+            if (sparkMaster.startsWith("local")) {
+                logger.info("Skip kill orphan app for spark.master={}", sparkMaster);
+                return;
+            }
+            final IClusterManager cm = ClusterManagerFactory.create(getConfig());
+            cm.killApplication(jobStepId);
+        } catch (UncheckedTimeoutException e) {
+            logger.warn("Kill orphan app timeout {}", e.getMessage());
+        }
+    }
+
+    protected Map<String, String> getSparkConfigOverride() {
+        val config = getConfig();
         Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
         if (!sparkConfigOverride.containsKey("spark.driver.memory")) {
             sparkConfigOverride.put("spark.driver.memory", computeStepDriverMemory() + "m");
@@ -421,13 +416,12 @@ public class NSparkExecutable extends AbstractExecutable {
         sparkConfigOverride.put(sparkDriverExtraJavaOptionsKey, sb.toString());
     }
 
-    protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-            String appArgs) {
+    protected String generateSparkCmd(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
         StringBuilder sb = new StringBuilder();
         sb.append(
                 "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
-        Map<String, String> sparkConfs = getSparkConfigOverride(config);
+        Map<String, String> sparkConfs = getSparkConfigOverride();
         for (Entry<String, String> entry : sparkConfs.entrySet()) {
             appendSparkConf(sb, entry.getKey(), entry.getValue());
         }
@@ -438,14 +432,15 @@ public class NSparkExecutable extends AbstractExecutable {
             jars = jars + COMMA + sparkConfs.get("spark.sql.hive.metastore.jars");
         }
 
+        val config = getConfig();
         if (!Strings.isEmpty(config.getExtraJarsPath())) {
             jars = jars + COMMA + config.getExtraJarsPath();
         }
 
         sb.append("--name job_step_%s ");
         sb.append("--jars %s %s %s");
-        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), getId(), jars, kylinJobJar,
-                appArgs);
+        String cmd = String.format(sb.toString(), hadoopConf, KylinConfigBase.getSparkHome(), getId(), jars,
+                kylinJobJar, appArgs);
         logger.info("spark submit cmd: {}", cmd);
         return cmd;
     }
@@ -457,7 +452,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private ExecuteResult runLocalMode(String appArgs) {
         try {
-            Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
+            Class<?> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
             appClz.getMethod("main", String[].class).invoke(appClz.newInstance(), (Object) new String[] { appArgs });
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
@@ -490,7 +485,7 @@ public class NSparkExecutable extends AbstractExecutable {
             ResourceStore.dumpKylinProps(tmpDir, props);
         } else {
             // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-            Map dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
+            Map<String, RawResource> dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
                     UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
                         Map<String, RawResource> retMap = Maps.newHashMap();
                         for (String resPath : getMetadataDumpList(config)) {
@@ -517,6 +512,12 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private void deleteJobTmpDirectoryOnExists() {
+        if (!getConfig().isDeleteJobTmpWhenRetry()) {
+            return;
+        }
+        if (isResumable()) {
+            return;
+        }
         StorageURL storageURL = StorageURL.valueOf(getDistMetaUrl());
         String metaPath = storageURL.getParameter("path");
 

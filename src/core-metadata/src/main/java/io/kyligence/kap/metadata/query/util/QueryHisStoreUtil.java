@@ -181,6 +181,6 @@ public class QueryHisStoreUtil {
     }
 
     private static QueryHistoryDAO getQueryHistoryDao() {
-        return RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
+        return RDBMSQueryHistoryDAO.getInstance();
     }
 }
