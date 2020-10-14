@@ -108,4 +108,11 @@ public class OpenUserController extends NBasicController {
     public EnvelopeResponse<String> updateUserPassword(@RequestBody PasswordChangeRequest user) {
         return userController.updateUserPassword(user);
     }
+
+    @DeleteMapping(value = "")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> deleteUser(@RequestBody ManagedUser request) {
+        return userController.delete(request.getUsername());
+    }
 }

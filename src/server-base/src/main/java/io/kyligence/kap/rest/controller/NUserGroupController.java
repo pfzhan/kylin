@@ -61,7 +61,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.rest.request.AddUserGroupRequest;
+import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.response.UserGroupResponse;
 import io.kyligence.kap.rest.service.AclTCRService;
@@ -149,7 +149,7 @@ public class NUserGroupController extends NBasicController {
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> addUserGroup(@RequestBody AddUserGroupRequest addUserGroupRequest)
+    public EnvelopeResponse<String> addUserGroup(@RequestBody UserGroupRequest addUserGroupRequest)
             throws IOException {
         checkGroupName(addUserGroupRequest.getGroupName());
         userGroupService.addGroup(addUserGroupRequest.getGroupName());

@@ -28,7 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class AddUserGroupRequest {
+public class UserGroupRequest {
     @JsonProperty("group_name")
     private String groupName;
 }

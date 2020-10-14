@@ -55,7 +55,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserGroupController;
-import io.kyligence.kap.rest.request.AddUserGroupRequest;
+import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 
 @Controller
@@ -119,8 +119,16 @@ public class OpenUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
-        AddUserGroupRequest request = new AddUserGroupRequest();
+        UserGroupRequest request = new UserGroupRequest();
         request.setGroupName(groupName);
+        return userGroupController.addUserGroup(request);
+    }
+
+    @PostMapping(value = "")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> addUserGroupWithBody(@RequestBody UserGroupRequest request)
+            throws IOException {
         return userGroupController.addUserGroup(request);
     }
 
@@ -130,6 +138,15 @@ public class OpenUserGroupController extends NBasicController {
     public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
         String groupUuid = userGroupService.getUuidByGroupName(groupName);
+        return userGroupController.delUserGroup(groupUuid);
+    }
+
+    @DeleteMapping(value = "")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> delUserGroupWithBody(@RequestBody UserGroupRequest request)
+            throws IOException {
+        String groupUuid = userGroupService.getUuidByGroupName(request.getGroupName());
         return userGroupController.delUserGroup(groupUuid);
     }
 

@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import io.kyligence.kap.rest.request.UserGroupRequest;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -125,12 +126,38 @@ public class OpenUserGroupControllerTest {
     }
 
     @Test
+    public void testAddGroupWithBody() throws Exception {
+        Mockito.doNothing().when(userGroupService).addGroup("g1");
+        UserGroupRequest request = new UserGroupRequest();
+        request.setGroupName("g1");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openUserGroupController).addUserGroupWithBody(request);
+    }
+
+    @Test
     public void testDelGroup() throws Exception {
         Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", "g1@.h")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openUserGroupController).delUserGroup("g1@.h");
+    }
+
+    @Test
+    public void testDelGroupWithBody() throws Exception {
+        Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
+        UserGroupRequest request = new UserGroupRequest();
+        request.setGroupName("g1@.h");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openUserGroupController).delUserGroupWithBody(request);
     }
 
     @Test

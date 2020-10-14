@@ -77,7 +77,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.request.AddUserGroupRequest;
+import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -160,7 +160,7 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testAddGroup() throws Exception {
-        AddUserGroupRequest request = new AddUserGroupRequest();
+        UserGroupRequest request = new UserGroupRequest();
         request.setGroupName("g1");
         Mockito.doNothing().when(userGroupService).addGroup("g1");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group").contentType(MediaType.APPLICATION_JSON)
@@ -174,14 +174,14 @@ public class NUserGroupControllerTest {
     public void testAddEmptyGroup() throws Exception {
         thrown.expect(KylinException.class);
         thrown.expectMessage("User group name should not be empty.");
-        AddUserGroupRequest request = new AddUserGroupRequest();
+        UserGroupRequest request = new UserGroupRequest();
         request.setGroupName("");
         nUserGroupController.addUserGroup(request);
     }
 
     @Test(expected = KylinException.class)
     public void testAddIllegalGroupName() throws Exception {
-        AddUserGroupRequest request = new AddUserGroupRequest();
+        UserGroupRequest request = new UserGroupRequest();
         request.setGroupName(".hhhh");
         nUserGroupController.addUserGroup(request);
     }

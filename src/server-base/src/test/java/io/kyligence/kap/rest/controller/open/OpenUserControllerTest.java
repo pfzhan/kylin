@@ -29,7 +29,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -59,6 +58,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ContentNegotiationManager;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -168,6 +169,22 @@ public class OpenUserControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(openUserController).delete("u1");
+    }
+
+    @Test
+    public void testDelUserWithBody() throws Exception {
+        Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
+        Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
+        ManagedUser request = new ManagedUser();
+        request.setUsername("u1");
+        mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/user", "u1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(openUserController).deleteUser(request);
     }
 
     @Test
