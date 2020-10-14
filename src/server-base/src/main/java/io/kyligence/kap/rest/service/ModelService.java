@@ -3054,31 +3054,16 @@ public class ModelService extends BasicService {
         }
 
         NDataflow df = getDataflowManager(project).getDataflow(modelId);
-        IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(modelId);
-
         val segments = df.getSegments();
         if (segments.isEmpty()) {
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
         }
 
-        // be process layouts = all layouts - ready layouts
-        val lastSeg = segments.getLastSegment();
-        Set<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
-        for (LayoutEntity layout : indexPlan.getAllLayouts()) {
-            NDataLayout nc = lastSeg.getLayout(layout.getId());
-            if (nc == null) {
-                toBeProcessedLayouts.add(layout);
-            }
-        }
-
-        if (CollectionUtils.isEmpty(toBeProcessedLayouts)) {
-            return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
-        }
-
         String jobId = getSourceUsageManager().licenseCheckWrap(project,
                 () -> getJobManager(project).addFullIndexJob(new JobParam(modelId, getUsername())));
 
-        return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
+        return new BuildIndexResponse(StringUtils.isBlank(jobId) ?
+                BuildIndexResponse.BuildIndexType.NO_LAYOUT : BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }
 
     public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {

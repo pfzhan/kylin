@@ -172,7 +172,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
 
     public T getFirstSegment() {
-        if (this == null || this.size() == 0) {
+        if (this.size() == 0) {
             return null;
         } else {
             return this.get(0);
@@ -180,7 +180,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public T getLastSegment() {
-        if (this == null || this.size() == 0) {
+        if (this.size() == 0) {
             return null;
         } else {
             return this.get(this.size() - 1);
