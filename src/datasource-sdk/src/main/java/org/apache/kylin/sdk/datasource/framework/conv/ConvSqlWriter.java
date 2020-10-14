@@ -23,8 +23,7 @@
  */
 package org.apache.kylin.sdk.datasource.framework.conv;
 
-import java.sql.SQLException;
-
+import com.google.common.collect.Lists;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlLiteral;
@@ -37,24 +36,19 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
 
 public class ConvSqlWriter extends SqlPrettyWriter {
-    private static final Logger logger = LoggerFactory.getLogger(ConvSqlWriter.class);
 
     private static final SqlOrderBy DUMMY_ORDER_BY_NODE = new SqlOrderBy(SqlParserPos.ZERO,
             new DummySqlNode(SqlParserPos.ZERO),
-            new SqlNodeList(Lists.<SqlNode> newArrayList(SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+            new SqlNodeList(Lists.<SqlNode>newArrayList(SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
                     SqlParserPos.ZERO),
             null, null);
 
     private SqlConverter.IConfigurer configurer;
     private FrameImpl lastFrame;
 
-    ConvSqlWriter(SqlConverter.IConfigurer configurer) throws SQLException {
+    ConvSqlWriter(SqlConverter.IConfigurer configurer) {
         super(configurer.getSqlDialect());
 
         this.configurer = configurer;
@@ -230,11 +224,11 @@ public class ConvSqlWriter extends SqlPrettyWriter {
     public void writeWithItem(SqlCall call, SqlWithItem.SqlWithItemOperator sqlWithItemOperator, int leftPrec,
                               int rightPrec) {
         final SqlWithItem withItem = (SqlWithItem) call;
-        leftPrec = sqlWithItemOperator.getLeftPrec();
-        rightPrec = sqlWithItemOperator.getRightPrec();
-        withItem.name.unparse(this, leftPrec, rightPrec);
+        int newLeftPrec = sqlWithItemOperator.getLeftPrec();
+        int newRightPrec = sqlWithItemOperator.getRightPrec();
+        withItem.name.unparse(this, newLeftPrec, newRightPrec);
         if (withItem.columnList != null) {
-            withItem.columnList.unparse(this, leftPrec, rightPrec);
+            withItem.columnList.unparse(this, newLeftPrec, newRightPrec);
         }
         this.keyword("AS");
         Frame frame = this.startList(FrameTypeEnum.WITH_ITEM, "(", ")");

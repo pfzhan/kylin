@@ -41,9 +41,13 @@ import java.util.Map;
  * A default implementation for <C>AbstractJdbcAdaptor</C>. By default, this adaptor supposed to support most cases.
  * Developers can just extends this class and modify some methods if found somewhere unsupported.
  */
+@SuppressWarnings("UnstableApiUsage")
 public class DefaultAdaptor extends AbstractJdbcAdaptor {
 
     private static Joiner joiner = Joiner.on("_");
+
+    private static final String TABLE_SCHEM = "TABLE_SCHEM";
+    private static final String TABLE_NAME = "TABLE_NAME";
 
     private static final String DROP_TABLE_SQL = "DROP TABLE IF EXISTS ";
 
@@ -159,7 +163,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
      * @param identifier
      * @return identifier with case sensitive
      */
-    public String fixIdentifierCaseSensitve(String identifier) {
+    public String fixIdentifierCaseSensitive(String identifier) {
         try {
             List<String> databases = listDatabasesWithCache();
             for (String db : databases) {
@@ -196,7 +200,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
         List<String> ret = new LinkedList<>();
         try (Connection con = getConnection(); ResultSet rs = con.getMetaData().getSchemas()) {
             while (rs.next()) {
-                String schema = rs.getString("TABLE_SCHEM");
+                String schema = rs.getString(TABLE_SCHEM);
                 if (StringUtils.isNotBlank(schema)) {
                     ret.add(schema);
                 }
@@ -217,7 +221,7 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
         List<String> ret = new ArrayList<>();
         try (Connection conn = getConnection(); ResultSet rs = conn.getMetaData().getTables(null, schema, null, null)) {
             while (rs.next()) {
-                String name = rs.getString("TABLE_NAME");
+                String name = rs.getString(TABLE_NAME);
                 if (StringUtils.isNotBlank(name)) {
                     ret.add(name);
                 }
@@ -234,12 +238,12 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
      */
     public List<String> listTables() throws SQLException {
         List<String> ret = new ArrayList<>();
-        if (TABLES_CACHE == null || TABLES_CACHE.size() == 0) {
+        if (TABLES_CACHE != null && TABLES_CACHE.size() == 0) {
             try (Connection conn = getConnection();
                  ResultSet rs = conn.getMetaData().getTables(null, null, null, null)) {
                 while (rs.next()) {
-                    String name = rs.getString("TABLE_NAME");
-                    String database = rs.getString("TABLE_SCHEM") != null ? rs.getString("TABLE_SCHEM")
+                    String name = rs.getString(TABLE_NAME);
+                    String database = rs.getString(TABLE_SCHEM) != null ? rs.getString(TABLE_SCHEM)
                             : rs.getString("TABLE_CAT");
                     String cacheKey = joiner.join(config.datasourceId, config.url, "tables", database);
                     List<String> cachedTables = TABLES_CACHE.getIfPresent(cacheKey);
@@ -301,16 +305,16 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
      */
     public List<String> listColumns() throws SQLException {
         List<String> ret = new ArrayList<>();
-        if (COLUMNS_CACHE == null || COLUMNS_CACHE.size() == 0) {
+        if (COLUMNS_CACHE != null && COLUMNS_CACHE.size() == 0) {
             CachedRowSet columnsRs = null;
             try (Connection conn = getConnection();
                  ResultSet rs = conn.getMetaData().getColumns(null, null, null, null)) {
                 columnsRs = cacheResultSet(rs);
             }
             while (columnsRs.next()) {
-                String database = columnsRs.getString("TABLE_SCHEM") != null ? columnsRs.getString("TABLE_SCHEM")
+                String database = columnsRs.getString(TABLE_SCHEM) != null ? columnsRs.getString(TABLE_SCHEM)
                         : columnsRs.getString("TABLE_CAT");
-                String table = columnsRs.getString("TABLE_NAME");
+                String table = columnsRs.getString(TABLE_NAME);
                 String column_name = columnsRs.getString("COLUMN_NAME");
                 String cacheKey = joiner.join(config.datasourceId, config.url, database, table, "columns");
                 List<String> cachedColumns = COLUMNS_CACHE.getIfPresent(cacheKey);

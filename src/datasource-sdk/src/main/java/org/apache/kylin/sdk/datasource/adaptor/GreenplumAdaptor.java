@@ -23,16 +23,15 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import com.sun.rowset.FilteredRowSetImpl;
 
 import javax.sql.RowSet;
 import javax.sql.rowset.CachedRowSet;
 import javax.sql.rowset.FilteredRowSet;
 import javax.sql.rowset.Predicate;
-
-import com.sun.rowset.FilteredRowSetImpl;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class GreenplumAdaptor extends DefaultAdaptor {
 
@@ -43,7 +42,7 @@ public class GreenplumAdaptor extends DefaultAdaptor {
     @Override
     public CachedRowSet getTableColumns(final String schema, final String table) throws SQLException {
         try (Connection conn = getConnection();
-                ResultSet rs = conn.getMetaData().getColumns(conn.getCatalog(), null, null, null)) {
+             ResultSet rs = conn.getMetaData().getColumns(conn.getCatalog(), null, null, null);) {
             FilteredRowSet r = new FilteredRowSetImpl();
             r.setFilter(new FilterPredicate(schema, table));
             r.populate(rs);
@@ -54,7 +53,7 @@ public class GreenplumAdaptor extends DefaultAdaptor {
     @Override
     public CachedRowSet getTable(String schema, String table) throws SQLException {
         try (Connection conn = getConnection();
-                ResultSet rs = conn.getMetaData().getTables(conn.getCatalog(), null, null, null)) {
+             ResultSet rs = conn.getMetaData().getTables(conn.getCatalog(), null, null, null)) {
             FilteredRowSet r = new FilteredRowSetImpl();
             r.setFilter(new FilterPredicate(schema, table));
             r.populate(rs);

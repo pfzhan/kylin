@@ -133,7 +133,7 @@ public class DefaultConfigurer implements SqlConverter.IConfigurer{
         if (this.adaptor == null || !isCaseSensitive()) {
             return orig;
         }
-        return adaptor.fixIdentifierCaseSensitve(orig);
+        return adaptor.fixIdentifierCaseSensitive(orig);
     }
 
     @Override

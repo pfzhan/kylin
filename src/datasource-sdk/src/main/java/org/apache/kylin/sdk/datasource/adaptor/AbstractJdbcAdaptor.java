@@ -161,8 +161,8 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
                     try {
                         TimeUnit.MILLISECONDS.sleep(config.getSleepMillisecBetweenRetry());
                     } catch (InterruptedException e) {
-                        logger.error("Retry connecting to {} is interrupted whiling sleeping: {}", config.url, e.getLocalizedMessage());
-                        throw new SQLException(e);
+                        logger.error("Retry connecting to {} is interrupted whiling sleeping:", config.url, e);
+                        Thread.currentThread().interrupt();
                     }
                 }
             }
@@ -328,7 +328,7 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
      * @param identifier
      * @return
      */
-    public abstract String fixIdentifierCaseSensitve(String identifier);
+    public abstract String fixIdentifierCaseSensitive(String identifier);
 
     /**
      * To list all the available database names from JDBC source.
