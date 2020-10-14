@@ -529,6 +529,8 @@ class ProjectMigrator:
                     logging.warning("skip cube %s because model %s in bypass model list", cube_name, model_name)
                     continue
 
+                with open(INPUT_ROOT + '/cube/' + cube_name + '.json') as cube_instance_file:
+                    cube_instance_json = json.load(cube_instance_file)
                 with open(INPUT_ROOT + '/cube_desc/' + cube_name + '.json') as cube_file:
                     cube_json = json.load(cube_file)
                 with open(INPUT_ROOT + '/model_desc/' + model_name + '.json') as model_file:
@@ -542,7 +544,7 @@ class ProjectMigrator:
                     continue
                 uuid = cube_json['uuid']
                 logging.info('migrating cube %s -- %s, uuid %s', self.project, cube_name, uuid)
-                self.migrate_model_and_cube(model_name, cube_json, model_json)
+                self.migrate_model_and_cube(model_name, cube_instance_json, cube_json, model_json)
             except Exception as e:
                 logging.exception(
                     'cube %s -- %s migrate failed', self.project, cube_name)
@@ -566,7 +568,7 @@ class ProjectMigrator:
             table_json['source_type'] = 9
             json.dump(table_json, new_table_file, indent=2)
 
-    def migrate_model_and_cube(self, model_name, cube_json, model_json):
+    def migrate_model_and_cube(self, model_name, cube_instance_json, cube_json, model_json):
         uuid = cube_json['uuid']
         with open(OUTPUT_ROOT + '/' + self.project + '/model_desc/' + uuid + '.json', 'w') as new_model_file:
             model_json['uuid'] = uuid
@@ -614,7 +616,10 @@ class ProjectMigrator:
         with open(OUTPUT_ROOT + '/' + self.project + '/dataflow/' + uuid + '.json', 'w') as new_cube_file:
             dataflow_json = json.loads(DATAFLOW_TEMPLATE)
             dataflow_json['uuid'] = uuid
-            if model_name in OFFLINE_MODEL_LIST:
+            cube_status = cube_instance_json['status']
+            if cube_status == 'DESCBROKEN':
+                dataflow_json['status'] = 'BROKEN'
+            if model_name in OFFLINE_MODEL_LIST or cube_status == 'DISABLED':
                 dataflow_json['status'] = 'OFFLINE'
             json.dump(dataflow_json, new_cube_file, indent=2)
 
