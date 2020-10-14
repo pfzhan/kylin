@@ -43,7 +43,7 @@ public class DebugSparkShell {
                 "file:" + System.getProperty("user.dir") + "/build/conf/kylin-tools-log4j.properties");
 
         // prepare UT metadata
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
 
         // launch spark shell

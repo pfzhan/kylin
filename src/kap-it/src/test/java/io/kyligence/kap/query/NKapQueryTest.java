@@ -77,7 +77,7 @@ public class NKapQueryTest extends NKylinTestBase {
         logger.info("tearDown in NKapQueryTest");
         System.clearProperty("kylin.query.engine.sparder-enabled");
         NKylinTestBase.clean();
-        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
     @Test

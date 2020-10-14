@@ -23,20 +23,18 @@
 package io.kyligence.kap.common
 
 import com.google.common.base.Preconditions
+import io.kyligence.kap.common.util.TempMetadataBuilder
 import io.kyligence.kap.metadata.model.NTableMetadataManager
-import io.kyligence.kap.query.util.SparkSQLFunctionConverter
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.query.util.{QueryParams, QueryUtil}
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.scalatest.Suite
 
-import scala.util.Random
-
 trait SSSource extends SharedSparkSession with LocalMetadata {
   self: Suite =>
 
-  val CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv"
+  val CSV_TABLE_DIR = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv"
 
   override def beforeAll() {
     super.beforeAll()

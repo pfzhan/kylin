@@ -71,7 +71,7 @@ public class NFlattableJoinWithoutLookupTest extends NLocalWithSparkSessionTest 
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("kylin.job.flat-table-join-without-lookup");
-        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
     @Override

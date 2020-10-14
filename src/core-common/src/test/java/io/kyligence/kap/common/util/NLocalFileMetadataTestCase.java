@@ -45,7 +45,6 @@ import lombok.val;
 
 public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
-    private static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
     protected static File tempMetadataDirectory = null;
     Map<Object, Object> originManager = Maps.newHashMap();
 
@@ -157,7 +156,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static void staticCreateTestMetadata(String... overlay) {
         cleanSingletonInstances();
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata(false, overlay);
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata(false, overlay);
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
@@ -197,7 +196,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static void staticCreateTestMetadata() {
         cleanSingletonInstances();
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
@@ -214,7 +213,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static void staticCleanupTestMetadata() {
         cleanSingletonInstances();
-        File directory = new File(LOCALMETA_TEMP_DATA);
+        File directory = new File(TempMetadataBuilder.TEMP_TEST_METADATA);
         FileUtils.deleteQuietly(directory);
 
         clearTestConfig();

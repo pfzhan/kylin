@@ -54,7 +54,7 @@ class KylinJoinSuite extends QueryTest with SharedSQLContext {
 
   setupTestData()
 
-  KylinConfig.setKylinConfigForLocalTest(TempMetadataBuilder.prepareNLocalTempMetadata())
+  KylinConfig.setKylinConfigForLocalTest(TempMetadataBuilder.prepareLocalTempMetadata())
 
   test("driver memory is not enough.") {
     spark.extensions.injectPlannerStrategy(KylinJoinSelection(_))

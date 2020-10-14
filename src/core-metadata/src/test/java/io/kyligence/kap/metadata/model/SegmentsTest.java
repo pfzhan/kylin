@@ -48,7 +48,7 @@ public class SegmentsTest {
 
     @Before
     public void setUp() throws Exception {
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         config = KylinConfig.getInstanceFromEnv();
     }

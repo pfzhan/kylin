@@ -1898,6 +1898,7 @@
                             <argLine>-Xms1G -Xmx8G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current
                             </argLine>
                             <reportFormat>plain</reportFormat>
+                            <forkCount>4</forkCount>
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>
@@ -1909,7 +1910,7 @@
                                 <property>
                                     <name>log4j.configuration</name>
                                     <value>
-                                        file:${user.dir}/build/conf/kylin-tools-log4j.properties
+                                        file:${user.dir}/src/core-common/src/test/resources/log4j-ci.properties
                                     </value>
                                 </property>
                             </systemProperties>

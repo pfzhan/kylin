@@ -281,7 +281,7 @@ public class SemiAutoTestBase extends NSuggestTestBase {
             buildAllCubes(kylinConfig, getProject());
             compare(compareMap, testScenarios);
         } finally {
-            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+            FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
         }
     }
 

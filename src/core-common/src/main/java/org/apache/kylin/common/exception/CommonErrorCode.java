@@ -64,7 +64,11 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     FAILED_PARSE_JSON("KE-00028001"), //
 
     // 00028XXX source usage
-    LICENSE_OVER_CAPACITY("KE-00028001");
+    LICENSE_OVER_CAPACITY("KE-00028001"), //
+
+    // 00029XXX file
+    INVALID_ZIP_NAME("KE-00029001"), //
+    INVALID_ZIP_ENTRY("KE-00029002");
 
     private final ErrorCode errorCode;
 

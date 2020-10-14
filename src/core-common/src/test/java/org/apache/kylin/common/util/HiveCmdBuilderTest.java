@@ -62,7 +62,7 @@ public class HiveCmdBuilderTest {
 
     @Before
     public void setup() {
-        System.setProperty("KYLIN_CONF", TempMetadataBuilder.N_KAP_META_TEST_DATA);
+        System.setProperty("KYLIN_CONF", TempMetadataBuilder.KAP_META_TEST_DATA);
     }
 
     @After

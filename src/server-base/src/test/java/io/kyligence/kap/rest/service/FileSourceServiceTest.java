@@ -103,7 +103,7 @@ public class FileSourceServiceTest extends NLocalFileMetadataTestCase {
 
     public CSVRequest mockCsvRequest() {
         CSVRequest csvRequest = new CSVRequest();
-        csvRequest.setUrl("../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_COUNTRY.csv");
+        csvRequest.setUrl("../examples/test_case_data/localmeta/data/DEFAULT.TEST_COUNTRY.csv");
         csvRequest.setType("LOCAL");
         return csvRequest;
     }
@@ -169,7 +169,7 @@ public class FileSourceServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("create external table SSB.COUNTRY(COUNTRY string,LATITUDE double,"
                 + "LONGITUDE double,NAME string) row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde' "
                 + "with serdeproperties(\"separatorChar\" = \",\", \"quoteChar\" = \"\\\"\") location "
-                + "'../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_COUNTRY.csv'", ddl);
+                + "'../examples/test_case_data/localmeta/data/DEFAULT.TEST_COUNTRY.csv'", ddl);
     }
 
     @Test

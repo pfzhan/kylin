@@ -60,7 +60,7 @@ public class NIndexPlanManagerTest {
 
     @Before
     public void setUp() {
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
     }
 

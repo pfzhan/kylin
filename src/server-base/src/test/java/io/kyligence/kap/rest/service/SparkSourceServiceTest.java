@@ -81,7 +81,7 @@ public class SparkSourceServiceTest extends ServiceTestBase {
         ddlRequest.setSql("use default;create external table COUNTRY(COUNTRY string,LATITUDE double,"
                 + "LONGITUDE double,NAME string) row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde' "
                 + "with serdeproperties(\"separatorChar\" = \",\", \"quoteChar\" = \"\\\"\") location "
-                + "'../examples/test_case_data/localmeta_n/data'");
+                + "'../examples/test_case_data/localmeta/data'");
         sparkSourceService.executeSQL(ddlRequest);
     }
 

@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.util.ProcessUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -812,7 +813,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setMetadataUrl("test");
         String dir = config.getHdfsWorkingDirectory();
-        Assert.assertTrue(dir.endsWith("examples/test_metadata/working-dir/test/"));
+        Assert.assertTrue(dir.endsWith("examples/test_data/" + ProcessUtil.getProcessId("0") + "/working-dir/test/"));
     }
 
     @Test

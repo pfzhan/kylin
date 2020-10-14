@@ -44,10 +44,6 @@ import java.util.UUID;
 
 public class SparkSqlContextHealthIndicatorTest extends NLocalFileMetadataTestCase {
 
-    private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
-
-    protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
-
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
 

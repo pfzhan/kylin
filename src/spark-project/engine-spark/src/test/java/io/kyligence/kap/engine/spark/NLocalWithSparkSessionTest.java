@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
@@ -83,7 +84,7 @@ import lombok.val;
 @Slf4j
 public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
 
-    private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
+    private static final String CSV_TABLE_DIR = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv";
 
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
 

@@ -25,6 +25,7 @@ package io.kyligence.kap.engine.spark.source;
 
 import java.util.List;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -99,7 +100,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
     @Test
     public void testLoadData() throws Exception {
         NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
-        sparkMetadataExplorer.loadSampleData("SSB.PART", "../examples/test_metadata/data/");
+        sparkMetadataExplorer.loadSampleData("SSB.PART", TempMetadataBuilder.TEMP_TEST_METADATA +  "/data/");
         List<Row> rows = ss.sql("select * from part").collectAsList();
         Assert.assertTrue(rows != null && rows.size() > 0);
     }

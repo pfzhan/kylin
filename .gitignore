@@ -96,8 +96,8 @@ webapp/app/kylin-servlet.xml
 webapp/app/web.xml
 
 #kylin
-src/examples/test_metadata/*
-src/spark-project/examples/test_metadata/*
+src/examples/test_data/*
+src/spark-project/examples/test_data/*
 
 #kybot
 kybot/

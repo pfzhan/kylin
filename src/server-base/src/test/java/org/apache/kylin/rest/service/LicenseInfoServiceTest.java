@@ -122,17 +122,15 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testParseFailed() throws IOException {
-        val licenseFilePath = LicenseInfoService.getDefaultLicenseFile().getAbsolutePath();
+        File kylinHome = KapConfig.getKylinHomeAtBestEffort();
+
         try {
-            FileUtils.copyFile(new File(licenseFilePath), new File(licenseFilePath + ".backup"));
             FileUtils.copyFile(new File("src/test/resources/ut_license/wrong_volume_license"),
-                    new File(licenseFilePath));
+                    new File(kylinHome, "/LICENSE"));
             licenseInfoService.init(code -> log.info("code {}", code));
-            Assert.assertTrue(new File(licenseFilePath + ".error").exists());
+            Assert.assertTrue(new File(kylinHome.getAbsolutePath() + "/LICENSE.error").exists());
         } finally {
-            FileUtils.copyFile(new File(licenseFilePath + ".backup"), new File(licenseFilePath));
-            FileUtils.deleteQuietly(new File(licenseFilePath + ".error"));
-            FileUtils.deleteQuietly(new File(licenseFilePath + ".backup"));
+            FileUtils.deleteQuietly(new File(kylinHome.getAbsolutePath() + "/LICENSE.error"));
         }
     }
 

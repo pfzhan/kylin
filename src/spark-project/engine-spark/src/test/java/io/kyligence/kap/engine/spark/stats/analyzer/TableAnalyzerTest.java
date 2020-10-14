@@ -141,7 +141,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof AnalysisException);
             Assert.assertTrue(e.getMessage().startsWith("Path does not exist:")
-                    && e.getMessage().endsWith("/test_metadata/data/DEFAULT.NOT_EXIST_TABLE.csv;"));
+                    && e.getMessage().endsWith("/data/DEFAULT.NOT_EXIST_TABLE.csv;"));
         }
     }
 

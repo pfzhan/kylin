@@ -32,7 +32,7 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   conf.set("spark.sql.catalogImplementation", "hive")
   test("Test load error view") {
-    System.setProperty("KYLIN_CONF", TempMetadataBuilder.N_SPARK_PROJECT_KAP_META_TEST_DATA)
+    System.setProperty("KYLIN_CONF", TempMetadataBuilder.SPARK_PROJECT_KAP_META_TEST_DATA)
     SparderEnv.setSparkSession(spark)
 
     spark.sql("CREATE TABLE hive_table (a int, b int)")

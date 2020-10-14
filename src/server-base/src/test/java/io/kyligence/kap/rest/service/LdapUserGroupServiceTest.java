@@ -125,11 +125,13 @@ public class LdapUserGroupServiceTest extends NLocalFileMetadataTestCase {
         String password = ldapConfig.getProperty("kylin.security.ldap.connection-password");
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig("dc=example,dc=com");
         config.addAdditionalBindCredentials(dn, password);
-        config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 8389));
+        config.setListenerConfigs(InMemoryListenerConfig.createLDAPConfig("LDAP", 0));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);
         directoryServer = new InMemoryDirectoryServer(config);
         directoryServer.startListening();
+        System.setProperty("kylin.security.ldap.connection-server",
+                "ldap://127.0.0.1:" + directoryServer.getListenPort());
         LdapTestUtils.loadLdif(directoryServer, new ClassPathResource(LDAP_SERVER));
     }
 
@@ -137,6 +139,7 @@ public class LdapUserGroupServiceTest extends NLocalFileMetadataTestCase {
     public static void cleanupResource() throws Exception {
         directoryServer.shutDown(true);
         staticCleanupTestMetadata();
+        System.clearProperty("kylin.security.ldap.connection-server");
     }
 
     @Before

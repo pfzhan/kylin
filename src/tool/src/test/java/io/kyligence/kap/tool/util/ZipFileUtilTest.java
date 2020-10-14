@@ -33,13 +33,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import lombok.val;
+
 public class ZipFileUtilTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void testCompressZipFile() throws IOException {
+    public void testCompressAndDecompressZipFile() throws IOException {
         String mainDir = temporaryFolder.getRoot() + "/testCompressZipFile";
 
         File compressDir = new File(mainDir, "compress_dir");
@@ -47,11 +49,23 @@ public class ZipFileUtilTest {
 
         FileUtils.writeStringToFile(new File(compressDir, "a.txt"), "111111111111");
         FileUtils.writeStringToFile(new File(compressDir, "b.txt"), "222222222222");
+        FileUtils.forceMkdir(new File(compressDir, "c"));
+        FileUtils.writeStringToFile(new File(compressDir, "c/c1.txt"), "333333333333");
 
         String zipFilename = compressDir.getAbsolutePath() + ".zip";
         ZipFileUtil.compressZipFile(compressDir.getAbsolutePath(), zipFilename);
 
         Assert.assertTrue(new File(zipFilename).exists() && new File(zipFilename).length() > 200);
+
+        File decompressDir = new File(mainDir, "decompress_dir");
+        FileUtils.forceMkdir(decompressDir);
+        ZipFileUtil.decompressZipFile(zipFilename, decompressDir.getAbsolutePath());
+
+        val aFile = new File(decompressDir.getAbsolutePath(), "compress_dir/a.txt");
+        val c1File = new File(decompressDir.getAbsolutePath(), "compress_dir/c/c1.txt");
+        Assert.assertTrue(aFile.exists());
+        Assert.assertEquals("111111111111", FileUtils.readFileToString(aFile));
+        Assert.assertEquals("333333333333", FileUtils.readFileToString(c1File));
     }
 
     @Test

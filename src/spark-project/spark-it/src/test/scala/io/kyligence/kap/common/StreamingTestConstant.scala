@@ -21,8 +21,10 @@
  */
 package io.kyligence.kap.common
 
+import io.kyligence.kap.common.util.TempMetadataBuilder
+
 object StreamingTestConstant {
-  val KAP_SSB_STREAMING_TABLE = "../examples/test_metadata/data/SSB.P_LINEORDER.csv"
+  val KAP_SSB_STREAMING_TABLE = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/SSB.P_LINEORDER.csv"
   val KAFKA_QPS = 500
 
   val High_KAFKA_QPS = 10000

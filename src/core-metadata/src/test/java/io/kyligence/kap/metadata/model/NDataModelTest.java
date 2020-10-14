@@ -45,7 +45,7 @@ public class NDataModelTest {
 
     @Before
     public void setUp() throws Exception {
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         config = KylinConfig.getInstanceFromEnv();
         mgr = NDataModelManager.getInstance(config, DEFAULT_PROJECT);

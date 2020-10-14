@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.ProcessUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -338,8 +339,8 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         List<String> projects = Lists.newArrayList(PROJECT, "newten");
         Map<String, String> tableMap = queryHistoryService.getQueryHistoryTableMap(projects);
         Assert.assertEquals(2, tableMap.size());
-        Assert.assertEquals("_examples_test_metadata_metadata_query_history", tableMap.get("newten"));
-        Assert.assertEquals("_examples_test_metadata_metadata_query_history", tableMap.get(PROJECT));
+        Assert.assertEquals("_examples_test_data_" + ProcessUtil.getProcessId("0") + "_metadata_query_history", tableMap.get("newten"));
+        Assert.assertEquals("_examples_test_data_" + ProcessUtil.getProcessId("0") + "_metadata_query_history", tableMap.get(PROJECT));
 
         // get all tables
         tableMap = queryHistoryService.getQueryHistoryTableMap(null);

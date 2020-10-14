@@ -61,7 +61,7 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
     @Override

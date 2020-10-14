@@ -106,7 +106,7 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
     }
 
     private static void setLocalEnvs() {
-        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         File localMetadata = new File(tempMetadataDir);
 

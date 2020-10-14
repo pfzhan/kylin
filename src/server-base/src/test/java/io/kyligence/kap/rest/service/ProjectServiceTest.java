@@ -570,7 +570,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testDropProject() {
         KylinConfig.getInstanceFromEnv().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
         val project = "project12";
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(project);

@@ -93,7 +93,7 @@ public class CredentialOperatorTest {
     @Test
     public void testCsvSamples() {
         String[] firstRowArray = new String[] { "AD", "42.546245", "1.601554", "Andorra" };
-        String url = "../../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_COUNTRY.csv";
+        String url = "../../examples/test_case_data/localmeta/data/DEFAULT.TEST_COUNTRY.csv";
         Map<String, String> map = Maps.newHashMap();
         map.put("delimiter", ",");
         String[][] csvSamples = localFileCredentialOperator.csvSamples(url, map);
@@ -104,7 +104,7 @@ public class CredentialOperatorTest {
     @Test
     public void testCsvSchema() {
         List<String> expectedSchema = Lists.newArrayList("string", "double", "double", "string");
-        String url = "../../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_COUNTRY.csv";
+        String url = "../../examples/test_case_data/localmeta/data/DEFAULT.TEST_COUNTRY.csv";
         Map<String, String> map = Maps.newHashMap();
         map.put("delimiter", ",");
         List<String> csvSchema = localFileCredentialOperator.csvSchema(url, map);

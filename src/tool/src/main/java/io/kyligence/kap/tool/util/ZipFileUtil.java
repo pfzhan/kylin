@@ -27,19 +27,49 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exception.CommonErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+
+import lombok.val;
 
 public class ZipFileUtil {
     private ZipFileUtil() {
     }
 
+    public static void decompressZipFile(String zipFilename, String targetDir) throws IOException {
+        if (!validateZipFilename(zipFilename)) {
+            throw new KylinException(CommonErrorCode.INVALID_ZIP_NAME, "Zipfile must end with .zip");
+        }
+        String normalizedTargetDir = Paths.get(targetDir).normalize().toString();
+        try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFilename))) {
+            ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                if (entry.isDirectory()) {
+                    val entryDir = Paths.get(targetDir, entry.getName()).normalize().toString();
+                    if (!entryDir.startsWith(normalizedTargetDir)) {
+                        throw new KylinException(CommonErrorCode.INVALID_ZIP_ENTRY,
+                                "Zip Entry <" + entry.getName() + "> is Invalid");
+                    }
+                    Files.createDirectories(Paths.get(entryDir));
+                } else {
+                    Files.createDirectories(Paths.get(targetDir, entry.getName()).getParent());
+                    Files.copy(zipInputStream, Paths.get(targetDir, entry.getName()));
+                }
+            }
+        }
+    }
+
     public static void compressZipFile(String sourceDir, String zipFilename) throws IOException {
         if (!validateZipFilename(zipFilename)) {
-            throw new RuntimeException("Zipfile must end with .zip");
+            throw new KylinException(CommonErrorCode.INVALID_ZIP_NAME, "Zipfile must end with .zip");
         }
         try (ZipOutputStream zipFile = new ZipOutputStream(new FileOutputStream(zipFilename))) {
             compressDirectoryToZipfile(normDir(new File(sourceDir).getParent()), normDir(sourceDir), zipFile);

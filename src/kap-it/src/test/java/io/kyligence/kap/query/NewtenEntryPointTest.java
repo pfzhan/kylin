@@ -79,7 +79,7 @@ public class NewtenEntryPointTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testConfig() {
-        System.setProperty("KYLIN_CONF", "../examples/test_case_data/localmeta_n");
+        System.setProperty("KYLIN_CONF", "../examples/test_case_data/localmeta");
         ss.prepareKylinConfig();
     }
 }

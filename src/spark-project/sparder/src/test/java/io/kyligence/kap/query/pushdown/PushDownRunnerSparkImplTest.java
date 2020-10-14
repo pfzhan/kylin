@@ -81,7 +81,7 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
         schema = schema.add("PRICE", DataTypes.createDecimalType(19, 4), false);
         schema = schema.add("ITEM_COUNT", DataTypes.DoubleType, false);
         schema = schema.add("TEST_COUNT_DISTINCT_BITMAP", DataTypes.StringType, false);
-        ss.read().schema(schema).csv("../../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_KYLIN_FACT.csv")
+        ss.read().schema(schema).csv("../../examples/test_case_data/localmeta/data/DEFAULT.TEST_KYLIN_FACT.csv")
                 .createOrReplaceTempView("TEST_KYLIN_FACT");
     }
 

@@ -143,7 +143,7 @@ public class KylinConfig extends KylinConfigBase {
     // Only used in test cases!!!
     public static void setKylinConfigForLocalTest(String localMetaDir) {
         synchronized (KylinConfig.class) {
-            if (new File(localMetaDir, "kylin.properties").exists() == false)
+            if (!new File(localMetaDir, "kylin.properties").exists())
                 throw new IllegalArgumentException(localMetaDir + " is not a valid local meta dir");
 
             destroyInstance();

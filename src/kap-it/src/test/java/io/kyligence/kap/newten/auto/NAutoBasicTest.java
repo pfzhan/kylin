@@ -96,7 +96,7 @@ public class NAutoBasicTest extends NAutoTestBase {
             Assert.assertNotNull(indexPlan);
         }
 
-        //FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        //FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
 
         // 3. Auto suggested model is able to serve related query
         {
@@ -139,7 +139,7 @@ public class NAutoBasicTest extends NAutoTestBase {
             NExecAndComp.execAndCompare(queries, getProject(), NExecAndComp.CompareLevel.SAME, "default");
         }
 
-        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
     @Test
@@ -273,7 +273,7 @@ public class NAutoBasicTest extends NAutoTestBase {
             }
         }
 
-        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
     /**

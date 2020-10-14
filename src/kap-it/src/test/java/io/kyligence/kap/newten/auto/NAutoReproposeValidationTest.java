@@ -56,7 +56,7 @@ public class NAutoReproposeValidationTest extends NAutoTestBase {
                 Assert.assertFalse(func.getColRefs().isEmpty());
             });
         } finally {
-            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+            FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
         }
     }
 

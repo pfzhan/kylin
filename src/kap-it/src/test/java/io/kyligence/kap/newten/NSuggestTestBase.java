@@ -76,6 +76,7 @@ import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.tool.util.ZipFileUtil;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import lombok.Getter;
@@ -111,7 +112,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         excludedSqlPatterns.clear();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
 
-        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
     }
 
     public Set<String> loadWhiteListPatterns() throws IOException {
@@ -263,6 +264,11 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, proj);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
 
+        boolean noBuild = Boolean.parseBoolean(System.getProperty("noBuild", "false"));
+        if (noBuild) {
+            reuseBuildData();
+            return;
+        }
         for (IRealization realization : projectManager.listAllRealizations(proj)) {
             NDataflow df = (NDataflow) realization;
             Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
@@ -282,9 +288,8 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
 
             // create cubing job
             if (!layouts.isEmpty()) {
-                NSparkCubingJob job = NSparkCubingJob.create(
-                        org.spark_project.guava.collect.Sets.newHashSet(readySegments),
-                        org.spark_project.guava.collect.Sets.newLinkedHashSet(layouts), "ADMIN");
+                NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(readySegments),
+                        Sets.newLinkedHashSet(layouts), "ADMIN");
                 execMgr.addJob(job);
                 while (true) {
                     Thread.sleep(500);
@@ -309,6 +314,65 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
 
                 SchemaProcessor.checkSchema(SparderEnv.getSparkSession(), df.getUuid(), proj);
             }
+        }
+        persistBuildData();
+    }
+
+    private void reuseBuildData() {
+        val element = Arrays.stream(Thread.currentThread().getStackTrace())
+                .filter(ele -> ele.getClassName().startsWith("io.kyligence.kap")) //
+                .reduce((first, second) -> second) //
+                .get();
+        val inputFolder = new File(kylinConfig.getMetadataUrlPrefix()).getParentFile();
+        val outputFolder = new File(inputFolder.getParentFile(),
+                element.getClassName() + "." + element.getMethodName());
+        try {
+            FileUtils.deleteQuietly(outputFolder);
+            ZipFileUtil.decompressZipFile(outputFolder.getAbsolutePath() + ".zip",
+                    outputFolder.getParentFile().getAbsolutePath());
+            FileUtils.copyDirectory(new File(outputFolder, "working-dir"), new File(inputFolder, "working-dir"));
+            log.info("reuse data succeed for {}", outputFolder);
+        } catch (IOException e) {
+            throw new RuntimeException("Reuse " + outputFolder.getName() + " failed", e);
+        }
+
+        val buildConfig = KylinConfig.createKylinConfig(kylinConfig);
+        buildConfig.setMetadataUrl(outputFolder.getAbsolutePath() + "/metadata");
+        val buildStore = ResourceStore.getKylinMetaStore(buildConfig);
+        val store = ResourceStore.getKylinMetaStore(kylinConfig);
+        for (String key : store.listResourcesRecursively("/" + getProject())) {
+            store.deleteResource(key);
+        }
+        for (String key : buildStore.listResourcesRecursively("/" + getProject())) {
+            val raw = buildStore.getResource(key);
+            store.deleteResource(key);
+            store.putResourceWithoutCheck(key, raw.getByteSource(), System.currentTimeMillis(), 100);
+        }
+        FileUtils.deleteQuietly(outputFolder);
+    }
+
+    private void persistBuildData() {
+        if (!Boolean.parseBoolean(System.getProperty("persistBuild", "false"))) {
+            return;
+        }
+
+        val element = Arrays.stream(Thread.currentThread().getStackTrace())
+                .filter(ele -> ele.getClassName().startsWith("io.kyligence.kap")) //
+                .reduce((first, second) -> second) //
+                .get();
+        try {
+            dumpMetadata();
+            val inputFolder = new File(kylinConfig.getMetadataUrlPrefix()).getParentFile();
+            val outputFolder = new File(inputFolder.getParentFile(),
+                    element.getClassName() + "." + element.getMethodName());
+            FileUtils.deleteQuietly(outputFolder);
+            FileUtils.deleteQuietly(new File(outputFolder.getAbsolutePath() + ".zip"));
+            FileUtils.copyDirectory(inputFolder, outputFolder);
+            ZipFileUtil.compressZipFile(outputFolder.getAbsolutePath(), outputFolder.getAbsolutePath() + ".zip");
+            log.info("build data succeed for {}", outputFolder.getName());
+            FileUtils.deleteQuietly(outputFolder);
+        } catch (Exception e) {
+            log.warn("build data failed", e);
         }
     }
 
@@ -426,7 +490,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             // 2. execute cube building
             long startTime = System.currentTimeMillis();
             buildAllCubes(kylinConfig, getProject());
-            log.debug("build cube cost {} ms", System.currentTimeMillis() - startTime);
+            log.info("build cube cost {} ms", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging
             dumpMetadata();
@@ -449,7 +513,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             });
             log.debug("compare result cost {} s", System.currentTimeMillis() - startTime);
         } finally {
-            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+            FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));
         }
     }
 

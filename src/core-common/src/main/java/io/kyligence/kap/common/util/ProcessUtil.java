@@ -1,11 +1,14 @@
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
  * http://kyligence.io
+ *
  * This software is the confidential and proprietary information of
  * Kyligence Inc. ("Confidential Information"). You shall not disclose
  * such Confidential Information and shall use it only in accordance
  * with the terms of the license agreement you entered into with
  * Kyligence Inc.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -17,45 +20,30 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
-package org.apache.spark.sql.common
+package io.kyligence.kap.common.util;
 
-import java.io.File
+import java.lang.management.ManagementFactory;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
-import org.apache.curator.test.TestingServer
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
+public class ProcessUtil {
 
-trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
-  self: Suite =>
-  val metadata = "../examples/test_case_data/localmeta"
-  var metaStore: NLocalFileMetadataTestCase = _
-  var zkTestServer: TestingServer = _
-
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    metaStore = new NLocalFileMetadataTestCase
-    if (new File(metadata).exists()) {
-      metaStore.createTestMetadata(metadata)
-    } else {
-      metaStore.createTestMetadata("../" + metadata)
+    private ProcessUtil() {
+        // just implement it
     }
-    zkTestServer = new TestingServer(true)
-    System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString)
-  }
 
+    public static String getProcessId(final String fallback) {
+        // Note: may fail in some JVM implementations
+        // therefore fallback has to be provided
 
-  override def afterAll() {
-    super.afterAll()
-    try {
-      metaStore.cleanupTestMetadata()
-      if (zkTestServer != null) {
-        zkTestServer.close()
-        System.clearProperty("kylin.env.zookeeper-connect-string")
-      }
-    } catch {
-      case ignore: Exception =>
+        // something like '<pid>@<hostname>', at least in SUN / Oracle JVMs
+        final String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+        final int index = jvmName.indexOf('@');
+
+        try {
+            return Long.toString(Long.parseLong(jvmName.substring(0, index)));
+        } catch (Exception e) {
+            // ignore
+        }
+        return fallback;
     }
-  }
 }
