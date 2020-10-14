@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
@@ -68,6 +69,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.val;
 
 public class KylinUserService implements UserService {
 
@@ -123,7 +125,13 @@ public class KylinUserService implements UserService {
     @Override
     public boolean userExists(String userName) {
         logger.trace("judge user exist: {}", userName);
-        return getKylinUserManager().exists(userName);
+        val users = listUsers();
+        for (val user : users) {
+            if (StringUtils.equalsIgnoreCase(userName, user.getUsername())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -148,7 +156,7 @@ public class KylinUserService implements UserService {
     }
 
     @Override
-    public List<ManagedUser> listUsers() throws IOException {
+    public List<ManagedUser> listUsers() {
         return getKylinUserManager().list();
     }
 

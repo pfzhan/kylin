@@ -41,7 +41,9 @@
  */
 package org.apache.kylin.rest.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -104,6 +106,20 @@ public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(user.isLocked());
         user.setLocked(false);
         kylinUserService.updateUser(user);
+    }
+
+    @Test
+    public void testUserExists() {
+        ManagedUser user = new ManagedUser();
+        user.setUsername("tTtUser");
+        List<SimpleGrantedAuthority> roles = new ArrayList<>();
+        roles.add(new SimpleGrantedAuthority("ALL_USERS"));
+        user.setGrantedAuthorities(roles);
+        kylinUserService.createUser(user);
+        Assert.assertTrue(kylinUserService.userExists("tTtUser"));
+        Assert.assertTrue(kylinUserService.userExists("tttuser"));
+        Assert.assertTrue(kylinUserService.userExists("TTTUSER"));
+        Assert.assertFalse(kylinUserService.userExists("NOTEXIST"));
     }
 
 }
