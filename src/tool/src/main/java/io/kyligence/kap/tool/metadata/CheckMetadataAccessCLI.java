@@ -48,7 +48,7 @@ public class CheckMetadataAccessCLI implements IKeep {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore store = ResourceStore.getKylinMetaStore(config);
 
-        logger.error("Start to test. Test metastore is: " + config.getMetadataUrl().toString());
+        logger.info("Start to test. Test metastore is: " + config.getMetadataUrl().toString());
         //test store's connection.
         try {
             store.collectResourceRecursively(ResourceStore.PROJECT_ROOT, MetadataConstants.FILE_SURFIX);
