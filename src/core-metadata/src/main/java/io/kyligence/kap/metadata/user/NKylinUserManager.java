@@ -141,7 +141,7 @@ public class NKylinUserManager implements IKeep {
     }
 
     public Set<String> getUserGroups(String userName) {
-        ManagedUser user = get(userName);
+        ManagedUser user = getIgnoreCase(userName);
         if (user == null)
             return Sets.newHashSet();
 

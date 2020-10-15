@@ -52,6 +52,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -85,8 +86,10 @@ public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testLoadUser() {
-        String username = "ADMIN";
-        kylinUserService.loadUserByUsername(username);
+        UserDetails user = kylinUserService.loadUserByUsername("ADMIN");
+        Assert.assertEquals("ADMIN", user.getUsername());
+        user = kylinUserService.loadUserByUsername("AdMIn");
+        Assert.assertEquals("ADMIN", user.getUsername());
     }
 
     @Test(expected = UsernameNotFoundException.class)
