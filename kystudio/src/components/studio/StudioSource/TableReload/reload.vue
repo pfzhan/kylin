@@ -22,6 +22,7 @@
         <div class="detail-text-item" v-if="reduceMsg"><span class="dot">·</span>{{reduceMsg}}</div>
         <div class="detail-text-item" v-if="refreshChangeMsg"><span class="dot">·</span>{{refreshChangeMsg}}</div>
         <div class="detail-text-item" v-if="addMsg"><span class="dot">·</span>{{addMsg}}</div>
+        <div class="detail-text-item" v-if="addLayout"><span class="dot">·</span>{{addLayout}}</div>
       </div>
     </el-alert>
     <div class="broken-detail lh20" v-if="checkData && checkData.broken_model_count && showDetail">
@@ -30,6 +31,7 @@
         <div class="detail-text-item" v-if="reduceMsg"><span class="dot">·</span>{{reduceMsg}}</div>
         <div class="detail-text-item" v-if="refreshChangeMsg"><span class="dot">·</span>{{refreshChangeMsg}}</div>
         <div class="detail-text-item" v-if="addMsg"><span class="dot">·</span>{{addMsg}}</div>
+        <div class="detail-text-item" v-if="addLayout"><span class="dot">·</span>{{addLayout}}</div>
       </div>
     </div>
     <div class="samping-box">
@@ -212,6 +214,10 @@ export default class ReloadTableModal extends Vue {
       msgArr.push(this.$t('refreshCountTip', { refreshCount: refreshCount }))
     }
     return totalCount ? msgArr.join('') : ''
+  }
+  get addLayout () {
+    let addLayoutsCount = this.checkData.add_layouts_count
+    return addLayoutsCount ? this.$t('addLayoutTips', {addLayoutsCount: addLayoutsCount}) + this.$t('kylinLang.common.comma') + this.$t('rebuildLayout') : ''
   }
   closeHandler (isSubmit) {
     this.hideModal()

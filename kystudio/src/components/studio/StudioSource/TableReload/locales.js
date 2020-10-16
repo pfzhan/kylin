@@ -11,6 +11,7 @@ export default {
     dimensionTip: ' {delDimensionCount} dimension(s)',
     measureTip: ' {delMeasureCount} measure(s)',
     indexTip: ' {delIndexCount} index(es)',
+    addLayoutTips: '{addLayoutsCount} index(es) would be added',
     afterLoaded: ' After being loaded, ',
     willBeDelete: ' would be deleted from the model(s) using this table.',
     dataTypeChange: ' {dataTypeChangeCount} column(s) changed the data type.',
@@ -39,7 +40,8 @@ export default {
     dimAndMeasureAndIndexChangeTip: '{changeChar} would be deleted',
     reloadBtn: 'Reload',
     reloadAndRefresh: 'Reload and Build',
-    refreshIndexTip: ' and refresh the affected index(es)'
+    refreshIndexTip: ' and refresh the affected index(es)',
+    rebuildLayout: 'which can serve queries after being rebuilt.'
   },
   'zh-cn': {
     dialogTitle: '重载表',
@@ -53,6 +55,7 @@ export default {
     dimensionTip: ' {delDimensionCount} 个维度',
     measureTip: ' {delMeasureCount} 个度量',
     indexTip: '{delIndexCount} 个索引',
+    addLayoutTips: '增加了 {addLayoutsCount} 个索引',
     afterLoaded: '重载表后会从依赖该表的模型中删除',
     dataTypeChange: '{dataTypeChangeCount} 列的数据类型发生变化。',
     refreshCountTip: '{refreshCount} 个索引将被刷新，重新构建后才可服务于查询。',
@@ -82,6 +85,7 @@ export default {
     dimAndMeasureAndIndexChangeTip: '共有 {changeChar} 被删除',
     reloadAndRefresh: '重载并构建索引',
     reloadBtn: '重载',
-    refreshIndexTip: '并刷新受影响索引'
+    refreshIndexTip: '并刷新受影响索引',
+    rebuildLayout: '新增索引在构建后可服务于查询。'
   }
 }
