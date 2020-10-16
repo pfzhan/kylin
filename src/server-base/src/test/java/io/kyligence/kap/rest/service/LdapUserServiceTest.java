@@ -49,6 +49,7 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 import java.io.FileInputStream;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -82,6 +83,7 @@ import com.unboundid.ldap.listener.InMemoryListenerConfig;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
+import lombok.val;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
@@ -204,6 +206,10 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
     public void testListUsers() throws Exception {
         Set<String> users = ldapUserService.listUsers().stream().map(x -> x.getUsername()).collect(toSet());
         Assert.assertEquals(3, users.size());
+        List<ManagedUser> managedUserList = ldapUserService.listUsers();
+        for (val user : managedUserList) {
+            Assert.assertTrue(user.getAuthorities().size() > 1);
+        }
     }
 
     @Test
@@ -218,12 +224,18 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCompleteUserInfo() {
+    public void testCompleteUserInfoInternal() {
         ManagedUser user = new ManagedUser("oliver", "", false);
-        ldapUserService.completeUserInfo(user);
+        ldapUserService.completeUserInfoInternal(user);
         Set<String> authorities = user.getAuthorities().stream().map(x -> x.getAuthority()).collect(toSet());
         Assert.assertFalse(authorities.contains("ROLE_ADMIN"));
         Assert.assertTrue(authorities.contains("itpeople"));
+    }
+
+    @Test
+    public void testCompleteUserInfoWithNotExistUser() {
+        ManagedUser user = new ManagedUser("NotExist", "", false);
+        ldapUserService.completeUserInfo(user);
     }
 
     @Test

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -41,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 import org.springframework.security.ldap.userdetails.LdapUserDetailsService;
 
@@ -98,33 +100,36 @@ public class LdapUserService implements UserService {
 
     @Override
     public boolean userExists(String username) {
-        try {
-            for (ManagedUser user : listUsers()) {
-                if (user.getUsername().equals(username)) {
-                    return true;
-                }
+        for (ManagedUser user : listUsers()) {
+            if (user.getUsername().equals(username)) {
+                return true;
             }
-        } catch (IOException e) {
-            logger.error("[UNEXPECTED_THINGS_HAPPENED] username: {}", username, e);
         }
         return false;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-        UserDetails ldapUser = ldapUserDetailsService.loadUserByUsername(username);
-        return new ManagedUser(ldapUser.getUsername(), SKIPPED_LDAP, false, ldapUser.getAuthorities());
+        for (ManagedUser user : listUsers()) {
+            if (StringUtils.equalsIgnoreCase(username, user.getUsername())) {
+                return user;
+            }
+        }
+        throw new UsernameNotFoundException(String.format(MsgPicker.getMsg().getUSER_NOT_FOUND(), username));
     }
 
     @Override
-    public List<ManagedUser> listUsers() throws IOException {
+    public List<ManagedUser> listUsers() {
         List<ManagedUser> allUsers = ldapUsersCache.getIfPresent(LDAP_USERS);
         if (allUsers == null) {
             logger.info("Failed to read users from cache, reload from ldap server.");
             allUsers = new ArrayList<>();
             Set<String> ldapUsers = getAllUsers();
             for (String user : ldapUsers) {
-                allUsers.add(new ManagedUser(user, SKIPPED_LDAP, false, Lists.<GrantedAuthority> newArrayList()));
+                ManagedUser ldapUser = new ManagedUser(user, SKIPPED_LDAP, false,
+                        Lists.<GrantedAuthority> newArrayList());
+                completeUserInfoInternal(ldapUser);
+                allUsers.add(ldapUser);
             }
             ldapUsersCache.put(LDAP_USERS, Preconditions.checkNotNull(allUsers,
                     "Failed to load users from ldap server, something went wrong."));
@@ -145,8 +150,14 @@ public class LdapUserService implements UserService {
 
     @Override
     public void completeUserInfo(ManagedUser user) {
-        UserDetails details = loadUserByUsername(user.getUsername());
-        user.setGrantedAuthorities(details.getAuthorities());
+        //do nothing
+    }
+
+    public void completeUserInfoInternal(ManagedUser user) {
+        UserDetails ldapUser = ldapUserDetailsService.loadUserByUsername(user.getUsername());
+        ManagedUser managedUser = new ManagedUser(ldapUser.getUsername(), SKIPPED_LDAP, false,
+                ldapUser.getAuthorities());
+        user.setGrantedAuthorities(managedUser.getAuthorities());
     }
 
     public void onUserAuthenticated(String username) {

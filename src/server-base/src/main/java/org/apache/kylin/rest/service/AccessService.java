@@ -737,7 +737,7 @@ public class AccessService extends BasicService {
         }
     }
 
-    public void checkSid(String sid, boolean principal) throws IOException {
+    public void checkSidNotEmpty(String sid, boolean principal) {
         if (StringUtils.isEmpty(sid)) {
             if (principal) {
                 throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEMPTY_SID());
@@ -745,7 +745,10 @@ public class AccessService extends BasicService {
                 throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEMPTY_SID());
             }
         }
+    }
 
+    public void checkSid(String sid, boolean principal) throws IOException {
+        checkSidNotEmpty(sid, principal);
         if (principal && !userService.userExists(sid)) {
             throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));

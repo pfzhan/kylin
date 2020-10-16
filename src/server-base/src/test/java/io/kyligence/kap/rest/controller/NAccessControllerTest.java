@@ -184,6 +184,16 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRevokeAclWithNotExistSid() throws Exception {
+        Mockito.doNothing().when(aclTCRService).revokeAclTCR(uuid, false);
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).param("access_entry_id", "1").param("sid", "NotExist")
+                .param("principal", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nAccessController).revokeAcl(type, uuid, 1, "NotExist", false);
+    }
+
+    @Test
     public void testGetAvailableUsersForProject() throws Exception {
         List<ProjectInstance> list = Lists.newArrayList();
         list.add(Mockito.mock(ProjectInstance.class));

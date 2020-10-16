@@ -69,6 +69,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.ldap.test.unboundid.LdapTestUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -84,6 +85,8 @@ import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import lombok.val;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
@@ -203,5 +206,9 @@ public class LdapUserGroupServiceTest extends NLocalFileMetadataTestCase {
                 .collect(toSet());
         Assert.assertTrue(users.contains("johnny"));
         Assert.assertTrue(users.contains("oliver"));
+        List<ManagedUser> managedUsers = userGroupService.getGroupMembersByName("itpeople");
+        for (val user : managedUsers) {
+            Assert.assertTrue(user.getAuthorities().contains(new SimpleGrantedAuthority("itpeople")));
+        }
     }
 }

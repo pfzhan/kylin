@@ -268,7 +268,7 @@ public class NAccessController extends NBasicController {
             @RequestParam("access_entry_id") Integer accessEntryId, //
             @RequestParam("sid") String sid, //
             @RequestParam("principal") boolean principal) throws IOException {
-        accessService.checkSid(sid, principal);
+        accessService.checkSidNotEmpty(sid, principal);
         if (principal) {
             accessService.checkGlobalAdmin(sid);
         }

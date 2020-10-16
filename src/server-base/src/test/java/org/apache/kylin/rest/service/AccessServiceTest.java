@@ -341,7 +341,6 @@ public class AccessServiceTest extends ServiceTestBase {
         Assert.assertEquals(1, responses.size());
         Assert.assertEquals("MANAGEMENT", responses.get(0).getProjectPermission());
 
-
         // add ANALYST user to a granted normal group
         userGroupService.modifyGroupUsers("MANAGEMENT_GROUP", Lists.newArrayList("ANALYST"));
         responses = accessService.getUserOrGroupAclPermissions(projects, "ANALYST", true);
@@ -395,6 +394,14 @@ public class AccessServiceTest extends ServiceTestBase {
 
         thrown.expectMessage("User/Group name should not be empty.");
         accessService.checkSid("", true);
+    }
+
+    @Test
+    public void testCheckEmptySid() {
+        accessService.checkSidNotEmpty("ADMIN", true);
+
+        thrown.expectMessage("User/Group name should not be empty.");
+        accessService.checkSidNotEmpty("", true);
     }
 
     @Test

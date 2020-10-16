@@ -44,6 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.ldap.support.LdapUtils;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 
 import com.google.common.cache.CacheBuilder;
@@ -75,6 +76,10 @@ public class LdapUserGroupService extends NUserGroupService {
     @Autowired
     @Qualifier("ldapTemplate")
     private SpringSecurityLdapTemplate ldapTemplate;
+
+    @Autowired
+    @Qualifier("userService")
+    private LdapUserService ldapUserService;
 
     @Override
     public void addGroup(String name) {
@@ -143,10 +148,16 @@ public class LdapUserGroupService extends NUserGroupService {
 
             for (String u : ldapUserDNs) {
                 try {
-                    String userID = LdapUtils.getStringValue(new LdapName(u), ldapUserIDAttr);
-                    if (userService.userExists(userID)) { //guard groups may have ou or groups
-                        members.add(
-                                new ManagedUser(userID, SKIPPED_LDAP, false, Lists.<GrantedAuthority> newArrayList()));
+                    String username = LdapUtils.getStringValue(new LdapName(u), ldapUserIDAttr);
+                    if (userService.userExists(username)) {//guard groups may have ou or groups
+                        try {
+                            ManagedUser ldapUser = new ManagedUser(username, SKIPPED_LDAP, false,
+                                    Lists.<GrantedAuthority> newArrayList());
+                            ldapUserService.completeUserInfoInternal(ldapUser);
+                            members.add(ldapUser);
+                        } catch (UsernameNotFoundException e) {//user maybe not exist because 'userService' is the cache
+                            logger.warn(String.format("User %s not found.", username), e);
+                        }
                     }
                 } catch (InvalidNameException ie) {
                     logger.error("Can not get LDAP group's member: {}", u, ie);
