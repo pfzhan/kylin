@@ -238,29 +238,31 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
      */
     public List<String> listTables() throws SQLException {
         List<String> ret = new ArrayList<>();
-        if (TABLES_CACHE != null && TABLES_CACHE.size() == 0) {
-            try (Connection conn = getConnection();
-                 ResultSet rs = conn.getMetaData().getTables(null, null, null, null)) {
-                while (rs.next()) {
-                    String name = rs.getString(TABLE_NAME);
-                    String database = rs.getString(TABLE_SCHEM) != null ? rs.getString(TABLE_SCHEM)
-                            : rs.getString("TABLE_CAT");
-                    String cacheKey = joiner.join(config.datasourceId, config.url, "tables", database);
-                    List<String> cachedTables = TABLES_CACHE.getIfPresent(cacheKey);
-                    if (cachedTables == null) {
-                        cachedTables = new ArrayList<>();
-                        TABLES_CACHE.put(cacheKey, cachedTables);
-                        logger.debug("Add table cache for database {}", database);
+        if (TABLES_CACHE != null) {
+            if (TABLES_CACHE.size() == 0) {
+                try (Connection conn = getConnection();
+                     ResultSet rs = conn.getMetaData().getTables(null, null, null, null)) {
+                    while (rs.next()) {
+                        String name = rs.getString(TABLE_NAME);
+                        String database = rs.getString(TABLE_SCHEM) != null ? rs.getString(TABLE_SCHEM)
+                                : rs.getString("TABLE_CAT");
+                        String cacheKey = joiner.join(config.datasourceId, config.url, "tables", database);
+                        List<String> cachedTables = TABLES_CACHE.getIfPresent(cacheKey);
+                        if (cachedTables == null) {
+                            cachedTables = new ArrayList<>();
+                            TABLES_CACHE.put(cacheKey, cachedTables);
+                            logger.debug("Add table cache for database {}", database);
+                        }
+                        if (!cachedTables.contains(name)) {
+                            cachedTables.add(name);
+                        }
+                        ret.add(name);
                     }
-                    if (!cachedTables.contains(name)) {
-                        cachedTables.add(name);
-                    }
-                    ret.add(name);
                 }
-            }
-        } else {
-            for (Map.Entry<String, List<String>> entry : TABLES_CACHE.asMap().entrySet()) {
-                ret.addAll(entry.getValue());
+            } else {
+                for (Map.Entry<String, List<String>> entry : TABLES_CACHE.asMap().entrySet()) {
+                    ret.addAll(entry.getValue());
+                }
             }
         }
 
@@ -305,32 +307,34 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
      */
     public List<String> listColumns() throws SQLException {
         List<String> ret = new ArrayList<>();
-        if (COLUMNS_CACHE != null && COLUMNS_CACHE.size() == 0) {
-            CachedRowSet columnsRs = null;
-            try (Connection conn = getConnection();
-                 ResultSet rs = conn.getMetaData().getColumns(null, null, null, null)) {
-                columnsRs = cacheResultSet(rs);
-            }
-            while (columnsRs.next()) {
-                String database = columnsRs.getString(TABLE_SCHEM) != null ? columnsRs.getString(TABLE_SCHEM)
-                        : columnsRs.getString("TABLE_CAT");
-                String table = columnsRs.getString(TABLE_NAME);
-                String column_name = columnsRs.getString("COLUMN_NAME");
-                String cacheKey = joiner.join(config.datasourceId, config.url, database, table, "columns");
-                List<String> cachedColumns = COLUMNS_CACHE.getIfPresent(cacheKey);
-                if (cachedColumns == null) {
-                    cachedColumns = new ArrayList<>();
-                    COLUMNS_CACHE.put(cacheKey, cachedColumns);
-                    logger.debug("Add column cache for {}.{}", database, table);
+        if (COLUMNS_CACHE != null) {
+            if (COLUMNS_CACHE.size() == 0) {
+                CachedRowSet columnsRs = null;
+                try (Connection conn = getConnection();
+                     ResultSet rs = conn.getMetaData().getColumns(null, null, null, null)) {
+                    columnsRs = cacheResultSet(rs);
                 }
-                if (!cachedColumns.contains(column_name)) {
-                    cachedColumns.add(column_name);
+                while (columnsRs.next()) {
+                    String database = columnsRs.getString(TABLE_SCHEM) != null ? columnsRs.getString(TABLE_SCHEM)
+                            : columnsRs.getString("TABLE_CAT");
+                    String table = columnsRs.getString(TABLE_NAME);
+                    String column_name = columnsRs.getString("COLUMN_NAME");
+                    String cacheKey = joiner.join(config.datasourceId, config.url, database, table, "columns");
+                    List<String> cachedColumns = COLUMNS_CACHE.getIfPresent(cacheKey);
+                    if (cachedColumns == null) {
+                        cachedColumns = new ArrayList<>();
+                        COLUMNS_CACHE.put(cacheKey, cachedColumns);
+                        logger.debug("Add column cache for {}.{}", database, table);
+                    }
+                    if (!cachedColumns.contains(column_name)) {
+                        cachedColumns.add(column_name);
+                    }
+                    ret.add(column_name);
                 }
-                ret.add(column_name);
-            }
-        } else {
-            for (Map.Entry<String, List<String>> entry : COLUMNS_CACHE.asMap().entrySet()) {
-                ret.addAll(entry.getValue());
+            } else {
+                for (Map.Entry<String, List<String>> entry : COLUMNS_CACHE.asMap().entrySet()) {
+                    ret.addAll(entry.getValue());
+                }
             }
         }
         return ret;
