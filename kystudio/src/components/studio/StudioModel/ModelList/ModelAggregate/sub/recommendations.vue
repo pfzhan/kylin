@@ -11,7 +11,7 @@
       <el-table
         nested
         border
-        :data="getRecommendData"
+        :data="recommendationsList.list"
         class="recommendations-table"
         size="medium"
         max-height="350"
@@ -398,6 +398,8 @@ export default class IndexList extends Vue {
     list: [],
     page_offset: 0,
     totalSize: 0,
+    sort_by: '',
+    reverse: false,
     page_size: +localStorage.getItem(this.pageRefTags.recommendationsPager) || 10
   }
   typeList = ['ADD_AGG_INDEX', 'REMOVE_AGG_INDEX', 'ADD_TABLE_INDEX', 'REMOVE_TABLE_INDEX']
@@ -426,20 +428,6 @@ export default class IndexList extends Vue {
 
   get emptyText () {
     return this.$t('kylinLang.common.noData')
-  }
-
-  get getRecommendData () {
-    const { list, page_offset, page_size } = this.recommendationsList
-    let data = list
-    if (this.checkedStatus.length) {
-      data = data.filter(it => this.checkedStatus.includes(it.type))
-    }
-    if (this.sourceCheckedStatus.length) {
-      data = data.filter(it => this.sourceCheckedStatus.includes(it.source))
-    }
-    this.recommendationsList.totalSize = data.length
-    data = data.slice(page_offset * page_size, (page_offset + 1) * page_size)
-    return data
   }
 
   get indexDetailTitle () {
@@ -563,8 +551,17 @@ export default class IndexList extends Vue {
 
   // 获取优化建议
   getRecommendations () {
+    const { page_offset, page_size, reverse, sort_by } = this.recommendationsList
     this.loadingRecommends = true
-    this.getAllRecommendations({project: this.currentProject, modelId: this.modelDesc.uuid}).then(async (res) => {
+    this.getAllRecommendations({
+      project: this.currentProject,
+      modelId: this.modelDesc.uuid,
+      page_offset,
+      page_size,
+      type: this.checkedStatus.join(','),
+      reverse,
+      sort_by
+    }).then(async (res) => {
       const data = await handleSuccessAsync(res)
       this.recommendationsList.list = data.layouts
       this.recommendationsList.totalSize = data.size
@@ -613,6 +610,7 @@ export default class IndexList extends Vue {
         type: 'success',
         message: this.$t('deleteSuccess')
       })
+      this.recommendationsList.page_offset = 0
       this.getRecommendations()
     }).catch(e => {
       handleError(e)
@@ -709,6 +707,7 @@ export default class IndexList extends Vue {
                   (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0) && this.modelDesc.segments.length ? this.$t('buildIndexTip') : ''
                 }</a></span>
             })
+            this.recommendationsList.page_offset = 0
             this.getRecommendations()
             this.$emit('accept')
             resolve()
@@ -753,6 +752,7 @@ export default class IndexList extends Vue {
   filterType (v, type) {
     this.recommendationsList.page_offset = 0
     type === 'checkedStatus' ? (this.checkedStatus = v) : (this.sourceCheckedStatus = v)
+    this.getRecommendations()
   }
 
   // 分页操作
@@ -763,16 +763,18 @@ export default class IndexList extends Vue {
     } else {
       this.recommendationsList.page_offset = offset
     }
+    this.getRecommendations()
   }
 
   // 更改排序
-  changeSort (column, prop, order) {
-    if (order === 'descending') {
-      this.recommendationsList.list.sort((prev, next) => { next[prop] - prev[prop] })
-    } else {
-      this.recommendationsList.list.sort((prev, next) => { prev[prop] - next[prop] })
+  changeSort ({prop, order}) {
+    this.recommendationsList = {
+      ...this.recommendationsList,
+      reverse: order !== 'descending',
+      sort_by: prop,
+      page_offset: 0
     }
-    this.recommendationsList.page_offset = 0
+    this.getRecommendations()
   }
 
   jumpToSetting () {
