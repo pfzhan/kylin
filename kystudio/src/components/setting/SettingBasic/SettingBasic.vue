@@ -194,7 +194,21 @@
             <el-form-item class="setting-input" :show-message="false" prop="retention_range.retention_range_number">
               <el-input size="small" style="width: 100px;" v-number="form.retention_range.retention_range_number" v-model="form.retention_range.retention_range_number" :disabled="!form.retention_range.retention_range_enabled"></el-input>
             </el-form-item>
-            <span class="setting-input">{{$t(retentionRangeScale)}}</span>
+            <!-- <span class="setting-input">{{$t(retentionRangeScale)}}</span> -->
+            <el-select
+              class="setting-input"
+              size="small"
+              :disabled="!form.retention_range.retention_range_enabled"
+              style="width: 100px;"
+              v-model="form.retention_range.retention_range_type"
+              :placeholder="$t('kylinLang.common.pleaseChoose')">
+              <el-option
+                v-for="type in retentionTypes.filter(it => it !== 'WEEK')"
+                :key="type"
+                :label="$t(type.toLowerCase())"
+                :value="type">
+              </el-option>
+            </el-select>
           </div>
         </div>
         <div class="setting-item">
@@ -517,6 +531,14 @@ export default class SettingBasic extends Vue {
         case 'segment-settings': {
           if (await this.$refs['segment-setting-form'].validate()) {
             const submitData = _getSegmentSettings(this.form, this.project)
+            // const dataMap = { 'HOUR': 1, 'DAY': 2, 'WEEK': 3, 'MONTH': 4, 'QUARTER': 5, 'YEAR': 6 }
+            // if (dataMap[submitData.retention_range.retention_range_type] < dataMap[submitData.auto_merge_time_ranges[submitData.auto_merge_time_ranges.length - 1]]) {
+            //   this.$message({
+            //     type: 'error',
+            //     message: this.$t('retentionLessThanAutoMerge')
+            //   })
+            //   return errorCallback()
+            // }
             await this.updateSegmentConfig(submitData); break
           } else {
             return errorCallback()
