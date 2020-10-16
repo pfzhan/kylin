@@ -48,3 +48,70 @@ export const currentRow = {
   }
 }
 
+export const extraoptions = {
+  affectedRowCount: 0,
+  appMasterURL: "/kylin/sparder/SQL/execution/?id=9317",
+  columnMetas: [{
+    autoIncrement: false,
+    caseSensitive: false,
+    catelogName: null,
+    columnType: 91,
+    columnTypeName: "DATE",
+    currency: false,
+    definitelyWritable: false,
+    displaySize: 2147483647,
+    isNullable: 1,
+    label: "d_datekey",
+    name: "d_datekey",
+    precision: 0,
+    readOnly: false,
+    scale: 0,
+    schemaName: null,
+    searchable: false,
+    signed: true,
+    tableName: null,
+    writable: false
+  }],
+  duration: 662,
+  engineType: "HIVE",
+  exception: false,
+  exceptionMessage: null,
+  hitExceptionCache: false,
+  isException: false,
+  is_prepare: false,
+  is_stop_by_user: false,
+  is_timeout: false,
+  partial: false,
+  prepare: false,
+  pushDown: true,
+  queryId: "92ad159f-caa1-4483-a573-03c206cd5917",
+  queryStatistics: null,
+  realizations: [],
+  resultRowCount: 500,
+  results: [["1992-01-01"]],
+  scanBytes: [0],
+  scanRows: [1000],
+  server: "sandbox.hortonworks.com:7072",
+  shufflePartitions: 1,
+  signature: null,
+  stopByUser: false,
+  storageCacheUsed: false,
+  suite: null,
+  timeout: false,
+  totalScanBytes: 0,
+  totalScanRows: 1000,
+  traceUrl: null
+}
+
+export const queryExportData = {
+  acceptPartial: true,
+  backdoorToggles: {
+    DEBUG_TOGGLE_HTRACE_ENABLED: false
+  },
+  limit: 500,
+  offset: 0,
+  project: "xm_test",
+  sql: "select * from SSB.DATES",
+  stopId: "query_1ej9rss4q"
+}
+

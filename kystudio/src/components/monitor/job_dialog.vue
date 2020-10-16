@@ -83,12 +83,11 @@ export default {
           })
         } catch (error) {
           this.hasClickDownloadLogBtn = false
-          console.log(error)
         }
       } else {
         this.hasClickDownloadLogBtn = false
         this.$nextTick(() => {
-          this.$el.querySelectorAll('.downloadLogs')[0].submit()
+          this.$el.querySelectorAll('.downloadLogs').length && this.$el.querySelectorAll('.downloadLogs')[0].submit()
         })
       }
     }

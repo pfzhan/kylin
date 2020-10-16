@@ -1,12 +1,10 @@
 import { shallow } from 'vue-test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
-import * as utils from '../../../util'
 import * as business from '../../../util/business'
 import JobsList from '../jobs.vue'
 import JobDialog from '../job_dialog.vue'
 import Diagnostic from '../../admin/Diagnostic/store.js'
-import e from 'express'
 
 const loadJobsList = jest.fn().mockImplementation(() => {
   return {

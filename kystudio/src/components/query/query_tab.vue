@@ -237,6 +237,7 @@ export default class QueryTab extends Vue {
     } catch (e) {
     }
   }
+
   resetResult () {
     this.extraoptionObj = null
     this.errinfo = ''
@@ -322,6 +323,7 @@ export default class QueryTab extends Vue {
       }
     }
   }
+
   @Watch('tabsItem.extraoption')
   onTabsResultChange (val) {
     this.isLoading = false
@@ -345,6 +347,7 @@ export default class QueryTab extends Vue {
   destoryed () {
     clearInterval(this.ST)
   }
+
   created () {
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo

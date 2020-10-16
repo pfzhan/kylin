@@ -217,17 +217,15 @@ export default class queryResult extends Vue {
               }
             }
             this.hasClickExportBtn = false
-          }, (err) => {
+          }, () => {
             this.hasClickExportBtn = false
-            console.log(err)
           })
         } catch (e) {
           this.hasClickExportBtn = false
-          console.log(e)
         }
       } else {
         this.hasClickExportBtn = false
-        this.$el.querySelectorAll('.exportTool')[0].submit()
+        this.$el.querySelectorAll('.exportTool').length && this.$el.querySelectorAll('.exportTool')[0].submit()
       }
     })
   }
@@ -343,10 +341,12 @@ export default class queryResult extends Vue {
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
   }
+
   mounted () {
-    if (!this.$refs.tableLayout.bodyWrapper) return
+    if (!this.$refs.tableLayout || !this.$refs.tableLayout.bodyWrapper) return
     this.$refs.tableLayout.bodyWrapper.addEventListener('scroll', this.getMoreData)
   }
+
   beforeDestory () {
     this.$refs.tableLayout.bodyWrapper.removeEventListener('scroll', this.getMoreData)
   }
