@@ -66,7 +66,9 @@ export default {
     suggestionTip1: 'Up to',
     suggestionTip2: 'recommendations for adding indexes would be generated per time. Recommendations would be updated everyday be default. The frequency could be configured. Check <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/en/acceleration/" target="_blank">user manual</a> for details.',
     emptySegmentEnable: 'Creating Empty Segments',
-    emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index. Please note that queries would be answered by pushdown engine when they hit empty segments.'
+    emptySegmentEnableDesc: 'With this switch ON, you may create a segment with no index. Please note that queries would be answered by pushdown engine when they hit empty segments.',
+    overTimeLimitTip: 'The upper limit of the latency range can’t exceed 3600 seconds',
+    prevGreaterThanNext: 'The upper limit of the latency range should be greater than the lower limit'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -135,6 +137,8 @@ export default {
     suggestionTip1: '每次最多生成',
     suggestionTip2: '条新增索引的优化建议。默认每天更新一次，此更新频率可进行配置，详情请<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.2/zh-cn/acceleration/basic_concept_actions.cn.html" target="_blank">查看手册</a>。',
     emptySegmentEnable: '支持创建空 Segment',
-    emptySegmentEnableDesc: '该选项开启后，您可以在 Segment 列表页面直接创建一个不包含任何索引的 Segment。请注意，查询命中空的 Segment 时将会通过下压查询回答。'
+    emptySegmentEnableDesc: '该选项开启后，您可以在 Segment 列表页面直接创建一个不包含任何索引的 Segment。请注意，查询命中空的 Segment 时将会通过下压查询回答。',
+    overTimeLimitTip: '延迟范围的上限不超过 3600 秒',
+    prevGreaterThanNext: '延迟范围的上限应大于下限'
   }
 }

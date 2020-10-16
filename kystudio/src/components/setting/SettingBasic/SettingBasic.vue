@@ -289,6 +289,7 @@
               </el-form-item>
               {{$t('secondes')}}
             </div>
+            <span class="error-msg" v-if="durationError && durationErrorMsg">{{durationErrorMsg}}</span>
           </div>
         </div>
         <div class="conds">
@@ -388,6 +389,7 @@ export default class SettingBasic extends Vue {
   }
   rulesAccerationDefault = {}
   durationError = false
+  durationErrorMsg = ''
   created () {
     this.rulesAccerationDefault = {...this.rulesObj}
   }
@@ -418,8 +420,15 @@ export default class SettingBasic extends Vue {
       if (!value && value !== 0) {
         callback(new Error(null))
       } else if (+this.rulesObj.min_duration > +this.rulesObj.max_duration) {
+        this.durationError = true
+        this.durationErrorMsg = this.$t('prevGreaterThanNext')
+        callback(new Error(null))
+      } else if (+this.rulesObj.max_duration > 3600) {
+        this.durationError = true
+        this.durationErrorMsg = this.$t('overTimeLimitTip')
         callback(new Error(null))
       } else {
+        this.durationError = false
         callback()
       }
     } else if (rule.field === 'count_value' && this.rulesObj.count_enable) {
@@ -430,14 +439,6 @@ export default class SettingBasic extends Vue {
       }
     } else {
       callback()
-    }
-  }
-  @Watch('rulesObj', {deep: true})
-  changeDuration (newVal, oldVal) {
-    if (+newVal.min_duration > +newVal.max_duration) {
-      this.durationError = true
-    } else {
-      this.durationError = false
     }
   }
   @Watch('form', { deep: true })
@@ -563,7 +564,7 @@ export default class SettingBasic extends Vue {
           }
         }
         case 'accleration-rule-settings': {
-          if (await this.$refs['rulesForm'].validate() && !(this.rulesObj.duration_enable && this.durationError)) {
+          if (await this.$refs['rulesForm'].validate() && (this.rulesObj.duration_enable && !this.durationError)) {
             await this.saveAcclerationRule()
           } else {
             return errorCallback()
@@ -803,6 +804,10 @@ export default class SettingBasic extends Vue {
         border: 1px solid @error-color-1;
       }
     }
+  }
+  .error-msg {
+    color: #ff0000;
+    font-size: 12px;
   }
 }
 
