@@ -440,9 +440,9 @@ public class NExecutableManager {
         val pid = info.get("process_id");
         if (StringUtils.isNotEmpty(pid)) {
             String nodeInfo = info.get("node_info");
-            String ip = nodeInfo.split(":")[0];
-            if (!ip.equals(AddressUtil.getLocalInstance().split(":")[0])) {
-                exe.setRunAtRemote(ip, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
+            String host = nodeInfo.split(":")[0];
+            if (!host.equals(AddressUtil.getLocalInstance().split(":")[0]) && !host.equals(AddressUtil.getZkLocalInstance().split(":")[0])) {
+                exe.setRunAtRemote(host, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
                         config.getRemoteSSHPassword());
             } else {
                 exe.setRunAtRemote(null, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
@@ -690,7 +690,7 @@ public class NExecutableManager {
                 Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
             }
             String oldNodeInfo = info.get("node_info");
-            String newNodeInfo = AddressUtil.getLocalInstance();
+            String newNodeInfo = AddressUtil.getZkLocalInstance();
             if (Objects.nonNull(oldNodeInfo) && !Objects.equals(oldNodeInfo, newNodeInfo) && !Objects.equals(taskOrJobId, jobId)) {
                 logger.info("The node running job has changed. Job id: {}, Step name: {}, Switch from {} to {}.",
                         jobId, taskOrJob.getName(), oldNodeInfo, newNodeInfo);

@@ -29,6 +29,8 @@ import java.net.MalformedURLException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.util.DefaultHostInfoFetcher;
+import io.kyligence.kap.common.util.HostInfoFetcher;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -165,5 +167,11 @@ public class AppConfig extends WebMvcConfigurerAdapter {
                 SimpleBeanPropertyFilter.serializeAllExcept("password"));
 
         return objectMapper.setFilterProvider(filterProvider);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(HostInfoFetcher.class)
+    public HostInfoFetcher hostInfoFetcher() {
+        return new DefaultHostInfoFetcher();
     }
 }

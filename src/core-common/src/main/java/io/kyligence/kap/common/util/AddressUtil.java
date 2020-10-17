@@ -23,16 +23,22 @@
  */
 package io.kyligence.kap.common.util;
 
-import io.kyligence.kap.common.obf.IKeep;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import org.apache.kylin.common.KylinConfig;
+
+import io.kyligence.kap.common.obf.IKeep;
+import lombok.Setter;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 public class AddressUtil implements IKeep {
+
+    @Setter
+    private static HostInfoFetcher hostInfoFetcher = new DefaultHostInfoFetcher();
+
     public static String getLocalInstance() {
         String serverIp = "127.0.0.1";
         try {
@@ -45,16 +51,10 @@ public class AddressUtil implements IKeep {
 
     /**
      * refer org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryProperties#getInstanceHost()
-     * @return
      */
     public static String getZkLocalInstance() {
-        String hostName = "localhost";
-        try {
-            hostName = InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            log.warn("use the InetAddress get local ip failed!", e);
-        }
-        return hostName + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
+        String hostname = hostInfoFetcher.getHostname();
+        return hostname + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
     }
 
     public static String convertHost(String serverHost) {
@@ -78,7 +78,7 @@ public class AddressUtil implements IKeep {
         String hostName = "localhost";
         try {
             hostName = InetAddress.getLocalHost().getHostName();
-        }catch (UnknownHostException e){
+        } catch (UnknownHostException e) {
             log.warn("use the InetAddress get host name failed!", e);
         }
         String host = hostName + "_" + KylinConfig.getInstanceFromEnv().getServerPort();

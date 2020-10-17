@@ -78,6 +78,7 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
@@ -479,6 +480,30 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         dsMgr = NDataflowManager.getInstance(config, getProject());
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(2, df.getSegments().size());
+    }
+
+    @Test
+    public void testGetJobNodeInfo() throws Exception {
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+
+        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
+
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
+
+        // launch the job
+        execMgr.addJob(job);
+
+        // wait job done
+        wait(job);
+
+        Assert.assertEquals(AddressUtil.getZkLocalInstance(), job.getOutput().getExtra().get("node_info"));
     }
 
     private void validateCube(String segmentId) {

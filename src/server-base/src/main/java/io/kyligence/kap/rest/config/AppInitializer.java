@@ -55,6 +55,8 @@ import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -100,6 +102,9 @@ public class AppInitializer {
     @Autowired
     SourceUsageUpdateListener sourceUsageUpdateListener;
 
+    @Autowired
+    HostInfoFetcher hostInfoFetcher;
+
     private static final ScheduledExecutorService METRICS_SCHEDULED_EXECUTOR = Executors.newScheduledThreadPool(1,
             new NamedThreadFactory("MetricsChecker"));
 
@@ -134,13 +139,14 @@ public class AppInitializer {
 
             ExecutableUtils.initJobFactory();
         } else {
-            val auditLogStore = new JdbcAuditLogStore(kylinConfig);
-            val epochStore = EpochStore.getEpochStore(kylinConfig);
-            kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
-            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-            resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
-            resourceStore.catchup();
-            resourceStore.getMetadataStore().setEpochStore(epochStore);
+            try (val auditLogStore = new JdbcAuditLogStore(kylinConfig)) {
+                val epochStore = EpochStore.getEpochStore(kylinConfig);
+                kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
+                val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+                resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
+                resourceStore.catchup();
+                resourceStore.getMetadataStore().setEpochStore(epochStore);
+            }
         }
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
@@ -164,6 +170,8 @@ public class AppInitializer {
         } catch (Exception ex) {
             log.error("NQueryHistoryScheduler init fail");
         }
+
+        postInit();
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -225,5 +233,9 @@ public class AppInitializer {
             allControlledProjects.addAll(allProjects);
 
         }, 1, 1, TimeUnit.MINUTES);
+    }
+
+    private void postInit() {
+        AddressUtil.setHostInfoFetcher(hostInfoFetcher);
     }
 }
