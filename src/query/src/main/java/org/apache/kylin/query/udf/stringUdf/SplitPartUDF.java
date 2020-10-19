@@ -54,7 +54,7 @@ public class SplitPartUDF {
         } else if (index < 0 && Math.abs(index) <= parts.length) {
             return parts[parts.length + index];
         } else {
-            throw new IllegalArgumentException("the index is invalid");
+            return null;
         }
     }
 }

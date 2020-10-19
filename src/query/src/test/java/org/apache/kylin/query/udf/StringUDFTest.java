@@ -158,5 +158,6 @@ public class StringUDFTest {
         assertEquals("one", splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 1));
         assertEquals("two", splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 2));
         assertEquals("three", splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 3));
+        assertNull(splitPartUDF.SPLIT_PART("oneAtwoBthreeC", "[ABC]", 10));
     }
 }
