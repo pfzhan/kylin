@@ -553,4 +553,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public String toString() {
         return "NDataSegment [" + dataflow.getUuid() + "," + id + "," + segmentRange + "]";
     }
+
+    public String displayIdName(){
+        return String.format("[id:%s,name:%s]", id, name);
+    }
 }

@@ -318,7 +318,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains("Merging segments must not have gaps between"));
+            Assert.assertTrue(e.getMessage().contains("are discontinuous."));
         }
 
         // Set seg1's cuboid-0's status to NEW

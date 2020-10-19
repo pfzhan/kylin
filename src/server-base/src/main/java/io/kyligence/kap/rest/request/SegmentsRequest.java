@@ -35,6 +35,7 @@ import lombok.Data;
 public class SegmentsRequest implements ProjectInsensitiveRequest {
 
     private String[] ids;
+    private String[] names;
     private String project;
     private SegmentsRequestType type = SegmentsRequestType.REFRESH;
 

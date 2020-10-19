@@ -83,6 +83,7 @@ import javax.annotation.Nullable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -1169,7 +1170,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.refreshSegment(df, segmentRange);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.getId()));
+        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.displayIdName()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1317,8 +1318,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals("Merging segments must not have gaps between " + dataSegment1.getId() + " and "
-                    + dataSegment3.getId() + ".", e.getMessage());
+            Assert.assertEquals("The range of segments " + dataSegment1.displayIdName() + " and "
+                    + dataSegment3.displayIdName() + " are discontinuous.", e.getMessage());
         }
 
         modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
@@ -1340,8 +1341,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
-            Assert.assertEquals("Can not remove or refresh or merge segment [" + dataSegment2.getId()
-                    + "], because the segment is LOCKED.", e.getMessage());
+            Assert.assertEquals("Can not remove or refresh or merge segment " + dataSegment2.displayIdName()
+                    + ", because the segment is LOCKED.", e.getMessage());
         }
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -1383,7 +1384,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.getId()));
+                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.displayIdName()));
         modelService.mergeSegmentsManually(
                 new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
@@ -1425,7 +1426,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.getId()));
+        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
         //refresh exception
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
@@ -3096,7 +3097,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectInTransaction(KylinException.class);
         thrown.expectMessageInTransaction(String.format(
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
-                dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).getId()));
+                dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
 
@@ -4186,6 +4187,23 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Failed to get segment information as broken is broken");
         modelService.checkSegments("gc_test", "broken", "0", "100");
+    }
+
+    @Test
+    public void testConvertSegmentIdWithName_NotExistName() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Can not find the Segments by names [not exist name1,not exist name2]");
+
+        modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
+                new String[] { "not exist name1", "not exist name2" });
+    }
+
+    @Test
+    public void testConvertSegmentIdWithName_ByName() {
+        String[] segIds = modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
+                new String[] { "20171104141833_20171105141833" });
+        String[] originSegIds = { "11124840-b3e3-43db-bcab-2b78da666d00" };
+        Assert.assertTrue(ArrayUtils.isEquals(segIds, originSegIds));
     }
 
     @Test

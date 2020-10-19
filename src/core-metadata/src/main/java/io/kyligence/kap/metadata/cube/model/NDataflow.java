@@ -305,6 +305,14 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return null;
     }
 
+    public NDataSegment getSegmentByName(String segName) {
+        for (NDataSegment seg : segments) {
+            if (seg.getName().equals(segName))
+                return seg;
+        }
+        return null;
+    }
+
     public Segments<NDataSegment> getMergingSegments(NDataSegment mergedSegment) {
         return segments.getMergingSegments(mergedSegment);
     }

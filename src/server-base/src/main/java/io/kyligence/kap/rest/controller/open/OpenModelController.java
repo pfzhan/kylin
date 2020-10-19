@@ -166,11 +166,11 @@ public class OpenModelController extends NBasicController {
 
     @PutMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegmentsByIds(@PathVariable("model_name") String modelAlias,
-            @RequestBody SegmentsRequest request) {
+    public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model_name") String modelAlias,
+                                                                    @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         String modelId = getModel(modelAlias, request.getProject()).getId();
-        return modelController.refreshOrMergeSegmentsByIds(modelId, request);
+        return modelController.refreshOrMergeSegments(modelId, request);
     }
 
     @DeleteMapping(value = "/{model_name:.+}/segments")
@@ -179,13 +179,14 @@ public class OpenModelController extends NBasicController {
             @RequestParam("project") String project, // 
             @RequestParam("purge") Boolean purge, //
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
-            @RequestParam(value = "ids", required = false) String[] ids) {
+            @RequestParam(value = "ids", required = false) String[] ids, //
+            @RequestParam(value = "names", required = false) String[] names) {
         checkProjectName(project);
         if (purge) {
             ids = new String[0];
         }
         String modelId = getModel(modelAlias, project).getId();
-        return modelController.deleteSegments(modelId, project, purge, force, ids);
+        return modelController.deleteSegments(modelId, project, purge, force, ids, names);
     }
 
     @GetMapping(value = "/{project}/{model}/model_desc")

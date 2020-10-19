@@ -87,6 +87,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -1895,7 +1896,7 @@ public class ModelService extends BasicService {
                     String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
-        checkSegmentsExist(model, project, ids);
+        checkSegmentsExistById(model, project, ids);
         checkSegmentsStatus(model, project, ids, SegmentStatusEnumToDisplay.LOCKED);
         NDataflow dataflow = dataflowManager.getDataflow(model);
         val toDeletedSeg = dataflow.getSegments().stream().filter(seg -> Arrays.asList(ids).contains(seg.getId()))
@@ -2447,7 +2448,7 @@ public class ModelService extends BasicService {
                     String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
-        checkSegmentsExist(model, project, ids);
+        checkSegmentsExistById(model, project, ids);
         checkSegmentsStatus(model, project, ids, SegmentStatusEnumToDisplay.LOCKED);
 
         val indexPlan = getIndexPlan(model, project);
@@ -2473,7 +2474,7 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkSegmentsExist(String model, String project, String[] ids) {
+    private void checkSegmentsExistById(String model, String project, String[] ids) {
         Preconditions.checkNotNull(model);
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(ids);
@@ -2486,7 +2487,24 @@ public class ModelService extends BasicService {
                 .filter(Objects::nonNull).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(notExistIds)) {
             throw new KylinException(SEGMENT_NOT_EXIST,
-                    String.format("Can not find the Segments by ids [%s]", StringUtils.join(notExistIds, ",")));
+                    String.format(MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), StringUtils.join(notExistIds, ",")));
+        }
+    }
+
+    private void checkSegmentsExistByName(String model, String project, String[] names) {
+        Preconditions.checkNotNull(model);
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(names);
+
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        IndexPlan indexPlan = getIndexPlan(model, project);
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
+
+        List<String> notExistNames = Stream.of(names).filter(segmentName -> null == dataflow.getSegmentByName(segmentName))
+                .filter(Objects::nonNull).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(notExistNames)) {
+            throw new KylinException(SEGMENT_NOT_EXIST, String.format(MsgPicker.getMsg().getSEGMENT_NAME_NOT_EXIST(),
+                    StringUtils.join(notExistNames, ",")));
         }
     }
 
@@ -2505,8 +2523,9 @@ public class ModelService extends BasicService {
         String message = status.equals(SegmentStatusEnumToDisplay.LOCKED) ? MsgPicker.getMsg().getSEGMENT_LOCKED()
                 : MsgPicker.getMsg().getSEGMENT_STATUS(status.name());
         for (String id : ids) {
-            if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(status)) {
-                throw new KylinException(PERMISSION_DENIED, String.format(message, id));
+            val segment = dataflow.getSegment(id);
+            if (segments.getSegmentStatusToDisplay(segment).equals(status)) {
+                throw new KylinException(PERMISSION_DENIED, String.format(message, segment.displayIdName()));
             }
         }
     }
@@ -2521,8 +2540,8 @@ public class ModelService extends BasicService {
         for (int i = 0; i < segmentList.size() - 1; i++) {
             if (!segmentList.get(i).getSegRange().connects(segmentList.get(i + 1).getSegRange())) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
-                        String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), segmentList.get(i).getId(),
-                                segmentList.get(i + 1).getId()));
+                        String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), segmentList.get(i).displayIdName(),
+                                segmentList.get(i + 1).displayIdName()));
             }
         }
     }
@@ -2540,7 +2559,7 @@ public class ModelService extends BasicService {
         val indexPlan = getIndexPlan(modelId, project);
         val df = dfManager.getDataflow(indexPlan.getUuid());
 
-        checkSegmentsExist(modelId, project, ids);
+        checkSegmentsExistById(modelId, project, ids);
         checkSegmentsStatus(modelId, project, ids, SegmentStatusEnumToDisplay.LOADING,
                 SegmentStatusEnumToDisplay.REFRESHING, SegmentStatusEnumToDisplay.MERGING,
                 SegmentStatusEnumToDisplay.LOCKED);
@@ -2584,7 +2603,7 @@ public class ModelService extends BasicService {
     public List<JobInfoResponse.JobInfo> refreshSegmentById(RefreshSegmentParams params) {
 
         aclEvaluate.checkProjectOperationPermission(params.getProject());
-        checkSegmentsExist(params.getModelId(), params.getProject(), params.getSegmentIds());
+        checkSegmentsExistById(params.getModelId(), params.getProject(), params.getSegmentIds());
         checkSegmentsStatus(params.getModelId(), params.getProject(), params.getSegmentIds(),
                 SegmentStatusEnumToDisplay.LOADING, SegmentStatusEnumToDisplay.REFRESHING,
                 SegmentStatusEnumToDisplay.MERGING, SegmentStatusEnumToDisplay.LOCKED);
@@ -2649,6 +2668,26 @@ public class ModelService extends BasicService {
                 request.isSaveOnly(), affectedLayoutSet.size() > 0);
 
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
+    }
+
+    public String[] convertSegmentIdWithName(String modelId, String project, String[] segIds, String[] segNames) {
+        String[] ids = segIds;
+
+        if (ArrayUtils.isEmpty(segNames)) {
+            return ids;
+        }
+
+        aclEvaluate.checkProjectOperationPermission(project);
+        checkSegmentsExistByName(modelId, project, segNames);
+
+        NDataflow dataflow = getDataflowManager(project).getDataflow(getIndexPlan(modelId, project).getUuid());
+
+        ids = Stream.of(segNames).map(segmentName -> {
+            val segmentByName = dataflow.getSegmentByName(segmentName);
+            return Objects.isNull(segmentByName) ? null : segmentByName.getId();
+        }).toArray(String[]::new);
+
+        return ids;
     }
 
     private Set<Long> getAffectedLayouts(String project, String modelId, Set<Integer> modifiedSet) {

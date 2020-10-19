@@ -228,12 +228,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         request.setType(SegmentsRequest.SegmentsRequestType.REFRESH);
         request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .refreshOrMergeSegmentsByIds(modelId, request);
+                .refreshOrMergeSegments(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).refreshOrMergeSegmentsByIds(eq(modelName),
+        Mockito.verify(openModelController).refreshOrMergeSegments(eq(modelName),
                 Mockito.any(SegmentsRequest.class));
     }
 
@@ -245,12 +245,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
 
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, true, false, null);
+                .deleteSegments(modelId, project, true, false, null , null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).deleteSegments(modelName, "default", true, false, null);
+        Mockito.verify(openModelController).deleteSegments(modelName, "default", true, false, null, null);
     }
 
     @Test
@@ -263,12 +263,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = new SegmentsRequest();
         request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, false, false, request.getIds());
+                .deleteSegments(modelId, project, false, false, request.getIds() , null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "false").param("ids", request.getIds())
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).deleteSegments(modelName, "default", false, false, request.getIds());
+        Mockito.verify(openModelController).deleteSegments(modelName, "default", false, false, request.getIds(), null);
     }
 
     @Test

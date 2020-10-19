@@ -882,11 +882,11 @@ public class CnMessage extends Message {
     }
 
     public String getSEGMENT_LOCKED() {
-        return "由于 Segment [%s]被锁定，所以不能删除或者刷新该 Segment。";
+        return "由于 Segment %s 被锁定，所以不能删除或者刷新该 Segment。";
     }
 
     public String getSEGMENT_STATUS(String status) {
-        return "由于 Segment [%s] 处于 " + status + " 状态，所以不能合并或者刷新该 Segment。";
+        return "由于 Segment %s 处于 " + status + " 状态，所以不能合并或者刷新该 Segment。";
     }
 
     //Kerberos
@@ -1051,6 +1051,14 @@ public class CnMessage extends Message {
         return "Segments 列表为空";
     }
 
+    public String getSEGMENT_ID_NOT_EXIST() {
+        return "Segment Ids [%s] 不存在。";
+    }
+
+    public String getSEGMENT_NAME_NOT_EXIST() {
+        return "Segment Names [%s] 不存在。";
+    }
+
     public String getLAYOUT_LIST_IS_EMPTY() {
         return "Layouts 列表为空";
     }
@@ -1061,6 +1069,14 @@ public class CnMessage extends Message {
 
     public String getINVALID_REFRESH_SEGMENT() {
         return "您应该至少选择一个Segment来刷新。";
+    }
+
+    public String getEMPTY_SEGMENT_PARAMETER() {
+        return "请输入 Segment ID 或者 Segment Name。";
+    }
+
+    public String getCONFLICT_SEGMENT_PARAMETER() {
+        return "您不能同时输入Segment ID 和 Name。";
     }
 
     public String getINVALID_MERGE_SEGMENT_BY_TOO_LESS() {
@@ -1304,7 +1320,7 @@ public class CnMessage extends Message {
     }
 
     public String getSEGMENT_CONTAINS_GAPS() {
-        return "segment %s 和 %s 之间有空洞，无法合并。";
+        return "Segment %s 和 %s 区间不连续。";
     }
 
     public String getSegmentMergeLayoutConflictError() {

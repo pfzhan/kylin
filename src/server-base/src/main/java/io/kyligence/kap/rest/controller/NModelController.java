@@ -715,41 +715,49 @@ public class NModelController extends NBasicController {
             @RequestParam("project") String project, //
             @RequestParam("purge") Boolean purge, //
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
-            @RequestParam(value = "ids", required = false) String[] ids) {
+            @RequestParam(value = "ids", required = false) String[] ids, //
+            @RequestParam(value = "names", required = false) String[] names) {
         checkProjectName(project);
 
         if (purge) {
             modelService.purgeModelManually(model, project);
-        } else if (ArrayUtils.isEmpty(ids)) {
-            throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
         } else {
-            modelService.deleteSegmentById(model, project, ids, force);
+            checkSegmentParms(ids, names);
+            String[] idsDeleted = modelService.convertSegmentIdWithName(model, project, ids, names);
+            if (ArrayUtils.isEmpty(idsDeleted)) {
+                throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
+            }
+            modelService.deleteSegmentById(model, project, idsDeleted, force);
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "refreshOrMergeSegmentsByIds", notes = "Add URL: {model}")
+    @ApiOperation(value = "refreshOrMergeSegments", notes = "Add URL: {model}")
     @PutMapping(value = "/{model:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
+    public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model") String modelId,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
+        checkSegmentParms(request.getIds(), request.getNames());
         List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
+        String[] segIds = modelService.convertSegmentIdWithName(modelId, request.getProject(), request.getIds(),
+                request.getNames());
+
         if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
-            if (ArrayUtils.isEmpty(request.getIds())) {
+            if (ArrayUtils.isEmpty(segIds)) {
                 throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
-            jobInfos = modelService.refreshSegmentById(new RefreshSegmentParams(request.getProject(), modelId,
-                    request.getIds(), request.isRefreshAllIndexes())
+            jobInfos = modelService.refreshSegmentById(
+                    new RefreshSegmentParams(request.getProject(), modelId, segIds, request.isRefreshAllIndexes())
                             .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()));
         } else {
-            if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
+            if (ArrayUtils.isEmpty(segIds) || segIds.length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
             val jobInfo = modelService
-                    .mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
+                    .mergeSegmentsManually(new MergeSegmentParams(request.getProject(), modelId, segIds));
             if (jobInfo != null) {
                 jobInfos.add(jobInfo);
             }

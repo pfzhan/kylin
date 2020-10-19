@@ -975,11 +975,11 @@ public class Message {
     }
 
     public String getSEGMENT_LOCKED() {
-        return "Can not remove or refresh or merge segment [%s], because the segment is LOCKED.";
+        return "Can not remove or refresh or merge segment %s, because the segment is LOCKED.";
     }
 
     public String getSEGMENT_STATUS(String status) {
-        return "Can not refresh or merge segment [%s], because the segment is " + status + ".";
+        return "Can not refresh or merge segment %s, because the segment is " + status + ".";
     }
 
     //HA
@@ -1117,6 +1117,14 @@ public class Message {
         return "Segments id list can not empty!";
     }
 
+    public String getSEGMENT_ID_NOT_EXIST() {
+        return "Can not find the Segments by ids [%s].";
+    }
+
+    public String getSEGMENT_NAME_NOT_EXIST() {
+        return "Can not find the Segments by names [%s].";
+    }
+
     public String getLAYOUT_LIST_IS_EMPTY() {
         return "Layouts id list can not empty!";
     }
@@ -1127,6 +1135,14 @@ public class Message {
 
     public String getINVALID_REFRESH_SEGMENT() {
         return "You should choose at least one segment to refresh!";
+    }
+
+    public String getEMPTY_SEGMENT_PARAMETER() {
+        return "Please input the value of the Segment ID or Name.";
+    }
+
+    public String getCONFLICT_SEGMENT_PARAMETER() {
+        return "You cannot input segment ID and Name at the same time.";
     }
 
     public String getINVALID_MERGE_SEGMENT_BY_TOO_LESS() {
@@ -1370,7 +1386,7 @@ public class Message {
     }
 
     public String getSEGMENT_CONTAINS_GAPS() {
-        return "Merging segments must not have gaps between %s and %s.";
+        return "The range of segments %s and %s are discontinuous.";
     }
 
     public String getSegmentMergeLayoutConflictError() {

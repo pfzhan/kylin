@@ -389,8 +389,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
                     throw new KylinException(FAILED_MERGE_SEGMENT,
-                            String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), mergingSegments.get(i),
-                                    mergingSegments.get(i + 1)));
+                            String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), mergingSegments.get(i).displayIdName(),
+                                    mergingSegments.get(i + 1).displayIdName()));
             }
 
             List<String> emptySegment = Lists.newArrayList();

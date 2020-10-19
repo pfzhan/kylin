@@ -348,7 +348,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, false,
-                null);
+                null , null);
     }
 
     @Test
@@ -356,6 +356,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = mockSegmentRequest();
         Mockito.doNothing().when(modelService).deleteSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
                 request.getIds(), false);
+        Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .param("project", "default").param("purge", "false")
@@ -363,7 +365,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", false, false,
-                request.getIds());
+                request.getIds(), null);
     }
 
     @Test
@@ -372,13 +374,15 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         jobInfos.add(new JobInfoResponse.JobInfo("78847556-2cdb-4b07-b39e-4c29856309aa", "89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         SegmentsRequest request = mockSegmentRequest();
         Mockito.doAnswer(x -> jobInfos).when(modelService).refreshSegmentById(Mockito.any());
+        Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
         String mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
         Assert.assertTrue(mvcResult.contains("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
 
@@ -389,13 +393,15 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setIds(new String[] { "0", "1" });
         Mockito.doAnswer(x -> new JobInfoResponse.JobInfo("0312bcc1-092e-42b1-ab0e-27807cf54f16", "79c27a68-343c-4b73-b406-dd5af0add951"))
                 .when(modelService).mergeSegmentsManually(Mockito.any());
+        Mockito.doReturn(request.getIds()).when(modelService).convertSegmentIdWithName(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request.getProject(), request.getIds(), null);
         val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn().getResponse().getContentAsString();
         Assert.assertTrue(mvcResult.contains("79c27a68-343c-4b73-b406-dd5af0add951"));
-        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
 
@@ -410,7 +416,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
 
@@ -425,7 +431,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nModelController).refreshOrMergeSegmentsByIds(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+        Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
 

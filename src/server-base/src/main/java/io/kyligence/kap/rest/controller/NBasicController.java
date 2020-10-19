@@ -52,6 +52,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STAT
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
@@ -75,6 +76,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -321,6 +323,19 @@ public class NBasicController {
         if (prjInstance == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        }
+    }
+
+    protected void checkSegmentParms(String[] ids , String[] names){
+
+        //both not empty
+        if (ArrayUtils.isNotEmpty(ids) && ArrayUtils.isNotEmpty(names)) {
+            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER());
+        }
+
+        //both empty
+        if (ArrayUtils.isEmpty(ids) && ArrayUtils.isEmpty(names)) {
+            throw new KylinException(INVALID_SEGMENT_PARAMETER, MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER());
         }
     }
 
