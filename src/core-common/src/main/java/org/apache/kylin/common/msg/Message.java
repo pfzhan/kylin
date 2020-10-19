@@ -936,7 +936,7 @@ public class Message {
     }
 
     public String getDIMENSION_NOTFOUND() {
-        return "The dimension %s is referenced by indexes. Please try again after deleting it from aggregation group or table index.";
+        return "The dimension %s is being referenced by aggregation group, recommended aggregate index or table index. Please delete this dimension from the above first.";
     }
 
     public String getMEASURE_NOTFOUND() {

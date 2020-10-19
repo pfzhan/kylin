@@ -2664,8 +2664,8 @@ public class ModelService extends BasicService {
     }
 
     private void checkIndexColumnExist(String project, String modelId, NDataModel originModel) {
-        val indePlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val indexPlan = indePlanManager.getIndexPlan(modelId);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
         var newModel = getDataModelManager(project).getDataModelDesc(modelId);
 
         // check agg group contains removed dimensions
@@ -2694,10 +2694,10 @@ public class ModelService extends BasicService {
         //check table index contains removed columns
         val tableIndexColumns = indexPlan.getIndexes().stream().filter(IndexEntity::isTableIndex)
                 .map(IndexEntity::getDimensions).flatMap(List::stream).collect(Collectors.toSet());
-        val allNamedColumns = newModel.getAllSelectedColumns().stream().map(NDataModel.NamedColumn::getId)
+        val allSelectedColumns = newModel.getAllSelectedColumns().stream().map(NDataModel.NamedColumn::getId)
                 .collect(Collectors.toList());
-        if (!allNamedColumns.containsAll(tableIndexColumns)) {
-            val columnNames = tableIndexColumns.stream().filter(x -> !allNamedColumns.contains(x))
+        if (!allSelectedColumns.containsAll(tableIndexColumns)) {
+            val columnNames = tableIndexColumns.stream().filter(x -> !allSelectedColumns.contains(x))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
             throw new KylinException(FAILED_UPDATE_MODEL,
                     String.format(MsgPicker.getMsg().getDIMENSION_NOTFOUND(), StringUtils.join(columnNames, ",")));

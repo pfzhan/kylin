@@ -3808,8 +3808,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The dimension TEST_SITES.SITE_NAME is referenced by indexes. Please try again after "
-                + "deleting it from aggregation group or table index.");
+        thrown.expectMessage("The dimension TEST_SITES.SITE_NAME is being referenced by aggregation group, "
+                + "recommended aggregate index or table index. Please delete this dimension from the above first.");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
