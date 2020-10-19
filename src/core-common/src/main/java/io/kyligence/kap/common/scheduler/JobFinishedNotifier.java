@@ -26,79 +26,28 @@ package io.kyligence.kap.common.scheduler;
 
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class JobFinishedNotifier extends SchedulerEventNotifier {
+    private String jobId;
     private long duration;
     private String jobState;
+    private String jobType;
     private Set<String> segmentIds;
     private Set<Long> layoutIds;
-    private long dataRangeStart;
-    private long dataRangeEnd;
 
-    public JobFinishedNotifier(String project, String subject, long duration, String jobState, Set<String> segmentIds,
-            Set<Long> layoutIds, long dataRangeStart, long dataRangeEnd) {
+    public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
+            String jobType, Set<String> segmentIds, Set<Long> layoutIds) {
         setProject(project);
         setSubject(subject);
+        this.jobId = jobId;
         this.duration = duration;
         this.jobState = jobState;
+        this.jobType = jobType;
         this.segmentIds = segmentIds;
         this.layoutIds = layoutIds;
-        this.dataRangeStart = dataRangeStart;
-        this.dataRangeEnd = dataRangeEnd;
-    }
-
-    public JobInfo extractJobInfo() {
-        return new JobInfo(project, subject, segmentIds, layoutIds, dataRangeStart, dataRangeEnd, duration, jobState);
-    }
-
-    @Getter
-    @Setter
-    public static class JobInfo {
-
-        @JsonProperty("project")
-        private String project;
-
-        @JsonProperty("model_id")
-        private String modelId;
-
-        @JsonProperty("segment_ids")
-        private Set<String> segmentIds;
-
-        @JsonProperty("index_ids")
-        private Set<Long> indexIds;
-
-        @JsonProperty("data_range_start")
-        private long dataRangeStart;
-
-        @JsonProperty("data_range_end")
-        private long dataRangeEnd;
-
-        @JsonProperty("duration")
-        private long duration;
-
-        @JsonProperty("job_state")
-        private String state;
-
-        public JobInfo(String project, String subject, Set<String> segmentIds,
-                       Set<Long> layoutIds, long dataRangeStart, long dataRangeEnd, long duration, String jobState) {
-            this.project = project;
-            this.modelId = subject;
-            this.segmentIds = segmentIds;
-            this.indexIds = layoutIds;
-            this.dataRangeStart = dataRangeStart;
-            this.dataRangeEnd = dataRangeEnd;
-            this.duration = duration;
-            if ("SUICIDAL".equalsIgnoreCase(jobState)) {
-                this.state = "DISCARDED";
-            } else {
-                this.state = jobState;
-            }
-        }
     }
 }

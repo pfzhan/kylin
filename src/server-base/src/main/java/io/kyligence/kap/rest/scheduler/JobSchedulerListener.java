@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.scheduler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -39,11 +41,17 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
+import org.apache.kylin.metadata.model.TimeRange;
+
+import com.clearspring.analytics.util.Lists;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -69,10 +77,95 @@ public class JobSchedulerListener {
         jobFinishedNotified = true;
         NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
 
-        postJobInfo(notifier.extractJobInfo());
+        postJobInfo(extractJobInfo(notifier));
     }
 
-    static void postJobInfo(JobFinishedNotifier.JobInfo info) {
+    static JobInfo extractJobInfo(JobFinishedNotifier notifier) {
+        Set<String> segmentIds = notifier.getSegmentIds();
+        String project = notifier.getProject();
+        String dfID = notifier.getSubject();
+        NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow dataflow = manager.getDataflow(dfID);
+        List<SegRange> list = Lists.newArrayList();
+        if (dataflow != null) {
+            for (String id : segmentIds) {
+                TimeRange segRange = dataflow.getSegment(id).getTSRange();
+                list.add(new SegRange(id, segRange.getStart(), segRange.getEnd()));
+            }
+        }
+        return new JobInfo(notifier.getJobId(), notifier.getProject(), notifier.getSubject(), notifier.getSegmentIds(),
+                notifier.getLayoutIds(), notifier.getDuration(), notifier.getJobState(), notifier.getJobType(), list);
+    }
+
+    @Getter
+    @Setter
+    public static class JobInfo {
+
+        @JsonProperty("job_id")
+        private String jobId;
+
+        @JsonProperty("project")
+        private String project;
+
+        @JsonProperty("model_id")
+        private String modelId;
+
+        @JsonProperty("segment_ids")
+        private Set<String> segmentIds;
+
+        @JsonProperty("index_ids")
+        private Set<Long> indexIds;
+
+        @JsonProperty("duration")
+        private long duration;
+
+        @JsonProperty("job_state")
+        private String state;
+
+        @JsonProperty("job_type")
+        private String jobType;
+
+        @JsonProperty("segment_time_range")
+        private List<SegRange> segRanges;
+
+        public JobInfo(String jobId, String project, String subject, Set<String> segmentIds, Set<Long> layoutIds,
+                long duration, String jobState, String jobType, List<SegRange> segRanges) {
+            this.jobId = jobId;
+            this.project = project;
+            this.modelId = subject;
+            this.segmentIds = segmentIds;
+            this.indexIds = layoutIds;
+            this.duration = duration;
+            if ("SUICIDAL".equalsIgnoreCase(jobState)) {
+                this.state = "DISCARDED";
+            } else {
+                this.state = jobState;
+            }
+            this.jobType = jobType;
+            this.segRanges = segRanges;
+        }
+    }
+
+    @Setter
+    @Getter
+    static class SegRange {
+        @JsonProperty("segment_id")
+        private String segmentId;
+
+        @JsonProperty("data_range_start")
+        private long start;
+
+        @JsonProperty("data_range_end")
+        private long end;
+
+        public SegRange(String id, long start, long end) {
+            this.segmentId = id;
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    static void postJobInfo(JobInfo info) {
         String url = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierUrl();
 
         if (url == null || info.getSegmentIds() == null || "READY".equalsIgnoreCase(info.getState())) {
