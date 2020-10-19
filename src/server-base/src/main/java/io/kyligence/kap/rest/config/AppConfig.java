@@ -29,7 +29,6 @@ import java.net.MalformedURLException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.rest.interceptor.ReloadAuthoritiesInterceptor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +48,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
@@ -167,16 +165,5 @@ public class AppConfig extends WebMvcConfigurerAdapter {
                 SimpleBeanPropertyFilter.serializeAllExcept("password"));
 
         return objectMapper.setFilterProvider(filterProvider);
-    }
-
-    @Bean
-    public ReloadAuthoritiesInterceptor getReloadAuthoritiesInterceptor() {
-        return new ReloadAuthoritiesInterceptor();
-    }
-
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        super.addInterceptors(registry);
-        registry.addInterceptor(getReloadAuthoritiesInterceptor());
     }
 }
