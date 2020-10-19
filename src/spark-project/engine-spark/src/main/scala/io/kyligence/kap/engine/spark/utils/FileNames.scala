@@ -32,4 +32,11 @@ object FileNames {
 
   def snapshotFileWithWorkingDir(tableDesc: TableDesc, workingDir: String): Path =
     new Path(workingDir, snapshotFile(tableDesc))
+
+  def snapshotFile(project: String, identity: String): Path =
+    new Path(project + HadoopUtil.SNAPSHOT_STORAGE_ROOT + "/" + identity)
+
+  def snapshotFileWithWorkingDir(project: String, identity: String, workingDir: String): Path = {
+    new Path(workingDir, snapshotFile(project, identity))
+  }
 }

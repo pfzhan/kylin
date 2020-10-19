@@ -50,6 +50,10 @@ object HDFSUtils extends Logging {
     listSortedFileFrom(path).last
   }
 
+  def exists(path: Path): Boolean = {
+    getFileContext(path).util.exists(path)
+  }
+
 
   def deleteFilesWithCheck(path: Path, HDFSResourceCheck: HDFSResourceCheck): Unit = {
     val context = getFileContext(path)
