@@ -36,13 +36,19 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
+import io.kyligence.kap.tool.bisync.BISyncModel;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -111,6 +117,9 @@ import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -825,14 +834,41 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
-    @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
+    @ApiOperation(value = "export model", notes = "Add URL: {model}")
+    @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
-    public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
-            @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
-        checkProjectName(deleteSegmentsRequest.getProject());
-        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
-                deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    public void exportModel(@PathVariable("model") String modelId,
+                            @RequestParam(value = "project") String project,
+                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+                            @RequestParam(value = "element") SyncContext.ModelElement element,
+                            @RequestParam(value = "server_host", required = false) String host,
+                            @RequestParam(value = "server_port", required = false) Integer port,
+                            HttpServletRequest request, HttpServletResponse response) throws IOException {
+        checkProjectName(project);
+        if (host == null) {
+            host = request.getServerName();
+        }
+        if (port == null) {
+            port = request.getServerPort();
+        }
+
+        BISyncModel syncModel = modelService.exportModel(project, modelId, exportAs, element, host, port);
+
+        String fileName = String.format("%s_%s_%s", project, modelService.getModelById(modelId, project).getAlias(),
+                new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+        switch (exportAs) {
+            case TABLEAU_CONNECTOR_TDS:
+            case TABLEAU_ODBC_TDS:
+                response.setContentType("application/xml");
+                response.setHeader("Content-Disposition",
+                        String.format("attachment; filename=\"%s.tds\"", fileName));
+                break;
+            default:
+                throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
+        }
+        syncModel.dump(response.getOutputStream());
+        response.getOutputStream().flush();
+        response.getOutputStream().close();
     }
+
 }

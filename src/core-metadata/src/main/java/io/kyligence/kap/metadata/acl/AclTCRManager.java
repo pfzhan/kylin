@@ -304,7 +304,7 @@ public class AclTCRManager {
             return new AclTCRDigest();
         }
         final List<AclTCR> all = getAclTCRs(username, groups);
-        if (isTablesAuthorized(all)) {
+        if (all == null || all.isEmpty() || isTablesAuthorized(all)) {
             return new AclTCRDigest();
         }
 

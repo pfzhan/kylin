@@ -73,6 +73,11 @@
             <artifactId>hadoop-yarn-common</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
 
         <!-- Spark dependency -->
         <dependency>

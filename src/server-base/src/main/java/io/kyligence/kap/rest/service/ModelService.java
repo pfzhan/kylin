@@ -56,6 +56,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIS
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -79,6 +80,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.acl.AclTCRDigest;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.tool.bisync.BISyncModel;
+import io.kyligence.kap.tool.bisync.BISyncTool;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -125,6 +131,7 @@ import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -272,6 +279,9 @@ public class ModelService extends BasicService {
     @Setter
     @Autowired
     private IndexPlanService indexPlanService;
+
+    @Autowired
+    private QueryService queryService;
 
     @Setter
     @Autowired
@@ -3391,6 +3401,54 @@ public class ModelService extends BasicService {
             return null;
         return dataModelDesc.getPartitionDesc() == null ? null
                 : dataModelDesc.getPartitionDesc().getPartitionDateFormat();
+    }
+
+    public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
+                                   SyncContext.ModelElement modelElement, String host, int port) {
+        NDataflow dataflow = getDataflowManager(projectName).getDataflow(modelId);
+        if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
+            throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
+        }
+        checkModelExportPermission(projectName, modelId);
+
+        SyncContext syncContext = new SyncContext();
+        syncContext.setProjectName(projectName);
+        syncContext.setModelId(modelId);
+        syncContext.setTargetBI(targetBI);
+        syncContext.setModelElement(modelElement);
+        syncContext.setHost(host);
+        syncContext.setPort(port);
+        syncContext.setDataflow(getDataflowManager(projectName).getDataflow(modelId));
+        syncContext.setTablesAndColumns(queryService.getMetadataV2(projectName));
+
+        return BISyncTool.dumpToBISyncModel(syncContext);
+    }
+
+    private void checkModelExportPermission(String project, String modeId) {
+        if (AclPermissionUtil.isAdmin()) {
+            return;
+        }
+        aclEvaluate.checkProjectReadPermission(project);
+
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modeId);
+        Map<String, Set<String>> modelTableColumns = new HashMap<>();
+        for (TableRef tableRef : model.getAllTables()) {
+            modelTableColumns.putIfAbsent(tableRef.getTableIdentity(), new HashSet<>());
+            modelTableColumns.get(
+                    tableRef.getTableIdentity()).addAll(tableRef.getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()));
+        }
+        AclTCRManager aclManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        String currentUserName = AclPermissionUtil.getCurrentUsername();
+        Set<String> groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(currentUserName);
+        Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
+        AclTCRDigest digest = aclManager.getAllUnauthorizedTableColumn(currentUserName, groupsInProject, modelTableColumns);
+        if (digest.getColumns() != null && !digest.getColumns().isEmpty()) {
+            throw new KylinException(UNAUTHORIZED_ENTITY, "current user does not have full permission on requesting model");
+        }
+        if (digest.getTables() != null && !digest.getTables().isEmpty()) {
+            throw new KylinException(UNAUTHORIZED_ENTITY, "current user does not have full permission on requesting model");
+        }
     }
 
 }
