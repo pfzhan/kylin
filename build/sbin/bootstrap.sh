@@ -33,6 +33,11 @@ if [ "$1" == "-v" ]; then
 fi
 
 KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
+SPARK_SCHEDULER_MODE=`$KYLIN_HOME/bin/get-properties.sh kylin.query.engine.spark-scheduler-mode`
+
+if [ "${SPARK_SCHEDULER_MODE}" == "" ] || [[ "${SPARK_SCHEDULER_MODE}" != "FAIR" && "${SPARK_SCHEDULER_MODE}" != "SJF" ]]; then
+  SPARK_SCHEDULER_MODE="FAIR"
+fi
 
 function prepareEnv {
     export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
@@ -125,27 +130,27 @@ function prepareFairScheduler() {
 
 <allocations>
   <pool name="query_pushdown">
-    <schedulingMode>FAIR</schedulingMode>
+    <schedulingMode>${SPARK_SCHEDULER_MODE}</schedulingMode>
     <weight>1</weight>
     <minShare>1</minShare>
   </pool>
   <pool name="extreme_heavy_tasks">
-    <schedulingMode>FAIR</schedulingMode>
+    <schedulingMode>${SPARK_SCHEDULER_MODE}</schedulingMode>
     <weight>3</weight>
     <minShare>1</minShare>
   </pool>
   <pool name="heavy_tasks">
-    <schedulingMode>FAIR</schedulingMode>
+    <schedulingMode>${SPARK_SCHEDULER_MODE}</schedulingMode>
     <weight>5</weight>
     <minShare>1</minShare>
   </pool>
   <pool name="lightweight_tasks">
-    <schedulingMode>FAIR</schedulingMode>
+    <schedulingMode>${SPARK_SCHEDULER_MODE}</schedulingMode>
     <weight>10</weight>
     <minShare>1</minShare>
   </pool>
   <pool name="vip_tasks">
-    <schedulingMode>FAIR</schedulingMode>
+    <schedulingMode>${SPARK_SCHEDULER_MODE}</schedulingMode>
     <weight>15</weight>
     <minShare>1</minShare>
   </pool>
