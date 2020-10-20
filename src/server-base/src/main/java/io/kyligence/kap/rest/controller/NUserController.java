@@ -74,6 +74,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -267,6 +268,17 @@ public class NUserController extends NBasicController {
 
         checkProfile();
         checkUsername(username);
+
+        ManagedUser managedUser = null;
+        try {
+            managedUser = getManagedUser(username);
+        } catch (UsernameNotFoundException e) {
+            logger.warn("Delete user failed, user {} not found.", username);
+        }
+        if (Objects.isNull(managedUser)) {
+            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
+        }
+
         if (StringUtils.equals(getPrincipal(), username)) {
             throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
         }

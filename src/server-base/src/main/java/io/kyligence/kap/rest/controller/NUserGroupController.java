@@ -178,7 +178,7 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "modify users in user group");
     }
 
-    private void checkGroupName(String groupName) {
+    public void checkGroupName(String groupName) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(groupName)) {
             throw new KylinException(EMPTY_USERGROUP_NAME, msg.getEMPTY_GROUP_NAME());

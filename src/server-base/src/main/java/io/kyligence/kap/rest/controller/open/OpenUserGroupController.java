@@ -146,6 +146,7 @@ public class OpenUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> delUserGroupWithBody(@RequestBody UserGroupRequest request)
             throws IOException {
+        userGroupController.checkGroupName(request.getGroupName());
         String groupUuid = userGroupService.getUuidByGroupName(request.getGroupName());
         return userGroupController.delUserGroup(groupUuid);
     }

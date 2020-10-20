@@ -324,6 +324,37 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testDelUserByUsername() throws Exception {
+        String username = "username1";
+        ManagedUser user = new ManagedUser();
+        user.setUuid("u1");
+        user.setUsername(username);
+
+        Mockito.doReturn(user).when(userService).loadUserByUsername(username);
+        Mockito.doReturn(Lists.newArrayList(user)).when(userService).listUsers();
+        Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
+        Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
+
+        nUserController.delete(username);
+    }
+
+    @Test
+    public void testDelUserByUsernameException() throws Exception {
+        String username = "username1";
+        ManagedUser user = new ManagedUser();
+        user.setUuid("u1");
+        user.setUsername(username);
+
+        Mockito.doReturn(Lists.newArrayList(user)).when(userService).listUsers();
+        Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
+        Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(String.format("User '%s' not found.", username));
+        nUserController.delete(username);
+    }
+
+    @Test
     public void testUpdatePassword_UserNotFound() throws Exception {
         val request = new PasswordChangeRequest();
         request.setUsername("ADMIN");
