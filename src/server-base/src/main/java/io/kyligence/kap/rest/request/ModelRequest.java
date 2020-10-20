@@ -95,7 +95,8 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     }
 
     @JsonSetter("all_measures")
-    public void setMeasures(List<Measure> measures) {
+    public void setMeasures(List<Measure> inputMeasures) {
+        List<Measure> measures = inputMeasures != null ? inputMeasures : Lists.newArrayList();
         List<SimplifiedMeasure> simpleMeasureList = Lists.newArrayList();
         for (NDataModel.Measure measure : measures) {
             SimplifiedMeasure simplifiedMeasure = SimplifiedMeasure.fromMeasure(measure);
