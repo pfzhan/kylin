@@ -69,8 +69,6 @@
 
         <kryo.version>4.0.0</kryo.version>
 
-        <!-- <reflections.version>0.9.10</reflections.version> -->
-
         <!-- Calcite Version -->
         <calcite.version>1.16.0-kylin-4.x-r46</calcite.version>
         <avatica.version>1.10.0</avatica.version>
@@ -114,11 +112,13 @@
         <slf4j.version>1.7.25</slf4j.version>
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
-        <apache-httpclient.version>4.5.3</apache-httpclient.version>
+        <apache-httpclient.version>4.5.13</apache-httpclient.version>
         <beanutils.version>1.9.4</beanutils.version>
         <snakeyaml.version>1.26</snakeyaml.version>
         <xerces.version>2.12.0</xerces.version>
 
+        <mybatis.version>3.5.6</mybatis.version>
+        <mybatis-sql.version>1.1.4</mybatis-sql.version>
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
         <cors.version>2.5</cors.version>
@@ -1254,6 +1254,18 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <!-- MyBaits -->
+            <dependency>
+                <groupId>org.mybatis</groupId>
+                <artifactId>mybatis</artifactId>
+                <version>${mybatis.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mybatis.dynamic-sql</groupId>
+                <artifactId>mybatis-dynamic-sql</artifactId>
+                <version>${mybatis-sql.version}</version>
             </dependency>
 
             <!-- Swagger API -->
