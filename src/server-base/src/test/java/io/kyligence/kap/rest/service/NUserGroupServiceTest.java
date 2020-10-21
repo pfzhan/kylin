@@ -46,11 +46,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.rest.response.UserGroupResponse;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import lombok.val;
 import lombok.var;
 
@@ -190,9 +191,12 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         userGroupService.modifyGroupUsers("t2", users);
         List<UserGroup> groups = userGroupService.getUserGroupsFilterByGroupName(null);
         Assert.assertEquals(3, groups.size());
-        List<UserGroupResponse> result = userGroupService.getUserGroupResponse(groups);
+        List<UserGroupResponseKI> result = userGroupService.getUserGroupResponse(groups);
         Assert.assertEquals(3, result.size());
         for (val response : result) {
+            val groupAndUser = response.getUserGroupAndUsers();
+            Assert.assertEquals(response.getGroupName(), groupAndUser.getFirst());
+            Assert.assertTrue(Sets.difference(response.getUsers(), groupAndUser.getSecond()).isEmpty());
             if (response.getGroupName().equals("t3")) {
                 Assert.assertEquals(0, response.getUsers().size());
             } else {

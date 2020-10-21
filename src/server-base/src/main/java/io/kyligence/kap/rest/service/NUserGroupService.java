@@ -63,7 +63,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.rest.response.UserGroupResponse;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 
@@ -266,18 +266,14 @@ public class NUserGroupService implements IUserGroupService {
         return NUserGroupManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
-    public List<UserGroupResponse> getUserGroupResponse(List<UserGroup> userGroups) throws IOException {
-        List<UserGroupResponse> result = new ArrayList<>();
+    public List<UserGroupResponseKI> getUserGroupResponse(List<UserGroup> userGroups) throws IOException {
+        List<UserGroupResponseKI> result = new ArrayList<>();
         for (UserGroup group : userGroups) {
             Set<String> groupMembers = new TreeSet<>();
             for (ManagedUser user : getGroupMembersByName(group.getGroupName())) {
                 groupMembers.add(user.getUsername());
             }
-            UserGroupResponse response = new UserGroupResponse();
-            response.setUuid(group.getUuid());
-            response.setGroupName(group.getGroupName());
-            response.setUsers(groupMembers);
-            result.add(response);
+            result.add(new UserGroupResponseKI(group.getUuid(), group.getGroupName(), groupMembers));
         }
         return result;
     }

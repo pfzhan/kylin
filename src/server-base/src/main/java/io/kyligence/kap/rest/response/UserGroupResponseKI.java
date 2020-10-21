@@ -25,22 +25,19 @@ package io.kyligence.kap.rest.response;
 
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.kylin.common.util.Pair;
+
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import lombok.Data;
 
 @Data
-public class UserGroupResponse {
-    @JsonProperty("uuid")
-    protected String uuid;
-    @JsonProperty("group_name")
-    protected String groupName;
-    @JsonProperty("users")
-    protected Set<String> users;
+public class UserGroupResponseKI extends UserGroupResponse {
+    @JsonUnwrapped
+    private Pair<String, Set<String>> userGroupAndUsers;
 
-    public UserGroupResponse(String uuid, String groupName, Set<String> users) {
-        this.uuid = uuid;
-        this.groupName = groupName;
-        this.users = users;
+    public UserGroupResponseKI(String uuid, String groupName, Set<String> users) {
+        super(uuid, groupName, users);
+        userGroupAndUsers = new Pair<>(groupName, users);
     }
 }

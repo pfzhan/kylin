@@ -61,9 +61,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.rest.request.UserGroupRequest;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
-import io.kyligence.kap.rest.response.UserGroupResponse;
+import io.kyligence.kap.rest.request.UserGroupRequest;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -126,14 +126,14 @@ public class NUserGroupController extends NBasicController {
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<DataResult<List<UserGroupResponse>>> getUsersWithGroup(
+    public EnvelopeResponse<DataResult<List<UserGroupResponseKI>>> getUsersWithGroup(
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "user_group_name", required = false, defaultValue = "") String userGroupName)
             throws IOException {
         List<UserGroup> groups = userGroupService.getUserGroupsFilterByGroupName(userGroupName);
         List<UserGroup> subList = PagingUtil.cutPage(groups, pageOffset, pageSize);
-        List<UserGroupResponse> result = userGroupService.getUserGroupResponse(subList);
+        List<UserGroupResponseKI> result = userGroupService.getUserGroupResponse(subList);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, result.size()),
                 "get users with group and id");
     }
@@ -149,8 +149,7 @@ public class NUserGroupController extends NBasicController {
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> addUserGroup(@RequestBody UserGroupRequest addUserGroupRequest)
-            throws IOException {
+    public EnvelopeResponse<String> addUserGroup(@RequestBody UserGroupRequest addUserGroupRequest) throws IOException {
         checkGroupName(addUserGroupRequest.getGroupName());
         userGroupService.addGroup(addUserGroupRequest.getGroupName());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user group");

@@ -49,7 +49,7 @@ import java.util.Set;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.rest.response.UserGroupResponse;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 
 public interface IUserGroupService {
     //need project to indicate user's permission.only global admin and project admin can get.
@@ -81,5 +81,5 @@ public interface IUserGroupService {
 
     Map<String, List<String>> getUserAndUserGroup() throws IOException;
 
-    List<UserGroupResponse> getUserGroupResponse(List<UserGroup> userGroups) throws IOException;
+    List<UserGroupResponseKI> getUserGroupResponse(List<UserGroup> userGroups) throws IOException;
 }
