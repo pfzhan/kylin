@@ -30,7 +30,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructType}
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparderEnv}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode}
 import org.scalatest.BeforeAndAfterAll
 
 

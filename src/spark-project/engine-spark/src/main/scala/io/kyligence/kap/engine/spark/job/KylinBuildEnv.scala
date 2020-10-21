@@ -28,9 +28,8 @@ import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.cluster.{ClusterManagerFactory, IClusterManager}
 import javax.annotation.concurrent.NotThreadSafe
-import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.internal.SQLConf.{ADAPTIVE_EXECUTION_SKEWED_PARTITION_MAX_SPLITS, SHUFFLE_TARGET_POSTSHUFFLE_INPUT_SIZE}
 
 class KylinBuildEnv(config: KylinConfig) {
 
@@ -46,21 +45,6 @@ class KylinBuildEnv(config: KylinConfig) {
 
   def setEncodingDataSkew(boolean: Boolean): Unit = {
     encodingDataSkew = boolean;
-  }
-
-  def supportAndAdjustAdaptiveHandleSkewJoin(): Unit = {
-    if (KapConfig.wrap(config).isAESkewJoinEnabled) {
-      sparkConf.set("spark.sql.adaptive.skewedJoin.enabled", "true")
-      sparkConf.set("spark.sql.adaptive.join.enabled", "true")
-      sparkConf.set("spark.shuffle.statistics.verbose", "true")
-      if (!sparkConf.contains(ADAPTIVE_EXECUTION_SKEWED_PARTITION_MAX_SPLITS.key)) {
-        sparkConf.set(ADAPTIVE_EXECUTION_SKEWED_PARTITION_MAX_SPLITS.key, "50")
-      }
-
-      if (!sparkConf.contains(SHUFFLE_TARGET_POSTSHUFFLE_INPUT_SIZE.key)) {
-        sparkConf.set(SHUFFLE_TARGET_POSTSHUFFLE_INPUT_SIZE.key, (32 * 1024 * 1024).toString)
-      }
-    }
   }
 }
 

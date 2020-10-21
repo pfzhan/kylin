@@ -28,13 +28,10 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution._
-import org.apache.spark.sql.execution.adaptive.{QueryStage, QueryStageInput}
 import org.apache.spark.sql.execution.aggregate.{HashAggregateExec, ObjectHashAggregateExec, SortAggregateExec}
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, BroadcastNestedLoopJoinExec, ShuffledHashJoinExec, SortMergeJoinExec}
 import org.apache.spark.sql.execution.streaming.StreamingSymmetricHashJoinExec
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
-
-import scala.collection.{immutable, mutable}
 
 
 object JobMetricsUtils extends Logging {
@@ -55,30 +52,14 @@ object JobMetricsUtils extends Logging {
     metrics
   }
 
-  def collectPlan(sparkPlan: SparkPlan): Seq[SparkPlan] = {
-    var plans = Seq.empty[SparkPlan]
-    var stagePlans = Seq.empty[SparkPlan]
-    sparkPlan.foreach {
-      case plan: SparkPlan =>
-        if (plan.isInstanceOf[QueryStageInput]) {
-          stagePlans = stagePlans ++ collectPlan(plan.asInstanceOf[QueryStageInput].childStage)
-        } else {
-          plans = plans ++ Seq(plan)
-        }
-    }
-
-    plans ++ stagePlans
-  }
-
   def collectOutputRows(sparkPlan: SparkPlan): JobMetrics = {
     val rowMetrics = new JobMetrics
     var afterAgg = false
     var afterJoin = false
 
-    val plans = collectPlan(sparkPlan)
-    plans foreach {
+    sparkPlan foreach {
       case plan: UnaryExecNode =>
-        if (aggs.contains(plan.getClass) && !afterAgg && !plan.isInstanceOf[QueryStageInput]) {
+        if (aggs.contains(plan.getClass) && !afterAgg) {
           afterAgg = true
           rowMetrics.setMetrics(Metrics.CUBOID_ROWS_CNT, plan.metrics.apply("numOutputRows").value)
         }
