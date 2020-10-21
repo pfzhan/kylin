@@ -283,6 +283,10 @@ public class ModelSemanticHelper extends BasicService {
         for (NDataModel.NamedColumn namedColumn : simplifiedColumns) {
             dimensionNameMap.put(namedColumn.getAliasDotColumn(), namedColumn);
         }
+        Map<String, NDataModel.NamedColumn> otherColumnNameMap = Maps.newHashMap();
+        for (NDataModel.NamedColumn namedColumn : modelRequest.getOtherColumns()) {
+            otherColumnNameMap.put(namedColumn.getAliasDotColumn(), namedColumn);
+        }
 
         int id = 0;
         List<NDataModel.NamedColumn> columns = Lists.newArrayList();
@@ -300,6 +304,9 @@ public class ModelSemanticHelper extends BasicService {
                 if (dimension != null) {
                     namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
                     namedColumn.setName(dimension.getName());
+                }
+                if (otherColumnNameMap.get(namedColumn.getAliasDotColumn()) != null) {
+                    namedColumn.setName(otherColumnNameMap.get(namedColumn.getAliasDotColumn()).getName());
                 }
                 columns.add(namedColumn);
             }

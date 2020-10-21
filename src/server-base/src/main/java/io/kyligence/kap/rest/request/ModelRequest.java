@@ -67,6 +67,11 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("simplified_dimensions")
     private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
 
+    // non-dimension columns, used for sync column alias
+    // if not present, use original column name
+    @JsonProperty("other_columns")
+    private List<NamedColumn> otherColumns = Lists.newArrayList();
+
     @JsonProperty("rec_items")
     private List<LayoutRecDetailResponse> recItems = Lists.newArrayList();
 
