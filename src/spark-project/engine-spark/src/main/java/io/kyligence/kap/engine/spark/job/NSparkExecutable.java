@@ -458,7 +458,7 @@ public class NSparkExecutable extends AbstractExecutable {
     private ExecuteResult runLocalMode(String appArgs) {
         try {
             Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
-            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[] { appArgs });
+            appClz.getMethod("main", String[].class).invoke(appClz.newInstance(), (Object) new String[] { appArgs });
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
             return ExecuteResult.createError(e);

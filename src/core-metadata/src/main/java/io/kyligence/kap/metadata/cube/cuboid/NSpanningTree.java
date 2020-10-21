@@ -74,7 +74,11 @@ public abstract class NSpanningTree implements Serializable {
 
     abstract public Collection<IndexEntity> getChildrenByIndexPlan(IndexEntity parent);
 
+    abstract public IndexEntity getParentByIndexPlan(IndexEntity child);
+
     abstract public Collection<IndexEntity> getAllIndexEntities();
+
+    abstract public Collection<IndexEntity> decideTheNextBatch(NDataSegment segment);
 
     public Map<IndexEntity, Collection<LayoutEntity>> getCuboids() {
         return cuboids;

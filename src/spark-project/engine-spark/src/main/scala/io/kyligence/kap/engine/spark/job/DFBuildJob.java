@@ -92,7 +92,7 @@ public class DFBuildJob extends SparkApplication {
     protected NDataflowManager dfMgr;
     protected BuildLayoutWithUpdate buildLayoutWithUpdate;
 
-    private final HashMap<String, Long> seg2Count = new HashMap<>();
+    public final HashMap<String, Long> seg2Count = new HashMap<>();
 
     @Override
     protected void doExecute() throws Exception {
@@ -127,7 +127,8 @@ public class DFBuildJob extends SparkApplication {
             }
 
             // choose source
-            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true, getIgnoredSnapshotTables());
+            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true,
+                    getIgnoredSnapshotTables());
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
             Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
@@ -178,7 +179,7 @@ public class DFBuildJob extends SparkApplication {
         return false;
     }
 
-    private void updateColumnBytesInseg(String dataflowId, Map<String, Object> columnBytes, String id, long rowCount) {
+    public void updateColumnBytesInseg(String dataflowId, Map<String, Object> columnBytes, String id, long rowCount) {
         HashMap<String, Long> map = Maps.newHashMap();
         val rows = config.getCapacitySampleRows();
         double multiple = 0D;
@@ -203,7 +204,8 @@ public class DFBuildJob extends SparkApplication {
 
     }
 
-    private void tailingCleanups(Set<String> segmentIds, List<String> flatTables, List<String> factViews) throws IOException {
+    public void tailingCleanups(Set<String> segmentIds, List<String> flatTables, List<String> factViews)
+            throws IOException {
         val fs = HadoopUtil.getWorkingFileSystem();
         for (String viewPath : factViews) {
             fs.delete(new Path(viewPath), true);
@@ -270,7 +272,7 @@ public class DFBuildJob extends SparkApplication {
         return ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);
     }
 
-    private NDataSegment getSegment(String segId) {
+    public NDataSegment getSegment(String segId) {
         // ensure the seg is the latest.
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         return dfMgr.getDataflow(dataflowId).getSegment(segId);
@@ -298,7 +300,7 @@ public class DFBuildJob extends SparkApplication {
 
     // build current layer and return the next layer to be built.
     private List<NBuildSourceInfo> buildLayer(Collection<NBuildSourceInfo> buildSourceInfos, String segId,
-                                              NSpanningTree st) throws IOException {
+            NSpanningTree st) throws IOException {
         val seg = getSegment(segId);
         int cuboidsNumInLayer = 0;
 
@@ -315,6 +317,11 @@ public class DFBuildJob extends SparkApplication {
             for (IndexEntity index : toBuildCuboids) {
                 Preconditions.checkNotNull(parentDS, "Parent dataset is null when building.");
                 buildLayoutWithUpdate.submit(new BuildLayoutWithUpdate.JobEntity() {
+                    @Override
+                    public long getIndexId() {
+                        return index.getId();
+                    }
+
                     @Override
                     public String getName() {
                         return "build-index-" + index.getId();
@@ -362,7 +369,7 @@ public class DFBuildJob extends SparkApplication {
     }
 
     private List<NDataLayout> buildIndex(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
-                                         NSpanningTree nSpanningTree, long parentId) throws IOException {
+            NSpanningTree nSpanningTree, long parentId) throws IOException {
         String parentName = String.valueOf(parentId);
         if (parentId == DFChooser.FLAT_TABLE_FLAG()) {
             parentName = "flat table";

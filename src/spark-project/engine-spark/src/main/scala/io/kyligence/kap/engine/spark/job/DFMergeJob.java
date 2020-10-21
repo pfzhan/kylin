@@ -161,6 +161,12 @@ public class DFMergeJob extends SparkApplication {
                 afterSort = afterAgg.sortWithinPartitions(dimsCols);
             }
             buildLayoutWithUpdate.submit(new BuildLayoutWithUpdate.JobEntity() {
+
+                @Override
+                public long getIndexId() {
+                    return layout.getIndexId();
+                }
+
                 @Override
                 public String getName() {
                     return "merge-layout-" + layout.getId();

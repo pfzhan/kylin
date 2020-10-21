@@ -351,6 +351,10 @@ public abstract class SparkApplication implements Application, IKeep {
         //do nothing
     }
 
+    protected void onExecuteFinished() {
+        //do nothing
+    }
+
     protected String calculateRequiredCores() throws Exception {
         return SparkJobConstants.DEFAULT_REQUIRED_CORES;
     }

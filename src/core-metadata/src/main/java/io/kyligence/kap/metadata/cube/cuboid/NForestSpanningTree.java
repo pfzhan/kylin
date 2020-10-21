@@ -58,8 +58,8 @@ import lombok.val;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     @JsonProperty("nodes")
-    private Map<Long, TreeNode> nodesMap = Maps.newTreeMap();
-    private final Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
+    protected Map<Long, TreeNode> nodesMap = Maps.newTreeMap();
+    protected final Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
 
     /* If base cuboid exists, forest will become tree. */
     @JsonProperty("roots")
@@ -136,7 +136,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
                 .collect(Collectors.toList()); //
 
         orderedIndexes.forEach(index -> {
-            adjustTree(index, segment);
+            adjustTree(index, segment, true);
 
             logger.info("Adjust spanning tree." + //
             " Current index plan: {}." + //
@@ -160,16 +160,25 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     }
 
     @Override
+    public IndexEntity getParentByIndexPlan(IndexEntity child) {
+        return null;
+    }
+
+    @Override
     public Collection<IndexEntity> getAllIndexEntities() {
         return Collections2.transform(nodesMap.values(), TRANSFORM_FUNC::apply);
     }
 
-    private void adjustTree(IndexEntity parent, NDataSegment seg) {
+    @Override
+    public Collection<IndexEntity> decideTheNextBatch(NDataSegment segment) {
+        return null;
+    }
+
+    protected TreeNode adjustTree(IndexEntity parent, NDataSegment seg, Boolean needParentsBuild) {
         TreeNode parentNode = nodesMap.get(parent.getId());
 
         List<TreeNode> children = nodesMap.values().stream() //
-                .filter(node -> shouldBeAdded(node, parent, seg))
-                .collect(Collectors.toList());//
+                .filter(node -> shouldBeAdded(node, parent, seg, needParentsBuild)).collect(Collectors.toList());//
 
         // update child node's parent.
         children.forEach(node -> {
@@ -180,20 +189,25 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         // update parent node's children.
         parentNode.children.addAll(children);
         parentNode.hasBeenDecided = true;
+        return parentNode;
     }
 
-    private boolean shouldBeAdded(TreeNode node, IndexEntity parent, NDataSegment seg) {
-        return node.parent == null // already has been decided
+    protected boolean shouldBeAdded(TreeNode node, IndexEntity parent, NDataSegment seg, Boolean needParentsBuild) {
+        boolean shouldBeAdd = node.parent == null // already has been decided
                 && node.parentCandidates != null //it is root node
-                && node.parentCandidates.stream().allMatch(c -> isBuilt(c, seg)) // its parents candidates is not all ready.
                 && node.parentCandidates.contains(parent); //its parents candidates did not contains this IndexEntity.
+        if (needParentsBuild) {
+            shouldBeAdd = shouldBeAdd && node.parentCandidates.stream().allMatch(c -> isBuilt(c, seg));
+        }
+
+        return shouldBeAdd;
     }
 
     public boolean isBuilt(IndexEntity ie, NDataSegment seg) {
         return getLayoutFromSeg(ie, seg) != null;
     }
 
-    private long getRows(IndexEntity ie, NDataSegment seg) {
+    protected long getRows(IndexEntity ie, NDataSegment seg) {
         return getLayoutFromSeg(ie, seg).getRows();
     }
 

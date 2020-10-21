@@ -19,39 +19,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-package io.kyligence.kap.engine.spark.utils
+package io.kyligence.kap.engine.spark.smarter
 
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
+
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
-import org.apache.spark.rdd.RDD
 
-object SparkUtils extends Logging {
+class BuildAppStatusStore(val kylinConfig: KylinConfig, val sc: SparkContext) extends Logging {
 
-  def leafNodes(rdd: RDD[_]): List[RDD[_]] = {
+  val resourceStateQueue: BlockingQueue[(Int, Int)] =
+    new LinkedBlockingQueue[(Int, Int)](kylinConfig.buildResourceConsecutiveIdleStateNum);
 
-    if (rdd.dependencies.isEmpty) {
-      List(rdd)
-    } else {
-      rdd.dependencies.flatMap { dependency =>
-        leafNodes(dependency.rdd)
-      }.toList
+  def write(runningTaskNum: Int, appTaskThreshold: Int): Unit = {
+    if (resourceStateQueue.remainingCapacity() == 0) {
+      resourceStateQueue.take()
     }
-  }
-
-  def leafNodePartitionNums(rdd: RDD[_]): Int = {
-    leafNodes(rdd).map(_.partitions.length).sum
-  }
-
-  def currentResourceLoad(sc: SparkContext): (Int, Int) = {
-    val executorInfos = sc.statusTracker.getExecutorInfos
-    val startupExecSize = executorInfos.length
-    var runningTaskNum = 0
-    executorInfos.foreach(execInfo => runningTaskNum += execInfo.numRunningTasks())
-    val coresPerExecutor = sc.getConf.getInt("spark.executor.cores", 1)
-    val appTaskThreshold = startupExecSize * coresPerExecutor
-    val appId = sc.applicationId
-    log.info(s"App: ${appId} current running task num is ${runningTaskNum}, Task number threshold is ${appTaskThreshold}")
-    (runningTaskNum, appTaskThreshold)
+    resourceStateQueue.put((runningTaskNum, appTaskThreshold))
   }
 }
-

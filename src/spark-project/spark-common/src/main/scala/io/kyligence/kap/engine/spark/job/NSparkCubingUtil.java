@@ -52,11 +52,11 @@ public class NSparkCubingUtil {
     private NSparkCubingUtil() {
     }
 
-    static String ids2Str(Set<? extends Number> ids) {
+    public static String ids2Str(Set<? extends Number> ids) {
         return String.join(",", ids.stream().map(String::valueOf).collect(Collectors.toList()));
     }
 
-    static Set<Long> str2Longs(String str) {
+    public static Set<Long> str2Longs(String str) {
         Set<Long> r = new LinkedHashSet<>();
         for (String id : str.split(",")) {
             r.add(Long.parseLong(id));
@@ -64,7 +64,7 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    static Set<String> toSegmentIds(Set<NDataSegment> segments) {
+    public static Set<String> toSegmentIds(Set<NDataSegment> segments) {
         Set<String> r = new LinkedHashSet<>();
         for (NDataSegment seg : segments) {
             r.add(seg.getId());
@@ -108,7 +108,7 @@ public class NSparkCubingUtil {
         return s;
     }
 
-    static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> ids) {
+    public static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> ids) {
         Set<LayoutEntity> r = new LinkedHashSet<>();
         for (Long id : ids) {
             r.add(indexPlan.getCuboidLayout(id));

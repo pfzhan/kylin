@@ -2293,7 +2293,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getJobResourceLackIgnoreExceptionClasses() {
         return getOptionalStringArray("kylin.job.resource-lack-ignore-exception-classes",
-                new String[] { "com.amazonaws.services.s3.model.AmazonS3Exception" });
+                new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"});
     }
 
     public String getAADUsernameClaim() {
@@ -2310,6 +2310,19 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getAADTokenClockSkewSeconds() {
         return Integer.valueOf(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
+    }
+
+    public long buildResourceStateCheckInterval() {
+        return TimeUtil.timeStringAs(getOptional("kylin.build.resource.state-check-interval-seconds", "10s"),
+                TimeUnit.SECONDS);
+    }
+
+    public int buildResourceConsecutiveIdleStateNum() {
+        return Integer.parseInt(getOptional("kylin.build.resource.consecutive-idle-state-num", "3"));
+    }
+
+    public double buildResourceLoadRateThreshold() {
+        return Double.parseDouble(getOptional("kylin.build.resource.load-rate-threshold", "0.8"));
     }
 
 }

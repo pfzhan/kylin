@@ -79,7 +79,7 @@ public class BuildLayoutWithUpdate {
                     logger.error("Error occurred when run " + job.getName(), t);
                     throwable = t;
                 }
-                return new JobResult(nDataLayouts, throwable);
+                return new JobResult(job.getIndexId(), nDataLayouts, throwable);
             }
         });
         currentLayoutsNum++;
@@ -87,31 +87,40 @@ public class BuildLayoutWithUpdate {
 
     public void updateLayout(NDataSegment seg, KylinConfig config, String project) {
         for (int i = 0; i < currentLayoutsNum; i++) {
-            try {
-                logger.info("Wait to take job result.");
-                JobResult result = completionService.take().get();
-                logger.info("Take job result successful.");
-                if (result.isFailed()) {
-                    shutDown();
-                    throw new RuntimeException(result.getThrowable());
-                }
-                for (NDataLayout layout : result.getLayouts()) {
-                    logger.info("Update layout {} in dataflow {}, segment {}", layout.getLayoutId(),
-                            seg.getDataflow().getUuid(), seg.getId());
-                    if (!layoutPoints.offer(new LayoutPoint(project, config, seg.getDataflow().getId(), layout))) {
-                        throw new IllegalStateException(
-                                "[UNLIKELY_THINGS_HAPPENED] Make sure that layoutPoints can offer.");
-                    }
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                shutDown();
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
+            updateSingleLayout(seg, config, project);
         }
         // flush 
         doCheckPoint();
         currentLayoutsNum = 0;
+    }
+
+    public long updateSingleLayout(NDataSegment seg, KylinConfig config, String project) {
+        long indexId = -1l;
+        try {
+            logger.info("Wait to take job result.");
+            JobResult result = completionService.take().get();
+            logger.info("Take job result successful.");
+            if (result.isFailed()) {
+                shutDown();
+                throw new RuntimeException(result.getThrowable());
+            }
+            indexId = result.getIndexId();
+            for (NDataLayout layout : result.getLayouts()) {
+                logger.info("Update layout {} in dataflow {}, segment {}", layout.getLayoutId(),
+                        seg.getDataflow().getUuid(), seg.getId());
+                if (!layoutPoints.offer(new LayoutPoint(project, config, seg.getDataflow().getId(), layout))) {
+                    throw new IllegalStateException(
+                            "[UNLIKELY_THINGS_HAPPENED] Make sure that layoutPoints can offer.");
+                }
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            shutDown();
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+        // flush 
+        doCheckPoint();
+        return indexId;
     }
 
     private void startCheckPoint() {
@@ -218,10 +227,12 @@ public class BuildLayoutWithUpdate {
     }
 
     private static class JobResult {
+        private long indexId;
         private List<NDataLayout> layouts;
         private Throwable throwable;
 
-        JobResult(List<NDataLayout> layouts, Throwable throwable) {
+        JobResult(long indexId, List<NDataLayout> layouts, Throwable throwable) {
+            this.indexId = indexId;
             this.layouts = layouts;
             this.throwable = throwable;
         }
@@ -234,12 +245,18 @@ public class BuildLayoutWithUpdate {
             return throwable;
         }
 
+        long getIndexId() {
+            return indexId;
+        }
+
         List<NDataLayout> getLayouts() {
             return layouts;
         }
     }
 
-    static abstract class JobEntity {
+    public static abstract class JobEntity {
+
+        public abstract long getIndexId();
 
         public abstract String getName();
 

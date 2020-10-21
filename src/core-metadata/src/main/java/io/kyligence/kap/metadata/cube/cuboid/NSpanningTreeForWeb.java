@@ -141,8 +141,18 @@ public class NSpanningTreeForWeb extends NSpanningTree implements IKeepNames {
     }
 
     @Override
+    public IndexEntity getParentByIndexPlan(IndexEntity child) {
+        return null;
+    }
+
+    @Override
     public Collection<IndexEntity> getAllIndexEntities() {
         return Collections2.transform(nodesMap.values(), TRANSFORM_FUNC::apply);
+    }
+
+    @Override
+    public Collection<IndexEntity> decideTheNextBatch(NDataSegment segment) {
+        return null;
     }
 
     private void init() {
