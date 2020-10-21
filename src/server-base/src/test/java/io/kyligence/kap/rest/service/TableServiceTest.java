@@ -908,7 +908,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetTableNameResponse_PASS() throws Exception {
         List<TableNameResponse> result = tableService.getTableNameResponses("default", "DEFAULT", "");
-        Assert.assertEquals(9, result.size());
+        Assert.assertEquals(10, result.size());
         Assert.assertTrue(result.get(0).isLoaded());
 
     }
@@ -1033,7 +1033,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(response.getDatabases().size(), 3);
         Assert.assertEquals(response.getDatabases().get(0).getTables().size()
                 + response.getDatabases().get(1).getTables().size() + response.getDatabases().get(2).getTables().size(),
-                18);
+                19);
 
         response = tableService.getProjectTables("default", "TEST", 0, 14, true, (databaseName, tableName) -> {
             return tableService.getTableNameResponses("default", databaseName, tableName);
@@ -1041,7 +1041,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(response.getDatabases().size(), 2);
         Assert.assertEquals(
                 response.getDatabases().get(0).getTables().size() + response.getDatabases().get(1).getTables().size(),
-                11);
+                12);
 
         response = tableService.getProjectTables("default", "EDW.", 0, 14, true, (databaseName, tableName) -> {
             return tableService.getTableNameResponses("default", databaseName, tableName);
@@ -1193,7 +1193,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         config.setProperty("kylin.source.load-hive-tablename-enabled", "false");
         config.setProperty("kylin.query.security.acl-tcr-enabled", "true");
         Assert.assertEquals(6, tableService.getHiveTableNameResponses("default", "SSB", "").size());
-        Assert.assertEquals(9, tableService.getHiveTableNameResponses("default", "DEFAULT", "").size());
+        Assert.assertEquals(10, tableService.getHiveTableNameResponses("default", "DEFAULT", "").size());
 
         val table = NTableMetadataManager.getInstance(getTestConfig(), "default").getTableDesc("DEFAULT.TEST_ENCODING");
         AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), "default");
@@ -1208,7 +1208,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         manager.updateAclTCR(acl, "test", true);
 
         Assert.assertEquals(6, tableService.getHiveTableNameResponses("default", "SSB", "").size());
-        Assert.assertEquals(9, tableService.getHiveTableNameResponses("default", "DEFAULT", "").size());
+        Assert.assertEquals(10, tableService.getHiveTableNameResponses("default", "DEFAULT", "").size());
         config.setProperty("kylin.source.load-hive-tablename-enabled", "true");
         config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
     }

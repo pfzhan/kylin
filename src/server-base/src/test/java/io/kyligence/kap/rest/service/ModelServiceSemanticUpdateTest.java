@@ -1256,6 +1256,23 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         }
     }
 
+    @Test
+    public void testSCD2ModelWithAlias() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "scd2");
+        val model = modelMgr.getDataModelDescByAlias("same_scd2_dim_tables");
+        val req = newSemanticRequest(model.getId(), "scd2");
+        val modelFromReq = modelService.convertToDataModel(req);
+        Assert.assertEquals(2, modelFromReq.getJoinTables().size());
+        val join = modelFromReq.getJoinTables().get(1).getAlias().equalsIgnoreCase("TEST_SCD2_1") ?
+                modelFromReq.getJoinTables().get(1) : modelFromReq.getJoinTables().get(0);
+        Assert.assertEquals("TEST_SCD2_1", join.getAlias());
+        Assert.assertEquals("\"TEST_KYLIN_FACT\".\"SELLER_ID\" = \"TEST_SCD2_1\".\"BUYER_ID\" " +
+                "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" >= \"TEST_SCD2_1\".\"START_DATE\" " +
+                "AND \"TEST_KYLIN_FACT\".\"CAL_DT\" < \"TEST_SCD2_1\".\"END_DATE\"",
+                join.getJoin().getNonEquiJoinCondition().getExpr());
+    }
+
+
     private NDataModel getTestInnerModel() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelMgr.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -1299,10 +1316,14 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     private ModelRequest newSemanticRequest(String modelId) throws Exception {
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        return newSemanticRequest(modelId, getProject());
+    }
+
+    private ModelRequest newSemanticRequest(String modelId, String project) throws Exception {
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val model = modelMgr.getDataModelDesc(modelId);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject(getProject());
+        request.setProject(project);
         request.setUuid(modelId);
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));

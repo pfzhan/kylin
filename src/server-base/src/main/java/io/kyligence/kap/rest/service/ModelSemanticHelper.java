@@ -57,6 +57,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
@@ -66,6 +67,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.UpdateImpact;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.model.tool.JoinDescNonEquiCompBean;
+import org.apache.kylin.metadata.model.tool.NonEquiJoinConditionVisitor;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
@@ -174,6 +176,29 @@ public class ModelSemanticHelper extends BasicService {
 
             //3. suggest nonEquiModel
             final JoinDesc suggModelJoin = suggNonEquiJoinModel(dataModel.getProject(), modelJoinDesc, requestJoinDesc);
+            // restore table alias in non-equi conditions
+            final NonEquiJoinCondition nonEquiCondWithAliasRestored = new NonEquiJoinConditionVisitor() {
+                @Override
+                public NonEquiJoinCondition visitColumn(NonEquiJoinCondition cond) {
+                    TableRef originalTableRef;
+                    if (cond.getColRef().getTableRef().getTableIdentity().equals(modelJoinDesc.getPKSide().getTableIdentity())) {
+                        originalTableRef = modelJoinDesc.getPKSide();
+                    } else {
+                        originalTableRef = modelJoinDesc.getFKSide();
+                    }
+
+                    return new NonEquiJoinCondition(originalTableRef.getColumn(cond.getColRef().getName()), cond.getDataType());
+                }
+            }.visit(suggModelJoin.getNonEquiJoinCondition());
+            suggModelJoin.setNonEquiJoinCondition(nonEquiCondWithAliasRestored);
+            String expr = suggModelJoin.getNonEquiJoinCondition().getExpr();
+            expr = expr.replaceAll(suggModelJoin.getPKSide().getAlias(), modelJoinDesc.getPKSide().getAlias());
+            expr = expr.replaceAll(suggModelJoin.getFKSide().getAlias(), modelJoinDesc.getFKSide().getAlias());
+            suggModelJoin.getNonEquiJoinCondition().setExpr(expr);
+            suggModelJoin.setPrimaryTableRef(modelJoinDesc.getPKSide());
+            suggModelJoin.setPrimaryTable(modelJoinDesc.getPrimaryTable());
+            suggModelJoin.setForeignTableRef(modelJoinDesc.getFKSide());
+            suggModelJoin.setForeignTable(modelJoinDesc.getForeignTable());
 
             //4. update dataModel
             try {
