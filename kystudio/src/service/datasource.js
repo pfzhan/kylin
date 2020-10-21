@@ -203,7 +203,7 @@ export default {
     return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasource_type: datasourceType})
   },
   fetchDBandTables (project, page_offset, pageSize, table, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, datasource_type: datasourceType})
+    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, datasource_type: datasourceType, ext: true})
   },
   reloadHiveDBAndTables (para) {
     return Vue.resource(apiUrl + 'tables/reload_hive_table_name').get(para)
