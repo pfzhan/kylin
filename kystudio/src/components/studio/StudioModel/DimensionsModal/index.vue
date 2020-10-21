@@ -11,6 +11,7 @@
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
       <div class="ksd-mb-10 ksd-right">
+        <el-button @click="changeSyncName">{{!syncCommentToName ? $t('syncName') : $t('resetSyncName')}}</el-button>
         <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
           <i slot="prefix" class="el-input__icon el-icon-search"></i>
         </el-input>
@@ -287,7 +288,9 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       tables: state => objectClone(state.modelDesc && state.modelDesc.tables),
       modelDesc: state => state.modelDesc,
       usedColumns: state => state.modelDesc.dimensions,
-      callback: state => state.callback
+      otherColumns: state => state.otherColumns,
+      callback: state => state.callback,
+      syncCommentToName: state => state.syncCommentToName
     })
   },
   methods: {
@@ -296,7 +299,9 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       setModal: types.SET_MODAL,
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,
-      resetModalForm: types.RESET_MODAL_FORM
+      resetModalForm: types.RESET_MODAL_FORM,
+      updateSyncName: types.UPDATE_SYNC_NAME,
+      collectOtherColumns: types.COLLECT_OTHER_COLUMNS
     }),
     // 后台接口请求
     ...mapActions({
@@ -334,6 +339,46 @@ export default class DimensionsModal extends Vue {
 
   get emptyText () {
     return this.searchChar ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+
+  // 同步或撤销注释到名称
+  changeSyncName () {
+    if (!this.syncCommentToName) {
+      this.syncCommentName()
+    } else {
+      this.resetSyncCommentName()
+    }
+    this.updateSyncName()
+  }
+
+  syncCommentName () {
+    let tempArr = [];
+    [...this.factTable, ...this.lookupTable].forEach((item, index, self) => {
+      for (let it of item.columns) {
+        if ('comment' in it && it.comment && this.checkDimensionNameRegex(it.comment)) {
+          let name = it.comment.length > 100 ? it.comment.slice(0, 100) : it.comment
+          // it.alias = name
+          it.oldName = it.alias
+          if (tempArr.includes(it.comment)) {
+            this.$set(it, 'alias', `${it.alias}_${name}`)
+          } else {
+            tempArr.push(it.comment)
+            this.$set(it, 'alias', name)
+          }
+        } else {
+          continue
+        }
+      }
+    })
+  }
+
+  // 重置别名
+  resetSyncCommentName () {
+    [...this.factTable, ...this.lookupTable].forEach((item) => {
+      for (let it of item.columns) {
+        it.oldName && (it.alias = it.oldName)
+      }
+    })
   }
 
   renderNameHeader (h, { column, $index }) {
@@ -486,12 +531,19 @@ export default class DimensionsModal extends Vue {
         this.$set(col, 'isSelected', false)
         this.$set(col, 'guid', null)
         let len = this.usedColumns.length
+        let others = this.otherColumns.length ? this.otherColumns : this.modelDesc.all_named_columns
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
           if (table.alias + '.' + col.name === d.column && d.status === 'DIMENSION') {
             col.alias = d.name
             col.isSelected = true
             col.guid = d.guid
+            break
+          }
+        }
+        for (let it of others) {
+          if (`${table.alias}.${col.name}` === it.column) {
+            col.alias = it.name
             break
           }
         }
@@ -719,8 +771,22 @@ export default class DimensionsModal extends Vue {
     if (this.dimensionValidPass) {
       let result = this.getAllSelectedColumns()
       this.modelDesc.dimensions = [...result]
+      this.collectOtherColumns(this.getOtherColumns())
       this.handleClose(true)
     }
+  }
+
+  // 整理没有选中做dimension的列，同步注释时要用到
+  getOtherColumns () {
+    let result = []
+    Object.values(this.tables).forEach((table) => {
+      table.columns && table.columns.forEach((col) => {
+        if (!col.isSelected) {
+          result.push({ name: col.alias, column: `${table.alias}.${col.name}`, datatype: col.datatype })
+        }
+      })
+    })
+    return result
   }
 }
 </script>

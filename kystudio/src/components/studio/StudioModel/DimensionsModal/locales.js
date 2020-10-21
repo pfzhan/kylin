@@ -24,7 +24,9 @@ export default {
     sameNameTip: 'Dimension name is invalid or the same name already exists in this model. Please rename and try again',
     nameTip: 'This dimension name will be used in BI tools.',
     cardinalityTip: 'Total amount of unique data in this column. Could be gathered from sampling.',
-    commentTip: 'Synced from the source table.'
+    commentTip: 'Synced from the source table.',
+    syncName: 'Sync Comments to Name',
+    resetSyncName: 'Undo Sync'
   },
   'zh-cn': {
     totalSelect: '已选择的维度：',
@@ -51,6 +53,8 @@ export default {
     sameNameTip: '维度名称格式有误或在该模型下存在重名，请重新命名',
     nameTip: '该维度名称将用于 BI 工具中。',
     cardinalityTip: '该列不重复的数据量。该数据可通过采样获得。',
-    commentTip: '从数据源中同步的注释信息。'
+    commentTip: '从数据源中同步的注释信息。',
+    syncName: '同步注释到名称',
+    resetSyncName: '撤销同步'
   }
 }

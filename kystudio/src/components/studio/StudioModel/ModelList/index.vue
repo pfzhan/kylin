@@ -327,10 +327,14 @@
                     <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
                     <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                    <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportTDS')">{{$t('exportTds')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
+                    <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
+                    <!-- <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
                     <el-dropdown-item command="exportMetadata" v-if="scope.row.status !== 'BROKEN' && metadataActions.includes('executeModelMetadata')">{{$t('exportMetadata')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="modelActions.includes('exportTDS')">
+                      <common-tip :content="$t('bokenModelExportTDSTip')" :disabled="scope.row.status !== 'BROKEN'">
+                        <span>{{$t('exportTds')}}</span>
+                      </common-tip>
+                    </el-dropdown-item>
                     <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('rename')}}</el-dropdown-item>
                     <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('clone')">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
                     <el-dropdown-item v-if="scope.row.status !== 'BROKEN' && modelActions.includes('changeModelOwner')" @click.native="openChangeModelOwner(scope.row.alias, scope.row.uuid)">{{$t('changeModelOwner')}}</el-dropdown-item>
@@ -384,6 +388,20 @@
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" :disabled="!(modelOwner.model&&modelOwner.owner)" @click="changeModelOwner" :loading="changeLoading">{{$t('change')}}</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog width="480px" :title="$t('kylinLang.common.tip')" class="export_tds_dialog" v-if="showExportTDSDialog" :visible="true" @close="closeExportTDSDialog" :close-on-click-modal="false">
+      <p class="export-tds-alert">{{$t('step1')}}</p>
+      <el-radio-group v-model="exportTDSType">
+        <el-radio v-for="it in exportTDSOtions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
+      </el-radio-group>
+      <p class="export-tds-alert">{{$t('step2')}}</p>
+      <el-radio-group v-model="exportTDSConnectionType">
+        <el-radio v-for="it in tdsConnectionOptions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
+      </el-radio-group>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" @click="handlerExportTDS">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </el-dialog>
     <!-- 模型检查 -->
@@ -610,6 +628,19 @@ export default class ModelList extends Vue {
   }
   expandTab = ''
   isModelListOpen = false
+  exportTDSOtions = [
+    {value: 'AGG_INDEX_COL', text: 'exportTDSOptions1'},
+    {value: 'AGG_INDEX_AND_TABLE_INDEX_COL', text: 'exportTDSOptions2'},
+    {value: 'ALL_COLS', text: 'exportTDSOptions3'}
+  ]
+  exportTDSType = 'AGG_INDEX_COL'
+  exportTDSConnectionType = 'TABLEAU_ODBC_TDS'
+  tdsConnectionOptions = [
+    {value: 'TABLEAU_ODBC_TDS', text: 'connectODBC'},
+    {value: 'TABLEAU_CONNECTOR_TDS', text: 'connectTableau'}
+  ]
+  showExportTDSDialog = false
+  currentExportTDSModel = null
   getDisabledOnlineTips (row) {
     let tips = this.$t('cannotOnlineTips')
     if (row.forbidden_online) {
@@ -983,7 +1014,41 @@ export default class ModelList extends Vue {
           this.$message.error(this.$t('exportMetadataFailed'))
         }
       }
+    } else if (command === 'exportTDS') {
+      if (scope.row.status === 'BROKEN') return
+      if (scope.row.status === 'OFFLINE') {
+        this.$confirm(this.$t('exportTDSOfflineTips'), this.$t('kylinLang.common.tip'), {
+          confirmButtonText: this.$t('exportTDSContinueBtn')
+        }).then(() => {
+          this.showExportTDSDialog = true
+          this.currentExportTDSModel = scope.row
+        })
+      } else {
+        this.showExportTDSDialog = true
+        this.currentExportTDSModel = scope.row
+      }
     }
+  }
+  handlerExportTDS () {
+    const { uuid, model_id = uuid } = this.currentExportTDSModel
+    const data = {
+      project: this.currentSelectedProject,
+      export_as: this.exportTDSConnectionType,
+      element: this.exportTDSType,
+      server_host: window.location.hostname,
+      server_port: window.location.port
+    }
+    let params = ''
+    Object.keys(data).forEach(item => {
+      params += `${item}=${data[item]}&`
+    })
+    const dom = document.createElement('a')
+    dom.href = `${location.protocol}//${location.host}${apiUrl}models/${model_id}/export?${params}`
+    dom.download = true
+    document.body.appendChild(dom)
+    dom.click()
+    document.body.removeChild(dom)
+    this.closeExportTDSDialog()
   }
   downloadResouceData (project, form) {
     const params = {}
@@ -1281,6 +1346,13 @@ export default class ModelList extends Vue {
     const scrollDom = this.$el.querySelector(`.model_list_row_${index}`)
     scrollDom.nextSibling.querySelector('.aggregate-view').scrollIntoView({block: 'center', inline: 'nearest', behavior: 'smooth'})
   }
+
+  // 关闭导出 TDS 弹窗
+  closeExportTDSDialog () {
+    this.showExportTDSDialog = false
+    this.exportTDSType = 'AGG_INDEX_COL'
+    this.exportTDSConnectionType = 'TABLEAU_ODBC_TDS'
+  }
 }
 </script>
 <style lang="less">
@@ -1343,6 +1415,9 @@ export default class ModelList extends Vue {
       top:4px;
       right:10px;
     }
+  }
+  .disabled-export {
+    color: @text-disabled-color;
   }
   .model_list_table {
     .el-icon-ksd-icon_build-index.build-disabled {
@@ -1640,5 +1715,25 @@ export default class ModelList extends Vue {
 .model-actions-dropdown {
   text-align: left;
   min-width: 95px;
+}
+.export_tds_dialog {
+  .export-tds-alert {
+    margin-bottom: 5px;
+    margin-top: 20px;
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+  .el-radio-group {
+    .el-radio {
+      margin-left: 0;
+      margin-top: 15px;
+      display: block;
+    }
+    .el-radio__label {
+      word-break: break-all;
+      white-space: break-spaces;
+    }
+  }
 }
 </style>

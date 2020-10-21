@@ -105,7 +105,17 @@ export default {
     SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support History table` in project settings.',
     storageTip: 'Calculates the amount of data built in this model',
     noSegmentOnlineTip: 'This model can\'t go online as it doesn\'t have segments. Models with no segment couldn\'t serve queries. Please add a segment.',
-    cannotOnlineTips: 'This model can\'t go online at the moment:'
+    cannotOnlineTips: 'This model can\'t go online at the moment:',
+    exportTDSContinueBtn: 'Got it',
+    step1: 'Select included columns for dimension and measure',
+    step2: 'Select how to connect data source',
+    exportTDSOptions1: 'Only include the ones included in aggregate indexes（default）',
+    exportTDSOptions2: 'Include the ones in both aggregate indexes and table indexes',
+    exportTDSOptions3: 'Include all columns for dimension or measure, even if they are not included in any aggregate or table index',
+    connectODBC: 'Other ODBC data sources（default）',
+    connectTableau: 'Tableau Kyligence Connector',
+    exportTDSOfflineTips: 'The exported TDS file can’t be used for queries if the model is OFFLINE. Please make sure that the model goes online when using this TDS file.',
+    bokenModelExportTDSTip: 'Can’t export TDS file at the moment as the model is BROKEN'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -210,6 +220,16 @@ export default {
     SCD2ModalOfflineTip: '该模型中存在 ≥ 或 < 的连接条件，当前不可用。请删除相应连接条件，或在项目设置中开启支持拉链表开关。',
     storageTip: '模型下已构建数据的存储大小',
     noSegmentOnlineTip: '该模型尚未添加 Segment，不可服务于查询。请先添加 Segment 后再上线。',
-    cannotOnlineTips: '该模型当前不可上线：'
+    cannotOnlineTips: '该模型当前不可上线：',
+    exportTDSContinueBtn: '知道了',
+    step1: '请选择导出的 TDS 文件中包含的维度列和度量列的范围',
+    step2: '请选择导出的 TDS 文件中数据源连接方式',
+    exportTDSOptions1: '只包含聚合索引中的维度列和度量列（默认）',
+    exportTDSOptions2: '包含聚合索引和明细索引中的维度列和度量列',
+    exportTDSOptions3: '包含模型中所有的维度列和度量列，即使这些列没有加入任何聚合索引或明细索引',
+    connectODBC: '其他 ODBC 数据源',
+    connectTableau: 'Tableau Kyligence Connector',
+    exportTDSOfflineTips: '模型为 OFFLINE 时，导出的 TDS 无法用于查询。请确保使用 TDS 文件时该模型已上线。',
+    bokenModelExportTDSTip: '该模型状态为 BROKEN，无法导出 TDS 文件'
   }
 }

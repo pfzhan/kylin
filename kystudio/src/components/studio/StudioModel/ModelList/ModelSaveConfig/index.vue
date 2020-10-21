@@ -155,6 +155,9 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
       modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
       isChangeModelLayout: state => state.form.isChangeModelLayout,
       callback: state => state.callback
+    }),
+    ...mapState('DimensionsModal', {
+      otherColumns: state => state.otherColumns
     })
   },
   methods: {
@@ -500,6 +503,7 @@ export default class ModelPartitionModal extends Vue {
       this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
       this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
     }
+    this.modelDesc.other_columns = this.otherColumns
     if (this.mode === 'saveModel') {
       this.isLoadingSave = true
       const checkData = objectClone(this.modelDesc)

@@ -131,6 +131,7 @@ class NModel {
       this.$set(this._mount, 'linkUsedColumns', this.linkUsedColumns)
       this.$set(this._mount, 'hasBrokenLinkedTable', false)
       this.$set(this._mount, 'broken_reason', options.broken_reason)
+      this.$set(this._mount, 'all_named_columns', options.all_named_columns || [])
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)
