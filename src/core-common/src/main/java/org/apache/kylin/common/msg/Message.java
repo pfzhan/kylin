@@ -716,7 +716,7 @@ public class Message {
 
     // Async Query
     public String getQUERY_RESULT_NOT_FOUND() {
-        return "Result for this query is unavailable, please check its status first.";
+        return "The query corresponding to this query id in the current project cannot be found .";
     }
 
     public String getQUERY_RESULT_FILE_NOT_FOUND() {

@@ -406,13 +406,14 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDownloadQueryResultNoPermission() throws Exception {
         Mockito.doReturn(KylinConfig.getInstanceFromEnv()).when(kapQueryService).getConfig();
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result", "123")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.any(), Mockito.any());
+        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
+                Mockito.any(), Mockito.any());
     }
 
     @Test
@@ -420,13 +421,13 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(true).when(asyncQueryService).hasPermission(Mockito.anyString(), Mockito.anyString());
 
         Mockito.doReturn(KylinConfig.getInstanceFromEnv()).when(kapQueryService).getConfig();
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result", "123")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.any(), Mockito.any());
+        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(), Mockito.any(), Mockito.any());
     }
 
     @Test

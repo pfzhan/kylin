@@ -49,7 +49,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.parquet.Strings;
@@ -115,6 +115,13 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testCreateErrorFlagWhenMessageIsNull() throws IOException {
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        asyncQueryService.createErrorFlag(PROJECT, queryId, null);
+    }
+
+    @Test
     public void testSuccessQueryAndDownloadResult() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
@@ -135,7 +142,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, response);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response);
 
         assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
     }
@@ -163,9 +170,13 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         // after delete
         asyncQueryService.deleteByQueryId(PROJECT, queryId);
-
-        resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
-        assertTrue(!asyncQueryService.getFileSystem().exists(resultPath));
+        try {
+            new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
+            Assert.assertEquals("The query corresponding to this query id in the current project cannot be found .",
+                    e.getMessage());
+        }
     }
 
     @Test
@@ -184,8 +195,13 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         // after delete
         asyncQueryService.deleteOldQueryResult(PROJECT, time + 1000 * 60);
-        resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
-        assertTrue(!asyncQueryService.getFileSystem().exists(resultPath));
+        try {
+            new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
+            Assert.assertEquals("The query corresponding to this query id in the current project cannot be found .",
+                    e.getMessage());
+        }
     }
 
     @Test
@@ -275,12 +291,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         try {
             asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, PROJECT, "");
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof BadRequestException);
-        }
-        try {
-            asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.FAILED, PROJECT, "");
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof BadRequestException);
+            Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
         }
     }
 
@@ -367,7 +378,6 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         if (!fileSystem.exists(asyncQueryResultDir)) {
             fileSystem.mkdirs(asyncQueryResultDir);
         }
-        asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.RUNNING);
         if (block) {
             Thread.sleep(5000);
         }
@@ -377,7 +387,6 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             csvWriter.write(row1);
             csvWriter.write(row2);
             fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
-            asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);
         }
 
         return asyncQueryResultDir;

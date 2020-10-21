@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
@@ -55,6 +54,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
@@ -64,8 +64,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -79,18 +77,8 @@ public class AsyncQueryService extends QueryService {
         RUNNING, FAILED, SUCCESS, MISS
     }
 
-    private long cacheExpireDays = KylinConfig.getInstanceFromEnv().getAsyncQueryCacheExpireDays();
-    private int cacheMaximumSize = KylinConfig.getInstanceFromEnv().getAsyncQueryCacheMaximumSize();
-
-    private Cache<String, QueryStatus> queryStatusCache = CacheBuilder.newBuilder().maximumSize(cacheMaximumSize)
-            .expireAfterWrite(cacheExpireDays, TimeUnit.DAYS).build();
-
     protected FileSystem getFileSystem() {
         return HadoopUtil.getWorkingFileSystem();
-    }
-
-    public void updateStatus(String queryId, QueryStatus status) {
-        queryStatusCache.put(queryId, status);
     }
 
     public void saveUserName(String project, String queryId) throws IOException {
@@ -134,7 +122,6 @@ public class AsyncQueryService extends QueryService {
     }
 
     public void createErrorFlag(String project, String queryId, String errorMessage) throws IOException {
-        updateStatus(queryId, AsyncQueryService.QueryStatus.FAILED);
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (!fileSystem.exists(asyncQueryResultDir)) {
@@ -142,13 +129,15 @@ public class AsyncQueryService extends QueryService {
         }
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFailureFlagFileName())); //
                 OutputStreamWriter osw = new OutputStreamWriter(os)) {
-            osw.write(errorMessage);
-            os.hflush();
+            if (errorMessage != null) {
+                osw.write(errorMessage);
+                os.hflush();
+            }
         }
-
     }
 
-    public void retrieveSavedQueryResult(String project, String queryId, HttpServletResponse response) throws IOException {
+    public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
+            HttpServletResponse response) throws IOException {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
@@ -160,6 +149,29 @@ public class AsyncQueryService extends QueryService {
         FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
         ServletOutputStream outputStream = response.getOutputStream();
         try {
+            if (includeHeader) {
+                String columns = null;
+                for (FileStatus header : fileStatuses) {
+                    if (header.getPath().getName().equals(getMetaDataFileName())) {
+                        try (FSDataInputStream inputStream = fileSystem.open(header.getPath());
+                                BufferedReader bufferedReader = new BufferedReader(
+                                        new InputStreamReader(inputStream))) {
+                            columns = bufferedReader.readLine();
+                            break;
+                        }
+                    }
+                }
+
+                if (columns != null) {
+                    logger.debug("Query:{}, columnMeta:{}", queryId, columns);
+                    if (!columns.endsWith(IOUtils.LINE_SEPARATOR_UNIX)) {
+                        columns = columns + IOUtils.LINE_SEPARATOR_UNIX;
+                    }
+                    IOUtils.copy(IOUtils.toInputStream(columns), outputStream);
+                } else {
+                    logger.error("Query:{}, no columnMeta found", queryId);
+                }
+            }
             for (FileStatus f : fileStatuses) {
                 if (!f.getPath().getName().startsWith("_")) {
                     try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
@@ -174,7 +186,6 @@ public class AsyncQueryService extends QueryService {
 
     public String retrieveSavedQueryException(String project, String queryId) throws IOException {
         Message msg = MsgPicker.getMsg();
-        checkStatus(queryId, QueryStatus.FAILED, project, msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
         Path dataPath = new Path(getAsyncQueryResultDir(project, queryId), getFailureFlagFileName());
@@ -191,10 +202,6 @@ public class AsyncQueryService extends QueryService {
     }
 
     public QueryStatus queryStatus(String project, String queryId) throws IOException {
-        QueryStatus ifPresent = queryStatusCache.getIfPresent(queryId);
-        if (ifPresent != null) {
-            return ifPresent;
-        }
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         if (getFileSystem().exists(asyncQueryResultDir)) {
             if (getFileSystem().exists(new Path(asyncQueryResultDir, getFailureFlagFileName()))) {
@@ -203,6 +210,7 @@ public class AsyncQueryService extends QueryService {
             if (getFileSystem().exists(new Path(asyncQueryResultDir, getSuccessFlagFileName()))) {
                 return QueryStatus.SUCCESS;
             }
+            return QueryStatus.RUNNING;
         }
         return QueryStatus.MISS;
     }
@@ -317,7 +325,9 @@ public class AsyncQueryService extends QueryService {
     }
 
     public String asyncQueryResultPath(String project, String queryId) throws IOException {
-        checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        if (queryStatus(project, queryId) == QueryStatus.MISS) {
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        }
         return getAsyncQueryResultDir(project, queryId).toString();
     }
 
@@ -326,12 +336,7 @@ public class AsyncQueryService extends QueryService {
         switch (queryStatus) {
         case SUCCESS:
             if (queryStatus(project, queryId) != QueryStatus.SUCCESS) {
-                throw new BadRequestException(message);
-            }
-            break;
-        case FAILED:
-            if (queryStatus(project, queryId) != QueryStatus.FAILED) {
-                throw new BadRequestException(message);
+                throw new NAsyncQueryIllegalParamException(message);
             }
             break;
         default:

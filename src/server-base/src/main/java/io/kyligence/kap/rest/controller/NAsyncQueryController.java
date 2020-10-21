@@ -107,15 +107,16 @@ public class NAsyncQueryController extends NBasicController {
                 logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
                 String queryId = queryContext.getQueryId();
                 queryIdRef.set(queryId);
-                asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.RUNNING);
                 try {
                     SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
                     if (response.isException()) {
                         asyncQueryService.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
                                 response.getExceptionMessage());
+                        compileResultRef.set(false);
+                        exceptionHandle.set(response.getExceptionMessage());
+                    } else {
+                        asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
                     }
-                    asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);
-                    asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
                     asyncQueryService.saveUserName(sqlRequest.getProject(), queryId);
                 } catch (Exception e) {
                     try {
@@ -178,6 +179,7 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Boolean> deleteByQueryId(@PathVariable("query_id") String queryId,
             @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest) throws IOException {
+        checkProjectName(sqlRequest.getProject());
         if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, false,
                     "Access denied. Only task submitters or admin users can delete the query results");
@@ -195,6 +197,7 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
             @PathVariable("query_id") String queryId) throws IOException {
+        checkProjectName(sqlRequest.getProject());
         if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
                     "Access denied. Only task submitters or admin users can get the query status");
@@ -227,6 +230,7 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId,
             @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest) throws IOException {
+        checkProjectName(sqlRequest.getProject());
         if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, 0L,
                     "Access denied. Only task submitters or admin users can get the file status");
@@ -239,6 +243,7 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<List<String>>> metadata(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest,
             @PathVariable("query_id") String queryId) throws IOException {
+        checkProjectName(sqlRequest.getProject());
         if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
                     "Access denied. Only task submitters or admin users can get the metadata");
@@ -248,11 +253,13 @@ public class NAsyncQueryController extends NBasicController {
     }
 
     @ApiOperation(value = "downloadQueryResult", notes = "Update URL: result")
-    @GetMapping(value = "/async_query/{query_id:.+}/result")
+    @GetMapping(value = "/async_query/{query_id:.+}/result_download")
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
+            @RequestParam(value = "includeHeader", required = false, defaultValue = "false") boolean includeHeader,
             @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response)
             throws IOException {
+        checkProjectName(sqlRequest.getProject());
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
         response.setContentType("text/csv;charset=utf-8");
@@ -265,7 +272,7 @@ public class NAsyncQueryController extends NBasicController {
                 || (!isAdmin() && !config.isNoneAdminUserExportAllowed()))) {
             throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
         }
-        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, response);
+        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, includeHeader, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -274,6 +281,7 @@ public class NAsyncQueryController extends NBasicController {
     public EnvelopeResponse<String> queryPath(@PathVariable("query_id") String queryId,
             @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response)
             throws IOException {
+        checkProjectName(sqlRequest.getProject());
         if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
                     "Access denied. Only task submitters or admin users can get the query path");
