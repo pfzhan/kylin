@@ -73,6 +73,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     FAILED_CREATE_MODEL("KE-10002010"), //
     MODEL_BROKEN("KE-10002011"), //
     MODEL_ONLINE_ABANDON("KE-10002012"),
+    INVALID_MEASURE_DATA_TYPE("KE-10002013"),
 
     // 10003XXX user
     USER_NOT_EXIST("KE-10003001"), //

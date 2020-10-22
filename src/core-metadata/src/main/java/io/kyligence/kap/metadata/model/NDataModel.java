@@ -285,6 +285,9 @@ public class NDataModel extends RootPersistentEntity {
     // when set true, cc expression will allow null value
     private boolean isSeekingCCAdvice = false;
 
+    // mark this model as used for model save checking
+    private boolean saveCheck = false;
+
     /**
      * Error messages during resolving json metadata
      */
@@ -950,8 +953,14 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            String project, boolean rename) {
+                     String project, boolean rename) {
+        init(config, originalTables, otherModels, project, rename, false);
+    }
+
+    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
+            String project, boolean rename, boolean saveCheck) {
         this.project = project;
+        this.saveCheck = saveCheck;
 
         Map<String, TableDesc> tables = getExtendedTables(originalTables);
 

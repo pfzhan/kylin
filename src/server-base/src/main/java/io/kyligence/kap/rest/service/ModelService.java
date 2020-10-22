@@ -2409,7 +2409,7 @@ public class ModelService extends BasicService {
 
     void preProcessBeforeModelSave(NDataModel model, String project) {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataflowManager(project).listUnderliningDataModels(), project);
+                getDataflowManager(project).listUnderliningDataModels(), project, false, true);
 
         massageModelFilterCondition(model);
 

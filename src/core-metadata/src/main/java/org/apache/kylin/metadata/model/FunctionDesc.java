@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -71,6 +72,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MEASURE_DATA_TYPE;
 import static org.apache.kylin.metadata.datatype.DataType.ANY;
 import static org.apache.kylin.metadata.datatype.DataType.BIGINT;
 import static org.apache.kylin.metadata.datatype.DataType.DECIMAL;
@@ -101,12 +103,27 @@ public class  FunctionDesc implements Serializable {
     }
 
     public static String proposeReturnType(String expression, String colDataType) {
-        return proposeReturnType(expression, colDataType, Maps.newHashMap());
+        return proposeReturnType(expression, colDataType, Maps.newHashMap(), false);
     }
 
     public static String proposeReturnType(String expression, String colDataType, Map<String, String> override) {
+        return proposeReturnType(expression, colDataType, override, false);
+    }
+
+    public static String proposeReturnType(String expression, String colDataType, Map<String, String> override, boolean saveCheck) {
         String returnType = override.getOrDefault(expression,
                 EXPRESSION_DEFAULT_TYPE_MAP.getOrDefault(expression, colDataType));
+        if (saveCheck && colDataType != null && DataType.getType(colDataType).isStringFamily()) {
+            switch (expression) {
+                case FunctionDesc.FUNC_SUM:
+                case FunctionDesc.FUNC_PERCENTILE:
+                    throw new KylinException(INVALID_MEASURE_DATA_TYPE,
+                            String.format("Invalid column type %s for measure %s", colDataType, expression));
+                default:
+                    break;
+            }
+        }
+
         switch (expression) {
         case FunctionDesc.FUNC_SUM:
             if (colDataType != null) {
@@ -196,7 +213,7 @@ public class  FunctionDesc implements Serializable {
         for (ParameterDesc p : getParameters()) {
             if (p.isColumnType()) {
                 TblColRef colRef = model.findColumn(p.getValue());
-                returnDataType = DataType.getType(proposeReturnType(expression, colRef.getDatatype()));
+                returnDataType = DataType.getType(proposeReturnType(expression, colRef.getDatatype(), Maps.newHashMap(), model.isSaveCheck()));
                 p.setValue(colRef.getIdentity());
                 p.setColRef(colRef);
             }

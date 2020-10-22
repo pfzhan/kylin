@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.collect.Maps;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -76,6 +78,20 @@ public class FunctionDescTest extends NLocalFileMetadataTestCase {
                         put("COUNT_DISTINCT", "hllc(10)");
                     }
                 }));
+    }
+
+    @Test
+    public void testInvalidMeasureColType() {
+        try {
+            FunctionDesc.proposeReturnType("SUM", "char", Maps.newHashMap(), true);
+            Assert.fail();
+        } catch (KylinException ignored) {
+        }
+        try {
+            FunctionDesc.proposeReturnType("PERCENTILE_APPROX", "char", Maps.newHashMap(), true);
+            Assert.fail();
+        } catch (KylinException ignored) {
+        }
     }
 
     @Test
