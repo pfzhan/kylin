@@ -390,7 +390,7 @@
         <el-button type="primary" size="medium" :disabled="!(modelOwner.model&&modelOwner.owner)" @click="changeModelOwner" :loading="changeLoading">{{$t('change')}}</el-button>
       </div>
     </el-dialog>
-    <el-dialog width="480px" :title="$t('kylinLang.common.tip')" class="export_tds_dialog" v-if="showExportTDSDialog" :visible="true" @close="closeExportTDSDialog" :close-on-click-modal="false">
+    <el-dialog width="480px" :title="$t('exportTDSTitle')" class="export_tds_dialog" v-if="showExportTDSDialog" :visible="true" @close="closeExportTDSDialog" :close-on-click-modal="false">
       <p class="export-tds-alert">{{$t('step1')}}</p>
       <el-radio-group v-model="exportTDSType">
         <el-radio v-for="it in exportTDSOtions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
@@ -401,7 +401,7 @@
       </el-radio-group>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="medium" @click="handlerExportTDS">{{$t('kylinLang.common.ok')}}</el-button>
+        <el-button type="primary" size="medium" @click="handlerExportTDS">{{$t('kylinLang.query.export')}}</el-button>
       </div>
     </el-dialog>
     <!-- 模型检查 -->
@@ -1733,6 +1733,7 @@ export default class ModelList extends Vue {
     .el-radio__label {
       word-break: break-all;
       white-space: break-spaces;
+      white-space: normal;
     }
   }
 }
