@@ -275,7 +275,7 @@
         </div>
         <div class="conds">
           <div class="conds-title">
-            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><el-switch size="small" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><el-switch size="small" @change="changeDurationEnable" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
@@ -438,6 +438,7 @@ export default class SettingBasic extends Vue {
         callback()
       }
     } else {
+      this.durationError = false
       callback()
     }
   }
@@ -564,7 +565,7 @@ export default class SettingBasic extends Vue {
           }
         }
         case 'accleration-rule-settings': {
-          if (await this.$refs['rulesForm'].validate() && (this.rulesObj.duration_enable && !this.durationError)) {
+          if (await this.$refs['rulesForm'].validate()) {
             await this.saveAcclerationRule()
           } else {
             return errorCallback()
@@ -722,6 +723,10 @@ export default class SettingBasic extends Vue {
         })
       }
     })
+  }
+
+  changeDurationEnable (val) {
+    !val && (this.durationError = val)
   }
 }
 </script>
