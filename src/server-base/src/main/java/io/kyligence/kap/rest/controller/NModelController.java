@@ -834,6 +834,17 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
+    @ApiOperation(value = "buildSegmentsManually", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
+                                                              @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
+        checkProjectName(deleteSegmentsRequest.getProject());
+        modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
+                deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
     @ApiOperation(value = "export model", notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
