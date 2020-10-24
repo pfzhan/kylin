@@ -394,6 +394,8 @@ case class SplitPart(left: Expression, mid: Expression, right: Expression) exten
 
   override def dataType: DataType = left.dataType
 
+  override def nullable: Boolean = true
+
   override def inputTypes: Seq[AbstractDataType] = Seq(StringType, StringType, IntegerType)
 
   override protected def nullSafeEval(input1: Any, input2: Any, input3: Any): Any = {
@@ -403,7 +405,13 @@ case class SplitPart(left: Expression, mid: Expression, right: Expression) exten
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val ta = SplitPartImpl.getClass.getName.stripSuffix("$")
     defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
-      s"""$ta.evaluate($arg1.toString(), $arg2.toString(), $arg3)"""
+      s"""
+          result = $ta.evaluate($arg1.toString(), $arg2.toString(), $arg3)
+          if (result == null) {
+            ${ev.isNull} = true;
+          }
+          result
+        """
     })
   }
 
