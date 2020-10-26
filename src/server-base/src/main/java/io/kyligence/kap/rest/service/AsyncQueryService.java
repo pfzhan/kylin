@@ -287,8 +287,8 @@ public class AsyncQueryService extends QueryService {
 
     public boolean deleteByQueryId(String project, String queryId) throws IOException {
         Path resultDir = getAsyncQueryResultDir(project, queryId);
-        if (!getFileSystem().exists(resultDir)) {
-            return true;
+        if (queryStatus(project, queryId) == QueryStatus.MISS) {
+            throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
         }
         logger.info("clean async query result for query id [{}]", queryId);
         return getFileSystem().delete(resultDir, true);

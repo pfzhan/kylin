@@ -180,6 +180,17 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testDeleteByQueryIdWhenQueryNotExist() throws IOException, InterruptedException {
+        try {
+            asyncQueryService.deleteByQueryId(PROJECT, "123");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NAsyncQueryIllegalParamException);
+            Assert.assertEquals("The query corresponding to this query id in the current project cannot be found .",
+                    e.getMessage());
+        }
+    }
+
+    @Test
     public void testDeleteByTime() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
