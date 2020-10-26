@@ -355,7 +355,7 @@ public class Message {
     }
 
     public String getUSERGROUP_EXIST() {
-        return "Invalid values in parameter “group_name“. The value %s exist.";
+        return "Group [%s] already exists.";
     }
 
     // user group

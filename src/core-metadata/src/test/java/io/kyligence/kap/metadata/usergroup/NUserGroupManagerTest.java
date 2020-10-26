@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.usergroup;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,8 +58,8 @@ public class NUserGroupManagerTest extends NLocalFileMetadataTestCase {
         try {
             group.add("g1");
             Assert.fail("expecting some AlreadyExistsException here");
-        } catch (Exception e) {
-            Assert.assertEquals("Invalid values in parameter “group_name“. The value g1 exist.", e.getMessage());
+        } catch (KylinException e) {
+            Assert.assertEquals("Group [g1] already exists.", e.getMessage());
         }
 
         group.delete("g1");

@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.metadata.usergroup;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_USERGROUP_NAME;
 import static org.apache.kylin.common.persistence.ResourceStore.USER_GROUP_ROOT;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -92,7 +94,7 @@ public class NUserGroupManager implements IKeep {
 
     public void add(String name) {
         if (getAllGroupNames().contains(name)) {
-            throw new RuntimeException(String.format(MsgPicker.getMsg().getUSERGROUP_EXIST(), name));
+            throw new KylinException(DUPLICATE_USERGROUP_NAME, String.format(MsgPicker.getMsg().getUSERGROUP_EXIST(), name));
         }
         UserGroup userGroup = new UserGroup(name);
         crud.save(userGroup);

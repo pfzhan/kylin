@@ -97,7 +97,7 @@ public class NUserGroupServiceTest extends ServiceTestBase {
             userGroupService.addGroup("g1");
         } catch (Exception e) {
             Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
-                    "Invalid values in parameter “group_name“. The value g1 exist."));
+                    "Group [g1] already exists."));
         }
 
         //test modify users in user group
