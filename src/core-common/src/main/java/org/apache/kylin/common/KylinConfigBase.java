@@ -2262,6 +2262,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.metadata.audit-log.batch-size", "5000"));
     }
 
+    public int getAuditLogBatchTimeout() {
+        return (int) TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.batch-timeout", "30s"),
+                TimeUnit.SECONDS);
+    }
+
     public long getDiagTaskTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.diag.task-timeout", "180s"), TimeUnit.SECONDS);
     }

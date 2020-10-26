@@ -117,12 +117,17 @@ public class JdbcAuditLogStore implements AuditLogStore {
     private volatile AtomicLong startId = new AtomicLong();
 
     public JdbcAuditLogStore(KylinConfig config) throws Exception {
+        this(config, -1);
+    }
+
+    public JdbcAuditLogStore(KylinConfig config, int timeout) throws Exception {
         this.config = config;
         val url = config.getMetadataUrl();
         val props = datasourceParameters(url);
         val dataSource = JdbcDataSource.getDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.setQueryTimeout(timeout);
         table = url.getIdentifier() + AUDIT_LOG_SUFFIX;
         instance = AddressUtil.getLocalInstance();
         createIfNotExist();
@@ -184,7 +189,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
     }
 
     public List<AuditLog> fetchRange(long fromId, long start, long end, int limit) {
-        log.trace("fetch log from {} meta_ts between {} and {}", table, start, end);
+        log.trace("Fetch log from {} meta_ts between {} and {}, fromId: {}.", table, start, end, fromId);
         return jdbcTemplate.query(String.format(SELECT_TS_RANGE, table, fromId, start, end, limit),
                 new AuditLogRowMapper());
     }

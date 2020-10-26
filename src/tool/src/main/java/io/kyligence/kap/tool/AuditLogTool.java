@@ -228,7 +228,8 @@ public class AuditLogTool extends ExecutableApplication {
         int batchSize = KylinConfig.getInstanceFromEnv().getAuditLogBatchSize();
         batchSize = Math.min(MAX_BATCH_SIZE, batchSize);//Prevent OOM
         logger.info("Audit log batch size is {}.", batchSize);
-        try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig);
+        try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig,
+                kylinConfig.getAuditLogBatchTimeout());
                 BufferedWriter bw = new BufferedWriter(new FileWriter(auditLogFile), Constant.AUDIT_MAX_BUFFER_SIZE)) {
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
@@ -251,6 +252,8 @@ public class AuditLogTool extends ExecutableApplication {
                     break;
                 }
                 fromId = auditLogs.get(auditLogs.size() - 1).getId();
+                logger.info("Audit log size is {}, id range is [{},{}].", auditLogs.size(), auditLogs.get(0).getId(),
+                        fromId);
             }
         }
     }

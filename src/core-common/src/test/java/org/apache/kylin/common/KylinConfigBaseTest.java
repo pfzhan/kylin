@@ -782,6 +782,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "org.apache.kylin.rest.service.DefaultLicenseExtractor",
                         "org.apache.kylin.rest.service.DefaultLicenseExtractor"));
         map.put("getAsyncQueryResultRetainDays", new PropertiesEntity("kylin.query.async.result-retain-days", "7d", 7L));
+        map.put("getAuditLogBatchTimeout", new PropertiesEntity("kylin.metadata.audit-log.batch-timeout", "30s", 30));
     }
 
     @Before
@@ -802,7 +803,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(400, methodsCount);
+        Assert.assertEquals(401, methodsCount);
     }
 
     @Test
