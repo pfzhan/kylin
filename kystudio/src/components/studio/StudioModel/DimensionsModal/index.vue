@@ -356,13 +356,12 @@ export default class DimensionsModal extends Vue {
     [...this.factTable, ...this.lookupTable].forEach((item, index, self) => {
       for (let it of item.columns) {
         if ('comment' in it && it.comment && this.checkDimensionNameRegex(it.comment)) {
-          let name = it.comment.length > 100 ? it.comment.slice(0, 100) : it.comment
-          // it.alias = name
+          let name = it.comment.slice(0, 100)
           it.oldName = it.alias
-          if (tempArr.includes(it.comment)) {
-            this.$set(it, 'alias', `${it.alias}_${name}`)
+          if (tempArr.includes(name)) {
+            this.$set(it, 'alias', `${it.name}_${name}`.slice(0, 100))
           } else {
-            tempArr.push(it.comment)
+            tempArr.push(name)
             this.$set(it, 'alias', name)
           }
         } else {
@@ -521,6 +520,8 @@ export default class DimensionsModal extends Vue {
       this.$set(table, 'show', false)
       this.$set(table, 'checkedAll', false)
       this.$set(table, 'isIndeterminate', false)
+      let selectedColumns = this.usedColumns.map(it => it.column)
+      let others = this.otherColumns.length ? this.otherColumns : this.modelDesc.all_named_columns.filter(item => !selectedColumns.includes(item.column))
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
         if (names.includes(col.name)) {
@@ -531,7 +532,6 @@ export default class DimensionsModal extends Vue {
         this.$set(col, 'isSelected', false)
         this.$set(col, 'guid', null)
         let len = this.usedColumns.length
-        let others = this.otherColumns.length ? this.otherColumns : this.modelDesc.all_named_columns
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
           if (table.alias + '.' + col.name === d.column && d.status === 'DIMENSION') {

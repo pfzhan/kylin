@@ -203,8 +203,8 @@ export default {
         { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner" },
         { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner" },
         { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
-        { "key": "systemUser-operation", "value": "purge" },
-        { "key": "systemUser-read", "value": "none" }
+        { "key": "systemUser-operation", "value": "purge,exportTDS" },
+        { "key": "systemUser-read", "value": "exportTDS" }
       ]
     },
     // 任务模块操作权限

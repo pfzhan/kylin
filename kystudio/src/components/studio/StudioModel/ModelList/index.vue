@@ -315,7 +315,7 @@
                 </el-popover>
                 <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
-              <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge')">
+              <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row, scope)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-14"></i>
@@ -330,7 +330,7 @@
                     <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
                     <!-- <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
                     <el-dropdown-item command="exportMetadata" v-if="scope.row.status !== 'BROKEN' && metadataActions.includes('executeModelMetadata')">{{$t('exportMetadata')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}">
+                    <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="modelActions.includes('exportTDS')">
                       <common-tip :content="$t('bokenModelExportTDSTip')" :disabled="scope.row.status !== 'BROKEN'">
                         <span>{{$t('exportTds')}}</span>
                       </common-tip>
@@ -1424,6 +1424,11 @@ export default class ModelList extends Vue {
   }
   .disabled-export {
     color: @text-disabled-color;
+    cursor: pointer;
+    &:hover {
+      background: none;
+      color: #bbbbbb;
+    }
   }
   .model_list_table {
     .el-icon-ksd-icon_build-index.build-disabled {
