@@ -1018,7 +1018,9 @@ export default class ModelList extends Vue {
       if (scope.row.status === 'BROKEN') return
       if (scope.row.status === 'OFFLINE') {
         this.$confirm(this.$t('exportTDSOfflineTips'), this.$t('kylinLang.common.tip'), {
-          confirmButtonText: this.$t('exportTDSContinueBtn')
+          confirmButtonText: this.$t('exportTDSContinueBtn'),
+          closeOnClickModal: false,
+          closeOnPressEscape: false
         }).then(() => {
           this.showExportTDSDialog = true
           this.currentExportTDSModel = scope.row
