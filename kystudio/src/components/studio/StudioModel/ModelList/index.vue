@@ -330,7 +330,7 @@
                     <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
                     <!-- <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
                     <el-dropdown-item command="exportMetadata" v-if="scope.row.status !== 'BROKEN' && metadataActions.includes('executeModelMetadata')">{{$t('exportMetadata')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}" v-if="modelActions.includes('exportTDS')">
+                    <el-dropdown-item command="exportTDS" :class="{'disabled-export': scope.row.status === 'BROKEN'}">
                       <common-tip :content="$t('bokenModelExportTDSTip')" :disabled="scope.row.status !== 'BROKEN'">
                         <span>{{$t('exportTds')}}</span>
                       </common-tip>
@@ -431,7 +431,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapMutations } from 'vuex'
 import dayjs from 'dayjs'
 import { NamedRegex, apiUrl, pageRefTags } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
@@ -500,6 +500,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       const prop = 'gmtTime'
       const order = 'descending'
       vm.onSortChange({ prop, order })
+      vm.collectOtherColumns([])
     })
   },
   computed: {
@@ -570,6 +571,9 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     }),
     ...mapActions('GuideModal', {
       callGuideModal: 'CALL_MODAL'
+    }),
+    ...mapMutations('DimensionsModal', {
+      collectOtherColumns: 'COLLECT_OTHER_COLUMNS'
     })
   },
   components: {
