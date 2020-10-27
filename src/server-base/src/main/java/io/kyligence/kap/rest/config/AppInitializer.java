@@ -139,14 +139,13 @@ public class AppInitializer {
 
             ExecutableUtils.initJobFactory();
         } else {
-            try (val auditLogStore = new JdbcAuditLogStore(kylinConfig)) {
-                val epochStore = EpochStore.getEpochStore(kylinConfig);
-                kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
-                val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-                resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
-                resourceStore.catchup();
-                resourceStore.getMetadataStore().setEpochStore(epochStore);
-            }
+            val auditLogStore = new JdbcAuditLogStore(kylinConfig);
+            val epochStore = EpochStore.getEpochStore(kylinConfig);
+            kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
+            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+            resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
+            resourceStore.catchup();
+            resourceStore.getMetadataStore().setEpochStore(epochStore);
         }
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
