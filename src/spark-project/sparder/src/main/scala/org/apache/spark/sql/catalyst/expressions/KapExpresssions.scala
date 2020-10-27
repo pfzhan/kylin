@@ -404,13 +404,14 @@ case class SplitPart(left: Expression, mid: Expression, right: Expression) exten
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val ta = SplitPartImpl.getClass.getName.stripSuffix("$")
-    defineCodeGen(ctx, ev, (arg1, arg2, arg3) => {
+    nullSafeCodeGen(ctx, ev, (arg1, arg2, arg3) => {
       s"""
-          result = $ta.evaluate($arg1.toString(), $arg2.toString(), $arg3)
+          org.apache.spark.unsafe.types.UTF8String result = $ta.evaluate($arg1.toString(), $arg2.toString(), $arg3);
           if (result == null) {
             ${ev.isNull} = true;
+          } else {
+            ${ev.value} = result;
           }
-          result
         """
     })
   }
