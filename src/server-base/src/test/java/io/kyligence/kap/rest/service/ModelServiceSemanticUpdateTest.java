@@ -243,6 +243,14 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
             ParameterResponse param = new ParameterResponse("column", "TEST_KYLIN_FACT.TEST_CC_1");
             newMeasure.setParameterValue(Lists.newArrayList(param));
             request.getSimplifiedMeasures().add(newMeasure);
+
+            SimplifiedMeasure newMeasure2 = new SimplifiedMeasure();
+            newMeasure2.setName("TEST_MEASURE_CONSTANT");
+            newMeasure2.setExpression("SUM");
+            newMeasure2.setReturnType("bigint");
+            newMeasure2.setParameterValue(Lists.newArrayList(new ParameterResponse("constant", "1")));
+            request.getSimplifiedMeasures().add(newMeasure2);
+
             modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();

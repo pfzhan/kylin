@@ -379,7 +379,11 @@ public class ModelSemanticHelper extends BasicService {
 
     private boolean isValidMeasure(MeasureDesc measure) {
         val funcDesc = measure.getFunction();
-        val ccDataType = funcDesc.getParameters().get(0).getColRef().getType();
+        val param = funcDesc.getParameters().get(0);
+        if (param.isConstant()) {
+            return true;
+        }
+        val ccDataType = param.getColRef().getType();
         return funcDesc.isDatatypeSuitable(ccDataType);
     }
 
