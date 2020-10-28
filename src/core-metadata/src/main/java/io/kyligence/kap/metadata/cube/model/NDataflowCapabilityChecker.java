@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -86,10 +88,12 @@ public class NDataflowCapabilityChecker {
 
     private static IRealizationCandidate tryMatchLookup(NDataflow dataflow, SQLDigest digest, CapabilityResult result) {
         // query from snapShot table
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+                dataflow.getProject());
         if (dataflow.getLatestReadySegment() == null)
             return null;
 
-        if (!dataflow.getLatestReadySegment().getSnapshots().containsKey(digest.factTable)) {
+        if (StringUtils.isEmpty(nTableMetadataManager.getTableDesc(digest.factTable).getLastSnapshotPath())) {
             logger.debug("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow, digest.factTable);
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.NOT_EXIST_SNAPSHOT);

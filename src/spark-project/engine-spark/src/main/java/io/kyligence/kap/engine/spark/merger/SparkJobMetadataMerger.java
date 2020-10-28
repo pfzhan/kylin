@@ -112,7 +112,6 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             }
         } catch (Throwable th) {
             log.error("Error for update snapshot table", th);
-            throw new RuntimeException(th);
         }
     }
 

@@ -1032,6 +1032,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testAnswerBySnapshot() {
+        // prepare table desc snapshot path
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject())
+                .getTableDesc("DEFAULT.TEST_ORDER")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
+
         List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
         Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
         val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
@@ -1040,6 +1047,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testMultipleModelContextSelectedTheSameModel() {
+        // prepare table desc snapshot path
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+                dataflow.getProject());
+        tableMetadataManager.getTableDesc("EDW.TEST_CAL_DT")
+                .setLastSnapshotPath("default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc");
+        tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
+
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         projectManager.updateProject(getProject(), copyForWrite -> {
             copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);

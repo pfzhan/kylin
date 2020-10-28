@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -272,7 +273,9 @@ public class NModelSelectProposer extends NAbstractProposer {
         if (dataflow == null || !dataflow.isReady() || dataflow.getLatestReadySegment() == null)
             return false;
 
-        return dataflow.getLatestReadySegment().getSnapshots().containsKey(modelTreeRootTable);
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+                dataflow.getProject());
+        return StringUtils.isNotEmpty(nTableMetadataManager.getTableDesc(modelTreeRootTable).getLastSnapshotPath());
     }
 
     @Override

@@ -28,6 +28,7 @@ import static io.kyligence.kap.newten.NSuggestTestBase.smartUtHook;
 import java.sql.SQLException;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
@@ -99,6 +100,12 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void test_sortByCandidatesId_when_candidatesCostAreTheSame() {
+        // prepare table desc snapshot path
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject()).getTableDesc("DEFAULT.TEST_ACCOUNT")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ACCOUNT/d6ba492b-13bf-444d-b6e3-71bfa903344d");
+
         // can be answered by both [nnmodel_basic] & [nmodel_basic_inner]
         String sql = "select count(*) from TEST_ACCOUNT group by ACCOUNT_ID";
         val proposeContext = new NSmartContext(KylinConfig.getInstanceFromEnv(), "default", new String[] { sql });

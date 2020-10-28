@@ -177,6 +177,10 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
+        // prepare table desc snapshot path
+        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject()).getTableDesc("EDW.TEST_SITES")
+                .setLastSnapshotPath("default/table_snapshot/EDW.TEST_SITES/c1e8096e-4e7f-4387-b7c3-5147c1ce38d6");
+
         // case 1. raw-query answered by Lookup
         String sql = "select SITE_ID from EDW.TEST_SITES";
         OLAPContext context = prepareOlapContext(sql).get(0);

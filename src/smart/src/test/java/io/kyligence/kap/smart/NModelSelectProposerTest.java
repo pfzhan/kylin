@@ -29,11 +29,13 @@ import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHo
 import java.util.List;
 
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -227,6 +229,16 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSelectSnapshotInSemiMode() {
+        // prepare table desc snapshot path
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+                dataflow.getProject());
+        tableMetadataManager.getTableDesc("EDW.TEST_CAL_DT")
+                .setLastSnapshotPath("default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc");
+        tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
+
         val dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         val modelSizeBeforeAcc = dfManager.listUnderliningDataModels().size();
@@ -269,6 +281,16 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testSelectSnapshotInExpertMode() {
+        // prepare table desc snapshot path
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+                dataflow.getProject());
+        tableMetadataManager.getTableDesc("EDW.TEST_CAL_DT")
+                .setLastSnapshotPath("default/table_snapshot/EDW.TEST_CAL_DT/a27a7f08-792a-4514-a5ec-3182ea5474cc");
+        tableMetadataManager.getTableDesc("DEFAULT.TEST_ORDER")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ORDER/fb283efd-36fb-43de-86dc-40cf39054f59");
+
         val dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         val modelSizeBeforeAcc = dfManager.listUnderliningDataModels().size();

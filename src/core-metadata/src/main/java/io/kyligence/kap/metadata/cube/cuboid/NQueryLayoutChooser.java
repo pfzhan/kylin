@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -441,6 +442,8 @@ public class NQueryLayoutChooser {
         TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
         TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
 
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(dataflow.getConfig(),
+                model.getProject());
         if (joinByPKSide.isInnerJoin() && ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
             TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
             if (indexEntity.dimensionsDerive(relatedCol)) {
@@ -449,8 +452,8 @@ public class NQueryLayoutChooser {
                 unmatchedDimItr.remove();
                 return true;
             }
-        } else if (indexEntity.dimensionsDerive(foreignKeyColumns)
-                && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
+        } else if (indexEntity.dimensionsDerive(foreignKeyColumns) && StringUtils
+                .isNotEmpty(nTableMetadataManager.getTableDesc(unmatchedDim.getTable()).getLastSnapshotPath())) {
 
             DeriveInfo.DeriveType deriveType = matchNonEquiJoinFks(indexEntity, joinByPKSide)
                     ? DeriveInfo.DeriveType.LOOKUP_NON_EQUI
