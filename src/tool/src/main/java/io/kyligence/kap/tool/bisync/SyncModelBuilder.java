@@ -38,8 +38,6 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.querymeta.ColumnMeta;
-import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,14 +60,14 @@ public class SyncModelBuilder {
     public SyncModel buildSourceSyncModel() {
         NDataModel dataModelDesc = syncContext.getDataflow().getModel();
         IndexPlan indexPlan = syncContext.getDataflow().getIndexPlan();
-        List<TableMetaWithType> tablesAndColumns = syncContext.getTablesAndColumns();
 
         // init joinTree, dimension cols, measure cols, hierarchies
-        Map<String, ColumnDef> columnDefMap = getAllColumns(tablesAndColumns, dataModelDesc);
+        Map<String, ColumnDef> columnDefMap = getAllColumns(dataModelDesc);
 
         List<MeasureDef> measureDefs = new ArrayList<>(dataModelDesc.getEffectiveMeasures().values()).stream()
                 .map(MeasureDef::new).collect(Collectors.toList());
         markIndexedColumnsAndMeasures(columnDefMap, measureDefs, indexPlan, syncContext.getModelElement());
+        markComputedColumnVisibility(columnDefMap, syncContext.getKylinConfig().exposeComputedColumn());
         Set<String[]> hierarchies = getHierarchies(indexPlan);
         JoinTreeNode joinTree = generateJoinTree(dataModelDesc.getJoinTables(), dataModelDesc.getRootFactTableName());
 
@@ -84,6 +82,14 @@ public class SyncModelBuilder {
         syncModel.setHost(syncContext.getHost());
         syncModel.setPort(String.valueOf(syncContext.getPort()));
         return syncModel;
+    }
+
+    private void markComputedColumnVisibility(Map<String, ColumnDef> columnDefMap, boolean exposeComputedColumns) {
+        for (ColumnDef columnDef : columnDefMap.values()) {
+            if (columnDef.isComputedColumn() && !columnDef.isHidden() && !exposeComputedColumns) {
+                columnDef.setHidden(true);
+            }
+        }
     }
 
     private void markIndexedColumnsAndMeasures(Map<String, ColumnDef> columnDefMap, List<MeasureDef> measureDefs,
@@ -124,25 +130,22 @@ public class SyncModelBuilder {
         }
     }
 
-    private Map<String, ColumnDef> getAllColumns(List<TableMetaWithType> tablesAndColumns, NDataModel modelDesc) {
-        // collect all cols from all tables in the model
-        Map<String, List<ColumnMeta>> tableMetaMap = new HashMap<>();
-        for (TableMetaWithType table : tablesAndColumns) {
-            String tableMetaKey = table.getTABLE_SCHEM() + "." + table.getTABLE_NAME();
-            tableMetaMap.put(tableMetaKey, table.getColumns());
-        }
+    private Map<String, ColumnDef> getAllColumns(NDataModel modelDesc) {
         Map<String, ColumnDef> modelColsMap = new HashMap<>();
         for (TableRef tableRef: modelDesc.getAllTables()) {
-            for (ColumnMeta columnMeta : tableMetaMap.get(tableRef.getTableIdentity())) {
-                ColumnDef columnDef = new ColumnDef("dimension", tableRef.getAlias(), null, columnMeta, true, null, false);
-                String colName = tableRef.getAlias() + "." + columnMeta.getCOLUMN_NAME();
+            for (TblColRef column : tableRef.getColumns()) {
+                ColumnDef columnDef = new ColumnDef(
+                        "dimension", tableRef.getAlias(), null, column.getName(), column.getDatatype(), true, column.getColumnDesc().isComputedColumn());
+                String colName = tableRef.getAlias() + "." + column.getName();
                 modelColsMap.put(colName, columnDef);
             }
         }
 
         // sync col alias
         for (NDataModel.NamedColumn namedColumn : modelDesc.getAllNamedColumns()) {
-            modelColsMap.get(namedColumn.getAliasDotColumn()).setColumnAlias(namedColumn.getName());
+            if (modelColsMap.get(namedColumn.getAliasDotColumn()) != null) {
+                modelColsMap.get(namedColumn.getAliasDotColumn()).setColumnAlias(namedColumn.getName());
+            }
         }
         return modelColsMap;
     }

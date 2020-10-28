@@ -26,9 +26,7 @@ package io.kyligence.kap.tool.bisync;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.Data;
-import org.apache.kylin.metadata.querymeta.TableMetaWithType;
-
-import java.util.List;
+import org.apache.kylin.common.KylinConfig;
 
 @Data
 public class SyncContext {
@@ -58,6 +56,5 @@ public class SyncContext {
 
     private NDataflow dataflow;
 
-    private List<TableMetaWithType> tablesAndColumns;
-
+    private KylinConfig kylinConfig;
 }

@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.tool.bisync.model;
 
-import org.apache.kylin.metadata.querymeta.ColumnMeta;
 
 public class ColumnDef {
 
@@ -33,23 +32,23 @@ public class ColumnDef {
 
     private String columnAlias;
 
-    private ColumnMeta columnMeta;
+    private String columnName;
+
+    private String columnType;
 
     private boolean isHidden;
 
-    private boolean isCubeUsed;
+    private boolean isComputedColumn;
 
-    private String computedColumnExpression;
-
-    public ColumnDef(String role, String tableAlias, String columnAlias, ColumnMeta columnMeta, boolean isHidden,
-                     String computedColumnExpression, boolean isCubeUsed) {
+    public ColumnDef(String role, String tableAlias, String columnAlias, String columnName, String columnType,
+                     boolean isHidden, boolean isComputedColumn) {
         this.role = role;
         this.tableAlias = tableAlias;
         this.columnAlias = columnAlias;
-        this.columnMeta = columnMeta;
+        this.columnName = columnName;
+        this.columnType = columnType;
         this.isHidden = isHidden;
-        this.isCubeUsed = isCubeUsed;
-        this.computedColumnExpression = computedColumnExpression;
+        this.isComputedColumn = isComputedColumn;
     }
 
     public String getRole() {
@@ -68,28 +67,12 @@ public class ColumnDef {
         this.tableAlias = tableAlias;
     }
 
-    public ColumnMeta getColumnMeta() {
-        return columnMeta;
-    }
-
-    public void setColumnMeta(ColumnMeta columnMeta) {
-        this.columnMeta = columnMeta;
-    }
-
     public boolean isHidden() {
         return isHidden;
     }
 
     public void setHidden(boolean hidden) {
         isHidden = hidden;
-    }
-
-    public boolean isCubeUsed() {
-        return isCubeUsed;
-    }
-
-    public void setCubeUsed(boolean cubeUsed) {
-        isCubeUsed = cubeUsed;
     }
 
     public String getColumnAlias() {
@@ -100,11 +83,27 @@ public class ColumnDef {
         this.columnAlias = columnAlias;
     }
 
-    public String getComputedColumnExpression() {
-        return computedColumnExpression;
+    public String getColumnName() {
+        return columnName;
     }
 
-    public void setComputedColumnExpression(String computedColumnExpression) {
-        this.computedColumnExpression = computedColumnExpression;
+    public void setColumnName(String columnName) {
+        this.columnName = columnName;
+    }
+
+    public String getColumnType() {
+        return columnType;
+    }
+
+    public void setColumnType(String columnType) {
+        this.columnType = columnType;
+    }
+
+    public boolean isComputedColumn() {
+        return isComputedColumn;
+    }
+
+    public void setComputedColumn(boolean computedColumn) {
+        isComputedColumn = computedColumn;
     }
 }

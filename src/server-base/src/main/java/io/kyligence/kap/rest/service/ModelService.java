@@ -3419,7 +3419,7 @@ public class ModelService extends BasicService {
         syncContext.setHost(host);
         syncContext.setPort(port);
         syncContext.setDataflow(getDataflowManager(projectName).getDataflow(modelId));
-        syncContext.setTablesAndColumns(queryService.getMetadataV2(projectName));
+        syncContext.setKylinConfig(getProjectManager().getProject(projectName).getConfig());
 
         return BISyncTool.dumpToBISyncModel(syncContext);
     }

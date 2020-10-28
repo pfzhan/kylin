@@ -229,10 +229,9 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
                 String tableAlias = columnDef.getTableAlias();
                 key = '[' + colName + " (" + tableAlias + ")]";
             }
-            String value = '[' + columnDef.getTableAlias() + "].[" + columnDef.getColumnMeta().getCOLUMN_NAME() + ']';
+            String value = '[' + columnDef.getTableAlias() + "].[" + columnDef.getColumnName() + ']';
             col.setKey(key);
             col.setValue(value);
-            col.setKeCcExpr(columnDef.getComputedColumnExpression());
 
             colList.add(col);
             Pair<Col, ColumnDef> colPair = new Pair<>(col, columnDef);
@@ -251,9 +250,8 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             String colName = entry.getValue().getFirst().getKey();
             ColumnDef columnDef = entry.getValue().getSecond();
             String role = columnDef.getRole();
-            String dataType = TypeConverter.convertKylinType(columnDef.getColumnMeta().getDATA_TYPE());
+            String dataType = TypeConverter.convertKylinType(columnDef.getColumnType());
             String hidden = columnDef.isHidden() ? "true" : null;
-            String keCubeUsed = columnDef.isCubeUsed() ? "true" : null;
             String columnAlias = (columnDef.getColumnAlias() == null ? colName.substring(1, colName.length() - 1)
                     : columnDef.getColumnAlias());
 
@@ -263,7 +261,6 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
             column.setDatatype(dataType);
             column.setType(TypeConverter.getOrderType(role, dataType));
             column.setHidden(hidden);
-            column.setKeCubeUsed(keCubeUsed);
             columns.add(column);
         }
         tds.setColumns(columns);

@@ -851,7 +851,7 @@ public class NModelController extends NBasicController {
     public void exportModel(@PathVariable("model") String modelId,
                             @RequestParam(value = "project") String project,
                             @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                            @RequestParam(value = "element") SyncContext.ModelElement element,
+                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
                             @RequestParam(value = "server_host", required = false) String host,
                             @RequestParam(value = "server_port", required = false) Integer port,
                             HttpServletRequest request, HttpServletResponse response) throws IOException {
