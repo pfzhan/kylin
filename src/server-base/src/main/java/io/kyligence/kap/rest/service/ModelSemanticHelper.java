@@ -383,7 +383,7 @@ public class ModelSemanticHelper extends BasicService {
         return funcDesc.isDatatypeSuitable(ccDataType);
     }
 
-    private NDataModel updateColumnsInit(NDataModel originModel, ModelRequest request) {
+    private NDataModel updateColumnsInit(NDataModel originModel, ModelRequest request, boolean saveCheck) {
         val expectedModel = convertToDataModel(request);
 
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
@@ -394,7 +394,7 @@ public class ModelSemanticHelper extends BasicService {
         updateModelColumnForTableAliasModify(expectedModel, matchAlias);
 
         expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables,
-                getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject());
+                getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject(), false, saveCheck);
 
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
@@ -416,7 +416,11 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public UpdateImpact updateModelColumns(NDataModel originModel, ModelRequest request) {
-        val expectedModel = updateColumnsInit(originModel, request);
+        return updateModelColumns(originModel, request, false);
+    }
+
+    public UpdateImpact updateModelColumns(NDataModel originModel, ModelRequest request, boolean saveCheck) {
+        val expectedModel = updateColumnsInit(originModel, request, saveCheck);
         val updateImpact = new UpdateImpact();
         // handle computed column updates
         List<ComputedColumnDesc> currentComputedColumns = originModel.getComputedColumnDescs();

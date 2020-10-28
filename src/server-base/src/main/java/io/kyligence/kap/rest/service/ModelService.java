@@ -2654,7 +2654,7 @@ public class ModelService extends BasicService {
         val originModel = modelManager.getDataModelDesc(modelId);
 
         val copyModel = modelManager.copyForWrite(originModel);
-        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request);
+        UpdateImpact updateImpact = semanticUpdater.updateModelColumns(copyModel, request, true);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),

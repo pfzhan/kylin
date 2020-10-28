@@ -746,11 +746,11 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         originCC.setExpression("'now im a varchar'");
         originCC.setInnerExpression("'now im a varchar'");
         originCC.setDatatype("VARCHAR");
-        modelService.updateDataModelSemantic(getProject(), request);
-        // check if layout is removed
-        long newLayoutId = indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
-                .filter(l -> l.getColOrder().containsAll(indexCol)).findFirst().map(LayoutEntity::getId).orElse(-2L);
-        Assert.assertEquals(newLayoutId, -2L);
+        try {
+            modelService.updateDataModelSemantic(getProject(), request);
+        } catch (KylinException e) {
+            Assert.assertEquals("Cannot init measure NEST5_SUM: Invalid column type varchar(4096) for measure SUM", e.getMessage());
+        }
     }
 
     @Test
