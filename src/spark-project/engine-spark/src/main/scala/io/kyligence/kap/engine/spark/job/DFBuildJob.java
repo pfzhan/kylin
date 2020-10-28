@@ -148,9 +148,7 @@ public class DFBuildJob extends SparkApplication {
                 if (!path.isEmpty()) {
                     logger.info("FlatTable persisted, compute column size");
                     persistedFlatTable.add(path);
-                    long rowCount = buildFromFlatTable.getFlattableDS().count();
-                    val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes());
-                    updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), rowCount);
+                    computeColumnBytes(datasetChooser, seg, dataflowId, path);
                 }
                 if (!StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
                     persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
@@ -166,6 +164,14 @@ public class DFBuildJob extends SparkApplication {
         updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
 
         tailingCleanups(segmentIds, persistedFlatTable, persistedViewFactTable);
+    }
+
+    private void computeColumnBytes(DFChooser datasetChooser, NDataSegment seg, String dataflowId, String path) {
+        ss.sparkContext().setJobDescription("Compute column bytes");
+        val df = ss.read().parquet(path);
+        val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
+        updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), df.count());
+        ss.sparkContext().setJobDescription(null);
     }
 
     private boolean needSkipSegment(String segId) {

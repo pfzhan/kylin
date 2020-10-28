@@ -89,7 +89,10 @@ class DFChooser(toBuildTree: NSpanningTree,
   }
 
   def computeColumnBytes(): mutable.HashMap[String, Long] = {
-    val df = flatTableSource.getFlattableDS
+    computeColumnBytes(flatTableSource.getFlattableDS)
+  }
+
+  def computeColumnBytes(df: Dataset[Row]): mutable.HashMap[String, Long] = {
     val cols = flatTableDesc.getAllColumns
     val columns = df.columns
     val length = columns.length
