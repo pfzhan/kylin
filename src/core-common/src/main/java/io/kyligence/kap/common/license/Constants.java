@@ -39,6 +39,8 @@ public class Constants {
     public static final String KE_LICENSE_CATEGORY = "ke.license.category";
     public static final String KE_LICENSE_STATEMENT = "ke.license.statement";
     public static final String KE_LICENSE_ISEVALUATION = "ke.license.isEvaluation";
+    public static final String KE_LICENSE_ISTEST = "ke.license.isTest";
+    public static final String KE_LICENSE_ISENTERPRISE = "ke.license.isEnterprise";
     public static final String KE_LICENSE_SERVICEEND = "ke.license.serviceEnd";
     public static final String KE_LICENSE_NODES = "ke.license.nodes";
     public static final String KE_LICENSE_ISCLOUD = "ke.license.isCloud";

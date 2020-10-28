@@ -49,6 +49,12 @@ public class LicenseInfo {
     @JsonProperty(Constants.KE_LICENSE_ISCLOUD)
     private boolean isCloud = false;
 
+    @JsonProperty(Constants.KE_LICENSE_ISTEST)
+    private boolean isTest = false;
+
+    @JsonProperty(Constants.KE_LICENSE_ISENTERPRISE)
+    private boolean isEnterprise = false;
+
     @JsonProperty(Constants.KE_LICENSE_SERVICEEND)
     private String serviceEnd;
 
@@ -75,5 +81,15 @@ public class LicenseInfo {
     @JsonIgnore
     public boolean isCloud() {
         return isCloud;
+    }
+
+    @JsonIgnore
+    public boolean isTest() {
+        return isTest;
+    }
+
+    @JsonIgnore
+    public boolean isEnterprise() {
+        return isEnterprise;
     }
 }
