@@ -67,7 +67,7 @@ public class SyncModelBuilder {
         List<MeasureDef> measureDefs = new ArrayList<>(dataModelDesc.getEffectiveMeasures().values()).stream()
                 .map(MeasureDef::new).collect(Collectors.toList());
         markIndexedColumnsAndMeasures(columnDefMap, measureDefs, indexPlan, syncContext.getModelElement());
-        markComputedColumnVisibility(columnDefMap, syncContext.getKylinConfig().exposeComputedColumn());
+        markComputedColumnVisibility(columnDefMap, measureDefs, syncContext.getKylinConfig().exposeComputedColumn());
         Set<String[]> hierarchies = getHierarchies(indexPlan);
         JoinTreeNode joinTree = generateJoinTree(dataModelDesc.getJoinTables(), dataModelDesc.getRootFactTableName());
 
@@ -84,10 +84,21 @@ public class SyncModelBuilder {
         return syncModel;
     }
 
-    private void markComputedColumnVisibility(Map<String, ColumnDef> columnDefMap, boolean exposeComputedColumns) {
-        for (ColumnDef columnDef : columnDefMap.values()) {
-            if (columnDef.isComputedColumn() && !columnDef.isHidden() && !exposeComputedColumns) {
-                columnDef.setHidden(true);
+    private void markComputedColumnVisibility(Map<String, ColumnDef> columnDefMap, List<MeasureDef> measureDefs, boolean exposeComputedColumns) {
+        if (!exposeComputedColumns) {
+            // hide all CC cols and related measures
+            for (ColumnDef columnDef : columnDefMap.values()) {
+                if (columnDef.isComputedColumn()) {
+                    columnDef.setHidden(true);
+                }
+            }
+            for (MeasureDef measureDef : measureDefs) {
+                for (TblColRef paramColRef : measureDef.getMeasure().getFunction().getColRefs()) {
+                    if (columnDefMap.get(paramColRef.getAliasDotName()).isComputedColumn()) {
+                        measureDef.setHidden(true);
+                        break;
+                    }
+                }
             }
         }
     }
