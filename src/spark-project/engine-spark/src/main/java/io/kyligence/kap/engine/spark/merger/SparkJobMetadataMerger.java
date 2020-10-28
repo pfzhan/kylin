@@ -25,9 +25,10 @@
 package io.kyligence.kap.engine.spark.merger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -40,17 +41,18 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.spark.cleanup.SnapshotChecker;
 import io.kyligence.kap.engine.spark.utils.FileNames;
 import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.Getter;
+import lombok.val;
 
 public abstract class SparkJobMetadataMerger extends MetadataMerger {
     private static final Logger log = LoggerFactory.getLogger(SparkJobMetadataMerger.class);
@@ -88,40 +90,83 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize, 0);
     }
 
-    protected void updateSnapshotTableIfNeed(NDataflow dataflow) {
-        long start = System.currentTimeMillis();
-        log.info("Check snapshot for dataflow: {}", dataflow);
+    protected void updateSnapshotTableIfNeed(NDataSegment segment) {
         try {
-            KylinConfig config = getConfig();
-            String workingDir = KapConfig.wrap(config).getMetadataWorkingDirectory();
-            NTableMetadataManager manager = NTableMetadataManager.getInstance(config, dataflow.getProject());
-            Set<String> tables = dataflow.getModel().getLookupTables().stream().map(TableRef::getTableIdentity).collect(Collectors.toSet());
-            List<TableDesc> needUpdateTables = new ArrayList<>();
-            for (String table : tables) {
-                TableDesc tableDesc = manager.getTableDesc(table);
-                Path path = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDir);
-                if (!HDFSUtils.exists(path) && config.isUTEnv()) {
-                    continue;
-                }
-                FileStatus lastFile = HDFSUtils.findLastFile(path);
-                TableDesc copyDesc = manager.copyForWrite(tableDesc);
-                copyDesc.setLastSnapshotPath(FileNames.snapshotFile(tableDesc) + "/" + lastFile.getPath().getName());
-                needUpdateTables.add(copyDesc);
+            log.info("Check snapshot for segment: {}", segment);
+            Map<Path, SnapshotChecker> snapshotCheckerMap = new HashMap<>();
+            List<TableDesc> needUpdateTableDescs = new ArrayList<>();
+            Map<String, String> snapshots = segment.getSnapshots();
+            for (Map.Entry<String, String> entry : snapshots.entrySet()) {
+                collectNeedUpdateSnapshotTable(segment, entry, snapshotCheckerMap, needUpdateTableDescs);
             }
-
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NTableMetadataManager updateManager = NTableMetadataManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), dataflow.getProject());
-                for (TableDesc tableDesc : needUpdateTables) {
+                        .getInstance(KylinConfig.getInstanceFromEnv(), segment.getProject());
+                for (TableDesc tableDesc : needUpdateTableDescs) {
                     updateManager.updateTableDesc(tableDesc);
                 }
                 return null;
-            }, dataflow.getProject(), 1);
+            }, segment.getProject(), 1);
+            for (Map.Entry<Path, SnapshotChecker> entry : snapshotCheckerMap.entrySet()) {
+                HDFSUtils.deleteFilesWithCheck(entry.getKey(), entry.getValue());
+            }
         } catch (Throwable th) {
             log.error("Error for update snapshot table", th);
             throw new RuntimeException(th);
         }
-        log.info("Update snapshot table for dataflow {} cost: {} ms.", dataflow.getUuid(),
-                (System.currentTimeMillis() - start));
+    }
+
+    private void collectNeedUpdateSnapshotTable(NDataSegment segment, Map.Entry<String, String> snapshot,
+            Map<Path, SnapshotChecker> snapshotCheckerMap, List<TableDesc> needUpdateTableDescs) {
+        NTableMetadataManager manager = NTableMetadataManager.getInstance(getConfig(), segment.getProject());
+        KylinConfig segmentConf = segment.getConfig();
+        val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
+        long survivalTimeThreshold = timeMachineEnabled ? segmentConf.getStorageResourceSurvivalTimeThreshold()
+                : segmentConf.getSnapshotVersionTTL();
+        String workingDirectory = KapConfig.wrap(segmentConf).getMetadataWorkingDirectory();
+        log.info("Update snapshot table {}", snapshot.getKey());
+        TableDesc tableDesc = manager.getTableDesc(snapshot.getKey());
+        Path snapshotPath = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDirectory);
+        if (HDFSUtils.listSortedFileFrom(snapshotPath).isEmpty()) {
+            throw new RuntimeException("Snapshot path is empty :" + snapshotPath);
+        }
+        FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
+        HDFSUtils.listSortedFileFrom(snapshotPath);
+        Path segmentFilePath = new Path(workingDirectory + snapshot.getValue());
+        FileStatus segmentFile = HDFSUtils.getFileStatus(segmentFilePath);
+        FileStatus currentFile = null;
+        if (tableDesc.getLastSnapshotPath() != null) {
+            currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
+        }
+        val currentModificationTime = currentFile == null ? 0L : currentFile.getModificationTime();
+        val currentPath = currentFile == null ? "null" : currentFile.getPath().toString();
+        TableDesc copyDesc = manager.copyForWrite(tableDesc);
+        if (segmentFile != null && lastFile.getModificationTime() <= segmentFile.getModificationTime()) {
+            log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentModificationTime,
+                    lastFile.getModificationTime());
+            log.info("Update snapshot table {} : from {} to {}", snapshot.getKey(), currentPath, segmentFile.getPath());
+            copyDesc.setLastSnapshotPath(snapshot.getValue());
+            needUpdateTableDescs.add(copyDesc);
+            snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
+                    survivalTimeThreshold, segmentFile.getModificationTime()));
+        } else if (copyDesc.getLastSnapshotPath() == null
+                && System.currentTimeMillis() - segment.getLastBuildTime() < survivalTimeThreshold) {
+            /**
+             * when tableDesc's lastSnapshot is null and snapshot within survival time, force update snapshot table.
+             * see https://olapio.atlassian.net/browse/KE-17343
+             */
+            log.info("update snapshot table {} when tableDesc's lastSnapshot is null and snapshot within survival time",
+                    snapshot.getKey());
+            copyDesc.setLastSnapshotPath(snapshot.getValue());
+            needUpdateTableDescs.add(copyDesc);
+        } else {
+            if (segmentFile != null) {
+                log.info(
+                        "Skip update snapshot table because current segment snapshot table is too old. Current segment snapshot table ts is: {}",
+                        segmentFile.getModificationTime());
+            } else {
+                log.info("{}'s FileStatus is null, Skip update.", segmentFilePath);
+            }
+        }
     }
 }
