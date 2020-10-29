@@ -72,6 +72,7 @@ public class SQLConverter {
         this.connectionConfig = connectionConfig;
         parserConfig = SqlParser.configBuilder().setQuotedCasing(connectionConfig.quotedCasing())
                 .setUnquotedCasing(connectionConfig.unquotedCasing()).setQuoting(connectionConfig.quoting())
+                .setIdentifierMaxLength(connectionConfig.getIdentifierMaxLength())
                 .setConformance(connectionConfig.conformance()).setCaseSensitive(connectionConfig.caseSensitive())
                 .build();
 

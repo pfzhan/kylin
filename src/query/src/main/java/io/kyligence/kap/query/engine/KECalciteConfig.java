@@ -65,6 +65,10 @@ public class KECalciteConfig extends CalciteConnectionConfigImpl {
         return kylinConfig.exposeComputedColumn();
     }
 
+    public int getIdentifierMaxLength() {
+        return kylinConfig.getMaxModelDimensionMeasureNameLength();
+    }
+
     public String[] operatorTables() {
         return CalciteConnectionProperty.FUN.wrap(properties).getString("standard").toLowerCase().split(",");
     }
