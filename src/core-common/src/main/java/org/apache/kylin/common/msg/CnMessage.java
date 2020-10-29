@@ -882,7 +882,7 @@ public class CnMessage extends Message {
     }
 
     public String getSEGMENT_LOCKED() {
-        return "由于 Segment %s 被锁定，所以不能删除或者刷新该 Segment。";
+        return "由于 Segment %s 被锁定，所以不能删除、刷新或者合并该 Segment。";
     }
 
     public String getSEGMENT_STATUS(String status) {
