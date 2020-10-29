@@ -666,8 +666,7 @@ public class QueryService extends BasicService {
 
                 //CAUTION: should not change sqlRequest content!
                 QueryContext.current().getMetrics().setCorrectedSql(correctedSql);
-                boolean hasChangedSQL = !correctedSql.equals(sqlRequest.getSql());
-                logger.info("The corrected query: {}", hasChangedSQL ? correctedSql : "same as original SQL");
+                logger.info("The corrected query: {}", correctedSql);
 
                 Trace.addTimelineAnnotation("query massaged");
 
