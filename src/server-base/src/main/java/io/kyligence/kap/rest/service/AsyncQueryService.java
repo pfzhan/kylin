@@ -298,6 +298,9 @@ public class AsyncQueryService extends QueryService {
         boolean isAllSucceed = true;
         Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir(project);
         FileSystem fileSystem = getFileSystem();
+        if (!fileSystem.exists(asyncQueryResultBaseDir)) {
+            return true;
+        }
         FileStatus[] fileStatuses = fileSystem.listStatus(asyncQueryResultBaseDir);
         for (FileStatus fileStatus : fileStatuses) {
             if (fileStatus.getModificationTime() < time) {

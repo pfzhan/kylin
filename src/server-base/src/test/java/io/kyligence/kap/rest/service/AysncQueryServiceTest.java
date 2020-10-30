@@ -216,6 +216,12 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testDeleteByTimeWhenAsyncQueryDirNotExist() throws IOException {
+        long time = System.currentTimeMillis();
+        Assert.assertTrue(asyncQueryService.deleteOldQueryResult(PROJECT, time + 1000 * 60));
+    }
+
+    @Test
     public void testCleanOldQueryResult() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
