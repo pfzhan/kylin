@@ -97,7 +97,8 @@ public class ColumnRowType {
     public int getIndexByNameAndByContext(OLAPContext ctx, String columnName) {
         for (int i = 0; i < columns.size(); i++) {
             TblColRef colRef = columns.get(i);
-            if (colRef.getName().equals(columnName) && ctx.belongToContextTables(colRef)) {
+            if (colRef.getName().equals(columnName) && ctx.belongToContextTables(colRef)
+                    && ctx.realization.getModel().getRootFactTable().equals(colRef.getTableRef())) {
                 return i;
             }
         }

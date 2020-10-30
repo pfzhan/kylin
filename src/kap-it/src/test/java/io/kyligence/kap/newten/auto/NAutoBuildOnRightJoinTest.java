@@ -26,6 +26,9 @@ package io.kyligence.kap.newten.auto;
 
 import java.util.List;
 
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.data.QueryResult;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
@@ -56,6 +59,35 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
             IndexPlan indexPlan = modelContext.getTargetIndexPlan();
             Assert.assertNotNull(indexPlan);
         }
+    }
+
+    /**
+     * https://olapio.atlassian.net/browse/KE-19473
+     * @throws Exception
+     */
+    @Test
+    public void testRightJoinWhenTwoModelHaveSameMeasure() throws Exception {
+        // prepare two model have different fact table and same measure
+        String query1 = "select sum(test_kylin_fact.price) from TEST_ORDER  "
+                + "left JOIN  test_kylin_fact ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID  "
+                + "left join test_measure on test_kylin_fact.ITEM_COUNT = test_measure.ID3 "
+                + "left join test_account on TEST_KYLIN_FACT.seller_id = test_account.account_id "
+                + "where test_kylin_fact.LSTG_FORMAT_NAME = 'FP-GTC' group by test_kylin_fact.CAL_DT";
+        String query2 = "select sum(test_kylin_fact.price) from test_kylin_fact";
+        AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(),
+                new String[] { query1, query2 });
+        NSmartMaster smartMaster = new NSmartMaster(context);
+        smartMaster.runUtWithContext(smartUtHook);
+        buildAllCubes(kylinConfig, getProject());
+
+        // query
+        QueryResult queryResult = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv())
+                .executeQuery("select sum(test_kylin_fact.price) from test_kylin_fact "
+                        + "right JOIN TEST_ORDER  ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID "
+                        + "left  join test_measure on test_kylin_fact.ITEM_COUNT = test_measure.ID3 "
+                        + "left join test_account on TEST_KYLIN_FACT.seller_id = test_account.account_id "
+                        + "where test_kylin_fact.LSTG_FORMAT_NAME = 'FP-GTC' group by test_kylin_fact.CAL_DT");
+        Assert.assertEquals(862.69, Double.parseDouble(queryResult.getRows().get(0).get(0)), 0.01);
     }
 
     private NSmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {
