@@ -8,6 +8,7 @@
     "dev": "node build/dev-server.js mock",
     "devproxy": "node build/dev-server.js proxy",
     "build": "node build/build.js",
+    "translate-extract": "node build/translate-extract.js --rootPath ./src",
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs",
     "test": "BABEL_ENV=test && jest --config test/jest.conf.js --ci"
   },
