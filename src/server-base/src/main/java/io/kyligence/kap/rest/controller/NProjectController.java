@@ -54,6 +54,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.UserProjectPermissionResponse;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -127,7 +128,7 @@ public class NProjectController extends NBasicController {
     @ApiOperation(value = "getProjects", notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<DataResult<List<ProjectInstance>>> getProjects(
+    public EnvelopeResponse<DataResult<List<UserProjectPermissionResponse>>> getProjects(
             @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer size,
@@ -136,7 +137,7 @@ public class NProjectController extends NBasicController {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
             throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
-        List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch,
+        List<UserProjectPermissionResponse> projects = projectService.getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(project, exactMatch,
                 AclPermissionEnum.valueOf(permission));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
     }

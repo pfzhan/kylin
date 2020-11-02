@@ -63,6 +63,7 @@ import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
+import org.apache.kylin.rest.response.UserProjectPermissionResponse;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.service.AccessService;
@@ -182,24 +183,24 @@ public class ProjectService extends BasicService {
         return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionEnum.READ);
     }
 
-    public List<ProjectInstance> getProjectsFilterByExactMatchAndPermission(final String projectName,
-            boolean exactMatch, AclPermissionEnum permission) {
+    private Predicate<ProjectInstance> getRequestFilter(final String projectName,
+                                                        boolean exactMatch, AclPermissionEnum permission) {
         Predicate<ProjectInstance> filter;
         switch (permission) {
-        case READ:
-            filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
-            break;
-        case OPERATION:
-            filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
-            break;
-        case MANAGEMENT:
-            filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
-            break;
-        case ADMINISTRATION:
-            filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
-            break;
-        default:
-            throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
+            case READ:
+                filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
+                break;
+            case OPERATION:
+                filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
+                break;
+            case MANAGEMENT:
+                filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
+                break;
+            case ADMINISTRATION:
+                filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
+                break;
+            default:
+                throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
         if (StringUtils.isNotBlank(projectName)) {
             Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch
@@ -207,7 +208,28 @@ public class ProjectService extends BasicService {
                     || (!exactMatch && projectInstance.getName().toUpperCase().contains(projectName.toUpperCase()));
             filter = filter.and(exactMatchFilter);
         }
+
+        return filter;
+    }
+
+    public List<ProjectInstance> getProjectsFilterByExactMatchAndPermission(final String projectName,
+            boolean exactMatch, AclPermissionEnum permission) {
+        Predicate<ProjectInstance> filter = getRequestFilter(projectName, exactMatch, permission);
         return getProjectsWithFilter(filter);
+    }
+
+    public List<UserProjectPermissionResponse> getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(final String projectName,
+                                                                                                               boolean exactMatch, AclPermissionEnum permission) {
+        Predicate<ProjectInstance> filter = getRequestFilter(projectName, exactMatch, permission);
+        return getProjectsWithFilter(filter).stream().map(projectInstance -> {
+            String userPermission = null;
+            try {
+                userPermission = AclPermissionEnum.convertToAclPermission(accessService.getCurrentUserPermissionInProject(projectInstance.getName()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return new UserProjectPermissionResponse(projectInstance, userPermission);
+        }).collect(Collectors.toList());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

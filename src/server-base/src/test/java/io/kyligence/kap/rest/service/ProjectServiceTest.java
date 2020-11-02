@@ -85,7 +85,9 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
+import org.apache.kylin.rest.response.UserProjectPermissionResponse;
 import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.apache.kylin.rest.service.AccessService;
@@ -248,6 +250,15 @@ public class ProjectServiceTest extends ServiceTestBase {
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
         Assert.assertEquals(20, projectInstances.size());
 
+    }
+
+    @Test
+    public void testGetProjectsWrapWIthUserPermission() throws Exception {
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+        Mockito.doReturn(true).when(accessService).isGlobalAdmin(Mockito.anyString());
+        List<UserProjectPermissionResponse> projectInstances = projectService.getProjectsFilterByExactMatchAndPermissionWrapperUserPermission("default", true, AclPermissionEnum.READ);
+        Assert.assertEquals(1, projectInstances.size());
+        Assert.assertEquals("ADMINISTRATION", projectInstances.get(0).getPermission());
     }
 
     @Test
