@@ -324,6 +324,8 @@ public class OpenModelController extends NBasicController {
             List<ModelRequest> modelRequests = modelSuggestionResponse.getNewModels().stream().map(modelResponse -> {
                 ModelRequest modelRequest = new ModelRequest(modelResponse);
                 modelRequest.setIndexPlan(modelResponse.getIndexPlan());
+                modelRequest.setWithEmptySegment(request.isWithEmptySegment());
+                modelRequest.setWithModelOnline(request.isWithModelOnline());
                 return modelRequest;
             }).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(modelRequests)) {

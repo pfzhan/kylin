@@ -63,4 +63,5 @@ public class SqlAccelerateRequest implements Serializable, ProjectInsensitiveReq
     private List<String> sqls;
     @JsonProperty("reuse_existed_model")
     private Boolean reuseExistedModel;
+
 }

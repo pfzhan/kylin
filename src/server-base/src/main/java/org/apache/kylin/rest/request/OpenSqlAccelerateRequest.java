@@ -46,15 +46,15 @@ public class OpenSqlAccelerateRequest implements Serializable, ProjectInsensitiv
     private List<String> sqls;
     @JsonProperty("force")
     private Boolean force2CreateNewModel;
+    @JsonProperty("with_segment")
+    private boolean withEmptySegment = true;
+    @JsonProperty("with_model_online")
+    private boolean withModelOnline = false;
 
-    public static SqlAccelerateRequest convert(OpenSqlAccelerateRequest request) {
-        SqlAccelerateRequest sqlAccerelateRequest = new SqlAccelerateRequest();
-
-        sqlAccerelateRequest.setProject(request.getProject());
-        sqlAccerelateRequest.setSqls(request.getSqls());
-        sqlAccerelateRequest.setReuseExistedModel(!request.getForce2CreateNewModel());
-
-        return sqlAccerelateRequest;
+    public OpenSqlAccelerateRequest(String project, List<String> sqls, Boolean force2CreateNewModel) {
+        this.project = project;
+        this.sqls = sqls;
+        this.force2CreateNewModel = force2CreateNewModel;
     }
 
 }

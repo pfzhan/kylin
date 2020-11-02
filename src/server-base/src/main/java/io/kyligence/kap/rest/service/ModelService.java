@@ -1377,10 +1377,19 @@ public class ModelService extends BasicService {
             IndexPlan emptyIndex = new IndexPlan();
             emptyIndex.setUuid(model.getUuid());
             indexPlanManager.createIndexPlan(emptyIndex);
-            updateIndexPlan(project, indexPlan);
 
             // create DataFlow
-            dataflowManager.createDataflow(emptyIndex, model.getOwner());
+            val df = dataflowManager.createDataflow(emptyIndex, model.getOwner());
+            if (modelRequest.isWithEmptySegment()) {
+                dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                        SegmentStatusEnum.READY);
+            }
+            if (modelRequest.isWithModelOnline()) {
+                dataflowManager.updateDataflow(df.getId(),
+                        copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+            }
+
+            updateIndexPlan(project, indexPlan);
 
             UnitOfWorkContext context = UnitOfWork.get();
             context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
@@ -2510,8 +2519,9 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
 
-        List<String> notExistNames = Stream.of(names).filter(segmentName -> null == dataflow.getSegmentByName(segmentName))
-                .filter(Objects::nonNull).collect(Collectors.toList());
+        List<String> notExistNames = Stream.of(names)
+                .filter(segmentName -> null == dataflow.getSegmentByName(segmentName)).filter(Objects::nonNull)
+                .collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(notExistNames)) {
             throw new KylinException(SEGMENT_NOT_EXIST, String.format(MsgPicker.getMsg().getSEGMENT_NAME_NOT_EXIST(),
                     StringUtils.join(notExistNames, ",")));
@@ -3021,8 +3031,8 @@ public class ModelService extends BasicService {
         String jobId = getSourceUsageManager().licenseCheckWrap(project,
                 () -> getJobManager(project).addFullIndexJob(new JobParam(modelId, getUsername())));
 
-        return new BuildIndexResponse(StringUtils.isBlank(jobId) ?
-                BuildIndexResponse.BuildIndexType.NO_LAYOUT : BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
+        return new BuildIndexResponse(StringUtils.isBlank(jobId) ? BuildIndexResponse.BuildIndexType.NO_LAYOUT
+                : BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }
 
     public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {
@@ -3404,7 +3414,7 @@ public class ModelService extends BasicService {
     }
 
     public BISyncModel exportModel(String projectName, String modelId, SyncContext.BI targetBI,
-                                   SyncContext.ModelElement modelElement, String host, int port) {
+            SyncContext.ModelElement modelElement, String host, int port) {
         NDataflow dataflow = getDataflowManager(projectName).getDataflow(modelId);
         if (dataflow.getStatus() == RealizationStatusEnum.BROKEN) {
             throw new KylinException(MODEL_BROKEN, "The model is broken and cannot be exported TDS file");
@@ -3434,20 +3444,23 @@ public class ModelService extends BasicService {
         Map<String, Set<String>> modelTableColumns = new HashMap<>();
         for (TableRef tableRef : model.getAllTables()) {
             modelTableColumns.putIfAbsent(tableRef.getTableIdentity(), new HashSet<>());
-            modelTableColumns.get(
-                    tableRef.getTableIdentity()).addAll(tableRef.getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()));
+            modelTableColumns.get(tableRef.getTableIdentity())
+                    .addAll(tableRef.getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()));
         }
         AclTCRManager aclManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
         String currentUserName = AclPermissionUtil.getCurrentUsername();
         Set<String> groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(currentUserName);
         Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
-        AclTCRDigest digest = aclManager.getAllUnauthorizedTableColumn(currentUserName, groupsInProject, modelTableColumns);
+        AclTCRDigest digest = aclManager.getAllUnauthorizedTableColumn(currentUserName, groupsInProject,
+                modelTableColumns);
         if (digest.getColumns() != null && !digest.getColumns().isEmpty()) {
-            throw new KylinException(UNAUTHORIZED_ENTITY, "current user does not have full permission on requesting model");
+            throw new KylinException(UNAUTHORIZED_ENTITY,
+                    "current user does not have full permission on requesting model");
         }
         if (digest.getTables() != null && !digest.getTables().isEmpty()) {
-            throw new KylinException(UNAUTHORIZED_ENTITY, "current user does not have full permission on requesting model");
+            throw new KylinException(UNAUTHORIZED_ENTITY,
+                    "current user does not have full permission on requesting model");
         }
     }
 

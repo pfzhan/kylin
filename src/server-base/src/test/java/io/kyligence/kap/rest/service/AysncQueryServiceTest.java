@@ -316,15 +316,15 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSaveAndGetUserName() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.saveUserName(PROJECT, queryId);
-        Assert.assertEquals("ADMIN", asyncQueryService.getUserName(queryId, PROJECT));
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
+        Assert.assertEquals("ADMIN", asyncQueryService.getQueryUsername(queryId, PROJECT));
     }
 
     @Test
     public void testGetUserNameNoResult() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        Assert.assertEquals(null, asyncQueryService.getUserName(queryId, PROJECT));
+        Assert.assertEquals(null, asyncQueryService.getQueryUsername(queryId, PROJECT));
     }
 
     @Test
@@ -338,7 +338,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testHasPermissionWhenIsSelf() throws IOException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.saveUserName(PROJECT, queryId);
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals(true, asyncQueryService.hasPermission(queryId, PROJECT));
     }
 
@@ -351,7 +351,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testBatchDeleteOlderResult() throws Exception {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.saveUserName(PROJECT, queryId);
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals(true, asyncQueryService.batchDelete(PROJECT, "2011-11-11 11:11:11"));
     }
 
@@ -359,7 +359,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testBatchDeleteOlderFalse() throws Exception {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.saveUserName(PROJECT, queryId);
+        asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals(false, asyncQueryService.batchDelete(PROJECT, null));
         Assert.assertEquals(false, asyncQueryService.batchDelete(null, "2011-11-11 11:11:11"));
     }

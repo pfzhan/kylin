@@ -40,4 +40,8 @@ public class ModelSuggestionRequest {
     List<ModelRequest> reusedModels;
     @JsonProperty("new_models")
     List<ModelRequest> newModels;
+    @JsonProperty("with_segment")
+    private boolean withEmptySegment = true;
+    @JsonProperty("with_model_online")
+    private boolean withModelOnline = false;
 }

@@ -43,8 +43,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import io.kyligence.kap.tool.bisync.BISyncModel;
-import io.kyligence.kap.tool.bisync.SyncContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -115,11 +116,10 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.tool.bisync.BISyncModel;
+import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -232,6 +232,10 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         try {
+            request.getNewModels().forEach(req -> {
+                req.setWithModelOnline(request.isWithModelOnline());
+                req.setWithEmptySegment(request.isWithEmptySegment());
+            });
             modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
@@ -838,7 +842,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/{model:.+}/model_segments/indexes/deletion")
     @ResponseBody
     public EnvelopeResponse<String> deleteIndexesFromSegments(@PathVariable("model") String modelId,
-                                                              @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
+            @RequestBody IndexesToSegmentsRequest deleteSegmentsRequest) throws Exception {
         checkProjectName(deleteSegmentsRequest.getProject());
         modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
                 deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
@@ -848,13 +852,12 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "export model", notes = "Add URL: {model}")
     @GetMapping(value = "/{model:.+}/export")
     @ResponseBody
-    public void exportModel(@PathVariable("model") String modelId,
-                            @RequestParam(value = "project") String project,
-                            @RequestParam(value = "export_as") SyncContext.BI exportAs,
-                            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
-                            @RequestParam(value = "server_host", required = false) String host,
-                            @RequestParam(value = "server_port", required = false) Integer port,
-                            HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void exportModel(@PathVariable("model") String modelId, @RequestParam(value = "project") String project,
+            @RequestParam(value = "export_as") SyncContext.BI exportAs,
+            @RequestParam(value = "element", required = false, defaultValue = "AGG_INDEX_COL") SyncContext.ModelElement element,
+            @RequestParam(value = "server_host", required = false) String host,
+            @RequestParam(value = "server_port", required = false) Integer port, HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         checkProjectName(project);
         if (host == null) {
             host = request.getServerName();
@@ -868,14 +871,13 @@ public class NModelController extends NBasicController {
         String fileName = String.format("%s_%s_%s", project, modelService.getModelById(modelId, project).getAlias(),
                 new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
         switch (exportAs) {
-            case TABLEAU_CONNECTOR_TDS:
-            case TABLEAU_ODBC_TDS:
-                response.setContentType("application/xml");
-                response.setHeader("Content-Disposition",
-                        String.format("attachment; filename=\"%s.tds\"", fileName));
-                break;
-            default:
-                throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
+        case TABLEAU_CONNECTOR_TDS:
+        case TABLEAU_ODBC_TDS:
+            response.setContentType("application/xml");
+            response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s.tds\"", fileName));
+            break;
+        default:
+            throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "unrecognized export target");
         }
         syncModel.dump(response.getOutputStream());
         response.getOutputStream().flush();

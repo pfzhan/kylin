@@ -117,7 +117,7 @@ public class NAsyncQueryController extends NBasicController {
                     } else {
                         asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
                     }
-                    asyncQueryService.saveUserName(sqlRequest.getProject(), queryId);
+                    asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
                 } catch (Exception e) {
                     try {
                         logger.error("failed to run query " + queryContext.getQueryId(), e);

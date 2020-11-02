@@ -81,7 +81,7 @@ public class AsyncQueryService extends BasicService {
         return HadoopUtil.getWorkingFileSystem();
     }
 
-    public void saveUserName(String project, String queryId) throws IOException {
+    public void saveQueryUsername(String project, String queryId) throws IOException {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getUserFileName()));
@@ -215,7 +215,7 @@ public class AsyncQueryService extends BasicService {
         return QueryStatus.MISS;
     }
 
-    private String getQueryUsername(String queryId, String project) throws IOException {
+    public String getQueryUsername(String queryId, String project) throws IOException {
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
         FileSystem fileSystem = getFileSystem();
         if (fileSystem.exists(asyncQueryResultDir)) {

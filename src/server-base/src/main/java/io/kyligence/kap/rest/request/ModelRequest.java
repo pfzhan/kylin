@@ -81,6 +81,12 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("save_only")
     private boolean saveOnly = false;
 
+    @JsonProperty("with_segment")
+    private boolean withEmptySegment = true;
+
+    @JsonProperty("with_model_online")
+    private boolean withModelOnline = false;
+
     private List<SimplifiedJoinTableDesc> simplifiedJoinTableDescs;
 
     @JsonProperty("join_tables")
