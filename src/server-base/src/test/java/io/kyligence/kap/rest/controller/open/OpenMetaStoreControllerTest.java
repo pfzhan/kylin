@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -59,8 +60,8 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.controller.NMetaStoreController;
+import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.request.OpenModelPreviewRequest;
-import io.kyligence.kap.rest.response.ModelMetadataCheckResponse;
 import io.kyligence.kap.rest.service.MetaStoreService;
 import io.kyligence.kap.rest.service.ModelService;
 
@@ -86,8 +87,8 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(openMetaStoreController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+        mockMvc = MockMvcBuilders.standaloneSetup(openMetaStoreController)
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
@@ -105,43 +106,42 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testPreviewModels() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/metastore/previews/models")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", defaultProjectName)
+                .contentType(MediaType.APPLICATION_JSON).param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(openMetaStoreController).previewModels(defaultProjectName);
     }
 
-
     @Test
     public void testExportModelMetadata() throws Exception {
         NDataModelManager dataModelManager = Mockito.mock(NDataModelManager.class);
-        Mockito.doReturn(Mockito.mock(NDataModel.class)).when(dataModelManager).getDataModelDescByAlias("warningmodel1");
+        Mockito.doReturn(Mockito.mock(NDataModel.class)).when(dataModelManager)
+                .getDataModelDescByAlias("warningmodel1");
         Mockito.doReturn(dataModelManager).when(modelService).getDataModelManager(defaultProjectName);
 
         final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
-                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class), any(HttpServletResponse.class));
+        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
+                any(HttpServletResponse.class));
     }
 
     @Test
     public void testExportModelMetadataEmptyModelNameException() throws Exception {
-        final OpenModelPreviewRequest request =new OpenModelPreviewRequest();
+        final OpenModelPreviewRequest request = new OpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
-                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class), any(HttpServletResponse.class));
+        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
+                any(HttpServletResponse.class));
     }
 
     @Test
@@ -152,13 +152,13 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
 
         final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
-                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class), any(HttpServletResponse.class));
+        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
+                any(HttpServletResponse.class));
     }
 
     @Test
@@ -171,67 +171,57 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
 
         final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
-                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
+                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
-        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class), any(HttpServletResponse.class));
+        Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
+                any(HttpServletResponse.class));
     }
 
     @Test
-    public void testImportModelMetadata() throws Throwable {
+    public void testValidateModelMetadata() throws Exception {
         File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip",
-                "text/plain", new FileInputStream(file));
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip", "text/plain",
+                new FileInputStream(file));
 
-        ModelMetadataCheckResponse modelMetadataCheckResponse = new ModelMetadataCheckResponse();
-        Mockito.when(metaStoreService.checkModelMetadata(defaultProjectName, multipartFile,
-                Lists.newArrayList("warningmodel1"))).thenReturn(modelMetadataCheckResponse);
-
-        final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/import/models")
-                .file(multipartFile)
-                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
-                .param("project", "default")
-                .param("names", request.getNames().get(0))
+        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/validation/models").file(multipartFile)
+                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(openMetaStoreController).importModelMetadata(defaultProjectName, multipartFile, request);
+        Mockito.verify(openMetaStoreController).uploadAndCheckModelMetadata("default", multipartFile, null);
     }
 
     @Test
-    public void testImportModelMetadataFailed() throws Throwable {
+    public void testImportModelMetadata() throws Exception {
         File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip",
-                "text/plain", new FileInputStream(file));
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip", "text/plain",
+                new FileInputStream(file));
 
-        ModelMetadataCheckResponse modelMetadataCheckResponse = new ModelMetadataCheckResponse();
-        ModelMetadataCheckResponse.ModelMetadataConflict conflict = Mockito.mock(ModelMetadataCheckResponse.ModelMetadataConflict.class);
-        modelMetadataCheckResponse.setModelMetadataConflictList(Lists.newArrayList(conflict));
-        Mockito.when(metaStoreService.checkModelMetadata(defaultProjectName, multipartFile,
-                Lists.newArrayList("warningmodel1"))).thenReturn(modelMetadataCheckResponse);
+        final ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        request.setModels(models);
+        models.add(new ModelImportRequest.ModelImport("ssb_model", null, ModelImportRequest.ImportType.OVERWRITE));
 
-        final OpenModelPreviewRequest request = mockOpenModelPreviewRequest();
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/import/models")
-                .file(multipartFile)
-                .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
-                .param("project", "default")
-                .param("names", request.getNames().get(0))
+        MockMultipartFile requestFile = new MockMultipartFile("request", "request", "application/json",
+                JsonUtil.writeValueAsString(request).getBytes());
+
+        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/import/models").file(multipartFile).file(requestFile)
+                .contentType(MediaType.MULTIPART_FORM_DATA_VALUE).param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(openMetaStoreController).importModelMetadata(defaultProjectName, multipartFile, request);
+        Mockito.verify(openMetaStoreController).importModelMetadata("default", multipartFile, request);
     }
 
     private OpenModelPreviewRequest mockOpenModelPreviewRequest() {
         OpenModelPreviewRequest modelPreviewRequest = new OpenModelPreviewRequest();
         List<String> modelNameList = Lists.newArrayList("warningmodel1");
         modelPreviewRequest.setNames(modelNameList);
+        modelPreviewRequest.setExportRecommendations(true);
+        modelPreviewRequest.setExportOverProps(true);
         return modelPreviewRequest;
     }
 

@@ -124,6 +124,15 @@ public class JdbcRawRecStore {
         }
     }
 
+    public RawRecItem queryByUniqueFlag(String project, String modelId, String uniqueFlag, Integer semanticVersion) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = getSelectUniqueFlagIdStatementProvider(project, modelId,
+                    uniqueFlag, semanticVersion);
+            return mapper.selectOne(statementProvider);
+        }
+    }
+
     public List<RawRecItem> queryAll() {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
@@ -356,6 +365,25 @@ public class JdbcRawRecStore {
         }
     }
 
+    public void batchUpdate(List<RawRecItem> recItems) {
+        try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            List<UpdateStatementProvider> updaters = Lists.newArrayList();
+            List<InsertStatementProvider<RawRecItem>> inserts = Lists.newArrayList();
+            recItems.forEach(item -> {
+                if (queryByUniqueFlag(item.getProject(), item.getModelID(), item.getUniqueFlag(),
+                        item.getSemanticVersion()) != null) {
+                    updaters.add(getUpdateProvider(item));
+                } else {
+                    inserts.add(getInsertProvider(item));
+                }
+            });
+            updaters.forEach(mapper::update);
+            inserts.forEach(mapper::insert);
+            session.commit();
+        }
+    }
+
     public void deleteByProject(String project) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
@@ -522,6 +550,16 @@ public class JdbcRawRecStore {
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
+    SelectStatementProvider getSelectUniqueFlagIdStatementProvider(String project, String modelId, String uniqueFlag,
+            Integer semanticVersion) {
+        return select(getSelectFields(table)) //
+                .from(table) //
+                .where(table.uniqueFlag, isEqualTo(uniqueFlag)) //
+                .and(table.project, isEqualTo(project)) //
+                .and(table.modelID, isEqualTo(modelId)) //
+                .and(table.semanticVersion, isEqualTo(semanticVersion)).build().render(RenderingStrategies.MYBATIS3);
+    }
+
     InsertStatementProvider<RawRecItem> getInsertProvider(RawRecItem recItem) {
         return SqlBuilder.insert(recItem).into(table).map(table.project).toProperty("project") //
                 .map(table.modelID).toProperty("modelID") //
@@ -601,5 +639,15 @@ public class JdbcRawRecStore {
                 recItemTable.minTime, //
                 recItemTable.queryHistoryInfo, //
                 recItemTable.recSource);
+    }
+
+    public int getMaxId() {
+        try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            if (mapper.selectAsInt(getContStarProvider()) == 0) {
+                return 0;
+            }
+            return mapper.selectAsInt(getMaxIdProvider());
+        }
     }
 }

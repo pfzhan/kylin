@@ -361,6 +361,41 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getEXPORT_BROKEN_MODEL() {
+        return "无法导出 Broken 的模型 [%s]。";
+    }
+
+    @Override
+    public String getIMPORT_BROKEN_MODEL() {
+        return "无法导入 Broken 的模型 [%s]。";
+    }
+
+    @Override
+    public String getIMPORT_MODEL_EXCEPTION() {
+        return "模型导入失败, 详情 %s";
+    }
+
+    @Override
+    public String getUN_SUITABLE_IMPORT_TYPE() {
+        return "模型 [%s] 的导入类型 [%s] 不合法。";
+    }
+
+    @Override
+    public String getCAN_NOT_OVERWRITE_MODEL() {
+        return "模型 [%s] 不存在，不能够覆盖。";
+    }
+
+    @Override
+    public String getILLEGAL_MODEL_METADATA_FILE() {
+        return "导入的元数据文件不合法。";
+    }
+
+    @Override
+    public String getEXPORT_AT_LEAST_ONE_MODEL() {
+        return "至少需要选择一个模型导出。";
+    }
+
+    @Override
     public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
         return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列重名。";
     }

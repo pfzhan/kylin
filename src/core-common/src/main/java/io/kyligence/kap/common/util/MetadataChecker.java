@@ -58,6 +58,7 @@ public class MetadataChecker {
         boolean existModelDescFile = false;
         boolean existIndexPlanFile = false;
         boolean existTable = false;
+        boolean existVersionFile = false;
         private Set<String> illegalProjects = Sets.newHashSet();
         private Set<String> illegalFiles = Sets.newHashSet();
 
@@ -111,6 +112,12 @@ public class MetadataChecker {
             //check uuid file
             if (file.equals(ResourceStore.METASTORE_UUID_TAG)) {
                 verifyResult.existUUIDFile = true;
+                continue;
+            }
+
+            //check VERSION file
+            if (file.equals(ResourceStore.VERSION_FILE)) {
+                verifyResult.existVersionFile = true;
                 continue;
             }
 
@@ -170,6 +177,12 @@ public class MetadataChecker {
             // check uuid file
             if (resoucePath.equals(ResourceStore.METASTORE_UUID_TAG)) {
                 verifyResult.existUUIDFile = true;
+                continue;
+            }
+
+            //check VERSION file
+            if (resoucePath.equals(ResourceStore.VERSION_FILE)) {
+                verifyResult.existVersionFile = true;
                 continue;
             }
 

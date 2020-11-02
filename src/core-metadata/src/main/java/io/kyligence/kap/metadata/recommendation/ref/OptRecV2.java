@@ -305,7 +305,7 @@ public class OptRecV2 {
     private boolean translate(List<Integer> toColIds, List<Integer> fromColIds) {
         for (Integer id : fromColIds) {
             RecommendationRef ref = dimensionRefs.containsKey(id) ? dimensionRefs.get(id) : measureRefs.get(id);
-            if (!ref.isExisted()) {
+            if (ref == null || !ref.isExisted()) {
                 return true;
             }
             toColIds.add(ref.getId());

@@ -36,4 +36,10 @@ public class OpenModelPreviewRequest {
      */
     @JsonProperty("names")
     private List<String> names;
+
+    @JsonProperty("export_recommendations")
+    private boolean exportRecommendations;
+
+    @JsonProperty("export_over_props")
+    private boolean exportOverProps;
 }

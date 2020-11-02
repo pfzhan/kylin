@@ -298,6 +298,15 @@ public class ModelService extends BasicService {
         return nDataModel;
     }
 
+    public NDataModel getModelByAlias(String modelAlias, String project) {
+        NDataModelManager modelManager = getDataModelManager(project);
+        NDataModel nDataModel = modelManager.getDataModelDescByAlias(modelAlias);
+        if (null == nDataModel) {
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+        }
+        return nDataModel;
+    }
+
     /**
      * for 3x rest api
      * @param modelList

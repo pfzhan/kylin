@@ -23,98 +23,234 @@
  */
 package io.kyligence.kap.metadata.model.schema;
 
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.PartitionDesc;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.val;
+import lombok.NonNull;
+import lombok.Setter;
 import lombok.experimental.Delegate;
-import org.apache.kylin.metadata.model.TblColRef;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
 public class SchemaNode {
 
+    @NonNull
     @Delegate
     SchemaNodeType type;
 
+    @NonNull
     String key;
+
+    @Setter(value = AccessLevel.PRIVATE)
+    Map<String, Object> attributes;
+
+    @Setter(value = AccessLevel.PRIVATE)
+    List<String> ignoreAttributes;
+
+    @Setter(value = AccessLevel.PRIVATE)
+    Map<String, Object> keyAttributes;
+
+    public SchemaNode(SchemaNodeType type, String key) {
+        this(type, key, Maps.newHashMap());
+    }
+
+    public SchemaNode(SchemaNodeType type, String key, Map<String, Object> attributes, String... ignore) {
+        this.type = type;
+        this.key = key;
+        this.attributes = attributes;
+        ignoreAttributes = Arrays.asList(ignore);
+        keyAttributes = attributes.keySet().stream().filter(attribute -> !ignoreAttributes.contains(attribute))
+                .collect(Collectors.toMap(Function.identity(), attributes::get));
+    }
 
     /**
      * table columns node with identity as {DATABASE NAME}.{TABLE NAME}.{COLUMN NAME}
      * @param columnDesc
      * @return
      */
-    static SchemaNode ofTableColumn(ColumnDesc columnDesc) {
-        return new SchemaNode(SchemaNodeType.TABLE_COLUMN, columnDesc.getTable().getIdentity() + "." + columnDesc.getName());
+    public static SchemaNode ofTableColumn(ColumnDesc columnDesc) {
+        return new SchemaNode(SchemaNodeType.TABLE_COLUMN,
+                columnDesc.getTable().getIdentity() + "." + columnDesc.getName(),
+                ImmutableMap.of("datatype", columnDesc.getDatatype()));
     }
 
     /**
-     * table columns node with identity as {DATABASE NAME}.{TABLE NAME}.{COLUMN NAME}
-     * @param colRef
+     * table node with identity as {DATABASE NAME}.{TABLE NAME}
+     * @param tableDesc
      * @return
      */
-    static SchemaNode ofTableColRef(TblColRef colRef) {
-        return new SchemaNode(SchemaNodeType.TABLE_COLUMN, colRef.getTable() + "." + colRef.getName());
+    public static SchemaNode ofTable(TableDesc tableDesc) {
+        return new SchemaNode(SchemaNodeType.MODEL_TABLE, tableDesc.getIdentity());
     }
 
-    static SchemaNode ofModelColumn(NDataModel.NamedColumn namedColumn, String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_COLUMN, modelId + "/" + namedColumn.getId());
+    /**
+     * table node with identity as {DATABASE NAME}.{TABLE NAME}
+     * @param tableRef
+     * @return
+     */
+    public static SchemaNode ofTable(TableRef tableRef) {
+        return new SchemaNode(SchemaNodeType.MODEL_TABLE, tableRef.getTableIdentity());
     }
 
-    static SchemaNode ofModelCC(ComputedColumnDesc cc, String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_CC, modelId + "/" + cc.getColumnName());
+    public static SchemaNode ofModelFactTable(TableRef tableRef, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_FACT, modelAlias + "/" + tableRef.getAlias());
     }
 
-    static SchemaNode ofDimension(NDataModel.NamedColumn namedColumn, String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_DIMENSION, modelId + "/" + namedColumn.getId());
+    public static SchemaNode ofModelDimensionTable(TableRef tableRef, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_DIM, modelAlias + "/" + tableRef.getAlias());
     }
 
-    static SchemaNode ofMeasure(NDataModel.Measure measure, String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_MEASURE, modelId + "/" + measure.getId());
+    public static SchemaNode ofModelColumn(NDataModel.NamedColumn namedColumn, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_COLUMN, modelAlias + "/" + namedColumn.getName(),
+                ImmutableMap.of("id", String.valueOf(namedColumn.getId())), "id");
     }
 
-    static SchemaNode ofPartition(PartitionDesc partitionDesc, String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_PARTITION,
-                modelId + "/" + partitionDesc.getPartitionDateColumn());
+    public static SchemaNode ofModelCC(ComputedColumnDesc cc, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_CC, modelAlias + "/" + cc.getColumnName(),
+                ImmutableMap.of("expression", cc.getExpression()));
     }
 
-    static SchemaNode ofJoin(NDataModel.NamedColumn namedColumn, String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_JOIN, modelId + "/" + namedColumn.getId());
+    public static SchemaNode ofDimension(NDataModel.NamedColumn namedColumn, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_DIMENSION, modelAlias + "/" + namedColumn.getName(),
+                ImmutableMap.of("name", namedColumn.getName(), "alias_dot_column", namedColumn.getAliasDotColumn(),
+                        "id", String.valueOf(namedColumn.getId())),
+                "id");
     }
 
-    static SchemaNode ofFilter(String modelId) {
-        return new SchemaNode(SchemaNodeType.MODEL_FILTER, modelId);
+    public static SchemaNode ofMeasure(NDataModel.Measure measure, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_MEASURE, modelAlias + "/" + measure.getName(), ImmutableMap.of(
+                "name", measure.getName(), "expression", measure.getFunction().getExpression(), "returntype",
+                measure.getFunction().getReturnType(), "parameters",
+                measure.getFunction().getParameters().stream()
+                        .map(parameterDesc -> new FunctionParameter(parameterDesc.getType(), parameterDesc.getValue()))
+                        .collect(Collectors.toList()),
+                "id", String.valueOf(measure.getId())), "id");
     }
 
-    static SchemaNode ofIndex(SchemaNodeType type, LayoutEntity layout, String modelId) {
-        return new SchemaNode(type, modelId + "/" + layout.getId());
+    public static SchemaNode ofPartition(PartitionDesc partitionDesc, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_PARTITION, modelAlias,
+                ImmutableMap.of("column", partitionDesc.getPartitionDateColumn(), "format",
+                        partitionDesc.getPartitionDateFormat() != null ? partitionDesc.getPartitionDateFormat() : ""));
+    }
+
+    // join type
+    public static SchemaNode ofJoin(TableRef fkTableRef, TableRef pkTableRef, JoinDesc joinDesc, String modelAlias) {
+        return new SchemaNode(SchemaNodeType.MODEL_JOIN,
+                modelAlias + "/" + fkTableRef.getAlias() + "-" + pkTableRef.getAlias(),
+                ImmutableMap.of("join_type", joinDesc.getType(), "primary_keys",
+                        StringUtils.join(joinDesc.getPrimaryKey(), ","), "foreign_keys",
+                        StringUtils.join(joinDesc.getForeignKey(), ","), "non_equal_join_condition",
+                        joinDesc.getNonEquiJoinCondition() != null ? joinDesc.getNonEquiJoinCondition().getExpr()
+                                : ""));
+    }
+
+    public static SchemaNode ofFilter(String modelAlias, String condition) {
+        return new SchemaNode(SchemaNodeType.MODEL_FILTER, modelAlias, ImmutableMap.of("condition", condition));
+    }
+
+    public static SchemaNode ofIndex(SchemaNodeType type, LayoutEntity layout, NDataModel model,
+            Map<Integer, String> modelColumnMeasureIdMap) {
+        return new SchemaNode(type,
+                model.getAlias() + "/" + String.join(",", getLayoutIdColumn(layout, modelColumnMeasureIdMap)),
+                ImmutableMap.of("col_orders", getLayoutIdColumn(layout, modelColumnMeasureIdMap), "shard_by",
+                        getLayoutShardByColumn(layout, modelColumnMeasureIdMap), "sort_by",
+                        getLayoutSortByColumn(layout, modelColumnMeasureIdMap), "id", String.valueOf(layout.getId())),
+                "id");
+    }
+
+    public static SchemaNode ofIndex(SchemaNodeType type, LayoutEntity layout, NDataModel model,
+            Map<Integer, String> modelColumnMeasureIdMap, List<Integer> aggShardByColumns) {
+        return new SchemaNode(type,
+                model.getAlias() + "/" + String.join(",", getLayoutIdColumn(layout, modelColumnMeasureIdMap)),
+                ImmutableMap.of("col_orders", getLayoutIdColumn(layout, modelColumnMeasureIdMap), "shard_by",
+                        getColumnMeasureName(aggShardByColumns, modelColumnMeasureIdMap), "sort_by",
+                        getLayoutSortByColumn(layout, modelColumnMeasureIdMap), "id", String.valueOf(layout.getId())),
+                "id");
+    }
+
+    private static List<String> getLayoutIdColumn(LayoutEntity layout, Map<Integer, String> modelColumnMeasureIdMap) {
+        return getColumnMeasureName(layout.getColOrder(), modelColumnMeasureIdMap);
+    }
+
+    private static List<String> getLayoutShardByColumn(LayoutEntity layout,
+            Map<Integer, String> modelColumnMeasureIdMap) {
+        return getColumnMeasureName(layout.getShardByColumns(), modelColumnMeasureIdMap);
+    }
+
+    private static List<String> getLayoutSortByColumn(LayoutEntity layout,
+            Map<Integer, String> modelColumnMeasureIdMap) {
+        return getColumnMeasureName(layout.getSortByColumns(), modelColumnMeasureIdMap);
+    }
+
+    private static List<String> getColumnMeasureName(List<Integer> columnIds,
+            Map<Integer, String> modelColumnMeasureIdMap) {
+        if (columnIds == null) {
+            return Lists.newArrayList();
+        }
+
+        return columnIds.stream().map(modelColumnMeasureIdMap::get).collect(Collectors.toList());
     }
 
     public String getSubject() {
-        if (type == SchemaNodeType.TABLE_COLUMN) {
-            return key.substring(0, key.lastIndexOf('.'));
-        } else {
-            return key.split("/")[0];
-        }
+        return type.getSubject(key);
     }
 
     public String getDetail() {
-        if (type == SchemaNodeType.TABLE_COLUMN) {
-            return key.substring(key.lastIndexOf('.') + 1);
-        } else {
-            val words = key.split("/");
-            if (words.length == 2) {
-                return words[1];
-            }
-            return type.toString();
-        }
+        return type.getDetail(key, attributes);
     }
 
+    public SchemaNodeIdentifier getIdentifier() {
+        return new SchemaNodeIdentifier(this.getType(), this.getKey());
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class SchemaNodeIdentifier {
+        private SchemaNodeType type;
+        private String key;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class FunctionParameter implements IKeep {
+        private String type;
+        private String value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        SchemaNode that = (SchemaNode) o;
+        return type == that.type && Objects.equals(key, that.key)
+                && Objects.equals(this.keyAttributes, that.keyAttributes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, key, this.keyAttributes);
+    }
 }

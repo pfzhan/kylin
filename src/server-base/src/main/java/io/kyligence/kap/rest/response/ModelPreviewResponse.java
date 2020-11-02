@@ -24,11 +24,13 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -37,6 +39,12 @@ public class ModelPreviewResponse {
     private String uuid;
     @JsonProperty("name")
     private String name;
+    @JsonProperty("status")
+    private ModelStatusToDisplayEnum status;
+    @JsonProperty("has_recommendations")
+    private boolean hasRecommendation;
+    @JsonProperty("has_override_props")
+    private boolean hasOverrideProps;
     @JsonProperty("tables")
     private List<SimplifiedTablePreviewResponse> tables;
 }

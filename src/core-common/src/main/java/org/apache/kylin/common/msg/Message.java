@@ -292,6 +292,34 @@ public class Message {
         return "Model '%s' import failed: Computed column '%s' of this model has the same expression as model '%s' computed column '%s'.";
     }
 
+    public String getEXPORT_BROKEN_MODEL() {
+        return "Model [%s] is broken, can not export.";
+    }
+
+    public String getIMPORT_BROKEN_MODEL() {
+        return "Model [%s] is broken, can not export.";
+    }
+
+    public String getIMPORT_MODEL_EXCEPTION() {
+        return "Import model failed, detail is:\n%s";
+    }
+
+    public String getUN_SUITABLE_IMPORT_TYPE() {
+        return "Model [%s]'s ImportType [%s] is illegal.";
+    }
+
+    public String getCAN_NOT_OVERWRITE_MODEL() {
+        return "Model [%s] not exists, Can not overwrite model.";
+    }
+
+    public String getILLEGAL_MODEL_METADATA_FILE() {
+        return "Please verify the metadata file first.";
+    }
+
+    public String getEXPORT_AT_LEAST_ONE_MODEL() {
+        return "You should export one model at least.";
+    }
+
     public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
         return "Model '%s' import failed: Computed column '%s' of this model has the same name as computed column in model '%s'.";
     }

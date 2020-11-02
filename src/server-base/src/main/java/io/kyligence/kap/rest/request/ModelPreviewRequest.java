@@ -35,4 +35,10 @@ public class ModelPreviewRequest {
     @JsonProperty("ids")
     private List<String> ids;
 
+    @JsonProperty("export_recommendations")
+    private boolean exportRecommendations;
+
+    @JsonProperty("export_over_props")
+    private boolean exportOverProps;
+
 }

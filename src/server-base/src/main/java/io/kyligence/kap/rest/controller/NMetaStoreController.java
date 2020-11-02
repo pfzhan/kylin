@@ -28,11 +28,10 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_MODEL_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_FORMAT_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
+import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -41,11 +40,7 @@ import java.util.Objects;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.rest.request.MetadataCleanupRequest;
-import io.kyligence.kap.rest.request.StorageCleanupRequest;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
@@ -59,11 +54,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
+import io.kyligence.kap.rest.request.MetadataCleanupRequest;
+import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.request.ModelPreviewRequest;
-import io.kyligence.kap.rest.response.ModelMetadataCheckResponse;
+import io.kyligence.kap.rest.request.StorageCleanupRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.service.MetaStoreService;
 import io.kyligence.kap.tool.util.HashFunction;
@@ -93,50 +93,52 @@ public class NMetaStoreController extends NBasicController {
         if (CollectionUtils.isEmpty(request.getIds())) {
             throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to export!");
         }
-        String filename = String.format("%s_model_metadata_%s.zip", project.toLowerCase(),
-                new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()));
-        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(project, request.getIds());
-        try(ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray())) {
+        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(project,
+                request.getIds(), request.isExportRecommendations(), request.isExportOverProps());
+        String filename;
+
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
+                byteArrayOutputStream.toByteArray())) {
+            byte[] md5 = HashFunction.MD5.checksum(byteArrayInputStream);
+            filename = String.format("%s_model_metadata_%s_%s.zip", project.toLowerCase(),
+                    new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()),
+                    DatatypeConverter.printHexBinary(md5));
+        }
+
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
+                byteArrayOutputStream.toByteArray())) {
             setDownloadResponse(byteArrayInputStream, filename, MediaType.APPLICATION_FORM_URLENCODED_VALUE, response);
         }
     }
 
     @PostMapping(value = "/validation/models")
     @ResponseBody
-    public EnvelopeResponse<ModelMetadataCheckResponse> uploadAndCheckModelMetadata(
-            @RequestParam(value = "project") String project, @RequestParam("file") MultipartFile uploadFile)
-            throws Exception {
+    public EnvelopeResponse<SchemaChangeCheckResult> uploadAndCheckModelMetadata(
+            @RequestParam(value = "project") String project, @RequestPart("file") MultipartFile uploadFile,
+            @RequestPart(value = "request", required = false) ModelImportRequest request) throws Exception {
         checkProjectName(project);
         checkUploadFile(uploadFile);
 
-        ModelMetadataCheckResponse modelMetadataCheckResponse = metaStoreService.checkModelMetadata(project, uploadFile);
-        try(InputStream inputStream = uploadFile.getInputStream()) {
-            byte[] md5 = HashFunction.MD5.checksum(inputStream);
-            modelMetadataCheckResponse.setSignature(DatatypeConverter.printHexBinary(md5));
-        }
+        SchemaChangeCheckResult modelMetadataCheckResponse = metaStoreService.checkModelMetadata(project, uploadFile,
+                request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelMetadataCheckResponse, "");
     }
 
-    @PostMapping(value = "/models")
+    @PostMapping(value = "/models", consumes = { MULTIPART_FORM_DATA_VALUE })
     @ResponseBody
     public EnvelopeResponse<String> importModelMetadata(@RequestParam(value = "project") String project,
-                                                        @RequestParam(value = "signature") String signature,
-                                                        @RequestParam(value = "file") MultipartFile metadataFile,
-                                                        ModelPreviewRequest request) throws Exception {
+            @RequestPart(value = "file") MultipartFile metadataFile, @RequestPart("request") ModelImportRequest request)
+            throws Exception {
         checkProjectName(project);
         checkUploadFile(metadataFile);
-        if (CollectionUtils.isEmpty(request.getIds())) {
+        if (request.getModels().stream()
+                .noneMatch(modelImport -> modelImport.getImportType() == ModelImportRequest.ImportType.NEW
+                        || modelImport.getImportType() == ModelImportRequest.ImportType.OVERWRITE)) {
             throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to import!");
-        }
-        try(InputStream inputStream = metadataFile.getInputStream()) {
-            byte[] md5 = HashFunction.MD5.checksum(inputStream);
-            if (!StringUtils.equals(signature, DatatypeConverter.printHexBinary(md5))) {
-                throw new KylinException(MODEL_METADATA_FILE_ERROR, "Please verify the metadata file first");
-            }
         }
 
         try {
-            metaStoreService.importModelMetadata(project, metadataFile, request.getIds());
+            metaStoreService.importModelMetadata(project, metadataFile, request);
         } catch (RuntimeException exception) {
             Throwable rootCause = ExceptionUtils.getRootCause(exception);
             throw new RuntimeException(rootCause);

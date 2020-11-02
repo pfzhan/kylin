@@ -23,11 +23,11 @@
  */
 package io.kyligence.kap.metadata.model.schema;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -46,6 +46,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import io.kyligence.kap.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -64,6 +65,7 @@ class ModelEdgeCollector {
     private Map<String, NDataModel.NamedColumn> nameColumnIdMap;
     private ImmutableBiMap<Integer, TblColRef> effectiveCols;
     private ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures;
+    private Map<Integer, String> modelColumnMeasureIdNameMap = new HashMap<>();
 
     public Graph<SchemaNode> collect() {
         model = indexPlan.getModel();
@@ -73,14 +75,19 @@ class ModelEdgeCollector {
         nameColumnIdMap = effectiveNamedColumns.entrySet().stream()
                 .collect(Collectors.toMap(e -> e.getValue().getAliasDotColumn(), Map.Entry::getValue));
 
+        modelColumnMeasureIdNameMap.putAll(model.getAllMeasures().stream().filter(measure -> !measure.isTomb())
+                .collect(Collectors.toMap(NDataModel.Measure::getId, NDataModel.Measure::getName)));
+        modelColumnMeasureIdNameMap.putAll(model.getAllNamedColumns().stream()
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getId, NDataModel.NamedColumn::getAliasDotColumn)));
+
         collectModelColumns();
         collectModelSignificant();
         collectDimensionAndMeasure();
 
-        collectIndex(indexPlan.getWhitelistLayouts(), SchemaNodeType.WHITE_LIST_INDEX);
+        collectIndex(indexPlan.getWhitelistLayouts(), SchemaNodeType.WHITE_LIST_INDEX, Lists.newArrayList());
         collectIndex(indexPlan.getToBeDeletedIndexes().stream().flatMap(index -> index.getLayouts().stream())
-                .collect(Collectors.toList()), SchemaNodeType.TO_BE_DELETED_INDEX);
-        collectIndex(indexPlan.getRuleBaseLayouts(), SchemaNodeType.RULE_BASED_INDEX);
+                .collect(Collectors.toList()), SchemaNodeType.TO_BE_DELETED_INDEX, Lists.newArrayList());
+        collectIndex(indexPlan.getRuleBaseLayouts(), SchemaNodeType.RULE_BASED_INDEX, indexPlan.getAggShardByColumns());
 
         collectAggGroup();
         collectIndexPlan();
@@ -95,7 +102,8 @@ class ModelEdgeCollector {
             if (tblColRef.getColumnDesc().isComputedColumn()) {
                 return;
             }
-            graph.putEdge(SchemaNode.ofTableColRef(tblColRef), SchemaNode.ofModelColumn(namedColumn, model.getId()));
+            graph.putEdge(SchemaNode.ofTableColumn(tblColRef.getColumnDesc()),
+                    SchemaNode.ofModelColumn(namedColumn, model.getAlias()));
         });
         effectiveCols.forEach((id, tblColRef) -> {
             if (!tblColRef.getColumnDesc().isComputedColumn()) {
@@ -103,9 +111,9 @@ class ModelEdgeCollector {
             }
             val namedColumn = effectiveNamedColumns.get(id);
             val cc = ccs.get(tblColRef.getName());
-            val ccNode = SchemaNode.ofModelCC(cc, model.getId());
+            val ccNode = SchemaNode.ofModelCC(cc, model.getAlias());
             collectExprWithModel(cc.getExpression(), ccNode);
-            graph.putEdge(ccNode, SchemaNode.ofModelColumn(namedColumn, model.getId()));
+            graph.putEdge(ccNode, SchemaNode.ofModelColumn(namedColumn, model.getAlias()));
         });
     }
 
@@ -113,34 +121,44 @@ class ModelEdgeCollector {
         if (model.getPartitionDesc() != null && model.getPartitionDesc().getPartitionDateColumnRef() != null) {
             val colRef = model.getPartitionDesc().getPartitionDateColumnRef();
             val nameColumn = nameColumnIdMap.get(colRef.getAliasDotName());
-            graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getId()),
-                    SchemaNode.ofPartition(model.getPartitionDesc(), model.getId()));
+            graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getAlias()),
+                    SchemaNode.ofPartition(model.getPartitionDesc(), model.getAlias()));
         }
-        for (JoinTableDesc joinTable : model.getJoinTables()) {
-            Stream<String> joinCols = Stream.concat(
-                    Stream.of(joinTable.getJoin().getPrimaryKey()),
-                    Stream.of(joinTable.getJoin().getForeignKey()));
-            if (joinTable.getJoin().getNonEquiJoinCondition() != null) {
-                joinCols = Stream.concat(joinCols, joinTable.getJoin().getNonEquiJoinCondition().getAllReferencingColumns().stream());
-            }
 
-            joinCols.forEach(col -> {
-                val nameColumn = nameColumnIdMap.get(col);
-                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getId()),
-                        SchemaNode.ofJoin(nameColumn, model.getId()));
-            });
+        // fact table
+        graph.putEdge(SchemaNode.ofTable(model.getRootFactTable()),
+                SchemaNode.ofModelFactTable(model.getRootFactTable(), model.getAlias()));
+
+        for (JoinTableDesc joinTable : model.getJoinTables()) {
+            // dim table
+            graph.putEdge(SchemaNode.ofTable(joinTable.getTableRef()),
+                    SchemaNode.ofModelDimensionTable(joinTable.getTableRef(), model.getAlias()));
+
+            for (int i = 0; i < joinTable.getJoin().getPrimaryKey().length; i++) {
+                SchemaNode join = SchemaNode.ofJoin(joinTable.getJoin().getFKSide(), joinTable.getJoin().getPKSide(),
+                        joinTable.getJoin(), model.getAlias());
+
+                String fkCol = joinTable.getJoin().getForeignKey()[i];
+                val fkNameColumn = nameColumnIdMap.get(fkCol);
+                graph.putEdge(SchemaNode.ofModelColumn(fkNameColumn, model.getAlias()), join);
+
+                String pkCol = joinTable.getJoin().getPrimaryKey()[i];
+                val pkNameColumn = nameColumnIdMap.get(pkCol);
+                graph.putEdge(SchemaNode.ofModelColumn(pkNameColumn, model.getAlias()), join);
+            }
         }
 
         if (StringUtils.isNotEmpty(model.getFilterCondition())) {
-            collectExprWithModel(model.getFilterCondition(), SchemaNode.ofFilter(model.getId()));
+            collectExprWithModel(model.getFilterCondition(),
+                    SchemaNode.ofFilter(model.getAlias(), model.getFilterCondition()));
         }
     }
 
     private void collectDimensionAndMeasure() {
         model.getEffectiveDimensions().forEach((id, dimension) -> {
             val nameColumn = nameColumnIdMap.get(dimension.getAliasDotName());
-            graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getId()),
-                    SchemaNode.ofDimension(nameColumn, model.getId()));
+            graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getAlias()),
+                    SchemaNode.ofDimension(nameColumn, model.getAlias()));
         });
         model.getEffectiveMeasures().forEach((id, measure) -> {
             val params = measure.getFunction().getParameters();
@@ -153,30 +171,49 @@ class ModelEdgeCollector {
                 }
                 val colRef = param.getColRef();
                 val nameColumn = nameColumnIdMap.get(colRef.getAliasDotName());
-                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getId()),
-                        SchemaNode.ofMeasure(measure, model.getId()));
+                graph.putEdge(SchemaNode.ofModelColumn(nameColumn, model.getAlias()),
+                        SchemaNode.ofMeasure(measure, model.getAlias()));
             }
         });
     }
 
-    private void collectIndex(List<LayoutEntity> allLayouts, SchemaNodeType type) {
+    private void collectIndex(List<LayoutEntity> allLayouts, SchemaNodeType type, List<Integer> aggShardByColumns) {
         for (LayoutEntity layout : allLayouts) {
             if (layout.getIndex().isTableIndex()) {
                 for (Integer col : layout.getColOrder()) {
                     val namedColumn = effectiveNamedColumns.get(col);
-                    graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getId()),
-                            SchemaNode.ofIndex(type, layout, model.getId()));
+                    if (type == SchemaNodeType.RULE_BASED_INDEX) {
+                        graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getAlias()), SchemaNode.ofIndex(type,
+                                layout, model, modelColumnMeasureIdNameMap, aggShardByColumns));
+                    } else {
+                        graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getAlias()),
+                                SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap));
+                    }
                 }
                 continue;
             }
             for (Integer col : layout.getColOrder()) {
                 if (col < NDataModel.MEASURE_ID_BASE) {
                     val namedColumn = effectiveNamedColumns.get(col);
-                    graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getId()),
-                            SchemaNode.ofIndex(type, layout, model.getId()));
+                    if (type == SchemaNodeType.RULE_BASED_INDEX) {
+                        graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getAlias()), SchemaNode.ofIndex(type,
+                                layout, model, modelColumnMeasureIdNameMap, aggShardByColumns));
+                    } else {
+                        graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getAlias()),
+                                SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap));
+                    }
                 } else {
-                    graph.putEdge(SchemaNode.ofMeasure(effectiveMeasures.get(col), model.getId()),
-                            SchemaNode.ofIndex(type, layout, model.getId()));
+                    NDataModel.Measure measure = effectiveMeasures.get(col);
+                    if (measure == null) {
+                        continue;
+                    }
+                    if (type == SchemaNodeType.RULE_BASED_INDEX) {
+                        graph.putEdge(SchemaNode.ofMeasure(measure, model.getAlias()), SchemaNode.ofIndex(type, layout,
+                                model, modelColumnMeasureIdNameMap, aggShardByColumns));
+                    } else {
+                        graph.putEdge(SchemaNode.ofMeasure(measure, model.getAlias()),
+                                SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap));
+                    }
                 }
             }
         }
@@ -185,9 +222,8 @@ class ModelEdgeCollector {
     private void collectExprWithModel(String expr, SchemaNode target) {
         val pairs = ComputedColumnUtil.ExprIdentifierFinder.getExprIdentifiers(expr);
         for (Pair<String, String> pair : pairs) {
-            graph.putEdge(SchemaNodeType.MODEL_COLUMN.withKey(
-                    model.getId() + "/" + nameColumnIdMap.get(pair.getFirst() + "." + pair.getSecond()).getId()),
-                    target);
+            graph.putEdge(SchemaNode.ofModelColumn(nameColumnIdMap.get(pair.getFirst() + "." + pair.getSecond()),
+                    model.getAlias()), target);
         }
     }
 
@@ -198,24 +234,24 @@ class ModelEdgeCollector {
         }
         int index = 0;
         for (NAggregationGroup aggGroup : ruleBasedIndex.getAggregationGroups()) {
-            val aggGroupNode = SchemaNodeType.AGG_GROUP.withKey(model.getId() + "/" + index);
+            val aggGroupNode = SchemaNodeType.AGG_GROUP.withKey(model.getAlias() + "/" + index);
             for (Integer col : aggGroup.getIncludes()) {
                 val namedColumn = effectiveNamedColumns.get(col);
-                graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getId()), aggGroupNode);
+                graph.putEdge(SchemaNode.ofDimension(namedColumn, model.getAlias()), aggGroupNode);
 
             }
             for (Integer measure : aggGroup.getMeasures()) {
-                graph.putEdge(SchemaNode.ofMeasure(effectiveMeasures.get(measure), model.getId()), aggGroupNode);
+                graph.putEdge(SchemaNode.ofMeasure(effectiveMeasures.get(measure), model.getAlias()), aggGroupNode);
             }
             index++;
         }
     }
 
     private void collectIndexPlan() {
-        val aggShardNode = SchemaNodeType.INDEX_AGG_SHARD.withKey(model.getId());
+        val aggShardNode = SchemaNodeType.INDEX_AGG_SHARD.withKey(model.getAlias());
         collectAggExpertColumns(indexPlan.getAggShardByColumns(), aggShardNode);
 
-        val aggPartitionNode = SchemaNodeType.INDEX_AGG_EXTEND_PARTITION.withKey(model.getId());
+        val aggPartitionNode = SchemaNodeType.INDEX_AGG_EXTEND_PARTITION.withKey(model.getAlias());
         collectAggExpertColumns(indexPlan.getExtendPartitionColumns(), aggPartitionNode);
     }
 
@@ -225,11 +261,12 @@ class ModelEdgeCollector {
         }
         for (Integer col : cols) {
             val namedColumn = effectiveNamedColumns.get(col);
-            graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getId()), node);
+            graph.putEdge(SchemaNode.ofModelColumn(namedColumn, model.getAlias()), node);
         }
         for (LayoutEntity layout : indexPlan.getRuleBaseLayouts()) {
             if (layout.getColOrder().containsAll(indexPlan.getAggShardByColumns())) {
-                graph.putEdge(node, SchemaNode.ofIndex(SchemaNodeType.RULE_BASED_INDEX, layout, model.getId()));
+                graph.putEdge(node, SchemaNode.ofIndex(SchemaNodeType.RULE_BASED_INDEX, layout, model,
+                        modelColumnMeasureIdNameMap));
             }
         }
     }

@@ -612,8 +612,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
                     EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier());
                 } else {
-                    UnitOfWork.get().doAfterUnit(
-                            () -> EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier()));
+                    if (UnitOfWork.isAlreadyInTransaction()) {
+                        UnitOfWork.get().doAfterUnit(
+                                () -> EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier()));
+                    }
                 }
             }
         });

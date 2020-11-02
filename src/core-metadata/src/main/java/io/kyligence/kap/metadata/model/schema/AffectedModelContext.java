@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 
@@ -44,6 +45,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;
@@ -57,6 +59,7 @@ public class AffectedModelContext {
     private final Set<SchemaNode> shouldDeleteNodes;
     private final String project;
     private final String modelId;
+    private final String modelAlias;
 
     private final boolean isBroken;
     @Getter
@@ -71,6 +74,7 @@ public class AffectedModelContext {
     private Set<Integer> columns = Sets.newHashSet();
     private Set<String> computedColumns = Sets.newHashSet();
 
+    private Map<NDataModel.Measure, NDataModel.Measure> updateIdMeasureMap = Maps.newHashMap();
     private Map<Integer, NDataModel.Measure> updateMeasureMap = Maps.newHashMap();
 
     public AffectedModelContext(String project, String modelId, Set<SchemaNode> updatedNodes, boolean isDelete) {
@@ -78,11 +82,15 @@ public class AffectedModelContext {
     }
 
     public AffectedModelContext(String project, String modelId, Set<SchemaNode> updatedNodes,
-            Set<Pair<Integer, NDataModel.Measure>> updateMeasures, boolean isDelete) {
+            Set<Pair<NDataModel.Measure, NDataModel.Measure>> updateMeasures, boolean isDelete) {
         this.project = project;
         this.modelId = modelId;
+        this.modelAlias = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDesc(modelId).getAlias();
         this.updatedNodes = updatedNodes;
-        this.updateMeasureMap = updateMeasures.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        this.updateIdMeasureMap= updateMeasures.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        this.updateMeasureMap = updateMeasures.stream()
+                .collect(Collectors.toMap(pair -> pair.getFirst().getId(), Pair::getSecond));
         this.shouldDeleteNodes = calcShouldDeletedNodes(isDelete);
         isBroken = updatedNodes.stream().anyMatch(SchemaNode::isCauseModelBroken);
 
@@ -99,7 +107,7 @@ public class AffectedModelContext {
     }
 
     public AffectedModelContext(String project, IndexPlan originIndexPlan, Set<SchemaNode> updatedNodes,
-            Set<Pair<Integer, NDataModel.Measure>> updateMeasures, boolean isDelete) {
+            Set<Pair<NDataModel.Measure, NDataModel.Measure>> updateMeasures, boolean isDelete) {
         this(project, originIndexPlan.getId(), updatedNodes, updateMeasures, isDelete);
         val indexPlanCopy = originIndexPlan.copy();
         shrinkIndexPlan(indexPlanCopy);
@@ -154,10 +162,10 @@ public class AffectedModelContext {
 
         rule.setAggregationGroups(newAggGroups);
         indexPlan.setRuleBasedIndex(rule);
-        if (updatedNodes.contains(SchemaNodeType.INDEX_AGG_SHARD.withKey(indexPlan.getId()))) {
+        if (updatedNodes.contains(SchemaNodeType.INDEX_AGG_SHARD.withKey(indexPlan.getModelAlias()))) {
             indexPlan.setAggShardByColumns(Lists.newArrayList());
         }
-        if (updatedNodes.contains(SchemaNodeType.INDEX_AGG_EXTEND_PARTITION.withKey(indexPlan.getId()))) {
+        if (updatedNodes.contains(SchemaNodeType.INDEX_AGG_EXTEND_PARTITION.withKey(indexPlan.getModelAlias()))) {
             indexPlan.setExtendPartitionColumns(Lists.newArrayList());
         }
 
@@ -168,9 +176,8 @@ public class AffectedModelContext {
             || node.getType() == SchemaNodeType.TO_BE_DELETED_INDEX;
 
     private Set<Long> filterIndexFromNodes(Set<SchemaNode> nodes) {
-        return nodes.stream()
-                .filter(deletableIndexPredicate)
-                .map(node -> Long.parseLong(node.getDetail())).collect(Collectors.toSet());
+        return nodes.stream().filter(deletableIndexPredicate).map(node -> Long.parseLong(node.getDetail()))
+                .collect(Collectors.toSet());
     }
 
     private Set<SchemaNode> calcShouldDeletedNodes(boolean isDelete) {
@@ -187,19 +194,14 @@ public class AffectedModelContext {
                     // add should delete measure
                     result.add(node);
                     // add should delete measure affected index schema nodes
-                    Graphs.reachableNodes(schemaNodeGraph, node)
-                            .stream()
-                            .filter(deletableIndexPredicate)
+                    Graphs.reachableNodes(schemaNodeGraph, node).stream().filter(deletableIndexPredicate)
                             .forEach(result::add);
                 });
 
         // add updated measure affect index schema nodes
-        updateMeasureMap.keySet().forEach(originalMeasureId -> {
-            Graphs.reachableNodes(schemaNodeGraph,
-                    SchemaNodeType.MODEL_MEASURE.withKey(modelId + "/" + originalMeasureId))
-                    .stream()
-                    .filter(deletableIndexPredicate)
-                    .forEach(result::add);
+        updateIdMeasureMap.keySet().forEach(originalMeasure -> {
+            Graphs.reachableNodes(schemaNodeGraph, SchemaNode.ofMeasure(originalMeasure, modelAlias)).stream()
+                    .filter(deletableIndexPredicate).forEach(result::add);
         });
 
         return result;

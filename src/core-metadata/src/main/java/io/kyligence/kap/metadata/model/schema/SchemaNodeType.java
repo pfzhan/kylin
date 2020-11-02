@@ -23,13 +23,89 @@
  */
 package io.kyligence.kap.metadata.model.schema;
 
+import java.util.Map;
+
 import lombok.Getter;
+import lombok.val;
 
 public enum SchemaNodeType {
-    TABLE_COLUMN, MODEL_COLUMN, MODEL_CC, //
-    MODEL_PARTITION(true), MODEL_JOIN(true), MODEL_FILTER(true), //
-    MODEL_DIMENSION, MODEL_MEASURE, //
-    WHITE_LIST_INDEX, TO_BE_DELETED_INDEX, RULE_BASED_INDEX, //
+    TABLE_COLUMN {
+        @Override
+        public String getSubject(String key) {
+            return key.substring(0, key.lastIndexOf('.'));
+        }
+
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return key.substring(key.lastIndexOf('.') + 1);
+        }
+    },
+    MODEL_COLUMN {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("id");
+        }
+    },
+    MODEL_CC, //
+    MODEL_TABLE {
+        @Override
+        public String getSubject(String key) {
+            return key;
+        }
+
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return key;
+        }
+    },
+    MODEL_FACT, MODEL_DIM, //
+    MODEL_PARTITION(true) {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("column");
+        }
+    },
+    MODEL_JOIN(true), MODEL_FILTER(true) {
+        @Override
+        public String getSubject(String key) {
+            return key;
+        }
+
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("condition");
+        }
+    }, //
+    MODEL_DIMENSION {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("id");
+        }
+    },
+    MODEL_MEASURE {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("id");
+        }
+    }, //
+    WHITE_LIST_INDEX {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("id");
+        }
+    },
+    TO_BE_DELETED_INDEX {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("id");
+        }
+    },
+    RULE_BASED_INDEX {
+        @Override
+        public String getDetail(String key, Map<String, Object> attributes) {
+            return (String) attributes.get("id");
+        }
+    }, //
     AGG_GROUP, INDEX_AGG_SHARD, INDEX_AGG_EXTEND_PARTITION, //
     ;
 
@@ -49,6 +125,18 @@ public enum SchemaNodeType {
     }
 
     public boolean isModelNode() {
-        return this != TABLE_COLUMN;
+        return this != TABLE_COLUMN && this != MODEL_TABLE;
+    }
+
+    public String getSubject(String key) {
+        return key.split("/")[0];
+    }
+
+    public String getDetail(String key, Map<String, Object> attributes) {
+        val words = key.split("/");
+        if (words.length == 2) {
+            return words[1];
+        }
+        return this.toString();
     }
 }

@@ -594,6 +594,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.metadata.expose-computed-column", FALSE));
     }
 
+    // only for model import
+    public boolean validateComputedColumn() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.validate-computed-column", TRUE));
+    }
+
     public String getCalciteQuoting() {
         return getOptional("kylin.query.calcite.extras-props.quoting", "DOUBLE_QUOTE");
     }

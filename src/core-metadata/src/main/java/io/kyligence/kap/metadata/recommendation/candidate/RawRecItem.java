@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.recommendation.candidate;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.kylin.common.util.JsonUtil;
 
 import com.google.common.base.Preconditions;
@@ -88,27 +89,33 @@ public class RawRecItem implements IKeep {
         this.type = type;
     }
 
+    @JsonIgnore
     public boolean isOutOfDate(int semanticVersion) {
         return getSemanticVersion() < semanticVersion;
     }
 
+    @JsonIgnore
     public boolean isAgg() {
         Preconditions.checkState(this.isLayoutRec());
         return ((LayoutRecItemV2) getRecEntity()).isAgg();
     }
 
+    @JsonIgnore
     public boolean isLayoutRec() {
         return RawRecType.ADDITIONAL_LAYOUT == getType() || RawRecType.REMOVAL_LAYOUT == getType();
     }
 
+    @JsonIgnore
     public boolean isAddLayoutRec() {
         return getType() == RawRecType.ADDITIONAL_LAYOUT;
     }
 
+    @JsonIgnore
     public boolean isRemoveLayoutRec() {
         return getType() == RawRecType.REMOVAL_LAYOUT;
     }
 
+    @JsonIgnore
     public boolean isAdditionalRecItemSavable() {
         Preconditions.checkState(isAddLayoutRec());
         if (recSource.equalsIgnoreCase(RawRecItem.IMPORTED)) {
@@ -230,6 +237,7 @@ public class RawRecItem implements IKeep {
         }
     }
 
+    @JsonIgnore
     public IndexRecType getLayoutRecType() {
         Preconditions.checkArgument(this.isLayoutRec());
         if (isAgg() && isAddLayoutRec()) {

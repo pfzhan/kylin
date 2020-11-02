@@ -1178,8 +1178,10 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
         checkCCExprHealth();
-        selfCCConflictCheck();
-        crossCCConflictCheck(otherModels);
+        if (config.validateComputedColumn()) {
+            selfCCConflictCheck();
+            crossCCConflictCheck(otherModels);
+        }
     }
 
     private void checkCCExprHealth() {

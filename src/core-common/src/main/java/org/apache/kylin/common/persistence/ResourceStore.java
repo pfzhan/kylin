@@ -127,6 +127,8 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String ASYNC_TASK = "/async_task";
     public static final String COMPRESSED_FILE = "/metadata.zip";
 
+    public static final String VERSION_FILE = "/VERSION";
+
     private static final String KYLIN_PROPS = "kylin.properties";
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();

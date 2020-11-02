@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import lombok.Data;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -39,17 +40,22 @@ import io.kyligence.kap.guava20.shaded.common.graph.Graph;
 import io.kyligence.kap.guava20.shaded.common.graph.GraphBuilder;
 import io.kyligence.kap.guava20.shaded.common.graph.MutableGraph;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 
 public class SchemaUtil {
 
-    public static ModelDifference diff(IndexPlan sourcePlan, IndexPlan targetPlan) {
+    public static SchemaDifference diff(IndexPlan sourcePlan, IndexPlan targetPlan) {
         val sourceGraph = dependencyGraph(sourcePlan);
         val targetGraph = dependencyGraph(targetPlan);
-        return new ModelDifference(sourceGraph, targetGraph);
+        return new SchemaDifference(sourceGraph, targetGraph);
+    }
+
+    public static SchemaDifference diff(String project, KylinConfig sourceConfig, KylinConfig targetConfig) {
+        val sourceGraph = dependencyGraph(project, sourceConfig);
+        val targetGraph = dependencyGraph(project, targetConfig);
+        return new SchemaDifference(sourceGraph, targetGraph);
     }
 
     public static Graph<SchemaNode> dependencyGraph(IndexPlan plan) {
@@ -58,18 +64,20 @@ public class SchemaUtil {
         return dependencyGraph(tables, Arrays.asList(plan));
     }
 
+    public static Graph<SchemaNode> dependencyGraph(String project, KylinConfig config) {
+        val tableManager = NTableMetadataManager.getInstance(config, project);
+        val planManager = NIndexPlanManager.getInstance(config, project);
+        return dependencyGraph(tableManager.listAllTables(), planManager.listAllIndexPlans());
+    }
+
     public static Graph<SchemaNode> dependencyGraph(String project) {
-        val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val planManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        return dependencyGraph(tableManager.listAllTables(), dataflowManager.listUnderliningDataModels().stream()
-                .map(model -> planManager.getIndexPlan(model.getId())).collect(Collectors.toList()));
+        return dependencyGraph(project, KylinConfig.getInstanceFromEnv());
     }
 
     static Graph<SchemaNode> dependencyGraph(List<TableDesc> tables, List<IndexPlan> plans) {
         MutableGraph<SchemaNode> graph = GraphBuilder.directed().allowsSelfLoops(false).build();
         for (TableDesc tableDesc : tables) {
-            Stream.of(tableDesc.getColumns()).forEach(col -> graph.addNode(SchemaNode.ofTableColumn(col)));
+            Stream.of(tableDesc.getColumns()).forEach(col -> graph.putEdge(SchemaNode.ofTableColumn(col), SchemaNode.ofTable(tableDesc)));
         }
 
         for (IndexPlan plan : plans) {
@@ -78,21 +86,22 @@ public class SchemaUtil {
         return graph;
     }
 
-    public static class ModelDifference {
+    @Data
+    public static class SchemaDifference {
 
         private final Graph<SchemaNode> sourceGraph;
 
         private final Graph<SchemaNode> targetGraph;
 
-        private final MapDifference<SchemaNode, SchemaNode> nodeDiff;
+        private final MapDifference<SchemaNode.SchemaNodeIdentifier, SchemaNode> nodeDiff;
 
-        public ModelDifference(Graph<SchemaNode> sourceGraph, Graph<SchemaNode> targetGraph) {
+        public SchemaDifference(Graph<SchemaNode> sourceGraph, Graph<SchemaNode> targetGraph) {
             this.sourceGraph = sourceGraph;
             this.targetGraph = targetGraph;
 
             this.nodeDiff = Maps.difference(
-                    sourceGraph.nodes().stream().collect(Collectors.toMap(Function.identity(), Function.identity())),
-                    targetGraph.nodes().stream().collect(Collectors.toMap(Function.identity(), Function.identity())));
+                    sourceGraph.nodes().stream().collect(Collectors.toMap(SchemaNode::getIdentifier, Function.identity())),
+                    targetGraph.nodes().stream().collect(Collectors.toMap(SchemaNode::getIdentifier, Function.identity())));
 
         }
 

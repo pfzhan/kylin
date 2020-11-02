@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -57,9 +56,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
+import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.request.ModelPreviewRequest;
-import io.kyligence.kap.rest.response.ModelMetadataCheckResponse;
-import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.service.MetaStoreService;
 
 public class NMetaStoreControllerTest extends NLocalFileMetadataTestCase {
@@ -110,73 +109,61 @@ public class NMetaStoreControllerTest extends NLocalFileMetadataTestCase {
 
         final ModelPreviewRequest request = mockModelPreviewRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/metastore/backup/models")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
-                .param("project", "default")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE).content(JsonUtil.writeValueAsString(request))
+                .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nModelController).exportModelMetadata(Mockito.anyString(), Mockito.any(ModelPreviewRequest.class),
-                Mockito.any(HttpServletResponse.class));
+        Mockito.verify(nModelController).exportModelMetadata(Mockito.anyString(),
+                Mockito.any(ModelPreviewRequest.class), Mockito.any(HttpServletResponse.class));
     }
 
     @Test
     public void testUploadAndCheckModelMetadata() throws Exception {
         File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip",
-                "text/plain", new FileInputStream(file));
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip", "text/plain",
+                new FileInputStream(file));
 
-        ModelMetadataCheckResponse modelMetadataCheckResponse = new ModelMetadataCheckResponse();
-        Mockito.when(metaStoreService.checkModelMetadata("default", multipartFile)).thenReturn(modelMetadataCheckResponse);
+        SchemaChangeCheckResult schemaChangeCheckResult = new SchemaChangeCheckResult();
+        Mockito.when(metaStoreService.checkModelMetadata("default", multipartFile, null))
+                .thenReturn(schemaChangeCheckResult);
 
         final ModelPreviewRequest request = mockModelPreviewRequest();
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/validation/models")
-                .file(multipartFile)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
-                .param("project", "default")
+        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/validation/models").file(multipartFile)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE).param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nModelController).uploadAndCheckModelMetadata("default", multipartFile);
+        Mockito.verify(nModelController).uploadAndCheckModelMetadata("default", multipartFile, null);
     }
 
     @Test
     public void testImportModelMetadata() throws Throwable {
         File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip",
-                "text/plain", new FileInputStream(file));
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "ut_model_matadata.zip", "text/plain",
+                new FileInputStream(file));
 
-        final ModelPreviewRequest request = mockModelPreviewRequest();
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/models")
-                .file(multipartFile)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .content(JsonUtil.writeValueAsString(request))
-                .param("project", "default")
-                .param("ids", request.getIds().get(0))
-                .param("signature", "FDD6D2B53BDFAEA6F17509B4DAEC4071")
+        final ModelImportRequest request = new ModelImportRequest();
+        List<ModelImportRequest.ModelImport> models = new ArrayList<>();
+        request.setModels(models);
+        models.add(new ModelImportRequest.ModelImport("ssb_model", null, ModelImportRequest.ImportType.OVERWRITE));
+
+        MockMultipartFile requestFile = new MockMultipartFile("request", "request", "application/json",
+                JsonUtil.writeValueAsString(request).getBytes());
+
+        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/metastore/models").file(multipartFile).file(requestFile)
+                .contentType(MediaType.MULTIPART_FORM_DATA_VALUE).param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nModelController).importModelMetadata("default", "FDD6D2B53BDFAEA6F17509B4DAEC4071", multipartFile, request);
+        Mockito.verify(nModelController).importModelMetadata("default", multipartFile, request);
     }
 
     private ModelPreviewRequest mockModelPreviewRequest() {
         ModelPreviewRequest modelPreviewRequest = new ModelPreviewRequest();
         List<String> modelIdList = Lists.newArrayList("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         modelPreviewRequest.setIds(modelIdList);
+        modelPreviewRequest.setExportRecommendations(true);
+        modelPreviewRequest.setExportOverProps(true);
         return modelPreviewRequest;
-    }
-
-    private List<ModelPreviewResponse> mockSimplifiedModels() {
-        List<ModelPreviewResponse> modelResponseList = new ArrayList<>();
-        ModelPreviewResponse response1 = new ModelPreviewResponse();
-        response1.setUuid(UUID.randomUUID().toString());
-        modelResponseList.add(response1);
-
-        ModelPreviewResponse response2 = new ModelPreviewResponse();
-        response2.setUuid(UUID.randomUUID().toString());
-        modelResponseList.add(response2);
-        return modelResponseList;
     }
 }

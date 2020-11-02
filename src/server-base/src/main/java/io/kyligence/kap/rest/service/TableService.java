@@ -1468,7 +1468,7 @@ public class TableService extends BasicService {
                 .filter(schemaNode -> addColumns.contains(schemaNode.getDetail().toUpperCase()))
                 .collect(Collectors.toList());
         for (SchemaNode schemaNode : schemaNodes) {
-            NDataModel model = modelService.getModelById(schemaNode.getSubject(), newTableDesc.getProject());
+            NDataModel model = modelService.getModelByAlias(schemaNode.getSubject(), newTableDesc.getProject());
             if (newTableDesc.getIdentity().equals(model.getRootFactTableRef().getTableDesc().getIdentity())) {
                 duplicatedColumns.put(newTableDesc.getIdentity(), schemaNode.getDetail());
             }
@@ -1548,27 +1548,30 @@ public class TableService extends BasicService {
             context.setEffectedJobs(getEffectedJobIds(newTableDesc));
         }
 
-        Map<String, Set<Pair<Integer, NDataModel.Measure>>> suitableColumnTypeChangedMeasuresMap = getSuitableColumnTypeChangedMeasures(
-                dependencyGraph, project, newTableDesc.getIdentity(), diff.entriesDiffering());
+        Map<String, Set<Pair<NDataModel.Measure, NDataModel.Measure>>> suitableColumnTypeChangedMeasuresMap = getSuitableColumnTypeChangedMeasures(
+                dependencyGraph, project, originTableDesc, diff.entriesDiffering());
 
         BiFunction<Set<String>, Boolean, Map<String, AffectedModelContext>> toAffectedModels = (cols, isDelete) -> {
             Set<SchemaNode> affectedNodes = Sets.newHashSet();
+            val columnMap = Arrays.stream(originTableDesc.getColumns()).collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
             cols.forEach(colName -> {
-                affectedNodes.addAll(Graphs.reachableNodes(dependencyGraph,
-                        SchemaNodeType.TABLE_COLUMN.withKey(newTableDesc.getIdentity() + "." + colName)));
+                if (columnMap.get(colName) != null) {
+                    affectedNodes.addAll(Graphs.reachableNodes(dependencyGraph,
+                            SchemaNode.ofTableColumn(columnMap.get(colName))));
+                }
             });
             val nodesMap = affectedNodes.stream().filter(SchemaNode::isModelNode)
                     .collect(Collectors.groupingBy(SchemaNode::getSubject, Collectors.toSet()));
             Map<String, AffectedModelContext> modelContexts = Maps.newHashMap();
             nodesMap.forEach((key, nodes) -> {
-                val indexPlan = getIndexPlanManager(project).getIndexPlan(key);
-                Set<Pair<Integer, NDataModel.Measure>> updateMeasures = Sets.newHashSet();
+                val indexPlan = getIndexPlanManager(project).getIndexPlanByModelAlias(key);
+                Set<Pair<NDataModel.Measure, NDataModel.Measure>> updateMeasures = Sets.newHashSet();
                 if (!isDelete) {
                     updateMeasures = suitableColumnTypeChangedMeasuresMap.getOrDefault(key, updateMeasures);
                 }
 
                 val modelContext = new AffectedModelContext(project, indexPlan, nodes, updateMeasures, isDelete);
-                modelContexts.put(key, modelContext);
+                modelContexts.put(indexPlan.getUuid(), modelContext);
             });
             return modelContexts;
         };
@@ -1583,25 +1586,26 @@ public class TableService extends BasicService {
      * and remove old measure add new measure with suitable function return type
      * @param dependencyGraph
      * @param project
-     * @param tableIdent
+     * @param tableDesc
      * @param changeTypeDifference
      * @return
      */
-    private Map<String, Set<Pair<Integer, NDataModel.Measure>>> getSuitableColumnTypeChangedMeasures(
-            Graph<SchemaNode> dependencyGraph, String project, String tableIdent,
+    private Map<String, Set<Pair<NDataModel.Measure, NDataModel.Measure>>> getSuitableColumnTypeChangedMeasures(
+            Graph<SchemaNode> dependencyGraph, String project, TableDesc tableDesc,
             Map<String, MapDifference.ValueDifference<Pair<String, String>>> changeTypeDifference) {
-        Map<String, Set<Pair<Integer, NDataModel.Measure>>> result = Maps.newHashMap();
+        Map<String, Set<Pair<NDataModel.Measure, NDataModel.Measure>>> result = Maps.newHashMap();
 
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
+        val columnMap = Arrays.stream(tableDesc.getColumns()).collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
         for (MapDifference.ValueDifference<Pair<String, String>> value : changeTypeDifference.values()) {
             Graphs.reachableNodes(dependencyGraph,
-                    SchemaNodeType.TABLE_COLUMN.withKey(tableIdent + "." + value.leftValue().getFirst())).stream()
+                    SchemaNode.ofTableColumn(columnMap.get(value.leftValue().getFirst()))).stream()
                     .filter(node -> node.getType() == SchemaNodeType.MODEL_MEASURE).forEach(node -> {
-                        String modelId = node.getSubject();
+                        String modelAlias = node.getSubject();
                         String measureId = node.getDetail();
 
-                        NDataModel modelDesc = dataModelManager.getDataModelDesc(modelId);
+                        NDataModel modelDesc = dataModelManager.getDataModelDescByAlias(modelAlias);
                         if (modelDesc != null) {
                             NDataModel.Measure measure = modelDesc.getEffectiveMeasures()
                                     .get(Integer.parseInt(measureId));
@@ -1628,12 +1632,12 @@ public class TableService extends BasicService {
                                     newMeasure.setFunction(newFunction);
                                     newMeasure.setName(measure.getName());
 
-                                    Set<Pair<Integer, NDataModel.Measure>> measureList = result.getOrDefault(modelId,
+                                    Set<Pair<NDataModel.Measure, NDataModel.Measure>> measureList = result.getOrDefault(modelAlias,
                                             new HashSet<>());
 
-                                    measureList.add(Pair.newPair(originalMeasureId, newMeasure));
+                                    measureList.add(Pair.newPair(measure, newMeasure));
 
-                                    result.put(modelId, measureList);
+                                    result.put(modelAlias, measureList);
                                 }
                             }
                         }

@@ -191,4 +191,16 @@ public class RawRecManager {
     public void updateAllCost(String project) {
         jdbcRawRecStore.updateAllCost(project);
     }
+
+    public int getMaxId() {
+        return jdbcRawRecStore.getMaxId();
+    }
+
+    public RawRecItem getRawRecItemByUniqueFlag(String project, String modelId, String uniqueFlag, Integer semanticVersion) {
+        return jdbcRawRecStore.queryByUniqueFlag(project, modelId, uniqueFlag, semanticVersion);
+    }
+
+    public void batchUpdate(List<RawRecItem> recItems) {
+        jdbcRawRecStore.batchUpdate(recItems);
+    }
 }

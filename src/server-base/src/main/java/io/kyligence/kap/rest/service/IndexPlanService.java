@@ -218,10 +218,14 @@ public class IndexPlanService extends BasicService {
     @Transaction(project = 0)
     public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        val indexPlanManager = getIndexPlanManager(project);
-        val jobManager = getJobManager(project);
-        val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
         val newLayout = parseToLayout(project, request);
+        return createTableIndex(project, request.getModelId(), newLayout, request.isLoadData());
+    }
+
+    public BuildIndexResponse createTableIndex(String project, String modelId, LayoutEntity newLayout, boolean loadData) {
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        val jobManager = getJobManager(project);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
                 throw new IllegalStateException(MsgPicker.getMsg().getDUPLICATEP_LAYOUT());
@@ -236,7 +240,7 @@ public class IndexPlanService extends BasicService {
                 oldLayout.setOwner(getUsername());
                 oldLayout.setUpdateTime(System.currentTimeMillis());
             });
-            updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
+            updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
         } else {
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -256,9 +260,9 @@ public class IndexPlanService extends BasicService {
                     realIndex.getLayouts().add(newLayout);
                 }
             });
-            updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
-            if (request.isLoadData()) {
-                val df = getDataflowManager(project).getDataflow(request.getModelId());
+            updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
+            if (loadData) {
+                val df = getDataflowManager(project).getDataflow(modelId);
                 val readySegs = df.getSegments();
                 if (readySegs.isEmpty()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_SEGMENT);
@@ -268,7 +272,6 @@ public class IndexPlanService extends BasicService {
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
             }
         }
-
         return new BuildIndexResponse();
     }
 

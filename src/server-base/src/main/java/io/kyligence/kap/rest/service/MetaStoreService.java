@@ -24,49 +24,53 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ConflictItem;
-import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ModelMetadataConflict;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_EXPRESSION;
-import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_COMPUTED_COLUMN_NAME;
+import static io.kyligence.kap.common.license.Constants.KE_VERSION;
+import static io.kyligence.kap.metadata.model.schema.ImportModelContext.MODEL_REC_PATH;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_EXPORT_ERROR;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_IMPORT_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
-import static org.apache.kylin.common.persistence.ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
+import static org.apache.kylin.common.persistence.ResourceStore.VERSION_FILE;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
-import io.kyligence.kap.tool.routine.RoutineTool;
+import javax.xml.bind.DatatypeConverter;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.SegmentConfig;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -76,34 +80,44 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.MetadataChecker;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.BadModelException;
-import io.kyligence.kap.metadata.model.ModelMetadataConflictType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.exception.LookupTableException;
-import io.kyligence.kap.rest.response.ModelMetadataCheckResponse;
+import io.kyligence.kap.metadata.model.schema.ImportModelContext;
+import io.kyligence.kap.metadata.model.schema.ModelImportChecker;
+import io.kyligence.kap.metadata.model.schema.SchemaChangeCheckResult;
+import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
+import io.kyligence.kap.metadata.model.schema.SchemaUtil;
+import io.kyligence.kap.metadata.query.util.QueryHisStoreUtil;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.response.SimplifiedTablePreviewResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.tool.routine.RoutineTool;
+import io.kyligence.kap.tool.util.HashFunction;
 import lombok.val;
+import lombok.var;
 
 @Component("metaStoreService")
 public class MetaStoreService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(MetaStoreService.class);
     private static final String META_ROOT_PATH = "/";
+
+    private static final Pattern MD5_PATTERN = Pattern.compile(".*([a-fA-F\\d]{32})\\.zip");
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -111,37 +125,75 @@ public class MetaStoreService extends BasicService {
     @Autowired
     public ModelService modelService;
 
+    @Autowired
+    public IndexPlanService indexPlanService;
+
     public List<ModelPreviewResponse> getPreviewModels(String project) {
         aclEvaluate.checkProjectWritePermission(project);
-        return modelService.getDataflowManager(project).listUnderliningDataModels(false).stream()
-                .map(this::getSimplifiedModelResponse).collect(Collectors.toList());
+        return modelService.getDataflowManager(project).listAllDataflows(true).stream().map(df -> {
+            if (df.checkBrokenWithRelatedInfo()) {
+                NDataModel dataModel = getDataModelManager(project).getDataModelDescWithoutInit(df.getUuid());
+                dataModel.setBroken(true);
+                return dataModel;
+            } else {
+                return df.getModel();
+            }
+        }).map(this::getSimplifiedModelResponse).collect(Collectors.toList());
     }
 
     private ModelPreviewResponse getSimplifiedModelResponse(NDataModel modelDesc) {
         ModelPreviewResponse modelPreviewResponse = new ModelPreviewResponse();
         modelPreviewResponse.setName(modelDesc.getAlias());
         modelPreviewResponse.setUuid(modelDesc.getUuid());
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                modelDesc.getProject());
+        if (modelDesc.isBroken()) {
+            modelPreviewResponse.setStatus(ModelStatusToDisplayEnum.BROKEN);
+        } else {
+            long inconsistentSegmentCount = dfManager.getDataflow(modelDesc.getId())
+                    .getSegments(SegmentStatusEnum.WARNING).size();
+            ModelStatusToDisplayEnum status = modelService.convertModelStatusToDisplay(modelDesc,
+                    modelDesc.getProject(), inconsistentSegmentCount);
+            modelPreviewResponse.setStatus(status);
 
-        List<SimplifiedTablePreviewResponse> tables = new ArrayList<>();
-        SimplifiedTablePreviewResponse factTable = new SimplifiedTablePreviewResponse(modelDesc.getRootFactTableName(),
-                NDataModel.TableKind.FACT);
-        tables.add(factTable);
-        List<JoinTableDesc> joinTableDescs = modelDesc.getJoinTables();
-        for (JoinTableDesc joinTableDesc : joinTableDescs) {
-            SimplifiedTablePreviewResponse lookupTable = new SimplifiedTablePreviewResponse(joinTableDesc.getTable(),
-                    joinTableDesc.getKind());
-            tables.add(lookupTable);
+            RawRecManager rawRecManager = RawRecManager.getInstance(modelDesc.getProject());
+            val rawRecItems = rawRecManager.displayTopNRecItems(modelDesc.getProject(), modelDesc.getUuid(), 1);
+            if (!rawRecItems.isEmpty()) {
+                modelPreviewResponse.setHasRecommendation(true);
+            }
+
+            NIndexPlanManager indexPlanManager = getIndexPlanManager(modelDesc.getProject());
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
+            if (!indexPlan.getOverrideProps().isEmpty() || (modelDesc.getSegmentConfig() != null
+                    && modelDesc.getSegmentConfig().getAutoMergeEnabled() != null
+                    && modelDesc.getSegmentConfig().getAutoMergeEnabled())) {
+                modelPreviewResponse.setHasOverrideProps(true);
+            }
+
+            List<SimplifiedTablePreviewResponse> tables = new ArrayList<>();
+            SimplifiedTablePreviewResponse factTable = new SimplifiedTablePreviewResponse(
+                    modelDesc.getRootFactTableName(), NDataModel.TableKind.FACT);
+            tables.add(factTable);
+            List<JoinTableDesc> joinTableDescs = modelDesc.getJoinTables();
+            for (JoinTableDesc joinTableDesc : joinTableDescs) {
+                SimplifiedTablePreviewResponse lookupTable = new SimplifiedTablePreviewResponse(
+                        joinTableDesc.getTable(), joinTableDesc.getKind());
+                tables.add(lookupTable);
+            }
+            modelPreviewResponse.setTables(tables);
         }
-        modelPreviewResponse.setTables(tables);
-
         return modelPreviewResponse;
     }
 
-    public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList)
-            throws IOException, RuntimeException {
+    public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList,
+            boolean exportRecommendations, boolean exportOverProps) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         NDataModelManager modelManager = modelService.getDataModelManager(project);
         NIndexPlanManager indexPlanManager = modelService.getIndexPlanManager(project);
+        JdbcRawRecStore jdbcRawRecStore = null;
+        if (exportRecommendations) {
+            jdbcRawRecStore = new JdbcRawRecStore(KylinConfig.getInstanceFromEnv());
+        }
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
@@ -151,52 +203,66 @@ public class MetaStoreService extends BasicService {
             ResourceStore.setRS(newConfig, newResourceStore);
 
             for (String modelId : modelList) {
-                NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
-                if (Objects.isNull(modelDesc)) {
-                    logger.warn("The model not exist. model id: [{}]", modelId);
-                    continue;
+                NDataModel dataModelDesc = modelManager.getDataModelDesc(modelId);
+                if (Objects.isNull(dataModelDesc)) {
+                    throw new KylinException(MODEL_NOT_EXIST,
+                            String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
                 }
-                if (modelDesc.isBroken()) {
-                    logger.warn("The model is broken, can not export. model id: [{}]", modelId);
-                    continue;
+                if (dataModelDesc.isBroken()) {
+                    throw new KylinException(MODEL_EXPORT_ERROR,
+                            String.format(MsgPicker.getMsg().getEXPORT_BROKEN_MODEL(), modelId));
                 }
-                oldResourceStore.copy(modelDesc.getResourcePath(), newResourceStore);
 
-                // add IndexPlan with deleting locked status layouts
-                IndexPlan copyIndexPlan = getIndexPlanWithoutLockedLayout(indexPlanManager, modelId);
+                NDataModel modelDesc = modelManager.copyForWrite(dataModelDesc);
+
+                IndexPlan copyIndexPlan = indexPlanManager.copy(indexPlanManager.getIndexPlan(modelId));
+
+                if (!exportOverProps) {
+                    copyIndexPlan.setOverrideProps(Maps.newLinkedHashMap());
+                    modelDesc.setSegmentConfig(new SegmentConfig());
+                }
+
+                newResourceStore.putResourceWithoutCheck(modelDesc.getResourcePath(),
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(modelDesc)), modelDesc.getLastModified(),
+                        modelDesc.getMvcc());
+
                 newResourceStore.putResourceWithoutCheck(copyIndexPlan.getResourcePath(),
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(copyIndexPlan)),
                         copyIndexPlan.getLastModified(), copyIndexPlan.getMvcc());
 
                 // Broken model can't use getAllTables method, will be intercepted in BrokenEntityProxy
-                Set<String> tables = modelDesc.getAllTables().stream()
-                        .map(TableRef::getTableDesc)
+                Set<String> tables = modelDesc.getAllTables().stream().map(TableRef::getTableDesc)
                         .map(TableDesc::getResourcePath)
                         .filter(resPath -> !newResourceStore.listResourcesRecursively(META_ROOT_PATH).contains(resPath))
                         .collect(Collectors.toSet());
                 tables.forEach(resourcePath -> oldResourceStore.copy(resourcePath, newResourceStore));
+
+                if (exportRecommendations) {
+                    List<RawRecItem> rawRecItems = jdbcRawRecStore.listAll(modelDesc.getProject(), modelDesc.getUuid(),
+                            modelDesc.getSemanticVersion(), Integer.MAX_VALUE);
+
+                    newResourceStore.putResourceWithoutCheck(String.format(MODEL_REC_PATH, project, modelId),
+                            ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)),
+                            System.currentTimeMillis(), -1);
+                }
             }
             if (CollectionUtils.isEmpty(newResourceStore.listResourcesRecursively(META_ROOT_PATH))) {
-                throw new KylinException(PERMISSION_DENIED, "Can not export broken model.");
+                throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getEXPORT_AT_LEAST_ONE_MODEL());
             }
+
+            // add version file
+            String version = System.getProperty(KE_VERSION) == null ? "unknown" : System.getProperty(KE_VERSION);
+            newResourceStore.putResourceWithoutCheck(VERSION_FILE, ByteStreams.asByteSource(version.getBytes()),
+                    System.currentTimeMillis(), -1);
+
             oldResourceStore.copy(ResourceStore.METASTORE_UUID_TAG, newResourceStore);
             writeMetadataToZipOutputStream(zipOutputStream, newResourceStore);
         }
         return byteArrayOutputStream;
     }
 
-    private IndexPlan getIndexPlanWithoutLockedLayout(NIndexPlanManager indexPlanManager, String modelId) throws JsonProcessingException {
-        IndexPlan copyIndexPlan = indexPlanManager.copy(indexPlanManager.getIndexPlan(modelId));
-        Set<Long> toBeDeletedLayouts = copyIndexPlan.getToBeDeletedIndexes()
-                .stream()
-                .flatMap(indexEntity -> indexEntity.getLayouts().stream())
-                .map(LayoutEntity::getId)
-                .collect(Collectors.toSet());
-        copyIndexPlan.removeLayouts(toBeDeletedLayouts, true, true);
-        return copyIndexPlan;
-    }
-
-    private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore) throws IOException {
+    private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore)
+            throws IOException {
         for (String resPath : resourceStore.listResourcesRecursively(META_ROOT_PATH)) {
             zipOutputStream.putNextEntry(new ZipEntry(resPath));
             zipOutputStream.write(resourceStore.getResource(resPath).getByteSource().read());
@@ -211,7 +277,8 @@ public class MetaStoreService extends BasicService {
                 val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
                 long t = zipEntry.getTime();
                 String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
-                if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.endsWith(".json")) {
+                if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.equals(VERSION_FILE)
+                        && !resPath.endsWith(".json")) {
                     continue;
                 }
                 rawResourceMap.put(resPath, new RawResource(resPath, bs, t, 0));
@@ -220,190 +287,70 @@ public class MetaStoreService extends BasicService {
         }
     }
 
-    public ModelMetadataCheckResponse checkModelMetadata(String targetProject, MultipartFile uploadFile)
-            throws Exception {
-        return checkModelMetadata(targetProject, uploadFile, Lists.newArrayList());
+    private ImportModelContext getImportModelContext(String targetProject, Map<String, RawResource> rawResourceMap,
+            ModelImportRequest request) {
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+
+        if (request != null) {
+            val newModels = request.getModels().stream()
+                    .filter(modelImport -> modelImport.getImportType() == ModelImportRequest.ImportType.NEW)
+                    .collect(Collectors.toMap(ModelImportRequest.ModelImport::getOriginalName,
+                            ModelImportRequest.ModelImport::getTargetName));
+
+            val unImportModels = request.getModels().stream()
+                    .filter(modelImport -> modelImport.getImportType() == ModelImportRequest.ImportType.UN_IMPORT)
+                    .map(ModelImportRequest.ModelImport::getOriginalName).collect(Collectors.toList());
+
+            return new ImportModelContext(targetProject, srcProject, rawResourceMap, newModels, unImportModels);
+        } else {
+            return new ImportModelContext(targetProject, srcProject, rawResourceMap);
+        }
     }
 
-    public ModelMetadataCheckResponse checkModelMetadata(String targetProject, MultipartFile uploadFile, List<String> modelNames)
-            throws Exception {
-        aclEvaluate.checkProjectWritePermission(targetProject);
-        // see KE-15185, only for public api
-        if (CollectionUtils.isNotEmpty(modelNames)) {
-            checkImportModelNames(uploadFile, modelNames);
+    public SchemaChangeCheckResult checkModelMetadata(String targetProject, MultipartFile uploadFile,
+            ModelImportRequest request) throws IOException {
+        String originalFilename = uploadFile.getOriginalFilename();
+        Matcher matcher = MD5_PATTERN.matcher(originalFilename);
+        boolean valid = false;
+        if (matcher.matches()) {
+            String signature = matcher.group(1);
+            try (InputStream inputStream = uploadFile.getInputStream()) {
+                byte[] md5 = HashFunction.MD5.checksum(inputStream);
+                valid = StringUtils.equalsIgnoreCase(signature, DatatypeConverter.printHexBinary(md5));
+            }
+        }
+
+        if (!valid) {
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getILLEGAL_MODEL_METADATA_FILE());
         }
 
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
-        KylinConfig modelConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
-        ResourceStore modelResourceStore = new InMemResourceStore(modelConfig);
-        ResourceStore.setRS(modelConfig, modelResourceStore);
-        rawResourceMap.forEach((resPath, raw) -> modelResourceStore.putResourceWithoutCheck(resPath,
-                raw.getByteSource(), raw.getTimestamp(), raw.getMvcc()));
 
-        Set<String> resourcePathList = rawResourceMap.keySet();
-        checkModelMetadataFile(MetadataStore.createMetadataStore(modelConfig), resourcePathList);
-        String srcProjectName = getModelMetadataProjectName(resourcePathList);
+        ImportModelContext context = getImportModelContext(targetProject, rawResourceMap, request);
 
-        return getModelMetadataCheckResponse(NDataModelManager.getInstance(modelConfig, srcProjectName), targetProject, modelNames);
+        return checkModelMetadata(targetProject, context, uploadFile);
     }
 
-    private void checkModelMetadataFile(MetadataStore srcModelMetaStore, Set<String> rawResourceList) {
-        MetadataChecker metadataChecker = new MetadataChecker(srcModelMetaStore);
+    public SchemaChangeCheckResult checkModelMetadata(String targetProject, ImportModelContext context,
+            MultipartFile uploadFile) throws IOException {
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
+
+        checkModelMetadataFile(ResourceStore.getKylinMetaStore(context.getTargetKylinConfig()).getMetadataStore(),
+                rawResourceMap.keySet());
+
+        SchemaUtil.SchemaDifference difference = SchemaUtil.diff(targetProject, KylinConfig.getInstanceFromEnv(),
+                context.getTargetKylinConfig());
+
+        return ModelImportChecker.check(difference, context);
+    }
+
+    private void checkModelMetadataFile(MetadataStore metadataStore, Set<String> rawResourceList) {
+        MetadataChecker metadataChecker = new MetadataChecker(metadataStore);
         MetadataChecker.VerifyResult verifyResult = metadataChecker
                 .verifyModelMetadata(Lists.newArrayList(rawResourceList));
         if (!verifyResult.isModelMetadataQualified()) {
             throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
         }
-    }
-
-    private ModelMetadataCheckResponse getModelMetadataCheckResponse(NDataModelManager srcModelManager,
-            String targetProject, List<String> modelNames) {
-        ModelMetadataCheckResponse modelMetadataCheckResponse = new ModelMetadataCheckResponse();
-        List<ModelMetadataConflict> conflictList = new ArrayList<>();
-        List<ModelPreviewResponse> modelPreviewResponseList = new ArrayList<>();
-        List<NDataModel> filteredModels = srcModelManager.listAllModels();
-
-        // see KE-15185, only for public api
-        if (CollectionUtils.isNotEmpty(modelNames)) {
-            filteredModels = srcModelManager.listAllModels()
-                    .stream()
-                    .filter(model -> modelNames.contains(model.getAlias()))
-                    .collect(Collectors.toList());
-        }
-
-        for (NDataModel srcModelDesc : filteredModels) {
-            ModelPreviewResponse modelPreviewResponse = getSimplifiedModelResponse(srcModelDesc);
-            modelPreviewResponseList.add(modelPreviewResponse);
-
-            // check DUPLICATE_MODEL_NAME
-            ModelMetadataConflict modelNameConflict = getDuplicateModelNameConflict(srcModelDesc, targetProject);
-            if (Objects.nonNull(modelNameConflict)) {
-                conflictList.add(modelNameConflict);
-            }
-
-            // check TABLE_NOT_EXISTED
-            List<ModelMetadataConflict> tableNotExistedConflictList = getTableNotExistedConflicts(srcModelDesc,
-                    targetProject, modelPreviewResponse);
-            if (CollectionUtils.isNotEmpty(tableNotExistedConflictList)) {
-                conflictList.addAll(tableNotExistedConflictList);
-                continue;
-            }
-
-            // check COLUMN_NOT_EXISTED  and check INVALID_COLUMN_DATATYPE
-            List<ModelMetadataConflict> columnConflictList = getColumnNotExistedConflict(srcModelDesc, targetProject,
-                    modelPreviewResponse);
-            if (CollectionUtils.isNotEmpty(columnConflictList)) {
-                conflictList.addAll(columnConflictList);
-            }
-        }
-        modelMetadataCheckResponse.setModelMetadataConflictList(conflictList);
-        modelMetadataCheckResponse.setModelPreviewResponsesList(modelPreviewResponseList);
-        return modelMetadataCheckResponse;
-    }
-
-    private List<ModelMetadataConflict> getColumnNotExistedConflict(NDataModel srcModelDesc, String targetProject,
-            ModelPreviewResponse srcModelPreviewResponse) {
-        List<String> extraTables = getTablesNotExistTargetProject(targetProject, srcModelPreviewResponse);
-        List<RootPersistentEntity> dependencies = srcModelDesc.getDependencies();
-        List<ModelMetadataConflict> columnNotExistedConflictList = new ArrayList<>();
-        // traverse all dependency tables
-        for (RootPersistentEntity entity : dependencies) {
-            if (!(entity instanceof TableDesc)) {
-                continue;
-            }
-            // no need to check conflict tables
-            TableDesc srcTableDesc = (TableDesc) entity;
-            if (extraTables.contains(srcTableDesc.getIdentity())) {
-                continue;
-            }
-
-            NTableMetadataManager tableMetadataManager = modelService.getTableManager(targetProject);
-            TableDesc targetTableDesc = tableMetadataManager.getTableDesc(srcTableDesc.getIdentity());
-
-            // check COLUMN_NOT_EXISTED
-            List<ModelMetadataConflict> extraColumnsInOneTable = getColumnsNotExistConflicts(srcModelDesc, srcTableDesc,
-                    targetTableDesc);
-            if (CollectionUtils.isNotEmpty(extraColumnsInOneTable)) {
-                columnNotExistedConflictList.addAll(extraColumnsInOneTable);
-                continue;
-            }
-
-            // check INVALID_COLUMN_DATATYPE
-            List<ModelMetadataConflict> invalidColumnsTypeInOneTable = getInvalidColumnDataTypeConflicts(srcModelDesc,
-                    srcTableDesc, targetTableDesc);
-            if (CollectionUtils.isNotEmpty(invalidColumnsTypeInOneTable)) {
-                columnNotExistedConflictList.addAll(invalidColumnsTypeInOneTable);
-            }
-        }
-
-        return columnNotExistedConflictList;
-    }
-
-    private List<ModelMetadataConflict> getColumnsNotExistConflicts(NDataModel srcModelDesc, TableDesc srcTableDesc,
-            TableDesc targetTableDesc) {
-        val srcColumnNames = Stream.of(srcTableDesc.getColumns()).map(ColumnDesc::getName).collect(Collectors.toSet());
-        val targetColumnNames = Stream.of(targetTableDesc.getColumns()).map(ColumnDesc::getName)
-                .collect(Collectors.toSet());
-        String element = srcModelDesc.getAlias() + "-" + srcTableDesc.getIdentity();
-        return Sets.difference(srcColumnNames, targetColumnNames).stream().map(columnNotExist -> {
-            List<ConflictItem> conflictItem = Lists.newArrayList(new ConflictItem(element, columnNotExist));
-            return new ModelMetadataConflict(ModelMetadataConflictType.COLUMN_NOT_EXISTED, conflictItem);
-        }).collect(Collectors.toList());
-    }
-
-    private List<ModelMetadataConflict> getInvalidColumnDataTypeConflicts(NDataModel srcModelDesc,
-            TableDesc srcTableDesc, TableDesc targetTableDesc) {
-        List<ModelMetadataConflict> modelMetadataConflictList = new ArrayList<>();
-        // get conflicts column data type in one table
-        List<ColumnDesc> srcColumnDescList = Lists.newArrayList(srcTableDesc.getColumns());
-        for (ColumnDesc srcColumnDesc : srcColumnDescList) {
-            ColumnDesc targetColumnDesc = targetTableDesc.findColumnByName(srcColumnDesc.getName());
-            // extra column or correct column
-            if (targetColumnDesc == null
-                    || StringUtils.equalsIgnoreCase(targetColumnDesc.getDatatype(), srcColumnDesc.getDatatype())) {
-                continue;
-            }
-            String srcElement = String.format("%s-%s-%s", srcModelDesc.getAlias(), srcTableDesc.getIdentity(),
-                    srcColumnDesc.getName());
-            List<ConflictItem> conflictItems = Lists
-                    .newArrayList(new ConflictItem(srcElement, srcColumnDesc.getDatatype()));
-            ModelMetadataConflict conflict = new ModelMetadataConflict(
-                    ModelMetadataConflictType.INVALID_COLUMN_DATATYPE, conflictItems);
-            modelMetadataConflictList.add(conflict);
-        }
-        return modelMetadataConflictList;
-    }
-
-    private ModelMetadataConflict getDuplicateModelNameConflict(NDataModel srcModelDesc, String targetProject) {
-        if (Objects.isNull(
-                modelService.getDataModelManager(targetProject).getDataModelDescByAlias(srcModelDesc.getAlias()))) {
-            return null;
-        }
-        List<ConflictItem> conflictItems = Lists
-                .newArrayList(new ConflictItem(srcModelDesc.getAlias(), srcModelDesc.getAlias()));
-        return new ModelMetadataConflict(ModelMetadataConflictType.DUPLICATE_MODEL_NAME, conflictItems);
-    }
-
-    private List<ModelMetadataConflict> getTableNotExistedConflicts(NDataModel srcModelDesc, String targetProject,
-            ModelPreviewResponse srcModelPreviewResponse) {
-        List<String> conflictTables = getTablesNotExistTargetProject(targetProject, srcModelPreviewResponse);
-
-        return conflictTables.stream().map(tableNotExist -> {
-            List<ConflictItem> conflictItem = Lists
-                    .newArrayList(new ConflictItem(srcModelDesc.getAlias(), tableNotExist));
-            return new ModelMetadataConflict(ModelMetadataConflictType.TABLE_NOT_EXISTED, conflictItem);
-        }).collect(Collectors.toList());
-    }
-
-    private List<String> getTablesNotExistTargetProject(String targetProject,
-            ModelPreviewResponse srcModelPreviewResponse) {
-        List<String> targetTableNameList = modelService.getTableManager(targetProject).listAllTables().stream()
-                .map(TableDesc::getIdentity).collect(Collectors.toList());
-
-        return srcModelPreviewResponse.getTables().stream()
-                .filter(simplifiedTablePreviewResponse -> !targetTableNameList
-                        .contains(simplifiedTablePreviewResponse.getName().toUpperCase()))
-                .map(SimplifiedTablePreviewResponse::getName).collect(Collectors.toList());
     }
 
     private String getModelMetadataProjectName(Set<String> rawResourceList) {
@@ -416,103 +363,269 @@ public class MetaStoreService extends BasicService {
         return anyPath.split(File.separator)[1];
     }
 
-    @Transaction(project = 0)
-    public void importModelMetadataWithModelNames(String project, MultipartFile metadataFile, List<String> importModelNames)
-            throws IOException {
-        Set<String> modelIds = convertImportModelNamesToModelIds(metadataFile, importModelNames);
-        importModelMetadata(project, metadataFile, Lists.newArrayList(modelIds));
+    /**
+     * 
+     * @param nDataModel
+     * @param modelImport
+     * @param project
+     * @param importIndexPlanManager
+     */
+    private void createNewModel(NDataModel nDataModel, ModelImportRequest.ModelImport modelImport, String project,
+            NIndexPlanManager importIndexPlanManager) {
+        NDataModelManager dataModelManager = getDataModelManager(project);
+
+        nDataModel.setProject(project);
+        nDataModel.setAlias(modelImport.getTargetName());
+        nDataModel.setUuid(UUID.randomUUID().toString());
+        nDataModel.setLastModified(System.currentTimeMillis());
+        nDataModel.setMvcc(-1);
+        dataModelManager.createDataModelDesc(nDataModel, AclPermissionUtil.getCurrentUsername());
+
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        var indexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getTargetName()).copy();
+        indexPlan.setUuid(nDataModel.getUuid());
+        indexPlan = indexPlanManager.copy(indexPlan);
+        indexPlan.setLastModified(System.currentTimeMillis());
+        indexPlan.setMvcc(-1);
+        indexPlanManager.createIndexPlan(indexPlan);
+        dataflowManager.createDataflow(indexPlan, nDataModel.getOwner(), RealizationStatusEnum.OFFLINE);
     }
 
-    private void checkImportModelNames(MultipartFile metadataFile, List<String> importModelNames) throws IOException {
-        if (CollectionUtils.isEmpty(importModelNames)) {
-            return;
+    /**
+     * 
+     * @param project
+     * @param nDataModel
+     * @param modelImport
+     * @param hasModelOverrideProps
+     */
+    private void updateModel(String project, NDataModel nDataModel, ModelImportRequest.ModelImport modelImport,
+            boolean hasModelOverrideProps) {
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataModel originalDataModel = dataModelManager.getDataModelDescByAlias(modelImport.getOriginalName());
+        nDataModel.setProject(project);
+        nDataModel.setUuid(originalDataModel.getUuid());
+        nDataModel.setLastModified(System.currentTimeMillis());
+        nDataModel.setMvcc(originalDataModel.getMvcc());
+        if (!hasModelOverrideProps) {
+            nDataModel.setSegmentConfig(originalDataModel.getSegmentConfig());
         }
-        Map<String, NDataModel> modelsWithName = getModelsWithNameFromFile(metadataFile);
-        Set<String> notExistsModelNames = Sets.difference(Sets.newHashSet(importModelNames), modelsWithName.keySet());
-        if (CollectionUtils.isNotEmpty(notExistsModelNames)) {
-            throw new KylinException(MODEL_NOT_EXIST,
-                    String.format("The models are not exist. Models name: [%s].", StringUtils.join(notExistsModelNames, ",")));
-        }
+        dataModelManager.updateDataModelDesc(nDataModel);
     }
 
-    private Map<String, NDataModel> getModelsWithNameFromFile(MultipartFile metadataFile) throws IOException {
-        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(metadataFile);
-        Map<String, NDataModel> modelsWithName = Maps.newHashMap();
-        for (Map.Entry<String, RawResource> entry : rawResourceMap.entrySet()) {
-            if (entry.getKey().contains(DATA_MODEL_DESC_RESOURCE_ROOT)) {
-                NDataModel dataModel = JsonUtil.readValue(entry.getValue().getByteSource().read(), NDataModel.class);
-                modelsWithName.put(dataModel.getAlias(), dataModel);
+    /**
+     * 
+     * @param project
+     * @param nDataModel
+     * @param targetIndexPlan
+     * @param hasModelOverrideProps
+     */
+    private void updateIndexPlan(String project, NDataModel nDataModel, IndexPlan targetIndexPlan,
+            boolean hasModelOverrideProps) {
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        indexPlanManager.updateIndexPlan(nDataModel.getUuid(), copyForWrite -> {
+            val newRuleBasedCuboid = targetIndexPlan.getRuleBasedIndex();
+            newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
+            List<IndexEntity> toBeDeletedIndexes = copyForWrite.getToBeDeletedIndexes();
+            toBeDeletedIndexes.clear();
+            toBeDeletedIndexes.addAll(targetIndexPlan.getToBeDeletedIndexes());
+
+            if (hasModelOverrideProps) {
+                copyForWrite.setOverrideProps(targetIndexPlan.getOverrideProps());
+            }
+
+            if (targetIndexPlan.getAggShardByColumns() != null) {
+                copyForWrite.setAggShardByColumns(targetIndexPlan.getAggShardByColumns());
+            }
+
+            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
+        });
+    }
+
+    /**
+     * 
+     * @param project
+     * @param modelSchemaChange
+     * @param targetIndexPlan
+     */
+    private void removeIndexes(String project, SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange,
+            IndexPlan targetIndexPlan) {
+        if (modelSchemaChange != null) {
+            val toBeRemovedIndexes = Stream
+                    .concat(modelSchemaChange.getReduceItems().stream()
+                            .filter(schemaChange -> schemaChange.getType() == SchemaNodeType.WHITE_LIST_INDEX)
+                            .map(SchemaChangeCheckResult.ChangedItem::getDetail),
+                            modelSchemaChange.getUpdateItems().stream()
+                                    .filter(schemaUpdate -> schemaUpdate.getType() == SchemaNodeType.WHITE_LIST_INDEX)
+                                    .map(SchemaChangeCheckResult.UpdatedItem::getFirstDetail))
+                    .map(Long::parseLong).collect(Collectors.toSet());
+            if (!toBeRemovedIndexes.isEmpty()) {
+                indexPlanService.removeIndexes(project, targetIndexPlan.getId(), toBeRemovedIndexes);
             }
         }
-        return modelsWithName;
     }
 
-    private Set<String> convertImportModelNamesToModelIds(MultipartFile metadataFile, List<String> importModelNames) throws IOException {
-        Map<String, NDataModel> modelsWithName = getModelsWithNameFromFile(metadataFile);
-        return importModelNames.stream()
-                .map(modelName -> modelsWithName.get(modelName).getUuid())
-                .collect(Collectors.toSet());
+    /**
+     * 
+     * @param project
+     * @param modelSchemaChange
+     * @param targetIndexPlan
+     */
+    private void createTableIndex(String project, SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange,
+            IndexPlan targetIndexPlan) {
+        if (modelSchemaChange != null) {
+            val newIndexes = Stream
+                    .concat(modelSchemaChange.getNewItems().stream()
+                            .filter(schemaChange -> schemaChange.getType() == SchemaNodeType.WHITE_LIST_INDEX)
+                            .map(SchemaChangeCheckResult.ChangedItem::getDetail),
+                            modelSchemaChange.getUpdateItems().stream()
+                                    .filter(schemaUpdate -> schemaUpdate.getType() == SchemaNodeType.WHITE_LIST_INDEX)
+                                    .map(SchemaChangeCheckResult.UpdatedItem::getSecondDetail))
+                    .map(Long::parseLong).collect(Collectors.toList());
+
+            targetIndexPlan.getWhitelistLayouts().stream().filter(layout -> newIndexes.contains(layout.getId()))
+                    .forEach(layout -> indexPlanService.createTableIndex(project, targetIndexPlan.getUuid(), layout,
+                            false));
+        }
     }
 
     @Transaction(project = 0, retry = 1)
-    public void importModelMetadata(String project, MultipartFile metadataFile, List<String> importModelIds)
+    public void importModelMetadata(String project, MultipartFile metadataFile, ModelImportRequest request)
             throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
-        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(metadataFile);
-        String srcProjectName = getModelMetadataProjectName(rawResourceMap.keySet());
-        NDataModelManager targetDataModelManager = getDataModelManager(project);
-        NIndexPlanManager targetIndexPlanManager = getIndexPlanManager(project);
-        NDataflowManager targetDataFlowManager = getDataflowManager(project);
-        for (String modelId : importModelIds) {
-            String modelResPath = NDataModel.concatResourcePath(modelId, srcProjectName);
-            RawResource modelRaw = rawResourceMap.get(modelResPath);
-            NDataModel srcModel = JsonUtil.readValue(modelRaw.getByteSource().read(), NDataModel.class);
-            String newUuid = UUID.randomUUID().toString();
-            srcModel.setUuid(newUuid);
-            srcModel.setProject(project);
-            srcModel.setMvcc(-1);
+
+        List<String> exceptions = new ArrayList<>();
+
+        val rawResourceMap = getRawResourceFromUploadFile(metadataFile);
+
+        val importModelContext = getImportModelContext(project, rawResourceMap, request);
+
+        val schemaChangeCheckResult = checkModelMetadata(project, importModelContext, metadataFile);
+
+        val importDataModelManager = NDataModelManager.getInstance(importModelContext.getTargetKylinConfig(), project);
+        val importIndexPlanManager = NIndexPlanManager.getInstance(importModelContext.getTargetKylinConfig(), project);
+
+        for (ModelImportRequest.ModelImport modelImport : request.getModels()) {
             try {
-                targetDataModelManager.createDataModelDesc(srcModel, AclPermissionUtil.getCurrentUsername());
-            } catch (RuntimeException e) {
-                thrownImportException(e, srcModel.getAlias());
+                validateModelImport(project, modelImport, schemaChangeCheckResult);
+                if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
+                    var importDataModel = importDataModelManager.getDataModelDescByAlias(modelImport.getTargetName());
+                    var nDataModel = importDataModelManager.copyForWrite(importDataModel);
+
+                    createNewModel(nDataModel, modelImport, project, importIndexPlanManager);
+                    importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
+                            importModelContext.getTargetKylinConfig());
+                } else if (modelImport.getImportType() == ModelImportRequest.ImportType.OVERWRITE) {
+                    val importDataModel = importDataModelManager.getDataModelDescByAlias(modelImport.getOriginalName());
+                    val nDataModel = importDataModelManager.copyForWrite(importDataModel);
+
+                    // delete index, then remove dimension or measure
+                    val targetIndexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getOriginalName())
+                            .copy();
+
+                    boolean hasModelOverrideProps = (nDataModel.getSegmentConfig() != null
+                            && nDataModel.getSegmentConfig().getAutoMergeEnabled() != null
+                            && nDataModel.getSegmentConfig().getAutoMergeEnabled())
+                            || (!targetIndexPlan.getOverrideProps().isEmpty());
+
+                    val modelSchemaChange = schemaChangeCheckResult.getModels().get(modelImport.getTargetName());
+
+                    removeIndexes(project, modelSchemaChange, targetIndexPlan);
+                    updateModel(project, nDataModel, modelImport, hasModelOverrideProps);
+                    updateIndexPlan(project, nDataModel, targetIndexPlan, hasModelOverrideProps);
+                    createTableIndex(project, modelSchemaChange, targetIndexPlan);
+
+                    importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
+                            importModelContext.getTargetKylinConfig());
+                }
+            } catch (Exception e) {
+                logger.warn("Import model {} exception", modelImport.getOriginalName(), e);
+                exceptions.add(e.getMessage());
             }
 
-            String indexPlanResPath = IndexPlan.concatResourcePath(modelId, srcProjectName);
-            RawResource indexPlanRaw = rawResourceMap.get(indexPlanResPath);
-            IndexPlan srcIndexPlan = JsonUtil.readValue(indexPlanRaw.getByteSource().read(), IndexPlan.class);
-            srcIndexPlan.setUuid(newUuid);
-            srcIndexPlan.setProject(project);
-            srcIndexPlan.setMvcc(-1);
-            targetIndexPlanManager.createIndexPlan(srcIndexPlan);
-            targetDataFlowManager.createDataflow(srcIndexPlan, AclPermissionUtil.getCurrentUsername());
+            if (!exceptions.isEmpty()) {
+                throw new KylinException(MODEL_IMPORT_ERROR,
+                        String.format(MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), String.join("\n", exceptions)));
+            }
         }
     }
 
-    private void thrownImportException(RuntimeException exception, String srcModelName) {
-        String message = exception.getMessage();
-        if (exception instanceof LookupTableException) {
-            message = String.format(MsgPicker.getMsg().getFACT_TABLE_USED_AS_LOOK_UP_TABLE(), srcModelName);
-            throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED);
-        }
-        if (exception instanceof BadModelException) {
-            BadModelException badModelException = (BadModelException) exception;
-            switch (badModelException.getCauseType()) {
-            case SAME_EXPR_DIFF_NAME:
-                message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED(),
-                        srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(),
-                        badModelException.getAdvise());
-                throw new KylinException(DUPLICATE_COMPUTED_COLUMN_EXPRESSION, message);
-            case SAME_NAME_DIFF_EXPR:
-                message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED(), srcModelName,
-                        badModelException.getBadCC(), badModelException.getConflictingModel(),
-                        badModelException.getAdvise());
-                throw new KylinException(DUPLICATE_COMPUTED_COLUMN_NAME, message);
-            default:
-                throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED, exception);
+    private void validateModelImport(String project, ModelImportRequest.ModelImport modelImport,
+            SchemaChangeCheckResult checkResult) {
+
+        Message msg = MsgPicker.getMsg();
+
+        if (modelImport.getImportType() == ModelImportRequest.ImportType.OVERWRITE) {
+            NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDescByAlias(modelImport.getOriginalName());
+
+            if (dataModel == null) {
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(msg.getCAN_NOT_OVERWRITE_MODEL(),
+                        modelImport.getOriginalName(), modelImport.getImportType()));
+            }
+
+            val modelSchemaChange = checkResult.getModels().get(modelImport.getOriginalName());
+
+            if (modelSchemaChange == null || !modelSchemaChange.overwritable()) {
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(msg.getUN_SUITABLE_IMPORT_TYPE(),
+                        modelImport.getOriginalName(), modelImport.getImportType()));
+            }
+        } else if (modelImport.getImportType() == ModelImportRequest.ImportType.NEW) {
+            NDataModel dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDescByAlias(modelImport.getTargetName());
+
+            if (dataModel != null) {
+                throw new KylinException(INVALID_MODEL_NAME,
+                        String.format(msg.getMODEL_ALIAS_DUPLICATED(), modelImport.getTargetName()));
+            }
+
+            val modelSchemaChange = checkResult.getModels().get(modelImport.getTargetName());
+
+            if (modelSchemaChange == null || !modelSchemaChange.creatable()) {
+                throw new KylinException(MODEL_IMPORT_ERROR, String.format(msg.getUN_SUITABLE_IMPORT_TYPE(),
+                        modelImport.getTargetName(), modelImport.getImportType()));
             }
 
         }
-        throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED, exception);
+    }
+
+    /**
+     * @param project
+     * @param targetModelId
+     * @param srcModelId
+     * @param kylinConfig
+     */
+    private void importRecommendations(String project, String targetModelId, String srcModelId, KylinConfig kylinConfig)
+            throws IOException {
+        val manager = RawRecManager.getInstance(project);
+        val baseId = manager.getMaxId() + 100;
+
+        Map<Integer, Integer> idChangedMap = new HashMap<>();
+
+        List<RawRecItem> rawRecItems = ImportModelContext.parseRawRecItems(ResourceStore.getKylinMetaStore(kylinConfig),
+                project, srcModelId);
+
+        rawRecItems = rawRecItems.stream().peek(rawRecItem -> {
+            rawRecItem.setProject(project);
+            rawRecItem.setModelID(targetModelId);
+
+            String uniqueFlag = rawRecItem.getUniqueFlag();
+            RawRecItem originalRawRecItem = manager.getRawRecItemByUniqueFlag(rawRecItem.getProject(),
+                    rawRecItem.getModelID(), uniqueFlag, rawRecItem.getSemanticVersion());
+            int newId;
+            if (originalRawRecItem != null) {
+                newId = originalRawRecItem.getId();
+            } else {
+                newId = rawRecItem.getId() + baseId;
+            }
+            idChangedMap.put(-rawRecItem.getId(), -newId);
+
+            rawRecItem.setId(newId);
+        }).collect(Collectors.toList());
+
+        ImportModelContext.reorderRecommendations(rawRecItems, idChangedMap);
+
+        manager.batchUpdate(rawRecItems);
     }
 
     public void cleanupMeta(String project) {
