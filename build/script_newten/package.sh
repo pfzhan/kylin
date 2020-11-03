@@ -50,6 +50,51 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.2.1 release note
+
+**Enhancement**
+
+- Fixed the responses of user_with_group API to ensure the integration with Kyligence Insight
+- Avoid slow queries blocking simple queries.
+- Support segment retention threshold in days as the unit of measurement.
+- Increase the relevant log of HA function
+- Support async query API.
+- Optimize table reload scenario text
+- Optimize callback interface return information, add job types, job IDs, and the response is integrated according to segment.
+- Support using segment name as parameters in segment operation API.
+- Optimize APIs of user deletion, user group creating and user group deletion to ensure that some users and user groups with special characters are added/deleted correctly.
+- The display content of the node address in the unified interface
+- Support to export TDS file from models.
+
+**Bug**
+
+- The element parameter in the exported TDS-api needs to have a default value and is an optional parameter
+- Edit dimension name does not take effect
+- The capacity billing function causes the flat meter to be calculated multiple times during building
+- After synchronizing the annotations of the dimension column, the annotations are synchronized without saving the model.
+- Failed to build the index because the snapshot could not be found
+- In a high-availability environment, after the Query node is restarted, because the metadata is not properly synchronized, the new project added to the All node does not show - ry node.
+- When the sum (constant) metric is defined in the model, the model saves an error.
+- Click to generate license file on the login page, the page reports an error.
+- Too many Spark tasks might be generated during the building job, which will influence the build performance
+- In HA mode, when two KE nodes hold system and project management permissions respectively, projects cannot be deleted.
+- The maximum query delay in the optimization proposal is not limited, resulting in an error on the interface after saving.
+- When sql modeling, it can recommend the CC column with the same name, and report an error when passing.
+- In the split_part query function, the query will report an error when the index exceeds the number of divided parts.
+- Supports pagination when there are more recommendations
+- Part of the log information level is wrong in check-env.out
+- Trim function does not take effect
+- When creating a model, the dimension cardinality is not displayed in the edit dimension interface.
+- If the partition column is int data type and used as filter conditions, segment pruning doesn’t work properly
+- Fix the error message when the dimension in the model cannot be deleted
+- If the system administrator is changed to a normal user, the corresponding privileges are not updated.
+- Null pointer exception occurs when setting measures
+- When creating a model, the same data source table is referenced multiple times and defined as SCD2 type. After saving the model, it cannot be modified.
+- Failed to delete user group due to cache
+- The model status is inconsistent after using the metadata tool to upgrade 3x metadata
+- When a calculable column is created and selected in the edit model measurement, the column type verification is not done when saving.
+
+
 #### Kyligence Enterprise 4.2.0 release note
 
 In this new release, Kyligence Enterprise supports **flexible index building**, which enables queries from business could get more faster response.
