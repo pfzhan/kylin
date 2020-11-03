@@ -63,8 +63,8 @@
       <!-- 表：status列 -->
       <el-table-column :label="$t('status')" :width="120">
         <template slot-scope="scope">
-          <el-tag size="small" type="info" v-if="scope.row.disabled">Disabled</el-tag>
-          <el-tag size="small" type="success" v-else>Enabled</el-tag>
+          <el-tag size="small" type="info" v-if="scope.row.disabled">DISABLED</el-tag>
+          <el-tag size="small" type="success" v-else>ENABLED</el-tag>
         </template>
       </el-table-column>
       <!-- 表：action列 -->
