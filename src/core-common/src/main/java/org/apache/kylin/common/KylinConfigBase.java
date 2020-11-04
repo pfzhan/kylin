@@ -868,6 +868,10 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isCheckQuotaStorageEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.job.check-quota-storage-enabled", TRUE));
     }
+
+    public boolean isDeleteJobTmpWhenRetry() {
+        return Boolean.parseBoolean(getOptional("kylin.job.delete-job-tmp-when-retry", FALSE));
+    }
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================

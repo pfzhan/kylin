@@ -192,7 +192,7 @@ public class NSparkExecutable extends AbstractExecutable {
             jars = kylinJobJar;
         }
 
-        if (!isResumable()) {
+        if (!isResumable() && config.isDeleteJobTmpWhenRetry()) {
             deleteJobTmpDirectoryOnExists();
         }
 
