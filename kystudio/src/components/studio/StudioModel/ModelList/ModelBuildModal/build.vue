@@ -177,7 +177,7 @@
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="closeModal(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <template v-if="isAddSegment">
-          <el-button type="primary" plain :loading="btnLoading" @click="setbuildModel(false)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button type="primary" plain :loading="btnLoading" @click="setbuildModel(false, 'onlySave')" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
           <el-button type="primary" :loading="btnLoading" v-if="modelDesc.total_indexes" v-guide.setbuildModelRange @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndBuild')}}</el-button>
           <el-button type="primary" :loading="btnLoading" v-else v-guide.setbuildModelRange @click="saveAndAddIndex" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndAddIndex')}}</el-button>
         </template>
@@ -598,7 +598,7 @@
       this.isWillAddIndex = true
       this.setbuildModel(false)
     }
-    async setbuildModel (isBuild) {
+    async setbuildModel (isBuild, type) {
       this.btnLoading = true
       try {
         if (this.buildType === 'incremental' && this.buildOrComplete === 'build') {
@@ -609,6 +609,19 @@
             }
             await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
             await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+            if (type && type === 'onlySave') {
+              try {
+                await this.$msgbox({
+                  title: this.$t('kylinLang.common.tip'),
+                  message: <div><p>{this.$t('onlySaveTip1')}</p><p>{this.$t('onlySaveTip2')}</p></div>,
+                  showCancelButton: true,
+                  confirmButtonText: this.$t('kylinLang.common.save')
+                })
+              } catch (e) {
+                this.btnLoading = false
+                return
+              }
+            }
             const partition_desc = {}
             if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
               if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {

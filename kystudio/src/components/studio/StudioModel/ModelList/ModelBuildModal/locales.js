@@ -46,7 +46,9 @@ export default {
     addRangeTitle: 'Please select a segment\'s data range',
     willAddSegmentTips: 'A segment for full build would be added and served for queries.',
     saveAndBuild: 'Save and Build Index',
-    saveAndAddIndex: 'Save and Add Index'
+    saveAndAddIndex: 'Save and Add Index',
+    onlySaveTip1: 'An empty segment (with no index) would be created after saving. Please note that queries would be answered by the pushdown engine when  they hit empty segments. ',
+    onlySaveTip2: 'Do you want to continue?'
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
@@ -95,6 +97,8 @@ export default {
     addRangeTitle: '请添加 Segment 的数据范围',
     willAddSegmentTips: '将添加一个全量 Segment 用于服务查询',
     saveAndBuild: '保存并构建索引',
-    saveAndAddIndex: '保存并添加索引'
+    saveAndAddIndex: '保存并添加索引',
+    onlySaveTip1: '保存后将产生一个不包含任何索引数据的空 Segment。如果查询命中空的 Segment, 将会通过下压查询回答。',
+    onlySaveTip2: '确定要保存吗？'
   }
 }
