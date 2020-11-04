@@ -98,6 +98,9 @@ object ResultPlan extends LogEx {
       QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
 
       val dt = rows.map { row =>
+        if (Thread.interrupted()) {
+          throw new InterruptedException
+        }
         row.toSeq.zip(resultTypes).map{
           case(value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
         }.asJava
