@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
@@ -62,6 +63,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -158,42 +160,46 @@ public class QueryNodeFilter implements Filter {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
             HttpServletResponse servletResponse = (HttpServletResponse) response;
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            try {
+                // not start with /kylin/api
+                if (checkNeedToRoute(servletRequest)) {
+                    chain.doFilter(request, response);
+                    return;
+                }
 
-            // not start with /kylin/api
-            if (checkNeedToRoute(servletRequest)) {
-                chain.doFilter(request, response);
+                // no leaders
+                if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
+                    Message msg = MsgPicker.getMsg();
+                    servletRequest.setAttribute(ERROR, new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
+                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
+                }
+
+                String contentType = request.getContentType();
+                Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
+                String project = projectInfo.getFirst();
+                if (!checkProjectExist(project)) {
+                    servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
+                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                    servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
+                    return;
+                }
+
+                request = projectInfo.getSecond();
+
+                if (checkProcessLocal(kylinConfig, project, contentType)) {
+                    log.info("process local caused by project owner");
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
+                    throw new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
+                            MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE());
+                }
+            } catch (CannotCreateTransactionException e) {
+                writeConnectionErrorResponse(servletRequest, servletResponse);
                 return;
-            }
-
-            // no leaders
-            if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
-                Message msg = MsgPicker.getMsg();
-                servletRequest.setAttribute(ERROR, new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
-                servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
-                return;
-            }
-
-            String contentType = request.getContentType();
-            Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
-            String project = projectInfo.getFirst();
-            if (!checkProjectExist(project)) {
-                servletRequest.setAttribute(ERROR, new KylinException(PROJECT_NOT_EXIST,
-                        String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
-                servletRequest.getRequestDispatcher(API_ERROR).forward(servletRequest, response);
-                return;
-            }
-
-            request = projectInfo.getSecond();
-
-            if (checkProcessLocal(kylinConfig, project, contentType)) {
-                log.info("process local caused by project owner");
-                chain.doFilter(request, response);
-                return;
-            }
-
-            if (EpochManager.getInstance(kylinConfig).isMaintenanceMode()) {
-                throw new KylinException(SystemErrorCode.WRITE_IN_MAINTENANCE_MODE,
-                        MsgPicker.getMsg().getWRITE_IN_MAINTENANCE_MODE());
             }
 
             ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);
@@ -305,5 +311,16 @@ public class QueryNodeFilter implements Filter {
             }
         }
         return true;
+    }
+
+    public void writeConnectionErrorResponse(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {
+        ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
+                new KylinException(FAILED_CONNECT_CATALOG, MsgPicker.getMsg().getCONNECT_DATABASE_ERROR(), false));
+        byte[] responseBody = JsonUtil.writeValueAsBytes(errorResponse);
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        servletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        setResponseHeaders(responseHeaders, servletResponse);
+        servletResponse.getOutputStream().write(responseBody);
     }
 }

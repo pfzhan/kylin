@@ -172,6 +172,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10019XXX catalog
     FAILED_REFRESH_CATALOG_CACHE("KE-10019001"), //
+    FAILED_CONNECT_CATALOG("KE-10019002"),
 
     // 10020XXX recommendation
     FAILED_APPROVE_RECOMMENDATION("KE-10020001"), //

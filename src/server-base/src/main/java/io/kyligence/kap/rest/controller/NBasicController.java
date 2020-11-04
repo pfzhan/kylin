@@ -47,6 +47,7 @@ import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DIS
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_ID;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CONNECT_CATALOG;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INCORRECT_PROJECT_MODE;
@@ -110,6 +111,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -159,10 +161,13 @@ public class NBasicController {
         Throwable cause = ex;
         KylinException kylinException = null;
         while (cause != null && cause.getCause() != null) {
-            cause = cause.getCause();
+            if (cause instanceof CannotCreateTransactionException) {
+                kylinException = new KylinException(FAILED_CONNECT_CATALOG, msg.getCONNECT_DATABASE_ERROR(), false);
+            }
             if (cause instanceof KylinException) {
                 kylinException = (KylinException) cause;
             }
+            cause = cause.getCause();
         }
         if (kylinException != null) {
             cause = kylinException;

@@ -1464,4 +1464,8 @@ public class CnMessage extends Message {
     public String getSCD2_MODEL_ONLINE_WITH_SCD2_CONFIG_OFF() {
         return "该模型因存在 ≥ 或 < 的连接条件，当前不可上线。请删除相应连接条件，或在项目设置中开启支持拉链表开关";
     }
+
+    public String getCONNECT_DATABASE_ERROR() {
+        return "连接数据库异常。请检查数据库连接是否正常。";
+    }
 }

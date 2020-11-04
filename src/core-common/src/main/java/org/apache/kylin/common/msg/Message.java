@@ -1591,4 +1591,8 @@ public class Message {
                 " Please delete those join conditions," +
                 " or turn on 'Show non-equal join conditions for History table' in project settings.";
     }
+
+    public String getCONNECT_DATABASE_ERROR() {
+        return "Failed to connect database.Please check if the database connection is healthy.";
+    }
 }
