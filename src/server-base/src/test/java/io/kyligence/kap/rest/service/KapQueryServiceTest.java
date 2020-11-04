@@ -24,8 +24,12 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.AfterClass;
@@ -39,7 +43,12 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
@@ -86,5 +95,96 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
         for (int n = 0; n < sqls.size(); n++) {
             Assert.assertEquals(expectedFormattedSqls.get(n), formated.get(n));
         }
+    }
+
+    private long GetCounterCount(MetricsName name, MetricsCategory category, String entity, Map<String, String> tags) {
+        val counter = MetricsGroup.getCounter(name, category, entity, tags);
+        return counter == null ? 0 : counter.getCount();
+    }
+
+    @Test
+    public void testUpdateQueryTimeMetrics() {
+        long a = GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long b = GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long c = GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long d = GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long e = GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>());
+        kapQueryService.updateQueryTimeMetrics(123, "default", new HashMap<>());
+        Assert.assertEquals(a + 1,
+                GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(b,
+                GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(c,
+                GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(d,
+                GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(e,
+                GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        kapQueryService.updateQueryTimeMetrics(1123, "default", new HashMap<>());
+        Assert.assertEquals(a + 1,
+                GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(b + 1,
+                GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(c,
+                GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(d,
+                GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(e,
+                GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        kapQueryService.updateQueryTimeMetrics(3123, "default", new HashMap<>());
+        Assert.assertEquals(a + 1,
+                GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(b + 1,
+                GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(c + 1,
+                GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(d,
+                GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(e,
+                GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        kapQueryService.updateQueryTimeMetrics(5123, "default", new HashMap<>());
+        Assert.assertEquals(a + 1,
+                GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(b + 1,
+                GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(c + 1,
+                GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(d + 1,
+                GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(e,
+                GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        kapQueryService.updateQueryTimeMetrics(10123, "default", new HashMap<>());
+        Assert.assertEquals(a + 1,
+                GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(b + 1,
+                GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(c + 1,
+                GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(d + 1,
+                GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>()));
+        Assert.assertEquals(e + 1,
+                GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>()));
+    }
+
+    @Test
+    public void testRecordMetric() throws Throwable {
+        long a = GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long b = GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long c = GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long d = GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>());
+        long e = GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>());
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setProject("default");
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setDuration(5001);
+        sqlResponse.setServer("localhost:7070");
+        kapQueryService.recordMetric(sqlRequest, sqlResponse);
+        Map<String, String> tags = Maps.newHashMap();
+        tags.put(MetricsTag.HOST.getVal(), sqlResponse.getServer().concat("-").concat(sqlRequest.getProject()));
+        Assert.assertEquals(a, GetCounterCount(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, "default", tags));
+        Assert.assertEquals(b, GetCounterCount(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, "default", tags));
+        Assert.assertEquals(c, GetCounterCount(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, "default", tags));
+        Assert.assertEquals(d + 1, GetCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", tags));
+        Assert.assertEquals(e, GetCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", tags));
     }
 }

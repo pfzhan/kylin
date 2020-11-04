@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -235,7 +236,8 @@ public class MetricsGroup {
         }
     }
 
-    private static Counter getCounter(MetricsName name, MetricsCategory category, String entity,
+    @VisibleForTesting
+    public static Counter getCounter(MetricsName name, MetricsCategory category, String entity,
                                       Map<String, String> tags) {
         final String metricName = metricName(name.getVal(), category.getVal(), entity, tags);
         return counters.get(metricName);

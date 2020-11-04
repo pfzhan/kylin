@@ -51,11 +51,8 @@ package io.kyligence.kap.rest.service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.metrics.MetricsTag;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -70,11 +67,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.date.Constant;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import lombok.val;
 
@@ -118,7 +119,6 @@ public class KapQueryService extends QueryService {
             queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
         }
 
-        long duration = TimeUnit.MILLISECONDS.toSeconds(sqlResponse.getDuration());
         String project = sqlRequest.getProject();
 
         Map<String, String> tags = Maps.newHashMap();
@@ -126,20 +126,20 @@ public class KapQueryService extends QueryService {
 
         MetricsGroup.counterInc(MetricsName.QUERY, MetricsCategory.PROJECT, project, tags);
 
-        updateQueryTimeMetrics(duration, project, tags);
+        updateQueryTimeMetrics(sqlResponse.getDuration(), project, tags);
         updateQueryTypeMetrics(sqlResponse, project, tags);
 
         MetricsGroup.counterInc(MetricsName.QUERY_HOST, MetricsCategory.HOST, sqlResponse.getServer());
         MetricsGroup.counterInc(MetricsName.QUERY_SCAN_BYTES_HOST, MetricsCategory.HOST, sqlResponse.getServer(),
                 sqlResponse.getTotalScanBytes());
 
-        MetricsGroup.histogramUpdate(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, sqlRequest.getProject(),
-                tags, sqlResponse.getDuration());
+        MetricsGroup.histogramUpdate(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, sqlRequest.getProject(), tags,
+                sqlResponse.getDuration());
         MetricsGroup.histogramUpdate(MetricsName.QUERY_TIME_HOST, MetricsCategory.HOST, sqlResponse.getServer(),
                 sqlResponse.getDuration());
 
-        MetricsGroup.histogramUpdate(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, project,
-                tags, sqlResponse.getTotalScanBytes());
+        MetricsGroup.histogramUpdate(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, project, tags,
+                sqlResponse.getTotalScanBytes());
 
         super.recordMetric(sqlRequest, sqlResponse);
     }
@@ -180,14 +180,15 @@ public class KapQueryService extends QueryService {
         }
     }
 
-    private void updateQueryTimeMetrics(long duration, String project, Map<String, String> tags) {
-        if (duration <= 1) {
+    @VisibleForTesting
+    public void updateQueryTimeMetrics(long duration, String project, Map<String, String> tags) {
+        if (duration <= Constant.SECOND) {
             MetricsGroup.counterInc(MetricsName.QUERY_LT_1S, MetricsCategory.PROJECT, project, tags);
-        } else if (duration <= 3) {
+        } else if (duration <= 3 * Constant.SECOND) {
             MetricsGroup.counterInc(MetricsName.QUERY_1S_3S, MetricsCategory.PROJECT, project, tags);
-        } else if (duration <= 5) {
+        } else if (duration <= 5 * Constant.SECOND) {
             MetricsGroup.counterInc(MetricsName.QUERY_3S_5S, MetricsCategory.PROJECT, project, tags);
-        } else if (duration <= 10) {
+        } else if (duration <= 10 * Constant.SECOND) {
             MetricsGroup.counterInc(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, project, tags);
         } else {
             MetricsGroup.counterInc(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, project, tags);
