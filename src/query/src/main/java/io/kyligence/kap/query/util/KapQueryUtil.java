@@ -28,10 +28,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.collect.Maps;
+import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.util.Util;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -42,10 +45,13 @@ import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.relnode.KapJoinRel;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -151,5 +157,20 @@ public class KapQueryUtil {
         }
 
         return sqlSelect;
+    }
+
+    public static boolean isJoinOnlyOneAggChild(KapJoinRel joinRel) {
+        final RelSubset joinLeftChildSub = (RelSubset)joinRel.getLeft();
+        final RelSubset joinRightChildSub = (RelSubset)joinRel.getRight();
+        final RelNode joinLeftChild = Util.first(joinLeftChildSub.getBest(), joinLeftChildSub.getOriginal());
+        final RelNode joinRightChild = Util.first(joinRightChildSub.getBest(), joinRightChildSub.getOriginal());
+
+        if (!(joinLeftChild instanceof Aggregate) && !(joinRightChild instanceof Aggregate)) {
+            return false;
+        }
+        if (joinLeftChild instanceof Aggregate && joinRightChild instanceof Aggregate) {
+            return false;
+        }
+        return true;
     }
 }

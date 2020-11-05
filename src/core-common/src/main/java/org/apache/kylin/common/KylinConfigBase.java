@@ -1750,6 +1750,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite.reduce-rules-enabled", TRUE));
     }
 
+    public boolean isAgregatePushdownEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite.aggregate-pushdown-enabled", FALSE));
+    }
+
     public int getEventPollIntervalSecond() {
         return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "60"));
     }
