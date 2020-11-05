@@ -1368,6 +1368,10 @@ public class CnMessage extends Message {
         return "重写模型设置失败，自动合并范围不能为空.";
     }
 
+    public String getCOLUMN_PARAMETER_INVALID(String column) {
+        return String.format("列 [%s] 赋值失败，请检查该列类型后重新赋值。", column);
+    }
+
     public String getINVALID_VOLATILE_RANGE_CONFIG() {
         return "重写模型设置失败，动态区间参数单位必须为天、周、月、年其中一个,且值必须为非负整数.";
     }

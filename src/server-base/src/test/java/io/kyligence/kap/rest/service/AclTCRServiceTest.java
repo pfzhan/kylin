@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.util.ArrayList;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -303,6 +303,45 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         aclTCRService.unloadTable(projectDefault, "DEFAULT.TEST_ORDER");
         tables = manager.getAuthorizedTables(user1, null);
         Assert.assertFalse(tables.contains("DEFAULT.TEST_ORDER"));
+    }
+
+    @Test
+    public void testInvalidAclTCRRequest() {
+        AclTCRRequest request = new AclTCRRequest();
+        request.setDatabaseName("DEFAULT");
+        AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
+        u1t1.setTableName("TEST_ORDER");
+        u1t1.setAuthorized(true);
+        AclTCRRequest.Column u1c1 = new AclTCRRequest.Column();
+        u1c1.setColumnName("ORDER_ID");
+        u1c1.setAuthorized(true);
+        // add columns
+        u1t1.setColumns(Arrays.asList(u1c1));
+
+        AclTCRRequest.Row u1r1 = new AclTCRRequest.Row();
+        u1r1.setColumnName("TEST_EXTENDED_COLUMN");
+        u1r1.setItems(Arrays.asList("abc"));
+
+        AclTCRRequest.Row u1r2 = new AclTCRRequest.Row();
+        u1r2.setColumnName("ORDER_ID");
+        u1r2.setItems(Arrays.asList("bbb"));
+
+        //add rows
+        u1t1.setRows(Arrays.asList(u1r1, u1r2));
+
+        AclTCRRequest.Table u1t2 = new AclTCRRequest.Table();
+        u1t2.setTableName("TEST_ACCOUNT");
+        u1t2.setAuthorized(false);
+        //add tables
+        request.setTables(Arrays.asList(u1t2, u1t1));
+        try {
+            aclTCRService.updateAclTCR(projectDefault, user1, true, fillAclTCRRequest(request));
+            Assert.fail();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.assertTrue(e.getCause() instanceof KylinException);
+            Assert.assertTrue(e.getCause().getMessage().contains("Please check the column date type."));
+        }
     }
 
     @Test

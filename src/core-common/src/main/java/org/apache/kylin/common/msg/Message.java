@@ -1500,6 +1500,10 @@ public class Message {
         return "All the columns should be defined and the column below are missing: (%s).";
     }
 
+    public String getCOLUMN_PARAMETER_INVALID(String column) {
+        return String.format("Column [%s] assignment is failed.Please check the column date type.", column);
+    }
+
     public String getDATABASE_PARAMETER_DUPLICATE() {
         return "Database [%s] is duplicated in API requests.";
     }

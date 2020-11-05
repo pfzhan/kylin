@@ -454,6 +454,7 @@ public class AclTCRService extends BasicService {
     private AclTCR transformRequests(String project, List<AclTCRRequest> requests) {
         AclTCR aclTCR = new AclTCR();
         AclTCR.Table aclTable = new AclTCR.Table();
+        checkAclRequestParam(project, requests);
         requests.stream().filter(d -> StringUtils.isNotEmpty(d.getDatabaseName())).forEach(d -> d.getTables().stream()
                 .filter(t -> t.isAuthorized() && StringUtils.isNotEmpty(t.getTableName())).forEach(t -> {
                     String dbTblName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), t.getTableName());
@@ -502,6 +503,35 @@ public class AclTCRService extends BasicService {
         aclTCR.setTable(aclTable);
         slim(project, aclTCR);
         return aclTCR;
+    }
+
+    public void checkAclRequestParam(String project, List<AclTCRRequest> requests) {
+        NTableMetadataManager tableManager = getTableMetadataManager(project);
+        requests.stream().forEach(d -> d.getTables().stream()
+                .filter(AclTCRRequest.Table::isAuthorized)
+                .filter(table -> !Optional.ofNullable(table.getRows()).map(List::stream).orElseGet(Stream::empty)
+                        .allMatch(r -> CollectionUtils.isEmpty(r.getItems())))
+                .forEach(table -> {
+                    String tableName = String.format(IDENTIFIER_FORMAT, d.getDatabaseName(), table.getTableName());
+                    TableDesc tableDesc = tableManager.getTableDesc(tableName);
+                    table.getRows().stream()
+                            .filter(r -> CollectionUtils.isNotEmpty(r.getItems()))
+                            .forEach(column -> {
+                                ColumnDesc columnDesc = tableDesc.findColumnByName(column.getColumnName());
+                                if (!columnDesc.getType().isNumberFamily()) {
+                                    return;
+                                }
+                                String columnName = tableName + "." + column.getColumnName();
+                                column.getItems().forEach(item -> {
+                                    try {
+                                        Double.parseDouble(item);
+                                    } catch (Exception e) {
+                                        throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getCOLUMN_PARAMETER_INVALID(columnName));
+                                    }
+                                });
+                            });
+
+                }));
     }
 
     private Map<String, Map<String, Integer>> getDbTblColNum(String project) {
