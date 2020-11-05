@@ -451,7 +451,7 @@
             <el-col :span="3"><span v-custom-tooltip="{text: item.comment, w: 20}">{{item.comment}}</span></el-col>
             <el-col :span="2" class="order-actions">
               <template v-if="item.isCheck">
-                <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0}]" @click="moveTo('top', item)"></span>
+                <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0 && !searchName}]" @click="moveTo('top', item)"></span>
                 <span :class="['icon', 'el-icon-ksd-move_up', {'is-disabled': index === 0}]" @click="moveTo('up', item)"></span>
                 <span :class="['icon', 'el-icon-ksd-move_down', {'is-disabled': !includeDimensions[index + 1] || !includeDimensions[index + 1].isCheck}]" @click="moveTo('down', item)"></span>
                 <!-- <el-tooltip :content="$t('moveTop')" effect="dark" placement="top">
@@ -1465,10 +1465,11 @@ export default class AggregateModal extends Vue {
       this.selectedIncludeDimension.splice(idx + 2, 0, scope)
       this.selectedIncludeDimension.splice(idx, 1)
     } else if (type === 'top') {
-      this.includeDimensions.splice(0, 0, scope)
-      this.includeDimensions.splice(index + 1, 1)
+      // this.includeDimensions.splice(0, 0, scope)
+      // this.includeDimensions.splice(index, 1)
       this.selectedIncludeDimension.splice(0, 0, scope)
       this.selectedIncludeDimension.splice(idx + 1, 1)
+      this.filterChange()
     }
   }
 
