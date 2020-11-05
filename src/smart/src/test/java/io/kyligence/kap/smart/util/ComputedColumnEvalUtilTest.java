@@ -24,15 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
-import java.util.List;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.common.collect.Lists;
-
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -40,6 +32,14 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.List;
+
+import static org.apache.kylin.query.exception.QueryErrorCode.CC_EXPRESSION_ILLEGAL;
 
 public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
@@ -145,15 +145,14 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         projectManager.updateProject(projectUpdate);
 
         // case 1: resolve column failed, but table schema not changed.
+        ComputedColumnDesc cc1 = new ComputedColumnDesc();
+        cc1.setInnerExpression("TEST_KYLIN_FACT.LSTG_FORMAT_NAME2 + '1'");
+        cc1.setColumnName("CC_1");
         try {
-            ComputedColumnDesc cc = new ComputedColumnDesc();
-            cc.setInnerExpression("TEST_KYLIN_FACT.LSTG_FORMAT_NAME2 + '1'");
-            cc.setColumnName("CC_1");
-            ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
+            ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc1);
             Assert.fail();
-        } catch (Exception e) {
-            Assert.assertEquals("Cannot find column `TEST_KYLIN_FACT.LSTG_FORMAT_NAME2`, "
-                    + "please check whether schema of related table has changed.", e.getMessage());
+        } catch (org.apache.kylin.common.exception.KylinException e) {
+            Assert.assertEquals(CC_EXPRESSION_ILLEGAL.toErrorCode(), e.getErrorCode());
         }
 
         // case 2: unsupported computed column expression

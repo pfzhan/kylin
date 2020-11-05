@@ -53,6 +53,7 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     SCD2_DUPLICATE_CONDITION("KE-20002004"), //
     SCD2_COMMON_ERROR("KE-20002005"), //
     SCD2_SAVE_MODEL_WHEN_DISABLED("KE-20002006"), //
+    CC_EXPRESSION_ILLEGAL("KE-20002007"),
 
     // 20003XXX user
     USER_STOP_QUERY("KE-20003001"), //
