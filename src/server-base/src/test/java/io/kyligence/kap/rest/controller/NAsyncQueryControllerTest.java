@@ -110,6 +110,8 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     private AsyncQuerySQLRequest mockAsyncQuerySQLRequest() {
         final AsyncQuerySQLRequest asyncQuerySQLRequest = new AsyncQuerySQLRequest();
         asyncQuerySQLRequest.setQueryId("123");
+        asyncQuerySQLRequest.setFormat("csv");
+        asyncQuerySQLRequest.setEncode("gbk");
         asyncQuerySQLRequest.setLimit(500);
         asyncQuerySQLRequest.setOffset(0);
         asyncQuerySQLRequest.setProject(PROJECT);
@@ -406,6 +408,8 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDownloadQueryResultNoPermission() throws Exception {
         Mockito.doReturn(KylinConfig.getInstanceFromEnv()).when(kapQueryService).getConfig();
+        AsyncQueryService.FileInfo fileInfo = new AsyncQueryService.FileInfo("csv", "gbk", "result");
+        Mockito.doReturn(fileInfo).when(asyncQueryService).getFileInfo(Mockito.anyString(), Mockito.anyString());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
@@ -413,21 +417,24 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
-                Mockito.any(), Mockito.any());
+                Mockito.anyBoolean(), Mockito.any(), Mockito.any());
     }
 
     @Test
     public void testDownloadQueryResult() throws Exception {
         Mockito.doReturn(true).when(asyncQueryService).hasPermission(Mockito.anyString(), Mockito.anyString());
-
+        AsyncQueryService.FileInfo fileInfo = new AsyncQueryService.FileInfo("csv", "gbk", "result");
+        Mockito.doReturn(fileInfo).when(asyncQueryService).getFileInfo(Mockito.anyString(), Mockito.anyString());
         Mockito.doReturn(KylinConfig.getInstanceFromEnv()).when(kapQueryService).getConfig();
+
         mockMvc.perform(MockMvcRequestBuilders.get("/api/async_query/{query_id:.+}/result_download", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(), Mockito.any(), Mockito.any());
+        Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
+                Mockito.anyBoolean(), Mockito.any(), Mockito.any());
     }
 
     @Test

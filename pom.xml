@@ -244,6 +244,9 @@
         <argLine>-Xms1G -Xmx8G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
 
         <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
+
+        <!-- Apache POI -->
+        <poi.version>4.1.2</poi.version>
     </properties>
 
     <modules>

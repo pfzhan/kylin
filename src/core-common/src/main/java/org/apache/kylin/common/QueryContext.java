@@ -267,6 +267,8 @@ public class QueryContext implements Closeable {
         private boolean isHighPriorityQuery = false;
         private boolean withoutSyntaxError;
         private boolean isAsyncQuery;
+        private String fileFormat;
+        private String fileEncode;
     }
 
 }

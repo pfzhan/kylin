@@ -26,19 +26,21 @@ package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.rest.util.AclPermissionUtil.isAdmin;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,14 +61,25 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.parquet.Strings;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Component("asyncQueryService")
 public class AsyncQueryService extends BasicService {
@@ -121,6 +134,30 @@ public class AsyncQueryService extends BasicService {
         return result;
     }
 
+    public void saveFileInfo(String project, String format, String encode, String fileName, String queryId) throws IOException {
+        FileSystem fileSystem = getFileSystem();
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFileInfo())); //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+            osw.write(format + "\n");
+            osw.write(encode + "\n");
+            osw.write(fileName);
+        }
+    }
+
+    public FileInfo getFileInfo(String project, String queryId) throws IOException {
+        Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
+        FileSystem fileSystem = getFileSystem();
+        FileInfo fileInfo = new FileInfo();
+        try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getFileInfo()));
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+            fileInfo.setFormat(bufferedReader.readLine());
+            fileInfo.setEncode(bufferedReader.readLine());
+            fileInfo.setFileName(bufferedReader.readLine());
+            return fileInfo;
+        }
+    }
+
     public void createErrorFlag(String project, String queryId, String errorMessage) throws IOException {
         FileSystem fileSystem = getFileSystem();
         Path asyncQueryResultDir = getAsyncQueryResultDir(project, queryId);
@@ -137,7 +174,7 @@ public class AsyncQueryService extends BasicService {
     }
 
     public void retrieveSavedQueryResult(String project, String queryId, boolean includeHeader,
-            HttpServletResponse response) throws IOException {
+                                         HttpServletResponse response, String fileFormat, String encode) throws IOException {
         checkStatus(queryId, QueryStatus.SUCCESS, project, MsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
@@ -146,38 +183,33 @@ public class AsyncQueryService extends BasicService {
         if (!fileSystem.exists(dataPath)) {
             throw new BadRequestException(MsgPicker.getMsg().getQUERY_RESULT_FILE_NOT_FOUND());
         }
-        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+
         ServletOutputStream outputStream = response.getOutputStream();
+        String columnNames = null;
         try {
             if (includeHeader) {
-                String columns = null;
-                for (FileStatus header : fileStatuses) {
-                    if (header.getPath().getName().equals(getMetaDataFileName())) {
-                        try (FSDataInputStream inputStream = fileSystem.open(header.getPath());
-                                BufferedReader bufferedReader = new BufferedReader(
-                                        new InputStreamReader(inputStream))) {
-                            columns = bufferedReader.readLine();
-                            break;
-                        }
+                columnNames = processHeader(fileSystem, dataPath);
+                if (columnNames != null) {
+                    logger.debug("Query:{}, columnMeta:{}", columnNames, columnNames);
+                    if (!columnNames.endsWith(IOUtils.LINE_SEPARATOR_UNIX)) {
+                        columnNames = columnNames + IOUtils.LINE_SEPARATOR_UNIX;
                     }
-                }
-
-                if (columns != null) {
-                    logger.debug("Query:{}, columnMeta:{}", queryId, columns);
-                    if (!columns.endsWith(IOUtils.LINE_SEPARATOR_UNIX)) {
-                        columns = columns + IOUtils.LINE_SEPARATOR_UNIX;
-                    }
-                    IOUtils.copy(IOUtils.toInputStream(columns), outputStream);
                 } else {
                     logger.error("Query:{}, no columnMeta found", queryId);
                 }
             }
-            for (FileStatus f : fileStatuses) {
-                if (!f.getPath().getName().startsWith("_")) {
-                    try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
-                        IOUtils.copyLarge(inputStream, outputStream);
-                    }
-                }
+            switch (fileFormat) {
+                case "csv":
+                    processCSV(outputStream, dataPath, includeHeader, columnNames);
+                    break;
+                case "json":
+                    processJSON(outputStream, dataPath, encode);
+                    break;
+                case "xlsx":
+                    processXLSX(outputStream, dataPath, encode, includeHeader, columnNames);
+                    break;
+                default:
+                    logger.info("Query:{}, processed", queryId);
             }
         } finally {
             outputStream.close();
@@ -194,7 +226,7 @@ public class AsyncQueryService extends BasicService {
             throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
         }
         try (FSDataInputStream inputStream = fileSystem.open(dataPath);
-                InputStreamReader reader = new InputStreamReader(inputStream)) {
+             InputStreamReader reader = new InputStreamReader(inputStream)) {
             List<String> strings = IOUtils.readLines(reader);
 
             return StringUtils.join(strings, "");
@@ -220,7 +252,7 @@ public class AsyncQueryService extends BasicService {
         FileSystem fileSystem = getFileSystem();
         if (fileSystem.exists(asyncQueryResultDir)) {
             try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getUserFileName()));
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
                 return bufferedReader.readLine();
             }
         }
@@ -360,5 +392,105 @@ public class AsyncQueryService extends BasicService {
 
     public String getUserFileName() {
         return "_USER";
+    }
+
+    public String getFileInfo() {
+        return "_FILEINFO";
+    }
+
+    private String processHeader(FileSystem fileSystem, Path dataPath) throws IOException {
+
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        for (FileStatus header : fileStatuses) {
+            if (header.getPath().getName().equals(getMetaDataFileName())) {
+                try (FSDataInputStream inputStream = fileSystem.open(header.getPath());
+                     BufferedReader bufferedReader = new BufferedReader(
+                             new InputStreamReader(inputStream))) {
+                    return bufferedReader.readLine();
+                }
+            }
+        }
+        return null;
+    }
+
+    private void processCSV(OutputStream outputStream, Path dataPath,
+                            boolean includeHeader, String columnNames) throws IOException {
+        FileSystem fileSystem = getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        if (includeHeader) {
+            IOUtils.copy(IOUtils.toInputStream(columnNames), outputStream);
+        }
+
+        for (FileStatus f : fileStatuses) {
+            if (!f.getPath().getName().startsWith("_")) {
+                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
+                    IOUtils.copy(inputStream, outputStream);
+                }
+            }
+        }
+    }
+
+    private void processJSON(OutputStream outputStream, Path dataPath, String encode) throws IOException {
+        FileSystem fileSystem = getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        List<String> rowResults = Lists.newArrayList();
+        for (FileStatus f : fileStatuses) {
+            if (!f.getPath().getName().startsWith("_")) {
+                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(encode)));
+                    rowResults.addAll(Lists.newArrayList(bufferedReader.lines().collect(Collectors.toList())));
+                }
+            }
+        }
+        String json = new ObjectMapper().writeValueAsString(rowResults);
+        IOUtils.copy(IOUtils.toInputStream(json), outputStream);
+    }
+
+    private void processXLSX(OutputStream outputStream, Path dataPath, String encode,
+                             boolean includeHeader, String columnNames) throws IOException {
+        List<String[]> results = Lists.newArrayList();
+        List<String> rowResults = Lists.newArrayList();
+        FileSystem fileSystem = getFileSystem();
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        for (FileStatus f : fileStatuses) {
+            if (!f.getPath().getName().startsWith("_")) {
+                try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(encode)));
+                    rowResults.addAll(Lists.newArrayList(bufferedReader.lines().collect(Collectors.toList())));
+                }
+            }
+        }
+
+        //Apply column names
+        if (includeHeader) {
+            results.add(columnNames.split(SparderEnv.getSeparator()));
+        }
+        for (String row : rowResults) {
+            results.add(row.split(SparderEnv.getSeparator()));
+        }
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("query_result");
+
+            //Apply query result to excel table
+            for (int i = 0; i < results.size(); i++) {
+                Row row = sheet.createRow(i);
+                String[] rowValues = results.get(i);
+                for (int j = 0; j < rowValues.length; j++) {
+                    row.createCell(j).setCellValue(rowValues[j]);
+                }
+            }
+            wb.write(outputStream);
+        }
+    }
+
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FileInfo {
+        private String format;
+        private String encode;
+        private String fileName;
     }
 }

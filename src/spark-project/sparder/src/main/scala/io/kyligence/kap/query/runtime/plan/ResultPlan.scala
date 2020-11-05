@@ -146,8 +146,9 @@ object ResultPlan extends LogEx {
   }
 
   def getResult(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = withScope(df) {
-    if (QueryContext.current().getQueryTagInfo.isAsyncQuery) {
-      saveAsyncQueryResult(df)
+    val queryTagInfo = QueryContext.current().getQueryTagInfo
+    if (queryTagInfo.isAsyncQuery) {
+      saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode)
     }
     val result = if (SparderEnv.needCompute() && !QueryContext.current().getQueryTagInfo.isAsyncQuery) {
       collectInternal(df, rowType)
@@ -158,14 +159,17 @@ object ResultPlan extends LogEx {
     result
   }
 
-  def saveAsyncQueryResult(df: DataFrame): Unit = {
+  def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {
     SparderEnv.getResultRef.set(true)
     SparderEnv.setDF(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
     val queryExecutionId = UUID.randomUUID.toString
     df.sparkSession.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_EXECUTION_ID, queryExecutionId)
-    df.write.option("sep", SparderEnv.getSeparator).csv(path)
+    format match {
+      case "json" => df.write.option("encoding", encode).json(path)
+      case _ => df.write.option("sep", SparderEnv.getSeparator).option("encoding", encode).csv(path)
+    }
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
     val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
     QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)

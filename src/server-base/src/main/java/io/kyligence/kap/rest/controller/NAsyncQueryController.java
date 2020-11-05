@@ -26,20 +26,20 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -60,6 +60,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
 import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
@@ -71,6 +73,9 @@ import io.swagger.annotations.ApiOperation;
 public class NAsyncQueryController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NAsyncQueryController.class);
+
+    private static final List<String> FILE_ENCODING=Lists.newArrayList("utf-8", "gbk");
+    private static final List<String> FILE_FORMAT=Lists.newArrayList("csv", "json", "xlsx");
 
     @Autowired
     @Qualifier("kapQueryService")
@@ -88,6 +93,18 @@ public class NAsyncQueryController extends NBasicController {
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException, IOException {
         checkProjectName(sqlRequest.getProject());
+        if (!FILE_ENCODING.contains(sqlRequest.getEncode().toLowerCase())) {
+            return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
+                    new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED,
+                    "Format " + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
+                    "");
+        }
+        if (!FILE_FORMAT.contains(sqlRequest.getFormat().toLowerCase())) {
+            return new EnvelopeResponse<>(QueryErrorCode.ASYNC_QUERY_ILLEGAL_PARAM.toErrorCode().getString(),
+                    new AsyncQueryResponse(sqlRequest.getQueryId(), AsyncQueryResponse.Status.FAILED,
+                            "Format " + sqlRequest.getFormat() + " unsupported. Only " + FILE_FORMAT + " are supported"),
+                    "");
+        }
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final AtomicReference<Boolean> compileResultRef = new AtomicReference<>();
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();
@@ -95,6 +112,8 @@ public class NAsyncQueryController extends NBasicController {
         executorService.submit(new Runnable() {
             @Override
             public void run() {
+                String format = sqlRequest.getFormat().toLowerCase();
+                String encode = sqlRequest.getEncode().toLowerCase();
                 SecurityContextHolder.setContext(context);
 
                 SparderEnv.setSeparator(sqlRequest.getSeparator());
@@ -103,6 +122,8 @@ public class NAsyncQueryController extends NBasicController {
                 QueryContext queryContext = QueryContext.current();
                 sqlRequest.setQueryId(queryContext.getQueryId());
                 queryContext.getQueryTagInfo().setAsyncQuery(true);
+                queryContext.getQueryTagInfo().setFileFormat(format);
+                queryContext.getQueryTagInfo().setFileEncode(encode);
                 queryContext.setProject(sqlRequest.getProject());
                 logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
                 String queryId = queryContext.getQueryId();
@@ -116,6 +137,7 @@ public class NAsyncQueryController extends NBasicController {
                         exceptionHandle.set(response.getExceptionMessage());
                     } else {
                         asyncQueryService.saveMetaData(sqlRequest.getProject(), response, queryId);
+                        asyncQueryService.saveFileInfo(sqlRequest.getProject(), format, encode, sqlRequest.getFileName(), queryContext.getQueryId());
                     }
                     asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
                 } catch (Exception e) {
@@ -256,14 +278,13 @@ public class NAsyncQueryController extends NBasicController {
     @GetMapping(value = "/async_query/{query_id:.+}/result_download")
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
+            @RequestParam(value = "include_header", required = false, defaultValue = "false") boolean include_header,
             @RequestParam(value = "includeHeader", required = false, defaultValue = "false") boolean includeHeader,
             @Valid @RequestBody final AsyncQuerySQLRequest sqlRequest, HttpServletResponse response)
             throws IOException {
         checkProjectName(sqlRequest.getProject());
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
-        response.setContentType("text/csv;charset=utf-8");
-        response.setHeader("Content-Disposition", "attachment; filename=\"result.csv\"");
         if (!asyncQueryService.hasPermission(queryId, sqlRequest.getProject())) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
                     "Access denied. Only task submitters or admin users can download the query results");
@@ -272,7 +293,17 @@ public class NAsyncQueryController extends NBasicController {
                 || (!isAdmin() && !config.isNoneAdminUserExportAllowed()))) {
             throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
         }
-        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, includeHeader, response);
+        AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(sqlRequest.getProject(), queryId);
+        String format = fileInfo.getFormat();
+        String encode = fileInfo.getEncode();
+        String fileName = fileInfo.getFileName();
+        if (format.equals("xlsx")) {
+            response.setContentType("application/octet-stream;charset=" + encode);
+        } else {
+            response.setContentType("application/" + format + ";charset=" + encode);
+        }
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "." + format + "\"");
+        asyncQueryService.retrieveSavedQueryResult(sqlRequest.getProject(), queryId, includeHeader || include_header, response, format, encode);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -289,5 +320,4 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 asyncQueryService.asyncQueryResultPath(sqlRequest.getProject(), queryId), "");
     }
-
 }

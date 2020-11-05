@@ -53,6 +53,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.validation.FieldError;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
@@ -82,6 +83,11 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
     private boolean forcedToPushDown = false;
     private long queryStartTime;
     private String stopId;
+    private String format="csv";
+    private String encode="utf-8";
+
+    @JsonProperty("file_name")
+    private String fileName="result";
 
     private Map<String, String> backdoorToggles;
 

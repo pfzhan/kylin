@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -32,6 +33,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -40,9 +43,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Exchanger;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -79,6 +80,9 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     List<String> columnNames = Lists.newArrayList("name", "age", "city");
     List<String> dataTypes = Lists.newArrayList("varchar", "int", "varchar");
+    final String formatDefault = "csv";
+    final String encodeDefault = "utf-8";
+    final String fileNameDefault = "result";
 
     @Before
     public void setup() {
@@ -142,9 +146,88 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             }
         }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
-        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response);
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, formatDefault, encodeDefault);
 
         assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadResultIncludeHeader() throws IOException, InterruptedException {
+        SQLResponse sqlResponse = mock(SQLResponse.class);
+        when(sqlResponse.isException()).thenReturn(false);
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockMetadata(queryId);
+        mockResultFile(queryId, false);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, true, response, formatDefault, encodeDefault);
+
+        assertEquals("name,age,city\n" +
+                "a1,b1,c1\r\n" +
+                "a2,b2,c2\r\n", baos.toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadJsonResult() throws IOException, InterruptedException {
+        SQLResponse sqlResponse = mock(SQLResponse.class);
+        when(sqlResponse.isException()).thenReturn(false);
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockJsonResultFile(queryId);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "json", encodeDefault);
+
+        assertEquals("[\"{'column1':'a1', 'column2':'b1'}\",\"{'column1':'a2', 'column2':'b2'}\"]", baos.toString());
+    }
+
+    @Test
+    public void testSuccessQueryAndDownloadXlsxResult() throws IOException, InterruptedException {
+        SQLResponse sqlResponse = mock(SQLResponse.class);
+        when(sqlResponse.isException()).thenReturn(false);
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockResultFile(queryId, false);
+        assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(response.getOutputStream()).thenReturn(servletOutputStream);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                Object[] arguments = invocationOnMock.getArguments();
+                baos.write((byte[]) arguments[0], (int) arguments[1], (int) arguments[2]);
+                return null;
+            }
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
+
+        asyncQueryService.retrieveSavedQueryResult(PROJECT, queryId, false, response, "xlsx", encodeDefault);
     }
 
     @Test
@@ -376,6 +459,17 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testSaveFileInfo() throws IOException {
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        asyncQueryService.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
+        AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
+        assertEquals(fileInfo.getFormat(), formatDefault);
+        assertEquals(fileInfo.getEncode(), encodeDefault);
+        assertEquals(fileInfo.getFileName(), fileNameDefault);
+    }
+
+    @Test
     public void testGetMetadata() throws IOException, InterruptedException {
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
@@ -409,6 +503,25 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         return asyncQueryResultDir;
     }
 
+    public Path mockJsonResultFile(String queryId) throws IOException {
+
+        String row1 = "{'column1':'a1', 'column2':'b1'}\n";
+        String row2 = "{'column1':'a2', 'column2':'b2'}";
+        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
+        }
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, "m00")); //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+            osw.write(StringEscapeUtils.unescapeJson(row1));
+            osw.write(StringEscapeUtils.unescapeJson(row2));
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
+        }
+
+        return asyncQueryResultDir;
+    }
+
     public void mockMetadata(String queryId) throws IOException {
         FileSystem fileSystem = asyncQueryService.getFileSystem();
         Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
@@ -425,6 +538,38 @@ public class AysncQueryServiceTest extends ServiceTestBase {
             e.printStackTrace();
         }
 
+    }
+
+    public void mockFormat(String queryId) throws IOException {
+        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
+        }
+        try (FSDataOutputStream os = fileSystem
+                .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
+             OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+            osw.write(formatDefault);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void mockEncode(String queryId) throws IOException {
+        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(PROJECT, queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
+        }
+        try (FSDataOutputStream os = fileSystem
+                .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
+             OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+            osw.write(encodeDefault);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

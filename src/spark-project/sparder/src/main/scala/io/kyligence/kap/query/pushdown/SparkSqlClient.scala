@@ -106,8 +106,9 @@ object SparkSqlClient {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
-      if (QueryContext.current().getQueryTagInfo.isAsyncQuery) {
-        saveAsyncQueryResult(df)
+      val queryTagInfo = QueryContext.current().getQueryTagInfo
+      if (queryTagInfo.isAsyncQuery) {
+        saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode)
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
         return Pair.newPair(Lists.newArrayList(), fieldList)
       }
