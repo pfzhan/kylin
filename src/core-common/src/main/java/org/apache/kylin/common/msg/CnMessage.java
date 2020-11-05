@@ -1736,7 +1736,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADD_JOB_CHECK_FAIL() {
-        return "添加job失败，并发处理时间冲突。";
+        return "任务提交失败，相应构建对象下已有任务在运行。";
     }
 
     @Override

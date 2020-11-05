@@ -1529,7 +1529,7 @@ public class Message {
     }
 
     public String getADD_JOB_CHECK_FAIL() {
-        return "Add Job failed due to processing time conflict.";
+        return "The job failed to be submitted. There already exists building job running under the corresponding subject.";
     }
 
     public String getADD_JOB_EXCEPTION() {
