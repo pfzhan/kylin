@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.util.ArrayList;
@@ -191,6 +192,17 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
                 .param("principal", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nAccessController).revokeAcl(type, uuid, 1, "NotExist", false);
+    }
+
+    @Test
+    public void testBatchRevokeAcl() throws Exception {
+        AccessRequest accessRequest = new AccessRequest();
+        accessRequest.setSid(sid);
+        List<AccessRequest> requests = Lists.newArrayList(accessRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}/deletion", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(requests)).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nAccessController).deleteAces(type, uuid, requests);
     }
 
     @Test

@@ -186,7 +186,7 @@ public class AccessServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testBatchGrant() {
+    public void testBatchGrantAndRevoke() {
         AclEntity ae = new AclServiceTest.MockAclEntity("batch-grant");
         final Map<Sid, Permission> sidToPerm = new HashMap<>();
         for (int i = 0; i < 10; i++) {
@@ -199,6 +199,21 @@ public class AccessServiceTest extends ServiceTestBase {
         for (int i = 0; i < e.size(); i++) {
             Assert.assertEquals(new PrincipalSid("u" + i), e.get(i).getSid());
         }
+        //test batch revoke
+        List<AccessRequest> requests = Lists.newArrayList();
+        for(int i = 0; i < 10; i++) {
+            AccessRequest request = new AccessRequest();
+            request.setSid("u" + i);
+            request.setPrincipal(true);
+            requests.add(request);
+        }
+        accessService.batchRevoke(ae, requests);
+        acl = accessService.getAcl(ae);
+        e = acl.getEntries();
+        Assert.assertEquals(0, e.size());
+
+        thrown.expect(TransactionException.class);
+        accessService.batchRevoke(null, requests);
     }
 
     @Ignore

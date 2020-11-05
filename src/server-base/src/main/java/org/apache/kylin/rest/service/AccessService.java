@@ -266,6 +266,21 @@ public class AccessService extends BasicService {
         return aclService.upsertAce(acl, sid, null);
     }
 
+    @Transaction
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public void batchRevoke(AclEntity ae, List<AccessRequest> requests) {
+        Message msg = MsgPicker.getMsg();
+        if (ae == null)
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
+
+        Permission emptyPermission = BasePermission.READ;
+        Map<Sid, Permission> sid2perm = requests.stream()
+                .map(r -> new AbstractMap.SimpleEntry<>(getSid(r.getSid(), r.isPrincipal()), emptyPermission))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        sid2perm.entrySet().forEach(e -> e.setValue(null));
+        batchGrant(ae, sid2perm);
+    }
+
     /**
      * The method is not used at the moment
      */

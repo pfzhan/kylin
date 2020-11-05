@@ -281,6 +281,27 @@ public class NAccessController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
     }
 
+    @ApiOperation(value = "batch revoke Acl", notes = "")
+    @PostMapping(value = "/{entity_type:.+}/{uuid:.+}/deletion", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @ResponseBody
+    public EnvelopeResponse<Boolean> deleteAces(@PathVariable("entity_type") String entityType,
+                                                @PathVariable("uuid") String uuid,
+                                                @RequestBody List<AccessRequest> requests) throws IOException {
+        for (AccessRequest request : requests) {
+            checkSid(request);
+        }
+        List<String> users = requests.stream().filter(AccessRequest::isPrincipal).map(AccessRequest::getSid)
+                .collect(Collectors.toList());
+        accessService.checkGlobalAdmin(users);
+        AclEntity ae = accessService.getAclEntity(entityType, uuid);
+        accessService.batchRevoke(ae, requests);
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
+            requests.forEach(r -> aclTCRService.revokeAclTCR(uuid, r.getSid(), r.isPrincipal()));
+        }
+        boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
+    }
+
     private List<String> getAllUserNames() throws IOException {
         return userService.listUsers().stream().map(ManagedUser::getUsername).collect(Collectors.toList());
     }
