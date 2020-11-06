@@ -42,23 +42,16 @@
 
 package org.apache.kylin.query.util;
 
-import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
-
-import java.sql.SQLException;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.ws.rs.BadRequestException;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.exception.NoAuthorizedColsError;
+import lombok.val;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
@@ -79,11 +72,16 @@ import org.codehaus.commons.compiler.CompileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import javax.ws.rs.BadRequestException;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
@@ -128,10 +126,10 @@ public class PushDownUtil {
         // set pushdown engine in query context
         String pushdownEngine;
         // for file source
-        int sourceType = KylinConfig.getInstanceFromEnv().getManager(NProjectManager.class)
+        int sourceType = kylinConfig.getManager(NProjectManager.class)
                 .getProject(queryParams.getProject()).getSourceType();
-        if (sourceType == ISourceAware.ID_FILE) {
-            pushdownEngine = QueryContext.PUSHDOWN_FILE;
+        if (sourceType == ISourceAware.ID_SPARK && KapConfig.getInstanceFromEnv().isCloud()) {
+            pushdownEngine = QueryContext.PUSHDOWN_OBJECT_STORAGE;
         } else {
             pushdownEngine = runner.getName();
         }
@@ -206,9 +204,9 @@ public class PushDownUtil {
     /**
      * Use push down engine to select partition column
      *
-     * @param sql         sql to select partition column
-     * @param project     project name
-     * @return            query results and meta data pair
+     * @param sql     sql to select partition column
+     * @param project project name
+     * @return query results and meta data pair
      * @throws Exception
      */
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> selectPartitionColumn(String sql, String project)

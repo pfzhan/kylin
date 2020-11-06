@@ -42,6 +42,9 @@
 
 package org.apache.kylin.common;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -51,23 +54,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * Holds per query information and statistics.
  */
 public class QueryContext implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(QueryContext.class);
 
     public static final String PUSHDOWN_RDBMS = "RDBMS";
     public static final String PUSHDOWN_HIVE = "HIVE";
     public static final String PUSHDOWN_MOCKUP = "MOCKUP";
-    public static final String PUSHDOWN_FILE = "FILE";
+    public static final String PUSHDOWN_OBJECT_STORAGE = "OBJECT STORAGE";
 
     public static final long DEFAULT_NULL_SCANNED_DATA = -1L;
 
@@ -213,6 +209,7 @@ public class QueryContext implements Closeable {
 
         /**
          * update scanRows and calculate scannedRows
+         *
          * @param scanRows
          */
         public void updateAndCalScanRows(List<Long> scanRows) {
@@ -222,6 +219,7 @@ public class QueryContext implements Closeable {
 
         /**
          * update scanBytes and calculate scannedBytes
+         *
          * @param scanBytes
          */
         public void updateAndCalScanBytes(List<Long> scanBytes) {
