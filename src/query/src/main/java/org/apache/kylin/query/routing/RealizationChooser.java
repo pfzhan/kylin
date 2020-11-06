@@ -42,6 +42,7 @@
 
 package org.apache.kylin.query.routing;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,12 +50,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.val;
-import lombok.var;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -66,7 +70,9 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -100,9 +106,17 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectLoader;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.var;
 
 
 public class RealizationChooser {
@@ -114,6 +128,11 @@ public class RealizationChooser {
     private static final String INTEGER = "integer";
     private static final String BIGINT = "bigint";
 
+    private static ExecutorService selectCandidateService = new ThreadPoolExecutor(
+            KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadCoreNum(),
+            KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(10000), new NamedThreadFactory("RealizationChooserRunner"));
+
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
     private RealizationChooser() {
@@ -121,14 +140,45 @@ public class RealizationChooser {
 
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
-        // try different model for different context
-        for (OLAPContext ctx : contexts) {
-            if (ctx.isConstantQueryWithAggregations())
-                continue;
-
-            ctx.realizationCheck = new RealizationCheck();
-            attemptSelectCandidate(ctx);
-            Preconditions.checkNotNull(ctx.realization);
+        try {
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            String project = QueryContext.current().getProject();
+            // try different model for different context
+            CountDownLatch latch = new CountDownLatch(contexts.size());
+            ArrayList<Future> futureList = Lists.newArrayList();
+            for (OLAPContext ctx : contexts) {
+                Future<?> future = selectCandidateService.submit(() -> {
+                    try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
+                            .setAndUnsetThreadLocalConfig(kylinConfig)) {
+                        if (project != null) {
+                            NTableMetadataManager.getInstance(kylinConfig, project);
+                            NDataModelManager.getInstance(kylinConfig, project);
+                            NDataflowManager.getInstance(kylinConfig, project);
+                            NIndexPlanManager.getInstance(kylinConfig, project);
+                            NProjectLoader.updateCache(project);
+                        }
+                        if (!ctx.isConstantQueryWithAggregations()) {
+                            ctx.realizationCheck = new RealizationCheck();
+                            attemptSelectCandidate(ctx);
+                            Preconditions.checkNotNull(ctx.realization);
+                        }
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+                futureList.add(future);
+            }
+            latch.await();
+            for (Future future : futureList) {
+                future.get();
+            }
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof NoRealizationFoundException) {
+                throw (NoRealizationFoundException) e.getCause();
+            }
+        } catch (InterruptedException e) {
+            logger.error("select layout candidate is interrupted.", e);
+            Thread.currentThread().interrupt();
         }
     }
 

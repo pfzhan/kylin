@@ -365,6 +365,7 @@ public class QueryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         checkIfExecuteUserValid(sqlRequest);
         final QueryContext queryContext = QueryContext.current();
+        queryContext.setProject(sqlRequest.getProject());
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
             // validate queryId with UUID.fromString
             queryContext.setQueryId(UUID.fromString(sqlRequest.getQueryId()).toString());

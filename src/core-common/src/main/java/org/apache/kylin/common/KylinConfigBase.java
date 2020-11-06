@@ -1498,6 +1498,14 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.realization-filter", null);
     }
 
+    public int getQueryRealizationChooserThreadMaxNum() {
+        return Integer.parseInt(this.getOptional("kylin.query.realization.chooser.thread-max-num", "50"));
+    }
+
+    public int getQueryRealizationChooserThreadCoreNum() {
+        return Integer.parseInt(this.getOptional("kylin.query.realization.chooser.thread-core-num", "2"));
+    }
+
     /**
      * Extras calcite properties to config Calcite connection
      */

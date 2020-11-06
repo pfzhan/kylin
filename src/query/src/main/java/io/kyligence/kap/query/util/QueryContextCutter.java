@@ -103,7 +103,10 @@ public class QueryContextCutter {
             logger.debug("Context for realization matching: {}", olapContext);
         }
 
+        long selectLayoutStartTime = System.currentTimeMillis();
         RealizationChooser.selectLayoutCandidate(contexts);
+        logger.debug("select layout candidate for {} olapContext cost {} ms", contexts.size(),
+                System.currentTimeMillis() - selectLayoutStartTime);
         return contexts;
     }
 
