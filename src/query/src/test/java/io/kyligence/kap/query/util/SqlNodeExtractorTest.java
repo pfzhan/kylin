@@ -26,13 +26,26 @@ package io.kyligence.kap.query.util;
 import java.util.List;
 
 import org.apache.calcite.sql.SqlIdentifier;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
 public class SqlNodeExtractorTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() {
+        this.cleanupTestMetadata();
+    }
+
     @Test
     public void testGetAllIdentifiers() throws Exception {
         String sql = "WITH a1 AS\n" + "  (SELECT * FROM t)\n" + "SELECT b.a1\n" + "FROM\n"

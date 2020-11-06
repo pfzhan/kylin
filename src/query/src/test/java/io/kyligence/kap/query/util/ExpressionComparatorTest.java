@@ -32,6 +32,8 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.ColumnRowType;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.BiMap;
@@ -39,10 +41,21 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
-public class ExpressionComparatorTest {
+public class ExpressionComparatorTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testBasicEqual() throws SqlParseException {

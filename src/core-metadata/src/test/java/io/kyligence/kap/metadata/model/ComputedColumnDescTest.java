@@ -27,16 +27,30 @@ package io.kyligence.kap.metadata.model;
 import java.util.Set;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Sets;
 
-public class ComputedColumnDescTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class ComputedColumnDescTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    @Before
+    public void setUp() {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void simpleParserCheckTestSuccess1() {

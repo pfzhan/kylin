@@ -54,17 +54,31 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.base.Preconditions;
 
-public class CalciteParserTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class CalciteParserTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
+
+    @Before
+    public void setUp() {
+       this.createTestMetadata();
+    }
+
+    @After
+    public void after() {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testNoTableNameExists() throws SqlParseException {

@@ -97,6 +97,29 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Test
+    public void testAliasLengthMaxThanConfig() {
+        //To check if the config kylin.model.dimension-measure-name.max-length worked for SqlParser
+        List<String> sqls = Lists.newArrayList("select A.a as AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA from A");
+
+        List<String> expectedFormattedSqls = Lists.newArrayList("SELECT\n" +
+                "  \"A\".\"A\" AS \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
+                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"\n" +
+                "FROM \"A\"");
+
+        val formated = kapQueryService.format(sqls);
+
+        Assert.assertEquals(sqls.size(), formated.size());
+        for (int n = 0; n < sqls.size(); n++) {
+            Assert.assertEquals(expectedFormattedSqls.get(n), formated.get(n));
+        }
+    }
+
     private long GetCounterCount(MetricsName name, MetricsCategory category, String entity, Map<String, String> tags) {
         val counter = MetricsGroup.getCounter(name, category, entity, tags);
         return counter == null ? 0 : counter.getCount();

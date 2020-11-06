@@ -54,10 +54,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.calcite.KEDialect;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -77,6 +77,7 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+
 import lombok.val;
 
 @Component("kapQueryService")
@@ -204,7 +205,7 @@ public class KapQueryService extends QueryService {
         }
         return pairs.parallelStream().map(pair -> {
             try {
-                val node = SqlParser.create(pair.getSecond()).parseQuery();
+                val node = CalciteParser.parse(pair.getSecond());
                 val writer = new SqlPrettyWriter(KEDialect.DEFAULT);
                 writer.setIndentation(2);
                 writer.setSelectListExtraIndentFlag(true);

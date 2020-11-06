@@ -58,6 +58,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
@@ -72,7 +73,9 @@ public class CalciteParser {
     private static final String SQL_SUFFIX = " from t";
 
     public static SqlNode parse(String sql) throws SqlParseException {
-        SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder()
+                .setIdentifierMaxLength(kylinConfig.getMaxModelDimensionMeasureNameLength());
         SqlParser sqlParser = SqlParser.create(sql, parserBuilder.build());
         return sqlParser.parseQuery();
     }

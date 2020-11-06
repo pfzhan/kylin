@@ -45,11 +45,25 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class QueryPatternUtilTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class QueryPatternUtilTest extends NLocalFileMetadataTestCase {
     private static final String SQL_DIR = "../query/src/test/resources/query_pattern";
+
+    @Before
+    public void setUp() {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testJdbcFn() {

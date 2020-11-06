@@ -26,10 +26,24 @@ package org.apache.kylin.source.adhocquery;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-public class DoubleQuotePushDownConverterTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class DoubleQuotePushDownConverterTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testConvertDoubleQuoteSuccess() {
