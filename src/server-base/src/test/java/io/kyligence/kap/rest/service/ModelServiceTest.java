@@ -1400,8 +1400,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.displayIdName()));
+        thrown.expectMessage(
+                String.format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
+                        dataSegment1.displayIdName()));
         modelService.mergeSegmentsManually(
                 new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
@@ -3112,9 +3113,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
         thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction(String.format(
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
-                dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
+        thrown.expectMessageInTransaction(String
+                .format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataflowManager
+                        .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).displayIdName()));
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
 
@@ -3143,7 +3144,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         } catch (TransactionException exception) {
             Assert.assertTrue(exception.getCause() instanceof KylinException);
-            Assert.assertEquals("Add Job failed due to processing time conflict", exception.getCause().getMessage());
+            Assert.assertEquals(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL(), exception.getCause().getMessage());
         }
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(2, executables.size());

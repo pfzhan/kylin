@@ -31,6 +31,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
@@ -162,7 +163,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
 
         relatedSegments.remove(0);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Add Job failed due to processing time conflict");
+        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         jobManager.addRelatedIndexJob(new JobParam(relatedSegments, targetLayouts, MODEL_ID, "ADMIN"));
     }
 
@@ -190,7 +191,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(19, getProcessLayout(executables.get(1)));
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Add Job failed due to processing time conflict");
+        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
     }
 
@@ -208,7 +209,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executables.size());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Add Job failed due to processing time conflict");
+        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         jobManager.refreshSegmentJob(new JobParam(seg, MODEL_ID, "ADMIN"));
     }
 
@@ -300,7 +301,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(1, executables.size());
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Add Job failed due to processing time conflict");
+        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         jobManager.mergeSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
@@ -362,7 +363,7 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executables.size());
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Add Job failed due to processing time conflict");
+        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
