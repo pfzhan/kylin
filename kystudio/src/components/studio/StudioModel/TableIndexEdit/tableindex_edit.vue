@@ -49,7 +49,7 @@
                     </div> -->
                     <template  v-if="col.isUsed">
                       <el-tooltip :content="$t('moveTop')" effect="dark" placement="top">
-                        <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0}]" @click="topRow(col)"></span>
+                        <span :class="['icon', 'el-icon-ksd-move_to_top', {'is-disabled': index === 0 && !searchColumn}]" @click="topRow(col)"></span>
                       </el-tooltip>
                       <el-tooltip :content="$t('moveUp')" effect="dark" placement="top">
                         <span :class="['icon', 'el-icon-ksd-move_up', {'is-disabled': index === 0}]" @click="upRow(col)"></span>
